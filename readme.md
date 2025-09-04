@@ -9,3 +9,4 @@ Team Owala
 7. Cello Tan (Design Lead/Artist)
 8. Goh Jia Hui (Art Lead)
 9. Lim Yi Xuan (Artist)
+
