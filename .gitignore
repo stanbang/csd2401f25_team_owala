@@ -14,3 +14,5 @@
 /Engine/out/build/x64-Debug
 /Engine/build/x64/Debug
 /Engine/out/build/x64-Debug
+*.vcxproj
+*.vcxproj.filters
