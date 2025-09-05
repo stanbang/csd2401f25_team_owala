@@ -1,0 +1,16 @@
+/Engine/build/.vs
+*.vcxproj
+*.filters
+*.user
+Engine/build/CMakeCache.txt
+Engine/build/cmake_install.cmake
+/Engine/build/CMakeFiles
+/Engine/build
+/Engine/lib/dpml
+/Engine/lib/gleq
+/Engine/lib/glew
+/Engine/lib/glfw-event-recorder
+/Engine/lib/glfw
+/Engine/lib/glm
+/Engine/lib/lodepng
+/Engine/lib/tinyobjloader
