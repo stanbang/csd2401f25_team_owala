@@ -1,0 +1,6 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-4.1/Modules/FindOpenGL.cmake
+C:/Program Files/CMake/share/cmake-4.1/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-4.1/Modules/FindPackageMessage.cmake
+F:/Github Repositories/csd2401f25_team_owala/Engine/lib/glew/CMakeLists.txt
+F:/Github Repositories/csd2401f25_team_owala/Engine/lib/glew/GeneratePkgConfig.cmake
