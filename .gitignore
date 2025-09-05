@@ -20,3 +20,5 @@ Engine/build/cmake_install.cmake
 /Engine/build/owala.dir/Debug
 /Engine/build/x64
 Engine/build/test_fs_support_case_sensitivity
+Engine/build/CMakeDoxyfile.in
+Engine/build/CMakeDoxygenDefaults.cmake
