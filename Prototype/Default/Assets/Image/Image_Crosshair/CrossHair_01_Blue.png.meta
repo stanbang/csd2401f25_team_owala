@@ -134,7 +134,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      CrossHair_01_Blue_0: 1571647679404753364
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
