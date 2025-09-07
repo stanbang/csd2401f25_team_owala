@@ -111,11 +111,11 @@ public class Player : MonoBehaviour
         }
 
         // Example input checks → assign action
-        if (Input.GetKeyDown("e") && !m_rolling)
-            action = PlayerAction.Death;
-        else if (Input.GetKeyDown("q") && !m_rolling)
-            action = PlayerAction.Hurt;
-        else if (Input.GetMouseButtonDown(0) && m_timeSinceAttack > 0.25f && !m_rolling)
+        //if (Input.GetKeyDown("e") && !m_rolling)
+        //    action = PlayerAction.Death;
+        //else if (Input.GetKeyDown("q") && !m_rolling)
+        //    action = PlayerAction.Hurt;
+        if (Input.GetMouseButtonDown(0) && m_timeSinceAttack > 0.25f && !m_rolling)
             action = PlayerAction.Attack;
         else if (Input.GetMouseButtonDown(1) && !m_rolling)
             action = PlayerAction.Block;

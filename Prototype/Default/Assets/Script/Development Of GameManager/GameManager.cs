@@ -1,7 +1,16 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml.Serialization;
 using UnityEngine;
 
 public class GameManager : SimpleSingleton<GameManager>
 {
+    [Header("Player Data: ")]
+    [SerializeField]
+    private Player player01;
+    public Player CurrentPlayer { private set; get; }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -12,5 +21,18 @@ public class GameManager : SimpleSingleton<GameManager>
     void Update()
     {
         
+    }
+
+    public void spawnPlayerOnce(Vector3 PlayersNewSpawnPosition)
+    {
+        // Spawn the player once when entering a Level.
+
+        Vector3 playerPos = PlayersNewSpawnPosition;
+
+        var obj = Instantiate(player01, playerPos, Quaternion.identity);
+        if (obj.TryGetComponent(out Player player))
+        {
+            CurrentPlayer = player;
+        }
     }
 }

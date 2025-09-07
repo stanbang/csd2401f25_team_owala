@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class SceneStub : MonoBehaviour
 {
-    public GameObject GameManagerPrefab;   
-    
+    public GameObject GameManagerPrefab;
+
     // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
         if (GameManager.Instance == null)
         {
