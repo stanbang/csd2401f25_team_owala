@@ -1,64 +1,22 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <cstdio>
-#include <iostream>
-#include "Entity.hpp"
+#include "Core.h"
+#include "WindowsSystem.h"
+#include "Graphics.h"
 
-int main(void)
-{
-    GLFWwindow* window;
+int main() {
+	Framework::CoreEngine engine;
 
-    // Initialize the GLFW library
-    if (!glfwInit())
-    {
-        std::cerr << "Failed to initialize GLFW!" << std::endl;
-        return -1;
-    }
+	// ---- pick ONE of the two AddSystem patterns below ----
+	// (A) If Core.h has RAW-POINTER AddSystem(ISystem*)
+	auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
+	engine.AddSystem(win);
+	engine.AddSystem(new Framework::Graphics(*win));
 
-    // Set OpenGL version to 4.5 Core Profile, just like in your tutorial
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	// (B) If Core.h has TEMPLATE AddSystem<T>(...)
+	// auto* win = engine.AddSystem<Framework::WindowsSystem>(engine, "Owala", 800, 600);
+	// engine.AddSystem<Framework::Graphics>(*win);
 
-
-    // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(800, 600, "Owala", NULL, NULL);
-    if (!window)
-    {
-        std::cerr << "Failed to create GLFW window!" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    // Make the window's context current
-    glfwMakeContextCurrent(window);
-
-    // Initialize GLEW
-    glewExperimental = GL_TRUE; // Needed for core profile
-    if (glewInit() != GLEW_OK) {
-        std::cerr << "Failed to initialize GLEW!" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    // Print the OpenGL version for confirmation
-    std::cout << "Using OpenGL version: " << glGetString(GL_VERSION) << std::endl;
-
-    // Loop until the user closes the window
-    while (!glfwWindowShouldClose(window))
-    {
-        // Render here
-        glClearColor(0.2f, 0.3f, 0.8f, 1.0f); // A nice blue color
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // Swap front and back buffers
-        glfwSwapBuffers(window);
-
-        // Poll for and process events
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
-    return 0;
+	engine.Initialize();
+	engine.GameLoop();
+	engine.DestroySystems();
+	return 0;
 }
