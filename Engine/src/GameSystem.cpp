@@ -1,6 +1,7 @@
 // src/Framework/GameSystem.cpp
 #include "GameSystem.h"
 #include "Graphics.h"
+#include "Movement.h"
 #include <cmath>
 
 namespace Framework {
@@ -18,6 +19,7 @@ namespace Framework {
 		//Vec2 a{ -0.5f, -0.4f }, b{ 0.5f, -0.4f }, c{ 0.0f,  0.6f + wiggle };
 		//gfx_->drawTriangle(a, b, c, { 1, 0.2f, 0.2f, 1 });
 
+		UpdateMovement(dt);
 
 		// Background
 		gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
