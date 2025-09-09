@@ -1,19 +1,18 @@
 #include "Core.h"
 #include "WindowsSystem.h"
 #include "Graphics.h"
+#include "GameSystem.h"
 
 int main() {
 	Framework::CoreEngine engine;
 
-	// ---- pick ONE of the two AddSystem patterns below ----
-	// (A) If Core.h has RAW-POINTER AddSystem(ISystem*)
 	auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
-	engine.AddSystem(win);
-	engine.AddSystem(new Framework::Graphics(*win));
+	engine.AddSystem(win);                         // window + GL context
 
-	// (B) If Core.h has TEMPLATE AddSystem<T>(...)
-	// auto* win = engine.AddSystem<Framework::WindowsSystem>(engine, "Owala", 800, 600);
-	// engine.AddSystem<Framework::Graphics>(*win);
+	auto* gfx = new Framework::Graphics(*win);
+	engine.AddSystem(gfx);                         // renderer
+
+	engine.AddSystem(new Framework::GameSystem(engine, *gfx)); // your team’s code
 
 	engine.Initialize();
 	engine.GameLoop();

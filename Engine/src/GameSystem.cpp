@@ -1,0 +1,33 @@
+// src/Framework/GameSystem.cpp
+#include "GameSystem.h"
+#include "Graphics.h"
+#include <cmath>
+
+namespace Framework {
+	void GameSystem::Update(float dt) {
+		t_ += dt;
+
+		//// Tell renderer we’re starting the frame and choose a background
+		//gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
+
+		//// Example: draw one animated triangle (frontend code only!)
+		//float wiggle = 0.25f * std::sin(t_ * 2.0f);
+		//Vec2 a{ -0.5f, -0.4f }, b{ 0.5f, -0.4f }, c{ 0.0f,  0.6f + wiggle };
+		//gfx_->drawTriangle(a, b, c, { 1, 0.2f, 0.2f, 1 });
+
+
+		// Background
+		gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
+
+		// NDC coords: X,Y in [-1, 1] (left=-1, right=1, bottom=-1, top=1)
+
+		// Left triangle (red)
+		gfx_->drawTriangle({ -0.8f,-0.2f }, { -0.2f,-0.2f }, { -0.5f, 0.4f }, { 1,0,0,1 });
+
+		// Right triangle (green)
+		gfx_->drawTriangle({ 0.2f,-0.2f }, { 0.8f,-0.2f }, { 0.5f, 0.4f }, { 0,1,0,1 });
+
+		// Bottom triangle (blue)
+		gfx_->drawTriangle({ -0.3f,-0.8f }, { 0.3f,-0.8f }, { 0.0f,-0.2f }, { 0,0,1,1 });
+	}
+} // namespace Framework
