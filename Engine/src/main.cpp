@@ -1,70 +1,32 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <cstdio>
-#include <iostream>
-#include "Player.hpp"
-#include <EntityStorage.hpp>
+#include "Core.h"
+#include "WindowsSystem.h"
+#include "Graphics.h"
+#include "GameSystem.h"
 
-int main(void)
-{
-	Entity player = createPlayer(5.0f, 20.0f);
-	std::cout << "Player entity created with ID: " 
-        << player << " at " << position[player].x
-        << ", " << position[player].y << std::endl ;
+int main() {
+	Framework::CoreEngine engine;
 
-    GLFWwindow* window;
+	auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
+	engine.AddSystem(win);                         // window + GL context
 
-    // Initialize the GLFW library
-    if (!glfwInit())
-    {
-        std::cerr << "Failed to initialize GLFW!" << std::endl;
-        return -1;
-    }
+	auto* gfx = new Framework::Graphics(*win);
+	engine.AddSystem(gfx);                         // renderer
 
-    // Set OpenGL version to 4.5 Core Profile, just like in your tutorial
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	engine.AddSystem(new Framework::GameSystem(engine, *gfx)); // your team�s code
 
-
-    // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(800, 600, "Owala", NULL, NULL);
-    if (!window)
-    {
-        std::cerr << "Failed to create GLFW window!" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    // Make the window's context current
-    glfwMakeContextCurrent(window);
-
-    // Initialize GLEW
-    glewExperimental = GL_TRUE; // Needed for core profile
-    if (glewInit() != GLEW_OK) {
-        std::cerr << "Failed to initialize GLEW!" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    // Print the OpenGL version for confirmation
-    std::cout << "Using OpenGL version: " << glGetString(GL_VERSION) << std::endl;
-
-    // Loop until the user closes the window
-    while (!glfwWindowShouldClose(window))
-    {
-        // Render here
-        glClearColor(0.2f, 0.3f, 0.8f, 1.0f); // A nice blue color
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // Swap front and back buffers
-        glfwSwapBuffers(window);
-
-        // Poll for and process events
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
-    return 0;
+	engine.Initialize();
+	engine.GameLoop();
+	engine.DestroySystems();
+	return 0;
 }
+/* ISystem exists to give your engine a single, simple contract that every subsystem 
+follows�Initialize(), Update(dt), and Shutdown()�so the core loop can treat all parts 
+(windowing, graphics, input, physics, gameplay, audio) uniformly without knowing their details. 
+By storing a list of ISystem*, the CoreEngine can iterate and call the same three methods on each
+system (polymorphism), which cleanly decouples what the systems do from when they run. 
+This makes the architecture plug-and-play: you can add, remove, or reorder systems without
+changing the core, control execution order by the add sequence, and keep each system responsible
+for its own resources and lifecycle. It also improves testability and teamwork�frontend/gameplay
+folks can write a GameSystem that only calls high-level APIs (like drawTriangle) while backend
+folks evolve Graphics or Physics behind the same interface�so the engine stays modular, 
+predictable, and easy to extend.*/
