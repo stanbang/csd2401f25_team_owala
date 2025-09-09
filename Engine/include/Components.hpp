@@ -6,6 +6,7 @@
  * \author Ng Jing Wen
  * \date   9 September 2025
  *********************************************************************/
+#pragma once
 
 /*	Position component to store x and y 
 	coordinates of an entity.*/

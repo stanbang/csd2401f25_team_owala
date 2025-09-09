@@ -2,10 +2,16 @@
 #include <GLFW/glfw3.h>
 #include <cstdio>
 #include <iostream>
-#include "Entity.hpp"
+#include "Player.hpp"
+#include <EntityStorage.hpp>
 
 int main(void)
 {
+	Entity player = createPlayer(5.0f, 20.0f);
+	std::cout << "Player entity created with ID: " 
+        << player << " at " << position[player].x
+        << ", " << position[player].y << std::endl ;
+
     GLFWwindow* window;
 
     // Initialize the GLFW library
