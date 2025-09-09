@@ -4,6 +4,9 @@
 #include <cmath>
 
 namespace Framework {
+
+	void Initialize() {}   // no-op for now
+
 	void GameSystem::Update(float dt) {
 		t_ += dt;
 
@@ -30,4 +33,8 @@ namespace Framework {
 		// Bottom triangle (blue)
 		gfx_->drawTriangle({ -0.3f,-0.8f }, { 0.3f,-0.8f }, { 0.0f,-0.2f }, { 0,0,1,1 });
 	}
+
+
+	void Shutdown() {}   // no-op for now
+
 } // namespace Framework
