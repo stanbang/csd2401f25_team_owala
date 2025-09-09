@@ -21,6 +21,7 @@ public class Player : MonoBehaviour
 
     public static Player Instance;
 
+
     [SerializeField] float m_speed = 4.0f;
     [SerializeField] float m_jumpForce = 7.5f;
     [SerializeField] float m_rollForce = 6.0f;
@@ -29,6 +30,7 @@ public class Player : MonoBehaviour
 
     [SerializeField] private int maxHealthPoint = 100;
     [SerializeField] private int maxManaPoint = 100;
+
     public int MaxHealthPoint
     {
         get { return maxHealthPoint; }
@@ -46,8 +48,8 @@ public class Player : MonoBehaviour
         }
     }
 
-    private int healthPoint;
-    private int manaPoint;
+    public int healthPoint;
+    public int manaPoint;
 
     private SpriteRenderer sp;
     private Animator m_animator;

@@ -32,20 +32,6 @@ public class CameraFollow : MonoBehaviour
 
     private void Update()
     {
-        //if (target == null) return;
-
-        //// Calculate desired XY position
-        //targetPos = target.position + offset;
-
-        //// Keep camera’s current Z
-        //targetPos.z = transform.position.z;
-
-        //// Smoothly move X and Y toward target, but keep Z current
-        //float newX = Mathf.Lerp(transform.position.x, target.position.x + offset.x, lerpSpeed * Time.deltaTime);
-        //float newY = Mathf.Lerp(transform.position.y, target.position.y + offset.y, lerpSpeed * Time.deltaTime);
-
-        //transform.position = new Vector3(newX, newY, transform.position.z);
-
         if (!bound || target == null) return;
 
         // Desired target position (use offset if you want a shift)
