@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <cstdio>
 #include <iostream>
+#include "Entity.hpp"
 
 int main(void)
 {

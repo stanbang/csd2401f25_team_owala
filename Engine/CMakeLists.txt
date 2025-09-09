@@ -20,7 +20,11 @@ add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 file(GLOB_RECURSE ENGINE_HEADERS CONFIGURE_DEPENDS src/*.h)
 
-add_executable(${PROJECT_NAME} ${ENGINE_SOURCES} ${ENGINE_HEADERS})
+
+# Gather headers from include folder
+file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS include/*.h include/*.hpp)
+
+add_executable(${PROJECT_NAME} ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${PROJECT_HEADERS})
 
 # Link Libraries
 target_link_libraries(${PROJECT_NAME}
@@ -47,3 +51,8 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
   PREFIX "Engine" 
   FILES ${ENGINE_SOURCES} ${ENGINE_HEADERS}
 )
+
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+             PREFIX "Headers"
+             FILES ${PROJECT_HEADERS})
