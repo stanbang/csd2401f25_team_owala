@@ -22,3 +22,5 @@ Engine/build/cmake_install.cmake
 Engine/build/test_fs_support_case_sensitivity
 Engine/build/CMakeDoxyfile.in
 Engine/build/CMakeDoxygenDefaults.cmake
+*.sln
+
