@@ -30,6 +30,12 @@ struct Acceleration {
 };
 
 
+/* TAG SECTION */
+/* Used for ID-ing an entity */
+struct PlayerTag {};
+struct PlatformTag {};
+struct EnemyTag {};
+
 
 
 

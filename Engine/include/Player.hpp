@@ -24,6 +24,7 @@ Entity createPlayer(float startXPos = 0.0f, float startYPos = 0.0f){
 
 	/*Assign components to the player entity, and 
 	set initial values in the unordered maps.*/
+	playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
 	position[player] = Position{ startXPos, startYPos }; //Start at 0,0 coordinates
 	velocity[player] = Velocity{ 0.0f, 0.0f }; //Start with no velocity
 

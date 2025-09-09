@@ -2,10 +2,13 @@
 #include "GameSystem.h"
 #include "Graphics.h"
 #include <cmath>
+#include "Player.hpp"
 
 namespace Framework {
 
-	void Initialize() {}   // no-op for now
+	void Initialize() {
+		
+	}   // no-op for now
 
 	void GameSystem::Update(float dt) {
 		t_ += dt;
