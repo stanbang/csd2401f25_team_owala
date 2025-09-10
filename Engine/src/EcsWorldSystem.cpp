@@ -2,19 +2,32 @@
 
 namespace Framework {
 
-    EcsWorldSystem::Entity
-        EcsWorldSystem::createEntity(const Vec2& pos,
-            const Vec2& a, const Vec2& b, const Vec2& c,
-            const Color& color,
-            bool player)
-    {
-        Record r;
-        r.pos = { pos.x, pos.y };
-        r.tri = Triangle{ a, b, c, color };
-        r.player = player;
+    Entity EcsWorldSystem::createEntity(const std::string& n) {
+        Entity e = nextId_++;
+        if (!n.empty()) name[e] = Name{ n };
+        return e;
+    }
 
-        entities_.push_back(r);
-        return entities_.size() - 1; // id is the index
+    Entity EcsWorldSystem::createPlayer(const std::string& n,
+        const Triangle& tri,
+        float x, float y,
+        float vx, float vy) {
+        Entity e = createEntity(n);
+        playerTag[e] = PlayerTag{};         // tag decides component set
+        position[e] = { x, y };
+        velocity[e] = { vx, vy };          // players move
+        triangle[e] = tri;                 // renderable
+        return e;
+    }
+
+    Entity EcsWorldSystem::createPlatform(const std::string& n,
+        const Triangle& tri,
+        float x, float y) {
+        Entity e = createEntity(n);
+        platformTag[e] = PlatformTag{};     // static geometry (no velocity)
+        position[e] = { x, y };
+        triangle[e] = tri;
+        return e;
     }
 
 } // namespace Framework
