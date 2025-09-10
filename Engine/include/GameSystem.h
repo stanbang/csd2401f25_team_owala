@@ -1,18 +1,31 @@
-// include/Framework/GameSystem.h
 #pragma once
 #include "ISystem.h"
-namespace Framework { class CoreEngine; class Graphics; }
+#include "EcsWorldSystem.h"  // for Entity + simple ECS
 
 namespace Framework {
-	class GameSystem : public ISystem {
-	public:
-		GameSystem(CoreEngine& core, Graphics& gfx) : core_(&core), gfx_(&gfx) {}
-		void Initialize() override {}
-		void Update(float dt) override;
-		void Shutdown() override {}
-	private:
-		CoreEngine* core_ = nullptr;
-		Graphics* gfx_ = nullptr;
-		float t_ = 0.f;
-	};
+
+    class Graphics;
+    class WindowsSystem;
+
+    // Gameplay system: spawns one controllable triangle, moves it with WASD,
+    // and draws all entities each frame.
+    class GameSystem : public ISystem {
+    public:
+        GameSystem(EcsWorldSystem& ecs, Graphics& gfx, WindowsSystem& win)
+            : ecs_(&ecs), gfx_(&gfx), win_(&win) {
+        }
+
+        void Initialize() override;     // calls ecs_->createEntity(...)
+        void Update(float dt) override; // input + move + draw
+        void Shutdown() override {}     // nothing owned
+
+    private:
+        EcsWorldSystem* ecs_ = nullptr;
+        Graphics* gfx_ = nullptr;
+        WindowsSystem* win_ = nullptr;
+
+        // id from ecs_->createEntity(...) for the controllable triangle
+        EcsWorldSystem::Entity player_{ static_cast<EcsWorldSystem::Entity>(-1) };
+    };
+
 } // namespace Framework
