@@ -68,7 +68,7 @@ namespace Framework {
             );
         }
     }
-    void GameSystem::Shutdown(){}     // nothing  for now
+    //void GameSystem::Shutdown(){}     // nothing  for now
 } // namespace Framework
 
 
