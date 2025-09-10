@@ -1,18 +1,28 @@
-// include/Framework/GameSystem.h
 #pragma once
 #include "ISystem.h"
-namespace Framework { class CoreEngine; class Graphics; }
+#include "EntityStorage.h"
 
 namespace Framework {
-	class GameSystem : public ISystem {
-	public:
-		GameSystem(CoreEngine& core, Graphics& gfx) : core_(&core), gfx_(&gfx) {}
-		void Initialize() override {}
-		void Update(float dt) override;
-		void Shutdown() override {}
-	private:
-		CoreEngine* core_ = nullptr;
-		Graphics* gfx_ = nullptr;
-		float t_ = 0.f;
-	};
+
+    class Graphics;
+    class WindowsSystem;
+
+    class GameSystem : public ISystem {
+    public:
+        GameSystem(EntityStorage& ecs, Graphics& gfx, WindowsSystem& win)
+            : ecs_(&ecs), gfx_(&gfx), win_(&win) {
+        }
+
+        void Initialize() override;     // spawn player/platform via tag-aware creators
+        void Update(float dt) override; // WASD for player + draw all triangles
+        void Shutdown() override {}     // nothing owned
+
+    private:
+        EntityStorage* ecs_ = nullptr;
+        Graphics* gfx_ = nullptr;
+        WindowsSystem* win_ = nullptr;
+
+        Entity          player_{ 0 };
+    };
+
 } // namespace Framework
