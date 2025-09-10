@@ -12,7 +12,8 @@ int main() {
 	auto* gfx = new Framework::Graphics(*win);
 	engine.AddSystem(gfx);                         // renderer
 
-	engine.AddSystem(new Framework::GameSystem(engine, *gfx)); // your team�s code
+	auto* GameSys = new Framework::GameSystem(engine, *gfx);
+	engine.AddSystem(GameSys); // your team�s code
 
 	engine.Initialize();
 	engine.GameLoop();
