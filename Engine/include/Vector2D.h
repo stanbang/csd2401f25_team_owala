@@ -15,6 +15,13 @@ struct Vector2D {
         return Vector2D(x + other.x, y + other.y);
     }
 
+    // Vector addition assignment
+    Vector2D& operator+=(const Vector2D& other) {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+
     // Vector subtraction
     Vector2D operator-(const Vector2D& other) const {
         return Vector2D(x - other.x, y - other.y);
