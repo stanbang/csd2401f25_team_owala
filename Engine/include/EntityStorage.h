@@ -1,8 +1,7 @@
 #pragma once
-#include "Entity.hpp"
-#include "Components.hpp"
+#include "Entity.h"
+#include "Components.h"
 #include <unordered_map> //For a hash map to store entity-component pairs
-
 
 /*	Hash maps to store key-value pairs of entity IDs 
 	and their respective components. 
@@ -18,14 +17,16 @@
 	Entity player = createEntity()
 	positions[player] = Position{0,0} // Start at 0,0 coordinates
 	*/
+namespace Framework {
+	class EntityStorage{
+	public:
+		std::unordered_map<Entity, PlayerTag>    playerTag;
+		std::unordered_map<Entity, PlatformTag>  platformTag;
+		std::unordered_map<Entity, EnemyTag>     enemyTag;
 
-class EntityStorage {
-public:
-	std::unordered_map<Entity, PlayerTag> playerTag;
-	std::unordered_map<Entity, PlatformTag> platformTag;
-	std::unordered_map<Entity, EnemyTag> enemyTag;
-
-	std::unordered_map<Entity, Position> position;
-	std::unordered_map<Entity, Velocity> velocity;
-	std::unordered_map<Entity, Acceleration> acceleration;
-};
+		std::unordered_map<Entity, Position>     position;
+		std::unordered_map<Entity, Velocity>     velocity;
+		std::unordered_map<Entity, Acceleration> acceleration;
+		std::unordered_map<Entity, Triangle>     triangle;
+	};
+}

@@ -1,4 +1,4 @@
-#include "Entity.hpp"
+#include "Entity.h"
 
 Entity nextEntityID = 0;
 

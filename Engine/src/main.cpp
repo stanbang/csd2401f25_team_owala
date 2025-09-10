@@ -1,8 +1,9 @@
 #include "Core.h"
 #include "WindowsSystem.h"
 #include "Graphics.h"
-#include "EcsWorldSystem.h"
+#include "EntityStorage.h"
 #include "GameSystem.h"
+#include "PlayerSystem.h"
 
 int main() {
 	Framework::CoreEngine engine;
@@ -12,12 +13,14 @@ int main() {
 	engine.AddSystem(win);
 
 	// 2) ECS
-	auto* ecs = new Framework::EcsWorldSystem();
-	engine.AddSystem(ecs);
+	auto* ecs = new Framework::EntityStorage();
 
 	// 3) Gameplay (spawns + input + issues draw calls)
 	auto* gfx = new Framework::Graphics(*win);
 	engine.AddSystem(new Framework::GameSystem(*ecs, *gfx, *win));
+
+	auto* playerSys = new Framework::PlayerSystem(*ecs);
+	engine.AddSystem(playerSys);
 
 	// 4) Graphics last (does buffer swap after GameSystem drew)
 	engine.AddSystem(gfx);

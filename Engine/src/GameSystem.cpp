@@ -1,27 +1,29 @@
 #include "GameSystem.h"
-#include "EcsWorldSystem.h"
 #include "Graphics.h"
 #include "WindowsSystem.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <cmath>
+#include "Player.h"
+#include "EntityStorage.h"
 
 namespace Framework {
 
     void GameSystem::Initialize() {
+
         // Player: tag + Position + Velocity + Triangle
         Triangle ptri{
             {-0.12f, -0.08f}, { 0.12f, -0.08f}, { 0.00f, 0.16f},
             { 1.0f, 0.35f, 0.25f, 1.0f }
         };
-        player_ = ecs_->createPlayer("Player", ptri, /*x,y*/ 0.f, 0.f, /*vx,vy*/ 0.f, 0.f);
+        player_ = createPlayer(*ecs_, ptri, /*x,y*/ 0.f, 0.f);
 
         // Platform: tag + Position + Triangle (no Velocity)
         Triangle tri2{
             {-0.10f, -0.06f}, { 0.10f, -0.06f}, { 0.00f, 0.14f},
             { 0.2f, 0.8f, 1.0f, 1.0f }
         };
-        (void)ecs_->createPlatform("Platform", tri2, /*x,y*/ 0.55f, -0.2f);
+        //(void)ecs_->createPlatform("Platform", tri2, /*x,y*/ 0.55f, -0.2f);
     }
 
     void GameSystem::Update(float dt) {
@@ -41,7 +43,7 @@ namespace Framework {
         dx *= speed * dt; dy *= speed * dt;
 
         // --- Move the player with clamping based on its triangle extents ---
-        auto pit = ecs_->position.find(player_);
+        /*auto pit = ecs_->position.find(player_);
         if (pit != ecs_->position.end()) {
             auto& p = pit->second;
 
@@ -55,7 +57,7 @@ namespace Framework {
 
             p.x = std::clamp(p.x + dx, -1.0f + hx, 1.0f - hx);
             p.y = std::clamp(p.y + dy, -1.0f + hy, 1.0f - hy);
-        }
+        }*/
 
         // --- Render: all entities with (Position + Triangle) ---
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });

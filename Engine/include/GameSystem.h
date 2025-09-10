@@ -1,6 +1,6 @@
 #pragma once
 #include "ISystem.h"
-#include "EcsWorldSystem.h"
+#include "EntityStorage.h"
 
 namespace Framework {
 
@@ -9,7 +9,7 @@ namespace Framework {
 
     class GameSystem : public ISystem {
     public:
-        GameSystem(EcsWorldSystem& ecs, Graphics& gfx, WindowsSystem& win)
+        GameSystem(EntityStorage& ecs, Graphics& gfx, WindowsSystem& win)
             : ecs_(&ecs), gfx_(&gfx), win_(&win) {
         }
 
@@ -18,7 +18,7 @@ namespace Framework {
         void Shutdown() override {}     // nothing owned
 
     private:
-        EcsWorldSystem* ecs_ = nullptr;
+        EntityStorage* ecs_ = nullptr;
         Graphics* gfx_ = nullptr;
         WindowsSystem* win_ = nullptr;
 

@@ -8,7 +8,7 @@
  *********************************************************************/
 #pragma once
 #include "ISystem.h"
-#include "EntityStorage.hpp"
+#include "EntityStorage.h"
 
 namespace Framework {
 	class PlayerSystem : public ISystem {
