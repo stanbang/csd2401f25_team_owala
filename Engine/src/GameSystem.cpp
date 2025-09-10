@@ -13,8 +13,8 @@ namespace Framework {
 	void GameSystem::Update(float dt) {
 		t_ += dt;
 
-		//// Tell renderer we’re starting the frame and choose a background
-		//gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
+		// Tell renderer we’re starting the frame and choose a background
+		gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
 		//// Example: draw one animated triangle (frontend code only!)
 		//float wiggle = 0.25f * std::sin(t_ * 2.0f);
@@ -24,7 +24,6 @@ namespace Framework {
 
 		// Background
 		gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
-
 		// NDC coords: X,Y in [-1, 1] (left=-1, right=1, bottom=-1, top=1)
 
 		// Left triangle (red)
