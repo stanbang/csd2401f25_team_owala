@@ -1,25 +1,34 @@
 #include "Core.h"
 #include "WindowsSystem.h"
 #include "Graphics.h"
+#include "EcsWorldSystem.h"
 #include "GameSystem.h"
 
 int main() {
 	Framework::CoreEngine engine;
 
+	// 1) Window + GL context
 	auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
-	engine.AddSystem(win);                         // window + GL context
+	engine.AddSystem(win);
 
+	// 2) ECS
+	auto* ecs = new Framework::EcsWorldSystem();
+	engine.AddSystem(ecs);
+
+	// 3) Gameplay (spawns + input + issues draw calls)
 	auto* gfx = new Framework::Graphics(*win);
-	engine.AddSystem(gfx);                         // renderer
+	engine.AddSystem(new Framework::GameSystem(*ecs, *gfx, *win));
 
-	auto* GameSys = new Framework::GameSystem(engine, *gfx);
-	engine.AddSystem(GameSys); // your team�s code
+	// 4) Graphics last (does buffer swap after GameSystem drew)
+	engine.AddSystem(gfx);
 
 	engine.Initialize();
 	engine.GameLoop();
 	engine.DestroySystems();
 	return 0;
 }
+
+
 /* ISystem exists to give your engine a single, simple contract that every subsystem 
 follows�Initialize(), Update(dt), and Shutdown()�so the core loop can treat all parts 
 (windowing, graphics, input, physics, gameplay, audio) uniformly without knowing their details. 
