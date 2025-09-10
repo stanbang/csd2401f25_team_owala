@@ -19,10 +19,13 @@
 	positions[player] = Position{0,0} // Start at 0,0 coordinates
 	*/
 
-std::unordered_map<Entity, PlayerTag> playerTag;
-std::unordered_map<Entity, PlatformTag> platformTag;
-std::unordered_map<Entity, EnemyTag> enemyTag;
+class EntityStorage {
+public:
+	std::unordered_map<Entity, PlayerTag> playerTag;
+	std::unordered_map<Entity, PlatformTag> platformTag;
+	std::unordered_map<Entity, EnemyTag> enemyTag;
 
-std::unordered_map<Entity, Position> position;
-std::unordered_map<Entity, Velocity> velocity;
-std::unordered_map<Entity, Acceleration> acceleration;
+	std::unordered_map<Entity, Position> position;
+	std::unordered_map<Entity, Velocity> velocity;
+	std::unordered_map<Entity, Acceleration> acceleration;
+};
