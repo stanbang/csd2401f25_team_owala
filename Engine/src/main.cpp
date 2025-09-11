@@ -6,7 +6,7 @@
 #include "PlayerSystem.h"
 
 int main() {
-	Framework::CoreEngine engine;
+	Framework::CoreEngine engine; // Initializes and constructs Engine singleton
 
 	// 1) Window + GL context
 	auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
