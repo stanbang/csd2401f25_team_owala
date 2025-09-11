@@ -8,19 +8,15 @@
 int main() {
     Framework::CoreEngine engine;
 
-    auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
+    Framework::WindowsSystem *win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
+    Framework::InputSystem *input = new Framework::InputSystem(*win);
+    Framework::EntityStorage *ecs = new Framework::EntityStorage();
+    Framework::Graphics *gfx = new Framework::Graphics(*win);
+    Framework::GameSystem *game = new Framework::GameSystem(*ecs, *gfx, *win, *input);
+
     engine.AddSystem(win);                 // creates GLFW window + context
-
-    auto* input = new Framework::InputSystem(*win);
     engine.AddSystem(input);               // MUST come before GameSystem
-
-    auto* ecs = new Framework::EntityStorage();
-
-    auto* gfx = new Framework::Graphics(*win);
-
-    auto* game = new Framework::GameSystem(*ecs, *gfx, *win, *input);
     engine.AddSystem(game);                // reads input -> moves/queues draws
-
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();
