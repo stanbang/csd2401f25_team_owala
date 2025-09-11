@@ -42,36 +42,6 @@ namespace Framework {
     void GameSystem::Update(float dt) {
         GLFWwindow* w = win_->window();
 
-        // --- WASD ? normalized direction ---
-        //float dx = 0.f, dy = 0.f;
-        //if (glfwGetKey(w, GLFW_KEY_W) == GLFW_PRESS) dy += 1.f;
-        //if (glfwGetKey(w, GLFW_KEY_S) == GLFW_PRESS) dy -= 1.f;
-        //if (glfwGetKey(w, GLFW_KEY_A) == GLFW_PRESS) dx -= 1.f;
-        //if (glfwGetKey(w, GLFW_KEY_D) == GLFW_PRESS) dx += 1.f;
-
-        //float len = std::sqrt(dx * dx + dy * dy);
-        //if (len > 0.f) { dx /= len; dy /= len; }
-
-        //const float speed = 0.9f;  // NDC units/sec
-        //dx *= speed * dt; dy *= speed * dt;
-
-        // --- Move the player with clamping based on its triangle extents ---
-        /*auto pit = ecs_->position.find(player_);
-        if (pit != ecs_->position.end()) {
-            auto& p = pit->second;
-
-            float hx = 0.05f, hy = 0.05f;
-            auto tit = ecs_->triangle.find(player_);
-            if (tit != ecs_->triangle.end()) {
-                const auto& t = tit->second;
-                hx = std::max({ std::fabs(t.a.x), std::fabs(t.b.x), std::fabs(t.c.x) });
-                hy = std::max({ std::fabs(t.a.y), std::fabs(t.b.y), std::fabs(t.c.y) });
-            }
-
-            p.x = std::clamp(p.x + dx, -1.0f + hx, 1.0f - hx);
-            p.y = std::clamp(p.y + dy, -1.0f + hy, 1.0f - hy);
-        }*/
-
         // --- Render: all entities with (Position + Triangle) ---
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
@@ -128,7 +98,7 @@ namespace Framework {
                 }
             }
         }
-        /*for (const auto& kv : ecs_->triangle) {
+        for (const auto& kv : ecs_->triangle) {
             Entity e = kv.first;
             const Triangle& tri = kv.second;
 
@@ -142,7 +112,7 @@ namespace Framework {
                 { tri.c.x + p.x, tri.c.y + p.y },
                 tri.color
             );
-        }*/
+        }
     }
 
 } // namespace Framework
