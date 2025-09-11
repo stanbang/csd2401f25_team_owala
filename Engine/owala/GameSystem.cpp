@@ -31,12 +31,12 @@ namespace Framework {
             gfx_->setWrap(playerTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
             gfx_->setAlphaBlend(true);
         }
-        GrateTex_ = gfx_->loadTextureFromTex("../Assets/grate-rgba-256.tex");
+        GrateTex_ = gfx_->loadTextureFromFile("../Assets/Ronald.png", true);
         if (GrateTex_) {
+            std::printf("Successfully loaded Ronald.png\n");
             gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
             gfx_->setAlphaBlend(true);
         }
-
     }
 
     void GameSystem::Update(float dt) {
