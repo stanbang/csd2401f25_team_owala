@@ -1,5 +1,5 @@
 # ======================= Project Configuration =========================
-cmake_minimum_required(VERSION 2.8...3.13)
+cmake_minimum_required(VERSION 2.8...3.5)
 
 # Set the CMake policy version (this enables all policies up to CMake 3.5)
 cmake_policy(VERSION 3.5)
@@ -23,6 +23,7 @@ set(ALL_LIBS
   PRIVATE glfw
   PRIVATE libglew_static
   PRIVATE imgui
+  PRIVATE rapid_json
 )
 
 # Include path for GLM (optional if not using FetchContent)

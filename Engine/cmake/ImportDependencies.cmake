@@ -90,6 +90,26 @@ macro(import_imgui)
     endif()
 endmacro()
 
+# Macro to import rapid_json
+macro(import_rapid_json)
+    if(NOT TARGET rapid_json)  # Guard to prevent multiple inclusion
+        include(FetchContent)
+
+        FetchContent_Declare(
+            rapid_json
+            GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+            GIT_TAG master  # Or use a specific commit or tag if preferred
+        )
+
+        # Disable shared builds if needed
+        FetchContent_MakeAvailable(rapid_json)
+
+        add_library(rapid_json INTERFACE)
+        target_include_directories(rapid_json INTERFACE ${rapid_json_SOURCE_DIR}/include)
+
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -109,6 +129,10 @@ macro(importDependencies)
     message(STATUS "Importing ImGui...")
     import_imgui()
     message(STATUS "ImGui imported successfully.")
+
+    message(STATUS "Importing rapid_json...")
+    import_rapid_json()
+    message(STATUS "rapid_json imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()
