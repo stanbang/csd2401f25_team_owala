@@ -31,6 +31,12 @@ namespace Framework {
             gfx_->setWrap(playerTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
             gfx_->setAlphaBlend(true);
         }
+        GrateTex_ = gfx_->loadTextureFromTex("../Assets/grate-rgba-256.tex");
+        if (GrateTex_) {
+            gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+            gfx_->setAlphaBlend(true);
+        }
+
     }
 
     void GameSystem::Update(float dt) {
@@ -68,7 +74,10 @@ namespace Framework {
 
         // --- Render: all entities with (Position + Triangle) ---
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
-        if (input_->KeyPressed(/*D*/68)) showPlayerSprite_ = !showPlayerSprite_;
+
+        //for testing
+        //mutiple ways to use the inputsystem functions using an overload
+        if (input_->KeyPressed(InputSystem::Key::A)) showPlayerSprite_ = !showPlayerSprite_;
         
         // NEW: draw the player sprite at its Position (if both exist)
         if (showPlayerSprite_){
@@ -81,7 +90,20 @@ namespace Framework {
                 }
             }
         }
+        //for testing 
+        if (input_->KeyPressed('W')) showGrateSprite_ = !showGrateSprite_;
 
+        // NEW: draw the player sprite at its Position (if both exist)
+        if (showGrateSprite_) {
+            if (GrateTex_) {
+                auto pit = ecs_->position.find(player_);
+                if (pit != ecs_->position.end()) {
+                    const auto& p = pit->second;
+                    // center = player position, half size ~0.2 NDC, rotation 0
+                    gfx_->drawSprite(GrateTex_, { 0.7, 0.7 }, { 0.2f, 0.2f }, 0.0f);
+                }
+            }
+        }
         /*for (const auto& kv : ecs_->triangle) {
             Entity e = kv.first;
             const Triangle& tri = kv.second;

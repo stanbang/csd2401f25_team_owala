@@ -27,7 +27,10 @@ namespace Framework {
         Entity          player_{ 0 };
 
         Texture playerTex_ = 0;   //
+        Texture GrateTex_ = 0;
         bool showPlayerSprite_ = false;  // just for testing 
+        bool showGrateSprite_ = false;  // just for testing 
+
 
     };
 

@@ -1,50 +1,80 @@
 #pragma once
 #include "ISystem.h"
+#include <cstring>     // std::memcpy / std::memset
 
-// fwd decls to keep the header light
-struct GLFWwindow;
-namespace Framework { class WindowsSystem; }
+struct GLFWwindow;     // fwd-declare
 
 namespace Framework {
 
+    class WindowsSystem;
+
     class InputSystem : public ISystem {
     public:
-        explicit InputSystem(WindowsSystem& win);
+        // Friendly key/mouse enums (you can extend as you like)
+        enum class Key {
+            A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+            Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9,
+            Space, Enter, Escape, Tab, Backspace,
+            Left, Right, Up, Down, LShift, RShift, LCtrl, RCtrl, LAlt, RAlt,
+            F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12
+        };
+        enum class MouseButton { Left, Right, Middle, Button4, Button5 };
+
+        // We sample a fixed range of codes (safe superset of GLFW’s)
+        static const int kMaxKeys = 512;
+        static const int kMaxButtons = 8;
+
+        explicit InputSystem(WindowsSystem& winSys) : winSys_(&winSys) {
+            std::memset(keyNow_, 0, sizeof(keyNow_));
+            std::memset(keyPrev_, 0, sizeof(keyPrev_));
+            std::memset(btnNow_, 0, sizeof(btnNow_));
+            std::memset(btnPrev_, 0, sizeof(btnPrev_));
+        }
 
         // ISystem
-        void Initialize() override;   // grab the GLFWwindow* here (window exists now)
-        void Update(float dt) override;
-        void Shutdown() override {}
+        void Initialize() override;        // grabs GLFWwindow* here (after the window exists)
+        void Update(float dt) override;    // polls keys, buttons, cursor
+        void Shutdown() override {}        // nothing to do
 
-        // Keyboard queries (GLFW key codes)
+        // Integer-based (GLFW-style) queries – works with GLFW_KEY_* constants
         bool KeyDown(int key) const;
         bool KeyPressed(int key) const;
         bool KeyReleased(int key) const;
 
-        // Mouse queries (GLFW mouse button codes)
         bool MouseDown(int button) const;
         bool MousePressed(int button) const;
         bool MouseReleased(int button) const;
 
-        // Mouse position (pixels) and delta since last frame
+        // Enum-based convenience
+        bool KeyDown(Key k) const;
+        bool KeyPressed(Key k) const;
+        bool KeyReleased(Key k) const;
+
+        bool MouseDown(MouseButton b) const;
+        bool MousePressed(MouseButton b) const;
+        bool MouseReleased(MouseButton b) const;
+
+        // ASCII helpers (e.g., 'W', 'd', '0')
+        bool KeyDown(char c) const;
+        bool KeyPressed(char c) const;
+        bool KeyReleased(char c) const;
+
+        // Mouse state
         void GetMousePos(double* x, double* y) const;
         void GetMouseDelta(double* dx, double* dy) const;
-
-        // Lock/unlock mouse cursor (useful for FPS controls)
         void SetCursorLocked(bool locked);
 
     private:
-        static constexpr int kMaxKeys = 512;
-        static constexpr int kMaxButtons = 8;
+        // Mappings (implemented in .cpp)
+        static int ToGlfwKey(Key k);
+        static int ToGlfwKeyFromChar(char c);
+        static int ToGlfwMouse(MouseButton b);
 
-        WindowsSystem* win_ = nullptr;   // we fetch the GLFWwindow* from this
+        WindowsSystem* winSys_ = nullptr;  // we fetch the real GLFWwindow* from here
         GLFWwindow* window_ = nullptr;  // set in Initialize()
 
-        bool   keyNow_[kMaxKeys] = { false };
-        bool   keyPrev_[kMaxKeys] = { false };
-        bool   btnNow_[kMaxButtons] = { false };
-        bool   btnPrev_[kMaxButtons] = { false };
-
+        bool   keyNow_[kMaxKeys], keyPrev_[kMaxKeys];
+        bool   btnNow_[kMaxButtons], btnPrev_[kMaxButtons];
         double mouseX_ = 0.0, mouseY_ = 0.0;
         double prevMouseX_ = 0.0, prevMouseY_ = 0.0;
         bool   cursorLocked_ = false;
