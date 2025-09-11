@@ -1,5 +1,26 @@
 include(FetchContent)
 
+# Macro to import stb_image
+macro(import_stb_image)
+    if(NOT TARGET stb_image)  # Guard to prevent multiple inclusion
+        FetchContent_Declare(
+            stb_image
+            GIT_REPOSITORY https://github.com/nothings/stb.git
+            GIT_TAG master
+        )
+        if(NOT stb_image_POPULATED)
+            FetchContent_Populate(stb_image)
+        endif()
+
+        # Create a simple interface library for stb_image
+        add_library(stb_image INTERFACE)
+        target_include_directories(stb_image INTERFACE ${stb_image_SOURCE_DIR})
+        
+        # Optionally, you can also define STB_IMAGE_IMPLEMENTATION if you want to compile it
+        # Alternatively, you can just include the header and define STB_IMAGE_IMPLEMENTATION in your source
+    endif()
+endmacro()
+
 # Macro to import GLFW
 macro(import_glfw)
     if(NOT TARGET glfw)  # Guard to prevent multiple inclusion
@@ -119,6 +140,10 @@ endmacro()
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
+
+    message(STATUS "Importing stb_image...")
+    import_stb_image()
+    message(STATUS "stb_image imported successfully.")
 
     message(STATUS "Importing GLFW...")
     import_glfw()

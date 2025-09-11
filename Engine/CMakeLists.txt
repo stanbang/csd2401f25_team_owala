@@ -1,7 +1,7 @@
 # ======================= Project Configuration =========================
 cmake_minimum_required(VERSION 2.8...3.5)
 
-# Set the CMake policy version (this enables all policies up to CMake 3.5)
+# Set the CMake policy version
 cmake_policy(VERSION 3.5)
 
 project(owala)
@@ -24,6 +24,7 @@ set(ALL_LIBS
   PRIVATE libglew_static
   PRIVATE imgui
   PRIVATE rapid_json
+  PRIVATE stb_image  # Added stb_image to the libraries
 )
 
 # Include path for GLM (optional if not using FetchContent)
