@@ -24,6 +24,7 @@ namespace Framework {
 		std::unordered_map<Entity, PlatformTag>  platformTag;
 		std::unordered_map<Entity, EnemyTag>     enemyTag;
 
+		std::unordered_map<Entity, PlayerStats> playerStats;
 		std::unordered_map<Entity, Position>     position;
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;

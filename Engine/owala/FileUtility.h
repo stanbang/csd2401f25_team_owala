@@ -9,6 +9,8 @@
 #pragma once
 #include "rapidjson/document.h"
 #include "Vector2D.h"
+#include "Components.h"
+#include "ISystem.h"
 
 namespace Framework {
 	using namespace std;
@@ -19,7 +21,7 @@ namespace Framework {
 	class FileIOSystem {
 	public:
 		Vector2D loadWindowConfig();
-
+		PlayerStats loadPlayerStats();
 	private:
 	};
 } // namespace Framework
