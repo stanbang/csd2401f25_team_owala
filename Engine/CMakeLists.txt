@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # Include project-wide utility and dependency modules
 include(ImportDependencies)
+include(Utilities)
 importDependencies()
 
 # Global compile flags and macros
@@ -33,6 +34,8 @@ file(GLOB_RECURSE APP_SRC
    "${SRC_DIR}/*.h"
    "${SRC_DIR}/*.hpp"
 )
+#GROUP_FILES_BY_FOLDER(${CMAKE_CURRENT_LIST_DIR}s)
+GROUP_FILES_BY_FOLDER(${APP_SRC})
 
 add_executable(${CMAKE_PROJECT_NAME}
         # List C/C++ source files with relative paths to this CMakeLists.txt.
@@ -59,4 +62,7 @@ endif()
 # Include path for each project
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${APP_SRC}
+)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${SRC_DIR}/ECS
 )

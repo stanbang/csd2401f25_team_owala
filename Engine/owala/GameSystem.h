@@ -23,6 +23,8 @@ namespace Framework {
         WindowsSystem* win_ = nullptr;
 
         Entity          player_{ 0 };
+
+        Texture playerTex_ = 0;   //
     };
 
 } // namespace Framework

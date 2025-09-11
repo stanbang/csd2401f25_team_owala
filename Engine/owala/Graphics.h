@@ -1,34 +1,52 @@
 #pragma once
 #include "ISystem.h"
-#include <GL/glew.h>
+#include <string>
 
 namespace Framework {
-	class WindowsSystem;
 
-	struct Vec2 { float x, y; };
-	struct Color { float r, g, b, a; };
+    // Simple POD types your game/devs can use without knowing OpenGL
+    struct Vec2 { float x, y; };
+    struct Color { float r, g, b, a; };
 
-	class Graphics : public ISystem {
-	public:
-		explicit Graphics(WindowsSystem& win) : win_(&win) {}
+    class WindowsSystem;                // fwd-declared to avoid heavy includes
+    using Texture = unsigned;           // OpenGL texture handle (GLuint)
 
-		void Initialize() override;
-		void Update(float dt) override;
-		void Shutdown() override {}
+    class Graphics : public ISystem {
+    public:
+        explicit Graphics(WindowsSystem& win) : win_(&win) {}
 
-		// Frame helpers
-		void beginFrame(const Color& clear);
-		void drawTriangle(const Vec2& a, const Vec2& b, const Vec2& c, const Color& color);
+        // ISystem
+        void Initialize() override;
+        void Update(float dt) override;
+        void Shutdown() override;
 
-		WindowsSystem* windowSystem() const { return win_; }
+        // ---- Colored triangle (immediate style) ----
+        void beginFrame(const Color& clear = { 0.1f, 0.1f, 0.12f, 1.0f });
+        void drawTriangle(const Vec2& a, const Vec2& b, const Vec2& c,
+            const Color& color);
+        void endFrame() {} // swap happens in Update()
 
-	private:
-		WindowsSystem* win_{};
-		float t_ = 0.f;
+        // ---- Textured sprites (.tex format from your tutorial) ----
+        Texture loadTextureFromTex(const char* path);               // expects 256x256 RGBA raw
+        void    setWrap(Texture tex, int wrapS, int wrapT);         // GL_* wrap enums (e.g., GL_CLAMP_TO_EDGE)
+        void    setAlphaBlend(bool on);                             // toggles GL_BLEND
+        void    drawSprite(Texture tex, const Vec2& center,
+            const Vec2& halfSize, float rotation = 0.0f);
 
-		// GL state for immediate triangles
-		GLuint prog_ = 0;   // shader program
-		GLuint vao_ = 0;   // vertex array
-		GLuint vbo_ = 0;   // vertex buffer
-	};
+    private:
+        WindowsSystem* win_ = nullptr;
+
+        // Colored-triangle pipeline
+        unsigned progCol_ = 0;  // shader program (uColor)
+        unsigned vaoCol_ = 0;  // VAO
+        unsigned vboCol_ = 0;  // VBO (pos only)
+
+        // Textured-quad pipeline
+        unsigned progTex_ = 0;  // shader program (uTex)
+        unsigned vaoTex_ = 0;  // VAO
+        unsigned vboTex_ = 0;  // VBO (pos+uv, 6 verts)
+
+        float t_ = 0.f;         // optional tick; used if you animate later
+    };
+
 } // namespace Framework
