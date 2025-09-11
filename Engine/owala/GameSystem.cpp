@@ -37,17 +37,17 @@ namespace Framework {
         GLFWwindow* w = win_->window();
 
         // --- WASD ? normalized direction ---
-        float dx = 0.f, dy = 0.f;
-        if (glfwGetKey(w, GLFW_KEY_W) == GLFW_PRESS) dy += 1.f;
-        if (glfwGetKey(w, GLFW_KEY_S) == GLFW_PRESS) dy -= 1.f;
-        if (glfwGetKey(w, GLFW_KEY_A) == GLFW_PRESS) dx -= 1.f;
-        if (glfwGetKey(w, GLFW_KEY_D) == GLFW_PRESS) dx += 1.f;
+        //float dx = 0.f, dy = 0.f;
+        //if (glfwGetKey(w, GLFW_KEY_W) == GLFW_PRESS) dy += 1.f;
+        //if (glfwGetKey(w, GLFW_KEY_S) == GLFW_PRESS) dy -= 1.f;
+        //if (glfwGetKey(w, GLFW_KEY_A) == GLFW_PRESS) dx -= 1.f;
+        //if (glfwGetKey(w, GLFW_KEY_D) == GLFW_PRESS) dx += 1.f;
 
-        float len = std::sqrt(dx * dx + dy * dy);
-        if (len > 0.f) { dx /= len; dy /= len; }
+        //float len = std::sqrt(dx * dx + dy * dy);
+        //if (len > 0.f) { dx /= len; dy /= len; }
 
-        const float speed = 0.9f;  // NDC units/sec
-        dx *= speed * dt; dy *= speed * dt;
+        //const float speed = 0.9f;  // NDC units/sec
+        //dx *= speed * dt; dy *= speed * dt;
 
         // --- Move the player with clamping based on its triangle extents ---
         /*auto pit = ecs_->position.find(player_);
@@ -68,14 +68,17 @@ namespace Framework {
 
         // --- Render: all entities with (Position + Triangle) ---
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
-
+        if (input_->KeyPressed(/*D*/68)) showPlayerSprite_ = !showPlayerSprite_;
+        
         // NEW: draw the player sprite at its Position (if both exist)
-        if (playerTex_) {
-            auto pit = ecs_->position.find(player_);
-            if (pit != ecs_->position.end()) {
-                const auto& p = pit->second;
-                // center = player position, half size ~0.2 NDC, rotation 0
-                gfx_->drawSprite(playerTex_, { p.x, p.y }, { 0.2f, 0.2f }, 0.0f);
+        if (showPlayerSprite_){
+            if (playerTex_) {
+                auto pit = ecs_->position.find(player_);
+                if (pit != ecs_->position.end()) {
+                    const auto& p = pit->second;
+                    // center = player position, half size ~0.2 NDC, rotation 0
+                    gfx_->drawSprite(playerTex_, { p.x, p.y }, { 0.2f, 0.2f }, 0.0f);
+                }
             }
         }
 
