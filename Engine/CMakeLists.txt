@@ -1,58 +1,62 @@
-# Minimum version of CMake required
-cmake_minimum_required(VERSION 3.5)
+# ======================= Project Configuration =========================
+cmake_minimum_required(VERSION 2.8...3.13)
 
+# Set the CMake policy version (this enables all policies up to CMake 3.5)
+cmake_policy(VERSION 3.5)
 
-# Project Setup
 project(owala)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set the directory where custom CMake modules are stored
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-# Add Definitions
+# Include project-wide utility and dependency modules
+include(ImportDependencies)
+importDependencies()
+
+# Global compile flags and macros
 add_definitions(-DGLEW_STATIC)
+add_definitions(-DUSE_CSD3151_AUTOMATION=0) # Used for instructor's automation
 
-# external
-add_subdirectory(lib/glfw EXCLUDE_FROM_ALL)
-add_subdirectory(lib/glew EXCLUDE_FROM_ALL) 
-add_subdirectory(lib/glm EXCLUDE_FROM_ALL) 
-
-# Gather src and hdr file
-file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS src/*.cpp)
-file(GLOB_RECURSE ENGINE_HEADERS CONFIGURE_DEPENDS src/*.h)
-
-
-# Gather headers from include folder
-file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS include/*.h include/*.hpp)
-
-add_executable(${PROJECT_NAME} ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${PROJECT_HEADERS})
-
-# Link Libraries
-target_link_libraries(${PROJECT_NAME}
-  PRIVATE
-    glfw
-    glm
-    libglew_static
+# List of external libraries
+set(ALL_LIBS
+  PRIVATE glfw
+  PRIVATE libglew_static
+  PRIVATE imgui
 )
 
-# Includes
-target_include_directories(${PROJECT_NAME}
-  PRIVATE
-    include
-    lib/glfw/include
-    lib/glm
+# Include path for GLM (optional if not using FetchContent)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/lib/glm)
+
+set(SRC_DIR ./owala)
+file(GLOB_RECURSE APP_SRC 
+   "${SRC_DIR}/*.cpp"
+   "${SRC_DIR}/*.h"
+   "${SRC_DIR}/*.hpp"
 )
 
+add_executable(${CMAKE_PROJECT_NAME}
+        # List C/C++ source files with relative paths to this CMakeLists.txt.
+        ${APP_SRC})
 
-
-# Organize files in Visual Studio Solution Explorer
-
-# Engine sources -> mirror folder tree under "Engine"
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 
-  PREFIX "Engine" 
-  FILES ${ENGINE_SOURCES} ${ENGINE_HEADERS}
+# Specifies libraries CMake should link to your target library. You
+# can link libraries from various origins, such as libraries defined in this
+# build script, prebuilt third-party libraries.
+# Link libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    ${ALL_LIBS}
 )
 
+# Set C++ standard
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include"
-             PREFIX "Headers"
-             FILES ${PROJECT_HEADERS})
+# Warnings based on compiler
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall ${DisableWarnings})
+elseif (MSVC)
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W3 /WX-)
+endif()
+
+# Include path for each project
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${APP_SRC}
+)
