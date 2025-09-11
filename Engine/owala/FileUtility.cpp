@@ -32,7 +32,7 @@ namespace Framework {
 	}
 
 	Vector2D FileIOSystem::loadWindowConfig() {
-		Document d = readFile("../Data/config.json");
+		Document d = readFile("Data/config.json");
 
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
 			throw runtime_error("Invalid or missing windowConfig in config.json");
@@ -60,7 +60,7 @@ namespace Framework {
 	}
 
 	PlayerStats FileIOSystem::loadPlayerStats() {
-		Document d = readFile("../Data/player.json"); //Read the file name passed in as a path
+		Document d = readFile("Data/player.json"); //Read the file name passed in as a path
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {

@@ -24,18 +24,19 @@ function(COPY_FOLDER_IF_DIFFERENT PROJECT_NAME source_dir dest_dir)
     file(GLOB_RECURSE ASSET_FILES "${source_dir}/*")
 
     foreach(asset ${ASSET_FILES})
-        get_filename_component(relative_path ${asset} DIRECTORY)
-        string(REPLACE "${source_dir}" "" relative_path "${relative_path}")
+        file(RELATIVE_PATH relative_path "${source_dir}" "${asset}")
+        get_filename_component(dest_subdir "${relative_path}" PATH)
         set(dest_file "${dest_dir}/${relative_path}")
-        
+
         add_custom_command(
             TARGET ${PROJECT_NAME}
             POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_file}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${asset} ${dest_file}
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${dest_dir}/${dest_subdir}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${asset}" "${dest_file}"
         )
     endforeach()
 endfunction()
+
 
 function(BUILD_SHADERS TARGET_NAME)
     find_program(GLSL_VALIDATOR glslangValidator HINTS 

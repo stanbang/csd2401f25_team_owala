@@ -39,9 +39,33 @@ file(GLOB_RECURSE APP_SRC
 #GROUP_FILES_BY_FOLDER(${CMAKE_CURRENT_LIST_DIR}s)
 GROUP_FILES_BY_FOLDER(${APP_SRC})
 
+
 add_executable(${CMAKE_PROJECT_NAME}
         # List C/C++ source files with relative paths to this CMakeLists.txt.
         ${APP_SRC})
+
+# ======================================================
+# Copy Data and Assets folders at configure time
+# ======================================================
+file(COPY "${CMAKE_SOURCE_DIR}/Data" DESTINATION "${CMAKE_BINARY_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/Assets" DESTINATION "${CMAKE_BINARY_DIR}")
+
+# ======================================================
+# Also copy Data and Assets after each build (keeps sync)
+# ======================================================
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Data"
+            "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Data"
+)
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Assets"
+            "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Assets"
+)
+
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this

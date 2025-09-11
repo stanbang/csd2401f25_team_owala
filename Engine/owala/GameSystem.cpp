@@ -25,13 +25,13 @@ namespace Framework {
             { 0.2f, 0.8f, 1.0f, 1.0f }
         };
         //(void)ecs_->createPlatform("Platform", tri2, /*x,y*/ 0.55f, -0.2f);
-        playerTex_ = gfx_->loadTextureFromTex("../Assets/duck-rgba-256.tex");
+        playerTex_ = gfx_->loadTextureFromTex("Assets/duck-rgba-256.tex");
         // Optional texture params
         if (playerTex_) {
             gfx_->setWrap(playerTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
             gfx_->setAlphaBlend(true);
         }
-        GrateTex_ = gfx_->loadTextureFromFile("../Assets/Ronald.png", true);
+        GrateTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png", true);
         if (GrateTex_) {
             std::printf("Successfully loaded Ronald.png\n");
             gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
