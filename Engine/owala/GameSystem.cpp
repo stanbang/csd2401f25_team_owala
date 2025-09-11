@@ -100,6 +100,14 @@ namespace Framework {
                 if (pit != ecs_->position.end()) {
                     const auto& p = pit->second;
                     // center = player position, half size ~0.2 NDC, rotation 0
+                    gfx_->drawSprite(GrateTex_, { -0.7, -0.7 }, { 0.2f, 0.2f }, 0.0f);
+                }
+            }
+            if (GrateTex_) {
+                auto pit = ecs_->position.find(player_);
+                if (pit != ecs_->position.end()) {
+                    const auto& p = pit->second;
+                    // center = player position, half size ~0.2 NDC, rotation 0
                     gfx_->drawSprite(GrateTex_, { 0.7, 0.7 }, { 0.2f, 0.2f }, 0.0f);
                 }
             }
