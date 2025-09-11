@@ -4,12 +4,16 @@
 #include "EntityStorage.h"
 #include "GameSystem.h"
 #include "PlayerSystem.h"
+#include "FileUtility.h"
+#include <iostream>
 
 int main() {
 	Framework::CoreEngine engine;
+	Framework::FileIOSystem fileIO;
 
 	// 1) Window + GL context
-	auto* win = new Framework::WindowsSystem(engine, "Owala", 800, 600);
+	Vector2D windowConfig = fileIO.loadWindowConfig();
+	auto* win = new Framework::WindowsSystem(engine, "StageBound", windowConfig.x, windowConfig.y);
 	engine.AddSystem(win);
 
 	// 2) ECS
