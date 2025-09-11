@@ -1,32 +1,48 @@
+/*****************************************************************//**
+ * \file   Components.hpp
+ * \brief  All components used for entities and the ECS architecture
+ *		   are stored here.
+ * 
+ * \author Ng Jing Wen
+ * \date   9 September 2025
+ *********************************************************************/
 #pragma once
-#include "Vector2D.h"
+#include "Graphics.h"
 
-// Contains position, rotation, and scale for an entity.
-// This component will be read by the Graphics system and written to by the Physics system.
-struct TransformComponent {
-    Vector2D position;
-    float rotation = 0.0f; // in radians
-    Vector2D scale = { 1.0f, 1.0f };
-};
+namespace Framework{
+	/*	Position component to store x and y 
+		coordinates of an entity.*/
+	struct Position {
+		float x;
+		float y;
+	};
 
-// Contains all properties needed for physics simulation.
-// This component is exclusively managed by the PhysicsSystem.
-struct RigidBodyComponent {
-    Vector2D velocity;
-    Vector2D acceleration;
-    float mass = 1.0f;
-    float inverseMass = 1.0f;
+	/*	Velocity component to store x and y
+		velocity of an entity.*/
+	struct Velocity {
+		float xVel;
+		float yVel;
+	};
 
-    // Store the sum of all forces acting on the body for a single frame.
-    Vector2D force;
+	/*	Acceleration component to store x and y 
+		acceleration of an entity.*/
+	struct Acceleration {
+		float xAccel;
+		float yAccel;
+	};
 
-    void SetMass(float newMass) {
-        mass = newMass;
-        if (mass > 0.0f) {
-            inverseMass = 1.0f / mass;
-        }
-        else {
-            inverseMass = 0.0f; // Infinite mass for static objects
-        }
-    }
-};
+	struct Triangle { 
+		Vec2 a, b, c; 
+		Color color; 
+	};
+
+
+	/* TAG SECTION */
+	/* Used for ID-ing an entity */
+	struct PlayerTag {};
+	struct PlatformTag {};
+	struct EnemyTag {};
+
+}
+
+
