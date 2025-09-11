@@ -1,6 +1,7 @@
 #include "GameSystem.h"
 #include "Graphics.h"
 #include "WindowsSystem.h"
+#include <GL/glew.h>      // <-- for GL_CLAMP_TO_EDGE
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <cmath>
@@ -24,6 +25,12 @@ namespace Framework {
             { 0.2f, 0.8f, 1.0f, 1.0f }
         };
         //(void)ecs_->createPlatform("Platform", tri2, /*x,y*/ 0.55f, -0.2f);
+        playerTex_ = gfx_->loadTextureFromTex("../images/duck-rgba-256.tex");
+        // Optional texture params
+        if (playerTex_) {
+            gfx_->setWrap(playerTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+            gfx_->setAlphaBlend(true);
+        }
     }
 
     void GameSystem::Update(float dt) {
@@ -62,7 +69,17 @@ namespace Framework {
         // --- Render: all entities with (Position + Triangle) ---
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
-        for (const auto& kv : ecs_->triangle) {
+        // NEW: draw the player sprite at its Position (if both exist)
+        if (playerTex_) {
+            auto pit = ecs_->position.find(player_);
+            if (pit != ecs_->position.end()) {
+                const auto& p = pit->second;
+                // center = player position, half size ~0.2 NDC, rotation 0
+                gfx_->drawSprite(playerTex_, { p.x, p.y }, { 0.2f, 0.2f }, 0.0f);
+            }
+        }
+
+        /*for (const auto& kv : ecs_->triangle) {
             Entity e = kv.first;
             const Triangle& tri = kv.second;
 
@@ -76,7 +93,7 @@ namespace Framework {
                 { tri.c.x + p.x, tri.c.y + p.y },
                 tri.color
             );
-        }
+        }*/
     }
 
 } // namespace Framework
