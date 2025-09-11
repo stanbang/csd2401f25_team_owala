@@ -10,6 +10,7 @@
 
 int main() {
     Framework::CoreEngine engine;
+	Framework::FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.loadWindowConfig();
     Framework::WindowsSystem *win = new Framework::WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
     Framework::InputSystem *input = new Framework::InputSystem(*win);
