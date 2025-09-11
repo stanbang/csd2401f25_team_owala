@@ -101,6 +101,12 @@ macro(import_rapid_json)
             GIT_TAG master  # Or use a specific commit or tag if preferred
         )
 
+        # Disable building tests and examples
+        set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE INTERNAL "")
+        set(RAPIDJSON_BUILD_TESTS OFF CACHE INTERNAL "")
+        set(RAPIDJSON_BUILD_DOC OFF CACHE INTERNAL "")
+        set(RAPIDJSON_BUILD_THIRDPARTY_GTEST OFF CACHE INTERNAL "")
+
         # Disable shared builds if needed
         FetchContent_MakeAvailable(rapid_json)
 
