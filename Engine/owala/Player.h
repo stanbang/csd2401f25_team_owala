@@ -24,22 +24,23 @@ namespace Framework {
 	PlayerStats playerStats = fileIO.loadPlayerStats();
 
 	//Entity createPlayer(EntityStorage& entityStorage, const Triangle& triangle, float startXPos = 0.0f, float startYPos = 0.0f) {
-	Entity createPlayer(EntityStorage & entityStorage, Vector2D StartPos, Vector2D halfSize) {
-		//Create a new entity with a unique ID
-		Entity player = createEntity();
-		/*Assign components to the player entity, and
-		set initial values in the unordered maps.*/
-		//entityStorage.triangle[player] = triangle;
-		entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
-		entityStorage.playerStats[player] = playerStats;
-		entityStorage.position[player] = Position{ StartPos }; //Start at 0,0 coordinates
-		entityStorage.velocity[player] = Velocity{}; //Start with no velocity
+	inline Entity createPlayer(EntityStorage& entityStorage, PlayerStats stats, Vector2D startPos, Vector2D halfSize) {
+			//Create a new entity with a unique ID
+			Entity player = createEntity();
+			/*Assign components to the player entity, and
+			set initial values in the unordered maps.*/
+			//entityStorage.triangle[player] = triangle;
+			entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
+			entityStorage.playerStats[player] = playerStats;
+			entityStorage.position[player] = Position{ startPos }; //Start at 0,0 coordinates
+			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
-		entityStorage.rigidBody[player] = RigidBody{};
-		entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
+			entityStorage.rigidBody[player] = RigidBody{};
+			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
 
-		entityStorage.colliders[player] = AABBCollider{ halfSize };
-		//Return the entity ID of the player
-		return player;
+			entityStorage.colliders[player] = AABBCollider{ halfSize };
+			entityStorage.playerState[player] = PlayerState{}; // NEW: Add the player state component
+			//Return the entity ID of the player
+			return player;
 	}
 }

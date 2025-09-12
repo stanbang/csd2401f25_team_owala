@@ -12,15 +12,15 @@ namespace Framework {
 
     void GameSystem::Initialize() {
 
-        // Player: tag + Position + Velocity + Triangle
-        Triangle ptri{
-            {-0.12f, -0.08f}, { 0.12f, -0.08f}, { 0.00f, 0.16f},
-            { 1.0f, 0.35f, 0.25f, 1.0f }
-        };
+        //// Player: tag + Position + Velocity + Triangle
+        //Triangle ptri{
+        //    {-0.12f, -0.08f}, { 0.12f, -0.08f}, { 0.00f, 0.16f},
+        //    { 1.0f, 0.35f, 0.25f, 1.0f }
+        //};
 
-        // Create the player entity using the new, corrected createPlayer function.
-         // It starts at position (0, 0.5) with a physical size of 0.1x0.1 NDC units.
-        player_ = createPlayer(*ecs_, { 0.0f, 0.5f }, { 0.05f, 0.05f });
+         // --- Create Player Entity ---
+        PlayerStats stats = { 3.0f }; // Example stats
+        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.5f }, { 0.05f, 0.08f });
 
         // Platform: tag + Position + Triangle (no Velocity)
         Triangle tri2{
@@ -38,17 +38,21 @@ namespace Framework {
         // Create a static ground entity
         ground_ = createEntity();
         ecs_->platformTag[ground_] = PlatformTag{};
-        ecs_->position[ground_] = Position{ {0.0f, -0.8f} };
-        ecs_->velocity[ground_] = Velocity{};
+        ecs_->position[ground_] = Position{ {0.0f, -0.7f} };
+        ecs_->velocity[ground_] = Velocity{}; // Static objects have no velocity
         ecs_->rigidBody[ground_] = RigidBody{};
         ecs_->rigidBody[ground_].SetMass(0.0f); // A mass of 0 makes it static/immovable.
-        ecs_->colliders[ground_] = AABBCollider{ {1.0f, 0.1f} };
-        GrateTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png", true);
-        if (GrateTex_) {
-            std::printf("Successfully loaded Ronald.png\n");
-            gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-            gfx_->setAlphaBlend(true);
-        }
+        ecs_->colliders[ground_] = AABBCollider{ {1.0f, 0.2f} }; // A wide, short platform
+
+
+        //GrateTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png", true);
+        //if (GrateTex_) {
+        //    std::printf("Successfully loaded Ronald.png\n");
+        //    gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        //    gfx_->setAlphaBlend(true);
+        //}
+
+        groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
     }
 
     void GameSystem::Update(float dt) {
@@ -57,26 +61,41 @@ namespace Framework {
         // --- Render: all entities with (Position + Triangle) ---
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
-        //for testing
-        //mutiple ways to use the inputsystem functions using an overload
-        if (input_->KeyPressed(InputSystem::Key::A)) showPlayerSprite_ = !showPlayerSprite_;
 
-        // NEW: draw the player sprite at its Position (if both exist)
-        if (showPlayerSprite_) {
-            if (playerTex_) {
-                auto pit = ecs_->position.find(player_);
-                if (pit != ecs_->position.end()) {
-                    const auto& p = pit->second;
-                    // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(playerTex_, { p.Pos.x, p.Pos.y}, { 0.2f, 0.2f }, 0.0f);
-                }
-            }
+        // Render the ground
+        if (groundTex_ && ecs_->position.count(ground_)) {
+            const auto& pos = ecs_->position.at(ground_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
+            gfx_->drawSprite(groundTex_, pos, halfSize, 0.0f);
         }
-        //for testing 
-        if (input_->KeyPressed('W')) showGrateSprite_ = !showGrateSprite_;
 
-        // This new helper function will render all entities that have a collider.
-        RenderColliders();
+        // Render the player
+        if (playerTex_ && ecs_->position.count(player_)) {
+            const auto& pos = ecs_->position.at(player_).Pos;
+            const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
+            gfx_->drawSprite(playerTex_, pos, halfSize, 0.0f);
+        }
+
+        ////for testing
+        ////mutiple ways to use the inputsystem functions using an overload
+        //if (input_->KeyPressed(InputSystem::Key::A)) showPlayerSprite_ = !showPlayerSprite_;
+
+        //// NEW: draw the player sprite at its Position (if both exist)
+        //if (showPlayerSprite_) {
+        //    if (playerTex_) {
+        //        auto pit = ecs_->position.find(player_);
+        //        if (pit != ecs_->position.end()) {
+        //            const auto& p = pit->second;
+        //            // center = player position, half size ~0.2 NDC, rotation 0
+        //            gfx_->drawSprite(playerTex_, { p.Pos.x, p.Pos.y}, { 0.2f, 0.2f }, 0.0f);
+        //        }
+        //    }
+        //}
+        ////for testing 
+        //if (input_->KeyPressed('W')) showGrateSprite_ = !showGrateSprite_;
+
+        //// This new helper function will render all entities that have a collider.
+        //RenderColliders();
 
     } // namespace framework
 

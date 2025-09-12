@@ -66,6 +66,12 @@ namespace Framework{
 	struct PlatformTag {};
 	struct EnemyTag {};
 
+	// A component to store player-specific states
+	struct PlayerState {
+		bool isGrounded = false;
+	};
+
+
 }
 
 

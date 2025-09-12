@@ -30,6 +30,7 @@ namespace Framework {
 		std::unordered_map<Entity, Acceleration> acceleration;
 		std::unordered_map<Entity, Triangle>     triangle;
 		std::unordered_map<Entity, RigidBody>    rigidBody;    
-		std::unordered_map<Entity, AABBCollider> colliders;    
+		std::unordered_map<Entity, AABBCollider> colliders; 
+		std::unordered_map<Entity, PlayerState> playerState;
 	};
 }
