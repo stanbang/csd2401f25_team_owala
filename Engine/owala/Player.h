@@ -10,6 +10,7 @@
 #include "Entity.h"
 #include "Components.h"
 #include "EntityStorage.h"
+#include "FileUtility.h"
 
 /**
  * \function createPlayer
@@ -19,6 +20,9 @@
  * \return The entity ID of the created player
  */
 namespace Framework {
+	FileIOSystem fileIO;
+	PlayerStats playerStats = fileIO.loadPlayerStats();
+
 	Entity createPlayer(EntityStorage& entityStorage, const Triangle& triangle, float startXPos = 0.0f, float startYPos = 0.0f) {
 		//Create a new entity with a unique ID
 		Entity player = createEntity();
@@ -26,6 +30,7 @@ namespace Framework {
 		set initial values in the unordered maps.*/
 		entityStorage.triangle[player] = triangle;
 		entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
+		entityStorage.playerStats[player] = playerStats;
 		entityStorage.position[player] = Position{ startXPos, startYPos }; //Start at 0,0 coordinates
 		entityStorage.velocity[player] = Velocity{ 0.0f, 0.0f }; //Start with no velocity
 

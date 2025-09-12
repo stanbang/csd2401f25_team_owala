@@ -1,17 +1,58 @@
 #include "Graphics.h"
 #include "WindowsSystem.h"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
 #include <cstdio>
+#include <fstream>
+#include <vector>
+#include <cmath>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 namespace Framework {
 
-    // tiny helper
+    // =========================
+    // Shaders
+    // =========================
+
+    // Colored triangle (pos only)
+    static const char* VS_COLOR = R"(#version 330 core
+    layout(location=0) in vec2 aPos;
+    void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }
+    )";
+
+    static const char* FS_COLOR = R"(#version 330 core
+    uniform vec4 uColor;
+    out vec4 FragColor;
+    void main(){ FragColor = uColor; }
+    )";
+
+    // Textured quad (pos + uv)
+    static const char* VS_TEX = R"(#version 330 core
+    layout(location=0) in vec2 aPos;
+    layout(location=1) in vec2 aUV;
+    out vec2 vUV;
+    void main(){ gl_Position = vec4(aPos, 0.0, 1.0); vUV = aUV; }
+    )";
+
+    static const char* FS_TEX = R"(#version 330 core
+    in vec2 vUV;
+    uniform sampler2D uTex;
+    out vec4 FragColor;
+    void main(){ FragColor = texture(uTex, vUV); }
+    )";
+
+    // =========================
+    // Helpers
+    // =========================
+
     static GLuint compile(GLenum type, const char* src) {
         GLuint s = glCreateShader(type);
         glShaderSource(s, 1, &src, nullptr);
         glCompileShader(s);
-        GLint ok = GL_FALSE; glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
+        GLint ok = 0; glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
         if (!ok) {
             char log[1024]; glGetShaderInfoLog(s, 1024, nullptr, log);
             std::fprintf(stderr, "Shader compile error:\n%s\n", log);
@@ -19,81 +60,259 @@ namespace Framework {
         return s;
     }
 
-    void Graphics::Initialize() {
-        // 1) Ensure a current context, then init GLEW
-        glfwMakeContextCurrent(win_->window());
-        glewExperimental = GL_TRUE;
-        if (auto err = glewInit(); err != GLEW_OK) {
-            std::fprintf(stderr, "glewInit failed: %s\n", glewGetErrorString(err));
-            return;
-        }
-        // GLEW on core contexts can generate a spurious error once; clear it.
-        while (glGetError() != GL_NO_ERROR) {}
-
-        // (Optional) confirm we’re good
-        std::fprintf(stderr, "OpenGL: %s\n", glGetString(GL_VERSION));
-
-        // 2) Build a tiny pass-through pipeline
-        const char* vs = R"(#version 330 core
-        layout(location=0) in vec2 inPos;
-        void main(){ gl_Position = vec4(inPos, 0.0, 1.0); }
-    )";
-        const char* fs = R"(#version 330 core
-        out vec4 outColor;
-        uniform vec4 uColor;
-        void main(){ outColor = uColor; }
-    )";
-        GLuint v = compile(GL_VERTEX_SHADER, vs);
-        GLuint f = compile(GL_FRAGMENT_SHADER, fs);
-
-        prog_ = glCreateProgram();
-        glAttachShader(prog_, v);
-        glAttachShader(prog_, f);
-        glLinkProgram(prog_);
+    static GLuint linkProgram(const char* vsSrc, const char* fsSrc) {
+        GLuint v = compile(GL_VERTEX_SHADER, vsSrc);
+        GLuint f = compile(GL_FRAGMENT_SHADER, fsSrc);
+        GLuint p = glCreateProgram();
+        glAttachShader(p, v);
+        glAttachShader(p, f);
+        glLinkProgram(p);
         glDeleteShader(v);
         glDeleteShader(f);
+        GLint ok = 0; glGetProgramiv(p, GL_LINK_STATUS, &ok);
+        if (!ok) {
+            char log[1024]; glGetProgramInfoLog(p, 1024, nullptr, log);
+            std::fprintf(stderr, "Program link error:\n%s\n", log);
+        }
+        return p;
+    }
 
-        // 3) VAO/VBO (GL 3.3 path – portable)
-        glGenVertexArrays(1, &vao_);
-        glBindVertexArray(vao_);
+    // =========================
+    // ISystem
+    // =========================
 
-        glGenBuffers(1, &vbo_);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW); // size set per draw
+    void Graphics::Initialize() {
+        // GLEW must be initialized after a valid GL context is current (WindowsSystem did that)
+        glewExperimental = GL_TRUE;
+        if (glewInit() != GLEW_OK) {
+            std::fprintf(stderr, "GLEW init failed\n");
+        }
 
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
-
-        // 4) Set viewport to framebuffer size
+        // Set initial viewport
         int fbw = 0, fbh = 0;
         glfwGetFramebufferSize(win_->window(), &fbw, &fbh);
         glViewport(0, 0, fbw, fbh);
+
+        // ----- Colored triangle pipeline -----
+        progCol_ = linkProgram(VS_COLOR, FS_COLOR);
+
+        glGenVertexArrays(1, &vaoCol_);
+        glBindVertexArray(vaoCol_);
+
+        glGenBuffers(1, &vboCol_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboCol_);
+        // allocate room for 3 verts (x,y)
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 3, nullptr, GL_STREAM_DRAW);
+
+        glEnableVertexAttribArray(0); // aPos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+
+        // ----- Textured quad pipeline -----
+        progTex_ = linkProgram(VS_TEX, FS_TEX);
+
+        glGenVertexArrays(1, &vaoTex_);
+        glBindVertexArray(vaoTex_);
+
+        glGenBuffers(1, &vboTex_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
+        // 6 verts * (x,y,u,v)
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_STREAM_DRAW);
+
+        glEnableVertexAttribArray(0); // aPos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
+        glEnableVertexAttribArray(1); // aUV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+
+        // Unbind
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+
+    void Graphics::Update(float dt) {
+        t_ += dt;
+        // Present the frame (anything drawn since beginFrame)
+        glfwSwapBuffers(win_->window());
+    }
+
+    void Graphics::Shutdown() {
+        if (vboCol_) { glDeleteBuffers(1, &vboCol_); vboCol_ = 0; }
+        if (vaoCol_) { glDeleteVertexArrays(1, &vaoCol_); vaoCol_ = 0; }
+        if (progCol_) { glDeleteProgram(progCol_); progCol_ = 0; }
+
+        if (vboTex_) { glDeleteBuffers(1, &vboTex_); vboTex_ = 0; }
+        if (vaoTex_) { glDeleteVertexArrays(1, &vaoTex_); vaoTex_ = 0; }
+        if (progTex_) { glDeleteProgram(progTex_); progTex_ = 0; }
+    }
+
+    // =========================
+    // Colored triangle path
+    // =========================
 
     void Graphics::beginFrame(const Color& clear) {
         glClearColor(clear.r, clear.g, clear.b, clear.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    void Graphics::drawTriangle(const Vec2& a, const Vec2& b, const Vec2& c, const Color& color) {
-        float verts[6] = { a.x,a.y, b.x,b.y, c.x,c.y };
+    void Graphics::drawTriangle(const Vec2& a, const Vec2& b, const Vec2& c,
+        const Color& color) {
+        const float verts[6] = { a.x, a.y, b.x, b.y, c.x, c.y };
 
-        glBindVertexArray(vao_);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STREAM_DRAW);
-
-        glUseProgram(prog_);
-        GLint loc = glGetUniformLocation(prog_, "uColor");
+        glUseProgram(progCol_);
+        GLint loc = glGetUniformLocation(progCol_, "uColor");
         glUniform4f(loc, color.r, color.g, color.b, color.a);
 
+        glBindVertexArray(vaoCol_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboCol_);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // optional cleanup
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
-    void Graphics::Update(float dt) {
-        (void)dt;
-        // If your WindowsSystem polls events, just swap here.
-        // Otherwise you can add: glfwPollEvents();
-        glfwSwapBuffers(win_->window());
+    // =========================
+    // Texture path (.tex from your tutorial)
+    // =========================
+
+    Texture Graphics::loadTextureFromTex(const char* path) {
+        // expects 256x256 RGBA raw (as in your tutorial)
+        const int width = 256, height = 256, bpp = 4;
+        const size_t total = size_t(width) * height * bpp;
+
+        std::ifstream f(path, std::ios::binary);
+        if (!f) {
+            std::fprintf(stderr, "Failed to open %s\n", path);
+            return 0;
+        }
+
+        std::vector<unsigned char> buf(total);
+        f.read(reinterpret_cast<char*>(buf.data()), total);
+        if (!f) {
+            std::fprintf(stderr, "Short read on %s\n", path);
+            return 0;
+        }
+
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        // allocate & upload
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height,
+            0, GL_RGBA, GL_UNSIGNED_BYTE, buf.data());
+        // default params
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        return tex;
+    }
+
+    void Graphics::setWrap(Texture tex, int wrapS, int wrapT) {
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    void Graphics::setAlphaBlend(bool on) {
+        if (on) { glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); }
+        else { glDisable(GL_BLEND); }
+    }
+
+    void Graphics::drawSprite(Texture tex, const Vec2& center,
+        const Vec2& halfSize, float rotation) {
+        // two triangles (6 verts), each vert = (x,y,u,v)
+        const float cx = center.x, cy = center.y;
+        const float hx = halfSize.x, hy = halfSize.y;
+
+        const float c = std::cos(rotation);
+        const float s = std::sin(rotation);
+
+        auto rot = [&](float x, float y) -> Vec2 {
+            return { cx + c * x - s * y, cy + s * x + c * y };
+            };
+
+        // CCW quad corners
+        Vec2 p0 = rot(-hx, -hy); // uv 0,0
+        Vec2 p1 = rot(hx, -hy); // uv 1,0
+        Vec2 p2 = rot(hx, hy); // uv 1,1
+        Vec2 p3 = rot(-hx, hy); // uv 0,1
+
+        const float verts[] = {
+            // x,   y,    u,   v
+            p0.x, p0.y,  0.f, 0.f,
+            p1.x, p1.y,  1.f, 0.f,
+            p2.x, p2.y,  1.f, 1.f,
+
+            p0.x, p0.y,  0.f, 0.f,
+            p2.x, p2.y,  1.f, 1.f,
+            p3.x, p3.y,  0.f, 1.f,
+        };
+
+        glUseProgram(progTex_);
+        glBindVertexArray(vaoTex_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        const GLint loc = glGetUniformLocation(progTex_, "uTex");
+        glUniform1i(loc, 0);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        // optional cleanup
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    Texture Graphics::loadTextureFromPNG(const char* path, bool flipY, bool srgb)
+    {
+        if (flipY) stbi_set_flip_vertically_on_load(1); else stbi_set_flip_vertically_on_load(0);
+
+        int w = 0, h = 0, n = 0;
+        unsigned char* data = stbi_load(path, &w, &h, &n, STBI_rgb_alpha); // force RGBA8
+        if (!data) {
+            std::fprintf(stderr, "stbi_load failed for '%s': %s\n", path, stbi_failure_reason());
+            return 0;
+        }
+
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+
+        const GLint internal = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+        glTexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        // reasonable defaults; you can change later
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   // or GL_LINEAR_MIPMAP_LINEAR + glGenerateMipmap
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        stbi_image_free(data);
+        return tex;
+    }
+
+    Texture Graphics::loadTextureFromFile(const char* path, bool /*unused*/) {
+        // naive: choose by extension
+        std::string p = path ? path : "";
+        auto dot = p.find_last_of('.');
+        if (dot != std::string::npos) {
+            std::string ext = p.substr(dot + 1);
+            for (char& c : ext) c = (char)std::tolower((unsigned char)c);
+
+            // pass all required args to the PNG loader
+            if (ext == "png") return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
+            if (ext == "tex") return loadTextureFromTex(path);
+        }
+
+        // default to PNG if no/unknown extension
+        return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
     }
 
 } // namespace Framework

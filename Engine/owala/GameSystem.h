@@ -1,6 +1,7 @@
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
+#include "InputSystem.h"
 
 namespace Framework {
 
@@ -9,8 +10,8 @@ namespace Framework {
 
     class GameSystem : public ISystem {
     public:
-        GameSystem(EntityStorage& ecs, Graphics& gfx, WindowsSystem& win)
-            : ecs_(&ecs), gfx_(&gfx), win_(&win) {
+        GameSystem(EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input)
+            : ecs_(&ecs), gfx_(&gfx), win_(&win), input_(&input) {
         }
 
         void Initialize() override;     // spawn player/platform via tag-aware creators
@@ -21,8 +22,16 @@ namespace Framework {
         EntityStorage* ecs_ = nullptr;
         Graphics* gfx_ = nullptr;
         WindowsSystem* win_ = nullptr;
+        InputSystem* input_ = nullptr;   // <-- MISSING MEMBER (add this)
 
         Entity          player_{ 0 };
+
+        Texture playerTex_ = 0;   //
+        Texture GrateTex_ = 0;
+        bool showPlayerSprite_ = false;  // just for testing 
+        bool showGrateSprite_ = false;  // just for testing 
+
+
     };
 
 } // namespace Framework

@@ -1,5 +1,26 @@
 include(FetchContent)
 
+# Macro to import stb_image
+macro(import_stb_image)
+    if(NOT TARGET stb_image)  # Guard to prevent multiple inclusion
+        FetchContent_Declare(
+            stb_image
+            GIT_REPOSITORY https://github.com/nothings/stb.git
+            GIT_TAG master
+        )
+        if(NOT stb_image_POPULATED)
+            FetchContent_Populate(stb_image)
+        endif()
+
+        # Create a simple interface library for stb_image
+        add_library(stb_image INTERFACE)
+        target_include_directories(stb_image INTERFACE ${stb_image_SOURCE_DIR})
+        
+        # Optionally, you can also define STB_IMAGE_IMPLEMENTATION if you want to compile it
+        # Alternatively, you can just include the header and define STB_IMAGE_IMPLEMENTATION in your source
+    endif()
+endmacro()
+
 # Macro to import GLFW
 macro(import_glfw)
     if(NOT TARGET glfw)  # Guard to prevent multiple inclusion
@@ -90,9 +111,39 @@ macro(import_imgui)
     endif()
 endmacro()
 
+# Macro to import rapid_json
+macro(import_rapid_json)
+    if(NOT TARGET rapid_json)  # Guard to prevent multiple inclusion
+        include(FetchContent)
+
+        FetchContent_Declare(
+            rapid_json
+            GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+            GIT_TAG master  # Or use a specific commit or tag if preferred
+        )
+
+        # Disable building tests and examples
+        set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE INTERNAL "")
+        set(RAPIDJSON_BUILD_TESTS OFF CACHE INTERNAL "")
+        set(RAPIDJSON_BUILD_DOC OFF CACHE INTERNAL "")
+        set(RAPIDJSON_BUILD_THIRDPARTY_GTEST OFF CACHE INTERNAL "")
+
+        # Disable shared builds if needed
+        FetchContent_MakeAvailable(rapid_json)
+
+        add_library(rapid_json INTERFACE)
+        target_include_directories(rapid_json INTERFACE ${rapid_json_SOURCE_DIR}/include)
+
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
+
+    message(STATUS "Importing stb_image...")
+    import_stb_image()
+    message(STATUS "stb_image imported successfully.")
 
     message(STATUS "Importing GLFW...")
     import_glfw()
@@ -109,6 +160,10 @@ macro(importDependencies)
     message(STATUS "Importing ImGui...")
     import_imgui()
     message(STATUS "ImGui imported successfully.")
+
+    message(STATUS "Importing rapid_json...")
+    import_rapid_json()
+    message(STATUS "rapid_json imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()
