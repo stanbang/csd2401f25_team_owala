@@ -40,6 +40,12 @@ namespace Framework{
 		float moveSpeed;
 	};;
 
+	struct RotationFlag {
+		bool shouldRotate = false;
+		float targetRotation = 0.0f; 
+		float currentRotation = 0.0f;
+		bool isRotating = false; 
+	};
 
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */

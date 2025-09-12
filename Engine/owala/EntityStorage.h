@@ -29,5 +29,6 @@ namespace Framework {
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;
 		std::unordered_map<Entity, Triangle>     triangle;
+		std::unordered_map<Entity, RotationFlag> rotationFlag;
 	};
 }

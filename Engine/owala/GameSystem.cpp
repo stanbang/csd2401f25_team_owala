@@ -7,6 +7,8 @@
 #include <cmath>
 #include "Player.h"
 #include "EntityStorage.h"
+#include "RotationSystem.h"
+#include "Matrix3x3.h"
 
 namespace Framework {
 
@@ -18,6 +20,8 @@ namespace Framework {
             { 1.0f, 0.35f, 0.25f, 1.0f }
         };
         player_ = createPlayer(*ecs_, ptri, /*x,y*/ 0.f, 0.f);
+        ecs_->rotationFlag[player_] = RotationFlag{ true, 0.0f, 0.0f, false };
+
 
         // Platform: tag + Position + Triangle (no Velocity)
         Triangle tri2{
@@ -37,6 +41,18 @@ namespace Framework {
             gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
             gfx_->setAlphaBlend(true);
         }
+
+        // testing more entitiy for rotation
+        Entity entity2 = createEntity();
+        ecs_->triangle[entity2] = tri2;
+        ecs_->position[entity2] = Position{ -0.5f, 0.0f };
+        ecs_->rotationFlag[entity2] = RotationFlag{ true, 0.0f, 0.0f, false };
+
+        Entity entity3 = createEntity();
+        ecs_->triangle[entity3] = tri2;
+        ecs_->position[entity3] = Position{ 0.5f, 0.0f };
+        ecs_->rotationFlag[entity3] = RotationFlag{ true, 0.0f, 0.0f, false };
+
     }
 
     void GameSystem::Update(float dt) {
@@ -106,10 +122,37 @@ namespace Framework {
             if (itP == ecs_->position.end()) continue;
             const Position& p = itP->second;
 
-            gfx_->drawTriangle(
+            float rotation = 0.0f;
+            auto rotIt = ecs_->rotationFlag.find(e);
+            if (rotIt != ecs_->rotationFlag.end()) {
+                rotation = rotIt->second.currentRotation;
+            }
+
+            float rotationRad = rotation * (M_PI / 180.0f);
+
+            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotationRad);
+
+
+          /*  gfx_->drawTriangle(
                 { tri.a.x + p.x, tri.a.y + p.y },
                 { tri.b.x + p.x, tri.b.y + p.y },
                 { tri.c.x + p.x, tri.c.y + p.y },
+                tri.color
+            );*/
+
+
+            Vector2D a = { tri.a.x, tri.a.y };
+            Vector2D b = { tri.b.x, tri.b.y };
+            Vector2D c = { tri.c.x, tri.c.y };
+
+            Vector2D rotatedA = rotMat * a;
+            Vector2D rotatedB = rotMat * b;
+            Vector2D rotatedC = rotMat * c;
+
+            gfx_->drawTriangle(
+                { rotatedA.x + p.x, rotatedA.y + p.y },
+                { rotatedB.x + p.x, rotatedB.y + p.y },
+                { rotatedC.x + p.x, rotatedC.y + p.y },
                 tri.color
             );
         }

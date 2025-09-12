@@ -6,6 +6,7 @@
 #include "InputSystem.h"
 #include "PlayerSystem.h"
 #include "FileUtility.h"
+#include "RotationSystem.h"
 #include <iostream>
 
 int main() {
@@ -17,9 +18,12 @@ int main() {
     Framework::EntityStorage *ecs = new Framework::EntityStorage();
     Framework::Graphics *gfx = new Framework::Graphics(*win);
     Framework::GameSystem *game = new Framework::GameSystem(*ecs, *gfx, *win, *input);
+    Framework::RotationSystem* rotation = new Framework::RotationSystem(*ecs, *input);
+
 
     engine.AddSystem(win);                 // creates GLFW window + context
     engine.AddSystem(input);               // MUST come before GameSystem
+    engine.AddSystem(rotation);
     engine.AddSystem(game);                // reads input -> moves/queues draws
     engine.AddSystem(gfx);                 // swaps buffers last
 
