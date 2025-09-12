@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Components.hpp
+ * \file   Components.h
  * \brief  All components used for entities and the ECS architecture
  *		   are stored here.
  * 
