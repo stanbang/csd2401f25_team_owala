@@ -151,7 +151,7 @@ namespace Framework {
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    void Graphics::drawTriangle(const Vec2& a, const Vec2& b, const Vec2& c,
+    void Graphics::drawTriangle(const Vector2D& a, const Vector2D& b, const Vector2D& c,
         const Color& color) {
         const float verts[6] = { a.x, a.y, b.x, b.y, c.x, c.y };
 
@@ -168,6 +168,16 @@ namespace Framework {
         // optional cleanup
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+    }
+
+    void Graphics::drawRectangle(const Vector2D& min, const Vector2D& max, const Color& color) {
+        Vector2D p1 = { min.x, min.y }; // Bottom-left
+        Vector2D p2 = { max.x, min.y }; // Bottom-right
+        Vector2D p3 = { min.x, max.y }; // Top-left
+        Vector2D p4 = { max.x, max.y }; // Top-right
+
+        drawTriangle(p1, p2, p3, color);
+        drawTriangle(p3, p2, p4, color);
     }
 
     // =========================
@@ -220,8 +230,8 @@ namespace Framework {
         else { glDisable(GL_BLEND); }
     }
 
-    void Graphics::drawSprite(Texture tex, const Vec2& center,
-        const Vec2& halfSize, float rotation) {
+    void Graphics::drawSprite(Texture tex, const Vector2D& center,
+        const Vector2D& halfSize, float rotation) {
         // two triangles (6 verts), each vert = (x,y,u,v)
         const float cx = center.x, cy = center.y;
         const float hx = halfSize.x, hy = halfSize.y;
@@ -229,15 +239,15 @@ namespace Framework {
         const float c = std::cos(rotation);
         const float s = std::sin(rotation);
 
-        auto rot = [&](float x, float y) -> Vec2 {
+        auto rot = [&](float x, float y) -> Vector2D {
             return { cx + c * x - s * y, cy + s * x + c * y };
             };
 
         // CCW quad corners
-        Vec2 p0 = rot(-hx, -hy); // uv 0,0
-        Vec2 p1 = rot(hx, -hy); // uv 1,0
-        Vec2 p2 = rot(hx, hy); // uv 1,1
-        Vec2 p3 = rot(-hx, hy); // uv 0,1
+        Vector2D p0 = rot(-hx, -hy); // uv 0,0
+        Vector2D p1 = rot(hx, -hy); // uv 1,0
+        Vector2D p2 = rot(hx, hy); // uv 1,1
+        Vector2D p3 = rot(-hx, hy); // uv 0,1
 
         const float verts[] = {
             // x,   y,    u,   v

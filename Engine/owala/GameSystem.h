@@ -18,11 +18,14 @@ namespace Framework {
         void Shutdown() override {}     // nothing owned
 
     private:
+        void RenderColliders(); // Helper to draw all colliders
+
         EntityStorage* ecs_ = nullptr;
         Graphics* gfx_ = nullptr;
         WindowsSystem* win_ = nullptr;
 
         Entity          player_{ 0 };
+        Entity ground_{ 0 };
 
         Texture playerTex_ = 0;   //
     };

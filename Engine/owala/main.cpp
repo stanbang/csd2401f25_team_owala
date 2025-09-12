@@ -4,6 +4,7 @@
 #include "EntityStorage.h"
 #include "GameSystem.h"
 #include "PlayerSystem.h"
+#include "PhysicsSystem.h"
 
 int main() {
 	Framework::CoreEngine engine;
@@ -17,14 +18,21 @@ int main() {
 
 	// 3) Gameplay (spawns + input + issues draw calls)
 	auto* gfx = new Framework::Graphics(*win);
-	engine.AddSystem(new Framework::GameSystem(*ecs, *gfx, *win));
+	
 
-	auto* playerSys = new Framework::PlayerSystem(*ecs);
+	// 4) Add all other systems to the engine IN THE ORDER they should update.
+	//    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
+	auto* playerSys = new Framework::PlayerSystem(*ecs, *win);
 	engine.AddSystem(playerSys);
 
-	// 4) Graphics last (does buffer swap after GameSystem drew)
+	engine.AddSystem(new Framework::PhysicsSystem(*ecs));
+
+	engine.AddSystem(new Framework::GameSystem(*ecs, *gfx, *win));
+
+	// 5) Graphics last (does buffer swap after GameSystem drew)
 	engine.AddSystem(gfx);
 
+	// --- Run the Engine ---
 	engine.Initialize();
 	engine.GameLoop();
 	engine.DestroySystems();
