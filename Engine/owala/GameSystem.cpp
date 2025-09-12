@@ -60,15 +60,15 @@ namespace Framework {
         //for testing
         //mutiple ways to use the inputsystem functions using an overload
         if (input_->KeyPressed(InputSystem::Key::A)) showPlayerSprite_ = !showPlayerSprite_;
-        
+
         // NEW: draw the player sprite at its Position (if both exist)
-        if (showPlayerSprite_){
+        if (showPlayerSprite_) {
             if (playerTex_) {
                 auto pit = ecs_->position.find(player_);
                 if (pit != ecs_->position.end()) {
                     const auto& p = pit->second;
                     // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(playerTex_, { p.x, p.y }, { 0.2f, 0.2f }, 0.0f);
+                    gfx_->drawSprite(playerTex_, { p.Pos.x, p.Pos.y}, { 0.2f, 0.2f }, 0.0f);
                 }
             }
         }
@@ -78,7 +78,9 @@ namespace Framework {
         // This new helper function will render all entities that have a collider.
         RenderColliders();
 
-        /*for (const auto& kv : ecs_->triangle) {
+    } // namespace framework
+
+        /* for (const auto& kv : ecs_->triangle) {
         // NEW: draw the player sprite at its Position (if both exist)
         if (showGrateSprite_) {
             if (GrateTex_) {
@@ -129,7 +131,7 @@ namespace Framework {
                 tri.color
             );
         }
-    }
+    }*/
 
     void GameSystem::RenderColliders() {
         // Loop through all entities that have a collider component

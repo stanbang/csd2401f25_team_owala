@@ -26,13 +26,13 @@ namespace Framework {
 			//	entityStorage_->velocity.find(entity) != entityStorage_->velocity.end()) {
 
 				// Update the player's position based on its velocity and delta time
-				entityStorage_->position[entity].x += entityStorage_->velocity[entity].xVel * dt;
-				entityStorage_->position[entity].y += entityStorage_->velocity[entity].yVel * dt;
+				entityStorage_->position[entity].Pos.x += entityStorage_->velocity[entity].Vel.x * dt;
+				entityStorage_->position[entity].Pos.y += entityStorage_->velocity[entity].Vel.y * dt;
 				
 				// Print player position for debugging
 				/*std::cout << "Player Position - X: " << entityStorage_->position[entity].x
 						  << ", Y: " << entityStorage_->position[entity].y << std::endl;*/
-			}
+			
 
 			//// If player entity is missing position or velocity components, handle the error (e.g., log a warning)
 			//else {
