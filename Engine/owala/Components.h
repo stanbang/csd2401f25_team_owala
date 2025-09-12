@@ -55,6 +55,10 @@ namespace Framework{
 		Color color; 
 	};
 
+	struct PlayerStats {
+		float moveSpeed;
+	};;
+
 
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */

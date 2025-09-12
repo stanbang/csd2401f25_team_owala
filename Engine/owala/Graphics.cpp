@@ -8,6 +8,8 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 namespace Framework {
 
@@ -276,6 +278,51 @@ namespace Framework {
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+    }
+    Texture Graphics::loadTextureFromPNG(const char* path, bool flipY, bool srgb)
+    {
+        if (flipY) stbi_set_flip_vertically_on_load(1); else stbi_set_flip_vertically_on_load(0);
+
+        int w = 0, h = 0, n = 0;
+        unsigned char* data = stbi_load(path, &w, &h, &n, STBI_rgb_alpha); // force RGBA8
+        if (!data) {
+            std::fprintf(stderr, "stbi_load failed for '%s': %s\n", path, stbi_failure_reason());
+            return 0;
+        }
+
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+
+        const GLint internal = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+        glTexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        // reasonable defaults; you can change later
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   // or GL_LINEAR_MIPMAP_LINEAR + glGenerateMipmap
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        stbi_image_free(data);
+        return tex;
+    }
+
+    Texture Graphics::loadTextureFromFile(const char* path, bool /*unused*/) {
+        // naive: choose by extension
+        std::string p = path ? path : "";
+        auto dot = p.find_last_of('.');
+        if (dot != std::string::npos) {
+            std::string ext = p.substr(dot + 1);
+            for (char& c : ext) c = (char)std::tolower((unsigned char)c);
+
+            // pass all required args to the PNG loader
+            if (ext == "png") return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
+            if (ext == "tex") return loadTextureFromTex(path);
+        }
+
+        // default to PNG if no/unknown extension
+        return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
     }
 
 } // namespace Framework
