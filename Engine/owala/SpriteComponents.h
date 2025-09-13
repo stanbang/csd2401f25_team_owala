@@ -1,5 +1,6 @@
 #pragma once
 #include "Graphics.h"
+#include "Vector2D.h"
 #include <vector>
 
 namespace Framework {
@@ -7,7 +8,7 @@ namespace Framework {
     // One drawable sprite (texture + size + tint + optional rotation)
     struct Sprite {
         Texture tex = 0;                 // OpenGL texture handle
-        Vec2    halfSize{ 0.2f, 0.2f };   // NDC half-size (0.2 ? 40% of screen height)
+        Vector2D    halfSize{ 0.2f, 0.2f };   // NDC half-size (0.2 ? 40% of screen height)
         float   rotation = 0.0f;         // radians
         Color   tint{ 1.0f, 1.0f, 1.0f, 1.0f }; // multiply color
     };

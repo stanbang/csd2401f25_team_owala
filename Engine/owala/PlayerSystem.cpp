@@ -55,6 +55,7 @@ namespace Framework {
                 // --- Physics-Based Jumping ---
                 if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
                     vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity.
+                    
                 }
             }
         }

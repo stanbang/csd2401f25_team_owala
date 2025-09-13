@@ -37,7 +37,7 @@ namespace Framework {
 		std::unordered_map<Entity, PlayerState> playerState;
 
 		//Sprite Components
-		std::unordered_map<Entity, Sprite>       sprite;    // single sprite
-		std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
+		//std::unordered_map<Entity, Sprite>       sprite;    // single sprite
+		//std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
 	};
 }

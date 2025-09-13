@@ -31,7 +31,7 @@ namespace Framework {
 			set initial values in the unordered maps.*/
 			//entityStorage.triangle[player] = triangle;
 			entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
-			entityStorage.playerStats[player] = playerStats;
+			entityStorage.playerStats[player] = stats;
 			entityStorage.position[player] = Position{ startPos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
@@ -44,21 +44,21 @@ namespace Framework {
 			return player;
 	}
 
-	// NEW: create a player with a vector of sprites (frames)
-	inline Entity createPlayer(EntityStorage& es,
-		const std::vector<Sprite>& frames,
-		float startXPos = 0.0f, float startYPos = 0.0f)
-	{
-		Entity player = createEntity();
-		es.playerTag[player] = PlayerTag{};
-		es.position[player] = Position{ startXPos, startYPos };
-		es.velocity[player] = Velocity{ 0.0f, 0.0f };
+	//// NEW: create a player with a vector of sprites (frames)
+	//inline Entity createPlayer(EntityStorage& es,
+	//	const std::vector<Sprite>& frames,
+	//	Vector2D startPos)
+	//{
+	//	Entity player = createEntity();
+	//	es.playerTag[player] = PlayerTag{};
+	//	es.position[player] = Position{ startPos };
+	//	es.velocity[player] = Velocity{ };
 
-		Sprites s;
-		s.frames = frames;      // copy your frames
-		s.current = 0;          // start on first frame
-		es.sprites[player] = s; // attach Sprites component
+	//	Sprites s;
+	//	s.frames = frames;      // copy your frames
+	//	s.current = 0;          // start on first frame
+	//	es.sprites[player] = s; // attach Sprites component
 
-		return player;
-	}
+	//	return player;
+	//}
 }
