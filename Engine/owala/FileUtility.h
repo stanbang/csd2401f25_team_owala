@@ -22,6 +22,8 @@ namespace Framework {
 	public:
 		Vector2D loadWindowConfig();
 		PlayerStats loadPlayerStats();
+		bool writePlayerStats();
+
 	private:
 	};
 } // namespace Framework

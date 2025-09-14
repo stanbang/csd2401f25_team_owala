@@ -28,6 +28,8 @@ namespace Framework {
 		IStreamWrapper isw(file);
 		Document d;
 		d.ParseStream(isw);
+
+		file.close();
 		return d;
 	}
 
@@ -82,5 +84,9 @@ namespace Framework {
 			<< "moveSpeed = " << playerStats.moveSpeed
 			<< std::endl;
 		return playerStats;
+	}
+
+	bool FileIOSystem::writePlayerStats() {
+
 	}
 }
