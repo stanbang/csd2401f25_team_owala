@@ -27,6 +27,8 @@ namespace Framework {
         void endFrame() {} // swap happens in Update()
 
         // ---- Textured sprites (.tex format from your tutorial) ----
+        Texture loadTextureFromFile(const char* path, bool /*srgb*/ = false);
+        Texture loadTextureFromPNG(const char* path, bool flipY, bool srgb);
         Texture loadTextureFromTex(const char* path);               // expects 256x256 RGBA raw
         void    setWrap(Texture tex, int wrapS, int wrapT);         // GL_* wrap enums (e.g., GL_CLAMP_TO_EDGE)
         void    setAlphaBlend(bool on);                             // toggles GL_BLEND

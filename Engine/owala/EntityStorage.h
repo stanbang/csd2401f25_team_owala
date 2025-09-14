@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "Components.h"
+#include "SpriteComponents.h"
 #include <unordered_map> //For a hash map to store entity-component pairs
 
 /*	Hash maps to store key-value pairs of entity IDs 
@@ -20,13 +21,20 @@
 namespace Framework {
 	class EntityStorage{
 	public:
+		//Tags
 		std::unordered_map<Entity, PlayerTag>    playerTag;
 		std::unordered_map<Entity, PlatformTag>  platformTag;
 		std::unordered_map<Entity, EnemyTag>     enemyTag;
 
+		//Basic Components
+		std::unordered_map<Entity, PlayerStats> playerStats;
 		std::unordered_map<Entity, Position>     position;
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;
 		std::unordered_map<Entity, Triangle>     triangle;
+
+		//Sprite Components
+		std::unordered_map<Entity, Sprite>       sprite;    // single sprite
+		std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
 	};
 }

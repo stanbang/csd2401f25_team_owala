@@ -24,8 +24,8 @@ namespace Framework {
 				entityStorage_->position[entity].y += entityStorage_->velocity[entity].yVel * dt;
 				
 				// Print player position for debugging
-				std::cout << "Player Position - X: " << entityStorage_->position[entity].x
-					<< ", Y: " << entityStorage_->position[entity].y << std::endl;
+				/*std::cout << "Player Position - X: " << entityStorage_->position[entity].x
+						  << ", Y: " << entityStorage_->position[entity].y << std::endl;*/
 			}
 
 			// If player entity is missing position or velocity components, handle the error (e.g., log a warning)
