@@ -5,8 +5,8 @@
 #include <iostream>
 
 namespace Framework {
-    RotationSystem::RotationSystem(EntityStorage& ecs, InputSystem& input)
-        : ecs_(&ecs), input_(&input), globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false) {
+    RotationSystem::RotationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics)
+        : ecs_(&ecs), input_(&input), physics_(&physics), globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false) {
     }
 
     void RotationSystem::Initialize() {
@@ -15,12 +15,14 @@ namespace Framework {
     void RotationSystem::Update(float dt) {
         if (input_->KeyPressed(InputSystem::Key::Right)) {
             targetGlobalRotation -= 90.0f; // Rotate clockwise
+            physics_->SetPaused(true);
             isGlobalRotating = true;
             //std::cout << "Rotating world clockwise 90 degrees" << std::endl;
         }
 
         if (input_->KeyPressed(InputSystem::Key::Left)) {
             targetGlobalRotation += 90.0f; // Rotate counterclockwise
+            physics_->SetPaused(true);
             isGlobalRotating = true;
             //std::cout << "Rotating world counterclockwise 90 degrees" << std::endl;
         }
@@ -54,6 +56,7 @@ namespace Framework {
                 rotationIncrement = angleDifference;
                 globalRotation = targetGlobalRotation;
                 isGlobalRotating = false;
+                physics_->SetPaused(false);
                 //std::cout << "Finished world rotation!" << std::endl;
             }
 

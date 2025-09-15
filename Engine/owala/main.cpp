@@ -18,7 +18,7 @@ int main() {
     Framework::InputSystem *input = new Framework::InputSystem(*win);
     Framework::EntityStorage *ecs = new Framework::EntityStorage();
     Framework::PhysicsSystem* phx = new Framework::PhysicsSystem(*ecs);
-    Framework::RotationSystem* rotation = new Framework::RotationSystem(*ecs, *input);
+    Framework::RotationSystem* rotation = new Framework::RotationSystem(*ecs, *input, *phx);
     Framework::PlayerSystem* player = new Framework::PlayerSystem(*ecs, *input ,*phx);
     Framework::Graphics *gfx = new Framework::Graphics(*win);
     Framework::GameSystem *game = new Framework::GameSystem(*ecs, *gfx, *win, *input, *phx);

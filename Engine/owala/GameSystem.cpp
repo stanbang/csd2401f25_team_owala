@@ -14,6 +14,10 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+#include "PhysicsSystem.h"
+
+
+
 namespace Framework {
 
     void GameSystem::Initialize() {
@@ -125,15 +129,30 @@ namespace Framework {
                 const auto& pos = ecs_->position.at(entity).Pos;
                 const auto& halfSize = collider.HalfSize;
 
+                float rotation = 0.0f;
+                if (ecs_->rotationFlag.count(entity)) {
+                    rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
+                }
+
+                AABB_Bounds rotatedBounds = Framework::PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
+
+
+
                 // Determine the render color based on the entity's tag
                 Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
                 if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
                 if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
 
                 // Calculate the min/max corners and issue the draw call
+                //gfx_->drawRectangle(
+                //    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
+                //    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
+                //    col
+                //);
+
                 gfx_->drawRectangle(
-                    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
-                    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
+                    rotatedBounds.min, // Min corner 
+                    rotatedBounds.max, // Max corner 
                     col
                 );
             }

@@ -3,6 +3,9 @@
 #include "AABB_Collision.h"
 #include <algorithm>
 #include <vector>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace Framework {
 
@@ -101,6 +104,48 @@ namespace Framework {
         }
     }
 
+    AABB_Bounds PhysicsSystem::GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees) {
+        if (std::abs(rotationDegrees) < 0.001f) {
+            return {
+                {center.x - halfSize.x, center.y - halfSize.y},
+                {center.x + halfSize.x, center.y + halfSize.y}
+            };
+        }
+
+        float rotationRad = rotationDegrees * M_PI / 180.0f;
+        float cos_r = std::cos(rotationRad);
+        float sin_r = std::sin(rotationRad);
+
+        Vector2D corners[4] = {
+            {-halfSize.x, -halfSize.y},  
+            { halfSize.x, -halfSize.y},  
+            { halfSize.x,  halfSize.y},  
+            {-halfSize.x,  halfSize.y}   
+        };
+
+        // Rotate each corner and find the new min/max bounds
+        float minX = INFINITY, maxX = -INFINITY;
+        float minY = INFINITY, maxY = -INFINITY;
+
+        for (int i = 0; i < 4; i++) {
+            // Rotate the corner
+            float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r;
+            float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r;
+
+            // Translate to world position
+            rotatedX += center.x;
+            rotatedY += center.y;
+
+            // Update bounds
+            minX = std::min(minX, rotatedX);
+            maxX = std::max(maxX, rotatedX);
+            minY = std::min(minY, rotatedY);
+            maxY = std::max(maxY, rotatedY);
+        }
+
+        return { {minX, minY}, {maxX, maxY} };
+    }
+
     // Detects and resolves collisions using direct positional correction.
     void PhysicsSystem::ResolveCollisions(float dt) {
         auto& colliders = ecs_->colliders;
@@ -113,14 +158,28 @@ namespace Framework {
                 if (ecs_->rigidBody.at(e1).InverseMass == 0.0f && ecs_->rigidBody.at(e2).InverseMass == 0.0f)
                     continue;
 
+                // --- Get rotation for each entity ---
+                float rotation1 = 0.0f;
+                if (ecs_->rotationFlag.count(e1)) {
+                    rotation1 = ecs_->rotationFlag.at(e1).currentRotation;
+                }
+
+                float rotation2 = 0.0f;
+                if (ecs_->rotationFlag.count(e2)) {
+                    rotation2 = ecs_->rotationFlag.at(e2).currentRotation;
+                }
+
                 // --- Convert to min/max format for the collision functions ---
                 const auto& pos1 = ecs_->position.at(e1).Pos;
                 const auto& halfSize1 = it_a->second.HalfSize;
-                AABB_Bounds bounds1 = { {pos1.x - halfSize1.x, pos1.y - halfSize1.y}, {pos1.x + halfSize1.x, pos1.y + halfSize1.y} };
+                //AABB_Bounds bounds1 = { {pos1.x - halfSize1.x, pos1.y - halfSize1.y}, {pos1.x + halfSize1.x, pos1.y + halfSize1.y} };
+                AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+
 
                 const auto& pos2 = ecs_->position.at(e2).Pos;
                 const auto& halfSize2 = it_b->second.HalfSize;
-                AABB_Bounds bounds2 = { {pos2.x - halfSize2.x, pos2.y - halfSize2.y}, {pos2.x + halfSize2.x, pos2.y + halfSize2.y} };
+                //AABB_Bounds bounds2 = { {pos2.x - halfSize2.x, pos2.y - halfSize2.y}, {pos2.x + halfSize2.x, pos2.y + halfSize2.y} };
+                AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
 
                 // --- Determine Collision State ---
                 Contact contact = { e1, e2, CollisionState::NoCollision };
