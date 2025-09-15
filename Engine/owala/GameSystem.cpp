@@ -10,88 +10,96 @@
 #include "EntityStorage.h"
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
+#include <iostream>
 
 namespace Framework {
 
     void GameSystem::Initialize() {
-        // Load two PNGs as an example (idle and walk frame)
-        Texture idleTex = gfx_->loadTextureFromFile("../Assets/Ronald.png", true);
-        Texture walkTex = gfx_->loadTextureFromFile("../Assets/PlayerWalk1.png", true);
+        // --- Load Assets ---
+        // Ensure you have these files in an "Assets" folder next to your executable.
+        playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
+        groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+        gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
-        // Build frames (you can push as many frames as you want)
-        std::vector<Sprite> frames;
-        Sprite idle;
-        idle.tex = idleTex;
-        idle.halfSize = { 0.20f, 0.20f };   // tweak to fit your art
-        idle.rotation = 0.0f;
-        idle.tint = { 1,1,1,1 };
-        frames.push_back(idle);
+      
 
-        Sprite walk1;
-        walk1.tex = walkTex;
-        walk1.halfSize = { 0.20f, 0.20f };
-        walk1.rotation = 0.0f;
-        walk1.tint = { 1,1,1,1 };
-        frames.push_back(walk1);
+        // --- Create Ground Entity ---
+        ground_ = createEntity();
+        ecs_->platformTag[ground_] = PlatformTag{};
+        ecs_->position[ground_] = Position{ {0.0f, -0.7f} };
+        ecs_->velocity[ground_] = Velocity{};
+        ecs_->rigidBody[ground_] = RigidBody{ {0.2f,0.2} };
+        ecs_->rigidBody[ground_].SetMass(0.0f); // A mass of 0 makes it static/immovable.
+        ecs_->colliders[ground_] = AABBCollider{ {1.0f, 0.2f} };
 
-        // Create the player with sprite frames (at 0,0)
-        player_ = createPlayer(*ecs_, frames, 0.0f, 0.0f);
-
-        // (optional) enable alpha blending for PNG transparency
-        gfx_->setAlphaBlend(true);
-        // (optional) clamp wrap
-        if (idleTex) gfx_->setWrap(idleTex, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        if (walkTex) gfx_->setWrap(walkTex, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        // --- Create Player Entity ---
+        PlayerStats stats = { 3.0f }; // Example stats from file loading
+        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f });
     }
 
     void GameSystem::Update(float dt) {
-        // Clear
+        // 'P' key toggles the master pause state.
+        if (input_->KeyPressed(InputSystem::Key::P)) {
+            physics_->SetPaused(!physics_->IsPaused());
+        }
 
-            // fetch components safely
-        auto pIt = ecs_->position.find(player_);
-        auto vIt = ecs_->velocity.find(player_);
-        if (pIt == ecs_->position.end() || vIt == ecs_->velocity.end())
-            return;
+        // 'O' key toggles the step-by-step debug mode.
+        if (input_->KeyPressed(InputSystem::Key::O)) {
+            physics_->ToggleStepMode();
+        }
 
-        Position& pos = pIt->second;
-        Velocity& vel = vIt->second;
-
-        // input -> velocity
-        float vx = 0.f, vy = 0.f;
-        if (input_ && input_->KeyDown(InputSystem::Key::W)) vy += 1.f;
-        if (input_ && input_->KeyDown(InputSystem::Key::S)) vy -= 1.f;
-        if (input_ && input_->KeyDown(InputSystem::Key::A)) vx -= 1.f;
-        if (input_ && input_->KeyDown(InputSystem::Key::D)) vx += 1.f;
-
-        float len = std::sqrt(vx * vx + vy * vy);
-        if (len > 0.f) { vx /= len; vy /= len; }
-
-        const float speed = 0.9f;
-        vel.xVel = vx * speed;
-        vel.yVel = vy * speed;
-
-        // integrate here
-        pos.x += vel.xVel * dt;
-        pos.y += vel.yVel * dt;
-
-        // optional: clamp to NDC [-1, 1]
-        pos.x = std::clamp(pos.x, -1.0f, 1.0f);
-        pos.y = std::clamp(pos.y, -1.0f, 1.0f);
+        // 'I' key executes a single physics step if in step mode.
+        if (input_->KeyPressed(InputSystem::Key::I)) {
+            physics_->ExecuteNextStep();
+        }
 
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
-        // Draw current player sprite if we have both Position and Sprites
-        std::unordered_map<Entity, Position>::const_iterator pit = ecs_->position.find(player_);
-        std::unordered_map<Entity, Sprites>::const_iterator  sit = ecs_->sprites.find(player_);
+      
+        // Render the ground
+        if (groundTex_ && ecs_->position.count(ground_)) {
+            const auto& pos = ecs_->position.at(ground_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
+            gfx_->drawSprite(groundTex_, pos, halfSize, 0.0f);
+        }
 
-        if (pit != ecs_->position.end() && sit != ecs_->sprites.end()) {
-            const Position& pos = pit->second;
-            const Sprites& sp = sit->second;
+        // Render the player
+        if (playerTex_ && ecs_->position.count(player_)) {
+            const auto& pos = ecs_->position.at(player_).Pos;
+            const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
+            gfx_->drawSprite(playerTex_, pos, halfSize, 0.0f);
+        }
 
-            if (!sp.frames.empty()) {
-                const int idx = (sp.current >= 0 && sp.current < (int)sp.frames.size()) ? sp.current : 0;
-                const Sprite& cur = sp.frames[(size_t)idx];
-                gfx_->drawSprite(cur.tex, { pos.x, pos.y }, cur.halfSize, cur.rotation);
+        // For now, we can use the console to see the state.
+        if (physics_->IsInStepMode()) {
+            
+             std::cout << "STEP MODE ACTIVE (Press 'I' to advance)" << std::endl;
+        }
+        else if (physics_->IsPaused()) {
+             std::cout << "PAUSED" << std::endl;
+        }
+
+    } 
+
+    void GameSystem::RenderColliders() {
+        // Loop through all entities that have a collider component
+        for (auto const& [entity, collider] : ecs_->colliders) {
+            // Ensure the entity also has a position
+            if (ecs_->position.count(entity)) {
+                const auto& pos = ecs_->position.at(entity).Pos;
+                const auto& halfSize = collider.HalfSize;
+
+                // Determine the render color based on the entity's tag
+                Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
+                if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
+                if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
+
+                // Calculate the min/max corners and issue the draw call
+                gfx_->drawRectangle(
+                    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
+                    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
+                    col
+                );
             }
         }
     }

@@ -33,14 +33,17 @@ namespace Framework {
 		std::unordered_map<Entity, Velocity>		velocity;
 		std::unordered_map<Entity, Acceleration>	acceleration;
 		std::unordered_map<Entity, Triangle>		triangle;
-
-		//Sprite Components
-		std::unordered_map<Entity, Sprite>			sprite;    // single sprite
-		std::unordered_map<Entity, Sprites>			sprites;   // multiple frames (animations)
+		std::unordered_map<Entity, RigidBody>    	rigidBody;    
+		std::unordered_map<Entity, AABBCollider> 	colliders; 
+		std::unordered_map<Entity, PlayerState> 	playerState;
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
 		std::unordered_map<Entity, PersistentTag>	persistentTag; // Tag to indicate if the entity should persist across scene changes
 		std::unordered_map<Entity, ActiveTag>		activeTag; // Tag to indicate if entity is to be loaded in the scene
+
+		//Sprite Components
+		//std::unordered_map<Entity, Sprite>       sprite;    // single sprite
+		//std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
 	};
 }
