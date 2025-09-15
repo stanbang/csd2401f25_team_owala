@@ -112,39 +112,96 @@ namespace Framework {
              std::cout << "PAUSED" << std::endl;
         }
 
-        RenderColliders();
+        //RenderColliders();
 
     } 
 
+    //void GameSystem::RenderColliders() {
+    //    // Loop through all entities that have a collider component
+    //    for (auto const& [entity, collider] : ecs_->colliders) {
+    //        // Ensure the entity also has a position
+    //        if (ecs_->position.count(entity)) {
+    //            const auto& pos = ecs_->position.at(entity).Pos;
+    //            const auto& halfSize = collider.HalfSize;
+
+    //            float rotation = 0.0f;
+    //            if (ecs_->rotationFlag.count(entity)) {
+    //                rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
+    //            }
+
+    //            AABB_Bounds rotatedBounds = Framework::PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
+
+
+
+    //            // Determine the render color based on the entity's tag
+    //            Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
+    //            if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
+    //            if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
+
+    //            // Calculate the min/max corners and issue the draw call
+    //            //gfx_->drawRectangle(
+    //            //    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
+    //            //    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
+    //            //    col
+    //            //);
+
+    //            gfx_->drawRectangle(
+    //                rotatedBounds.min, // Min corner 
+    //                rotatedBounds.max, // Max corner 
+    //                col
+    //            );
+    //        }
+    //    }
+    //}
+
     void GameSystem::RenderColliders() {
-        // Loop through all entities that have a collider component
         for (auto const& [entity, collider] : ecs_->colliders) {
-            // Ensure the entity also has a position
             if (ecs_->position.count(entity)) {
                 const auto& pos = ecs_->position.at(entity).Pos;
                 const auto& halfSize = collider.HalfSize;
 
                 float rotation = 0.0f;
                 if (ecs_->rotationFlag.count(entity)) {
-                    rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
+                    rotation = ecs_->rotationFlag.at(entity).currentRotation;
                 }
 
-                AABB_Bounds rotatedBounds = Framework::PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
+                AABB_Bounds rotatedBounds;
+                if (std::abs(rotation) < 0.001f) {
+                    rotatedBounds = {
+                        {pos.x - halfSize.x, pos.y - halfSize.y},
+                        {pos.x + halfSize.x, pos.y + halfSize.y}
+                    };
+                }
+                else {
+                    float rotationRad = rotation * M_PI / 180.0f;
+                    float cos_r = std::cos(rotationRad);
+                    float sin_r = std::sin(rotationRad);
 
+                    Vector2D corners[4] = {
+                        {-halfSize.x, -halfSize.y}, {halfSize.x, -halfSize.y},
+                        {halfSize.x, halfSize.y}, {-halfSize.x, halfSize.y}
+                    };
 
+                    float minX = INFINITY, maxX = -INFINITY;
+                    float minY = INFINITY, maxY = -INFINITY;
 
-                // Determine the render color based on the entity's tag
+                    for (int i = 0; i < 4; i++) {
+                        float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r + pos.x;
+                        float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r + pos.y;
+
+                        minX = std::min(minX, rotatedX);
+                        maxX = std::max(maxX, rotatedX);
+                        minY = std::min(minY, rotatedY);
+                        maxY = std::max(maxY, rotatedY);
+                    }
+                    rotatedBounds = { {minX, minY}, {maxX, maxY} };
+                }
+
                 Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
                 if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
                 if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
 
-                // Calculate the min/max corners and issue the draw call
-                //gfx_->drawRectangle(
-                //    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
-                //    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
-                //    col
-                //);
-
+                // Draw the rotated bounding box
                 gfx_->drawRectangle(
                     rotatedBounds.min, // Min corner 
                     rotatedBounds.max, // Max corner 
