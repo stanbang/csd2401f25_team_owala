@@ -65,6 +65,12 @@ namespace Framework{
 	struct PlayerTag {};
 	struct PlatformTag {};
 	struct EnemyTag {};
+	struct RotationFlag {
+		//bool shouldRotate = false;
+		bool isRotating = false;
+		float currentRotation = 0.0f;
+		float targetRotation = 0.0f;
+	};
 
 	// A component to store player-specific states
 	struct PlayerState {

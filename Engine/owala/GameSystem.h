@@ -30,6 +30,7 @@ namespace Framework {
 
         Entity          player_{ 0 };
         Entity ground_{ 0 };
+        Entity ground2_{ 0 };//testing rot
 
         Texture playerTex_ = 0;   //
         Texture GrateTex_ = 0;

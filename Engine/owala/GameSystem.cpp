@@ -11,7 +11,9 @@
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
 #include <iostream>
-
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 namespace Framework {
 
     void GameSystem::Initialize() {
@@ -31,6 +33,19 @@ namespace Framework {
         ecs_->rigidBody[ground_] = RigidBody{ {0.2f,0.2} };
         ecs_->rigidBody[ground_].SetMass(0.0f); // A mass of 0 makes it static/immovable.
         ecs_->colliders[ground_] = AABBCollider{ {1.0f, 0.2f} };
+        ecs_->rotationFlag[ground_] = RotationFlag{}; //added rotation for ground
+
+        //to test for rotation
+        ground2_ = createEntity(); 
+        ecs_->platformTag[ground2_] = PlatformTag{};
+        ecs_->position[ground2_] = Position{ {0.5f, 0.5f} }; 
+        ecs_->velocity[ground2_] = Velocity{};
+        ecs_->rigidBody[ground2_] = RigidBody{ {0.2f,0.2} };
+        ecs_->rigidBody[ground2_].SetMass(0.0f);
+        ecs_->colliders[ground2_] = AABBCollider{ {1.0f, 0.2f} };
+        ecs_->rotationFlag[ground2_] = RotationFlag{};
+        ecs_->rotationFlag[ground2_].currentRotation = 90.0f;
+
 
         // --- Create Player Entity ---
         PlayerStats stats = { 3.0f }; // Example stats from file loading
@@ -57,10 +72,31 @@ namespace Framework {
 
       
         // Render the ground
-        if (groundTex_ && ecs_->position.count(ground_)) {
+      /*  if (groundTex_ && ecs_->position.count(ground_)) {
             const auto& pos = ecs_->position.at(ground_).Pos;
             const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
             gfx_->drawSprite(groundTex_, pos, halfSize, 0.0f);
+        }*/
+
+        if (groundTex_ && ecs_->position.count(ground_)) {
+            const auto& pos = ecs_->position.at(ground_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(ground_)) {
+                rotation = ecs_->rotationFlag.at(ground_).currentRotation * (M_PI / 180.0f); 
+            }
+
+            gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
+        }
+
+        if (groundTex_ && ecs_->position.count(ground2_)) {
+            const auto& pos = ecs_->position.at(ground2_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground2_).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(ground2_)) {
+                rotation = ecs_->rotationFlag.at(ground2_).currentRotation * (M_PI / 180.0f);
+            }
+            gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
         }
 
         // Render the player
