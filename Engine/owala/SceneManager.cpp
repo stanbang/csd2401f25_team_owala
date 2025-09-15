@@ -125,4 +125,51 @@ namespace Framework {
 
 		return activeScene == scene;
 	}
+
+	// ---------------------------------------------------------------------------
+	// DEBUG FUNCTIONS
+	// ---------------------------------------------------------------------------
+	void SceneManager::PrintAllScenesInfo() const {
+		CheckStorage();
+
+		std::unordered_map<std::string, std::vector<Entity>> scenes;
+		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
+			scenes[sceneOwned.sceneName].push_back(entity);
+		}
+		std::cout << "[SceneManager] ------- All Scenes Info ------" << std::endl;
+		std::cout << "[SceneManager] Total Scenes: " << scenes.size() << std::endl;
+		for (const auto& [sceneName, entities] : scenes) {
+			size_t persistentCount = 0;
+
+			// Count how many entities in this scene are persistent
+			for (Entity e : entities) {
+				if (entityStorageRef_->persistentTag.find(e) != entityStorageRef_->persistentTag.end()) {
+					++persistentCount;
+				}
+			}
+
+			std::cout << "[SceneManager] Scene: " << sceneName << " | Entities: " << entities.size() << ", " << persistentCount << " Persistent" << std::endl;
+		}
+		std::cout << "[SceneManager] ------------------------------" << std::endl;
+
+		// Will add more detailed info later if needed
+	}
+
+	void SceneManager::PrintCurrentSceneInfo() const {
+		CheckStorage();
+		
+		std::cout << "[SceneManager] ----- Current Scene Info -----" << std::endl;
+		std::cout << "[SceneManager] Loaded Scene: " << activeScene << std::endl;
+		std::cout << "[SceneManager] Active Entities Count: " << entityStorageRef_->activeTag.size() << std::endl;
+		std::cout << "[SceneManager] Active Entities IDs: ";
+		for (const auto& [entity, activeTag] : entityStorageRef_->activeTag) {
+			std::cout << "Entity[" << entity << "]";
+			if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) {
+				std::cout << " (Persistent)";
+			}
+			std::cout << ", ";
+		}
+		std::cout << std::endl;
+		std::cout << "[SceneManager] ------------------------------" << std::endl;
+	}
 }

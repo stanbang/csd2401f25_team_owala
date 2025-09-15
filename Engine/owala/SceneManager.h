@@ -55,5 +55,11 @@ namespace Framework {
 		void UnloadScene(const std::string& scene); // Currently just clears all active tags. Future implementation may make use of the scene param to destroy entities belonging to that scene.
 		// Check if the scene is currently loaded.
 		bool IsSceneLoaded(const std::string& scene) const;
+		// Gets the name of the currently active scene.
+		std::string GetActiveScene() const { return activeScene; };
+
+		/* DEBUG FUNCTIONS */
+		void PrintAllScenesInfo() const;
+		void PrintCurrentSceneInfo() const;
 	};
 }

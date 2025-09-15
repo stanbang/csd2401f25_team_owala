@@ -7,6 +7,7 @@
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
 #include "FileUtility.h"
+#include "SceneManager.h"
 #include <iostream>
 
 int main() {
@@ -16,6 +17,7 @@ int main() {
     Framework::WindowsSystem *win = new Framework::WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
     Framework::InputSystem *input = new Framework::InputSystem(*win);
     Framework::EntityStorage *ecs = new Framework::EntityStorage();
+	Framework::SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SM Instance and sets the entity storage reference for the SceneManager
     Framework::PhysicsSystem* phx = new Framework::PhysicsSystem(*ecs);
     Framework::PlayerSystem* player = new Framework::PlayerSystem(*ecs, *input ,*phx);
     Framework::Graphics *gfx = new Framework::Graphics(*win);
@@ -31,6 +33,7 @@ int main() {
 
     engine.Initialize();
     engine.GameLoop();
+	Framework::SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     engine.DestroySystems();
     return 0;
 }
