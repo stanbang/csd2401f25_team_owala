@@ -31,7 +31,7 @@ namespace Framework {
         // --- Create Ground Entity ---
         ground_ = createEntity();
         ecs_->platformTag[ground_] = PlatformTag{};
-        ecs_->position[ground_] = Position{ {0.0f, -0.7f} };
+        ecs_->position[ground_] = Position{ {0.0f, -1.0f} };
         ecs_->velocity[ground_] = Velocity{};
         ecs_->rigidBody[ground_] = RigidBody{ {0.2f,0.2} };
         ecs_->rigidBody[ground_].SetMass(0.0f); // A mass of 0 makes it static/immovable.
@@ -39,7 +39,7 @@ namespace Framework {
         ecs_->rotationFlag[ground_] = RotationFlag{}; //added rotation for ground
 
         //to test for rotation
-        ground2_ = createEntity(); 
+        /*ground2_ = createEntity(); 
         ecs_->platformTag[ground2_] = PlatformTag{};
         ecs_->position[ground2_] = Position{ {0.5f, 0.5f} }; 
         ecs_->velocity[ground2_] = Velocity{};
@@ -47,11 +47,11 @@ namespace Framework {
         ecs_->rigidBody[ground2_].SetMass(0.0f);
         ecs_->colliders[ground2_] = AABBCollider{ {1.0f, 0.2f} };
         ecs_->rotationFlag[ground2_] = RotationFlag{};
-        ecs_->rotationFlag[ground2_].currentRotation = 90.0f;
+        ecs_->rotationFlag[ground2_].currentRotation = 90.0f;*/
 
 
         // --- Create Player Entity ---
-        PlayerStats stats = { 3.0f }; // Example stats from file loading
+        PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
         player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f });
     }
 

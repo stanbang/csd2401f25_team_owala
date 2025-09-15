@@ -14,8 +14,6 @@ namespace Framework{
 	/*	Position component to store x and y 
 		coordinates of an entity.*/
 	struct Position {
-		//float x;
-		//float y;
 		Vector2D Pos;
 	};
 
@@ -58,13 +56,6 @@ namespace Framework{
 	struct PlayerStats {
 		float moveSpeed;
 	};;
-
-	struct RotationFlag {
-		bool shouldRotate = false;
-		float targetRotation = 0.0f; 
-		float currentRotation = 0.0f;
-		bool isRotating = false; 
-	};
 
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */
