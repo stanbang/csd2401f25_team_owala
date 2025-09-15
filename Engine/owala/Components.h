@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Components.hpp
+ * \file   Components.h
  * \brief  All components used for entities and the ECS architecture
  *		   are stored here.
  * 
@@ -14,8 +14,6 @@ namespace Framework{
 	/*	Position component to store x and y 
 		coordinates of an entity.*/
 	struct Position {
-		//float x;
-		//float y;
 		Vector2D Pos;
 	};
 
@@ -58,7 +56,6 @@ namespace Framework{
 	struct PlayerStats {
 		float moveSpeed;
 	};;
-
 
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */

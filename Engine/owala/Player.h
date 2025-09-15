@@ -21,7 +21,6 @@
  */
 namespace Framework {
 	FileIOSystem fileIO;
-	PlayerStats playerStats = fileIO.loadPlayerStats();
 
 	//Entity createPlayer(EntityStorage& entityStorage, const Triangle& triangle, float startXPos = 0.0f, float startYPos = 0.0f) {
 	inline Entity createPlayer(EntityStorage& entityStorage, PlayerStats stats, Vector2D startPos, Vector2D halfSize) {
