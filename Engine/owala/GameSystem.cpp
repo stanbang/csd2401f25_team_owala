@@ -1,160 +1,145 @@
 #include "GameSystem.h"
 #include "Graphics.h"
 #include "WindowsSystem.h"
-#include <GL/glew.h>      // <-- for GL_CLAMP_TO_EDGE
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <algorithm>
 #include "Player.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 
+#include "SpriteComponents.h"
+#include "InputSystem.h"   // if you want toggles
+#include <iostream>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 namespace Framework {
 
     void GameSystem::Initialize() {
+        // --- Load Assets ---
+        // Ensure you have these files in an "Assets" folder next to your executable.
+        playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
+        groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+        gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
-        // Player: tag + Position + Velocity + Triangle
-        Triangle ptri{
-            {-0.12f, -0.08f}, { 0.12f, -0.08f}, { 0.00f, 0.16f},
-            { 1.0f, 0.35f, 0.25f, 1.0f }
-        };
-        player_ = createPlayer(*ecs_, ptri, /*x,y*/ 0.f, 0.f);
-        ecs_->rotationFlag[player_] = RotationFlag{ true, 0.0f, 0.0f, false };
+      
+
+        // --- Create Ground Entity ---
+        ground_ = createEntity();
+        ecs_->platformTag[ground_] = PlatformTag{};
+        ecs_->position[ground_] = Position{ {0.0f, -0.7f} };
+        ecs_->velocity[ground_] = Velocity{};
+        ecs_->rigidBody[ground_] = RigidBody{ {0.2f,0.2} };
+        ecs_->rigidBody[ground_].SetMass(0.0f); // A mass of 0 makes it static/immovable.
+        ecs_->colliders[ground_] = AABBCollider{ {1.0f, 0.2f} };
+        ecs_->rotationFlag[ground_] = RotationFlag{}; //added rotation for ground
+
+        //to test for rotation
+        ground2_ = createEntity(); 
+        ecs_->platformTag[ground2_] = PlatformTag{};
+        ecs_->position[ground2_] = Position{ {0.5f, 0.5f} }; 
+        ecs_->velocity[ground2_] = Velocity{};
+        ecs_->rigidBody[ground2_] = RigidBody{ {0.2f,0.2} };
+        ecs_->rigidBody[ground2_].SetMass(0.0f);
+        ecs_->colliders[ground2_] = AABBCollider{ {1.0f, 0.2f} };
+        ecs_->rotationFlag[ground2_] = RotationFlag{};
+        ecs_->rotationFlag[ground2_].currentRotation = 90.0f;
 
 
-        // Platform: tag + Position + Triangle (no Velocity)
-        Triangle tri2{
-            {-0.10f, -0.06f}, { 0.10f, -0.06f}, { 0.00f, 0.14f},
-            { 0.2f, 0.8f, 1.0f, 1.0f }
-        };
-        //(void)ecs_->createPlatform("Platform", tri2, /*x,y*/ 0.55f, -0.2f);
-        playerTex_ = gfx_->loadTextureFromTex("Assets/duck-rgba-256.tex");
-        // Optional texture params
-        if (playerTex_) {
-            gfx_->setWrap(playerTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-            gfx_->setAlphaBlend(true);
-        }
-        GrateTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png", true);
-        if (GrateTex_) {
-            std::printf("Successfully loaded Ronald.png\n");
-            gfx_->setWrap(GrateTex_, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-            gfx_->setAlphaBlend(true);
-        }
-
-        // testing more entitiy for rotation
-        Entity entity2 = createEntity();
-        ecs_->triangle[entity2] = tri2;
-        ecs_->position[entity2] = Position{ -0.5f, 0.0f };
-        ecs_->rotationFlag[entity2] = RotationFlag{ true, 0.0f, 0.0f, false };
-
-        Entity entity3 = createEntity();
-        ecs_->triangle[entity3] = tri2;
-        ecs_->position[entity3] = Position{ 0.5f, 0.0f };
-        ecs_->rotationFlag[entity3] = RotationFlag{ true, 0.0f, 0.0f, false };
-
+        // --- Create Player Entity ---
+        PlayerStats stats = { 3.0f }; // Example stats from file loading
+        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f });
     }
 
     void GameSystem::Update(float dt) {
-        GLFWwindow* w = win_->window();
+        // 'P' key toggles the master pause state.
+        if (input_->KeyPressed(InputSystem::Key::P)) {
+            physics_->SetPaused(!physics_->IsPaused());
+        }
 
-        // --- Render: all entities with (Position + Triangle) ---
+        // 'O' key toggles the step-by-step debug mode.
+        if (input_->KeyPressed(InputSystem::Key::O)) {
+            physics_->ToggleStepMode();
+        }
+
+        // 'I' key executes a single physics step if in step mode.
+        if (input_->KeyPressed(InputSystem::Key::I)) {
+            physics_->ExecuteNextStep();
+        }
+
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
-        //for testing
-        //mutiple ways to use the inputsystem functions using an overload
-        if (input_->KeyPressed(InputSystem::Key::A)) showPlayerSprite_ = !showPlayerSprite_;
-        
-        // NEW: draw the player sprite at its Position (if both exist)
-        if (showPlayerSprite_){
-            if (playerTex_) {
-                auto pit = ecs_->position.find(player_);
-                if (pit != ecs_->position.end()) {
-                    const auto& p = pit->second;
-                    // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(playerTex_, { p.x, p.y }, { 0.2f, 0.2f }, 0.0f);
-                }
-            }
-        }
-        //for testing 
-        if (input_->KeyPressed('W')) showGrateSprite_ = !showGrateSprite_;
+      
+        // Render the ground
+      /*  if (groundTex_ && ecs_->position.count(ground_)) {
+            const auto& pos = ecs_->position.at(ground_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
+            gfx_->drawSprite(groundTex_, pos, halfSize, 0.0f);
+        }*/
 
-        // NEW: draw the player sprite at its Position (if both exist)
-        if (showGrateSprite_) {
-            if (GrateTex_) {
-                auto pit = ecs_->position.find(player_);
-                if (pit != ecs_->position.end()) {
-                    const auto& p = pit->second;
-                    // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(GrateTex_, { -0.7, -0.7 }, { 0.2f, 0.2f }, 0.0f);
-                }
-            }
-            if (GrateTex_) {
-                auto pit = ecs_->position.find(player_);
-                if (pit != ecs_->position.end()) {
-                    const auto& p = pit->second;
-                    // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(GrateTex_, { 0.7, 0.7 }, { 0.2f, 0.2f }, 0.0f);
-                }
-            }
-            if (GrateTex_) {
-                auto pit = ecs_->position.find(player_);
-                if (pit != ecs_->position.end()) {
-                    const auto& p = pit->second;
-                    // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(GrateTex_, { -0.7, 0.7 }, { 0.2f, 0.2f }, 0.0f);
-                }
-            }
-            if (GrateTex_) {
-                auto pit = ecs_->position.find(player_);
-                if (pit != ecs_->position.end()) {
-                    const auto& p = pit->second;
-                    // center = player position, half size ~0.2 NDC, rotation 0
-                    gfx_->drawSprite(GrateTex_, { 0.7, -0.7 }, { 0.2f, 0.2f }, 0.0f);
-                }
-            }
-        }
-        for (const auto& kv : ecs_->triangle) {
-            Entity e = kv.first;
-            const Triangle& tri = kv.second;
-
-            auto itP = ecs_->position.find(e);
-            if (itP == ecs_->position.end()) continue;
-            const Position& p = itP->second;
-
+        if (groundTex_ && ecs_->position.count(ground_)) {
+            const auto& pos = ecs_->position.at(ground_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
             float rotation = 0.0f;
-            auto rotIt = ecs_->rotationFlag.find(e);
-            if (rotIt != ecs_->rotationFlag.end()) {
-                rotation = rotIt->second.currentRotation;
+            if (ecs_->rotationFlag.count(ground_)) {
+                rotation = ecs_->rotationFlag.at(ground_).currentRotation * (M_PI / 180.0f); 
             }
 
-            float rotationRad = rotation * (M_PI / 180.0f);
+            gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
+        }
 
-            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotationRad);
+        if (groundTex_ && ecs_->position.count(ground2_)) {
+            const auto& pos = ecs_->position.at(ground2_).Pos;
+            const auto& halfSize = ecs_->colliders.at(ground2_).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(ground2_)) {
+                rotation = ecs_->rotationFlag.at(ground2_).currentRotation * (M_PI / 180.0f);
+            }
+            gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
+        }
 
+        // Render the player
+        if (playerTex_ && ecs_->position.count(player_)) {
+            const auto& pos = ecs_->position.at(player_).Pos;
+            const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
+            gfx_->drawSprite(playerTex_, pos, halfSize, 0.0f);
+        }
 
-          /*  gfx_->drawTriangle(
-                { tri.a.x + p.x, tri.a.y + p.y },
-                { tri.b.x + p.x, tri.b.y + p.y },
-                { tri.c.x + p.x, tri.c.y + p.y },
-                tri.color
-            );*/
+        // For now, we can use the console to see the state.
+        if (physics_->IsInStepMode()) {
+            
+             std::cout << "STEP MODE ACTIVE (Press 'I' to advance)" << std::endl;
+        }
+        else if (physics_->IsPaused()) {
+             std::cout << "PAUSED" << std::endl;
+        }
 
+    } 
 
-            Vector2D a = { tri.a.x, tri.a.y };
-            Vector2D b = { tri.b.x, tri.b.y };
-            Vector2D c = { tri.c.x, tri.c.y };
+    void GameSystem::RenderColliders() {
+        // Loop through all entities that have a collider component
+        for (auto const& [entity, collider] : ecs_->colliders) {
+            // Ensure the entity also has a position
+            if (ecs_->position.count(entity)) {
+                const auto& pos = ecs_->position.at(entity).Pos;
+                const auto& halfSize = collider.HalfSize;
 
-            Vector2D rotatedA = rotMat * a;
-            Vector2D rotatedB = rotMat * b;
-            Vector2D rotatedC = rotMat * c;
+                // Determine the render color based on the entity's tag
+                Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
+                if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
+                if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
 
-            gfx_->drawTriangle(
-                { rotatedA.x + p.x, rotatedA.y + p.y },
-                { rotatedB.x + p.x, rotatedB.y + p.y },
-                { rotatedC.x + p.x, rotatedC.y + p.y },
-                tri.color
-            );
+                // Calculate the min/max corners and issue the draw call
+                gfx_->drawRectangle(
+                    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
+                    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
+                    col
+                );
+            }
         }
     }
 

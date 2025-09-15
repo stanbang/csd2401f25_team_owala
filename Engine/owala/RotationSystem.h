@@ -1,3 +1,4 @@
+// RotationSystem.h
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
@@ -17,5 +18,10 @@ namespace Framework {
     private:
         EntityStorage* ecs_;
         InputSystem* input_;
+
+     
+        float globalRotation;
+        float targetGlobalRotation;
+        bool isGlobalRotating;
     };
 } // namespace Framework
