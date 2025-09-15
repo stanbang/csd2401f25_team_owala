@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "Components.h"
 #include "SpriteComponents.h"
+#include "SceneComponents.h"
 #include <unordered_map> //For a hash map to store entity-component pairs
 
 /*	Hash maps to store key-value pairs of entity IDs 
@@ -22,19 +23,24 @@ namespace Framework {
 	class EntityStorage{
 	public:
 		//Tags
-		std::unordered_map<Entity, PlayerTag>    playerTag;
-		std::unordered_map<Entity, PlatformTag>  platformTag;
-		std::unordered_map<Entity, EnemyTag>     enemyTag;
+		std::unordered_map<Entity, PlayerTag>		playerTag;
+		std::unordered_map<Entity, PlatformTag>		platformTag;
+		std::unordered_map<Entity, EnemyTag>		enemyTag;
 
 		//Basic Components
-		std::unordered_map<Entity, PlayerStats> playerStats;
-		std::unordered_map<Entity, Position>     position;
-		std::unordered_map<Entity, Velocity>     velocity;
-		std::unordered_map<Entity, Acceleration> acceleration;
-		std::unordered_map<Entity, Triangle>     triangle;
+		std::unordered_map<Entity, PlayerStats>		playerStats;
+		std::unordered_map<Entity, Position>		position;
+		std::unordered_map<Entity, Velocity>		velocity;
+		std::unordered_map<Entity, Acceleration>	acceleration;
+		std::unordered_map<Entity, Triangle>		triangle;
 
 		//Sprite Components
-		std::unordered_map<Entity, Sprite>       sprite;    // single sprite
-		std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
+		std::unordered_map<Entity, Sprite>			sprite;    // single sprite
+		std::unordered_map<Entity, Sprites>			sprites;   // multiple frames (animations)
+
+		// Scene Components
+		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
+		std::unordered_map<Entity, PersistentTag>	persistentTag; // Tag to indicate if the entity should persist across scene changes
+		std::unordered_map<Entity, ActiveTag>		activeTag; // Tag to indicate if entity is to be loaded in the scene
 	};
 }
