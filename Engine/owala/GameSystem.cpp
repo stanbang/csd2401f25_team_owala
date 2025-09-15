@@ -92,16 +92,6 @@ namespace Framework {
             gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
         }
 
-        if (groundTex_ && ecs_->position.count(ground2_)) {
-            const auto& pos = ecs_->position.at(ground2_).Pos;
-            const auto& halfSize = ecs_->colliders.at(ground2_).HalfSize;
-            float rotation = 0.0f;
-            if (ecs_->rotationFlag.count(ground2_)) {
-                rotation = ecs_->rotationFlag.at(ground2_).currentRotation * (M_PI / 180.0f);
-            }
-            gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
-        }
-
         // Render the player
         if (playerTex_ && ecs_->position.count(player_)) {
             const auto& pos = ecs_->position.at(player_).Pos;
@@ -117,6 +107,8 @@ namespace Framework {
         else if (physics_->IsPaused()) {
              std::cout << "PAUSED" << std::endl;
         }
+
+        RenderColliders();
 
     } 
 
