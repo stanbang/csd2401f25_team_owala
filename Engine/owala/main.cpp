@@ -23,10 +23,8 @@ int main() {
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     Graphics *gfx = new Graphics(*win);
-    GameSystem *game = new GameSystem(*ecs, *gfx, *win, *input, *phx);
-
-    using ResourceManager::ResourceManager;
-    ResourceManager<Texture> resourceManager;
+    ResourceManager* rcm = new ResourceManager(*gfx); //Create resource manager on stack
+    GameSystem *game = new GameSystem(*rcm, *ecs, *gfx, *win, *input, *phx);
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context

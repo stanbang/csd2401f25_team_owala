@@ -53,6 +53,10 @@ namespace Framework{
 		Color color; 
 	};
 
+	struct Texture {
+		std::shared_ptr<Framework::Texture> tex;
+	};
+
 	struct PlayerStats {
 		float moveSpeed;
 	};;

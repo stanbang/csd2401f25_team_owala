@@ -26,11 +26,11 @@ namespace Framework {
     void GameSystem::Initialize() {
         // --- Load Assets ---
         // Ensure you have these files in an "Assets" folder next to your executable.
-        playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
-        groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+        //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
+        //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
         gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
-      
+		resourceManager_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
 
         // --- Create Ground Entity ---
         ground_ = createEntity();
@@ -56,7 +56,7 @@ namespace Framework {
 
         // --- Create Player Entity ---
         PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
-        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f });
+        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, resourceManager_->get<Texture>("playerSprite_DuckyWucky"));
     }
 
     void GameSystem::Update(float dt) {

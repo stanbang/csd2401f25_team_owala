@@ -1,35 +1,26 @@
 #include "ResourceManager.h"
+#include "Graphics.h"
 
-// Template method definitions
-template<typename ResourceType>
-void ResourceManager::add(const std::string& name, std::shared_ptr<ResourceType> resource) {
-    auto& map = getMap<ResourceType>();
-
-	if (map.find(name) != map.end()) {
-		throw std::runtime_error("Resource with name '" + name + "' already exists.");
-	}
-
-    map[name] = resource;
-}
-
-template<typename ResourceType>
-std::shared_ptr<ResourceType> ResourceManager::get(const std::string& name) {
-    auto& map = getMap<ResourceType>();
-    auto it = map.find(name);
-    return (it != map.end()) ? it->second : nullptr; 
-}
-
-template<typename ResourceType>
-void ResourceManager::clear() {
-    getMap<ResourceType>().clear();
-}
+using namespace Framework;
 
 void ResourceManager::clearAll() {
     textureMap.clear();
 }
 
-// Specialization for Framework::Texture
+bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
+	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
+	if (tex == 0) {
+		std::cout << "Failed to load texture from '" << filepath << "'" << std::endl;
+		return false;
+	}
+
+	auto texturePtr = std::make_shared<Texture>(tex); // Wrap in shared_ptr
+	add<Texture>(name, texturePtr); // Add to resource manager's unordered_map
+    return true;
+}
+
+// Specialization for Texture
 template<>
-std::unordered_map<std::string, std::shared_ptr<Framework::Texture>>& ResourceManager::getMap<Framework::Texture>() {
+std::unordered_map<std::string, std::shared_ptr<Texture>>& ResourceManager::getMap<Texture>() {
     return textureMap;
 }

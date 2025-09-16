@@ -12,8 +12,18 @@ namespace Framework {
 
     class GameSystem : public ISystem {
     public:
-        GameSystem(EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics)
-            : ecs_(&ecs), gfx_(&gfx), win_(&win), input_(&input), physics_(&physics) {
+        GameSystem(ResourceManager& rcm, 
+            EntityStorage& ecs, 
+            Graphics& gfx, 
+            WindowsSystem& win, 
+            InputSystem& input, 
+            PhysicsSystem& physics)
+            : resourceManager_(&rcm), 
+            ecs_(&ecs), 
+            gfx_(&gfx), 
+            win_(&win), 
+            input_(&input), 
+            physics_(&physics) {
         }
 
         void Initialize() override;     // spawn player/platform via tag-aware creators
@@ -28,6 +38,7 @@ namespace Framework {
         WindowsSystem* win_ = nullptr;
         InputSystem* input_ = nullptr;   // <-- MISSING MEMBER (add this)
         PhysicsSystem* physics_ = nullptr;
+		ResourceManager* resourceManager_ = nullptr;
 
         Entity          player_{ 0 };
         Entity ground_{ 0 };
