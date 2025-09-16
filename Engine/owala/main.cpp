@@ -8,20 +8,25 @@
 #include "PhysicsSystem.h"
 #include "FileUtility.h"
 #include "RotationSystem.h"
+#include "ResourceManager.h"
 #include <iostream>
 
 int main() {
-    Framework::CoreEngine engine;
-	Framework::FileIOSystem fileIO;
+    using namespace Framework;
+    CoreEngine engine;
+	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.loadWindowConfig();
-    Framework::WindowsSystem *win = new Framework::WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
-    Framework::InputSystem *input = new Framework::InputSystem(*win);
-    Framework::EntityStorage *ecs = new Framework::EntityStorage();
-    Framework::PhysicsSystem* phx = new Framework::PhysicsSystem(*ecs);
-    Framework::RotationSystem* rotation = new Framework::RotationSystem(*ecs, *input, *phx);
-    Framework::PlayerSystem* player = new Framework::PlayerSystem(*ecs, *input ,*phx);
-    Framework::Graphics *gfx = new Framework::Graphics(*win);
-    Framework::GameSystem *game = new Framework::GameSystem(*ecs, *gfx, *win, *input, *phx);
+    WindowsSystem *win = new WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
+    InputSystem *input = new InputSystem(*win);
+    EntityStorage *ecs = new EntityStorage();
+    PhysicsSystem* phx = new PhysicsSystem(*ecs);
+    RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
+    PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
+    Graphics *gfx = new Graphics(*win);
+    GameSystem *game = new GameSystem(*ecs, *gfx, *win, *input, *phx);
+
+    using ResourceManager::ResourceManager;
+    ResourceManager<Texture> resourceManager;
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context

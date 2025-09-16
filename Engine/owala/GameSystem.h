@@ -3,6 +3,7 @@
 #include "EntityStorage.h"
 #include "InputSystem.h"
 #include "PhysicsSystem.h"
+#include "ResourceManager.h"
 
 namespace Framework {
 
