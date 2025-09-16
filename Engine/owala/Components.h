@@ -9,6 +9,7 @@
 #pragma once
 #include "Graphics.h"
 #include "Vector2D.h"
+#include <memory> // for std::shared_ptr
 
 namespace Framework{
 	/*	Position component to store x and y 
@@ -53,7 +54,7 @@ namespace Framework{
 		Color color; 
 	};
 
-	struct Texture {
+	struct TextureComponent {
 		std::shared_ptr<Framework::Texture> tex;
 	};
 

@@ -38,7 +38,7 @@ namespace Framework {
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 
 		//Texture Component
-		std::unordered_map<Entity, std::shared_ptr<Framework::Texture>>      tex;
+		std::unordered_map<Entity, TextureComponent>      tex;
 
 		//Sprite Components
 		//std::unordered_map<Entity, Sprite>       sprite;    // single sprite

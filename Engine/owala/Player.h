@@ -27,7 +27,7 @@ namespace Framework {
 		PlayerStats stats, 
 		Vector2D startPos, 
 		Vector2D halfSize, 
-		Framework::Texture texture) {
+		std::shared_ptr<Framework::Texture> texture) {
 
 			//Create a new entity with a unique ID
 			Entity player = createEntity();
@@ -39,7 +39,7 @@ namespace Framework {
 			entityStorage.position[player] = Position{ startPos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
-			entityStorage.tex[player] = Texture{ texture };
+			entityStorage.tex[player] = TextureComponent{ texture };
 			entityStorage.rigidBody[player] = RigidBody{};
 			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
 

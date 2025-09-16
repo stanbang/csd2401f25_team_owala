@@ -56,7 +56,9 @@ namespace Framework {
 
         // --- Create Player Entity ---
         PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
-        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, resourceManager_->get<Texture>("playerSprite_DuckyWucky"));
+		shared_ptr<Framework::Texture> playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
+        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, playerTexture);
+
     }
 
     void GameSystem::Update(float dt) {
@@ -97,10 +99,10 @@ namespace Framework {
         }
 
         // Render the player
-        if (playerTex_ && ecs_->position.count(player_)) {
+        if (ecs_->tex.count(player_) && ecs_->position.count(player_)) {
             const auto& pos = ecs_->position.at(player_).Pos;
             const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
-            gfx_->drawSprite(playerTex_, pos, halfSize, 0.0f);
+            gfx_->drawSprite(*ecs_->tex[player_].tex, pos, halfSize, 0.0f);
         }
 
         // For now, we can use the console to see the state.
