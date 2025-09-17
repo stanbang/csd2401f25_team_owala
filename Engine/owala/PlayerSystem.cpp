@@ -13,6 +13,7 @@
 #include <GLFW/glfw3.h>   // Include for key codes
 #include "InputSystem.h" // Include for Input System
 #include "PhysicsSystem.h"
+#include "FileUtility.h" // Include to write player data on Shutdown
 
 
 namespace Framework {
@@ -60,4 +61,23 @@ namespace Framework {
             }
         }
     }
+
+
+    void PlayerSystem::Shutdown() {
+        std::cout << "Player System Shutdown" << std::endl;
+
+        FileIOSystem fileIO;
+        PlayerStats newStats;
+
+        for (const auto& [entity, tag] : entityStorage_->playerTag) {
+            newStats = entityStorage_->playerStats.at(entity);
+            newStats.pos = entityStorage_->position.at(entity);
+        }
+
+        std::cout << "new stats:\nx: "  << newStats.pos.Pos.x << "\ny: "<< newStats.pos.Pos.y << std::endl;
+
+
+        fileIO.writePlayerStats(newStats);
+    }
+
 } // namespace Framework

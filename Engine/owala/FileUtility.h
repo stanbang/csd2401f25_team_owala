@@ -8,6 +8,9 @@
  *********************************************************************/
 #pragma once
 #include "rapidjson/document.h"
+#include "rapidjson/ostreamwrapper.h"
+#include "rapidjson/writer.h"
+
 #include "Vector2D.h"
 #include "Components.h"
 #include "ISystem.h"
@@ -22,8 +25,6 @@ namespace Framework {
 	public:
 		Vector2D loadWindowConfig();
 		PlayerStats loadPlayerStats();
-		bool writePlayerStats();
-
-	private:
+		bool writePlayerStats(const PlayerStats& playerStats);
 	};
 } // namespace Framework

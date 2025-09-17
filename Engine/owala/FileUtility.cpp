@@ -10,7 +10,11 @@
 #include <fstream>
 #include <iostream>
 #include "rapidjson/document.h"
+// for reading json file
 #include "rapidjson/istreamwrapper.h"
+// for writing to json file
+#include "rapidjson/filewritestream.h"
+#include "rapidjson/writer.h"
 
 #include "FileUtility.h"
 #include "Vector2D.h"
@@ -21,7 +25,6 @@ using namespace rapidjson;
 
 namespace Framework {
 	Document readFile(const string& fileName) {
-
 		ifstream file(fileName);
 		if (!file) throw runtime_error("Could not open file: " + fileName);
 
@@ -50,15 +53,14 @@ namespace Framework {
 			throw runtime_error("Invalid or missing data in config.json");
 		}
 
-		windowW = static_cast<float>(config["width"].GetInt());
-		windowH = static_cast<float>(config["height"].GetInt());
+		Vector2D windowSize = { config["width"].GetFloat() ,config["height"].GetFloat() };
 
 		// Debugging output
 		cout << "Config data read from config.json:\n"
-			 << "Window Size = " << windowW << " x " << windowH
-			 << std::endl;
+			 << "Window Size = " << windowSize.x << " x " << windowSize.y
+			 << endl;
 
-		return Vector2D {windowW, windowH};
+		return windowSize;
 	}
 
 	PlayerStats FileIOSystem::loadPlayerStats() {
@@ -72,21 +74,68 @@ namespace Framework {
 		const Value& stats = d["playerStats"]; // Extract the playerStats data from the JSON file
 
 		// Check if moveSpeed member exists in playerStats
-		if (!stats.HasMember("moveSpeed")) {
-			throw runtime_error("Invalid or missing moveSpeed in playerStats.json");
+		if (!stats.HasMember("moveSpeed") || !stats.HasMember("positionX") || !stats.HasMember("positionY")) {
+			throw runtime_error("Invalid or missing properties in playerStats.json");
 		}
 
+		const Value& playerX = stats["positionX"];
+		const Value& playerY = stats["positionY"];
+
+		std::cout << "Player Position read from player.json:\n"
+			<< "Position X: " << playerX.GetFloat() << "\n"
+			<< "Position Y: " << playerY.GetFloat() << std::endl;
+
+		Vector2D position{ playerX.GetFloat(), playerY.GetFloat() };
+
 		// Since moveSpeed is a float, convert it to float before storing it in the playerStats object
-		PlayerStats playerStats = { stats["moveSpeed"].GetFloat() };
+		PlayerStats playerStats = { stats["moveSpeed"].GetFloat(), Position(position)};
 
 		// Debugging output
 		cout << "Player data read from player.json:\n"
 			<< "moveSpeed = " << playerStats.moveSpeed
-			<< std::endl;
+			<< endl;
 		return playerStats;
 	}
 
-	bool FileIOSystem::writePlayerStats() {
+	bool FileIOSystem::writePlayerStats(const PlayerStats& playerStats) {
+		Document d = readFile("Data/player.json");
 
+		// Check if the JSON file contains the respective members expected of a playerStats.json file
+		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {
+			throw std::runtime_error("Invalid or missing playerStats in playerStats.json");
+		}
+
+		// Modify the JSON data
+		Value& stats = d["playerStats"]; // Extract the playerStats object
+		
+		// Check if moveSpeed member exists in playerStats
+		if (!stats.HasMember("moveSpeed") || !stats.HasMember("positionX") || !stats.HasMember("positionY")) {
+			throw runtime_error("Invalid or missing properties in playerStats.json");
+		}
+
+		Value& playerX = stats["positionX"];
+		Value& playerY = stats["positionY"];
+
+		std::cout << "Updated Player Position\n"
+			<< "Position X: " << playerStats.pos.Pos.x << "\n"
+			<< "Position Y: " << playerStats.pos.Pos.y << std::endl;
+
+		// Update x and y from your game data
+		playerX.SetFloat(playerStats.pos.Pos.x);
+		playerY.SetFloat(playerStats.pos.Pos.y);
+
+		// Write JSON file
+		std::ofstream os("Data/player.json");
+		if (!os) throw std::runtime_error("Could not open file: Data/player.json");
+
+		// Convert Document to JSON string
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		d.Accept(writer);
+
+		// Write to file
+		os << buffer.GetString();
+
+		return true;
 	}
 }

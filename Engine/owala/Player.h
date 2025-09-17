@@ -23,7 +23,7 @@ namespace Framework {
 	FileIOSystem fileIO;
 
 	//Entity createPlayer(EntityStorage& entityStorage, const Triangle& triangle, float startXPos = 0.0f, float startYPos = 0.0f) {
-	inline Entity createPlayer(EntityStorage& entityStorage, PlayerStats stats, Vector2D startPos, Vector2D halfSize) {
+	inline Entity createPlayer(EntityStorage& entityStorage, PlayerStats stats, Vector2D halfSize) {
 			//Create a new entity with a unique ID
 			Entity player = createEntity();
 			/*Assign components to the player entity, and
@@ -31,7 +31,7 @@ namespace Framework {
 			//entityStorage.triangle[player] = triangle;
 			entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
 			entityStorage.playerStats[player] = stats;
-			entityStorage.position[player] = Position{ startPos }; //Start at 0,0 coordinates
+			entityStorage.position[player] = Position{ stats.pos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
 			entityStorage.rigidBody[player] = RigidBody{};

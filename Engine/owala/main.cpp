@@ -14,7 +14,7 @@ int main() {
     Framework::CoreEngine engine;
 	Framework::FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.loadWindowConfig();
-    Framework::WindowsSystem *win = new Framework::WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
+    Framework::WindowsSystem *win = new Framework::WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
     Framework::InputSystem *input = new Framework::InputSystem(*win);
     Framework::EntityStorage *ecs = new Framework::EntityStorage();
     Framework::PhysicsSystem* phx = new Framework::PhysicsSystem(*ecs);

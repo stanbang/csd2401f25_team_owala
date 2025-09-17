@@ -56,7 +56,7 @@ namespace Framework {
 
         // --- Create Player Entity ---
         PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
-        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f });
+        player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }); 
     }
 
     void GameSystem::Update(float dt) {

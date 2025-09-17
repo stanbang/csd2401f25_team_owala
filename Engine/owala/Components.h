@@ -55,6 +55,7 @@ namespace Framework{
 
 	struct PlayerStats {
 		float moveSpeed;
+		Position pos;
 	};;
 
 	/* TAG SECTION */
