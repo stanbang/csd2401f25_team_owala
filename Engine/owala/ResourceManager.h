@@ -10,8 +10,12 @@ namespace Framework {
 
     using Texture = Framework::Texture;
 
-    class ResourceManager {
+    class ResourceManager : public ISystem{
     public:
+
+        void Initialize() override;
+        void Update(float dt) {/*Empty by design*/ };
+        void Shutdown() override {}
 
         ResourceManager(Graphics& gfx) : gfx_(&gfx) {};
 
@@ -26,9 +30,10 @@ namespace Framework {
             map[name] = resource;
         }
 
-        // Get a resource
+        // Get a resource, returns weak_ptr to maintain resource ownership by ResourceManager.
+        // Convert weak ptr to shared ptr to modify the resource, else weak ptr is READ ONLY!!!
         template<typename ResourceType>
-        std::shared_ptr<ResourceType> get(const char* name) {
+        std::weak_ptr<ResourceType> get(const char* name) {
             auto& map = getMap<ResourceType>();
             auto it = map.find(name);
             return (it != map.end()) ? it->second : nullptr;

@@ -55,7 +55,7 @@ namespace Framework{
 	};
 
 	struct TextureComponent {
-		std::shared_ptr<Framework::Texture> tex;
+		std::weak_ptr<Framework::Texture> tex;
 	};
 
 	struct PlayerStats {

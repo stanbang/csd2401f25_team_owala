@@ -23,14 +23,14 @@
 
 namespace Framework {
 
+    using Texture_WeakPtr = std::weak_ptr<Texture>;
+
     void GameSystem::Initialize() {
         // --- Load Assets ---
         // Ensure you have these files in an "Assets" folder next to your executable.
         //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
         //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
         gfx_->setAlphaBlend(true); // Enable transparency for PNGs
-
-		resourceManager_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
 
         // --- Create Ground Entity ---
         ground_ = createEntity();
@@ -56,7 +56,9 @@ namespace Framework {
 
         // --- Create Player Entity ---
         PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
-		shared_ptr<Framework::Texture> playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
+
+        //Ask resource manager for a reference to the duck texture.
+        Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
         player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, playerTexture);
 
     }
@@ -95,14 +97,14 @@ namespace Framework {
                 rotation = ecs_->rotationFlag.at(ground_).currentRotation * (M_PI / 180.0f); 
             }
 
-            gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
+            //gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
         }
 
         // Render the player
         if (ecs_->tex.count(player_) && ecs_->position.count(player_)) {
             const auto& pos = ecs_->position.at(player_).Pos;
             const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
-            gfx_->drawSprite(*ecs_->tex[player_].tex, pos, halfSize, 0.0f);
+            gfx_->drawSprite(ecs_->tex[player_].tex, pos, halfSize, 0.0f);
         }
 
         // For now, we can use the console to see the state.

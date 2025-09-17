@@ -27,7 +27,7 @@ namespace Framework {
 		PlayerStats stats, 
 		Vector2D startPos, 
 		Vector2D halfSize, 
-		std::shared_ptr<Framework::Texture> texture) {
+		std::weak_ptr<Framework::Texture> texture) {
 
 			//Create a new entity with a unique ID
 			Entity player = createEntity();

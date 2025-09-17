@@ -32,6 +32,7 @@ int main() {
     engine.AddSystem(rotation);
     engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
     engine.AddSystem(phx);                 // Physics comes after input
+	engine.AddSystem(rcm);                // Resource manager (loads resources on demand) MUST come before GameSystem or assets won't be found
     engine.AddSystem(game);                // reads input -> moves/queues draws
     engine.AddSystem(gfx);                 // swaps buffers last
 
