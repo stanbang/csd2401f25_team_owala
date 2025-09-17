@@ -23,7 +23,11 @@ namespace Framework {
 	FileIOSystem fileIO;
 
 	//Entity createPlayer(EntityStorage& entityStorage, const Triangle& triangle, float startXPos = 0.0f, float startYPos = 0.0f) {
-	inline Entity createPlayer(EntityStorage& entityStorage, PlayerStats stats, Vector2D halfSize) {
+	inline Entity createPlayer(EntityStorage& entityStorage, 
+		PlayerStats stats, 
+		Vector2D halfSize, 
+		std::weak_ptr<Framework::Texture> texture) {
+
 			//Create a new entity with a unique ID
 			Entity player = createEntity();
 			/*Assign components to the player entity, and
@@ -34,6 +38,7 @@ namespace Framework {
 			entityStorage.position[player] = Position{ stats.pos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
+			entityStorage.tex[player] = TextureComponent{ texture };
 			entityStorage.rigidBody[player] = RigidBody{};
 			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
 

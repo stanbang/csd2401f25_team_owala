@@ -9,6 +9,7 @@
 #pragma once
 #include "Graphics.h"
 #include "Vector2D.h"
+#include <memory> // for std::shared_ptr
 
 namespace Framework{
 	/*	Position component to store x and y 
@@ -51,6 +52,10 @@ namespace Framework{
 	struct Triangle { 
 		Vector2D a, b, c; 
 		Color color; 
+	};
+
+	struct TextureComponent {
+		std::weak_ptr<Framework::Texture> tex;
 	};
 
 	struct PlayerStats {

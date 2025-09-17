@@ -36,6 +36,10 @@ namespace Framework {
 		std::unordered_map<Entity, AABBCollider> colliders; 
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
+
+		//Texture Component
+		std::unordered_map<Entity, TextureComponent>      tex;
+
 		//Sprite Components
 		//std::unordered_map<Entity, Sprite>       sprite;    // single sprite
 		//std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
