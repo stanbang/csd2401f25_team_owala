@@ -24,6 +24,9 @@ using namespace std;
 using namespace rapidjson;
 
 namespace Framework {
+	const string FileIOSystem::WIN_CONFIG_FILEPATH = "Data/config.json";
+	const string FileIOSystem::PLAYER_CONFIG_FILEPATH = "Data/player.json";
+
 	Document readFile(const string& fileName) {
 		ifstream file(fileName);
 		if (!file) throw runtime_error("Could not open file: " + fileName);
@@ -36,17 +39,29 @@ namespace Framework {
 		return d;
 	}
 
+	bool writeFileJson(const string& fileName, Document& d) {
+		// Write JSON file
+		std::ofstream os(fileName);
+		if (!os) throw std::runtime_error("Could not open file: " + fileName);
+
+		// Convert Document to JSON string
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		d.Accept(writer);
+
+		// Write to file
+		os << buffer.GetString();
+		return true;
+	}
+
 	Vector2D FileIOSystem::loadWindowConfig() {
-		Document d = readFile("Data/config.json");
+		Document d = readFile(WIN_CONFIG_FILEPATH);
 
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
 			throw runtime_error("Invalid or missing windowConfig in config.json");
 		}
 
 		const Value& config = d["windowConfig"];
-
-		// set default 800 by 600 in case read file fail
-		float windowW{ 800.0f }, windowH{ 600.0f };
 
 		if (!config.HasMember("width") || !config["width"].IsInt() ||
 			!config.HasMember("height") || !config["height"].IsInt()) {
@@ -64,18 +79,18 @@ namespace Framework {
 	}
 
 	PlayerStats FileIOSystem::loadPlayerStats() {
-		Document d = readFile("Data/player.json"); //Read the file name passed in as a path
+		Document d = readFile(PLAYER_CONFIG_FILEPATH); //Read the file name passed in as a path
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {
-			throw runtime_error("Invalid or missing playerStats in playerStats.json");
+			throw runtime_error("Invalid or missing playerStats in player.json");
 		}
 
 		const Value& stats = d["playerStats"]; // Extract the playerStats data from the JSON file
 
 		// Check if moveSpeed member exists in playerStats
 		if (!stats.HasMember("moveSpeed") || !stats.HasMember("positionX") || !stats.HasMember("positionY")) {
-			throw runtime_error("Invalid or missing properties in playerStats.json");
+			throw runtime_error("Invalid or missing properties in player.json");
 		}
 
 		const Value& playerX = stats["positionX"];
@@ -98,11 +113,11 @@ namespace Framework {
 	}
 
 	bool FileIOSystem::writePlayerStats(const PlayerStats& playerStats) {
-		Document d = readFile("Data/player.json");
+		Document d = readFile(PLAYER_CONFIG_FILEPATH);
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {
-			throw std::runtime_error("Invalid or missing playerStats in playerStats.json");
+			throw std::runtime_error("Invalid or missing playerStats in player.json");
 		}
 
 		// Modify the JSON data
@@ -110,7 +125,7 @@ namespace Framework {
 		
 		// Check if moveSpeed member exists in playerStats
 		if (!stats.HasMember("moveSpeed") || !stats.HasMember("positionX") || !stats.HasMember("positionY")) {
-			throw runtime_error("Invalid or missing properties in playerStats.json");
+			throw runtime_error("Invalid or missing properties in player.json");
 		}
 
 		Value& playerX = stats["positionX"];
@@ -124,18 +139,6 @@ namespace Framework {
 		playerX.SetFloat(playerStats.pos.Pos.x);
 		playerY.SetFloat(playerStats.pos.Pos.y);
 
-		// Write JSON file
-		std::ofstream os("Data/player.json");
-		if (!os) throw std::runtime_error("Could not open file: Data/player.json");
-
-		// Convert Document to JSON string
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		d.Accept(writer);
-
-		// Write to file
-		os << buffer.GetString();
-
-		return true;
+		return writeFileJson(PLAYER_CONFIG_FILEPATH, d);
 	}
 }

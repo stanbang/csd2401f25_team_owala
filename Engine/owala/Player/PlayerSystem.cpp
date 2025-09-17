@@ -74,9 +74,6 @@ namespace Framework {
             newStats.pos = entityStorage_->position.at(entity);
         }
 
-        std::cout << "new stats:\nx: "  << newStats.pos.Pos.x << "\ny: "<< newStats.pos.Pos.y << std::endl;
-
-
         fileIO.writePlayerStats(newStats);
     }
 

@@ -20,8 +20,11 @@ namespace Framework {
 	using namespace rapidjson;
 
 	Document readFile(const string& fileName);
-	
+	bool writeFileJson(const string& fileName, Document& d);
+
 	class FileIOSystem {
+		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH;
+
 	public:
 		Vector2D loadWindowConfig();
 		PlayerStats loadPlayerStats();
