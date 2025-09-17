@@ -24,6 +24,7 @@ namespace Framework {
 
         // --- Public Properties ---
         Vector2D gravity_ = { 0.0f, -9.81f }; // Public for easy access/modification (e.g., world rotation)
+        static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
 
         // --- Public Methods ---
         void SetPaused(bool paused) { isPaused_ = paused; }

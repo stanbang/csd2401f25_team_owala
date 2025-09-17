@@ -7,6 +7,7 @@
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
 #include "FileUtility.h"
+#include "RotationSystem.h"
 #include <iostream>
 
 int main() {
@@ -17,6 +18,7 @@ int main() {
     Framework::InputSystem *input = new Framework::InputSystem(*win);
     Framework::EntityStorage *ecs = new Framework::EntityStorage();
     Framework::PhysicsSystem* phx = new Framework::PhysicsSystem(*ecs);
+    Framework::RotationSystem* rotation = new Framework::RotationSystem(*ecs, *input, *phx);
     Framework::PlayerSystem* player = new Framework::PlayerSystem(*ecs, *input ,*phx);
     Framework::Graphics *gfx = new Framework::Graphics(*win);
     Framework::GameSystem *game = new Framework::GameSystem(*ecs, *gfx, *win, *input, *phx);
@@ -24,6 +26,7 @@ int main() {
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
     engine.AddSystem(input);               // MUST come before GameSystem
+    engine.AddSystem(rotation);
     engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
     engine.AddSystem(phx);                 // Physics comes after input
     engine.AddSystem(game);                // reads input -> moves/queues draws
