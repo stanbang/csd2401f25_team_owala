@@ -17,7 +17,7 @@ int main() {
     CoreEngine engine;
 	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.loadWindowConfig();
-    WindowsSystem *win = new WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
+    WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
     InputSystem *input = new InputSystem(*win);
     EntityStorage *ecs = new EntityStorage();
     PhysicsSystem* phx = new PhysicsSystem(*ecs);

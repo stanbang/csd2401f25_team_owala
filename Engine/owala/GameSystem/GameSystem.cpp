@@ -59,7 +59,7 @@ namespace Framework {
 
         //Ask resource manager for a reference to the duck texture.
         Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
-        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, playerTexture);
+        player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerTexture);
 
     }
 
