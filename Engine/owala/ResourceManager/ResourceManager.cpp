@@ -24,31 +24,28 @@ void ResourceManager::Initialize() {
 	//Store texture with key "playerSprite_DuckyWucky" from file "Assets/duck-rgba-256.tex"
 	//Access texture later with: Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
 	loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+	loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
 }
 
 void ResourceManager::clearAll() {
-    //textureMap.clear();
 	resourceMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
 	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
 	if (tex == 0) {
-		std::cout << "Failed to load texture from '" << filepath << "'" << std::endl;
+		std::cout << "[ResourceManager] Failed to load texture from '" << filepath << "'" << std::endl;
 		return false;
 	}
 
-	std::cout << "Loaded texture '" << name << "' from '" << filepath << "'" << std::endl;
+	std::cout << "[ResourceManager] Loaded texture '" << name << "' from '" << filepath << "'" << std::endl;
 
-	//add<Texture>(name, tex); // Add to resource manager's unordered_map
-
-	auto texturePtr = std::make_shared<Texture>(tex); // Wrap in shared_ptr
-	add<std::shared_ptr<Texture>>(name, texturePtr); // Add to resource manager's unordered_map
+	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;
 }
 
 // Specialization for Texture
-std::unordered_map<std::string, ResourceManager::Value>& ResourceManager::getMap() {
+std::unordered_map<std::string, Value>& ResourceManager::getMap() {
 	return resourceMap;
 }
 

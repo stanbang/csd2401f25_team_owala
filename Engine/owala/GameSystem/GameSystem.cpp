@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <algorithm>
 #include "Player.h"
+#include "Platform.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
@@ -24,8 +25,6 @@
 
 namespace Framework {
 
-    using Texture_WeakPtr = std::weak_ptr<Texture>;
-
     void GameSystem::Initialize() {
         // --- Load Assets ---
         // Ensure you have these files in an "Assets" folder next to your executable.
@@ -34,33 +33,12 @@ namespace Framework {
         gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Ground Entity ---
-        ground_ = createEntity();
-        ecs_->platformTag[ground_] = PlatformTag{};
-        ecs_->position[ground_] = Position{ {0.0f, -1.0f} };
-        ecs_->velocity[ground_] = Velocity{};
-        ecs_->rigidBody[ground_] = RigidBody{ {0.2f,0.2} };
-        ecs_->rigidBody[ground_].SetMass(0.0f); // A mass of 0 makes it static/immovable.
-        ecs_->colliders[ground_] = AABBCollider{ {1.0f, 0.2f} };
-        ecs_->rotationFlag[ground_] = RotationFlag{}; //added rotation for ground
-
-        //to test for rotation
-        /*ground2_ = createEntity(); 
-        ecs_->platformTag[ground2_] = PlatformTag{};
-        ecs_->position[ground2_] = Position{ {0.5f, 0.5f} }; 
-        ecs_->velocity[ground2_] = Velocity{};
-        ecs_->rigidBody[ground2_] = RigidBody{ {0.2f,0.2} };
-        ecs_->rigidBody[ground2_].SetMass(0.0f);
-        ecs_->colliders[ground2_] = AABBCollider{ {1.0f, 0.2f} };
-        ecs_->rotationFlag[ground2_] = RotationFlag{};
-        ecs_->rotationFlag[ground2_].currentRotation = 90.0f;*/
-
+		std::string platformTexID = "RonaldSprite_Platform";
+		ground_ = createPlatform(*ecs_, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
 
         // --- Create Player Entity ---
+		FileIOSystem fileIO;
         PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
-
-        ////Ask resource manager for a reference to the duck texture.
-        //Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
-        //player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerTexture);
 
         std::string playerDuckID = "playerSprite_DuckyWucky";
         player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
@@ -100,13 +78,8 @@ namespace Framework {
 
       
         // Render the ground
-      /*  if (groundTex_ && ecs_->position.count(ground_)) {
-            const auto& pos = ecs_->position.at(ground_).Pos;
-            const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
-            gfx_->drawSprite(groundTex_, pos, halfSize, 0.0f);
-        }*/
 
-        if (groundTex_ && ecs_->position.count(ground_)) {
+        if (ecs_->tex.count(ground_) && ecs_->position.count(ground_)) {
             const auto& pos = ecs_->position.at(ground_).Pos;
             const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
             float rotation = 0.0f;
@@ -114,18 +87,21 @@ namespace Framework {
                 rotation = ecs_->rotationFlag.at(ground_).currentRotation * (M_PI / 180.0f); 
             }
 
-            //gfx_->drawSprite(groundTex_, pos, halfSize, rotation);
+			//Use the textureID to get the actual texture from the resource manager
+			std::string textureID = ecs_->tex[ground_].textureKey;
+			Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, rotation);
         }
 
         // Render the player
         if (ecs_->tex.count(player_) && ecs_->position.count(player_)) {
             const auto& pos = ecs_->position.at(player_).Pos;
             const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
-            //gfx_->drawSprite(ecs_->tex[player_].tex, pos, halfSize, 0.0f);
 
-            std::string textureKey = ecs_->tex[player_].textureKey;
-            //Get a reference to the texture from the resource manager
-            std::shared_ptr<Texture> texture = resourceManager_->get(textureKey);
+
+			std::string textureID = ecs_->tex[player_].textureKey;
+			//Use the textureID to get the actual texture from the resource manager
+			Texture texture = resourceManager_->get<Texture>(textureID);
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
 

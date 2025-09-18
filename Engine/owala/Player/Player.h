@@ -21,14 +21,11 @@
  * \return The entity ID of the created player
  */
 namespace Framework {
-	FileIOSystem fileIO;
 
-	//Entity createPlayer(EntityStorage& entityStorage, const Triangle& triangle, float startXPos = 0.0f, float startYPos = 0.0f) {
 	inline Entity createPlayer(EntityStorage& entityStorage, 
 		PlayerStats stats, 
 		Vector2D halfSize, 
 		std::string textureID) {
-		//std::weak_ptr<Framework::Texture> texture) {
 
 			//Create a new entity with a unique ID
 			Entity player = createEntity();

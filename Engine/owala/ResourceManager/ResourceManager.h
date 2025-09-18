@@ -9,12 +9,10 @@
 
 namespace Framework {
 
-    //using Texture = Framework::Texture;
-    //using Value = std::variant<Texture>;
+    using Texture = Framework::Texture;
+    using Value = std::variant<Texture>;
 
     class ResourceManager : public ISystem{
-        //using Value = std::variant<Texture>;
-        using Value = std::variant<std::shared_ptr<Texture>>;
 
     public:
 
@@ -32,7 +30,7 @@ namespace Framework {
         //void add(const std::string& name, std::shared_ptr<ResourceType> resource) {
         //    auto& map = getMap<ResourceType>();
             if (map.find(name) != map.end()) {
-                std::cout << "Resource with name '" << name << "' already exists. Skipping addition." << std::endl;
+                std::cout << "[ResourceManager] Resource with name '" << name << "' already exists. Skipping addition." << std::endl;
                 return;
             }
             map[name] = resource;
@@ -41,19 +39,16 @@ namespace Framework {
         // Get a resource, returns weak_ptr to maintain resource ownership by ResourceManager.
         // Convert weak ptr to shared ptr to modify the resource, else weak ptr is READ ONLY!!!
 
-        //template<typename ResourceType>
-        //ResourceType& get(std::string key) {
-        std::shared_ptr<Texture> get(std::string key) {
+        template<typename ResourceType>
+        ResourceType& get(std::string key) {
             std::unordered_map<std::string, Value>& map = getMap();
             auto it = map.find(key);
 
             if (it == map.end()) {
-                return nullptr; // not found
+                throw std::runtime_error("[ResourceManager] Resource with name '" + key + "' not found.");
             }
-        //std::weak_ptr<ResourceType> get(const char* name) {
-        //    auto& map = getMap<ResourceType>();
-        //    auto it = map.find(name);
-            return std::get<std::shared_ptr<Texture>>(it->second);
+
+            return std::get<ResourceType>(it->second);
         }
 
         // Clear resources of a specific type

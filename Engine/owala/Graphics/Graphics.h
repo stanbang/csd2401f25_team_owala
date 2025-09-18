@@ -43,7 +43,7 @@ namespace Framework {
         Texture loadTextureFromTex(const char* path);               // expects 256x256 RGBA raw
         void    setWrap(Texture tex, int wrapS, int wrapT);         // GL_* wrap enums (e.g., GL_CLAMP_TO_EDGE)
         void    setAlphaBlend(bool on);                             // toggles GL_BLEND
-        void    drawSprite(std::variant<std::shared_ptr<Texture>> tex, const Vector2D& center,
+        void    drawSprite(Texture& tex, const Vector2D& center,
             const Vector2D& halfSize, float rotation = 0.0f);
 
     private:
