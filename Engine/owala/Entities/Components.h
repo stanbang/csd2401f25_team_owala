@@ -9,6 +9,7 @@
 #pragma once
 #include "Graphics.h"
 #include "Vector2D.h"
+#include <string>
 #include <memory> // for std::shared_ptr
 
 namespace Framework{
@@ -55,7 +56,7 @@ namespace Framework{
 	};
 
 	struct TextureComponent {
-		std::weak_ptr<Framework::Texture> tex;
+		std::string textureKey;
 	};
 
 	struct PlayerStats {

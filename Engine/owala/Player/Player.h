@@ -11,6 +11,7 @@
 #include "Components.h"
 #include "EntityStorage.h"
 #include "FileUtility.h"
+#include <string>
 
 /**
  * \function createPlayer
@@ -26,7 +27,7 @@ namespace Framework {
 	inline Entity createPlayer(EntityStorage& entityStorage, 
 		PlayerStats stats, 
 		Vector2D halfSize, 
-		std::weak_ptr<Framework::Texture> texture) {
+		std::string textureID) {
 
 			//Create a new entity with a unique ID
 			Entity player = createEntity();
@@ -38,7 +39,7 @@ namespace Framework {
 			entityStorage.position[player] = Position{ stats.pos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
-			entityStorage.tex[player] = TextureComponent{ texture };
+			entityStorage.tex[player] = TextureComponent{ textureID };
 			entityStorage.rigidBody[player] = RigidBody{};
 			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
 

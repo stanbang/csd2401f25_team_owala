@@ -234,21 +234,8 @@ namespace Framework {
         else { glDisable(GL_BLEND); }
     }
 
-    void Graphics::drawSprite(Texture_WeakPtr tex, const Vector2D& center,
+    void Graphics::drawSprite(Texture& tex, const Vector2D& center,
         const Vector2D& halfSize, float rotation) {
-
-		//Convert weak_ptr to shared pointer, derefernce it to get texture ID
-
-
-        std::shared_ptr<Texture> sharedTex = tex.lock();
-        if (!sharedTex) {
-            // Handle the error: texture no longer exists
-            std::cout << "Error: Attempted to draw with expired texture pointer.\n";
-            return;
-        }
-
-        Texture texture = *sharedTex;
-
 
         // two triangles (6 verts), each vert = (x,y,u,v)
         const float cx = center.x, cy = center.y;
@@ -284,7 +271,7 @@ namespace Framework {
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, tex);
         const GLint loc = glGetUniformLocation(progTex_, "uTex");
         glUniform1i(loc, 0);
 
