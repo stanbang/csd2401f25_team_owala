@@ -58,8 +58,8 @@ namespace Framework {
         PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
 
         //Ask resource manager for a reference to the duck texture.
-        std::string playerDuckID = "playerSprite_DuckyWucky";
-        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, playerDuckID);
+        Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
+        player_ = createPlayer(*ecs_, stats, { 0.0f, 0.f }, { 0.1f, 0.1f }, playerTexture);
 
     }
 
@@ -104,10 +104,7 @@ namespace Framework {
         if (ecs_->tex.count(player_) && ecs_->position.count(player_)) {
             const auto& pos = ecs_->position.at(player_).Pos;
             const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
-            std::string textureKey = ecs_->tex[player_].textureKey;
-			//Get a reference to the texture from the resource manager
-			Texture texture = resourceManager_->get<Texture>(textureKey);
-            gfx_->drawSprite(textureKey, pos, halfSize, 0.0f);
+            gfx_->drawSprite(ecs_->tex[player_].tex, pos, halfSize, 0.0f);
         }
 
         // For now, we can use the console to see the state.

@@ -3,7 +3,6 @@
 #include "Vector2D.h"
 #include <string>
 #include <memory>
-#include "ResourceManager.h"
 
 
 namespace Framework {
@@ -44,12 +43,11 @@ namespace Framework {
         Texture loadTextureFromTex(const char* path);               // expects 256x256 RGBA raw
         void    setWrap(Texture tex, int wrapS, int wrapT);         // GL_* wrap enums (e.g., GL_CLAMP_TO_EDGE)
         void    setAlphaBlend(bool on);                             // toggles GL_BLEND
-        void    drawSprite(Texture& tex, const Vector2D& center,
+        void    drawSprite(Texture_WeakPtr tex, const Vector2D& center,
             const Vector2D& halfSize, float rotation = 0.0f);
 
     private:
         WindowsSystem* win_ = nullptr;
-		ResourceManager* rsm_ = nullptr;
 
         // Colored-triangle pipeline
         unsigned progCol_ = 0;  // shader program (uColor)
