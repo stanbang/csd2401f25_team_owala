@@ -7,6 +7,7 @@
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
 #include "FileUtility.h"
+#include "SceneManager.h"
 #include "RotationSystem.h"
 #include "ResourceManager.h"
 #include <iostream>
@@ -17,10 +18,11 @@ int main() {
     CoreEngine engine;
 	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.loadWindowConfig();
-    WindowsSystem *win = new WindowsSystem(engine, "Owala", windowConfig.x, windowConfig.y);
+    WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
     InputSystem *input = new InputSystem(*win);
     EntityStorage *ecs = new EntityStorage();
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
+    Framework::SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SM Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem();
@@ -41,6 +43,7 @@ int main() {
 
     engine.Initialize();
     engine.GameLoop();
+	Framework::SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     engine.DestroySystems();
     return 0;
 }

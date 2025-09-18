@@ -1,7 +1,5 @@
 # ======================= Project Configuration =========================
 cmake_minimum_required(VERSION 2.8...3.5)
-
-# Set the CMake policy version
 cmake_policy(VERSION 3.5)
 
 project(owala)
@@ -25,25 +23,47 @@ set(ALL_LIBS
   PRIVATE libglew_static
   PRIVATE imgui
   PRIVATE rapid_json
-  PRIVATE stb_image  # Added stb_image to the libraries
+  PRIVATE stb_image
 )
 
-# Include path for GLM (optional if not using FetchContent)
+# Include path for GLM
 include_directories(${CMAKE_CURRENT_LIST_DIR}/lib/glm)
 
+# ======================= Source Files =========================
 set(SRC_DIR ./owala)
-file(GLOB_RECURSE APP_SRC 
+file(GLOB_RECURSE APP_SRC
    "${SRC_DIR}/*.cpp"
    "${SRC_DIR}/*.h"
    "${SRC_DIR}/*.hpp"
 )
-#GROUP_FILES_BY_FOLDER(${CMAKE_CURRENT_LIST_DIR}s)
-GROUP_FILES_BY_FOLDER(${APP_SRC})
 
+# Group by folder tree instead of "Header/Source Files"
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${APP_SRC})
 
-add_executable(${CMAKE_PROJECT_NAME}
-        # List C/C++ source files with relative paths to this CMakeLists.txt.
-        ${APP_SRC})
+# -------------------- Group files by folder --------------------
+# New macro to organize filters by directory
+macro(GROUP_FILES_BY_FOLDER all_files)
+    foreach(_file IN LISTS all_files)
+        get_filename_component(_abs_file "${_file}" ABSOLUTE)
+        get_filename_component(_dir "${_abs_file}" DIRECTORY)
+        file(RELATIVE_PATH _rel_dir "${CMAKE_CURRENT_SOURCE_DIR}" "${_dir}")
+
+        if (_rel_dir STREQUAL "")
+            set(_rel_dir "\\") # root folder in VS filter
+        endif()
+
+        # Replace / with \ for Visual Studio filters
+        string(REPLACE "/" "\\" _group_path "${_rel_dir}")
+
+        source_group("${_group_path}" FILES "${_abs_file}")
+    endforeach()
+endmacro()
+
+# Apply grouping
+GROUP_FILES_BY_FOLDER("${APP_SRC}")
+
+# ======================= Executable =========================
+add_executable(${CMAKE_PROJECT_NAME} ${APP_SRC})
 
 # ======================================================
 # Copy Data and Assets folders at configure time
@@ -58,13 +78,13 @@ add_custom_command(
     TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/Data"
-            "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Data"
+            "$/Data"
 )
 add_custom_command(
     TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/Assets"
-            "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Assets"
+            "$/Assets"
 )
 
 # ======================= Linking =========================
@@ -99,10 +119,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
 )
 
-# Set C++ standard
+# ======================= Compiler Settings =========================
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
-# Warnings based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall ${DisableWarnings})
 elseif (MSVC)

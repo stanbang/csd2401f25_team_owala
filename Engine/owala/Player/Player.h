@@ -24,7 +24,6 @@ namespace Framework {
 
 	inline Entity createPlayer(EntityStorage& entityStorage, 
 		PlayerStats stats, 
-		Vector2D startPos, 
 		Vector2D halfSize, 
 		std::string textureID) {
 
@@ -35,7 +34,7 @@ namespace Framework {
 			//entityStorage.triangle[player] = triangle;
 			entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
 			entityStorage.playerStats[player] = stats;
-			entityStorage.position[player] = Position{ startPos }; //Start at 0,0 coordinates
+			entityStorage.position[player] = Position{ stats.pos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
 			//entityStorage.tex[player] = TextureComponent{ texture };
