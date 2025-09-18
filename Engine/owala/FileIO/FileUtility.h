@@ -51,8 +51,6 @@ namespace Framework {
 		return true;
 	}
 
-	bool writeFileJson(const string& fileName, Document& d);
-
 	class FileIOSystem {
 		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH;
 
