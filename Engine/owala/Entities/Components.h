@@ -57,6 +57,7 @@ namespace Framework{
 
 	struct TextureComponent {
 		std::string textureKey;
+		//std::weak_ptr<Framework::Texture> tex;
 	};
 
 	struct PlayerStats {

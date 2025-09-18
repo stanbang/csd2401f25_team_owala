@@ -28,7 +28,7 @@ namespace Framework {
 			throw runtime_error("Invalid or missing windowConfig in config.json");
 		}
 
-		const Value& config = d["windowConfig"];
+		const rapidjson::Value& config = d["windowConfig"];
 
 		if (!config.HasMember("width") || !config["width"].IsInt() ||
 			!config.HasMember("height") || !config["height"].IsInt()) {
@@ -53,15 +53,15 @@ namespace Framework {
 			throw runtime_error("Invalid or missing playerStats in player.json");
 		}
 
-		const Value& stats = d["playerStats"]; // Extract the playerStats data from the JSON file
+		const rapidjson::Value& stats = d["playerStats"]; // Extract the playerStats data from the JSON file
 
 		// Check if moveSpeed member exists in playerStats
 		if (!stats.HasMember("moveSpeed") || !stats.HasMember("positionX") || !stats.HasMember("positionY")) {
 			throw runtime_error("Invalid or missing properties in player.json");
 		}
 
-		const Value& playerX = stats["positionX"];
-		const Value& playerY = stats["positionY"];
+		const rapidjson::Value& playerX = stats["positionX"];
+		const rapidjson::Value& playerY = stats["positionY"];
 
 		std::cout << "Player Position read from player.json:\n"
 			<< "Position X: " << playerX.GetFloat() << "\n"
@@ -88,15 +88,15 @@ namespace Framework {
 		}
 
 		// Modify the JSON data
-		Value& stats = d["playerStats"]; // Extract the playerStats object
+		rapidjson::Value& stats = d["playerStats"]; // Extract the playerStats object
 		
 		// Check if moveSpeed member exists in playerStats
 		if (!stats.HasMember("moveSpeed") || !stats.HasMember("positionX") || !stats.HasMember("positionY")) {
 			throw runtime_error("Invalid or missing properties in player.json");
 		}
 
-		Value& playerX = stats["positionX"];
-		Value& playerY = stats["positionY"];
+		rapidjson::Value& playerX = stats["positionX"];
+		rapidjson::Value& playerY = stats["positionY"];
 
 		std::cout << "Updated Player Position\n"
 			<< "Position X: " << playerStats.pos.Pos.x << "\n"

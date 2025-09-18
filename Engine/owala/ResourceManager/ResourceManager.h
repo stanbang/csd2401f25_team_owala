@@ -8,9 +8,14 @@
 #include "Graphics.h" // Assuming Framework::Texture is defined here
 
 namespace Framework {
-    using Value = std::variant<Framework::Texture>;
+
+    //using Texture = Framework::Texture;
+    //using Value = std::variant<Texture>;
 
     class ResourceManager : public ISystem{
+        //using Value = std::variant<Texture>;
+        using Value = std::variant<std::shared_ptr<Texture>>;
+
     public:
 
         void Initialize() override;
@@ -23,6 +28,9 @@ namespace Framework {
         template<typename ResourceType>
         void add(const std::string& name, ResourceType resource) {
             auto& map = getMap();
+
+        //void add(const std::string& name, std::shared_ptr<ResourceType> resource) {
+        //    auto& map = getMap<ResourceType>();
             if (map.find(name) != map.end()) {
                 std::cout << "Resource with name '" << name << "' already exists. Skipping addition." << std::endl;
                 return;
@@ -32,17 +40,27 @@ namespace Framework {
 
         // Get a resource, returns weak_ptr to maintain resource ownership by ResourceManager.
         // Convert weak ptr to shared ptr to modify the resource, else weak ptr is READ ONLY!!!
-        template<typename ResourceType>
-        ResourceType& get(std::string key) {
+
+        //template<typename ResourceType>
+        //ResourceType& get(std::string key) {
+        std::shared_ptr<Texture> get(std::string key) {
             std::unordered_map<std::string, Value>& map = getMap();
             auto it = map.find(key);
-            return (it != map.end()) ? it->second : nullptr;
+
+            if (it == map.end()) {
+                return nullptr; // not found
+            }
+        //std::weak_ptr<ResourceType> get(const char* name) {
+        //    auto& map = getMap<ResourceType>();
+        //    auto it = map.find(name);
+            return std::get<std::shared_ptr<Texture>>(it->second);
         }
 
         // Clear resources of a specific type
         template<typename ResourceType>
         void clear() {
             getMap.clear();
+            //getMap<ResourceType>().clear();
         }
 
         // Clear all resources
@@ -54,9 +72,12 @@ namespace Framework {
     private:
         // Template declaration
         std::unordered_map<std::string, Value>& getMap();
+        //template<typename ResourceType>
+        //std::unordered_map<std::string, std::shared_ptr<ResourceType>>& getMap();
 
         // Resource maps
         std::unordered_map<std::string, Value> resourceMap;
+        //std::unordered_map<std::string, std::shared_ptr<Texture>> textureMap;
 
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
     };

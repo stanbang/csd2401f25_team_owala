@@ -10,6 +10,7 @@
 #include <cmath>
 #include <memory>
 #include <iostream>
+#include <variant>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -234,8 +235,22 @@ namespace Framework {
         else { glDisable(GL_BLEND); }
     }
 
-    void Graphics::drawSprite(Texture& tex, const Vector2D& center,
+    void Graphics::drawSprite(std::variant<std::shared_ptr<Texture>> tex, const Vector2D& center,
         const Vector2D& halfSize, float rotation) {
+
+		//Convert weak_ptr to shared pointer, derefernce it to get texture ID
+
+
+        //std::shared_ptr<Texture> sharedTex = tex.lock();
+        auto sharedTex = std::get<std::shared_ptr<Texture>>(tex);
+        if (!sharedTex) {
+            // Handle the error: texture no longer exists
+            std::cout << "Error: Attempted to draw with expired texture pointer.\n";
+            return;
+        }
+
+        Texture texture = *sharedTex;
+
 
         // two triangles (6 verts), each vert = (x,y,u,v)
         const float cx = center.x, cy = center.y;
@@ -271,7 +286,7 @@ namespace Framework {
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex);
+        glBindTexture(GL_TEXTURE_2D, texture);
         const GLint loc = glGetUniformLocation(progTex_, "uTex");
         glUniform1i(loc, 0);
 

@@ -27,7 +27,8 @@ void ResourceManager::Initialize() {
 }
 
 void ResourceManager::clearAll() {
-    resourceMap.clear();
+    //textureMap.clear();
+	resourceMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
@@ -39,11 +40,19 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
 
 	std::cout << "Loaded texture '" << name << "' from '" << filepath << "'" << std::endl;
 
-	add<Texture>(name, tex); // Add to resource manager's unordered_map
+	//add<Texture>(name, tex); // Add to resource manager's unordered_map
+
+	auto texturePtr = std::make_shared<Texture>(tex); // Wrap in shared_ptr
+	add<std::shared_ptr<Texture>>(name, texturePtr); // Add to resource manager's unordered_map
     return true;
 }
 
 // Specialization for Texture
-std::unordered_map<std::string, Value>& ResourceManager::getMap() {
-    return resourceMap;
+std::unordered_map<std::string, ResourceManager::Value>& ResourceManager::getMap() {
+	return resourceMap;
 }
+
+//template<>
+//std::unordered_map<std::string, std::shared_ptr<Texture>>& ResourceManager::getMap<Texture>() {
+    //return textureMap;
+//}
