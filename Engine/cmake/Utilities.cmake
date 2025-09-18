@@ -1,7 +1,6 @@
 # Define a macro to group source and header files by directory
 
 
-
 # Groups files by their relative subfolder in the source tree
 macro(GROUP_FILES_BY_FOLDER all_files)
     foreach(_file IN LISTS all_files)
