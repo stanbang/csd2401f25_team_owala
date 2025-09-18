@@ -7,6 +7,7 @@
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
 #include "FileUtility.h"
+#include "SceneManager.h"
 #include "RotationSystem.h"
 #include "ResourceManager.h"
 #include <iostream>
@@ -20,6 +21,7 @@ int main() {
     InputSystem *input = new InputSystem(*win);
     EntityStorage *ecs = new EntityStorage();
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
+    Framework::SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SM Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     Graphics *gfx = new Graphics(*win);
@@ -38,6 +40,7 @@ int main() {
 
     engine.Initialize();
     engine.GameLoop();
+	Framework::SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     engine.DestroySystems();
     return 0;
 }
