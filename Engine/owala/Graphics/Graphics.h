@@ -2,6 +2,7 @@
 #include "ISystem.h"
 #include "Vector2D.h"
 #include <string>
+#include <memory>
 
 
 namespace Framework {
@@ -12,6 +13,8 @@ namespace Framework {
 
     class WindowsSystem;                // fwd-declared to avoid heavy includes
     using Texture = unsigned;           // OpenGL texture handle (GLuint)
+	using Texture_WeakPtr = std::weak_ptr<Texture>; // Weak pointer to texture
+	using Texture_SharedPtr = std::shared_ptr<Texture>; // Shared pointer to texture
 
     class Graphics : public ISystem {
     public:
@@ -40,7 +43,7 @@ namespace Framework {
         Texture loadTextureFromTex(const char* path);               // expects 256x256 RGBA raw
         void    setWrap(Texture tex, int wrapS, int wrapT);         // GL_* wrap enums (e.g., GL_CLAMP_TO_EDGE)
         void    setAlphaBlend(bool on);                             // toggles GL_BLEND
-        void    drawSprite(Texture tex, const Vector2D& center,
+        void    drawSprite(Texture_WeakPtr tex, const Vector2D& center,
             const Vector2D& halfSize, float rotation = 0.0f);
 
     private:

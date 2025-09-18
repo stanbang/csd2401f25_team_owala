@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Components.hpp
+ * \file   Components.h
  * \brief  All components used for entities and the ECS architecture
  *		   are stored here.
  * 
@@ -9,13 +9,12 @@
 #pragma once
 #include "Graphics.h"
 #include "Vector2D.h"
+#include <memory> // for std::shared_ptr
 
 namespace Framework{
 	/*	Position component to store x and y 
 		coordinates of an entity.*/
 	struct Position {
-		//float x;
-		//float y;
 		Vector2D Pos;
 	};
 
@@ -55,16 +54,25 @@ namespace Framework{
 		Color color; 
 	};
 
+	struct TextureComponent {
+		std::weak_ptr<Framework::Texture> tex;
+	};
+
 	struct PlayerStats {
 		float moveSpeed;
 	};;
-
 
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */
 	struct PlayerTag {};
 	struct PlatformTag {};
 	struct EnemyTag {};
+	struct RotationFlag {
+		//bool shouldRotate = false;
+		bool isRotating = false;
+		float currentRotation = 0.0f;
+		float targetRotation = 0.0f;
+	};
 
 	// A component to store player-specific states
 	struct PlayerState {

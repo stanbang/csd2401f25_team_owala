@@ -28,14 +28,18 @@ namespace Framework {
 		std::unordered_map<Entity, EnemyTag>		enemyTag;
 
 		//Basic Components
-		std::unordered_map<Entity, PlayerStats>		playerStats;
-		std::unordered_map<Entity, Position>		position;
-		std::unordered_map<Entity, Velocity>		velocity;
-		std::unordered_map<Entity, Acceleration>	acceleration;
-		std::unordered_map<Entity, Triangle>		triangle;
-		std::unordered_map<Entity, RigidBody>    	rigidBody;    
-		std::unordered_map<Entity, AABBCollider> 	colliders; 
-		std::unordered_map<Entity, PlayerState> 	playerState;
+		std::unordered_map<Entity, PlayerStats> playerStats;
+		std::unordered_map<Entity, Position>     position;
+		std::unordered_map<Entity, Velocity>     velocity;
+		std::unordered_map<Entity, Acceleration> acceleration;
+		std::unordered_map<Entity, Triangle>     triangle;
+		std::unordered_map<Entity, RigidBody>    rigidBody;    
+		std::unordered_map<Entity, AABBCollider> colliders; 
+		std::unordered_map<Entity, PlayerState> playerState;
+		std::unordered_map<Entity, RotationFlag> rotationFlag;
+
+		//Texture Component
+		std::unordered_map<Entity, TextureComponent>      tex;
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
