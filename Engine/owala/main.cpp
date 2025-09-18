@@ -11,6 +11,7 @@
 #include "RotationSystem.h"
 #include "ResourceManager.h"
 #include <iostream>
+#include "AudioSystem.h"
 
 int main() {
     using namespace Framework;
@@ -24,9 +25,10 @@ int main() {
     Framework::SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SM Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
+    AudioSystem* audio = new AudioSystem();
     Graphics *gfx = new Graphics(*win);
     ResourceManager* rcm = new ResourceManager(*gfx); //Create resource manager on stack
-    GameSystem *game = new GameSystem(*rcm, *ecs, *gfx, *win, *input, *phx);
+    GameSystem *game = new GameSystem(*rcm, *ecs, *gfx, *win, *input, *phx, *audio);
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -35,6 +37,7 @@ int main() {
     engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
     engine.AddSystem(phx);                 // Physics comes after input
 	engine.AddSystem(rcm);                // Resource manager (loads resources on demand) MUST come before GameSystem or assets won't be found
+    engine.AddSystem(audio);               //audio 
     engine.AddSystem(game);                // reads input -> moves/queues draws
     engine.AddSystem(gfx);                 // swaps buffers last
 

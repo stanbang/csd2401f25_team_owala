@@ -9,6 +9,7 @@ namespace Framework {
 
     class Graphics;
     class WindowsSystem;
+    class AudioSystem;
 
     class GameSystem : public ISystem {
     public:
@@ -17,13 +18,14 @@ namespace Framework {
             Graphics& gfx, 
             WindowsSystem& win, 
             InputSystem& input, 
-            PhysicsSystem& physics)
+            PhysicsSystem& physics, AudioSystem& audio)
             : resourceManager_(&rcm), 
             ecs_(&ecs), 
             gfx_(&gfx), 
             win_(&win), 
             input_(&input), 
-            physics_(&physics) {
+            physics_(&physics),
+            audio_(&audio)            {
         }
 
         void Initialize() override;     // spawn player/platform via tag-aware creators
@@ -39,6 +41,7 @@ namespace Framework {
         InputSystem* input_ = nullptr;   // <-- MISSING MEMBER (add this)
         PhysicsSystem* physics_ = nullptr;
 		ResourceManager* resourceManager_ = nullptr;
+        AudioSystem* audio_ = nullptr;   // <-- store it
 
         Entity          player_{ 0 };
         Entity ground_{ 0 };

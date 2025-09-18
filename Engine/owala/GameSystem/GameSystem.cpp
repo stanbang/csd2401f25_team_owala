@@ -10,6 +10,7 @@
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
+#include "AudioSystem.h"
 
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
@@ -64,6 +65,19 @@ namespace Framework {
         std::string playerDuckID = "playerSprite_DuckyWucky";
         player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
 
+        // ---- AUDIO ----
+        // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
+        // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
+        bool ok_bgm = audio_->loadSound(
+            "bgm",
+            "../Assets/siren.ogg",   // <--- ensure this file exists
+            /*loop*/ true,
+            /*stream*/ true
+        );
+        if (!ok_bgm) {
+            std::fprintf(stderr, "[Audio] Failed to load bgm\n");
+        }
+        audio_->play("bgm", /*volume*/0.35f, /*paused*/false);
     }
 
     void GameSystem::Update(float dt) {

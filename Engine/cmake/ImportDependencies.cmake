@@ -165,7 +165,12 @@ macro(importDependencies)
     import_rapid_json()
     message(STATUS "rapid_json imported successfully.")
 
+<<<<<<< Updated upstream
     link_libraries(${CMAKE_SOURCE_DIR}/lib/fmod/api/core/lib/x64/fmod_vc.lib)
+=======
+    link_libraries(${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib) 
+    include_directories(${CMAKE_SOURCE_DIR}/lib/fmod/core/inc) 
+>>>>>>> Stashed changes
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()
