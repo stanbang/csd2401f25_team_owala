@@ -7,14 +7,8 @@
  * \date   11 September 2025
  *********************************************************************/
 
-#include <fstream>
 #include <iostream>
 #include "rapidjson/document.h"
-// for reading json file
-#include "rapidjson/istreamwrapper.h"
-// for writing to json file
-#include "rapidjson/filewritestream.h"
-#include "rapidjson/writer.h"
 
 #include "FileUtility.h"
 #include "Vector2D.h"
@@ -26,33 +20,6 @@ using namespace rapidjson;
 namespace Framework {
 	const string FileIOSystem::WIN_CONFIG_FILEPATH = "Data/config.json";
 	const string FileIOSystem::PLAYER_CONFIG_FILEPATH = "Data/player.json";
-
-	Document readFile(const string& fileName) {
-		ifstream file(fileName);
-		if (!file) throw runtime_error("Could not open file: " + fileName);
-
-		IStreamWrapper isw(file);
-		Document d;
-		d.ParseStream(isw);
-
-		file.close();
-		return d;
-	}
-
-	bool writeFileJson(const string& fileName, Document& d) {
-		// Write JSON file
-		std::ofstream os(fileName);
-		if (!os) throw std::runtime_error("Could not open file: " + fileName);
-
-		// Convert Document to JSON string
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		d.Accept(writer);
-
-		// Write to file
-		os << buffer.GetString();
-		return true;
-	}
 
 	Vector2D FileIOSystem::loadWindowConfig() {
 		Document d = readFile(WIN_CONFIG_FILEPATH);
