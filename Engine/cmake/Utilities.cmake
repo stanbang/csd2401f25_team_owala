@@ -3,24 +3,24 @@
 
 # Groups files by their relative subfolder in the source tree
 macro(GROUP_FILES_BY_FOLDER all_files)
-    foreach(_file IN LISTS all_files)
-        get_filename_component(_abs_file "${_file}" ABSOLUTE)
-        get_filename_component(_dir "${_abs_file}" DIRECTORY)
-        file(RELATIVE_PATH _rel_dir "${CMAKE_CURRENT_SOURCE_DIR}" "${_dir}")
+    foreach(FILE ${all_files}) 
+        # Get the directory of the file
+        get_filename_component(PARENT_DIR "${FILE}" PATH)
 
-        if (_rel_dir STREQUAL "")
-            set(_rel_dir "\\") # root folder in VS filter
+        # Replace '/' with '\' for Visual Studio group formatting
+        string(REPLACE "/" "\\" GROUP "${PARENT_DIR}")
+
+        # Classify files into Source or Header groups based on their extension
+        if ("${FILE}" MATCHES ".*\\.cpp")
+        set(GROUP "Source Files\\${GROUP}")
+        elseif("${FILE}" MATCHES ".*\\.hpp")
+        set(GROUP "Header Files\\${GROUP}")
         endif()
 
-        # Replace / with \ for Visual Studio filters
-        string(REPLACE "/" "\\" _group_path "${_rel_dir}")
-
-        source_group("${_group_path}" FILES "${_abs_file}")
+        # Add the file to the corresponding source group
+        source_group("${GROUP}" FILES "${FILE}")
     endforeach()
 endmacro()
-
-
-
 
 # Define function to copy assets with conditional copying
 function(COPY_FOLDER_IF_DIFFERENT PROJECT_NAME source_dir dest_dir)

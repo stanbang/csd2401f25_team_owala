@@ -21,7 +21,7 @@ namespace Framework {
 			: entityStorage_(&entityStorage), input_(&input), physics_(&physics) {}
 		void Initialize() override {}
 		void Update(float dt) override;
-		void Shutdown() override;
+		void Shutdown() override {}
 
 	private:
 		// Pointer to the entity storage to access and modify entities and their components
