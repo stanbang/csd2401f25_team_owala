@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8...3.5)
 cmake_policy(VERSION 3.5)
 project(owala)
 
+
 # Set the directory where custom CMake modules are stored
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
