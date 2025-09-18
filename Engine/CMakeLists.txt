@@ -1,11 +1,7 @@
 # ======================= Project Configuration =========================
-<<<<<<< Updated upstream
 cmake_minimum_required(VERSION 2.8...3.5)
 cmake_policy(VERSION 3.5)
-=======
-cmake_minimum_required(VERSION 3.5)
 
->>>>>>> Stashed changes
 project(owala)
 
 
@@ -41,7 +37,6 @@ file(GLOB_RECURSE APP_SRC
    "${SRC_DIR}/*.hpp"
 )
 
-<<<<<<< Updated upstream
 # Group by folder tree instead of "Header/Source Files"
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${APP_SRC})
 
@@ -69,11 +64,6 @@ GROUP_FILES_BY_FOLDER("${APP_SRC}")
 
 # ======================= Executable =========================
 add_executable(${CMAKE_PROJECT_NAME} ${APP_SRC})
-=======
-add_executable(${CMAKE_PROJECT_NAME}
-        # List C/C++ source files with relative paths to this CMakeLists.txt.
-        ${APP_SRC})
->>>>>>> Stashed changes
 
 # ======================================================
 # Copy Data and Assets folders at configure time
@@ -97,9 +87,7 @@ add_custom_command(
             "$/Assets"
 )
 
-<<<<<<< Updated upstream
 # ======================= Linking =========================
-=======
 # ======================================================
 # Copy FMOD DLL to output directory (CRITICAL FOR RUNTIME)
 # ======================================================
@@ -126,7 +114,6 @@ endif()
 # ======================================================
 # Link libraries and set properties
 # ======================================================
->>>>>>> Stashed changes
 target_link_libraries(${CMAKE_PROJECT_NAME}
     ${ALL_LIBS}
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
@@ -141,7 +128,6 @@ elseif (MSVC)
     target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W3 /WX-)
 endif()
 
-<<<<<<< Updated upstream
 # ======================= Include Paths =========================
 # Add owala and all of its subfolders so we can do #include "xxx.h"
 file(GLOB_RECURSE ALL_DIRS LIST_DIRECTORIES true "${SRC_DIR}/*")
@@ -154,7 +140,7 @@ foreach(dir ${ALL_DIRS})
 endforeach()
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
-=======
+
 # Include path for each project
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${APP_SRC}
@@ -174,4 +160,3 @@ if(WIN32)
         CONFIGURATIONS Release RelWithDebInfo MinSizeRel
     )
 endif()
->>>>>>> Stashed changes
