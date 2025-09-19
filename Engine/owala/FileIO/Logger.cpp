@@ -22,27 +22,27 @@ namespace Framework {
     const string Logger::LOGS_FILEPATH = "Logs/", Logger::LOGS_FILEEXT = "_crash.log";
 
     // called when GameException is thrown or any other exception is thrown
-    void Logger::logCrash(const DebugType type, const std::string& message) {
-        debugLog(type, message);
+    void Logger::LogCrash(const DebugType type, const std::string& message) {
+        DebugLog(type, message);
 
         if (!filesystem::is_directory(LOGS_FILEPATH)) {
-            debugLog(DebugType::Logger, LOGS_FILEPATH + " directory not found, creating directory");
+            DebugLog(DebugType::Logger, LOGS_FILEPATH + " directory not found, creating directory");
             filesystem::create_directory(LOGS_FILEPATH);
         }
 
-        string logPath = getCrashLogFilename();
+        string logPath = GetCrashLogFilename();
         ofstream log(logPath, ios::app);
 
         if (!log) {
-            debugLog(DebugType::Logger, "Unable to open " + logPath);
+            DebugLog(DebugType::Logger, "Unable to open " + logPath);
         } else {
-            debugLog(DebugType::Logger, "Writing to " + logPath);
-            log << getErrorMsg(type, message) << endl;
+            DebugLog(DebugType::Logger, "Writing to " + logPath);
+            log << GetErrorMsg(type, message) << endl;
         }
     }
 
-    void Logger::debugLog(DebugType type, const string message) {
-        cout << getErrorMsg(type, message) << endl;
+    void Logger::DebugLog(DebugType type, const string message) {
+        cout << GetErrorMsg(type, message) << endl;
     }
 
 }

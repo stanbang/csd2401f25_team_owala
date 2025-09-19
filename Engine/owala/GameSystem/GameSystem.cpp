@@ -38,7 +38,7 @@ namespace Framework {
 
         // --- Create Player Entity ---
 		FileIOSystem fileIO;
-        PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
+        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
 
         std::string playerDuckID = "playerSprite_DuckyWucky";
         player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);

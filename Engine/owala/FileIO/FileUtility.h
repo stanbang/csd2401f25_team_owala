@@ -28,7 +28,7 @@ namespace Framework {
 	class FileIOSystem {
 		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH;
 
-		static const Document readFile(const string& fileName) {
+		static const Document ReadFile(const string& fileName) {
 			ifstream file(fileName);
 			if (!file) throw GameException(DebugType::FileIOSystem, "Could not open file: " + fileName);
 
@@ -40,7 +40,7 @@ namespace Framework {
 			return d;
 		}
 
-		static const bool writeFileJson(const string& fileName, Document& d) {
+		static const bool WriteFileJson(const string& fileName, Document& d) {
 			try {
 				// Write JSON file
 				std::ofstream os(fileName);
@@ -61,8 +61,8 @@ namespace Framework {
 		}
 
 	public:
-		Vector2D loadWindowConfig();
-		PlayerStats loadPlayerStats();
-		bool writePlayerStats(const PlayerStats& playerStats);
+		Vector2D LoadWindowConfig();
+		PlayerStats LoadPlayerStats();
+		bool WritePlayerStats(const PlayerStats& playerStats);
 	};
 } // namespace Framework

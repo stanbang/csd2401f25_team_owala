@@ -18,7 +18,7 @@ int main() {
     try {
         CoreEngine engine;
 	    FileIOSystem fileIO;
-	    Vector2D windowConfig = fileIO.loadWindowConfig();
+	    Vector2D windowConfig = fileIO.LoadWindowConfig();
         WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
         InputSystem *input = new InputSystem(*win);
         EntityStorage *ecs = new EntityStorage();
@@ -50,14 +50,14 @@ int main() {
     }
     catch (const GameException& e) {
         Logger logger;
-        logger.logCrash(e.type, e.what());
+        logger.LogCrash(e.type, e.what());
     }
     catch (const std::exception& e) {
         Logger logger;
-        logger.logCrash(DebugType::Unknown, e.what());
+        logger.LogCrash(DebugType::Unknown, e.what());
     }
     catch (...) {
         Logger logger;
-        logger.logCrash(DebugType::Unknown, "Unhandled exception");
+        logger.LogCrash(DebugType::Unknown, "Unhandled exception");
     }
 }

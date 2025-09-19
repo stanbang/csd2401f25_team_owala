@@ -23,10 +23,10 @@ namespace Framework {
 	const string FileIOSystem::WIN_CONFIG_FILEPATH = "Data/config.json";
 	const string FileIOSystem::PLAYER_CONFIG_FILEPATH = "Data/player.json";
 
-	Vector2D FileIOSystem::loadWindowConfig() {
+	Vector2D FileIOSystem::LoadWindowConfig() {
 		Logger logger;
 		string logMsg{};
-		Document d = readFile(WIN_CONFIG_FILEPATH);
+		Document d = ReadFile(WIN_CONFIG_FILEPATH);
 
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
 			throw GameException(DebugType::FileIOSystem, "Invalid or missing windowConfig in config.json");
@@ -47,15 +47,15 @@ namespace Framework {
 			windowSize.x, windowSize.y
 		);
 
-		logger.debugLog(DebugType::FileIOSystem, logMsg);
+		logger.DebugLog(DebugType::FileIOSystem, logMsg);
 
 		return windowSize;
 	}
 
-	PlayerStats FileIOSystem::loadPlayerStats() {
+	PlayerStats FileIOSystem::LoadPlayerStats() {
 		Logger logger;
 		string logMsg{};
-		Document d = readFile(PLAYER_CONFIG_FILEPATH); //Read the file name passed in as a path
+		Document d = ReadFile(PLAYER_CONFIG_FILEPATH); //Read the file name passed in as a path
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {
@@ -77,7 +77,7 @@ namespace Framework {
 			"Player Position read from player.json: X: {} Y: {}",
 			playerX.GetFloat(), playerY.GetFloat()
 		);
-		logger.debugLog(DebugType::FileIOSystem, logMsg);
+		logger.DebugLog(DebugType::FileIOSystem, logMsg);
 
 		Vector2D position{ playerX.GetFloat(), playerY.GetFloat() };
 
@@ -89,15 +89,15 @@ namespace Framework {
 			"Player data read from player.json: moveSpeed: {}",
 			playerStats.moveSpeed
 		);
-		logger.debugLog(DebugType::FileIOSystem, logMsg);
+		logger.DebugLog(DebugType::FileIOSystem, logMsg);
 
 		return playerStats;
 	}
 
-	bool FileIOSystem::writePlayerStats(const PlayerStats& playerStats) {
+	bool FileIOSystem::WritePlayerStats(const PlayerStats& playerStats) {
 		Logger logger;
 		string logMsg{};
-		Document d = readFile(PLAYER_CONFIG_FILEPATH);
+		Document d = ReadFile(PLAYER_CONFIG_FILEPATH);
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {
@@ -120,12 +120,12 @@ namespace Framework {
 			"Updated Player Position: X: {} Y: {}",
 			playerStats.pos.Pos.x, playerStats.pos.Pos.y
 		);
-		logger.debugLog(DebugType::FileIOSystem, logMsg);
+		logger.DebugLog(DebugType::FileIOSystem, logMsg);
 
 		// Update x and y from your game data
 		playerX.SetFloat(playerStats.pos.Pos.x);
 		playerY.SetFloat(playerStats.pos.Pos.y);
 
-		return writeFileJson(PLAYER_CONFIG_FILEPATH, d);
+		return WriteFileJson(PLAYER_CONFIG_FILEPATH, d);
 	}
 }

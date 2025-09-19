@@ -60,11 +60,11 @@ namespace Framework {
 	class Logger {
 		static const string LOGS_FILEPATH, LOGS_FILEEXT;
 
-        static const string getErrorMsg(DebugType type, const string message) {
+        static const string GetErrorMsg(DebugType type, const string message) {
             return '[' + DebugTypeLabels[(int)type] + "] " + message;
         }
 
-        static const string getCrashLogFilename() {
+        static const string GetCrashLogFilename() {
             ostringstream oss;
             time_t t = std::time(nullptr);
             tm tm = *std::localtime(&t);
@@ -76,7 +76,7 @@ namespace Framework {
         }
 
 	public:
-        void logCrash(const DebugType type, const std::string& message);
-        void debugLog(DebugType type, const string message);
+        void LogCrash(const DebugType type, const std::string& message);
+        void DebugLog(DebugType type, const string message);
 	};
 } // namespace Framework
