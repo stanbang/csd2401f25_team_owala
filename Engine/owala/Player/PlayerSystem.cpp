@@ -15,7 +15,6 @@
 #include "PhysicsSystem.h"
 #include "FileUtility.h" // Include to write player data on Shutdown
 
-
 namespace Framework {
 
 	void PlayerSystem::Update(float dt) {
@@ -64,7 +63,8 @@ namespace Framework {
 
 
     void PlayerSystem::Shutdown() {
-        std::cout << "Player System Shutdown" << std::endl;
+        Logger logger;
+        logger.debugLog(DebugType::PlayerSystem, "Player system shutdown");
 
         FileIOSystem fileIO;
         PlayerStats newStats;
@@ -74,6 +74,7 @@ namespace Framework {
             newStats.pos = entityStorage_->position.at(entity);
         }
 
+        logger.debugLog(DebugType::PlayerSystem, "Writing Player Stats");
         fileIO.writePlayerStats(newStats);
     }
 
