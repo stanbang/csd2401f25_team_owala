@@ -6,6 +6,7 @@
 #include <variant>
 #include <iostream>
 #include "Graphics.h" // Assuming Framework::Texture is defined here
+#include "Logger.h"
 
 namespace Framework {
 
@@ -30,7 +31,8 @@ namespace Framework {
         //void add(const std::string& name, std::shared_ptr<ResourceType> resource) {
         //    auto& map = getMap<ResourceType>();
             if (map.find(name) != map.end()) {
-                std::cout << "[ResourceManager] Resource with name '" << name << "' already exists. Skipping addition." << std::endl;
+                Logger logger;
+                logger.DebugLog(DebugType::ResourceManager, "Resource with name '" + name + "already exists. Skipping addition.");
                 return;
             }
             map[name] = resource;
@@ -45,7 +47,7 @@ namespace Framework {
             auto it = map.find(key);
 
             if (it == map.end()) {
-                throw std::runtime_error("[ResourceManager] Resource with name '" + key + "' not found.");
+                throw GameException(DebugType::ResourceManager, "Resource with name '" + key + "' not found.");
             }
 
             return std::get<ResourceType>(it->second);

@@ -12,6 +12,10 @@
 #include <sstream>
 #include <iomanip>
 
+// for formatting logging msgs to be passed into Logger
+#include <format>
+#include <string>
+
 using namespace std;
 
 const enum class DebugType {

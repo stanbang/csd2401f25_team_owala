@@ -8,7 +8,6 @@
  *********************************************************************/
 
 #include <iostream>
-#include <format>
 #include "rapidjson/document.h"
 
 #include "FileUtility.h"

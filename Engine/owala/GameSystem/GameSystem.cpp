@@ -105,13 +105,13 @@ namespace Framework {
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
 
+        Logger logger;
         // For now, we can use the console to see the state.
         if (physics_->IsInStepMode()) {
-            
-             std::cout << "STEP MODE ACTIVE (Press 'I' to advance)" << std::endl;
+            logger.DebugLog(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
         }
         else if (physics_->IsPaused()) {
-             std::cout << "PAUSED" << std::endl;
+            logger.DebugLog(DebugType::GameSystem, "PAUSED");
         }
 
         //RenderColliders();

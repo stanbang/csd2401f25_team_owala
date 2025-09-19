@@ -8,7 +8,7 @@
  *********************************************************************/
 #include "SceneManager.h"
 #include "EntityStorage.h"
-#include <iostream>
+#include "Logger.h"
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -19,7 +19,8 @@ namespace Framework {
 	SceneManager& SceneManager::GetInstance() {
 		if (!instance) {
 			instance = new SceneManager();
-			std::cout << "[SceneManager] Scene System Instantiated!" << std::endl;
+			Logger logger;
+			logger.DebugLog(DebugType::SceneManager, "Scene System Instantiated!");
 		}
 		return *instance;
 	}
@@ -38,13 +39,13 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	void SceneManager::CheckStorage() {
 		if (!entityStorageRef_) {
-			throw std::runtime_error("Entity Storage must be set before use!");
+			throw GameException(DebugType::SceneManager, "Entity Storage must be set before use!");
 		}
 	}
 
 	void SceneManager::CheckStorage() const {
 		if (!entityStorageRef_) {
-			throw std::runtime_error("Entity Storage must be set before use!");
+			throw GameException(DebugType::SceneManager, "Entity Storage must be set before use!");
 		}
 	}
 
@@ -53,7 +54,9 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	void SceneManager::SetEntityStorageRef(EntityStorage& entityStorageRef) {
 		entityStorageRef_ = &entityStorageRef;
-		std::cout << "[SceneManager] Successfully linked to Entity Storage" << std::endl;
+		Logger logger;
+		logger.DebugLog(DebugType::SceneManager, "Successfully linked to Entity Storage");
+
 	}
 
 	// ---------------------------------------------------------------------------
@@ -63,7 +66,10 @@ namespace Framework {
 		CheckStorage();
 
 		entityStorageRef_->sceneOwned[entity] = SceneOwned{ scene };
-		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << scene << "]" << std::endl;
+		Logger logger;
+		std::string logMsg{};
+		logMsg = format("Added Entity [{}] to Scene [{}]", entity, scene);
+		logger.DebugLog(DebugType::SceneManager, logMsg);
 	}
 
 	void SceneManager::RemoveEntityFromScene(Entity entity) {
@@ -71,7 +77,10 @@ namespace Framework {
 
 		entityStorageRef_->sceneOwned.erase(entity);
 		entityStorageRef_->activeTag.erase(entity);
-		std::cout << "[SceneManager] Removed Entity[" << entity << "] from its Scene" << std::endl;
+		Logger logger;
+		std::string logMsg{};
+		logMsg = format("Removed Entity[{}] from its Scene", entity);
+		logger.DebugLog(DebugType::SceneManager, logMsg);
 	}
 
 	void SceneManager::SetEntityAsPersistent(Entity entity, bool shouldPersist) {
@@ -136,8 +145,11 @@ namespace Framework {
 		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
 			scenes[sceneOwned.sceneName].push_back(entity);
 		}
-		std::cout << "[SceneManager] ------- All Scenes Info ------" << std::endl;
-		std::cout << "[SceneManager] Total Scenes: " << scenes.size() << std::endl;
+
+		Logger logger;
+		logger.DebugLog(DebugType::SceneManager, "------- All Scenes Info ------");
+		logger.DebugLog(DebugType::SceneManager, "Total Scenes: " + scenes.size());
+		
 		for (const auto& [sceneName, entities] : scenes) {
 			size_t persistentCount = 0;
 
@@ -148,9 +160,12 @@ namespace Framework {
 				}
 			}
 
-			std::cout << "[SceneManager] Scene: " << sceneName << " | Entities: " << entities.size() << ", " << persistentCount << " Persistent" << std::endl;
+			std::string logMsg{};
+			logMsg = format("Scene: {} | Entities: {}, {} Persistent", sceneName, entities.size(), persistentCount);
+			logger.DebugLog(DebugType::SceneManager, logMsg);
 		}
-		std::cout << "[SceneManager] ------------------------------" << std::endl;
+
+		logger.DebugLog(DebugType::SceneManager, "------------------------------");
 
 		// Will add more detailed info later if needed
 	}
@@ -158,18 +173,23 @@ namespace Framework {
 	void SceneManager::PrintCurrentSceneInfo() const {
 		CheckStorage();
 		
-		std::cout << "[SceneManager] ----- Current Scene Info -----" << std::endl;
-		std::cout << "[SceneManager] Loaded Scene: " << activeScene << std::endl;
-		std::cout << "[SceneManager] Active Entities Count: " << entityStorageRef_->activeTag.size() << std::endl;
-		std::cout << "[SceneManager] Active Entities IDs: ";
+		Logger logger;
+		logger.DebugLog(DebugType::SceneManager, "----- Current Scene Info -----");
+		logger.DebugLog(DebugType::SceneManager, "Loaded Scene: " + activeScene);
+		logger.DebugLog(DebugType::SceneManager, "Active Entities Count: " + entityStorageRef_->activeTag.size());
+
+		std::ostringstream oss;
+		oss << "Active Entities IDs: ";
 		for (const auto& [entity, activeTag] : entityStorageRef_->activeTag) {
-			std::cout << "Entity[" << entity << "]";
+			oss << "Entity[" << entity << "]";
 			if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) {
-				std::cout << " (Persistent)";
+				oss << " (Persistent)";
 			}
-			std::cout << ", ";
+			oss << ", ";
 		}
-		std::cout << std::endl;
-		std::cout << "[SceneManager] ------------------------------" << std::endl;
+
+		std::string logMsg = oss.str();
+		logger.DebugLog(DebugType::SceneManager, logMsg);
+		logger.DebugLog(DebugType::SceneManager, "------------------------------");
 	}
 }
