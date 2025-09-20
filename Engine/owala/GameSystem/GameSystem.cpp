@@ -27,7 +27,11 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-
+// --------------------------------------------------------------------------------
+//				    /!\	/!\	THIS HAS BEEN DEPRECATED /!\ /!\
+//	         Please put scene logic in dedicated scene files and register
+//                    their functions to the GameManager - Jason
+// --------------------------------------------------------------------------------
 
 namespace Framework {
 

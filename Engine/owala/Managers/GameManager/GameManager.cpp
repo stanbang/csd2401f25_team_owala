@@ -1,10 +1,10 @@
 /*****************************************************************//**
  * \file	SceneSystem.cpp
- * \brief	Manager responsible for managing scenes/levels
+ * \brief	Manager responsible for managing game state
  *
  *
  * \author	Jason Lou
- * \date	11 September 2025
+ * \date	18 September 2025
  *********************************************************************/
 #include "GameManager.h"
 #include <iostream>

@@ -1,7 +1,7 @@
 #pragma once
 /*****************************************************************//**
  * \file	GameManager.h
- * \brief	Manager responsible for managing scenes/levels
+ * \brief	Manager responsible for managing game state
  *
  *
  * \author	Jason Lou
