@@ -81,7 +81,8 @@ macro(import_imgui)
         FetchContent_Declare(
             imgui
             GIT_REPOSITORY https://github.com/ocornut/imgui.git
-            GIT_TAG v1.90.4
+            #GIT_TAG v1.90.4
+            GIT_TAG "origin/docking"
         )
         if(NOT imgui_POPULATED)
             FetchContent_Populate(imgui)
@@ -99,6 +100,9 @@ macro(import_imgui)
         )
 
         add_library(imgui STATIC ${IMGUI_SOURCES})
+        # Add a compile definition to the 'imgui' target to enable docking
+        target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_DOCKING)
+        
         target_include_directories(imgui PUBLIC 
             ${imgui_SOURCE_DIR}
             ${imgui_SOURCE_DIR}/backends

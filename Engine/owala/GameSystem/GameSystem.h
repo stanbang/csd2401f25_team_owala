@@ -30,7 +30,7 @@ namespace Framework {
 
         void Initialize() override;     // spawn player/platform via tag-aware creators
         void Update(float dt) override; // WASD for player + draw all triangles
-        void Shutdown() override {}     // nothing owned
+        void Shutdown() override;    // nothing owned
 
     private:
         void RenderColliders(); // Helper to draw all colliders
