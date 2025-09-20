@@ -19,44 +19,50 @@
 
 #include "Vector2D.h"
 #include "Components.h"
-#include "ISystem.h"
+#include "Logger.h"
+
+using namespace std;
+using namespace rapidjson;
 
 namespace Framework {
-	using namespace std;
-	using namespace rapidjson;
-
-	static Document readFile(const string& fileName) {
-		ifstream file(fileName);
-		if (!file) throw runtime_error("Could not open file: " + fileName);
-
-		IStreamWrapper isw(file);
-		Document d;
-		d.ParseStream(isw);
-
-		file.close();
-		return d;
-	}
-	static bool writeFileJson(const string& fileName, Document& d) {
-		// Write JSON file
-		std::ofstream os(fileName);
-		if (!os) throw std::runtime_error("Could not open file: " + fileName);
-
-		// Convert Document to JSON string
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		d.Accept(writer);
-
-		// Write to file
-		os << buffer.GetString();
-		return true;
-	}
-
 	class FileIOSystem {
 		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH;
 
+		static const Document ReadFile(const string& fileName) {
+			ifstream file(fileName);
+			if (!file) throw GameException(DebugType::FileIOSystem, "Could not open file: " + fileName);
+
+			IStreamWrapper isw(file);
+			Document d;
+			d.ParseStream(isw);
+
+			file.close();
+			return d;
+		}
+
+		static const bool WriteFileJson(const string& fileName, Document& d) {
+			try {
+				// Write JSON file
+				std::ofstream os(fileName);
+				if (!os) throw GameException(DebugType::FileIOSystem, "Could not open file: " + fileName);
+					
+				// Convert Document to JSON string
+				StringBuffer buffer;
+				Writer<StringBuffer> writer(buffer);
+				d.Accept(writer);
+
+				// Write to file
+				os << buffer.GetString();
+				return true;
+			}
+			catch (const exception& e) {
+				throw GameException(DebugType::FileIOSystem, e.what());
+			}
+		}
+
 	public:
-		Vector2D loadWindowConfig();
-		PlayerStats loadPlayerStats();
-		bool writePlayerStats(const PlayerStats& playerStats);
+		Vector2D LoadWindowConfig();
+		PlayerStats LoadPlayerStats();
+		bool WritePlayerStats(const PlayerStats& playerStats);
 	};
 } // namespace Framework

@@ -33,12 +33,14 @@ void ResourceManager::clearAll() {
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
 	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
+	Logger logger;
+
 	if (tex == 0) {
-		std::cout << "[ResourceManager] Failed to load texture from '" << filepath << "'" << std::endl;
+		logger.Info(DebugType::ResourceManager, "Failed to load texture from '" + filepath + "'");
 		return false;
 	}
 
-	std::cout << "[ResourceManager] Loaded texture '" << name << "' from '" << filepath << "'" << std::endl;
+	logger.Info(DebugType::ResourceManager, "Loaded texture '" + filepath + "'");
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;

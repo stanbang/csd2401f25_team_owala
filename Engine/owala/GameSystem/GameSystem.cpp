@@ -43,7 +43,7 @@ namespace Framework {
 
         // --- Create Player Entity ---
 		FileIOSystem fileIO;
-        PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
+        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
 
         std::string playerDuckID = "playerSprite_DuckyWucky";
         player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
@@ -170,6 +170,14 @@ namespace Framework {
                 if (ecs_->rotationFlag.count(ground_)) {
                     rotation = ecs_->rotationFlag.at(ground_).currentRotation * (M_PI / 180.0f);
                 }
+        Logger logger;
+        // For now, we can use the console to see the state.
+        if (physics_->IsInStepMode()) {
+            logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
+        }
+        else if (physics_->IsPaused()) {
+            logger.Info(DebugType::GameSystem, "PAUSED");
+        }
 
                 //Use the textureID to get the actual texture from the resource manager
                 std::string textureID = ecs_->tex[ground_].textureKey;
@@ -189,15 +197,7 @@ namespace Framework {
                 gfx_->drawSprite(texture, pos, halfSize, 0.0f);
             }
 
-            // For now, we can use the console to see the state.
-            if (physics_->IsInStepMode()) {
-
-                std::cout << "STEP MODE ACTIVE (Press 'I' to advance)" << std::endl;
-            }
-            else if (physics_->IsPaused()) {
-                std::cout << "PAUSED" << std::endl;
-            }
-
+         
 
             // 5. --- RENDER THE IMGUI UI ---
             // This draws the UI on top of the game world.
