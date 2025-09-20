@@ -20,6 +20,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 #include "PhysicsSystem.h"
+#include "SceneManager.h"
 
 // ImGui headers
 #include "imgui.h"
@@ -31,6 +32,12 @@
 namespace Framework {
 
     void GameSystem::Initialize() {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+
+        // Testing Scene Creation
+        SceneManager::GetInstance().CreateSceneAsset("Test Scene");
+        SceneManager::GetInstance().CreateSceneAsset("Other Test Scene");
+
         // --- Load Assets ---
         // Ensure you have these files in an "Assets" folder next to your executable.
         //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
@@ -40,6 +47,7 @@ namespace Framework {
         // --- Create Ground Entity ---
 		std::string platformTexID = "RonaldSprite_Platform";
 		ground_ = createPlatform(*ecs_, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", ground_);
 
         // --- Create Player Entity ---
 		FileIOSystem fileIO;
@@ -47,6 +55,14 @@ namespace Framework {
 
         std::string playerDuckID = "playerSprite_DuckyWucky";
         player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
+		sceneMgr.AddEntityToScene("Test Scene", player_);
+        sceneMgr.SetEntityAsPersistent(player_);
+        Entity testEntity1 = createEntity();
+        Entity testEntity2 = createEntity();
+		sceneMgr.AddEntityToScene("Other Test Scene", testEntity1);
+        sceneMgr.AddEntityToScene("Other Test Scene", testEntity2);
+
+        sceneMgr.LoadScene(1);
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.

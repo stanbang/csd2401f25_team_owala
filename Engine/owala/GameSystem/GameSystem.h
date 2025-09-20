@@ -5,6 +5,12 @@
 #include "PhysicsSystem.h"
 #include "ResourceManager.h"
 
+// --------------------------------------------------------------------------------
+//				    /!\	/!\	THIS HAS BEEN DEPRECATED /!\ /!\
+//	         Please put scene logic in dedicated scene files and register
+//                    their functions to the GameManager - Jason
+// --------------------------------------------------------------------------------
+
 namespace Framework {
 
     class Graphics;
