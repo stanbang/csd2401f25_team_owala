@@ -15,6 +15,7 @@
 #include <algorithm>
 #include "Player.h"
 #include "Platform.h"
+#include "Background.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
@@ -39,7 +40,8 @@
 namespace {
     using namespace Framework;
     Entity playerEntity = 0;
-	Entity groundEntity = 0;
+    Entity groundEntity = 0;
+    Entity backgroundEntity = 0;
 }
 
 namespace TestScene {
@@ -57,6 +59,11 @@ namespace TestScene {
         //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
         //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
+
+        // --- Create Background Entity ---
+        std::string backgroundID = "Background";
+        backgroundEntity = createBackground(*ecs, { 0.0f, 0.0f }, backgroundID);
+        sceneMgr.AddEntityToScene("Test Scene", backgroundEntity);
 
         // --- Create Ground Entity ---
         std::string platformTexID = "RonaldSprite_Platform";
@@ -198,8 +205,17 @@ namespace TestScene {
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
 
-        // Render the ground
+        // Render background
+        if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
+            const auto& pos = ecs_->position.at(backgroundEntity).Pos;
 
+            //Use the textureID to get the actual texture from the resource manager
+            std::string textureID = ecs_->tex[backgroundEntity].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
+        }
+
+        // Render the ground
         if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
             const auto& pos = ecs_->position.at(groundEntity).Pos;
             const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;

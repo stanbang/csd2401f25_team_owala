@@ -68,6 +68,7 @@ namespace Framework{
 	/* Used for ID-ing an entity */
 	struct PlayerTag {};
 	struct PlatformTag {};
+	struct BackgroundTag {};
 	struct EnemyTag {};
 	struct RotationFlag {
 		//bool shouldRotate = false;

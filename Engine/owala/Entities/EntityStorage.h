@@ -25,6 +25,7 @@ namespace Framework {
 		//Tags
 		std::unordered_map<Entity, PlayerTag>		playerTag;
 		std::unordered_map<Entity, PlatformTag>		platformTag;
+		std::unordered_map<Entity, BackgroundTag>	backgroundTag;
 		std::unordered_map<Entity, EnemyTag>		enemyTag;
 
 		//Basic Components
