@@ -11,10 +11,23 @@
 #include <iostream>
 
 namespace Framework {
+	using namespace SceneManagement;
+
 	// ---------------------------------------------------------------------------
 	// Singleton Stuff
 	// ---------------------------------------------------------------------------
 	SceneManager* SceneManager::instance = nullptr; // Initialize the static instance pointer to nullptr
+	SceneGUID SceneManager::nextGUID = 1; // Start from 1, 0 is reserved for invalid scene. This is set during compile time.
+	const std::string INVALID_SCENENAME = "InvalidScene"; // Reserved name for invalid scene
+
+	// Constructor
+	SceneManager::SceneManager() {
+		invalidScene.sceneIndex = 0;
+		invalidScene.name = INVALID_SCENENAME;
+		invalidScene.path = {};
+		invalidScene.isLoaded = false;
+	}
+
 
 	SceneManager& SceneManager::GetInstance() {
 		if (!instance) {
@@ -49,6 +62,37 @@ namespace Framework {
 	}
 
 	// ---------------------------------------------------------------------------
+	// SceneManager Internals
+	// ---------------------------------------------------------------------------
+	std::string SceneManager::SceneToString(const SceneID sceneID) const {
+		switch (sceneID) {
+		case SceneID::SCENE_INVALID:
+			return INVALID_SCENENAME;
+		case SceneID::SCENE_SPLASH:
+			return "SplashScreen";
+		case SceneID::SCENE_MENU:
+			return "MainMenu";
+		case SceneID::SCENE_LEVEL1:
+			return "Level1";
+		case SceneID::SCENE_LEVEL2:
+			return "Level2";
+		case SceneID::SCENE_LEVEL3:
+			return "Level3";
+		case SceneID::SCENE_LEVEL4:
+			return "Level4";
+		}
+	}
+
+	SceneAsset* SceneManager::GetSceneAssetMutable(SceneGUID sceneIndex) {
+		auto it = scenes_.find(sceneIndex);
+		if (it != scenes_.end()) {
+			return &(it->second);
+		}
+
+		return nullptr; // Return nullptr if scene not found
+	}
+
+	// ---------------------------------------------------------------------------
 	// SceneManager Configuration
 	// ---------------------------------------------------------------------------
 	void SceneManager::SetEntityStorageRef(EntityStorage& entityStorageRef) {
@@ -59,11 +103,165 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// Scene Management APIs
 	// ---------------------------------------------------------------------------
-	void SceneManager::AddEntityToScene(const std::string& scene, Entity entity) {
+	#pragma region Scene Asset Stuff
+	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path) {
+		CheckStorage();
+		// Check if scene with the same name already exists
+		for (const auto& [id, scene] : scenes_) {
+			if (scene.name == sceneName) {
+				std::cout << "[SceneManager] Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
+				return 0;
+			}
+		}
+
+		SceneAsset newScene;
+		newScene.sceneIndex = nextGUID++;
+		newScene.name = sceneName;
+		newScene.path = path;
+		scenes_[newScene.sceneIndex] = newScene;
+		std::cout << "[SceneManager] Created new Scene: " << sceneName << " with ID: " << newScene.sceneIndex << std::endl;
+		return newScene.sceneIndex;
+	}
+
+	const SceneAsset& SceneManager::GetSceneByName(const std::string& sceneName, bool silenceError) const {
+		for (const auto& [id, scene] : scenes_) {
+			if (scene.name == sceneName) {
+				return scene;
+			}
+		}
+
+		if (!silenceError) std::cout << "[SceneManager] Scene with name '" << sceneName << "' does not exist." << std::endl;
+		return invalidScene;
+	}
+
+	const SceneAsset& SceneManager::GetSceneAt(SceneGUID sceneIndex, bool silenceError) const {
+		for (const auto& [id, scene] : scenes_) {
+			if (scene.sceneIndex == sceneIndex) {
+				return scene;
+			}
+		}
+
+		if (!silenceError) std::cout << "[SceneManager] Scene with ID '" << sceneIndex << "' does not exist." << std::endl;
+		return invalidScene;
+	}
+
+	const SceneAsset& SceneManager::GetActiveScene() const {
+		return GetSceneAt(currentScene_);
+	}
+
+	void SceneManager::LoadScene(const std::string& sceneName) {
+		SceneAsset sceneToLoad = GetSceneByName(sceneName);
+		if (!sceneToLoad.IsValid()) {
+			std::cout << "[SceneManager] Scene with name '" << sceneName << "' does not exist. Aborting Load." << std::endl;
+			return;
+		}
+
+		UnloadScene(); // Unload current active scene first if any
+
+		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
+			if (sceneOwned.sceneName == sceneName) {
+				entityStorageRef_->activeTag[entity] = ActiveTag{};
+			}
+			else if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) { // Checks if entity has a scene component and is persistent
+				entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+			}
+		}
+
+		currentScene_ = sceneToLoad.sceneIndex;
+	}
+
+	void SceneManager::LoadScene(const SceneGUID sceneIndex) {
+		SceneAsset sceneToLoad = GetSceneAt(sceneIndex);
+		if (!sceneToLoad.IsValid()) {
+			std::cout << "[SceneManager] Scene with ID '" << sceneIndex << "' does not exist. Aborting Load." << std::endl;
+			return;
+		}
+
+		UnloadScene(); // Unload current active scene first if any
+		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
+			if (sceneOwned.sceneName == sceneToLoad.name) {
+				entityStorageRef_->activeTag[entity] = ActiveTag{};
+			}
+			else if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) { // Checks if entity has a scene component and is persistent
+				entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+			}
+		}
+
+		currentScene_ = sceneToLoad.sceneIndex;
+	}
+
+	void SceneManager::LoadScene(const SceneAsset& scene) {
+		LoadScene(scene.sceneIndex);
+	}
+
+	void SceneManager::UnloadScene() {
 		CheckStorage();
 
-		entityStorageRef_->sceneOwned[entity] = SceneOwned{ scene };
-		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << scene << "]" << std::endl;
+		if (currentScene_ == 0) return; // No scene is currently loaded
+
+		entityStorageRef_->activeTag.clear();
+		GetSceneAssetMutable(currentScene_)->isLoaded = false;
+		prevScene_ = currentScene_;
+		currentScene_ = 0;
+
+		// For now it just hides the entities. Let me know if you want the entities to be destroyed instead. 
+		// By destroy I mean remove all components and tags associated with the entity and render their IDs stale.
+		// This is applicable to all UnloadScene Functions and their overloads.
+	}
+
+	#pragma endregion
+
+	#pragma region Entity Scene Stuff
+	void SceneManager::AddEntityToScene(const std::string& sceneName, Entity entity) {
+		CheckStorage();
+
+		SceneAsset targetScene = GetSceneByName(sceneName);
+		if (!targetScene.IsValid()) {
+			std::cout << "[SceneManager] Scene with name '" << sceneName << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
+			return;
+		}
+
+		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
+		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+
+		// Immediately mark the entity to be displayed if the scene is currently loaded
+		if (targetScene.isLoaded) {
+			entityStorageRef_->activeTag[entity] = ActiveTag{};
+		}
+	}
+
+	void SceneManager::AddEntityToScene(const SceneGUID sceneIndex, Entity entity) {
+		CheckStorage();
+		SceneAsset targetScene = GetSceneAt(sceneIndex);
+		if (!targetScene.IsValid()) {
+			std::cout << "[SceneManager] Scene with ID '" << sceneIndex << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
+			return;
+		}
+
+		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
+		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+
+		// Immediately mark the entity to be displayed if the scene is currently loaded
+		if (targetScene.isLoaded) {
+			entityStorageRef_->activeTag[entity] = ActiveTag{};
+		}
+	}
+
+	void SceneManager::AddEntityToScene(const SceneAsset& scene, Entity entity) {
+		CheckStorage();
+		SceneAsset targetScene = GetSceneAt(scene.sceneIndex);
+		if (!targetScene.IsValid()) {
+			std::cout << "[SceneManager] Scene with name '" << targetScene.name << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
+			return;
+		}
+
+		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
+		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+
+		// Immediately mark the entity to be displayed if the scene is currently loaded
+		if (targetScene.isLoaded) {
+			entityStorageRef_->activeTag[entity] = ActiveTag{};
+		}
 	}
 
 	void SceneManager::RemoveEntityFromScene(Entity entity) {
@@ -95,36 +293,7 @@ namespace Framework {
 		return entitiesInScene;
 	}
 
-	void SceneManager::LoadScene(const std::string& scene) {
-		UnloadScene(activeScene); // Unload current active scene first if any
-		
-		for(const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
-			if(sceneOwned.sceneName == scene) {
-				entityStorageRef_->activeTag[entity] = ActiveTag{};
-			}
-			else if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) { // Checks if entity has a scene component and is persistent
-				entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
-			}
-		}
-
-		activeScene = scene;
-	}
-
-	void SceneManager::UnloadScene(const std::string& scene) {
-		CheckStorage();
-
-		entityStorageRef_->activeTag.clear();
-		activeScene = "";
-
-		// For now it just hides the entities. Let me know if you want the entities to be destroyed instead. 
-		// By destroy I mean remove all components and tags associated with the entity and render their IDs stale.
-	}
-
-	bool SceneManager::IsSceneLoaded(const std::string& scene) const {
-		CheckStorage();
-
-		return activeScene == scene;
-	}
+	#pragma endregion
 
 	// ---------------------------------------------------------------------------
 	// DEBUG FUNCTIONS
@@ -157,9 +326,14 @@ namespace Framework {
 
 	void SceneManager::PrintCurrentSceneInfo() const {
 		CheckStorage();
+
+		if (!GetSceneAt(currentScene_, true).IsValid()) {
+			std::cout << "[SceneManager] No active scene currently loaded." << std::endl;
+			return;
+		}
 		
 		std::cout << "[SceneManager] ----- Current Scene Info -----" << std::endl;
-		std::cout << "[SceneManager] Loaded Scene: " << activeScene << std::endl;
+		std::cout << "[SceneManager] Loaded Scene: " << GetSceneAt(currentScene_).name << std::endl;
 		std::cout << "[SceneManager] Active Entities Count: " << entityStorageRef_->activeTag.size() << std::endl;
 		std::cout << "[SceneManager] Active Entities IDs: ";
 		for (const auto& [entity, activeTag] : entityStorageRef_->activeTag) {
