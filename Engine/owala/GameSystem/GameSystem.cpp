@@ -108,10 +108,10 @@ namespace Framework {
         Logger logger;
         // For now, we can use the console to see the state.
         if (physics_->IsInStepMode()) {
-            logger.DebugLog(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
+            logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
         }
         else if (physics_->IsPaused()) {
-            logger.DebugLog(DebugType::GameSystem, "PAUSED");
+            logger.Info(DebugType::GameSystem, "PAUSED");
         }
 
         //RenderColliders();

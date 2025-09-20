@@ -81,6 +81,6 @@ namespace Framework {
 
 	public:
         void LogCrash(const DebugType type, const std::string& message);
-        void DebugLog(DebugType type, const string message);
+        void Info(DebugType type, const string message);
 	};
 } // namespace Framework

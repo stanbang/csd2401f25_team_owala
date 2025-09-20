@@ -64,7 +64,7 @@ namespace Framework {
 
     void PlayerSystem::Shutdown() {
         Logger logger;
-        logger.DebugLog(DebugType::PlayerSystem, "Player system shutdown");
+        logger.Info(DebugType::PlayerSystem, "Player system shutdown");
 
         FileIOSystem fileIO;
         PlayerStats newStats;
@@ -74,7 +74,7 @@ namespace Framework {
             newStats.pos = entityStorage_->position.at(entity);
         }
 
-        logger.DebugLog(DebugType::PlayerSystem, "Writing Player Stats");
+        logger.Info(DebugType::PlayerSystem, "Writing Player Stats");
         fileIO.WritePlayerStats(newStats);
     }
 

@@ -32,7 +32,7 @@ namespace Framework {
         //    auto& map = getMap<ResourceType>();
             if (map.find(name) != map.end()) {
                 Logger logger;
-                logger.DebugLog(DebugType::ResourceManager, "Resource with name '" + name + "already exists. Skipping addition.");
+                logger.Info(DebugType::ResourceManager, "Resource with name '" + name + "already exists. Skipping addition.");
                 return;
             }
             map[name] = resource;

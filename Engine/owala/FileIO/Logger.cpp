@@ -23,10 +23,10 @@ namespace Framework {
 
     // called when GameException is thrown or any other exception is thrown
     void Logger::LogCrash(const DebugType type, const std::string& message) {
-        DebugLog(type, message);
+        Info(type, message);
 
         if (!filesystem::is_directory(LOGS_FILEPATH)) {
-            DebugLog(DebugType::Logger, LOGS_FILEPATH + " directory not found, creating directory");
+            Info(DebugType::Logger, LOGS_FILEPATH + " directory not found, creating directory");
             filesystem::create_directory(LOGS_FILEPATH);
         }
 
@@ -34,14 +34,14 @@ namespace Framework {
         ofstream log(logPath, ios::app);
 
         if (!log) {
-            DebugLog(DebugType::Logger, "Unable to open " + logPath);
+            Info(DebugType::Logger, "Unable to open " + logPath);
         } else {
-            DebugLog(DebugType::Logger, "Writing to " + logPath);
+            Info(DebugType::Logger, "Writing to " + logPath);
             log << GetErrorMsg(type, message) << endl;
         }
     }
 
-    void Logger::DebugLog(DebugType type, const string message) {
+    void Logger::Info(DebugType type, const string message) {
         cout << GetErrorMsg(type, message) << endl;
     }
 

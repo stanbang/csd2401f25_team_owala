@@ -46,7 +46,7 @@ namespace Framework {
 			windowSize.x, windowSize.y
 		);
 
-		logger.DebugLog(DebugType::FileIOSystem, logMsg);
+		logger.Info(DebugType::FileIOSystem, logMsg);
 
 		return windowSize;
 	}
@@ -76,7 +76,7 @@ namespace Framework {
 			"Player Position read from player.json: X: {} Y: {}",
 			playerX.GetFloat(), playerY.GetFloat()
 		);
-		logger.DebugLog(DebugType::FileIOSystem, logMsg);
+		logger.Info(DebugType::FileIOSystem, logMsg);
 
 		Vector2D position{ playerX.GetFloat(), playerY.GetFloat() };
 
@@ -88,7 +88,7 @@ namespace Framework {
 			"Player data read from player.json: moveSpeed: {}",
 			playerStats.moveSpeed
 		);
-		logger.DebugLog(DebugType::FileIOSystem, logMsg);
+		logger.Info(DebugType::FileIOSystem, logMsg);
 
 		return playerStats;
 	}
@@ -119,7 +119,7 @@ namespace Framework {
 			"Updated Player Position: X: {} Y: {}",
 			playerStats.pos.Pos.x, playerStats.pos.Pos.y
 		);
-		logger.DebugLog(DebugType::FileIOSystem, logMsg);
+		logger.Info(DebugType::FileIOSystem, logMsg);
 
 		// Update x and y from your game data
 		playerX.SetFloat(playerStats.pos.Pos.x);

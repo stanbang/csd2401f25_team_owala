@@ -36,11 +36,11 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
 	Logger logger;
 
 	if (tex == 0) {
-		logger.DebugLog(DebugType::ResourceManager, "Failed to load texture from '" + filepath + "'");
+		logger.Info(DebugType::ResourceManager, "Failed to load texture from '" + filepath + "'");
 		return false;
 	}
 
-	logger.DebugLog(DebugType::ResourceManager, "Loaded texture '" + filepath + "'");
+	logger.Info(DebugType::ResourceManager, "Loaded texture '" + filepath + "'");
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;
