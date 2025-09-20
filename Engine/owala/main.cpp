@@ -2,7 +2,6 @@
 #include "WindowsSystem.h"
 #include "Graphics.h"
 #include "EntityStorage.h"
-#include "GameSystem.h"
 #include "InputSystem.h"
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
@@ -12,6 +11,7 @@
 #include "ResourceManager.h"
 #include <iostream>
 #include "AudioSystem.h"
+#include "GameManager.h"
 
 int main() {
     using namespace Framework;
@@ -22,13 +22,14 @@ int main() {
     InputSystem *input = new InputSystem(*win);
     EntityStorage *ecs = new EntityStorage();
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
-    Framework::SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SM Instance and sets the entity storage reference for the SceneManager
+    SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem();
     Graphics *gfx = new Graphics(*win);
     ResourceManager* rcm = new ResourceManager(*gfx); //Create resource manager on stack
-    GameSystem *game = new GameSystem(*rcm, *ecs, *gfx, *win, *input, *phx, *audio);
+	GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio); // Register all core systems to the GameManager
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -38,12 +39,12 @@ int main() {
     engine.AddSystem(phx);                 // Physics comes after input
 	engine.AddSystem(rcm);                // Resource manager (loads resources on demand) MUST come before GameSystem or assets won't be found
     engine.AddSystem(audio);               //audio 
-    engine.AddSystem(game);                // reads input -> moves/queues draws
+	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();
     engine.GameLoop();
-	Framework::SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
+	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     engine.DestroySystems();
     return 0;
 }

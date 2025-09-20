@@ -57,7 +57,6 @@ namespace Framework {
 		void CheckStorage() const; // Const overload of the above checker
 
 		// Internal Helpers
-		std::string SceneToString(const SceneID sceneID) const;
 		SceneAsset* GetSceneAssetMutable(SceneGUID sceneIndex);
 	public:
 		// Singletons should not be cloneable or assignable.

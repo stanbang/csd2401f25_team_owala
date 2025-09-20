@@ -64,24 +64,6 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// SceneManager Internals
 	// ---------------------------------------------------------------------------
-	std::string SceneManager::SceneToString(const SceneID sceneID) const {
-		switch (sceneID) {
-		case SceneID::SCENE_INVALID:
-			return INVALID_SCENENAME;
-		case SceneID::SCENE_SPLASH:
-			return "SplashScreen";
-		case SceneID::SCENE_MENU:
-			return "MainMenu";
-		case SceneID::SCENE_LEVEL1:
-			return "Level1";
-		case SceneID::SCENE_LEVEL2:
-			return "Level2";
-		case SceneID::SCENE_LEVEL3:
-			return "Level3";
-		case SceneID::SCENE_LEVEL4:
-			return "Level4";
-		}
-	}
 
 	SceneAsset* SceneManager::GetSceneAssetMutable(SceneGUID sceneIndex) {
 		auto it = scenes_.find(sceneIndex);
@@ -167,6 +149,8 @@ namespace Framework {
 			}
 		}
 
+		std::cout << "[SceneManager] Loaded Scene: " << sceneName << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
+
 		currentScene_ = sceneToLoad.sceneIndex;
 	}
 
@@ -186,6 +170,8 @@ namespace Framework {
 				entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
 			}
 		}
+
+		std::cout << "[SceneManager] Loaded Scene: " << sceneToLoad.name << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
 
 		currentScene_ = sceneToLoad.sceneIndex;
 	}
