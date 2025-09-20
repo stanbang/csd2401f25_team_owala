@@ -38,7 +38,7 @@ namespace Framework {
 
         // --- Create Player Entity ---
 		FileIOSystem fileIO;
-        PlayerStats stats = fileIO.loadPlayerStats(); // Example stats from file loading
+        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
 
         std::string playerDuckID = "playerSprite_DuckyWucky";
         player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
@@ -105,13 +105,13 @@ namespace Framework {
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
 
+        Logger logger;
         // For now, we can use the console to see the state.
         if (physics_->IsInStepMode()) {
-            
-             std::cout << "STEP MODE ACTIVE (Press 'I' to advance)" << std::endl;
+            logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
         }
         else if (physics_->IsPaused()) {
-             std::cout << "PAUSED" << std::endl;
+            logger.Info(DebugType::GameSystem, "PAUSED");
         }
 
         //RenderColliders();
