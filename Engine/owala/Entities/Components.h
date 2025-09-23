@@ -83,6 +83,17 @@ namespace Framework{
 	};
 
 
+	// Component to track trap platform state
+	struct TrapPlatformComponent {
+		bool isTriggered;
+		bool hasFallen;
+		float triggerDelay;       
+		float currentDelay;        
+		float fallSpeed;           
+		Vector2D originalPosition;
+		float maxFallDistance;     
+		float currentFallDistance; 
+	};
+
+
 }
-
-

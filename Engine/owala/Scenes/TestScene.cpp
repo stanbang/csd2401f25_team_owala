@@ -20,7 +20,8 @@
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
-
+#include "TrapPlatform.h"
+#include "Transformation.h"
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
 #include <iostream>
@@ -42,6 +43,12 @@ namespace {
     Entity playerEntity = 0;
     Entity groundEntity = 0;
     Entity backgroundEntity = 0;
+    Entity platformTrap_ = 0 ;
+    Entity topGround = 0;
+    Entity leftGround = 0;
+    Entity rightGround = 0;
+    Entity downGround = 0;
+
 }
 
 namespace TestScene {
@@ -69,6 +76,25 @@ namespace TestScene {
         std::string platformTexID = "RonaldSprite_Platform";
         groundEntity = createPlatform(*ecs, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
         sceneMgr.AddEntityToScene("Test Scene", groundEntity);
+
+
+        //create 4 borders around the screen
+        topGround = createPlatform(*ecs, { 0.0f, 1.f }, { 1.0f, 0.2f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", topGround);
+
+        leftGround = createPlatform(*ecs, { -1.0f, 0.0f }, { 0.2f, 1.0f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", leftGround);
+
+        rightGround = createPlatform(*ecs, { 1.0f, 0.0f }, { 0.2f, 1.0f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", rightGround);
+
+        downGround = createPlatform(*ecs, { 0.0f, -1.0f }, { 1.0f, 0.2f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", downGround);
+
+        // Trap Platforms
+        std::string trapTexID = "RonaldSprite_Platform"; 
+        platformTrap_ = createTrapPlatform(*ecs, { 0.0f, 0.5f }, { 0.5f, 0.1f }, trapTexID);
+        sceneMgr.AddEntityToScene("Test Scene", platformTrap_);
 
         // --- Create Player Entity ---
         FileIOSystem fileIO;
@@ -204,6 +230,10 @@ namespace TestScene {
 
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
+        //update trap platforms
+        float dt = gm.GetDeltaTime();
+        updateTrapPlatforms(*ecs_, dt);
+        triggerTrapPlatform(*ecs_, platformTrap_);
 
         // Render background
         if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
@@ -238,6 +268,55 @@ namespace TestScene {
             gfx_->drawSprite(texture, pos, halfSize, rotation);
         }
 
+        // To create 4 borders around the window size
+        if (ecs_->tex.count(topGround) && ecs_->position.count(topGround)) {
+            const auto& pos = ecs_->position.at(topGround).Pos;
+            const auto& halfSize = ecs_->colliders.at(topGround).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(topGround)) {
+                rotation = ecs_->rotationFlag.at(topGround).currentRotation * (M_PI / 180.0f);
+            }
+            std::string textureID = ecs_->tex[topGround].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, rotation);
+        }
+
+        if (ecs_->tex.count(leftGround) && ecs_->position.count(leftGround)) {
+            const auto& pos = ecs_->position.at(leftGround).Pos;
+            const auto& halfSize = ecs_->colliders.at(leftGround).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(leftGround)) {
+                rotation = ecs_->rotationFlag.at(leftGround).currentRotation * (M_PI / 180.0f);
+            }
+            std::string textureID = ecs_->tex[leftGround].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, rotation);
+        }
+
+        if (ecs_->tex.count(rightGround) && ecs_->position.count(rightGround)) {
+            const auto& pos = ecs_->position.at(rightGround).Pos;
+            const auto& halfSize = ecs_->colliders.at(rightGround).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(rightGround)) {
+                rotation = ecs_->rotationFlag.at(rightGround).currentRotation * (M_PI / 180.0f);
+            }
+            std::string textureID = ecs_->tex[rightGround].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, rotation);
+        }
+
+        if (ecs_->tex.count(downGround) && ecs_->position.count(downGround)) {
+            const auto& pos = ecs_->position.at(downGround).Pos;
+            const auto& halfSize = ecs_->colliders.at(downGround).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(downGround)) {
+                rotation = ecs_->rotationFlag.at(downGround).currentRotation * (M_PI / 180.0f);
+            }
+            std::string textureID = ecs_->tex[downGround].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, rotation);
+        }
+
         // Render the player
         if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
             const auto& pos = ecs_->position.at(playerEntity).Pos;
@@ -250,6 +329,23 @@ namespace TestScene {
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
 
+        // Render trap platform
+        for (auto const& [entity, trapComp] : ecs_->trapPlatform) {
+            if (ecs_->tex.count(entity) && ecs_->position.count(entity)) {
+                const auto& pos = ecs_->position.at(entity).Pos;
+                const auto& halfSize = ecs_->colliders.at(entity).HalfSize;
+                //std::cout << "Trap platform halfSize: x=" << halfSize.x << ", y=" << halfSize.y << std::endl;
+
+                float rotation = 0.0f;
+                if (ecs_->rotationFlag.count(entity)) {
+                    rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
+                }
+
+                std::string textureID = ecs_->tex[entity].textureKey;
+                Texture texture = resourceManager_->get<Texture>(textureID);
+                gfx_->drawSprite(texture, pos, halfSize, rotation); 
+            }
+        }
 
 
         // 5. --- RENDER THE IMGUI UI ---

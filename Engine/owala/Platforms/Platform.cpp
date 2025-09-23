@@ -10,7 +10,7 @@ namespace Framework {
 		entityStorage.velocity[ground] = Velocity{};
 		entityStorage.rigidBody[ground] = RigidBody{ {0.2f,0.2} };
 		entityStorage.rigidBody[ground].SetMass(0.0f); // A mass of 0 makes it static/immovable.
-		entityStorage.colliders[ground] = AABBCollider{ {1.0f, 0.2f} };
+		entityStorage.colliders[ground] = AABBCollider{ halfSize };
 		entityStorage.rotationFlag[ground] = RotationFlag{}; //added rotation for ground
 		entityStorage.tex[ground] = TextureComponent{ textureID };
 
