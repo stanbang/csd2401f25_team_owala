@@ -23,9 +23,9 @@ void ResourceManager::Initialize() {
 
 	//Store texture with key "playerSprite_DuckyWucky" from file "Assets/duck-rgba-256.tex"
 	//Access texture later with: Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
-	loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
-	loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
-	loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
+	//loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+	//loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
+	//loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
 }
 
 void ResourceManager::clearAll() {
@@ -47,12 +47,7 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
     return true;
 }
 
-// Specialization for Texture
+// Get the resource map
 std::unordered_map<std::string, Value>& ResourceManager::getMap() {
 	return resourceMap;
 }
-
-//template<>
-//std::unordered_map<std::string, std::shared_ptr<Texture>>& ResourceManager::getMap<Texture>() {
-    //return textureMap;
-//}

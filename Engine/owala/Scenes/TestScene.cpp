@@ -53,11 +53,13 @@ namespace TestScene {
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
 		WindowsSystem* win_ = gm.GetSystems().win_;
+		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
 
         // --- Load Assets ---
-        // Ensure you have these files in an "Assets" folder next to your executable.
-        //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
-        //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+		// Load necessary files into the resource manager
+        rcm_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
+        rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Background Entity ---
