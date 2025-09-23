@@ -42,6 +42,9 @@ namespace Framework {
 		//Texture Component
 		std::unordered_map<Entity, TextureComponent>      tex;
 
+		//Audio Component
+		std::unordered_map<Entity, AudioComponent>        audio;
+
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
 		std::unordered_map<Entity, PersistentTag>	persistentTag; // Tag to indicate if the entity should persist across scene changes

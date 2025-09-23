@@ -17,7 +17,7 @@
 #include <fmod.hpp>
 
 namespace Framework {
-
+    class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
 	// Variant to hold different resource types
     using Value = std::variant<
@@ -33,11 +33,15 @@ namespace Framework {
         void Update(float dt) { /*Empty by design*/ };
         void Shutdown() override {}
 
-        ResourceManager(Graphics& gfx) : gfx_(&gfx) {};
+        ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};
 
-        // Add a resource
+		// Add a copyable resource (like Texture)
         template<typename ResourceType>
         void add(const std::string& name, ResourceType resource);
+
+		// Add a non-copyable resource (like FMOD::Sound)
+        template<typename ResourceType>
+        void add(const std::string& name, std::unique_ptr<ResourceType> resourcePtr);
 
 		// Get a resource by key
         template<typename ResourceType>
@@ -55,10 +59,13 @@ namespace Framework {
         // Load a texture from file and store it
         bool loadTexture(const std::string& name, const std::string& filepath);
 
+        bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
+
     private:
 		std::unordered_map<std::string, Value>& getMap(); // Get the resource map
         std::unordered_map<std::string, Value> resourceMap; // Resource maps
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
+		AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
     };
 
 
@@ -76,6 +83,7 @@ namespace Framework {
         return *std::get<std::unique_ptr<ResourceType>>(it->second);
     }
 
+	// Overload for raw resource types (copyable types) like Texture
     template<typename ResourceType>
     void ResourceManager::add(const std::string& name, ResourceType resource) {
         std::unordered_map<std::string, Value>& map = getMap();
@@ -90,6 +98,20 @@ namespace Framework {
         }
 
         // Use emplace to insert the unique_ptr directly into the variant
+        map.emplace(name, std::move(resourcePtr));
+    }
+
+	// Overload for unique_ptr (non-copyable types) like FMOD::Sound
+    template<typename ResourceType>
+    void ResourceManager::add(const std::string& name, std::unique_ptr<ResourceType> resourcePtr) {
+        auto& map = getMap();
+
+        if (map.find(name) != map.end()) {
+            Logger logger;
+            logger.Info(DebugType::ResourceManager, "Resource with name '" + name + "' already exists. Skipping addition.");
+            return;
+        }
+
         map.emplace(name, std::move(resourcePtr));
     }
 

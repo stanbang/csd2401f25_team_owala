@@ -28,7 +28,7 @@ int main() {
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem();
     Graphics *gfx = new Graphics(*win);
-	ResourceManager* rcm = new ResourceManager(*gfx); //Create resource manager on the heap
+	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
 	GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio); // Register all core systems to the GameManager
 

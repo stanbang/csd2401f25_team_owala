@@ -1,5 +1,6 @@
 #pragma once
 #include "ISystem.h"
+#include "ResourceManager.h"
 
 #include <fmod.hpp>
 #include <fmod_errors.h>
@@ -20,6 +21,8 @@ namespace Framework {
         void Shutdown() override;
 
         // ---- simple API ----
+        FMOD::System* getFMODSystem() const;
+
         // Load a sound and keep it cached by id. Returns true on success.
         // loop = true makes it loop; stream = true uses streaming (good for music/large files).
         bool loadSound(const std::string& id,
@@ -43,12 +46,14 @@ namespace Framework {
         // Unload a cached sound.
         void unloadSound(const std::string& id);
 
-    private:
         // tiny helper for FMOD error handling
         static void check(FMOD_RESULT r, const char* where);
 
+    private:
+
         FMOD::System* system_ = nullptr;
         FMOD::ChannelGroup* masterGroup_ = nullptr;
+        ResourceManager* resourceManager_ = nullptr;
 
         std::unordered_map<std::string, FMOD::Sound*>   sounds_;
         std::unordered_map<std::string, FMOD::Channel*> channels_; // last channel per id (optional)

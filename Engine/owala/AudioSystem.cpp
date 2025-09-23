@@ -54,6 +54,9 @@ namespace Framework {
         }
     }
 
+	// Access the underlying FMOD system (for advanced use)
+    FMOD::System* AudioSystem::getFMODSystem() const { return system_; }
+
     bool AudioSystem::loadSound(const std::string& id,
         const char* path,
         bool loop,

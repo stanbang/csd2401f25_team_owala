@@ -59,6 +59,13 @@ namespace Framework{
 		std::string textureKey;
 	};
 
+	struct AudioComponent {
+		std::string soundKey;
+		bool loop = false;
+		bool stream = false;
+		float volume = 1.0f;
+	};;
+
 	struct PlayerStats {
 		float moveSpeed = 0;
 		Position pos;
