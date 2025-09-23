@@ -141,6 +141,21 @@ macro(import_rapid_json)
     endif()
 endmacro()
 
+# Macro to import backward-cpp
+macro(import_backward_cpp)
+    if (NOT TARGET backward-cpp)
+       include(FetchContent)
+
+        FetchContent_Declare(
+            backward-cpp
+            GIT_REPOSITORY https://github.com/bombela/backward-cpp.git
+            GIT_TAG master  # or a version tag, such as v1.6
+        )
+        
+        FetchContent_MakeAvailable(backward-cpp)
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -168,6 +183,10 @@ macro(importDependencies)
     message(STATUS "Importing rapid_json...")
     import_rapid_json()
     message(STATUS "rapid_json imported successfully.")
+
+    message(STATUS "Importing backward-cpp...")
+    import_backward_cpp()
+    message(STATUS "backward-cpp imported successfully.")
 
     link_libraries(${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib) 
     include_directories(${CMAKE_SOURCE_DIR}/lib/fmod/core/inc) 

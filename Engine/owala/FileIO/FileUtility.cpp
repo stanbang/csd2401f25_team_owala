@@ -15,17 +15,14 @@
 #include "Components.h"
 #include "Logger.h"
 
-using namespace std;
-using namespace rapidjson;
-
 namespace Framework {
-	const string FileIOSystem::WIN_CONFIG_FILEPATH = "Data/config.json";
-	const string FileIOSystem::PLAYER_CONFIG_FILEPATH = "Data/player.json";
+	const std::string FileIOSystem::WIN_CONFIG_FILEPATH = "Data/config.json";
+	const std::string FileIOSystem::PLAYER_CONFIG_FILEPATH = "Data/player.json";
 
 	Vector2D FileIOSystem::LoadWindowConfig() {
 		Logger logger;
-		string logMsg{};
-		Document d = ReadFile(WIN_CONFIG_FILEPATH);
+		std::string logMsg{};
+		rapidjson::Document d = ReadFile(WIN_CONFIG_FILEPATH);
 
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
 			throw GameException(DebugType::FileIOSystem, "Invalid or missing windowConfig in config.json");
@@ -53,8 +50,8 @@ namespace Framework {
 
 	PlayerStats FileIOSystem::LoadPlayerStats() {
 		Logger logger;
-		string logMsg{};
-		Document d = ReadFile(PLAYER_CONFIG_FILEPATH); //Read the file name passed in as a path
+		std::string logMsg{};
+		rapidjson::Document d = ReadFile(PLAYER_CONFIG_FILEPATH); //Read the file name passed in as a path
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {
@@ -95,8 +92,8 @@ namespace Framework {
 
 	bool FileIOSystem::WritePlayerStats(const PlayerStats& playerStats) {
 		Logger logger;
-		string logMsg{};
-		Document d = ReadFile(PLAYER_CONFIG_FILEPATH);
+		std::string logMsg{};
+		rapidjson::Document d = ReadFile(PLAYER_CONFIG_FILEPATH);
 
 		// Check if the JSON file contains the respective members expected of a playerStats.json file
 		if (!d.HasMember("playerStats") || !d["playerStats"].IsObject()) {

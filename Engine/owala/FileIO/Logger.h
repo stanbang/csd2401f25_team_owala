@@ -11,12 +11,12 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <ctime>
+#include "backward.hpp"
 
 // for formatting logging msgs to be passed into Logger
 #include <format>
 #include <string>
-
-using namespace std;
 
 const enum class DebugType {
     Unknown,
@@ -33,7 +33,7 @@ const enum class DebugType {
     Logger
 };
 
-const string DebugTypeLabels[] = {
+const std::string DebugTypeLabels[] = {
     "Unknown Exception",
     "WindowsSystem",
     "InputSystem",
@@ -50,11 +50,11 @@ const string DebugTypeLabels[] = {
 
 namespace Framework {
 
-    const struct GameException : public exception {
+    const struct GameException : public std::exception {
         DebugType type;
-        string msg;
+        std::string msg;
 
-        GameException(DebugType c, string m) : type(c), msg(std::move(m)) {}
+        GameException(DebugType c, std::string m) : type(c), msg(std::move(m)) {}
 
         const char* what() const noexcept override {
             return msg.c_str();
@@ -62,25 +62,26 @@ namespace Framework {
     };
 
 	class Logger {
-		static const string LOGS_FILEPATH, LOGS_FILEEXT;
+    private:
+		static const std::string LOGS_FILEPATH, LOGS_FILEEXT;
 
-        static const string GetErrorMsg(DebugType type, const string message) {
+        static const std::string GetErrorMsg(DebugType type, const std::string message) {
             return '[' + DebugTypeLabels[(int)type] + "] " + message;
         }
 
-        static const string GetCrashLogFilename() {
-            ostringstream oss;
-            time_t t = std::time(nullptr);
-            tm tm = *std::localtime(&t);
+        static const std::string GetCrashLogFilename() {
+            std::ostringstream oss;
+            std::time_t t = std::time(nullptr);
+            std::tm tm = *std::localtime(&t);
 
             oss << LOGS_FILEPATH
-                << put_time(&tm, "%Y-%m-%d_%H-%M-%S")
+                << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S")
                 << LOGS_FILEEXT;
             return oss.str();
         }
 
 	public:
         void LogCrash(const DebugType type, const std::string& message);
-        void Info(DebugType type, const string message);
+        void Info(DebugType type, const std::string message);
 	};
 } // namespace Framework

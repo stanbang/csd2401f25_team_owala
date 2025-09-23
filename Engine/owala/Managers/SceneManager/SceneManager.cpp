@@ -260,7 +260,7 @@ namespace Framework {
 		entityStorageRef_->activeTag.erase(entity);
 		Logger logger;
 		std::string logMsg{};
-		logMsg = format("Removed Entity[{}] from its Scene", entity);
+		logMsg = std::format("Removed Entity[{}] from its Scene", entity);
 		logger.Info(DebugType::SceneManager, logMsg);
 	}
 

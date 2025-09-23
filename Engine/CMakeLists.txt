@@ -24,6 +24,7 @@ set(ALL_LIBS
   PRIVATE imgui
   PRIVATE rapid_json
   PRIVATE stb_image
+  PRIVATE Backward::Interface
 )
 
 # Include path for GLM
@@ -70,6 +71,7 @@ add_executable(${CMAKE_PROJECT_NAME} ${APP_SRC})
 # ======================================================
 file(COPY "${CMAKE_SOURCE_DIR}/Data" DESTINATION "${CMAKE_BINARY_DIR}")
 file(COPY "${CMAKE_SOURCE_DIR}/Assets" DESTINATION "${CMAKE_BINARY_DIR}")
+file(COPY "${CMAKE_SOURCE_DIR}/Logs" DESTINATION "${CMAKE_BINARY_DIR}")
 
 # ======================================================
 # Also copy Data and Assets after each build (keeps sync)
@@ -118,6 +120,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     ${ALL_LIBS}
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
 )
+
 
 # ======================= Compiler Settings =========================
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
