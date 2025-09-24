@@ -39,6 +39,7 @@ namespace Framework {
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 		std::unordered_map<Entity, TrapPlatformComponent> trapPlatform;
+		std::unordered_map<Entity, ScalingPlatformComponent> scalingPlatform;
 
 		//Texture Component
 		std::unordered_map<Entity, TextureComponent>      tex;

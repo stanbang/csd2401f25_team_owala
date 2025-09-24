@@ -10,6 +10,7 @@
 #include "Graphics.h"
 #include "Vector2D.h"
 #include <string>
+#include "Matrix3x3.h"
 #include <memory> // for std::shared_ptr
 
 namespace Framework{
@@ -87,13 +88,23 @@ namespace Framework{
 	struct TrapPlatformComponent {
 		bool isTriggered;
 		bool hasFallen;
-		float triggerDelay;       
-		float currentDelay;        
-		float fallSpeed;           
+		float triggerDelay{ 0.0f };
+		float currentDelay{ 0.0f };
+		float fallSpeed{ 0.0f };
 		Vector2D originalPosition;
-		float maxFallDistance;     
-		float currentFallDistance; 
+		float maxFallDistance{ 0.0f };
+		float currentFallDistance{ 0.0f };
 	};
 
+	struct ScalingPlatformComponent {
+		Vector2D baseHalfSize;
+		float currentScaleX{ 0.0f };
+		float currentScaleY{ 0.0f };
+		float scaleSpeed{ 0.0f };
+		float minScale{ 0.0f };
+		float maxScale{ 0.0f };
+		float time{ 0.0f };
+		Matrix3x3 transformMatrix;
+	};
 
 }

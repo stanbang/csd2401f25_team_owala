@@ -22,6 +22,7 @@
 #include "AudioSystem.h"
 #include "TrapPlatform.h"
 #include "Transformation.h"
+#include "ScalingPlatform.h"
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
 #include <iostream>
@@ -43,12 +44,12 @@ namespace {
     Entity playerEntity = 0;
     Entity groundEntity = 0;
     Entity backgroundEntity = 0;
-    Entity platformTrap_ = 0 ;
+    Entity platformTrap_ = 0;
     Entity topGround = 0;
     Entity leftGround = 0;
     Entity rightGround = 0;
     Entity downGround = 0;
-
+    Entity scalingPlatform = 0;
 }
 
 namespace TestScene {
@@ -78,7 +79,7 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", groundEntity);
 
 
-        //create 4 borders around the screen
+        // Create 4 borders around the screen
         topGround = createPlatform(*ecs, { 0.0f, 1.f }, { 1.0f, 0.2f }, platformTexID);
         sceneMgr.AddEntityToScene("Test Scene", topGround);
 
@@ -90,6 +91,11 @@ namespace TestScene {
 
         downGround = createPlatform(*ecs, { 0.0f, -1.0f }, { 1.0f, 0.2f }, platformTexID);
         sceneMgr.AddEntityToScene("Test Scene", downGround);
+
+        // Scaling Platform
+        std::string scalingPlatformTexID = "RonaldSprite_Platform";
+        scalingPlatform = createScalingPlatform(*ecs, { -0.5f, 0.0f },{ 0.3f, 0.1f },scalingPlatformTexID,2.0f,0.2f,1.0f);
+        sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
         // Trap Platforms
         std::string trapTexID = "RonaldSprite_Platform"; 
@@ -230,10 +236,12 @@ namespace TestScene {
 
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
-        //update trap platforms
+        // Update trap platforms
         float dt = gm.GetDeltaTime();
         updateTrapPlatforms(*ecs_, dt);
         triggerTrapPlatform(*ecs_, platformTrap_);
+        // Update scaling platforms
+        updateScalingPlatforms(*ecs_, dt);
 
         // Render background
         if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
@@ -346,6 +354,27 @@ namespace TestScene {
                 gfx_->drawSprite(texture, pos, halfSize, rotation); 
             }
         }
+
+        // Render scaling platforms
+        for (auto const& [entity, scalingComp] : ecs_->scalingPlatform) {
+            if (ecs_->tex.count(entity) && ecs_->position.count(entity)) {
+                const auto& pos = ecs_->position.at(entity).Pos;
+                const auto& baseHalfSize = scalingComp.baseHalfSize;
+
+                std::string textureID = ecs_->tex[entity].textureKey;
+                Texture texture = resourceManager_->get<Texture>(textureID);
+
+                Matrix3x3 transform = getScalingPlatformTransform(*ecs_, entity);
+                Vector2D renderSize = Vector2D( baseHalfSize.x * scalingComp.currentScaleX, baseHalfSize.y * scalingComp.currentScaleY );
+
+                float rotation = 0.0f;
+                if (ecs_->rotationFlag.count(entity)) {
+                    rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
+                }
+                gfx_->drawSprite(texture, pos, renderSize, rotation);
+            }
+        }
+
 
 
         // 5. --- RENDER THE IMGUI UI ---
