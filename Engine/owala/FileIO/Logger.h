@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <ctime>
 #include "backward.hpp"
+#include <windows.h>
 
 // for formatting logging msgs to be passed into Logger
 #include <format>
@@ -50,11 +51,15 @@ const std::string DebugTypeLabels[] = {
 
 namespace Framework {
 
+    // throw GameException with DebugType and a msg instead of runtime_error
     const struct GameException : public std::exception {
         DebugType type;
         std::string msg;
+        backward::StackTrace stack_trace;
 
-        GameException(DebugType c, std::string m) : type(c), msg(std::move(m)) {}
+        GameException(DebugType c, std::string m) : type(c), msg(std::move(m)) {
+            stack_trace.load_here(); // capture the stack at the point when it was thrown
+        }
 
         const char* what() const noexcept override {
             return msg.c_str();
@@ -68,7 +73,7 @@ namespace Framework {
         static const std::string GetErrorMsg(DebugType type, const std::string message) {
             return '[' + DebugTypeLabels[(int)type] + "] " + message;
         }
-
+        
         static const std::string GetCrashLogFilename() {
             std::ostringstream oss;
             std::time_t t = std::time(nullptr);
@@ -80,8 +85,14 @@ namespace Framework {
             return oss.str();
         }
 
-	public:
+    public:
+        // need this to resolve the symbols in stack trace
+        static const void InitSymbols();
+        // for GameExceptions thrown
+        void LogCrash(const DebugType type, const std::string& message, const backward::StackTrace& stack_trace);
+        // for other exceptions caught
         void LogCrash(const DebugType type, const std::string& message);
+        // for general debugging statements
         void Info(DebugType type, const std::string message);
 	};
 } // namespace Framework
