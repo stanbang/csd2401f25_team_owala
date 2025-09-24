@@ -25,7 +25,7 @@ void ResourceManager::Initialize() {
 	//Access texture later with: Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
 	loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
 	loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
-	loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
+	loadTexture("Background", "Assets/Env_Level2_PH.png");
 }
 
 void ResourceManager::clearAll() {
