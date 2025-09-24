@@ -141,6 +141,24 @@ macro(import_rapid_json)
     endif()
 endmacro()
 
+# Macro to import freetype
+macro(import_freetype)
+    # The 'if' guard here is sufficient to prevent the FetchContent calls from running twice.
+    if(NOT freetype_POPULATED)
+        include(FetchContent)
+
+        FetchContent_Declare(
+            freetype
+            GIT_REPOSITORY https://github.com/freetype/freetype.git
+            GIT_TAG        VER-2-14-1
+        )
+
+        # This call handles downloading, configuring, and adding the library target.
+        FetchContent_MakeAvailable(freetype)
+    endif()
+endmacro()
+
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -168,6 +186,10 @@ macro(importDependencies)
     message(STATUS "Importing rapid_json...")
     import_rapid_json()
     message(STATUS "rapid_json imported successfully.")
+    
+    message(STATUS "Importing freetype...")
+    import_freetype()
+    message(STATUS "freetype imported successfully.")
 
     link_libraries(${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib) 
     include_directories(${CMAKE_SOURCE_DIR}/lib/fmod/core/inc) 

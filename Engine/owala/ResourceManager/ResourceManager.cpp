@@ -26,10 +26,12 @@ void ResourceManager::Initialize() {
 	loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
 	loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
 	loadTexture("Background", "Assets/Env_Level2_PH.png");
+	LoadFont("minecraft_font", "Assets/Fonts/minecraft.ttf");
 }
 
 void ResourceManager::clearAll() {
 	resourceMap.clear();
+	m_fonts.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
@@ -45,6 +47,47 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;
+}
+
+// Loads a font
+bool ResourceManager::LoadFont(const std::string& name, const std::string& fontPath
+	//, unsigned int size
+) {
+	Logger logger;
+	if (m_fonts.count(name) > 0) {
+		// Font already loaded
+		//return m_fonts[name].get();
+		logger.Info(DebugType::ResourceManager, "Already loaded font': " + fontPath + "'");
+		return true;
+	}
+
+	auto newFont = std::make_unique<Font>();
+	if (newFont->Load(fontPath)) {
+		m_fonts[name] = std::move(newFont);
+		logger.Info(DebugType::ResourceManager, "Loaded font '" + fontPath + "'");
+		return true;
+		//return m_fonts[name].get();
+	}
+
+	logger.Info(DebugType::ResourceManager, "Failed to load font from '" + fontPath + "'");
+	return false; // Failed to load
+}
+
+// Retrieves a font from the cache
+Font* ResourceManager::GetFont(const std::string& name) {
+	Logger logger;
+	if (m_fonts.count(name) > 0) {
+		return m_fonts[name].get();
+	}
+	logger.Info(DebugType::ResourceManager, "Could not find font '" + name + "'");
+	return nullptr;
+}
+
+// Unloads a font
+void ResourceManager::UnloadFont(const std::string& name) {
+	Logger logger;
+	logger.Info(DebugType::ResourceManager, "Unloaded font '" + name + "'");
+	m_fonts.erase(name);
 }
 
 // Specialization for Texture

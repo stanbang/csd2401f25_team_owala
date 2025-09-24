@@ -7,6 +7,7 @@
 #include <iostream>
 #include "Graphics.h" // Assuming Framework::Texture is defined here
 #include "Logger.h"
+#include "Font.h"
 
 namespace Framework {
 
@@ -66,6 +67,13 @@ namespace Framework {
         // Load a texture from file and store it
         bool loadTexture(const std::string& name, const std::string& filepath);
 
+        // Font management
+        bool LoadFont(const std::string& name, const std::string& fontPath
+            //, unsigned int size
+        );
+        Font* GetFont(const std::string& name);
+        void UnloadFont(const std::string& name);
+
     private:
         // Template declaration
         std::unordered_map<std::string, Value>& getMap();
@@ -77,6 +85,9 @@ namespace Framework {
         //std::unordered_map<std::string, std::shared_ptr<Texture>> textureMap;
 
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
+
+        // fonts map
+        std::unordered_map<std::string, std::unique_ptr<Font>> m_fonts;
     };
 
 } // namespace Framework

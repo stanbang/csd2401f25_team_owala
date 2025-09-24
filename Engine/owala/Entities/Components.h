@@ -59,6 +59,13 @@ namespace Framework{
 		std::string textureKey;
 	};
 
+	struct TextComponent {
+		std::string textToDraw;
+		std::string fontName;
+		Color color;
+		float scale;
+	};
+
 	struct PlayerStats {
 		float moveSpeed = 0;
 		Position pos;

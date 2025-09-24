@@ -41,6 +41,9 @@ namespace Framework {
 
 		//Texture Component
 		std::unordered_map<Entity, TextureComponent>      tex;
+		
+		// Text Component
+		std::unordered_map<Entity, TextComponent>	text;
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to

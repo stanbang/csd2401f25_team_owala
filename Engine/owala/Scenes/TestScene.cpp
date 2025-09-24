@@ -16,6 +16,7 @@
 #include "Player.h"
 #include "Platform.h"
 #include "Background.h"
+#include "Text.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
@@ -79,6 +80,9 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
+        // --- Create Text Entity ---
+        createText(*ecs, "abcdefg", "minecraft_font", Color(1,1,1,1), Vector2D(0,0), 1000.0f);
+
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
         // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
@@ -91,7 +95,7 @@ namespace TestScene {
         if (!ok_bgm) {
             std::fprintf(stderr, "[Audio] Failed to load bgm\n");
         }
-        audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+        audio->play("bgm", /*volume*/0.0f, /*paused*/false);
 
         // --- NEW: IMGUI INITIALIZATION ---
         IMGUI_CHECKVERSION();
@@ -205,52 +209,66 @@ namespace TestScene {
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
 
-        // Render background
-        if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
-            const auto& pos = ecs_->position.at(backgroundEntity).Pos;
+        //// Render background
+        //if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
+        //    const auto& pos = ecs_->position.at(backgroundEntity).Pos;
 
-            //Use the textureID to get the actual texture from the resource manager
-            std::string textureID = ecs_->tex[backgroundEntity].textureKey;
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
-        }
+        //    //Use the textureID to get the actual texture from the resource manager
+        //    std::string textureID = ecs_->tex[backgroundEntity].textureKey;
+        //    Texture texture = resourceManager_->get<Texture>(textureID);
+        //    gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
+        //}
 
-        // Render the ground
-        if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
-            const auto& pos = ecs_->position.at(groundEntity).Pos;
-            const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;
-            float rotation = 0.0f;
-            if (ecs_->rotationFlag.count(groundEntity)) {
-                rotation = ecs_->rotationFlag.at(groundEntity).currentRotation * (M_PI / 180.0f);
-            }
+        //// Render the ground
+        //if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
+        //    const auto& pos = ecs_->position.at(groundEntity).Pos;
+        //    const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;
+        //    float rotation = 0.0f;
+        //    if (ecs_->rotationFlag.count(groundEntity)) {
+        //        rotation = ecs_->rotationFlag.at(groundEntity).currentRotation * (M_PI / 180.0f);
+        //    }
+        //    Logger logger;
+        //    // For now, we can use the console to see the state.
+        //    if (physics_->IsInStepMode()) {
+        //        logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
+        //    }
+        //    else if (physics_->IsPaused()) {
+        //        logger.Info(DebugType::GameSystem, "PAUSED");
+        //    }
+
+        //    //Use the textureID to get the actual texture from the resource manager
+        //    std::string textureID = ecs_->tex[groundEntity].textureKey;
+        //    Texture texture = resourceManager_->get<Texture>(textureID);
+        //    gfx_->drawSprite(texture, pos, halfSize, rotation);
+        //}
+
+        //// Render the player
+        //if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
+        //    const auto& pos = ecs_->position.at(playerEntity).Pos;
+        //    const auto& halfSize = ecs_->colliders.at(playerEntity).HalfSize;
+
+
+        //    std::string textureID = ecs_->tex[playerEntity].textureKey;
+        //    //Use the textureID to get the actual texture from the resource manager
+        //    Texture texture = resourceManager_->get<Texture>(textureID);
+        //    gfx_->drawSprite(texture, pos, halfSize, 0.0f);
+        //}
+
+        // Render Font
+        for (const auto &textComponentPair : ecs_->text) {
             Logger logger;
-            // For now, we can use the console to see the state.
-            if (physics_->IsInStepMode()) {
-                logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
+            const TextComponent& component = textComponentPair.second; 
+            
+            const auto& pos = ecs_->position.at(textComponentPair.first).Pos;
+            std::string fontName = component.fontName;
+            Font* font = resourceManager_->GetFont(fontName);
+            if (font == nullptr) {
+                logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
+                continue;
             }
-            else if (physics_->IsPaused()) {
-                logger.Info(DebugType::GameSystem, "PAUSED");
-            }
 
-            //Use the textureID to get the actual texture from the resource manager
-            std::string textureID = ecs_->tex[groundEntity].textureKey;
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, halfSize, rotation);
+            gfx_->drawText(*font, component.textToDraw, pos, component.scale, component.color);
         }
-
-        // Render the player
-        if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
-            const auto& pos = ecs_->position.at(playerEntity).Pos;
-            const auto& halfSize = ecs_->colliders.at(playerEntity).HalfSize;
-
-
-            std::string textureID = ecs_->tex[playerEntity].textureKey;
-            //Use the textureID to get the actual texture from the resource manager
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, halfSize, 0.0f);
-        }
-
-
 
         // 5. --- RENDER THE IMGUI UI ---
         // This draws the UI on top of the game world.

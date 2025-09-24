@@ -13,6 +13,7 @@
 #include <variant>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "Logger.h"
 
 namespace Framework {
 
@@ -45,6 +46,27 @@ namespace Framework {
     uniform sampler2D uTex;
     out vec4 FragColor;
     void main(){ FragColor = texture(uTex, vUV); }
+    )";
+
+    // Textured quad (pos + uv)
+    static const char* VS_TEXT = R"(#version 330 core
+    layout(location=0) in vec2 aPos;
+    layout(location=1) in vec2 aUV;
+    out vec2 vUV;
+    void main() {
+        gl_Position = vec4(aPos, 0.0, 1.0);
+        vUV = aUV;
+    })";
+
+    static const char* FS_TEXT = R"(#version 330 core
+    in vec2 vUV;
+    uniform sampler2D uTex;
+    uniform vec4 uColor;
+    out vec4 FragColor;
+    void main() {
+        float alpha = texture(uTex, vUV).r;
+        FragColor = vec4(uColor.rgb, uColor.a * alpha);
+    }
     )";
 
     // =========================
@@ -96,6 +118,9 @@ namespace Framework {
         glfwGetFramebufferSize(win_->window(), &fbw, &fbh);
         glViewport(0, 0, fbw, fbh);
 
+        screenWidth = fbw;
+        screenHeight = fbh;
+
         // ----- Colored triangle pipeline -----
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
 
@@ -126,6 +151,23 @@ namespace Framework {
         glEnableVertexAttribArray(1); // aUV
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
 
+        // ----- Text rendering pipeline -----
+        progText_ = linkProgram(VS_TEXT, FS_TEXT);
+
+        glGenVertexArrays(1, &vaoText_);
+        glBindVertexArray(vaoText_);
+
+        glGenBuffers(1, &vboText_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+        // 6 verts * (x,y,u,v) per char
+        // Allocate room for a reasonable number of characters, e.g., 256
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4 * 256, nullptr, GL_STREAM_DRAW);
+
+        glEnableVertexAttribArray(0); // aPos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
+        glEnableVertexAttribArray(1); // aUV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+
         // Unbind
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -145,6 +187,10 @@ namespace Framework {
         if (vboTex_) { glDeleteBuffers(1, &vboTex_); vboTex_ = 0; }
         if (vaoTex_) { glDeleteVertexArrays(1, &vaoTex_); vaoTex_ = 0; }
         if (progTex_) { glDeleteProgram(progTex_); progTex_ = 0; }
+
+        if (vboText_) { glDeleteBuffers(1, &vboText_); vboText_ = 0; }
+        if (vaoText_) { glDeleteVertexArrays(1, &vaoText_); vaoText_ = 0; }
+        if (progText_) { glDeleteProgram(progText_); progText_ = 0; }
     }
 
     // =========================
@@ -328,6 +374,97 @@ namespace Framework {
 
         // default to PNG if no/unknown extension
         return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
+    }
+
+    void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
+        Logger logger;
+        //logger.Info(DebugType::GraphicsSystem, "preparing vertices");
+        // Prepare the vertex data.
+        std::vector<float> vertices;
+        float x = pos.x;
+        float y = pos.y;
+
+        // Iterate through each character in the string.
+        logger.Info(DebugType::GraphicsSystem, "iterating through text string '" + textToDraw + "'");
+        for (char c_signed : textToDraw) {
+            unsigned char c = static_cast<unsigned char>(c_signed);
+
+            //logger.Info(DebugType::GraphicsSystem, "CHAR " + std::string(1, c_signed) + " (int: " + std::to_string(static_cast<int>(c)) + ")");
+            // Look up the character metrics from the font's character map.
+            auto it = font.GetCharacters().find(c);
+            if (it == font.GetCharacters().end()) {
+                // Character not found in the font's atlas.
+                logger.Info(DebugType::GraphicsSystem, "character not found in the font atlas");
+                continue;
+            }
+            const Character& ch = it->second;
+
+            // Calculate the quad position and dimensions.
+            //logger.Info(DebugType::GraphicsSystem, "Calculate the quad position and dimensions");
+            float xpos = x + ch.Bearing.x * scale;
+            float ypos = y + (ch.Bearing.y - ch.Size.y) * scale;
+            ypos = screenHeight - ypos;
+
+            float w = ch.Size.x * scale;
+            float h = ch.Size.y * scale;
+
+            // Get the UV coordinates from the Character struct.
+            //logger.Info(DebugType::GraphicsSystem, "Get the UV coordinates from the Character struct");
+            float u = ch.TexCoords.x;
+            float v = ch.TexCoords.y;
+            float uvw = ch.TexCoords.z;
+            float uvh = ch.TexCoords.w;
+
+            // Build the two triangles that form the character's quad.
+            // Vertex data format: { x, y, u, v }
+            //logger.Info(DebugType::GraphicsSystem, "build the two triangles that form the character's quad");
+            vertices.insert(vertices.end(), {
+                // First triangle (top-left, bottom-left, bottom-right)
+                xpos,      ypos + h, u,     v,
+                xpos,      ypos,     u,     v + uvh,
+                xpos + w,  ypos,     u + uvw, v + uvh,
+
+                // Second triangle (top-left, bottom-right, top-right)
+                xpos,      ypos + h, u,     v,
+                xpos + w,  ypos,     u + uvw, v + uvh,
+                xpos + w,  ypos + h, u + uvw, v
+                });
+
+            // Advance the cursor for the next character.
+            x += (ch.Advance >> 6) * scale; // FreeType advance is in 1/64ths of a pixel.
+        }
+        // Enable blending for text transparency
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glUseProgram(progText_);
+
+        // Set the uniform for text color.
+        GLint colorLoc = glGetUniformLocation(progText_, "uColor");
+        if (colorLoc != -1) {
+            glUniform4f(colorLoc, color.r, color.g, color.b, color.a);
+        }
+
+        glBindVertexArray(vaoText_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+        GLint texLoc = glGetUniformLocation(progText_, "uTex");
+        if (texLoc != -1) {
+            glUniform1i(texLoc, 0);
+        }
+
+        glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 4);
+
+        // Optional cleanup.
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        glDisable(GL_BLEND);
     }
 
 } // namespace Framework
