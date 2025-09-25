@@ -247,9 +247,9 @@ namespace TestScene {
             std::string textureID = ecs_->tex[playerEntity].textureKey;
             //Use the textureID to get the actual texture from the resource manager
             Texture texture = resourceManager_->get<Texture>(textureID);
+            std::cout << "Rendering Player!!! \n";
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
-
 
 
         // 5. --- RENDER THE IMGUI UI ---
