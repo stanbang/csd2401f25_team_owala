@@ -1,4 +1,5 @@
 #include "ResourceManager.h"
+#include "AudioSystem.h"
 #include "Graphics.h"
 
 using namespace Framework;
@@ -23,13 +24,14 @@ void ResourceManager::Initialize() {
 
 	//Store texture with key "playerSprite_DuckyWucky" from file "Assets/duck-rgba-256.tex"
 	//Access texture later with: Texture_WeakPtr playerTexture = resourceManager_->get<Texture>("playerSprite_DuckyWucky");
-	loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
-	loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
-	loadTexture("Background", "Assets/Env_Level2_PH.png");
+	//loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+	//loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
+	//loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
 }
 
 void ResourceManager::clearAll() {
-	resourceMap.clear();
+	textureMap.clear();
+	soundMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
@@ -47,12 +49,45 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
     return true;
 }
 
-// Specialization for Texture
-std::unordered_map<std::string, Value>& ResourceManager::getMap() {
-	return resourceMap;
-}
 
-//template<>
-//std::unordered_map<std::string, std::shared_ptr<Texture>>& ResourceManager::getMap<Texture>() {
-    //return textureMap;
-//}
+bool ResourceManager::loadSound(const std::string& id,
+    const char* path,
+    bool loop,
+    bool stream) {
+
+	Logger logger;
+	FMOD::System* system_ = audiosystem_->getFMODSystem();
+
+    if (!system_) return false;
+    if (!path)     return false;
+
+    if (!system_) {
+        std::fprintf(stderr, "[Audio] System not initialized\n");
+        return false;
+    }
+    if (!path) {
+        std::fprintf(stderr, "[Audio] Null path for id '%s'\n", id.c_str());
+        return false;
+    }
+
+    // Check if file exists
+    FILE* test = fopen(path, "rb");
+    if (!test) {
+        std::fprintf(stderr, "[Audio] File not found: %s\n", path);
+        return false;
+    }
+    fclose(test);
+
+    FMOD_MODE mode = FMOD_DEFAULT | FMOD_2D;
+    mode |= loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
+    mode |= stream ? FMOD_CREATESTREAM : 0;
+
+    FMOD::Sound* snd = nullptr;
+    FMOD_RESULT r = system_->createSound(path, mode, nullptr, &snd);
+    audiosystem_->check(r, "System::createSound");
+    if (r != FMOD_OK || !snd) return false;
+
+	logger.Info(DebugType::ResourceManager, "Loaded sound '" + std::string(path) + "'");
+	add<FMOD::Sound>(id, std::unique_ptr<FMOD::Sound>(snd));
+    return true;
+}

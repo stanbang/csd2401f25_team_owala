@@ -20,6 +20,7 @@
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
+#include "AudioEntity.h"
 
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
@@ -53,11 +54,14 @@ namespace TestScene {
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
 		WindowsSystem* win_ = gm.GetSystems().win_;
+		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
 
         // --- Load Assets ---
-        // Ensure you have these files in an "Assets" folder next to your executable.
-        //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
-        //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+		// Load necessary files into the resource manager
+        rcm_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
+        rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
+		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Background Entity ---
@@ -74,6 +78,10 @@ namespace TestScene {
         FileIOSystem fileIO;
         PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
 
+		// --- Create Background Music Entity ---
+		Entity bgmEntity = createBGAudio(*ecs, stats, { 0.1f, 0.1f }, "bgm");
+		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
+
         std::string playerDuckID = "playerSprite_DuckyWucky";
         playerEntity = createPlayer(*ecs, stats, { 0.1f, 0.1f }, playerDuckID);
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
@@ -82,16 +90,8 @@ namespace TestScene {
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
         // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
-        bool ok_bgm = audio->loadSound(
-            "bgm",
-            "../Assets/siren.ogg",   // <--- ensure this file exists
-            /*loop*/ true,
-            /*stream*/ true
-        );
-        if (!ok_bgm) {
-            std::fprintf(stderr, "[Audio] Failed to load bgm\n");
-        }
-        audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+        FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
+        //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
 
         // --- NEW: IMGUI INITIALIZATION ---
         IMGUI_CHECKVERSION();
@@ -247,9 +247,9 @@ namespace TestScene {
             std::string textureID = ecs_->tex[playerEntity].textureKey;
             //Use the textureID to get the actual texture from the resource manager
             Texture texture = resourceManager_->get<Texture>(textureID);
+            std::cout << "Rendering Player!!! \n";
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
-
 
 
         // 5. --- RENDER THE IMGUI UI ---
