@@ -30,12 +30,8 @@ void ResourceManager::Initialize() {
 }
 
 void ResourceManager::clearAll() {
-	resourceMap.clear();
-}
-
-// Get the resource map
-std::unordered_map<std::string, Value>& ResourceManager::getMap() {
-	return resourceMap;
+	textureMap.clear();
+	soundMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {

@@ -91,7 +91,7 @@ namespace TestScene {
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
         // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
         FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
-        audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+        //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
 
         // --- NEW: IMGUI INITIALIZATION ---
         IMGUI_CHECKVERSION();

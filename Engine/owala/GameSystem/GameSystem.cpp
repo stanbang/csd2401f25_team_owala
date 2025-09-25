@@ -80,7 +80,7 @@ namespace Framework {
         if (!ok_bgm) {
             std::fprintf(stderr, "[Audio] Failed to load bgm\n");
         }
-        audio_->play("bgm", /*volume*/0.35f, /*paused*/false);
+        //audio_->play("bgm", /*volume*/0.35f, /*paused*/false);
 
         // --- NEW: IMGUI INITIALIZATION ---
         IMGUI_CHECKVERSION();

@@ -26,10 +26,11 @@ int main() {
     SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
-    AudioSystem* audio = new AudioSystem();
+    AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
 	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
-	GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
+	audio->SetResourceManager(*rcm); // Set resource manager for audio system
+    GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio); // Register all core systems to the GameManager
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.

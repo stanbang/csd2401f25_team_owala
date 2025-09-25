@@ -19,11 +19,8 @@
 namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
+	using Audio = FMOD::Sound;
 	// Variant to hold different resource types
-    using Value = std::variant<
-        std::unique_ptr<Texture>, 
-        std::unique_ptr<FMOD::Sound>
-    >;
 
     class ResourceManager : public ISystem{
 
@@ -62,8 +59,12 @@ namespace Framework {
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
 
     private:
-		std::unordered_map<std::string, Value>& getMap(); // Get the resource map
-        std::unordered_map<std::string, Value> resourceMap; // Resource maps
+		template <typename ResourceType>
+		std::unordered_map<std::string, std::unique_ptr<ResourceType>>& getMap(); // Get the resource map
+
+        std::unordered_map<std::string, std::unique_ptr<Texture>> textureMap; // Texture map
+		std::unordered_map<std::string, std::unique_ptr<FMOD::Sound>> soundMap; // Sound map
+
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
 		AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
     };
@@ -72,21 +73,21 @@ namespace Framework {
 	// Template definitions must be in the header file
     template<typename ResourceType>
     ResourceType& ResourceManager::get(std::string key) {
-        std::unordered_map<std::string, Value>& map = getMap();
+        std::unordered_map<std::string, std::unique_ptr<ResourceType>>& map = getMap<ResourceType>();
         auto it = map.find(key);
 
         if (it == map.end()) {
             throw GameException(DebugType::ResourceManager, "Resource with name '" + key + "' not found.");
         }
 
-        // Access the unique_ptr in the variant, then dereference it
-        return *std::get<std::unique_ptr<ResourceType>>(it->second);
+		// Access the unique_ptr, dereference it, and return the resource
+        return *it->second;
     }
 
 	// Overload for raw resource types (copyable types) like Texture
     template<typename ResourceType>
     void ResourceManager::add(const std::string& name, ResourceType resource) {
-        std::unordered_map<std::string, Value>& map = getMap();
+        std::unordered_map<std::string, std::unique_ptr<ResourceType>>& map = getMap<ResourceType>();
 
         // Convert raw resource to unique_ptr
         std::unique_ptr<ResourceType> resourcePtr = std::make_unique<ResourceType>(resource);
@@ -104,7 +105,7 @@ namespace Framework {
 	// Overload for unique_ptr (non-copyable types) like FMOD::Sound
     template<typename ResourceType>
     void ResourceManager::add(const std::string& name, std::unique_ptr<ResourceType> resourcePtr) {
-        auto& map = getMap();
+        std::unordered_map<std::string, std::unique_ptr<ResourceType>>& map = getMap<ResourceType>();
 
         if (map.find(name) != map.end()) {
             Logger logger;
@@ -113,6 +114,20 @@ namespace Framework {
         }
 
         map.emplace(name, std::move(resourcePtr));
+    }
+
+    // Specialization for Texture
+    template <>
+    inline std::unordered_map<std::string, std::unique_ptr<Framework::Texture>>&
+        ResourceManager::getMap<Framework::Texture>() {
+        return textureMap;
+    }
+
+    // Specialization for FMOD::Sound
+    template <>
+    inline std::unordered_map<std::string, std::unique_ptr<FMOD::Sound>>&
+        ResourceManager::getMap<FMOD::Sound>() {
+        return soundMap;
     }
 
 } // namespace Framework

@@ -1,6 +1,7 @@
 #pragma once
 #include "ISystem.h"
 #include "ResourceManager.h"
+#include "EntityStorage.h"
 
 #include <fmod.hpp>
 #include <fmod_errors.h>
@@ -12,13 +13,15 @@ namespace Framework {
 
     class AudioSystem : public ISystem {
     public:
-        AudioSystem() = default;
+        AudioSystem(EntityStorage& storage);
         ~AudioSystem() override = default;
 
         // ISystem
         void Initialize() override;
         void Update(float dt) override;
         void Shutdown() override;
+
+        void SetResourceManager(ResourceManager& rcm);
 
         // ---- simple API ----
         FMOD::System* getFMODSystem() const;
@@ -32,7 +35,7 @@ namespace Framework {
 
         // Play a previously loaded sound by id.
         // Returns true if it started playing.
-        bool play(const std::string& id, float volume = 1.0f, bool paused = false);
+        bool play(FMOD::Sound& sound, float volume = 1.0f, bool paused = false);
 
         // Fire-and-forget (load + play once, not cached).
         bool playOneShot(const char* path, float volume = 1.0f);
@@ -54,6 +57,7 @@ namespace Framework {
         FMOD::System* system_ = nullptr;
         FMOD::ChannelGroup* masterGroup_ = nullptr;
         ResourceManager* resourceManager_ = nullptr;
+		EntityStorage* entityStorage_ = nullptr;
 
         std::unordered_map<std::string, FMOD::Sound*>   sounds_;
         std::unordered_map<std::string, FMOD::Channel*> channels_; // last channel per id (optional)

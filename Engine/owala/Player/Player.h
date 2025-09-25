@@ -38,7 +38,7 @@ namespace Framework {
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
 			//entityStorage.tex[player] = TextureComponent{ texture };
-			entityStorage.tex[player] = TextureComponent{ textureID };
+			entityStorage.animatedTex[player] = AnimatedTextureComponent{ textureID };
 			entityStorage.rigidBody[player] = RigidBody{};
 			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
 

@@ -64,7 +64,17 @@ namespace Framework{
 		bool loop = false;
 		bool stream = false;
 		float volume = 1.0f;
-	};;
+	};
+
+	struct AnimatedTextureComponent {
+		std::string textureKey;
+		int frameCount = 1; // Total number of frames in the animation
+		int currentFrame = 0; // Current frame index
+		float frameDuration = 0.1f; // Duration of each frame in seconds
+		float elapsedTime = 0.0f; // Time elapsed since the last frame change
+		bool isPlaying = true; // Is the animation currently playing
+		bool isLooping = true; // Should the animation loop when it reaches the end
+	};
 
 	struct PlayerStats {
 		float moveSpeed = 0;
