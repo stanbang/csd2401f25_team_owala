@@ -12,8 +12,11 @@
 #include "AudioSystem.h"
 #include "Logger.h"
 #include "GameManager.h"
+#include <crtdbg.h>
+#include <memory>
 
 int main() {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     using namespace Framework;
     try {
     CoreEngine engine;
