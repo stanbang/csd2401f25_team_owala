@@ -92,29 +92,6 @@ namespace TestScene {
             std::fprintf(stderr, "[Audio] Failed to load bgm\n");
         }
         audio->play("bgm", /*volume*/0.35f, /*paused*/false);
-
-        // --- NEW: IMGUI INITIALIZATION ---
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-
-        // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-        ImGuiStyle& style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForOpenGL(win_->window(), true);
-        ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
 	void Update() {
@@ -127,9 +104,9 @@ namespace TestScene {
 		AudioSystem* audio_ = gm.GetSystems().audio_;
 
         //  --- START THE IMGUI FRAME ---
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+        //ImGui_ImplOpenGL3_NewFrame();
+        //ImGui_ImplGlfw_NewFrame();
+        //ImGui::NewFrame();
 
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
@@ -250,19 +227,6 @@ namespace TestScene {
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
 
-
-
-        // 5. --- RENDER THE IMGUI UI ---
-        // This draws the UI on top of the game world.
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
-        }
         //   RenderColliders();
 	}
 
