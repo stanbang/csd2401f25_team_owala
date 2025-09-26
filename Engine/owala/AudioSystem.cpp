@@ -3,6 +3,8 @@
 
 namespace Framework {
 
+    AudioSystem::AudioSystem(EntityStorage& storage) : entityStorage_(&storage) {}
+
     void AudioSystem::check(FMOD_RESULT r, const char* where) {
         if (r != FMOD_OK) {
             std::fprintf(stderr, "[FMOD] %s failed: (%d) %s\n",
@@ -26,12 +28,41 @@ namespace Framework {
     }
 
     void AudioSystem::Update(float /*dt*/) {
-        // FMOD needs to be updated every frame so it can mix and manage voices
         if (system_) {
             FMOD_RESULT r = system_->update();
             check(r, "System::update");
         }
+
+        for (auto& [entity, comp] : entityStorage_->audio) {
+            if (comp.soundKey.empty()) continue;
+
+            try {
+                FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(comp.soundKey);
+
+                // check if sound is already playing
+                bool isPlaying = false;
+                auto it = channels_.find(comp.soundKey);
+                if (it != channels_.end() && it->second) {
+                    it->second->isPlaying(&isPlaying);
+                }
+
+                // play if not playing
+                if (!isPlaying) {
+                    FMOD::Channel* ch = nullptr;
+                    system_->playSound(&sound, nullptr, false, &ch);
+                    if (ch) {
+                        ch->setVolume(comp.volume);
+                        channels_[comp.soundKey] = ch;
+                    }
+                }
+
+            }
+            catch (const GameException& e) {
+                std::fprintf(stderr, "[Audio] Sound '%s' not found in ResourceManager\n", comp.soundKey.c_str());
+            }
+        }
     }
+
 
     void AudioSystem::Shutdown() {
         // Stop and release channels is not strictly necessary: releasing sounds
@@ -53,6 +84,13 @@ namespace Framework {
             masterGroup_ = nullptr;
         }
     }
+
+	void AudioSystem::SetResourceManager(ResourceManager& rcm) {
+		resourceManager_ = &rcm;
+	}
+
+	// Access the underlying FMOD system (for advanced use)
+    FMOD::System* AudioSystem::getFMODSystem() const { return system_; }
 
     bool AudioSystem::loadSound(const std::string& id,
         const char* path,
@@ -94,22 +132,22 @@ namespace Framework {
         return true;
     }
 
-    bool AudioSystem::play(const std::string& id, float volume, bool paused) {
+    bool AudioSystem::play(FMOD::Sound& sound, float volume, bool paused) {
         if (!system_) return false;
 
-        std::unordered_map<std::string, FMOD::Sound*>::iterator it = sounds_.find(id);
+        /*std::unordered_map<std::string, FMOD::Sound*>::iterator it = sounds_.find(id);
         if (it == sounds_.end() || !it->second) {
             std::fprintf(stderr, "[Audio] sound id '%s' not loaded.\n", id.c_str());
             return false;
-        }
+        }*/
 
         FMOD::Channel* ch = nullptr;
-        FMOD_RESULT r = system_->playSound(it->second, nullptr, paused, &ch);
+        FMOD_RESULT r = system_->playSound(&sound, nullptr, paused, &ch);
         check(r, "System::playSound");
-        if (r != FMOD_OK || !ch) return false;
+        /*if (r != FMOD_OK || !ch) return false;
 
         ch->setVolume(volume);
-        channels_[id] = ch; // remember last channel for that id (optional)
+        channels_[id] = ch; // remember last channel for that id (optional)*/
         return true;
     }
 

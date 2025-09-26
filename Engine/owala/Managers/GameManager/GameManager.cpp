@@ -116,4 +116,14 @@ namespace Framework {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 		}
 	}
+
+	void GameManager::Shutdown() {
+		// Call the free function for the current scene before shutting down.
+		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
+		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpFree) {
+			sceneCallbacks_[currentSceneIndex].fpFree();
+		}
+		instance = nullptr; // Reset instance pointer
+	}
+
 }
