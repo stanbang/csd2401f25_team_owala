@@ -18,16 +18,25 @@ namespace Framework {
         }
         // Note: your Graphics system (added last) should still be the one that swaps buffers.
     }
-
     void SpriteRenderSystem::RenderSprites() {
         // Iterate all entities that have a sprite component
         for (const auto& [e, sprite] : ecs_.tex) {
-            // Need a position and a collider (for half size)
-            if (!ecs_.position.count(e) || !ecs_.colliders.count(e))
+            // Only require a position now
+            if (!ecs_.position.count(e))
                 continue;
 
             const auto& pos = ecs_.position.at(e).Pos;
-            const auto& halfSize = ecs_.colliders.at(e).HalfSize;
+
+            // Determine halfSize:
+            Vector2D halfSize;
+            if (ecs_.colliders.count(e)) {
+                halfSize = ecs_.colliders.at(e).HalfSize;  // use physics size if available
+            }
+            else {
+                // Fallback size for non-physics sprites (backgrounds/UI/etc.)
+                // Adjust these values to your world scale
+                halfSize = { 0.5f, 0.5f };
+            }
 
             // Optional rotation (degrees -> radians)
             float rotationRad = 0.0f;
@@ -36,14 +45,13 @@ namespace Framework {
             }
 
             // Fetch the texture by key from ResourceManager
-            // NOTE: your ResourceManager::get<T>(key) returns a T (by value) in your examples.
-            // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
             Texture tex = resources_.get<Texture>(sprite.textureKey);
 
             // Draw
             gfx_.drawSprite(tex, pos, halfSize, rotationRad);
         }
     }
+
 
     void SpriteRenderSystem::RenderColliderOutlines() {
         for (const auto& [e, collider] : ecs_.colliders) {
