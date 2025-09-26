@@ -62,6 +62,7 @@ namespace TestScene {
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
         rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
 		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
+        rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Background Entity ---
@@ -90,7 +91,8 @@ namespace TestScene {
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
         // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
-        FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
+        //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
+        //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
 
         // --- NEW: IMGUI INITIALIZATION ---
@@ -130,6 +132,16 @@ namespace TestScene {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        //press T to play scream, for not a entity yet, because we don't want to play it from the start
+        if (input_->KeyPressed(InputSystem::Key::T)) {
+            try {
+                FMOD::Sound& scream = resourceManager_->get<FMOD::Sound>("scream");
+                audio_->play(scream, /*volume*/1.0f, /*paused*/false);
+            }
+            catch (const GameException& e) {
+                std::fprintf(stderr, "[Audio] Scream sound not found!\n");
+            }
+        }
 
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
