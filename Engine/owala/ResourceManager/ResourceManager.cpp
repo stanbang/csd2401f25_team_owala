@@ -45,14 +45,12 @@ void ResourceManager::Initialize() {
 	//loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
 	//loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
 	//loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
-	//LoadFont("minecraft_font", "Assets/Fonts/minecraft.ttf");
-	//LoadFont("kremlin_font", "Assets/Fonts/Kremlin.ttf");
 }
 
 void ResourceManager::clearAll() {
 	textureMap.clear();
 	soundMap.clear();
-	fontsMap.clear();
+	fontMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
@@ -120,8 +118,12 @@ std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& ResourceMa
     return soundMap;
 }
 
+std::unordered_map<std::string, std::unique_ptr<Font>>& ResourceManager::getFontMap() {
+	return fontMap;
+}
+
 // Loads a font
-bool ResourceManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
+bool ResourceManager::loadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
 	FT_Library library = FontManager::GetInstance().GetLibrary();
 	Logger logger;
 
@@ -132,7 +134,7 @@ bool ResourceManager::LoadFont(const std::string& name, const std::string& fontP
 	}
 
 	// Font already loaded
-	if (fontsMap.count(name) > 0) {
+	if (fontMap.count(name) > 0) {
 		logger.Info(DebugType::ResourceManager, "Already loaded font': " + fontPath + "'");
 		return true;
 	}
@@ -140,7 +142,7 @@ bool ResourceManager::LoadFont(const std::string& name, const std::string& fontP
 	// Load new font & store in resource manager's font map
 	auto newFont = std::make_unique<Font>();
 	if (newFont->Load(library, fontPath, size)) {
-		fontsMap[name] = std::move(newFont);
+		add<Font>(name, std::move(newFont)); // Add to resource manager's unordered_map
 		logger.Info(DebugType::ResourceManager, "Loaded font '" + fontPath + "' with size " + std::to_string(size));
 		return true;
 	}
@@ -149,24 +151,6 @@ bool ResourceManager::LoadFont(const std::string& name, const std::string& fontP
 	logger.Info(DebugType::ResourceManager, "Failed to load font from '" + fontPath + "'");
 	return false;
 }
-
-// Retrieves a font from the cache
-Font* ResourceManager::GetFont(const std::string& name) {
-	Logger logger;
-	if (fontsMap.count(name) > 0) {
-		return fontsMap[name].get();
-	}
-	logger.Info(DebugType::ResourceManager, "Could not find font '" + name + "'");
-	return nullptr;
-}
-
-// Unloads a font
-void ResourceManager::UnloadFont(const std::string& name) {
-	Logger logger;
-	logger.Info(DebugType::ResourceManager, "Unloaded font '" + name + "'");
-	fontsMap.erase(name);
-}
-
 
 void ResourceManager::Shutdown() {
     Logger logger;

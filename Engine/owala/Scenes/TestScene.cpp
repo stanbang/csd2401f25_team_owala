@@ -63,6 +63,8 @@ namespace TestScene {
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
         rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
 		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
+        rcm_->loadFont("minecraft_font", "Assets/Fonts/minecraft.ttf");
+        rcm_->loadFont("kremlin_font", "Assets/Fonts/Kremlin.ttf");
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Background Entity ---
@@ -208,42 +210,6 @@ namespace TestScene {
         }
 
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
-
-        // --- Render Text ---
-       // This loop now handles text wrapping
-        for (const auto& [entity, component] : ecs_->text) {
-            Logger logger;
-            if (ecs_->position.count(entity)) {
-                Font* font = resourceManager_->GetFont(component.fontName);
-                // logger not yet added
-                /*if (font == nullptr) {
-                            logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
-                            continue;
-                        }*/
-                if (font) {
-                    const auto& original_pos = ecs_->position.at(entity).Pos;
-
-                    // --- NEW WRAPPING LOGIC ---
-
-                    // Define the maximum width for wrapping in NDC (-1.0 to 1.0).
-                    const float max_width_ndc = 1.8f;
-                    // Convert NDC width to pixel width for our wrapper function.
-                    const float max_width_pixels = max_width_ndc * 0.5f * gfx_->getScreenWidth();
-
-                    // Call the new WrapText function to get the lines.
-                    std::vector<std::string> lines = gfx_->WrapText(*font, component.textToDraw, component.scale, max_width_pixels);
-
-                    // Render each line, moving down for each new line.
-                    Vector2D current_pos = original_pos;
-                    const float line_height_ndc = 0.08f; // Vertical distance between lines in NDC. Adjust as needed.
-
-                    for (const auto& line : lines) {
-                        gfx_->drawText(*font, line, current_pos, component.scale, component.color);
-                        current_pos.y -= line_height_ndc; // Move down for the next line
-                    }
-                }
-            }
-        }
         
         // 5. --- RENDER THE IMGUI UI ---
         // This draws the UI on top of the game world.
