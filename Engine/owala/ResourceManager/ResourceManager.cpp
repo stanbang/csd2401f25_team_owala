@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 #include "Graphics.h"
+#include "FontManager.h"
 
 using namespace Framework;
 
@@ -32,7 +33,7 @@ void ResourceManager::Initialize() {
 
 void ResourceManager::clearAll() {
 	resourceMap.clear();
-	m_fonts.clear();
+	fontsMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
@@ -51,34 +52,40 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
 }
 
 // Loads a font
-bool ResourceManager::LoadFont(const std::string& name, const std::string& fontPath
-	//, unsigned int size
-) {
+bool ResourceManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
+	FT_Library library = FontManager::GetInstance().GetLibrary();
 	Logger logger;
-	if (m_fonts.count(name) > 0) {
-		// Font already loaded
-		//return m_fonts[name].get();
+
+	// Check if the library is valid (e.g., if FT_Init_FreeType failed)
+	if (!library) {
+		logger.Info(DebugType::ResourceManager, "FreeType Library not initialized.");
+		return false;
+	}
+
+	// Font already loaded
+	if (fontsMap.count(name) > 0) {
 		logger.Info(DebugType::ResourceManager, "Already loaded font': " + fontPath + "'");
 		return true;
 	}
-
+	
+	// Load new font & store in resource manager's font map
 	auto newFont = std::make_unique<Font>();
-	if (newFont->Load(fontPath)) {
-		m_fonts[name] = std::move(newFont);
-		logger.Info(DebugType::ResourceManager, "Loaded font '" + fontPath + "'");
+	if (newFont->Load(library, fontPath, size)) {
+		fontsMap[name] = std::move(newFont);
+		logger.Info(DebugType::ResourceManager, "Loaded font '" + fontPath + "' with size " + std::to_string(size));
 		return true;
-		//return m_fonts[name].get();
 	}
 
+	// Failed to load
 	logger.Info(DebugType::ResourceManager, "Failed to load font from '" + fontPath + "'");
-	return false; // Failed to load
+	return false;
 }
 
 // Retrieves a font from the cache
 Font* ResourceManager::GetFont(const std::string& name) {
 	Logger logger;
-	if (m_fonts.count(name) > 0) {
-		return m_fonts[name].get();
+	if (fontsMap.count(name) > 0) {
+		return fontsMap[name].get();
 	}
 	logger.Info(DebugType::ResourceManager, "Could not find font '" + name + "'");
 	return nullptr;
@@ -88,7 +95,7 @@ Font* ResourceManager::GetFont(const std::string& name) {
 void ResourceManager::UnloadFont(const std::string& name) {
 	Logger logger;
 	logger.Info(DebugType::ResourceManager, "Unloaded font '" + name + "'");
-	m_fonts.erase(name);
+	fontsMap.erase(name);
 }
 
 // Specialization for Texture

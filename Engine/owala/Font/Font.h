@@ -1,11 +1,12 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <map>
-#include <vector>
 #include <glm/glm.hpp>
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 // Forward declarations for FreeType
 struct FT_LibraryRec_;
@@ -21,27 +22,27 @@ struct Character {
     glm::vec4    TexCoords;   // UV coordinates on the texture atlas (x, y, width, height)
 };
 
-class Font {
-public:
-    Font();
-    ~Font();
+namespace Framework {
+    class Font {
+    public:
+        Font();
+        ~Font();
 
-    // Loads a font from a file path and generates the texture atlas.
-    bool Load(const std::string& fontPath
-        //, unsigned int size
-    );
+        // Loads a font from a file path and generates the texture atlas.
+        bool Load(FT_Library library, const std::string& fontPath, unsigned int size = 48);
 
-    // Get a reference to the character map.
-    const std::map<char, Character>& GetCharacters() const;
+        // Get a reference to the character map.
+        const std::map<char, Character>& GetCharacters() const;
 
-    // Get the OpenGL texture atlas ID.
-    unsigned int GetAtlasID() const;
+        // Get the OpenGL texture atlas ID.
+        unsigned int GetAtlasID() const;
 
-    // Calculates the width of a string in pixels at a given scale.
-    float GetStringWidth(const std::string& text, float scale) const;
+        // Calculates the width of a string in pixels at a given scale.
+        float GetStringWidth(const std::string& text, float scale) const;
 
-private:
-    std::map<char, Character> m_characters;
-    unsigned int              m_textureAtlas;
-    FT_Library                m_ft;
-};
+    private:
+        std::map<char, Character> m_characters;
+        unsigned int m_textureAtlas;
+        FT_Face m_face;
+    };
+}

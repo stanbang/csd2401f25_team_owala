@@ -68,9 +68,7 @@ namespace Framework {
         bool loadTexture(const std::string& name, const std::string& filepath);
 
         // Font management
-        bool LoadFont(const std::string& name, const std::string& fontPath
-            //, unsigned int size
-        );
+        bool LoadFont(const std::string& name, const std::string& fontPath, unsigned int size = 48);
         Font* GetFont(const std::string& name);
         void UnloadFont(const std::string& name);
 
@@ -87,7 +85,7 @@ namespace Framework {
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
 
         // fonts map
-        std::unordered_map<std::string, std::unique_ptr<Font>> m_fonts;
+        std::unordered_map<std::string, std::unique_ptr<Font>> fontsMap;
     };
 
 } // namespace Framework

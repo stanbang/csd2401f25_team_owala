@@ -81,10 +81,8 @@ namespace TestScene {
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-       //createText(*ecs, "abcdefg", "minecraft_font", Color(1,1,1,1), Vector2D(0,0.8f), 0.5f);
-        //testing with long ass text
         createText(*ecs, "can you see me!", "minecraft_font", { 1,1,1,1 }, { 0.0f, 0.8f }, 0.5f);
-        createText(*ecs, "it works!", "kremlin_font", { 1,0,1,1 }, { 0.0f, 0.3f }, 0.5f);
+        createText(*ecs, "it works!", "kremlin_font", { 1,0,1,1 }, { 0.0f, 0.3f }, 1.0f);
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -98,7 +96,7 @@ namespace TestScene {
         if (!ok_bgm) {
             std::fprintf(stderr, "[Audio] Failed to load bgm\n");
         }
-        audio->play("bgm", /*volume*/0.0f, /*paused*/false);
+        audio->play("bgm", /*volume*/0.5f, /*paused*/false);
 
         // --- NEW: IMGUI INITIALIZATION ---
         IMGUI_CHECKVERSION();
@@ -256,25 +254,6 @@ namespace TestScene {
             Texture texture = resourceManager_->get<Texture>(textureID);
             gfx_->drawSprite(texture, pos, halfSize, 0.0f);
         }
-
-      
-
-        //// Render Font
-        //for (const auto &textComponentPair : ecs_->text) {
-        //    Logger logger;
-        //    const TextComponent& component = textComponentPair.second; 
-        //    
-        //    const auto& pos = ecs_->position.at(textComponentPair.first).Pos;
-        //    std::string fontName = component.fontName;
-        //    Font* font = resourceManager_->GetFont(fontName);
-        //    if (font == nullptr) {
-        //        logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
-        //        continue;
-        //    }
-
-        //    gfx_->drawText(*font, component.textToDraw, pos, component.scale, component.color);
-        //  
-        //}
 
          // --- Render Text ---
         // This loop now handles text wrapping
