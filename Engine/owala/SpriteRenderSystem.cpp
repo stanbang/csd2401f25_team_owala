@@ -35,7 +35,7 @@ namespace Framework {
             else {
                 // Fallback size for non-physics sprites (backgrounds/UI/etc.)
                 // Adjust these values to your world scale
-                halfSize = { 0.5f, 0.5f };
+                halfSize = { 1.0f, 1.0f };
             }
 
             // Optional rotation (degrees -> radians)
