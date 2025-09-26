@@ -20,6 +20,7 @@
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
+#include "AudioEntity.h"
 
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
@@ -53,11 +54,15 @@ namespace TestScene {
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
 		WindowsSystem* win_ = gm.GetSystems().win_;
+		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
 
         // --- Load Assets ---
-        // Ensure you have these files in an "Assets" folder next to your executable.
-        //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
-        //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+		// Load necessary files into the resource manager
+        rcm_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
+        rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
+		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
+        rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Background Entity ---
@@ -74,6 +79,10 @@ namespace TestScene {
         FileIOSystem fileIO;
         PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
 
+		// --- Create Background Music Entity ---
+		Entity bgmEntity = createBGAudio(*ecs, stats, { 0.1f, 0.1f }, "bgm");
+		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
+
         std::string playerDuckID = "playerSprite_DuckyWucky";
         playerEntity = createPlayer(*ecs, stats, { 0.1f, 0.1f }, playerDuckID);
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
@@ -82,16 +91,32 @@ namespace TestScene {
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
         // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
-        bool ok_bgm = audio->loadSound(
-            "bgm",
-            "../Assets/siren.ogg",   // <--- ensure this file exists
-            /*loop*/ true,
-            /*stream*/ true
-        );
-        if (!ok_bgm) {
-            std::fprintf(stderr, "[Audio] Failed to load bgm\n");
+        //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
+        //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
+        //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+
+        // --- NEW: IMGUI INITIALIZATION ---
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+
+        // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+        ImGuiStyle& style = ImGui::GetStyle();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
-        audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplGlfw_InitForOpenGL(win_->window(), true);
+        ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
 	void Update() {
@@ -104,9 +129,16 @@ namespace TestScene {
 		AudioSystem* audio_ = gm.GetSystems().audio_;
 
         //  --- START THE IMGUI FRAME ---
-        //ImGui_ImplOpenGL3_NewFrame();
-        //ImGui_ImplGlfw_NewFrame();
-        //ImGui::NewFrame();
+        //press T to play scream, for not a entity yet, because we don't want to play it from the start
+        if (input_->KeyPressed(InputSystem::Key::T)) {
+            try {
+                FMOD::Sound& scream = resourceManager_->get<FMOD::Sound>("scream");
+                audio_->play(scream, /*volume*/1.0f, /*paused*/false);
+            }
+            catch (const GameException& e) {
+                std::fprintf(stderr, "[Audio] Scream sound not found!\n");
+            }
+        }
 
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
@@ -179,58 +211,13 @@ namespace TestScene {
             // ImGui::ShowDemoWindow(); 
         }
 
-        gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
-
-
-        // Render background
-        if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
-            const auto& pos = ecs_->position.at(backgroundEntity).Pos;
-
-            //Use the textureID to get the actual texture from the resource manager
-            std::string textureID = ecs_->tex[backgroundEntity].textureKey;
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
-        }
-
-        // Render the ground
-        if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
-            const auto& pos = ecs_->position.at(groundEntity).Pos;
-            const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;
-            float rotation = 0.0f;
-            if (ecs_->rotationFlag.count(groundEntity)) {
-                rotation = ecs_->rotationFlag.at(groundEntity).currentRotation * (M_PI / 180.0f);
-            }
-            Logger logger;
-            // For now, we can use the console to see the state.
-            if (physics_->IsInStepMode()) {
-                logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
-            }
-            else if (physics_->IsPaused()) {
-                logger.Info(DebugType::GameSystem, "PAUSED");
-            }
-
-            //Use the textureID to get the actual texture from the resource manager
-            std::string textureID = ecs_->tex[groundEntity].textureKey;
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, halfSize, rotation);
-        }
-
-        // Render the player
-        if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
-            const auto& pos = ecs_->position.at(playerEntity).Pos;
-            const auto& halfSize = ecs_->colliders.at(playerEntity).HalfSize;
-
-
-            std::string textureID = ecs_->tex[playerEntity].textureKey;
-            //Use the textureID to get the actual texture from the resource manager
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, halfSize, 0.0f);
-        }
-
         //   RenderColliders();
 	}
 
 	void Free() {
-		// Empty by design
+        std::cout << "Freeing IMGUI" << std::endl;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
 	}
 }
