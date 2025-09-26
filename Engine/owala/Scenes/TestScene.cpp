@@ -83,7 +83,8 @@ namespace TestScene {
         // --- Create Text Entity ---
        //createText(*ecs, "abcdefg", "minecraft_font", Color(1,1,1,1), Vector2D(0,0.8f), 0.5f);
         //testing with long ass text
-        createText(*ecs, "Hello Worldada dadadadadadadd adadadwdadsdadsdadwadsdawdasdas!", "minecraft_font", { 1,1,1,1 }, { 0.0f, 0.8f }, 0.5f);
+        createText(*ecs, "can you see me!", "minecraft_font", { 1,1,1,1 }, { 0.0f, 0.8f }, 0.5f);
+        createText(*ecs, "it works!", "kremlin_font", { 1,0,1,1 }, { 0.0f, 0.3f }, 0.5f);
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.

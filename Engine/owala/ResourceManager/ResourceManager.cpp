@@ -27,6 +27,7 @@ void ResourceManager::Initialize() {
 	loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
 	loadTexture("Background", "Assets/Env_Level2_PH.png");
 	LoadFont("minecraft_font", "Assets/Fonts/minecraft.ttf");
+	LoadFont("kremlin_font", "Assets/Fonts/Kremlin.ttf");
 }
 
 void ResourceManager::clearAll() {
