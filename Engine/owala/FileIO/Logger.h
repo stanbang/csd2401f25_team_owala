@@ -15,10 +15,6 @@
 #include "backward.hpp"
 #include <windows.h>
 
-// for formatting logging msgs to be passed into Logger
-#include <format>
-#include <string>
-
 const enum class DebugType {
     Unknown,
     WindowsSystem,
@@ -69,13 +65,36 @@ namespace Framework {
     };
 
 	class Logger {
-    private:
-		static const std::string LOGS_FILEPATH, LOGS_FILEEXT;
+    public:
+        // need this to resolve the symbols in stack trace
+        static const void InitSymbols();
 
-        static const std::string GetErrorMsg(DebugType type, const std::string message) {
-            return '[' + DebugTypeLabels[(int)type] + "] " + message;
+        // make logger singleton
+        static Logger& Get() {
+            static Logger instance;
+            return instance;
         }
+
+        // for general debugging statements
+        static std::ostream& Info(DebugType type);
+        // for error debugging
+        static std::ostream& Error(DebugType type);
         
+        // functions to log crashes to a log file
+        // for GameExceptions thrown
+        static void LogCrash(const DebugType type, const std::string& message, const backward::StackTrace& stack_trace);
+        // for other exceptions caught
+        static void LogCrash(const DebugType type, const std::string& message);
+
+    private:
+        Logger() = default;
+
+        static const std::string LOGS_FILEPATH, LOGS_FILEEXT;
+
+        static const std::string GetDebugType(DebugType type) {
+            return '[' + DebugTypeLabels[(int)type] + "] ";
+        }
+
         static const std::string GetCrashLogFilename() {
             std::ostringstream oss;
             std::time_t t = std::time(nullptr);
@@ -86,15 +105,5 @@ namespace Framework {
                 << LOGS_FILEEXT;
             return oss.str();
         }
-
-    public:
-        // need this to resolve the symbols in stack trace
-        static const void InitSymbols();
-        // for GameExceptions thrown
-        void LogCrash(const DebugType type, const std::string& message, const backward::StackTrace& stack_trace);
-        // for other exceptions caught
-        void LogCrash(const DebugType type, const std::string& message);
-        // for general debugging statements
-        void Info(DebugType type, const std::string message);
 	};
 } // namespace Framework

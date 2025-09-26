@@ -157,6 +157,11 @@ namespace TestScene {
             }
         }
 
+        //press ESC to crash the game
+        if (input_->KeyPressed(InputSystem::Key::Escape)) {
+            throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");
+        }
+
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
         if (input_->KeyPressed(InputSystem::Key::P)) {
