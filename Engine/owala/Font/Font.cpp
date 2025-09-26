@@ -121,3 +121,16 @@ unsigned int Font::GetAtlasID() const {
     return m_textureAtlas;
 }
 
+float Font::GetStringWidth(const std::string& text, float scale) const {
+    float width = 0.0f;
+    for (char c_signed : text) {
+        unsigned char c = static_cast<unsigned char>(c_signed);
+        if (m_characters.count(c)) {
+            const Character& ch = m_characters.at(c);
+            // Advance is in 1/64ths of a pixel, so we divide by 64.
+            width += (ch.Advance >> 6) * scale;
+        }
+    }
+    return width;
+}
+

@@ -81,7 +81,9 @@ namespace TestScene {
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-        createText(*ecs, "abcdefg", "minecraft_font", Color(1,1,1,1), Vector2D(0,0), 1000.0f);
+       //createText(*ecs, "abcdefg", "minecraft_font", Color(1,1,1,1), Vector2D(0,0.8f), 0.5f);
+        //testing with long ass text
+        createText(*ecs, "Hello Worldada dadadadadadadd adadadwdadsdadsdadwadsdawdasdas!", "minecraft_font", { 1,1,1,1 }, { 0.0f, 0.8f }, 0.5f);
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -209,65 +211,104 @@ namespace TestScene {
         gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
 
-        //// Render background
-        //if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
-        //    const auto& pos = ecs_->position.at(backgroundEntity).Pos;
+        // Render background
+        if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
+            const auto& pos = ecs_->position.at(backgroundEntity).Pos;
 
-        //    //Use the textureID to get the actual texture from the resource manager
-        //    std::string textureID = ecs_->tex[backgroundEntity].textureKey;
-        //    Texture texture = resourceManager_->get<Texture>(textureID);
-        //    gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
-        //}
+            //Use the textureID to get the actual texture from the resource manager
+            std::string textureID = ecs_->tex[backgroundEntity].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
+        }
 
-        //// Render the ground
-        //if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
-        //    const auto& pos = ecs_->position.at(groundEntity).Pos;
-        //    const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;
-        //    float rotation = 0.0f;
-        //    if (ecs_->rotationFlag.count(groundEntity)) {
-        //        rotation = ecs_->rotationFlag.at(groundEntity).currentRotation * (M_PI / 180.0f);
-        //    }
-        //    Logger logger;
-        //    // For now, we can use the console to see the state.
-        //    if (physics_->IsInStepMode()) {
-        //        logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
-        //    }
-        //    else if (physics_->IsPaused()) {
-        //        logger.Info(DebugType::GameSystem, "PAUSED");
-        //    }
-
-        //    //Use the textureID to get the actual texture from the resource manager
-        //    std::string textureID = ecs_->tex[groundEntity].textureKey;
-        //    Texture texture = resourceManager_->get<Texture>(textureID);
-        //    gfx_->drawSprite(texture, pos, halfSize, rotation);
-        //}
-
-        //// Render the player
-        //if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
-        //    const auto& pos = ecs_->position.at(playerEntity).Pos;
-        //    const auto& halfSize = ecs_->colliders.at(playerEntity).HalfSize;
-
-
-        //    std::string textureID = ecs_->tex[playerEntity].textureKey;
-        //    //Use the textureID to get the actual texture from the resource manager
-        //    Texture texture = resourceManager_->get<Texture>(textureID);
-        //    gfx_->drawSprite(texture, pos, halfSize, 0.0f);
-        //}
-
-        // Render Font
-        for (const auto &textComponentPair : ecs_->text) {
+        // Render the ground
+        if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
+            const auto& pos = ecs_->position.at(groundEntity).Pos;
+            const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;
+            float rotation = 0.0f;
+            if (ecs_->rotationFlag.count(groundEntity)) {
+                rotation = ecs_->rotationFlag.at(groundEntity).currentRotation * (M_PI / 180.0f);
+            }
             Logger logger;
-            const TextComponent& component = textComponentPair.second; 
-            
-            const auto& pos = ecs_->position.at(textComponentPair.first).Pos;
-            std::string fontName = component.fontName;
-            Font* font = resourceManager_->GetFont(fontName);
-            if (font == nullptr) {
-                logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
-                continue;
+            // For now, we can use the console to see the state.
+            if (physics_->IsInStepMode()) {
+                logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
+            }
+            else if (physics_->IsPaused()) {
+                logger.Info(DebugType::GameSystem, "PAUSED");
             }
 
-            gfx_->drawText(*font, component.textToDraw, pos, component.scale, component.color);
+            //Use the textureID to get the actual texture from the resource manager
+            std::string textureID = ecs_->tex[groundEntity].textureKey;
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, rotation);
+        }
+
+        // Render the player
+        if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
+            const auto& pos = ecs_->position.at(playerEntity).Pos;
+            const auto& halfSize = ecs_->colliders.at(playerEntity).HalfSize;
+
+
+            std::string textureID = ecs_->tex[playerEntity].textureKey;
+            //Use the textureID to get the actual texture from the resource manager
+            Texture texture = resourceManager_->get<Texture>(textureID);
+            gfx_->drawSprite(texture, pos, halfSize, 0.0f);
+        }
+
+      
+
+        //// Render Font
+        //for (const auto &textComponentPair : ecs_->text) {
+        //    Logger logger;
+        //    const TextComponent& component = textComponentPair.second; 
+        //    
+        //    const auto& pos = ecs_->position.at(textComponentPair.first).Pos;
+        //    std::string fontName = component.fontName;
+        //    Font* font = resourceManager_->GetFont(fontName);
+        //    if (font == nullptr) {
+        //        logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
+        //        continue;
+        //    }
+
+        //    gfx_->drawText(*font, component.textToDraw, pos, component.scale, component.color);
+        //  
+        //}
+
+         // --- Render Text ---
+        // This loop now handles text wrapping
+        for (const auto& [entity, component] : ecs_->text) {
+            Logger logger;
+            if (ecs_->position.count(entity)) {
+                Font* font = resourceManager_->GetFont(component.fontName);
+                // logger not yet added
+                /*if (font == nullptr) {
+                            logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
+                            continue;
+                        }*/
+                if (font) {
+                    const auto& original_pos = ecs_->position.at(entity).Pos;
+
+                    // --- NEW WRAPPING LOGIC ---
+
+                    // Define the maximum width for wrapping in NDC (-1.0 to 1.0).
+                    const float max_width_ndc = 1.8f;
+                    // Convert NDC width to pixel width for our wrapper function.
+                    const float max_width_pixels = max_width_ndc * 0.5f * gfx_->getScreenWidth();
+
+                    // Call the new WrapText function to get the lines.
+                    std::vector<std::string> lines = gfx_->WrapText(*font, component.textToDraw, component.scale, max_width_pixels);
+
+                    // Render each line, moving down for each new line.
+                    Vector2D current_pos = original_pos;
+                    const float line_height_ndc = 0.08f; // Vertical distance between lines in NDC. Adjust as needed.
+
+                    for (const auto& line : lines) {
+                        gfx_->drawText(*font, line, current_pos, component.scale, component.color);
+                        current_pos.y -= line_height_ndc; // Move down for the next line
+                    }
+                }
+            }
         }
 
         // 5. --- RENDER THE IMGUI UI ---

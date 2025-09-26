@@ -377,94 +377,203 @@ namespace Framework {
     }
 
     void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
-        Logger logger;
-        //logger.Info(DebugType::GraphicsSystem, "preparing vertices");
-        // Prepare the vertex data.
-        std::vector<float> vertices;
-        float x = pos.x;
-        float y = pos.y;
+        //Logger logger;
+        ////logger.Info(DebugType::GraphicsSystem, "preparing vertices");
+        //// Prepare the vertex data.
+        //std::vector<float> vertices;
+        //float x = pos.x;
+        //float y = pos.y;
 
-        // Iterate through each character in the string.
-        logger.Info(DebugType::GraphicsSystem, "iterating through text string '" + textToDraw + "'");
+        //// Iterate through each character in the string.
+        //logger.Info(DebugType::GraphicsSystem, "iterating through text string '" + textToDraw + "'");
+        //for (char c_signed : textToDraw) {
+        //    unsigned char c = static_cast<unsigned char>(c_signed);
+
+        //    //logger.Info(DebugType::GraphicsSystem, "CHAR " + std::string(1, c_signed) + " (int: " + std::to_string(static_cast<int>(c)) + ")");
+        //    // Look up the character metrics from the font's character map.
+        //    auto it = font.GetCharacters().find(c);
+        //    if (it == font.GetCharacters().end()) {
+        //        // Character not found in the font's atlas.
+        //        logger.Info(DebugType::GraphicsSystem, "character not found in the font atlas");
+        //        continue;
+        //    }
+        //    const Character& ch = it->second;
+
+        //    // Calculate the quad position and dimensions.
+        //    //logger.Info(DebugType::GraphicsSystem, "Calculate the quad position and dimensions");
+        //    float xpos = x + ch.Bearing.x * scale;
+        //    float ypos = y + (ch.Bearing.y - ch.Size.y) * scale;
+        //    ypos = screenHeight - ypos;
+
+        //    float w = ch.Size.x * scale;
+        //    float h = ch.Size.y * scale;
+
+        //    // Get the UV coordinates from the Character struct.
+        //    //logger.Info(DebugType::GraphicsSystem, "Get the UV coordinates from the Character struct");
+        //    float u = ch.TexCoords.x;
+        //    float v = ch.TexCoords.y;
+        //    float uvw = ch.TexCoords.z;
+        //    float uvh = ch.TexCoords.w;
+
+        //    // Build the two triangles that form the character's quad.
+        //    // Vertex data format: { x, y, u, v }
+        //    //logger.Info(DebugType::GraphicsSystem, "build the two triangles that form the character's quad");
+        //    vertices.insert(vertices.end(), {
+        //        // First triangle (top-left, bottom-left, bottom-right)
+        //        xpos,      ypos + h, u,     v,
+        //        xpos,      ypos,     u,     v + uvh,
+        //        xpos + w,  ypos,     u + uvw, v + uvh,
+
+        //        // Second triangle (top-left, bottom-right, top-right)
+        //        xpos,      ypos + h, u,     v,
+        //        xpos + w,  ypos,     u + uvw, v + uvh,
+        //        xpos + w,  ypos + h, u + uvw, v
+        //        });
+
+        //    // Advance the cursor for the next character.
+        //    x += (ch.Advance >> 6) * scale; // FreeType advance is in 1/64ths of a pixel.
+        //}
+        //// Enable blending for text transparency
+        //glEnable(GL_BLEND);
+        //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        //glUseProgram(progText_);
+
+        //// Set the uniform for text color.
+        //GLint colorLoc = glGetUniformLocation(progText_, "uColor");
+        //if (colorLoc != -1) {
+        //    glUniform4f(colorLoc, color.r, color.g, color.b, color.a);
+        //}
+
+        //glBindVertexArray(vaoText_);
+        //glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+
+        //glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
+
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+        //GLint texLoc = glGetUniformLocation(progText_, "uTex");
+        //if (texLoc != -1) {
+        //    glUniform1i(texLoc, 0);
+        //}
+
+        //glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 4);
+
+        //// Optional cleanup.
+        //glBindTexture(GL_TEXTURE_2D, 0);
+        //glBindBuffer(GL_ARRAY_BUFFER, 0);
+        //glBindVertexArray(0);
+        //glDisable(GL_BLEND);
+
+          // --- 1. SETUP OPENGL STATE ---
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(progText_);
+
+        // Set the uniform for text color
+        GLint colorLoc = glGetUniformLocation(progText_, "uColor");
+        glUniform4f(colorLoc, color.r, color.g, color.b, color.a);
+
+        // Bind the font's texture atlas
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+        glUniform1i(glGetUniformLocation(progText_, "uTex"), 0);
+
+        glBindVertexArray(vaoText_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+
+        // --- 2. PREPARE FOR RENDERING ---
+        std::vector<float> vertices;
+        vertices.reserve(textToDraw.length() * 6 * 4); // Reserve memory for vertices
+
+        // Convert the starting position from NDC (-1 to 1) to screen pixels (0 to screenWidth/Height)
+        // We'll use this as the starting cursor position (x). The y position is the baseline.
+        float x = (pos.x + 1.0f) * 0.5f * screenWidth;
+        float y = (pos.y + 1.0f) * 0.5f * screenHeight;
+
+        // --- 3. BUILD VERTICES FOR EACH CHARACTER ---
         for (char c_signed : textToDraw) {
             unsigned char c = static_cast<unsigned char>(c_signed);
+            const auto& ch = font.GetCharacters().at(c);
 
-            //logger.Info(DebugType::GraphicsSystem, "CHAR " + std::string(1, c_signed) + " (int: " + std::to_string(static_cast<int>(c)) + ")");
-            // Look up the character metrics from the font's character map.
-            auto it = font.GetCharacters().find(c);
-            if (it == font.GetCharacters().end()) {
-                // Character not found in the font's atlas.
-                logger.Info(DebugType::GraphicsSystem, "character not found in the font atlas");
-                continue;
-            }
-            const Character& ch = it->second;
-
-            // Calculate the quad position and dimensions.
-            //logger.Info(DebugType::GraphicsSystem, "Calculate the quad position and dimensions");
+            // Calculate the vertex positions for the character quad in PIXEL coordinates
             float xpos = x + ch.Bearing.x * scale;
-            float ypos = y + (ch.Bearing.y - ch.Size.y) * scale;
-            ypos = screenHeight - ypos;
-
+            float ypos = y - (ch.Size.y - ch.Bearing.y) * scale; // Baseline is at the top of the letters
             float w = ch.Size.x * scale;
             float h = ch.Size.y * scale;
 
-            // Get the UV coordinates from the Character struct.
-            //logger.Info(DebugType::GraphicsSystem, "Get the UV coordinates from the Character struct");
+            // Convert the final pixel coordinates back to NDC for rendering
+            float ndc_xpos = (xpos / screenWidth) * 2.0f - 1.0f;
+            float ndc_ypos = (ypos / screenHeight) * 2.0f - 1.0f;
+            float ndc_w = (w / screenWidth) * 2.0f;
+            float ndc_h = (h / screenHeight) * 2.0f;
+
+            // Get UV coordinates
             float u = ch.TexCoords.x;
             float v = ch.TexCoords.y;
             float uvw = ch.TexCoords.z;
             float uvh = ch.TexCoords.w;
 
-            // Build the two triangles that form the character's quad.
-            // Vertex data format: { x, y, u, v }
-            //logger.Info(DebugType::GraphicsSystem, "build the two triangles that form the character's quad");
+            // Add the 6 vertices for the character's quad to our buffer
             vertices.insert(vertices.end(), {
-                // First triangle (top-left, bottom-left, bottom-right)
-                xpos,      ypos + h, u,     v,
-                xpos,      ypos,     u,     v + uvh,
-                xpos + w,  ypos,     u + uvw, v + uvh,
+                ndc_xpos,         ndc_ypos + ndc_h,   u,         v,          // Top-left
+                ndc_xpos,         ndc_ypos,           u,         v + uvh,    // Bottom-left
+                ndc_xpos + ndc_w, ndc_ypos,           u + uvw,   v + uvh,    // Bottom-right
 
-                // Second triangle (top-left, bottom-right, top-right)
-                xpos,      ypos + h, u,     v,
-                xpos + w,  ypos,     u + uvw, v + uvh,
-                xpos + w,  ypos + h, u + uvw, v
+                ndc_xpos,         ndc_ypos + ndc_h,   u,         v,          // Top-left
+                ndc_xpos + ndc_w, ndc_ypos,           u + uvw,   v + uvh,    // Bottom-right
+                ndc_xpos + ndc_w, ndc_ypos + ndc_h,   u + uvw,   v           // Top-right
                 });
 
-            // Advance the cursor for the next character.
-            x += (ch.Advance >> 6) * scale; // FreeType advance is in 1/64ths of a pixel.
-        }
-        // Enable blending for text transparency
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glUseProgram(progText_);
-
-        // Set the uniform for text color.
-        GLint colorLoc = glGetUniformLocation(progText_, "uColor");
-        if (colorLoc != -1) {
-            glUniform4f(colorLoc, color.r, color.g, color.b, color.a);
+            // Advance cursor for the next glyph. Advance is measured in 1/64 pixels.
+            x += (ch.Advance >> 6) * scale;
         }
 
-        glBindVertexArray(vaoText_);
-        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
-
+        // --- 4. DRAW THE VERTICES ---
+        // Upload the vertex data to the VBO
         glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
-        GLint texLoc = glGetUniformLocation(progText_, "uTex");
-        if (texLoc != -1) {
-            glUniform1i(texLoc, 0);
-        }
-
+        // Draw all the characters in a single draw call
         glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 4);
 
-        // Optional cleanup.
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        // --- 5. CLEANUP ---
         glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_BLEND);
+    }
+
+    std::vector<std::string> Graphics::WrapText(Font& font, const std::string& text, float scale, float maxWidth) {
+        std::vector<std::string> lines;
+        std::stringstream ss(text);
+        std::string word;
+
+        std::string currentLine;
+        if (ss >> word) { // Get the first word
+            currentLine = word;
+        }
+
+        while (ss >> word) {
+            // Check if adding the next word exceeds the max width
+            std::string testLine = currentLine + " " + word;
+            if (font.GetStringWidth(testLine, scale) > maxWidth) {
+                // The line is too long, so finalize the current line
+                lines.push_back(currentLine);
+                // Start a new line with the current word
+                currentLine = word;
+            }
+            else {
+                // The word fits, so add it to the current line
+                currentLine = testLine;
+            }
+        }
+
+        // Add the last line to the vector
+        lines.push_back(currentLine);
+
+        return lines;
     }
 
 } // namespace Framework

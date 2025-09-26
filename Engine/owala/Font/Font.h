@@ -37,6 +37,9 @@ public:
     // Get the OpenGL texture atlas ID.
     unsigned int GetAtlasID() const;
 
+    // Calculates the width of a string in pixels at a given scale.
+    float GetStringWidth(const std::string& text, float scale) const;
+
 private:
     std::map<char, Character> m_characters;
     unsigned int              m_textureAtlas;

@@ -26,6 +26,10 @@ namespace Framework {
         void Update(float dt) override;
         void Shutdown() override;
 
+        //  Public getters for screen dimensions
+        int getScreenWidth() const { return screenWidth; }
+        int getScreenHeight() const { return screenHeight; }
+
         // ---- Colored triangle (immediate style) ----
         void beginFrame(const Color& clear = { 0.1f, 0.1f, 0.12f, 1.0f });
         void drawTriangle(const Vector2D& a, const Vector2D& b, const Vector2D& c,
@@ -49,6 +53,10 @@ namespace Framework {
 
         // ---- Fonts ----
         void drawText(Font& font, const std::string& text, const Vector2D& pos, float scale, const Color& color);
+
+        // ---- Text Layout ----
+        // Breaks a long string into multiple lines based on a max width.
+        std::vector<std::string> WrapText(Font& font, const std::string& text, float scale, float maxWidth);
 
     private:
         WindowsSystem* win_ = nullptr;
