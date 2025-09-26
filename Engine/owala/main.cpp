@@ -14,7 +14,9 @@
 #include "GameManager.h"
 #include "SpriteRenderSystem.h"
 
+
 int main() {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     using namespace Framework;
     try {
     CoreEngine engine;
@@ -41,8 +43,8 @@ int main() {
     engine.AddSystem(rotation);
     engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
     engine.AddSystem(phx);                 // Physics comes after input
-	engine.AddSystem(rcm);                // Resource manager (loads resources on demand) MUST come before GameSystem or assets won't be found
     engine.AddSystem(audio);               //audio 
+	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(renderer); // <--- draw all sprites here
     engine.AddSystem(gfx);                 // swaps buffers last

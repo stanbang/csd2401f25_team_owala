@@ -82,12 +82,49 @@ bool ResourceManager::loadSound(const std::string& id,
     mode |= loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
     mode |= stream ? FMOD_CREATESTREAM : 0;
 
-    FMOD::Sound* snd = nullptr;
+	Audio* snd = nullptr;
     FMOD_RESULT r = system_->createSound(path, mode, nullptr, &snd);
     audiosystem_->check(r, "System::createSound");
     if (r != FMOD_OK || !snd) return false;
 
 	logger.Info(DebugType::ResourceManager, "Loaded sound '" + std::string(path) + "'");
-	add<FMOD::Sound>(id, std::unique_ptr<FMOD::Sound>(snd));
+	add<Audio>(id, std::unique_ptr<Audio, FMODDeleter>(snd));
     return true;
+}
+
+std::unordered_map<std::string, std::unique_ptr<Texture>>& ResourceManager::getTextureMap() {
+    return textureMap;
+}
+
+std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& ResourceManager::getSoundMap() {
+    return soundMap;
+}
+
+
+void ResourceManager::Shutdown() {
+    Logger logger;
+    logger.Info(DebugType::ResourceManager, "ResourceManager shutdown: freeing all resources.");
+
+    // Clear textures first
+    textureMap.clear();
+
+    // Safely release sounds with logging
+    FMOD::System* system = audiosystem_ ? audiosystem_->getFMODSystem() : nullptr;
+    if (system) {
+        for (auto& [key, audioPtr] : soundMap) {
+            logger.Info(DebugType::ResourceManager, "Freeing Audio: " + key);
+            if (audioPtr) {
+                FMOD_RESULT r = audioPtr->release();
+                if (r != FMOD_OK) {
+                    logger.Info(DebugType::ResourceManager, "Failed to release Audio: " + key);
+                }
+            }
+        }
+    }
+    else {
+        logger.Info(DebugType::ResourceManager, "FMOD System unavailable, skipping audio release.");
+    }
+
+    // Now clear the map; deleter will still run but audio is already released safely
+    soundMap.clear();
 }
