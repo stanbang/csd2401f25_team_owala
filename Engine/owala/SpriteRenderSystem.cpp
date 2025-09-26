@@ -38,7 +38,7 @@ namespace Framework {
             // Fetch the texture by key from ResourceManager
             // NOTE: your ResourceManager::get<T>(key) returns a T (by value) in your examples.
             // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
-            Texture tex = resources_.get<Texture>(sprite.textureKey);
+            Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
             // Draw
             gfx_.drawSprite(tex, pos, halfSize, rotationRad);
