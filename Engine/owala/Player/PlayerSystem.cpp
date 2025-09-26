@@ -74,8 +74,8 @@ namespace Framework {
             newStats.pos = entityStorage_->position.at(entity);
         }
 
-        logger.Info(DebugType::PlayerSystem, "Writing Player Stats");
-        fileIO.WritePlayerStats(newStats);
+        //logger.Info(DebugType::PlayerSystem, "Writing Player Stats");
+        //fileIO.WritePlayerStats(newStats);
     }
 
 } // namespace Framework
