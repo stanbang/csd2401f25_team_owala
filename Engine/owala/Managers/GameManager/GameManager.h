@@ -14,6 +14,8 @@
 #include "PhysicsSystem.h"
 #include "ResourceManager.h"
 #include "AudioSystem.h"
+#include "WindowsSystem.h"
+#include "Graphics.h"
 
 namespace Framework {
 	enum class SystemType : unsigned char {
@@ -93,6 +95,6 @@ namespace Framework {
 		/* Game Cycle Functions */
 		void Initialize() override;
 		void Update(float dt) override;
-		void Shutdown() override {}
+		void Shutdown() override;
 	};
 }
