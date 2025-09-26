@@ -1,8 +1,25 @@
 #include "ResourceManager.h"
 #include "AudioSystem.h"
 #include "Graphics.h"
+#include "GL/glew.h"
 
 using namespace Framework;
+
+void Framework::TextureDeleter::operator()(Texture* texPtr) const noexcept {
+    if (texPtr && *texPtr != 0) {
+        // *texPtr dereferences the pointer to get the actual Texture (GLuint) handle
+        glDeleteTextures(1, texPtr);
+        *texPtr = 0; // Set ID to 0 after deletion
+    }
+    // The memory pointed to by texPtr (the Texture object) must be deleted here
+    delete texPtr;
+}
+
+void Framework::FMODDeleter::operator()(FMOD::Sound* s) const noexcept {
+    if (s) {
+        s->release(); // Release without logging
+    }
+}
 
 void ResourceManager::Initialize() {
 	/* --- HOW TO INITIALIZE RESOURCES --- 
@@ -92,7 +109,7 @@ bool ResourceManager::loadSound(const std::string& id,
     return true;
 }
 
-std::unordered_map<std::string, std::unique_ptr<Texture>>& ResourceManager::getTextureMap() {
+std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& ResourceManager::getTextureMap() {
     return textureMap;
 }
 

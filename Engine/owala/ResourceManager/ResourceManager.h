@@ -21,16 +21,18 @@ namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
 	using Audio = FMOD::Sound;
-	// Variant to hold different resource types
+
+	// Custom deleter for Texture objects
+    struct TextureDeleter {
+        void operator()(Texture* texPtr) const noexcept;
+    };
 
     // Custom deleter for FMOD objects — calls release() instead of delete
     struct FMODDeleter {
-        void operator()(FMOD::Sound* s) const noexcept {
-            if (s) {
-                s->release(); // Release without logging
-            }
-        }
+        void operator()(FMOD::Sound* s) const noexcept;
     };
+
+
 
     class ResourceManager : public ISystem{
     public:
@@ -74,12 +76,12 @@ namespace Framework {
         bool loadTexture(const std::string& name, const std::string& filepath);
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
 
-        std::unordered_map<std::string, std::unique_ptr<Texture>>& getTextureMap(); // Get the resource map
+		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map
 
     private:
 
-        std::unordered_map<std::string, std::unique_ptr<Texture>> textureMap; // Texture map
+        std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>> textureMap; // Texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>> soundMap; // Sound map with custom deleter
 
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
@@ -109,8 +111,11 @@ namespace Framework {
         if constexpr (std::is_same<ResourceType, Texture>::value) {
             auto& map = getTextureMap();
             if (map.find(name) != map.end()) return;
-            map.emplace(name, std::make_unique<Texture>(resource));
+            // NOTE: Must use 'new Texture(resource)' to pass a raw pointer 
+            // to unique_ptr's constructor, which uses TextureDeleter implicitly.
+            map.emplace(name, std::unique_ptr<Texture, TextureDeleter>(new Texture(resource)));
         }
+
         else {
             static_assert(sizeof(ResourceType) == 0,
                 "Use unique_ptr version of add() for non-copyable resources like Audio.");
