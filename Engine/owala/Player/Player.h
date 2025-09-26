@@ -44,6 +44,8 @@ namespace Framework {
 
 			entityStorage.colliders[player] = AABBCollider{ halfSize };
 			entityStorage.playerState[player] = PlayerState{}; // NEW: Add the player state component
+			entityStorage.rotationFlag[player] = RotationFlag{}; // added rotation flag
+
 			//Return the entity ID of the player
 			return player;
 	}
