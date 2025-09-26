@@ -1,6 +1,5 @@
 # ======================= Project Configuration =========================
-cmake_minimum_required(VERSION 2.8...3.5)
-cmake_policy(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 
 project(owala)
 
@@ -25,6 +24,7 @@ set(ALL_LIBS
   PRIVATE rapid_json
   PRIVATE stb_image
   PRIVATE Backward::Interface
+  PRIVATE freetype
 )
 
 # Include path for GLM

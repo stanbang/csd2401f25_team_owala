@@ -71,6 +71,10 @@ namespace Framework {
                     position.Pos = rotationMat * originalPos;
                 }
 
+                for (auto& [entity, state] : ecs_->playerState) {
+                    state.isGrounded = true;
+                }
+
                 for (auto& [entity, rotationFlag] : ecs_->rotationFlag) {
                     rotationFlag.currentRotation += rotationIncrement;
                     rotationFlag.currentRotation = std::fmod(rotationFlag.currentRotation + 360.0f, 360.0f);

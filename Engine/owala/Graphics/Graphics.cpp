@@ -13,6 +13,7 @@
 #include <variant>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "Logger.h"
 
 namespace Framework {
 
@@ -45,6 +46,27 @@ namespace Framework {
     uniform sampler2D uTex;
     out vec4 FragColor;
     void main(){ FragColor = texture(uTex, vUV); }
+    )";
+
+    // Textured quad (pos + uv)
+    static const char* VS_TEXT = R"(#version 330 core
+    layout(location=0) in vec2 aPos;
+    layout(location=1) in vec2 aUV;
+    out vec2 vUV;
+    void main() {
+        gl_Position = vec4(aPos, 0.0, 1.0);
+        vUV = aUV;
+    })";
+
+    static const char* FS_TEXT = R"(#version 330 core
+    in vec2 vUV;
+    uniform sampler2D uTex;
+    uniform vec4 uColor;
+    out vec4 FragColor;
+    void main() {
+        float alpha = texture(uTex, vUV).r;
+        FragColor = vec4(uColor.rgb, uColor.a * alpha);
+    }
     )";
 
     // =========================
@@ -96,6 +118,9 @@ namespace Framework {
         glfwGetFramebufferSize(win_->window(), &fbw, &fbh);
         glViewport(0, 0, fbw, fbh);
 
+        screenWidth = fbw;
+        screenHeight = fbh;
+
         // ----- Colored triangle pipeline -----
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
 
@@ -126,6 +151,23 @@ namespace Framework {
         glEnableVertexAttribArray(1); // aUV
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
 
+        // ----- Text rendering pipeline -----
+        progText_ = linkProgram(VS_TEXT, FS_TEXT);
+
+        glGenVertexArrays(1, &vaoText_);
+        glBindVertexArray(vaoText_);
+
+        glGenBuffers(1, &vboText_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+        // 6 verts * (x,y,u,v) per char
+        // Allocate room for a reasonable number of characters, e.g., 256
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4 * 256, nullptr, GL_STREAM_DRAW);
+
+        glEnableVertexAttribArray(0); // aPos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
+        glEnableVertexAttribArray(1); // aUV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+
         // Unbind
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -145,6 +187,10 @@ namespace Framework {
         if (vboTex_) { glDeleteBuffers(1, &vboTex_); vboTex_ = 0; }
         if (vaoTex_) { glDeleteVertexArrays(1, &vaoTex_); vaoTex_ = 0; }
         if (progTex_) { glDeleteProgram(progTex_); progTex_ = 0; }
+
+        if (vboText_) { glDeleteBuffers(1, &vboText_); vboText_ = 0; }
+        if (vaoText_) { glDeleteVertexArrays(1, &vaoText_); vaoText_ = 0; }
+        if (progText_) { glDeleteProgram(progText_); progText_ = 0; }
     }
 
     // =========================
@@ -267,6 +313,7 @@ namespace Framework {
             p3.x, p3.y,  0.f, 1.f,
         };
 
+        glEnable(GL_BLEND);
         glUseProgram(progTex_);
         glBindVertexArray(vaoTex_);
         glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
@@ -328,6 +375,117 @@ namespace Framework {
 
         // default to PNG if no/unknown extension
         return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
+    }
+
+    void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
+        // --- 1. SETUP OPENGL STATE ---
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(progText_);
+
+        // Set the uniform for text color
+        GLint colorLoc = glGetUniformLocation(progText_, "uColor");
+        glUniform4f(colorLoc, color.r, color.g, color.b, color.a);
+
+        // Bind the font's texture atlas
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+        glUniform1i(glGetUniformLocation(progText_, "uTex"), 0);
+
+        glBindVertexArray(vaoText_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+
+        // --- 2. PREPARE FOR RENDERING ---
+        std::vector<float> vertices;
+        vertices.reserve(textToDraw.length() * 6 * 4); // Reserve memory for vertices
+
+        // Convert the starting position from NDC (-1 to 1) to screen pixels (0 to screenWidth/Height)
+        // We'll use this as the starting cursor position (x). The y position is the baseline.
+        float x = (pos.x + 1.0f) * 0.5f * screenWidth;
+        float y = (pos.y + 1.0f) * 0.5f * screenHeight;
+
+        // --- 3. BUILD VERTICES FOR EACH CHARACTER ---
+        for (char c_signed : textToDraw) {
+            unsigned char c = static_cast<unsigned char>(c_signed);
+            const auto& ch = font.GetCharacters().at(c);
+
+            // Calculate the vertex positions for the character quad in PIXEL coordinates
+            float xpos = x + ch.Bearing.x * scale;
+            float ypos = y - (ch.Size.y - ch.Bearing.y) * scale; // Baseline is at the top of the letters
+            float w = ch.Size.x * scale;
+            float h = ch.Size.y * scale;
+
+            // Convert the final pixel coordinates back to NDC for rendering
+            float ndc_xpos = (xpos / screenWidth) * 2.0f - 1.0f;
+            float ndc_ypos = (ypos / screenHeight) * 2.0f - 1.0f;
+            float ndc_w = (w / screenWidth) * 2.0f;
+            float ndc_h = (h / screenHeight) * 2.0f;
+
+            // Get UV coordinates
+            float u = ch.TexCoords.x;
+            float v = ch.TexCoords.y;
+            float uvw = ch.TexCoords.z;
+            float uvh = ch.TexCoords.w;
+
+            // Add the 6 vertices for the character's quad to our buffer
+            vertices.insert(vertices.end(), {
+                ndc_xpos,         ndc_ypos + ndc_h,   u,         v,          // Top-left
+                ndc_xpos,         ndc_ypos,           u,         v + uvh,    // Bottom-left
+                ndc_xpos + ndc_w, ndc_ypos,           u + uvw,   v + uvh,    // Bottom-right
+
+                ndc_xpos,         ndc_ypos + ndc_h,   u,         v,          // Top-left
+                ndc_xpos + ndc_w, ndc_ypos,           u + uvw,   v + uvh,    // Bottom-right
+                ndc_xpos + ndc_w, ndc_ypos + ndc_h,   u + uvw,   v           // Top-right
+                });
+
+            // Advance cursor for the next glyph. Advance is measured in 1/64 pixels.
+            x += (ch.Advance >> 6) * scale;
+        }
+
+        // --- 4. DRAW THE VERTICES ---
+        // Upload the vertex data to the VBO
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
+
+        // Draw all the characters in a single draw call
+        glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 4);
+
+        // --- 5. CLEANUP ---
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_BLEND);
+    }
+
+    std::vector<std::string> Graphics::WrapText(Font& font, const std::string& text, float scale, float maxWidth) {
+        std::vector<std::string> lines;
+        std::stringstream ss(text);
+        std::string word;
+
+        std::string currentLine;
+        if (ss >> word) { // Get the first word
+            currentLine = word;
+        }
+
+        while (ss >> word) {
+            // Check if adding the next word exceeds the max width
+            std::string testLine = currentLine + " " + word;
+            if (font.GetStringWidth(testLine, scale) > maxWidth) {
+                // The line is too long, so finalize the current line
+                lines.push_back(currentLine);
+                // Start a new line with the current word
+                currentLine = word;
+            }
+            else {
+                // The word fits, so add it to the current line
+                currentLine = testLine;
+            }
+        }
+
+        // Add the last line to the vector
+        lines.push_back(currentLine);
+
+        return lines;
     }
 
 } // namespace Framework

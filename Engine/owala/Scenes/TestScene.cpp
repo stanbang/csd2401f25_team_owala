@@ -16,10 +16,14 @@
 #include "Player.h"
 #include "Platform.h"
 #include "Background.h"
+#include "Text.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
+#include "TrapPlatform.h"
+#include "Transformation.h"
+#include "ScalingPlatform.h"
 #include "AudioEntity.h"
 
 #include "SpriteComponents.h"
@@ -43,6 +47,12 @@ namespace {
     Entity playerEntity = 0;
     Entity groundEntity = 0;
     Entity backgroundEntity = 0;
+    Entity platformTrap_ = 0;
+    Entity topGround = 0;
+    Entity leftGround = 0;
+    Entity rightGround = 0;
+    Entity downGround = 0;
+    Entity scalingPlatform = 0;
 }
 
 namespace TestScene {
@@ -62,6 +72,9 @@ namespace TestScene {
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
         rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
 		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
+        rcm_->loadFont("minecraft_font", "Assets/Fonts/minecraft.ttf");
+        rcm_->loadFont("kremlin_font", "Assets/Fonts/Kremlin.ttf");
+        rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
         // --- Create Background Entity ---
@@ -73,6 +86,30 @@ namespace TestScene {
         std::string platformTexID = "RonaldSprite_Platform";
         groundEntity = createPlatform(*ecs, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
         sceneMgr.AddEntityToScene("Test Scene", groundEntity);
+
+
+        // Create 4 borders around the screen
+        topGround = createPlatform(*ecs, { 0.0f, 1.f }, { 1.0f, 0.2f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", topGround);
+
+        leftGround = createPlatform(*ecs, { -1.0f, 0.0f }, { 0.2f, 1.0f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", leftGround);
+
+        rightGround = createPlatform(*ecs, { 1.0f, 0.0f }, { 0.2f, 1.0f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", rightGround);
+
+        downGround = createPlatform(*ecs, { 0.0f, -1.0f }, { 1.0f, 0.2f }, platformTexID);
+        sceneMgr.AddEntityToScene("Test Scene", downGround);
+
+        // Scaling Platform
+        std::string scalingPlatformTexID = "RonaldSprite_Platform";
+        scalingPlatform = createScalingPlatform(*ecs, { -0.5f, 0.0f },{ 0.3f, 0.1f },scalingPlatformTexID,2.0f,0.2f,1.0f);
+        sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
+
+        // Trap Platforms
+        std::string trapTexID = "RonaldSprite_Platform"; 
+        platformTrap_ = createTrapPlatform(*ecs, { 0.0f, 0.5f }, { 0.5f, 0.1f }, trapTexID);
+        sceneMgr.AddEntityToScene("Test Scene", platformTrap_);
 
         // --- Create Player Entity ---
         FileIOSystem fileIO;
@@ -87,34 +124,16 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
+        // --- Create Text Entity ---
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "minecraft_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.0f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "kremlin_font", { 0.5,1,1,1 }, { -0.7f, 0.6f }, 1.0f));
+
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
         // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
-        FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
+        //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
+        //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
-
-        // --- NEW: IMGUI INITIALIZATION ---
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-
-        // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-        ImGuiStyle& style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForOpenGL(win_->window(), true);
-        ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
 	void Update() {
@@ -127,9 +146,16 @@ namespace TestScene {
 		AudioSystem* audio_ = gm.GetSystems().audio_;
 
         //  --- START THE IMGUI FRAME ---
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+        //press T to play scream, for not a entity yet, because we don't want to play it from the start
+        if (input_->KeyPressed(InputSystem::Key::T)) {
+            try {
+                FMOD::Sound& scream = resourceManager_->get<FMOD::Sound>("scream");
+                audio_->play(scream, /*volume*/1.0f, /*paused*/false);
+            }
+            catch (const GameException& e) {
+                std::fprintf(stderr, "[Audio] Scream sound not found!\n");
+            }
+        }
 
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
@@ -202,71 +228,20 @@ namespace TestScene {
             // ImGui::ShowDemoWindow(); 
         }
 
-        gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
+        // Update trap platforms
+        float dt = gm.GetDeltaTime();
+        updateTrapPlatforms(*ecs_, dt);
+        triggerTrapPlatform(*ecs_, platformTrap_);
+        // Update scaling platforms
+        updateScalingPlatforms(*ecs_, dt);
 
-
-        // Render background
-        if (ecs_->tex.count(backgroundEntity) && ecs_->position.count(backgroundEntity)) {
-            const auto& pos = ecs_->position.at(backgroundEntity).Pos;
-
-            //Use the textureID to get the actual texture from the resource manager
-            std::string textureID = ecs_->tex[backgroundEntity].textureKey;
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, Vector2D(1, 1), 0.0f);
-        }
-
-        // Render the ground
-        if (ecs_->tex.count(groundEntity) && ecs_->position.count(groundEntity)) {
-            const auto& pos = ecs_->position.at(groundEntity).Pos;
-            const auto& halfSize = ecs_->colliders.at(groundEntity).HalfSize;
-            float rotation = 0.0f;
-            if (ecs_->rotationFlag.count(groundEntity)) {
-                rotation = ecs_->rotationFlag.at(groundEntity).currentRotation * (M_PI / 180.0f);
-            }
-            Logger logger;
-            // For now, we can use the console to see the state.
-            if (physics_->IsInStepMode()) {
-                logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
-            }
-            else if (physics_->IsPaused()) {
-                logger.Info(DebugType::GameSystem, "PAUSED");
-            }
-
-            //Use the textureID to get the actual texture from the resource manager
-            std::string textureID = ecs_->tex[groundEntity].textureKey;
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            gfx_->drawSprite(texture, pos, halfSize, rotation);
-        }
-
-        // Render the player
-        if (ecs_->tex.count(playerEntity) && ecs_->position.count(playerEntity)) {
-            const auto& pos = ecs_->position.at(playerEntity).Pos;
-            const auto& halfSize = ecs_->colliders.at(playerEntity).HalfSize;
-
-
-            std::string textureID = ecs_->tex[playerEntity].textureKey;
-            //Use the textureID to get the actual texture from the resource manager
-            Texture texture = resourceManager_->get<Texture>(textureID);
-            std::cout << "Rendering Player!!! \n";
-            gfx_->drawSprite(texture, pos, halfSize, 0.0f);
-        }
-
-
-        // 5. --- RENDER THE IMGUI UI ---
-        // This draws the UI on top of the game world.
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
-        }
         //   RenderColliders();
 	}
 
 	void Free() {
-		// Empty by design
+        std::cout << "Freeing IMGUI" << std::endl;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
 	}
 }
