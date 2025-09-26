@@ -107,133 +107,54 @@ namespace Framework {
     }
 
     void GameSystem::Update(float dt) {
-       //  --- START THE IMGUI FRAME ---
+        // --- IMGUI begin ---
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 2. --- HANDLE INPUTS ---
-        // Handle physics debugging inputs.
-        // 'P' key toggles the master pause state.
-        if (input_->KeyPressed(InputSystem::Key::P)) {
-            physics_->SetPaused(!physics_->IsPaused());
-        }
+        // Input / game logic (P/O/I, etc.)
+        if (input_->KeyPressed(InputSystem::Key::P)) physics_->SetPaused(!physics_->IsPaused());
+        if (input_->KeyPressed(InputSystem::Key::O)) physics_->ToggleStepMode();
+        if (input_->KeyPressed(InputSystem::Key::I)) physics_->ExecuteNextStep();
 
-        // 'O' key toggles the step-by-step debug mode.
-        if (input_->KeyPressed(InputSystem::Key::O)) {
-            physics_->ToggleStepMode();
-        }
-
-        // 'I' key executes a single physics step if in step mode.
-        if (input_->KeyPressed(InputSystem::Key::I)) {
-            physics_->ExecuteNextStep();
-        }
-
-
-        // 3. --- BUILD IMGUI INTERFACE ---
-         // This is where you create all your ImGui windows and widgets.
-        {
-            // Create the main dockspace that will fill the entire game window.
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-            // Example of a dockable "Level Editor" window.
-            ImGui::Begin("Level Editor");
-
-            if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
-                // Check if the player entity and its components exist.
-                if (ecs_->position.count(player_) && ecs_->velocity.count(player_) && ecs_->playerState.count(player_)) {
-
-                    // Get references to the player's components.
-                    auto& pos = ecs_->position.at(player_).Pos;
-                    auto& vel = ecs_->velocity.at(player_).Vel;
-                    auto& state = ecs_->playerState.at(player_);
-
-                    // Create ImGui widgets linked to the component data.
-                    ImGui::DragFloat2("Position", &pos.x, 0.01f);
-                    ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-                    ImGui::Checkbox("Is Grounded?", &state.isGrounded);
-
-                    // A button to apply an action to the entity.
-                    if (ImGui::Button("Reset Player Position")) {
-                        pos = { 0.0f, 0.5f };
-                        vel = { 0.0f, 0.0f };
-                    }
-                }
-                else {
-                    ImGui::Text("Player entity data not found!");
+        // --- Build ImGui ---
+        ImGui::Begin("Level Editor");
+        if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ecs_->position.count(player_) && ecs_->velocity.count(player_) && ecs_->playerState.count(player_)) {
+                auto& pos = ecs_->position.at(player_).Pos;
+                auto& vel = ecs_->velocity.at(player_).Vel;
+                auto& state = ecs_->playerState.at(player_);
+                ImGui::DragFloat2("Position", &pos.x, 0.01f);
+                ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+                ImGui::Checkbox("Is Grounded?", &state.isGrounded);
+                if (ImGui::Button("Reset Player Position")) {
+                    pos = { 0.0f, 0.5f };
+                    vel = { 0.0f, 0.0f };
                 }
             }
-
-            if (ImGui::CollapsingHeader("Global Controls")) {
-                static float masterVolume = 0.35f;
-                if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
-                    audio_->setMasterVolume(masterVolume);
-                }
+            else {
+                ImGui::Text("Player entity data not found!");
             }
-
-            ImGui::End(); // End "Level Editor" window
-
-            // You can also show the ImGui demo window to explore widgets.
-            // ImGui::ShowDemoWindow(); 
         }
-           
-
-            gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
-
-
-            // Render the ground
-
-            if (ecs_->tex.count(ground_) && ecs_->position.count(ground_)) {
-                const auto& pos = ecs_->position.at(ground_).Pos;
-                const auto& halfSize = ecs_->colliders.at(ground_).HalfSize;
-                float rotation = 0.0f;
-                if (ecs_->rotationFlag.count(ground_)) {
-                    rotation = ecs_->rotationFlag.at(ground_).currentRotation * (M_PI / 180.0f);
-                }
-        Logger logger;
-        // For now, we can use the console to see the state.
-        if (physics_->IsInStepMode()) {
-            logger.Info(DebugType::GameSystem, "STEP MODE ACTIVE (Press 'I' to advance)");
+        if (ImGui::CollapsingHeader("Global Controls")) {
+            static float masterVolume = 0.35f;
+            if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
+                audio_->setMasterVolume(masterVolume);
+            }
         }
-        else if (physics_->IsPaused()) {
-            logger.Info(DebugType::GameSystem, "PAUSED");
+        ImGui::End();
+
+        // --- ImGui render (draws UI only) ---
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            GLFWwindow* backup = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup);
         }
+    }
 
-                //Use the textureID to get the actual texture from the resource manager
-                std::string textureID = ecs_->tex[ground_].textureKey;
-                Texture texture = resourceManager_->get<Texture>(textureID);
-                gfx_->drawSprite(texture, pos, halfSize, rotation);
-            }
-
-            // Render the player
-            if (ecs_->tex.count(player_) && ecs_->position.count(player_)) {
-                const auto& pos = ecs_->position.at(player_).Pos;
-                const auto& halfSize = ecs_->colliders.at(player_).HalfSize;
-
-
-                std::string textureID = ecs_->tex[player_].textureKey;
-                //Use the textureID to get the actual texture from the resource manager
-                Texture texture = resourceManager_->get<Texture>(textureID);
-                gfx_->drawSprite(texture, pos, halfSize, 0.0f);
-            }
-
-         
-
-            // 5. --- RENDER THE IMGUI UI ---
-            // This draws the UI on top of the game world.
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-                GLFWwindow* backup_current_context = glfwGetCurrentContext();
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
-                glfwMakeContextCurrent(backup_current_context);
-            }
-         //   RenderColliders();
-        
-
-    } 
 
     //void GameSystem::RenderColliders() {
     //    // Loop through all entities that have a collider component

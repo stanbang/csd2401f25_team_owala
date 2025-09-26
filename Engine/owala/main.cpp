@@ -12,6 +12,7 @@
 #include "AudioSystem.h"
 #include "Logger.h"
 #include "GameManager.h"
+#include "SpriteRenderSystem.h"
 
 int main() {
     using namespace Framework;
@@ -32,6 +33,7 @@ int main() {
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio); // Register all core systems to the GameManager
+    SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -42,6 +44,7 @@ int main() {
 	engine.AddSystem(rcm);                // Resource manager (loads resources on demand) MUST come before GameSystem or assets won't be found
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
+    engine.AddSystem(renderer); // <--- draw all sprites here
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();
