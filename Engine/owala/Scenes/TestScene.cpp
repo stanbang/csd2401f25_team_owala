@@ -91,8 +91,8 @@ namespace TestScene {
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-        createText(*ecs, "can you see me!", "minecraft_font", { 1,1,1,1 }, { 0.0f, 0.8f }, 0.5f);
-        createText(*ecs, "it works!", "kremlin_font", { 1,0,1,1 }, { 0.0f, 0.3f }, 1.0f);
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "minecraft_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.0f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "kremlin_font", { 0.5,1,1,1 }, { -0.7f, 0.6f }, 1.0f));
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
