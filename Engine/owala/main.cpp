@@ -79,16 +79,13 @@ int main() {
     return 0;
     }
     catch (const GameException& e) {
-        Logger logger;
-        logger.LogCrash(e.type, e.what(), e.stack_trace);
+        Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);
     }
     catch (const std::exception& e) {
-        Logger logger;
-        logger.LogCrash(DebugType::Unknown, e.what());
+        Logger::Get().LogCrash(DebugType::Unknown, e.what());
     }
     catch (...) {
-        Logger logger;
-        logger.LogCrash(DebugType::Unknown, "Unhandled exception");
+        Logger::Get().LogCrash(DebugType::Unknown, "Unhandled exception");
     }
 
     return 0;

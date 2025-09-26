@@ -55,14 +55,13 @@ void ResourceManager::clearAll() {
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
 	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
-	Logger logger;
 
 	if (tex == 0) {
-		logger.Info(DebugType::ResourceManager, "Failed to load texture from '" + filepath + "'");
+		Logger::Get().Info(DebugType::ResourceManager) << "Failed to load texture from '" << filepath << "'" << std::endl;
 		return false;
 	}
 
-	logger.Info(DebugType::ResourceManager, "Loaded texture '" + filepath + "'");
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded texture '" << filepath << "'" << std::endl;
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;
@@ -73,25 +72,24 @@ bool ResourceManager::loadSound(const std::string& id,
     bool loop,
     bool stream) {
 
-	Logger logger;
 	FMOD::System* system_ = audiosystem_->getFMODSystem();
 
     if (!system_) return false;
     if (!path)     return false;
 
     if (!system_) {
-        std::fprintf(stderr, "[Audio] System not initialized\n");
+		Logger::Get().Error(DebugType::ResourceManager) << "Audio System not initialized" << std::endl;
         return false;
     }
     if (!path) {
-        std::fprintf(stderr, "[Audio] Null path for id '%s'\n", id.c_str());
+		Logger::Get().Error(DebugType::ResourceManager) << "Audio: Null path for id: " << id << std::endl;
         return false;
     }
 
     // Check if file exists
     FILE* test = fopen(path, "rb");
     if (!test) {
-        std::fprintf(stderr, "[Audio] File not found: %s\n", path);
+		Logger::Get().Error(DebugType::ResourceManager) << "Audio file not found: " << path << std::endl;
         return false;
     }
     fclose(test);
@@ -105,7 +103,7 @@ bool ResourceManager::loadSound(const std::string& id,
     audiosystem_->check(r, "System::createSound");
     if (r != FMOD_OK || !snd) return false;
 
-	logger.Info(DebugType::ResourceManager, "Loaded sound '" + std::string(path) + "'");
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded sound '" <<  path << "'" << std::endl;
 	add<Audio>(id, std::unique_ptr<Audio, FMODDeleter>(snd));
     return true;
 }
@@ -125,17 +123,16 @@ std::unordered_map<std::string, std::unique_ptr<Font>>& ResourceManager::getFont
 // Loads a font
 bool ResourceManager::loadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
 	FT_Library library = FontManager::GetInstance().GetLibrary();
-	Logger logger;
 
 	// Check if the library is valid (e.g., if FT_Init_FreeType failed)
 	if (!library) {
-		logger.Info(DebugType::ResourceManager, "FreeType Library not initialized.");
+		Logger::Get().Error(DebugType::ResourceManager) << "FreeType Library not initialized." << std::endl;
 		return false;
 	}
 
 	// Font already loaded
 	if (fontMap.count(name) > 0) {
-		logger.Info(DebugType::ResourceManager, "Already loaded font': " + fontPath + "'");
+		Logger::Get().Info(DebugType::ResourceManager) <<  "Already loaded font': " << fontPath << "'" << std::endl;
 		return true;
 	}
 	
@@ -143,18 +140,17 @@ bool ResourceManager::loadFont(const std::string& name, const std::string& fontP
 	auto newFont = std::make_unique<Font>();
 	if (newFont->Load(library, fontPath, size)) {
 		add<Font>(name, std::move(newFont)); // Add to resource manager's unordered_map
-		logger.Info(DebugType::ResourceManager, "Loaded font '" + fontPath + "' with size " + std::to_string(size));
+		Logger::Get().Info(DebugType::ResourceManager) << "Loaded font '" << fontPath << "' with size " << size << std::endl;
 		return true;
 	}
 
 	// Failed to load
-	logger.Info(DebugType::ResourceManager, "Failed to load font from '" + fontPath + "'");
+	Logger::Get().Error(DebugType::ResourceManager) << "Failed to load font from '" << fontPath << "'" << std::endl;
 	return false;
 }
 
 void ResourceManager::Shutdown() {
-    Logger logger;
-    logger.Info(DebugType::ResourceManager, "ResourceManager shutdown: freeing all resources.");
+	Logger::Get().Info(DebugType::ResourceManager) << "ResourceManager shutdown: freeing all resources." << std::endl;
 
     // Clear all maps
 	clearAll();

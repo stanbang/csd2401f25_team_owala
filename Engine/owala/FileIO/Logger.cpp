@@ -20,19 +20,19 @@ namespace Framework {
         if (!SymInitialize(GetCurrentProcess(),
             "srv*C:\\Symbols*https://msdl.microsoft.com/download/symbols",
             TRUE)) {
-            std::cerr << "Failed to initialize symbols. Error: " << GetLastError() << "\n";
+            Get().Error(DebugType::Logger) << "Failed to initialize symbols. Error: " << GetLastError() << std::endl;
         }
     }
     
     // called when GameException is thrown. uses stack trace captured at the point where GameException was thrown
     void Logger::LogCrash(const DebugType type, const std::string& message, const backward::StackTrace& stack_trace) {
-        Info(type, message); // log to console for debugging
+        Get().Error(type) << message << std::endl; // log to console for debugging
 
         std::string logPath = GetCrashLogFilename();
         std::ofstream logFile(logPath, std::ios::app);
 
         if (!logFile) {
-            Info(DebugType::Logger, "Unable to open " + logPath);
+            Get().Error(DebugType::Logger) << "Unable to open " << logPath << std::endl;
         } else {
             backward::Printer p;
             p.object = true;
@@ -40,21 +40,21 @@ namespace Framework {
             p.print(stack_trace, stderr); // log to console for debugging
 
             // write to log file
-            Info(DebugType::Logger, "Writing to " + logPath);
-            logFile << GetErrorMsg(type, message) << '\n' << std::endl;
+            Get().Info(DebugType::Logger) << "Writing to " << logPath << std::endl;
+            logFile << GetDebugType(type) << message << '\n' << std::endl;
             p.print(stack_trace, logFile);
         }
     }
 
     // called when other exceptions are thrown. captures stack trace at this point
     void Logger::LogCrash(const DebugType type, const std::string& message) {
-        Info(type, message); // log to console for debugging
+        Get().Error(type) << message << std::endl; // log to console for debugging
 
         std::string logPath = GetCrashLogFilename();
         std::ofstream logFile(logPath, std::ios::app);
 
         if (!logFile) {
-            Info(DebugType::Logger, "Unable to open " + logPath);
+            Get().Error(DebugType::Logger) << "Unable to open " << logPath << std::endl;
         }
         else {
             backward::StackTrace st; st.load_here(32);
@@ -64,14 +64,19 @@ namespace Framework {
             p.print(st, stderr); // log to console for debugging
 
             // write to log file
-            Info(DebugType::Logger, "Writing to " + logPath);
-            logFile << GetErrorMsg(type, message) << '\n' << std::endl;
+            Get().Info(DebugType::Logger) << "Writing to " << logPath << std::endl;
+            logFile << GetDebugType(type) << message << '\n' << std::endl;
             p.print(st, logFile);
         }
     }
 
-    void Logger::Info(DebugType type, const std::string message) {
-        std::cout << GetErrorMsg(type, message) << std::endl;
+    std::ostream& Logger::Info(DebugType type) {
+        std::cout << GetDebugType(type) << ' ';
+        return std::cout;
     }
 
+    std::ostream& Logger::Error(DebugType type) {
+        std::cerr << "[ERROR] " << GetDebugType(type) << ' ';
+        return std::cerr;
+    }
 }
