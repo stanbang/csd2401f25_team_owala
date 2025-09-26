@@ -14,7 +14,6 @@
 #include "GameManager.h"
 #include "SpriteRenderSystem.h"
 
-
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     using namespace Framework;
@@ -51,8 +50,8 @@ int main() {
 
     engine.Initialize();
     engine.GameLoop();
-	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     engine.DestroySystems();
+	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     return 0;
     }
         catch (const GameException& e) {

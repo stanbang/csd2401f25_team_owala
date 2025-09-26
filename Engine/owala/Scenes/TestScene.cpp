@@ -219,6 +219,9 @@ namespace TestScene {
 	}
 
 	void Free() {
-		// Empty by design
+        std::cout << "Freeing IMGUI" << std::endl;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
 	}
 }
