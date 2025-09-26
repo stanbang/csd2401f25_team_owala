@@ -35,7 +35,7 @@ namespace Framework {
             else {
                 // Fallback size for non-physics sprites (backgrounds/UI/etc.)
                 // Adjust these values to your world scale
-                halfSize = { 0.5f, 0.5f };
+                halfSize = { 1.0f, 1.0f };
             }
 
             // Optional rotation (degrees -> radians)
@@ -45,7 +45,9 @@ namespace Framework {
             }
 
             // Fetch the texture by key from ResourceManager
-            Texture tex = resources_.get<Texture>(sprite.textureKey);
+            // NOTE: your ResourceManager::get<T>(key) returns a T (by value) in your examples.
+            // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
+            Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
             // Draw
             gfx_.drawSprite(tex, pos, halfSize, rotationRad);

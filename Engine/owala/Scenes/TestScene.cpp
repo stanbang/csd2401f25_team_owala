@@ -216,8 +216,6 @@ namespace TestScene {
 
         //gfx_->beginFrame({ 0.08f, 0.10f, 0.14f, 1.0f });
 
-
-
         // 5. --- RENDER THE IMGUI UI ---
         // This draws the UI on top of the game world.
         ImGui::Render();
@@ -233,6 +231,9 @@ namespace TestScene {
 	}
 
 	void Free() {
-		// Empty by design
+        std::cout << "Freeing IMGUI" << std::endl;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
 	}
 }

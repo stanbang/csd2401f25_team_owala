@@ -1,8 +1,25 @@
 #include "ResourceManager.h"
 #include "AudioSystem.h"
 #include "Graphics.h"
+#include "GL/glew.h"
 
 using namespace Framework;
+
+void Framework::TextureDeleter::operator()(Texture* texPtr) const noexcept {
+    if (texPtr && *texPtr != 0) {
+        // *texPtr dereferences the pointer to get the actual Texture (GLuint) handle
+        glDeleteTextures(1, texPtr);
+        *texPtr = 0; // Set ID to 0 after deletion
+    }
+    // The memory pointed to by texPtr (the Texture object) must be deleted here
+    delete texPtr;
+}
+
+void Framework::FMODDeleter::operator()(FMOD::Sound* s) const noexcept {
+    if (s) {
+        s->release(); // Release without logging
+    }
+}
 
 void ResourceManager::Initialize() {
 	/* --- HOW TO INITIALIZE RESOURCES --- 
@@ -82,12 +99,29 @@ bool ResourceManager::loadSound(const std::string& id,
     mode |= loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
     mode |= stream ? FMOD_CREATESTREAM : 0;
 
-    FMOD::Sound* snd = nullptr;
+	Audio* snd = nullptr;
     FMOD_RESULT r = system_->createSound(path, mode, nullptr, &snd);
     audiosystem_->check(r, "System::createSound");
     if (r != FMOD_OK || !snd) return false;
 
 	logger.Info(DebugType::ResourceManager, "Loaded sound '" + std::string(path) + "'");
-	add<FMOD::Sound>(id, std::unique_ptr<FMOD::Sound>(snd));
+	add<Audio>(id, std::unique_ptr<Audio, FMODDeleter>(snd));
     return true;
+}
+
+std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& ResourceManager::getTextureMap() {
+    return textureMap;
+}
+
+std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& ResourceManager::getSoundMap() {
+    return soundMap;
+}
+
+
+void ResourceManager::Shutdown() {
+    Logger logger;
+    logger.Info(DebugType::ResourceManager, "ResourceManager shutdown: freeing all resources.");
+
+    // Clear all maps
+	clearAll();
 }
