@@ -313,6 +313,7 @@ namespace Framework {
             p3.x, p3.y,  0.f, 1.f,
         };
 
+        glEnable(GL_BLEND);
         glUseProgram(progTex_);
         glBindVertexArray(vaoTex_);
         glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
