@@ -16,8 +16,8 @@
 int main() {
     using namespace Framework;
     
-    Logger::InitSymbols(); // need this to resolve the symbols in stack trace
-    backward::SignalHandling sh; // global crash handler for segfaults, access violations, etc.
+    Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
+    backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
 
     try {
         CoreEngine engine;
@@ -52,7 +52,6 @@ int main() {
         engine.GameLoop();
 	    SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
         engine.DestroySystems();
-        return 0;
     }
     catch (const GameException& e) {
         Logger logger;
@@ -66,4 +65,6 @@ int main() {
         Logger logger;
         logger.LogCrash(DebugType::Unknown, "Unhandled exception");
     }
+
+    return 0;
 }

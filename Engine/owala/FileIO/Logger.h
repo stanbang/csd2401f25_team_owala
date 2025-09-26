@@ -29,7 +29,8 @@ const enum class DebugType {
     PlayerSystem,
     GraphicsSystem,
     ResourceManager,
-    GameSystem,
+    GameSystem, //deprecated
+    GameManager,
     FileIOSystem,
     Logger
 };
@@ -44,7 +45,8 @@ const std::string DebugTypeLabels[] = {
     "PlayerSystem",
     "GraphicsSystem",
     "ResourceManager",
-    "GameSystem",
+    "GameSystem", //deprecated
+    "GameManager",
     "FileIOSystem",
     "Logger"
 };

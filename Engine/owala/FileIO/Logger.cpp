@@ -13,7 +13,10 @@ namespace Framework {
     const std::string Logger::LOGS_FILEPATH = "Logs/", Logger::LOGS_FILEEXT = "_crash.log";
 
     const void Logger::InitSymbols() {
+        // SYMOPT_DEFERRED_LOADS: load symbols only when its needed
+        // SYMOPT_LOAD_LINES: load file and line number information in addition to function names
         SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+
         if (!SymInitialize(GetCurrentProcess(),
             "srv*C:\\Symbols*https://msdl.microsoft.com/download/symbols",
             TRUE)) {
