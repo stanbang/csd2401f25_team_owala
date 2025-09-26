@@ -34,6 +34,7 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+
     using namespace Framework;
     try {
     CoreEngine engine;

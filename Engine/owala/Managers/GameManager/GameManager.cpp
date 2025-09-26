@@ -13,6 +13,14 @@
 #include "SplashScreen.h"
 #include "TestScene.h"
 
+// ImGui headers
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 namespace Framework {
 	// ---------------------------------------------------------------------------
 	// Singleton Stuff
@@ -105,15 +113,63 @@ namespace Framework {
 		sceneCallbacks_[testScene].fpInitialize();
 		std::cout << "[GameManager] Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+
+		// --- NEW: IMGUI INITIALIZATION ---
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+
+		// When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			style.WindowRounding = 0.0f;
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(systems_.win_->window(), true);
+		ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
 	void GameManager::Update(float dt) {
 		deltaTime = dt;
 
+		//  --- START THE IMGUI FRAME ---
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// --- GAME UPDATE HERE ---
 		// Hard Coded to load the Test Scene as we'll be doing testing there first.
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
+		}
+		// --- END GAME UPDATE ---
+
+		// --- RENDER RUNTIME STATS USING IMGUI ---
+		ImGui::Begin("Game Info");
+		ImGui::Text("--- Current Game Information ---");
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::End();
+
+		// --- RENDER THE IMGUI UI ---
+		// This draws the UI on top of the game world.
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+			GLFWwindow* backup_current_context = glfwGetCurrentContext();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			glfwMakeContextCurrent(backup_current_context);
 		}
 	}
 

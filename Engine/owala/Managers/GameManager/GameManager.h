@@ -14,6 +14,8 @@
 #include "PhysicsSystem.h"
 #include "ResourceManager.h"
 #include "AudioSystem.h"
+#include "WindowsSystem.h"
+#include "Graphics.h"
 
 namespace Framework {
 	enum class SystemType : unsigned char {
