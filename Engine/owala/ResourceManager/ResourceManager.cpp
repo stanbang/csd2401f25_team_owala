@@ -105,26 +105,6 @@ void ResourceManager::Shutdown() {
     Logger logger;
     logger.Info(DebugType::ResourceManager, "ResourceManager shutdown: freeing all resources.");
 
-    // Clear textures first
-    textureMap.clear();
-
-    // Safely release sounds with logging
-    FMOD::System* system = audiosystem_ ? audiosystem_->getFMODSystem() : nullptr;
-    if (system) {
-        for (auto& [key, audioPtr] : soundMap) {
-            logger.Info(DebugType::ResourceManager, "Freeing Audio: " + key);
-            if (audioPtr) {
-                FMOD_RESULT r = audioPtr->release();
-                if (r != FMOD_OK) {
-                    logger.Info(DebugType::ResourceManager, "Failed to release Audio: " + key);
-                }
-            }
-        }
-    }
-    else {
-        logger.Info(DebugType::ResourceManager, "FMOD System unavailable, skipping audio release.");
-    }
-
-    // Now clear the map; deleter will still run but audio is already released safely
-    soundMap.clear();
+    // Clear all maps
+	clearAll();
 }

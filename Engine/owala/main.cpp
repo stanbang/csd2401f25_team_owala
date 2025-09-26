@@ -24,7 +24,7 @@ int main() {
 	Vector2D windowConfig = fileIO.LoadWindowConfig();
     WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
     InputSystem *input = new InputSystem(*win);
-    EntityStorage *ecs = new EntityStorage();
+    std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
     SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
