@@ -2,6 +2,20 @@
 
 using namespace Framework;
 
+// FreeTypeManager Class
+FreeTypeManager::FreeTypeManager() {
+    if (FT_Init_FreeType(&m_library)) {
+        std::cerr << "FreeType: Could not init FreeType library" << std::endl;
+    }
+}
+
+FreeTypeManager::~FreeTypeManager() {
+    if (m_library) {
+        FT_Done_FreeType(m_library);
+    }
+}
+
+// Font Class
 Font::Font() : m_textureAtlas(0), m_characters(), m_face() {}
 
 Font::~Font() {
