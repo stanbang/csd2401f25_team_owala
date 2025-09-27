@@ -15,6 +15,7 @@
 #include "ResourceManager.h"
 #include "AudioSystem.h"
 #include "WindowsSystem.h"
+#include "SpriteRenderSystem.h"
 #include "Graphics.h"
 
 namespace Framework {
@@ -51,6 +52,7 @@ namespace Framework {
 			PhysicsSystem* physics_ = nullptr;
 			ResourceManager* resourceManager_ = nullptr;
 			AudioSystem* audio_ = nullptr;   // <-- store it
+			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
 		};
 
 		RegisteredSystems systems_;
@@ -85,7 +87,7 @@ namespace Framework {
 
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
-		void RegisterSystemsToUse(ResourceManager& rcm,	EntityStorage& ecs,	Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio);
+		void RegisterSystemsToUse(ResourceManager& rcm,	EntityStorage& ecs,	Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio, SpriteRenderSystem& spriteRenderer);
 
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.
