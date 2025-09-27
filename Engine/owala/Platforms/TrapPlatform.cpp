@@ -8,29 +8,10 @@
 
 namespace Framework {
 
-    Entity createTrapPlatform(EntityStorage& entityStorage, Vector2D pos, Vector2D halfSize, std::string textureID)
-    {
-        Entity trapPlatform = createPlatform(entityStorage, pos, halfSize, textureID);
-
-        TrapPlatformComponent trapComponent;
-        trapComponent.originalPosition = pos;
-        trapComponent.isTriggered = false;
-        trapComponent.hasFallen = false;
-        trapComponent.currentDelay = 0.0f;
-        trapComponent.currentFallDistance = 0.0f;
-        trapComponent.fallSpeed = 2.0f; 
-        trapComponent.triggerDelay = 1.0f;
-
-        entityStorage.trapPlatform[trapPlatform] = trapComponent;
-        return trapPlatform;
-    }
-
     void updateTrapPlatforms(EntityStorage& entityStorage, float dt)
     {
-        const float maxFallDistance = 0.0f;
-
         for (auto& [entity, trapComp] : entityStorage.trapPlatform) {
-            if (trapComp.hasFallen && trapComp.currentFallDistance >= maxFallDistance) {
+            if (trapComp.hasFallen) {
                 continue;
             }
 

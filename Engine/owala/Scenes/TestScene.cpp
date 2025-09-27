@@ -25,7 +25,9 @@
 #include "Transformation.h"
 #include "ScalingPlatform.h"
 #include "AudioEntity.h"
-
+#include <PlatformPrefab.h>
+#include <TrapPlatformSystem.h>
+#include <ScalingPlatformSystem.h>
 #include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
 #include <iostream>
@@ -42,12 +44,13 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+
 namespace {
     using namespace Framework;
     Entity playerEntity = 0;
     Entity groundEntity = 0;
     Entity backgroundEntity = 0;
-    Entity platformTrap_ = 0;
+    Entity trapPlatform = 0;
     Entity topGround = 0;
     Entity leftGround = 0;
     Entity rightGround = 0;
@@ -66,6 +69,8 @@ namespace TestScene {
 		WindowsSystem* win_ = gm.GetSystems().win_;
 		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
 
+        PrefabSystem prefabSystem;
+
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
@@ -76,6 +81,9 @@ namespace TestScene {
         rcm_->loadFont("kremlin_font", "Assets/Fonts/Kremlin.ttf");
         rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
+       
+        // Loading Platform Prefabs
+        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.txt");
 
         // --- Create Background Entity ---
         std::string backgroundID = "Background";
@@ -83,33 +91,30 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", backgroundEntity);
 
         // --- Create Ground Entity ---
-        std::string platformTexID = "RonaldSprite_Platform";
-        groundEntity = createPlatform(*ecs, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
-        sceneMgr.AddEntityToScene("Test Scene", groundEntity);
+        Entity ground = prefabSystem.CreatePlatformFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
+        sceneMgr.AddEntityToScene("Test Scene", ground);
 
 
         // Create 4 borders around the screen
-        topGround = createPlatform(*ecs, { 0.0f, 1.f }, { 1.0f, 0.2f }, platformTexID);
+        topGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "TopBorder", { 0.0f, 1.0f });
         sceneMgr.AddEntityToScene("Test Scene", topGround);
 
-        leftGround = createPlatform(*ecs, { -1.0f, 0.0f }, { 0.2f, 1.0f }, platformTexID);
+        leftGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { -1.0f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", leftGround);
 
-        rightGround = createPlatform(*ecs, { 1.0f, 0.0f }, { 0.2f, 1.0f }, platformTexID);
+        rightGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { 1.0f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", rightGround);
 
-        downGround = createPlatform(*ecs, { 0.0f, -1.0f }, { 1.0f, 0.2f }, platformTexID);
+        downGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "BottomBorder", { 0.0f, -1.0f });
         sceneMgr.AddEntityToScene("Test Scene", downGround);
 
         // Scaling Platform
-        std::string scalingPlatformTexID = "RonaldSprite_Platform";
-        scalingPlatform = createScalingPlatform(*ecs, { -0.5f, 0.0f },{ 0.3f, 0.1f },scalingPlatformTexID,2.0f,0.2f,1.0f);
+        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { -0.5f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
         // Trap Platforms
-        std::string trapTexID = "RonaldSprite_Platform"; 
-        platformTrap_ = createTrapPlatform(*ecs, { 0.0f, 0.5f }, { 0.5f, 0.1f }, trapTexID);
-        sceneMgr.AddEntityToScene("Test Scene", platformTrap_);
+        trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
+        sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
         // --- Create Player Entity ---
         FileIOSystem fileIO;
@@ -233,13 +238,13 @@ namespace TestScene {
             // ImGui::ShowDemoWindow(); 
         }
 
-        // Update trap platforms
         float dt = gm.GetDeltaTime();
-        updateTrapPlatforms(*ecs_, dt);
-        triggerTrapPlatform(*ecs_, platformTrap_);
         // Update scaling platforms
-        updateScalingPlatforms(*ecs_, dt);
-
+        ScalingPlatformSystem scaleTrapSystem(*ecs_);
+        scaleTrapSystem.Update(dt);
+        // Update trap platforms
+        TrapPlatformSystem tempTrapSystem(*ecs_);
+        tempTrapSystem.Update(dt);
         //   RenderColliders();
 	}
 
