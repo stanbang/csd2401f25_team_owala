@@ -44,9 +44,9 @@ namespace Framework {
 			
 
                           // We need a RigidBody, Velocity, and PlayerState to control the player
-            if (entityStorage_->velocity.count(entity) && entityStorage_->playerState.count(entity)) {
-                auto& vel = entityStorage_->velocity.at(entity);
-                auto& state = entityStorage_->playerState.at(entity);
+            if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType)) {
+                Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
+                PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
 
                 // --- Horizontal Movement ---
                 float targetVelX = 0.0f;
@@ -73,8 +73,8 @@ namespace Framework {
         EntityManager entityMgr(*entityStorage_);
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            newStats = entityStorage_->playerStats.at(entity);
-            newStats.pos = entityStorage_->position.at(entity);
+            newStats = entityMgr.GetComponent<PlayerStats>(entity);
+            newStats.pos = entityMgr.GetComponent<Position>(entity);
         }
 
         logger.Info(DebugType::PlayerSystem, "Writing Player Stats");

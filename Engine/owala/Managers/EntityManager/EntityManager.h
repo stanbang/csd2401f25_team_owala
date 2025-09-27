@@ -37,16 +37,18 @@ namespace Framework {
 
 			if (HasComponent(entity, type)) return;
 
-			if constexpr (std::is_same_v<T, Position>)      ecs.position[entity] = component;
+			if constexpr (std::is_same_v<T, PlayerStats>) ecs.playerStats[entity] = component;
+			else if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
+			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
 			else if constexpr (std::is_same_v<T, RigidBody>) ecs.rigidBody[entity] = component;
 			else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
-			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
-			else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
-			else if constexpr (std::is_same_v<T, PlayerStats>) ecs.playerStats[entity] = component;
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
+			else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
+			else if constexpr (std::is_same_v<T, AudioComponent>) ecs.audio[entity] = component;
+			else if constexpr (std::is_same_v<T, AnimatedTextureComponent>) ecs.animatedTex[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
 			else {
 				// If this is a tag-only type, no storage is necessary.
@@ -69,16 +71,18 @@ namespace Framework {
 			}
 
 			// Return a reference to the component in the map
-			if constexpr (std::is_same_v<T, Position>)      return ecs.position.at(entity);
+			if constexpr (std::is_same_v<T, PlayerStats>) return ecs.playerStats.at(entity);
+			else if constexpr (std::is_same_v<T, Position>) return ecs.position.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
+			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
 			else if constexpr (std::is_same_v<T, RigidBody>) return ecs.rigidBody.at(entity);
 			else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
-			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
-			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
-			else if constexpr (std::is_same_v<T, PlayerStats>) return ecs.playerStats.at(entity);
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
+			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
+			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
+			else if constexpr (std::is_same_v<T, AnimatedTextureComponent>) return ecs.animatedTex.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");

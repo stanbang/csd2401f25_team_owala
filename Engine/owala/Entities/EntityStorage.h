@@ -27,16 +27,18 @@ namespace Framework {
 	class WIPEntityManager;
 
 	enum ComponentType {
-		PositionType = 0,
+		PlayerStatsType = 0,
+		PositionType,
 		VelocityType,
 		AccelerationType,
+		TriangleType,
 		RigidBodyType,
 		AABBColliderType,
-		TriangleType,
-		TextureComponentType,
-		PlayerStatsType,
 		PlayerStateType,
 		RotationFlagType,
+		TextureComponentType,
+		AudioComponentType,
+		AnimatedTextureComponentType,
 		PlayerTagType,
 		PlatformTagType,
 		BackgroundTagType,
@@ -59,16 +61,18 @@ namespace Framework {
 	struct ComponentTypeTrait;
 
 	// Specializations for each real component
+	template <> struct ComponentTypeTrait<PlayerStats> { static constexpr ComponentType value = PlayerStatsType; };
 	template <> struct ComponentTypeTrait<Position> { static constexpr ComponentType value = PositionType; };
 	template <> struct ComponentTypeTrait<Velocity> { static constexpr ComponentType value = VelocityType; };
 	template <> struct ComponentTypeTrait<Acceleration> { static constexpr ComponentType value = AccelerationType; };
+	template <> struct ComponentTypeTrait<Triangle> { static constexpr ComponentType value = TriangleType; };
 	template <> struct ComponentTypeTrait<RigidBody> { static constexpr ComponentType value = RigidBodyType; };
 	template <> struct ComponentTypeTrait<AABBCollider> { static constexpr ComponentType value = AABBColliderType; };
-	template <> struct ComponentTypeTrait<Triangle> { static constexpr ComponentType value = TriangleType; };
-	template <> struct ComponentTypeTrait<TextureComponent> { static constexpr ComponentType value = TextureComponentType; };
-	template <> struct ComponentTypeTrait<PlayerStats> { static constexpr ComponentType value = PlayerStatsType; };
 	template <> struct ComponentTypeTrait<PlayerState> { static constexpr ComponentType value = PlayerStateType; };
 	template <> struct ComponentTypeTrait<RotationFlag> { static constexpr ComponentType value = RotationFlagType; };
+	template <> struct ComponentTypeTrait<TextureComponent> { static constexpr ComponentType value = TextureComponentType; };
+	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
+	template <> struct ComponentTypeTrait<AnimatedTextureComponent> { static constexpr ComponentType value = AnimatedTextureComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
@@ -85,7 +89,7 @@ namespace Framework {
 	private:
 		std::unordered_map<Entity, ComponentSignature> entitySignatures; // Track components of each entity
 		friend class EntityManager; // Allow EntityManager to access private members
-	public:
+	private:
 		//Tags
 		//std::unordered_map<Entity, PlayerTag>		playerTag;
 		//std::unordered_map<Entity, PlatformTag>		platformTag;

@@ -35,227 +35,227 @@
 
 namespace Framework {
 
-    void GameSystem::Initialize() {
-		SceneManager& sceneMgr = SceneManager::GetInstance();
+  //  void GameSystem::Initialize() {
+		//SceneManager& sceneMgr = SceneManager::GetInstance();
 
-        // Testing Scene Creation
-        SceneManager::GetInstance().CreateSceneAsset("Test Scene");
-        SceneManager::GetInstance().CreateSceneAsset("Other Test Scene");
+  //      // Testing Scene Creation
+  //      SceneManager::GetInstance().CreateSceneAsset("Test Scene");
+  //      SceneManager::GetInstance().CreateSceneAsset("Other Test Scene");
 
-        // --- Load Assets ---
-        // Ensure you have these files in an "Assets" folder next to your executable.
-        //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
-        //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
-        gfx_->setAlphaBlend(true); // Enable transparency for PNGs
+  //      // --- Load Assets ---
+  //      // Ensure you have these files in an "Assets" folder next to your executable.
+  //      //playerTex_ = gfx_->loadTextureFromFile("Assets/duck-rgba-256.tex");
+  //      //groundTex_ = gfx_->loadTextureFromFile("Assets/Ronald.png");
+  //      gfx_->setAlphaBlend(true); // Enable transparency for PNGs
 
-        // --- Create Ground Entity ---
-		std::string platformTexID = "RonaldSprite_Platform";
-		ground_ = createPlatform(*ecs_, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
-        sceneMgr.AddEntityToScene("Test Scene", ground_);
+  //      // --- Create Ground Entity ---
+		//std::string platformTexID = "RonaldSprite_Platform";
+		//ground_ = createPlatform(*ecs_, { 0.0f, -0.5f }, { 1.0f, 0.2f }, platformTexID);
+  //      sceneMgr.AddEntityToScene("Test Scene", ground_);
 
-        // --- Create Player Entity ---
-		FileIOSystem fileIO;
-        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
+  //      // --- Create Player Entity ---
+		//FileIOSystem fileIO;
+  //      PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
 
-        std::string playerDuckID = "playerSprite_DuckyWucky";
-        player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
-		sceneMgr.AddEntityToScene("Test Scene", player_);
-        sceneMgr.SetEntityAsPersistent(player_);
-        Entity testEntity1 = createEntity();
-        Entity testEntity2 = createEntity();
-		sceneMgr.AddEntityToScene("Other Test Scene", testEntity1);
-        sceneMgr.AddEntityToScene("Other Test Scene", testEntity2);
+  //      std::string playerDuckID = "playerSprite_DuckyWucky";
+  //      player_ = createPlayer(*ecs_, stats, { 0.1f, 0.1f }, playerDuckID);
+		//sceneMgr.AddEntityToScene("Test Scene", player_);
+  //      sceneMgr.SetEntityAsPersistent(player_);
+  //      Entity testEntity1 = createEntity();
+  //      Entity testEntity2 = createEntity();
+		//sceneMgr.AddEntityToScene("Other Test Scene", testEntity1);
+  //      sceneMgr.AddEntityToScene("Other Test Scene", testEntity2);
 
-        sceneMgr.LoadScene(1);
+  //      sceneMgr.LoadScene(1);
 
-        // ---- AUDIO ----
-        // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
-        // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
-        //bool ok_bgm = audio_->loadSound(
-        //    "bgm",
-        //    "../Assets/siren.ogg",   // <--- ensure this file exists
-        //    /*loop*/ true,
-        //    /*stream*/ true
-        //);
-        //if (!ok_bgm) {
-        //    std::fprintf(stderr, "[Audio] Failed to load bgm\n");
-        //}
-        //audio_->play("bgm", /*volume*/0.35f, /*paused*/false);
+  //      // ---- AUDIO ----
+  //      // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
+  //      // BGM: loop + stream (e.g., WAV/OGG/MP3). Path must include extension.
+  //      //bool ok_bgm = audio_->loadSound(
+  //      //    "bgm",
+  //      //    "../Assets/siren.ogg",   // <--- ensure this file exists
+  //      //    /*loop*/ true,
+  //      //    /*stream*/ true
+  //      //);
+  //      //if (!ok_bgm) {
+  //      //    std::fprintf(stderr, "[Audio] Failed to load bgm\n");
+  //      //}
+  //      //audio_->play("bgm", /*volume*/0.35f, /*paused*/false);
 
-        // --- NEW: IMGUI INITIALIZATION ---
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); 
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+  //      // --- NEW: IMGUI INITIALIZATION ---
+  //      IMGUI_CHECKVERSION();
+  //      ImGui::CreateContext();
+  //      ImGuiIO& io = ImGui::GetIO(); 
+  //      io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  //      io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
+  //      io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
+  //      // Setup Dear ImGui style
+  //      ImGui::StyleColorsDark();
 
-        // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-        ImGuiStyle& style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
+  //      // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+  //      ImGuiStyle& style = ImGui::GetStyle();
+  //      if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+  //      {
+  //          style.WindowRounding = 0.0f;
+  //          style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+  //      }
 
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForOpenGL(win_->window(), true);
-        ImGui_ImplOpenGL3_Init("#version 330");
-    }
+  //      // Setup Platform/Renderer backends
+  //      ImGui_ImplGlfw_InitForOpenGL(win_->window(), true);
+  //      ImGui_ImplOpenGL3_Init("#version 330");
+  //  }
 
-    void GameSystem::Update(float dt) {
-        // --- IMGUI begin ---
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+  //  void GameSystem::Update(float dt) {
+  //      // --- IMGUI begin ---
+  //      ImGui_ImplOpenGL3_NewFrame();
+  //      ImGui_ImplGlfw_NewFrame();
+  //      ImGui::NewFrame();
 
-        // Input / game logic (P/O/I, etc.)
-        if (input_->KeyPressed(InputSystem::Key::P)) physics_->SetPaused(!physics_->IsPaused());
-        if (input_->KeyPressed(InputSystem::Key::O)) physics_->ToggleStepMode();
-        if (input_->KeyPressed(InputSystem::Key::I)) physics_->ExecuteNextStep();
+  //      // Input / game logic (P/O/I, etc.)
+  //      if (input_->KeyPressed(InputSystem::Key::P)) physics_->SetPaused(!physics_->IsPaused());
+  //      if (input_->KeyPressed(InputSystem::Key::O)) physics_->ToggleStepMode();
+  //      if (input_->KeyPressed(InputSystem::Key::I)) physics_->ExecuteNextStep();
 
-        // --- Build ImGui ---
-        ImGui::Begin("Level Editor");
-        if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ecs_->position.count(player_) && ecs_->velocity.count(player_) && ecs_->playerState.count(player_)) {
-                auto& pos = ecs_->position.at(player_).Pos;
-                auto& vel = ecs_->velocity.at(player_).Vel;
-                auto& state = ecs_->playerState.at(player_);
-                ImGui::DragFloat2("Position", &pos.x, 0.01f);
-                ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-                ImGui::Checkbox("Is Grounded?", &state.isGrounded);
-                if (ImGui::Button("Reset Player Position")) {
-                    pos = { 0.0f, 0.5f };
-                    vel = { 0.0f, 0.0f };
-                }
-            }
-            else {
-                ImGui::Text("Player entity data not found!");
-            }
-        }
-        if (ImGui::CollapsingHeader("Global Controls")) {
-            static float masterVolume = 0.35f;
-            if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
-                audio_->setMasterVolume(masterVolume);
-            }
-        }
-        ImGui::End();
+  //      // --- Build ImGui ---
+  //      ImGui::Begin("Level Editor");
+  //      if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
+  //          if (ecs_->position.count(player_) && ecs_->velocity.count(player_) && ecs_->playerState.count(player_)) {
+  //              auto& pos = ecs_->position.at(player_).Pos;
+  //              auto& vel = ecs_->velocity.at(player_).Vel;
+  //              auto& state = ecs_->playerState.at(player_);
+  //              ImGui::DragFloat2("Position", &pos.x, 0.01f);
+  //              ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+  //              ImGui::Checkbox("Is Grounded?", &state.isGrounded);
+  //              if (ImGui::Button("Reset Player Position")) {
+  //                  pos = { 0.0f, 0.5f };
+  //                  vel = { 0.0f, 0.0f };
+  //              }
+  //          }
+  //          else {
+  //              ImGui::Text("Player entity data not found!");
+  //          }
+  //      }
+  //      if (ImGui::CollapsingHeader("Global Controls")) {
+  //          static float masterVolume = 0.35f;
+  //          if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
+  //              audio_->setMasterVolume(masterVolume);
+  //          }
+  //      }
+  //      ImGui::End();
 
-        // --- ImGui render (draws UI only) ---
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow* backup = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup);
-        }
-    }
-
-
-    //void GameSystem::RenderColliders() {
-    //    // Loop through all entities that have a collider component
-    //    for (auto const& [entity, collider] : ecs_->colliders) {
-    //        // Ensure the entity also has a position
-    //        if (ecs_->position.count(entity)) {
-    //            const auto& pos = ecs_->position.at(entity).Pos;
-    //            const auto& halfSize = collider.HalfSize;
-
-    //            float rotation = 0.0f;
-    //            if (ecs_->rotationFlag.count(entity)) {
-    //                rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
-    //            }
-
-    //            AABB_Bounds rotatedBounds = Framework::PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
+  //      // --- ImGui render (draws UI only) ---
+  //      ImGui::Render();
+  //      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  //      if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+  //          GLFWwindow* backup = glfwGetCurrentContext();
+  //          ImGui::UpdatePlatformWindows();
+  //          ImGui::RenderPlatformWindowsDefault();
+  //          glfwMakeContextCurrent(backup);
+  //      }
+  //  }
 
 
+  //  //void GameSystem::RenderColliders() {
+  //  //    // Loop through all entities that have a collider component
+  //  //    for (auto const& [entity, collider] : ecs_->colliders) {
+  //  //        // Ensure the entity also has a position
+  //  //        if (ecs_->position.count(entity)) {
+  //  //            const auto& pos = ecs_->position.at(entity).Pos;
+  //  //            const auto& halfSize = collider.HalfSize;
 
-    //            // Determine the render color based on the entity's tag
-    //            Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
-    //            if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
-    //            if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
+  //  //            float rotation = 0.0f;
+  //  //            if (ecs_->rotationFlag.count(entity)) {
+  //  //                rotation = ecs_->rotationFlag.at(entity).currentRotation * (M_PI / 180.0f);
+  //  //            }
 
-    //            // Calculate the min/max corners and issue the draw call
-    //            //gfx_->drawRectangle(
-    //            //    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
-    //            //    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
-    //            //    col
-    //            //);
+  //  //            AABB_Bounds rotatedBounds = Framework::PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
 
-    //            gfx_->drawRectangle(
-    //                rotatedBounds.min, // Min corner 
-    //                rotatedBounds.max, // Max corner 
-    //                col
-    //            );
-    //        }
-    //    }
-    //}
 
-    void GameSystem::RenderColliders() {
-        for (auto const& [entity, collider] : ecs_->colliders) {
-            if (ecs_->position.count(entity)) {
-                const auto& pos = ecs_->position.at(entity).Pos;
-                const auto& halfSize = collider.HalfSize;
 
-                float rotation = 0.0f;
-                if (ecs_->rotationFlag.count(entity)) {
-                    rotation = ecs_->rotationFlag.at(entity).currentRotation;
-                }
+  //  //            // Determine the render color based on the entity's tag
+  //  //            Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
+  //  //            if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
+  //  //            if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
 
-                AABB_Bounds rotatedBounds;
-                if (std::abs(rotation) < 0.001f) {
-                    rotatedBounds = {
-                        {pos.x - halfSize.x, pos.y - halfSize.y},
-                        {pos.x + halfSize.x, pos.y + halfSize.y}
-                    };
-                }
-                else {
-                    float rotationRad = rotation * M_PI / 180.0f;
-                    float cos_r = std::cos(rotationRad);
-                    float sin_r = std::sin(rotationRad);
+  //  //            // Calculate the min/max corners and issue the draw call
+  //  //            //gfx_->drawRectangle(
+  //  //            //    { pos.x - halfSize.x, pos.y - halfSize.y }, // Min corner (bottom-left)
+  //  //            //    { pos.x + halfSize.x, pos.y + halfSize.y }, // Max corner (top-right)
+  //  //            //    col
+  //  //            //);
 
-                    Vector2D corners[4] = {
-                        {-halfSize.x, -halfSize.y}, {halfSize.x, -halfSize.y},
-                        {halfSize.x, halfSize.y}, {-halfSize.x, halfSize.y}
-                    };
+  //  //            gfx_->drawRectangle(
+  //  //                rotatedBounds.min, // Min corner 
+  //  //                rotatedBounds.max, // Max corner 
+  //  //                col
+  //  //            );
+  //  //        }
+  //  //    }
+  //  //}
 
-                    float minX = INFINITY, maxX = -INFINITY;
-                    float minY = INFINITY, maxY = -INFINITY;
+  //  void GameSystem::RenderColliders() {
+  //      for (auto const& [entity, collider] : ecs_->colliders) {
+  //          if (ecs_->position.count(entity)) {
+  //              const auto& pos = ecs_->position.at(entity).Pos;
+  //              const auto& halfSize = collider.HalfSize;
 
-                    for (int i = 0; i < 4; i++) {
-                        float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r + pos.x;
-                        float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r + pos.y;
+  //              float rotation = 0.0f;
+  //              if (ecs_->rotationFlag.count(entity)) {
+  //                  rotation = ecs_->rotationFlag.at(entity).currentRotation;
+  //              }
 
-                        minX = std::min(minX, rotatedX);
-                        maxX = std::max(maxX, rotatedX);
-                        minY = std::min(minY, rotatedY);
-                        maxY = std::max(maxY, rotatedY);
-                    }
-                    rotatedBounds = { {minX, minY}, {maxX, maxY} };
-                }
+  //              AABB_Bounds rotatedBounds;
+  //              if (std::abs(rotation) < 0.001f) {
+  //                  rotatedBounds = {
+  //                      {pos.x - halfSize.x, pos.y - halfSize.y},
+  //                      {pos.x + halfSize.x, pos.y + halfSize.y}
+  //                  };
+  //              }
+  //              else {
+  //                  float rotationRad = rotation * M_PI / 180.0f;
+  //                  float cos_r = std::cos(rotationRad);
+  //                  float sin_r = std::sin(rotationRad);
 
-                Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
-                //if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
-                //if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
+  //                  Vector2D corners[4] = {
+  //                      {-halfSize.x, -halfSize.y}, {halfSize.x, -halfSize.y},
+  //                      {halfSize.x, halfSize.y}, {-halfSize.x, halfSize.y}
+  //                  };
 
-                // Draw the rotated bounding box
-                gfx_->drawRectangle(
-                    rotatedBounds.min, // Min corner 
-                    rotatedBounds.max, // Max corner 
-                    col
-                );
-            }
-        }
-    }
+  //                  float minX = INFINITY, maxX = -INFINITY;
+  //                  float minY = INFINITY, maxY = -INFINITY;
 
-    void GameSystem::Shutdown() {
-        // Cleanup ImGui
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-    }
+  //                  for (int i = 0; i < 4; i++) {
+  //                      float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r + pos.x;
+  //                      float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r + pos.y;
+
+  //                      minX = std::min(minX, rotatedX);
+  //                      maxX = std::max(maxX, rotatedX);
+  //                      minY = std::min(minY, rotatedY);
+  //                      maxY = std::max(maxY, rotatedY);
+  //                  }
+  //                  rotatedBounds = { {minX, minY}, {maxX, maxY} };
+  //              }
+
+  //              Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
+  //              //if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
+  //              //if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
+
+  //              // Draw the rotated bounding box
+  //              gfx_->drawRectangle(
+  //                  rotatedBounds.min, // Min corner 
+  //                  rotatedBounds.max, // Max corner 
+  //                  col
+  //              );
+  //          }
+  //      }
+  //  }
+
+  //  void GameSystem::Shutdown() {
+  //      // Cleanup ImGui
+  //      ImGui_ImplOpenGL3_Shutdown();
+  //      ImGui_ImplGlfw_Shutdown();
+  //      ImGui::DestroyContext();
+  //  }
 
 } // namespace Framework

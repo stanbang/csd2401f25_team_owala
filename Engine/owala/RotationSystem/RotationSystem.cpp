@@ -1,6 +1,7 @@
 // RotationSystem.cpp
 #include "RotationSystem.h"
 #include "Transformation.h"
+#include "EntityManager.h"
 #include <cmath>
 #include <iostream>
 
@@ -13,6 +14,8 @@ namespace Framework {
     }
 
     void RotationSystem::Update(float dt) {
+		EntityManager entityMgr(*ecs_);
+
         if (input_->KeyPressed(InputSystem::Key::Right)) {
             targetGlobalRotation -= 90.0f; // Rotate clockwise
             physics_->SetPaused(true);
@@ -66,12 +69,14 @@ namespace Framework {
             if (std::abs(rotationIncrement) > 0.001f) {
                 Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
 
-                for (auto& [entity, position] : ecs_->position) {
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PositionType)) {
+					Position& position = entityMgr.GetComponent<Position>(entity);
                     Vector2D originalPos = position.Pos;
                     position.Pos = rotationMat * originalPos;
                 }
 
-                for (auto& [entity, rotationFlag] : ecs_->rotationFlag) {
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
+					RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     rotationFlag.currentRotation += rotationIncrement;
                     rotationFlag.currentRotation = std::fmod(rotationFlag.currentRotation + 360.0f, 360.0f);
                 }
