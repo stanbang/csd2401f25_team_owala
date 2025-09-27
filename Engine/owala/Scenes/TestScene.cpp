@@ -28,7 +28,6 @@
 #include <PlatformPrefab.h>
 #include <TrapPlatformSystem.h>
 #include <ScalingPlatformSystem.h>
-#include "SpriteComponents.h"
 #include "InputSystem.h"   // if you want toggles
 #include <iostream>
 #ifndef M_PI

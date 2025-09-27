@@ -1,5 +1,4 @@
 #include "SpriteRenderSystem.h"
-#include "SpriteComponents.h"   // for ecs_.tex (textureKey)
 #include "EntityManager.h"
 #include "Matrix3x3.h"
 #include <cmath>
