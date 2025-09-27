@@ -1,12 +1,19 @@
-#pragma once
 /*****************************************************************//**
- * \file	SceneManager.h
- * \brief	Manager responsible for managing scenes/levels
- *
- *
- * \author	Jason Lou
- * \date	11 September 2025
- *********************************************************************/
+* \file   SceneManager.h
+*
+* \primary_author
+*      Jason Lou
+* \secondary_author
+*
+*
+* \brief	Manager responsible for managing scenes/levels, including 
+*			loading and unloading, management of entity-level associations.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+#pragma once
 #include "EntityStorage.h"
 #include "SceneComponents.h"
 

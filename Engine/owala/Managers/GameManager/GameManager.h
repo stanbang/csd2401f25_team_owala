@@ -1,12 +1,19 @@
-#pragma once
 /*****************************************************************//**
- * \file	GameManager.h
- * \brief	Manager responsible for managing game state
- *
- *
- * \author	Jason Lou
- * \date	18 September 2025
- *********************************************************************/
+* \file   GameManager.h
+*
+* \primary_author
+*		Jason Lou(80%)
+* \secondary_author
+*		Lur Pei Hao Stanley(20%)
+*
+* \brief	Manager responsible for managing game state.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+
+#pragma once
 #include "SceneManager.h"
 #include "ISystem.h"
 #include "EntityStorage.h"

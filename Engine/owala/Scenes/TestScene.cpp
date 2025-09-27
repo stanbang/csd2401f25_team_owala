@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "Player.h"
 #include "Platform.h"
-#include "Background.h"
+#include "BackgroundEntity.h"
 #include "Text.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"

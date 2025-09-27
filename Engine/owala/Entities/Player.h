@@ -1,11 +1,17 @@
 /*****************************************************************//**
- * \file	Player.hpp
- * \brief	Contains function to create a player entity with
- *			its respective components
- * 
- * \author	Ng Jing Wen
- * \date	10 September 2025
- *********************************************************************/
+* \file   Player.h
+*
+* \primary_author
+*      Ng Jing Wen
+* \secondary_author
+*
+*
+* \brief
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "Entity.h"
 #include "Components.h"

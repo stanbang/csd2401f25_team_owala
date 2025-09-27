@@ -1,14 +1,20 @@
-#pragma once
 /*****************************************************************//**
- * \file	EntityManager.h
- * \brief	Manager responsible for managing entities and their
- *			components in the ECS architecture. Also serves as a
- *			Entity Factory to create entities.
- *
- *
- * \author	Jason Lou
- * \date	26 September 2025
- *********************************************************************/
+* \file   EntityManager.h
+*
+* \primary_author
+*      Jason Lou
+* \secondary_author
+*
+*
+* \brief	Manager responsible for managing entities and their
+*			components in the ECS architecture. Also serves as a
+*			Entity Factory/Game Object Factory to create entities.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+#pragma once
 #include "EntityStorage.h"
 #include <stdexcept>
 

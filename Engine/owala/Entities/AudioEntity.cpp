@@ -1,11 +1,6 @@
-#pragma once
-#include <string>
-#include "Entity.h"
-#include "Components.h"
-#include "EntityStorage.h"
-#include "EntityManager.h"
+#include "AudioEntity.h"
 
-namespace Framework{
+namespace Framework {
 	Entity createBGAudio(EntityStorage& entityStorage,
 		PlayerStats stats,
 		Vector2D halfSize,
@@ -19,7 +14,7 @@ namespace Framework{
 		set initial values in the unordered maps.*/
 
 		//entityStorage.tex[player] = TextureComponent{ texture };
-		entityMgr.AddComponent(bg_audio, AudioComponent{audioID, true, true});
+		entityMgr.AddComponent(bg_audio, AudioComponent{ audioID, true, true });
 
 		//Return the entity ID of the player
 		return bg_audio;

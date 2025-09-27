@@ -1,4 +1,4 @@
-#include "Background.h"
+#include "BackgroundEntity.h"
 #include "EntityManager.h"
 
 namespace Framework{

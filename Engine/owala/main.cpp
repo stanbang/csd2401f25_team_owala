@@ -1,3 +1,23 @@
+/*****************************************************************//**
+ * \file   main.cpp
+ * 
+ * \primary_author 
+ *      Ng Jordain Ying Zhe
+ * \secondary_author 
+ *      Lur Pei Hao Stanley
+ *      Sitara Anil
+ *      Lou Jason
+ *      Ng Jing Wen
+ *      Yar Xuan
+ * 
+ * \brief  Contains the main entry point for the application. 
+ * All core systems are initialized and registered to the CoreEngine here.
+ * 
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include <Windows.h>
 #include "Core.h"
 #include "WindowsSystem.h"
