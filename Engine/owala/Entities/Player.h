@@ -59,6 +59,13 @@ namespace Framework {
 			return player;
 	}
 
+	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float diff) {
+		//Create an EntityManager to access entity creation APIs
+		EntityManager entityMgr(entityStorage);
+		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x += diff;
+		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.y += diff;
+	}
+
 	//// NEW: create a player with a vector of sprites (frames)
 	//inline Entity createPlayer(EntityStorage& es,
 	//	const std::vector<Sprite>& frames,

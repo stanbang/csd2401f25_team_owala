@@ -167,6 +167,15 @@ namespace TestScene {
             throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");
         }
 
+        //press arrow up/ arrow down to scale player sprite
+        if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
+            GameManager& gm = GameManager::GetInstance();
+            EntityStorage* ecs = gm.GetSystems().ecs_;
+            float diff = input_->KeyPressed(InputSystem::Key::Up) ? 0.01 : -0.01;
+            updatePlayerSize(*ecs, playerEntity, diff);
+            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size +0.01" << std::endl;
+        }
+
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
         if (input_->KeyPressed(InputSystem::Key::P)) {
