@@ -6,7 +6,8 @@
  * \secondary_author
  *		Lur Pei Hao Stanley (50%)
  *
- * \brief
+ * \brief	Contains declaration and definitions of a Player System that
+ *			updates the player entity's components.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior

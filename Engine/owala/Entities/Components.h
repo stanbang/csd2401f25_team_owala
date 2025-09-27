@@ -10,7 +10,7 @@
  *      Ng Jing Wen (16%)
  *      Yar Xuan (16%)
  *
- * \brief
+ * \brief	Contains all component definitions.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior

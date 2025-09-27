@@ -6,7 +6,7 @@
 * \secondary_author
 *
 *
-* \brief
+* \brief	Contains declarations to create a platform entity.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
