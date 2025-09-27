@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file   Text.h
+ * \file   TextEntity.h
  *
  * \primary_author
  *      Yar Xuan
