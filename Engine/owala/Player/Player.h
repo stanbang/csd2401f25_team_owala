@@ -37,13 +37,15 @@ namespace Framework {
 			entityStorage.position[player] = Position{ stats.pos }; //Start at 0,0 coordinates
 			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
 
-			//entityStorage.tex[player] = TextureComponent{ texture };
 			entityStorage.tex[player] = TextureComponent{ textureID };
+			//entityStorage.animatedTex[player] = AnimatedTextureComponent{ textureID };
 			entityStorage.rigidBody[player] = RigidBody{};
 			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
 
 			entityStorage.colliders[player] = AABBCollider{ halfSize };
 			entityStorage.playerState[player] = PlayerState{}; // NEW: Add the player state component
+			entityStorage.rotationFlag[player] = RotationFlag{}; // added rotation flag
+
 			//Return the entity ID of the player
 			return player;
 	}

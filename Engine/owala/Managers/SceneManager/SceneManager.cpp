@@ -32,8 +32,7 @@ namespace Framework {
 	SceneManager& SceneManager::GetInstance() {
 		if (!instance) {
 			instance = new SceneManager();
-			Logger logger;
-			logger.Info(DebugType::SceneManager, "Scene System Instantiated!");
+			Logger::Get().Info(DebugType::SceneManager) << "Scene System Instantiated!" << std::endl;
 		}
 		return *instance;
 	}
@@ -80,8 +79,7 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	void SceneManager::SetEntityStorageRef(EntityStorage& entityStorageRef) {
 		entityStorageRef_ = &entityStorageRef;
-		Logger logger;
-		logger.Info(DebugType::SceneManager, "Successfully linked to Entity Storage");
+		Logger::Get().Info(DebugType::SceneManager) << "Successfully linked to Entity Storage" << std::endl;
 
 	}
 
@@ -94,7 +92,7 @@ namespace Framework {
 		// Check if scene with the same name already exists
 		for (const auto& [id, scene] : scenes_) {
 			if (scene.name == sceneName) {
-				std::cout << "[SceneManager] Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
+				Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
 				return 0;
 			}
 		}
@@ -104,7 +102,7 @@ namespace Framework {
 		newScene.name = sceneName;
 		newScene.path = path;
 		scenes_[newScene.sceneIndex] = newScene;
-		std::cout << "[SceneManager] Created new Scene: " << sceneName << " with ID: " << newScene.sceneIndex << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Created new Scene: " << sceneName << " with ID: " << newScene.sceneIndex << std::endl;
 		return newScene.sceneIndex;
 	}
 
@@ -115,7 +113,8 @@ namespace Framework {
 			}
 		}
 
-		if (!silenceError) std::cout << "[SceneManager] Scene with name '" << sceneName << "' does not exist." << std::endl;
+		if (!silenceError)
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' does not exist." << std::endl;
 		return invalidScene;
 	}
 
@@ -126,7 +125,8 @@ namespace Framework {
 			}
 		}
 
-		if (!silenceError) std::cout << "[SceneManager] Scene with ID '" << sceneIndex << "' does not exist." << std::endl;
+		if (!silenceError)
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist." << std::endl;
 		return invalidScene;
 	}
 
@@ -137,7 +137,7 @@ namespace Framework {
 	void SceneManager::LoadScene(const std::string& sceneName) {
 		SceneAsset sceneToLoad = GetSceneByName(sceneName);
 		if (!sceneToLoad.IsValid()) {
-			std::cout << "[SceneManager] Scene with name '" << sceneName << "' does not exist. Aborting Load." << std::endl;
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' does not exist. Aborting Load." << std::endl;
 			return;
 		}
 
@@ -152,15 +152,14 @@ namespace Framework {
 			}
 		}
 
-		std::cout << "[SceneManager] Loaded Scene: " << sceneName << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
-
+		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneName << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
 		currentScene_ = sceneToLoad.sceneIndex;
 	}
 
 	void SceneManager::LoadScene(const SceneGUID sceneIndex) {
 		SceneAsset sceneToLoad = GetSceneAt(sceneIndex);
 		if (!sceneToLoad.IsValid()) {
-			std::cout << "[SceneManager] Scene with ID '" << sceneIndex << "' does not exist. Aborting Load." << std::endl;
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist. Aborting Load." << std::endl;
 			return;
 		}
 
@@ -174,8 +173,7 @@ namespace Framework {
 			}
 		}
 
-		std::cout << "[SceneManager] Loaded Scene: " << sceneToLoad.name << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
-
+		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneToLoad.name << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
 		currentScene_ = sceneToLoad.sceneIndex;
 	}
 
@@ -206,12 +204,12 @@ namespace Framework {
 
 		SceneAsset targetScene = GetSceneByName(sceneName);
 		if (!targetScene.IsValid()) {
-			std::cout << "[SceneManager] Scene with name '" << sceneName << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
+			Logger::Get().Error(DebugType::SceneManager) << " Scene with name '" << sceneName << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
 			return;
 		}
 
 		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
-		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
@@ -223,12 +221,12 @@ namespace Framework {
 		CheckStorage();
 		SceneAsset targetScene = GetSceneAt(sceneIndex);
 		if (!targetScene.IsValid()) {
-			std::cout << "[SceneManager] Scene with ID '" << sceneIndex << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist. Cannot add Entity[" << entity + "] to it." << std::endl;
 			return;
 		}
 
 		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
-		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" + entity << "] to Scene [" << targetScene.name << "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
@@ -240,12 +238,12 @@ namespace Framework {
 		CheckStorage();
 		SceneAsset targetScene = GetSceneAt(scene.sceneIndex);
 		if (!targetScene.IsValid()) {
-			std::cout << "[SceneManager] Scene with name '" << targetScene.name << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << targetScene.name << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
 			return;
 		}
 
 		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
-		std::cout << "[SceneManager] Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name + "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
@@ -258,10 +256,7 @@ namespace Framework {
 
 		entityStorageRef_->sceneOwned.erase(entity);
 		entityStorageRef_->activeTag.erase(entity);
-		Logger logger;
-		std::string logMsg{};
-		logMsg = format("Removed Entity[{}] from its Scene", entity);
-		logger.Info(DebugType::SceneManager, logMsg);
+		Logger::Get().Info(DebugType::SceneManager) << "Removed Entity[" << entity << "] from its Scene" << std::endl;
 	}
 
 	void SceneManager::SetEntityAsPersistent(Entity entity, bool shouldPersist) {
@@ -298,9 +293,8 @@ namespace Framework {
 			scenes[sceneOwned.sceneName].push_back(entity);
 		}
 
-		Logger logger;
-		logger.Info(DebugType::SceneManager, "------- All Scenes Info ------");
-		logger.Info(DebugType::SceneManager, "Total Scenes: " + scenes.size());
+		Logger::Get().Info(DebugType::SceneManager) << "------- All Scenes Info ------" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Total Scenes: " << scenes.size() << std::endl;
 		
 		for (const auto& [sceneName, entities] : scenes) {
 			size_t persistentCount = 0;
@@ -312,12 +306,10 @@ namespace Framework {
 				}
 			}
 
-			std::string logMsg{};
-			logMsg = format("Scene: {} | Entities: {}, {} Persistent", sceneName, entities.size(), persistentCount);
-			logger.Info(DebugType::SceneManager, logMsg);
+			Logger::Get().Info(DebugType::SceneManager) << "Scene: " << sceneName << " | Entities: " << entities.size() << ", " << persistentCount << " Persistent" << std::endl;
 		}
 
-		logger.Info(DebugType::SceneManager, "------------------------------");
+		Logger::Get().Info(DebugType::SceneManager) << "------------------------------" << std::endl;
 
 		// Will add more detailed info later if needed
 	}
@@ -326,27 +318,25 @@ namespace Framework {
 		CheckStorage();
 
 		if (!GetSceneAt(currentScene_, true).IsValid()) {
-			std::cout << "[SceneManager] No active scene currently loaded." << std::endl;
+			Logger::Get().Info(DebugType::SceneManager) << "No active scene currently loaded." << std::endl;
 			return;
 		}
 		
-		Logger logger;
-		logger.Info(DebugType::SceneManager, "----- Current Scene Info -----");
-		logger.Info(DebugType::SceneManager, "Loaded Scene: " + GetSceneAt(currentScene_).name);
-		logger.Info(DebugType::SceneManager, "Active Entities Count: " + entityStorageRef_->activeTag.size());
+		Logger::Get().Info(DebugType::SceneManager) << "----- Current Scene Info -----" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " + GetSceneAt(currentScene_).name << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Active Entities Count: " + entityStorageRef_->activeTag.size() << std::endl;
 
-		std::ostringstream oss;
-		oss << "Active Entities IDs: ";
+		std::ostream& logStream = Logger::Get().Info(DebugType::SceneManager);
+		logStream << "Active Entities IDs: ";
 		for (const auto& [entity, activeTag] : entityStorageRef_->activeTag) {
-			oss << "Entity[" << entity << "]";
+			logStream << "Entity[" << entity << "]";
 			if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) {
-				oss << " (Persistent)";
+				logStream << " (Persistent)";
 			}
-			oss << ", ";
+			logStream << ", ";
 		}
-
-		std::string logMsg = oss.str();
-		logger.Info(DebugType::SceneManager, logMsg);
-		logger.Info(DebugType::SceneManager, "------------------------------");
+		logStream << std::endl;
+		
+		Logger::Get().Info(DebugType::SceneManager) << "------------------------------" << std::endl;
 	}
 }

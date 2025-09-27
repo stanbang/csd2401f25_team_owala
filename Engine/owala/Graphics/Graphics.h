@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <variant>
+#include "Font.h"
 
 namespace Framework {
 
@@ -24,6 +25,10 @@ namespace Framework {
         void Initialize() override;
         void Update(float dt) override;
         void Shutdown() override;
+
+        //  Public getters for screen dimensions
+        int getScreenWidth() const { return screenWidth; }
+        int getScreenHeight() const { return screenHeight; }
 
         // ---- Colored triangle (immediate style) ----
         void beginFrame(const Color& clear = { 0.1f, 0.1f, 0.12f, 1.0f });
@@ -46,8 +51,17 @@ namespace Framework {
         void    drawSprite(Texture& tex, const Vector2D& center,
             const Vector2D& halfSize, float rotation = 0.0f);
 
+        // ---- Fonts ----
+        void drawText(Font& font, const std::string& text, const Vector2D& pos, float scale, const Color& color);
+
+        // ---- Text Layout ----
+        // Breaks a long string into multiple lines based on a max width.
+        std::vector<std::string> WrapText(Font& font, const std::string& text, float scale, float maxWidth);
+
     private:
         WindowsSystem* win_ = nullptr;
+        int screenWidth;
+        int screenHeight;
 
         // Colored-triangle pipeline
         unsigned progCol_ = 0;  // shader program (uColor)
@@ -58,6 +72,11 @@ namespace Framework {
         unsigned progTex_ = 0;  // shader program (uTex)
         unsigned vaoTex_ = 0;  // VAO
         unsigned vboTex_ = 0;  // VBO (pos+uv, 6 verts)
+
+        // Textured-quad pipeline
+        unsigned progText_ = 0;  // shader program (uTex)
+        unsigned vaoText_ = 0;  // VAO
+        unsigned vboText_ = 0;  // VBO (pos+uv, 6 verts)
 
         float t_ = 0.f;         // optional tick; used if you animate later
     };

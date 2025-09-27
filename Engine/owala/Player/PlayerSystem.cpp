@@ -63,19 +63,18 @@ namespace Framework {
 
 
     void PlayerSystem::Shutdown() {
-        Logger logger;
-        logger.Info(DebugType::PlayerSystem, "Player system shutdown");
+        //Logger::Get().Info(DebugType::PlayerSystem) << "Player system shutdown" << std::endl;
 
-        FileIOSystem fileIO;
+        /*FileIOSystem fileIO;
         PlayerStats newStats;
 
         for (const auto& [entity, tag] : entityStorage_->playerTag) {
             newStats = entityStorage_->playerStats.at(entity);
             newStats.pos = entityStorage_->position.at(entity);
-        }
+        }*/
 
-        logger.Info(DebugType::PlayerSystem, "Writing Player Stats");
-        fileIO.WritePlayerStats(newStats);
+        //logger.Info(DebugType::PlayerSystem) << "Writing Player Stats" << std::endl;
+        //fileIO.WritePlayerStats(newStats);
     }
 
 } // namespace Framework
