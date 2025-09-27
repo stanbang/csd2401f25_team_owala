@@ -16,7 +16,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <iomanip>
 #include <ctime>
 #include "backward.hpp"
 #include <windows.h>
@@ -31,7 +30,6 @@ const enum class DebugType {
     PlayerSystem,
     GraphicsSystem,
     ResourceManager,
-    GameSystem, //deprecated
     GameManager,
     FileIOSystem,
     Logger
@@ -47,7 +45,6 @@ const std::string DebugTypeLabels[] = {
     "PlayerSystem",
     "GraphicsSystem",
     "ResourceManager",
-    "GameSystem", //deprecated
     "GameManager",
     "FileIOSystem",
     "Logger"

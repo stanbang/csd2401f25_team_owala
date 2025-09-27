@@ -1,19 +1,4 @@
-/*****************************************************************//**
- * \file   FileUtility.cpp
- * \brief
- *
- *
- * \author Yar Xuan
- * \date   11 September 2025
- *********************************************************************/
-
-#include <iostream>
-#include "rapidjson/document.h"
-
 #include "FileUtility.h"
-#include "Vector2D.h"
-#include "Components.h"
-#include "Logger.h"
 
 namespace Framework {
 	const std::string FileIOSystem::WIN_CONFIG_FILEPATH = "Data/config.json";

@@ -1,11 +1,3 @@
-/*****************************************************************//**
- * \file   Text.cpp
- * \brief
- *
- *
- * \author Yar Xuan
- * \date   26 September 2025
- *********************************************************************/
 #include "TextEntity.h"
 #include "EntityManager.h"
 
