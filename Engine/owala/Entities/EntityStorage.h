@@ -15,7 +15,6 @@
 #pragma once
 #include "Entity.h"
 #include "Components.h"
-#include "SpriteComponents.h"
 #include "SceneComponents.h"
 #include <bitset> //For a bitset to track which components an entity has
 #include <unordered_map> //For a hash map to store entity-component pairs

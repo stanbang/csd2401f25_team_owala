@@ -11,7 +11,7 @@ namespace Framework {
 
     Entity createTrapPlatform(EntityStorage& entityStorage, Vector2D pos, Vector2D halfSize, std::string textureID)
     {
-		EntityManager entityMgr(entityStorage);
+        EntityManager entityMgr(entityStorage);
         Entity trapPlatform = createPlatform(entityStorage, pos, halfSize, textureID);
 
         TrapPlatformComponent trapComponent;
@@ -20,22 +20,21 @@ namespace Framework {
         trapComponent.hasFallen = false;
         trapComponent.currentDelay = 0.0f;
         trapComponent.currentFallDistance = 0.0f;
-        trapComponent.fallSpeed = 2.0f; 
+        trapComponent.fallSpeed = 2.0f;
         trapComponent.triggerDelay = 1.0f;
 
-		entityMgr.AddComponent(trapPlatform, trapComponent);
+        entityMgr.AddComponent(trapPlatform, trapComponent);
         return trapPlatform;
     }
 
     void updateTrapPlatforms(EntityStorage& entityStorage, float dt)
     {
-		EntityManager entityMgr(entityStorage);
-        const float maxFallDistance = 0.0f;
+        EntityManager entityMgr(entityStorage);
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
-			TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(entity);
+            TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(entity);
 
-            if (trapComp.hasFallen && trapComp.currentFallDistance >= maxFallDistance) {
+            if (trapComp.hasFallen) {
                 continue;
             }
 
@@ -66,7 +65,7 @@ namespace Framework {
 
     void triggerTrapPlatform(EntityStorage& entityStorage, Entity trapPlatform)
     {
-		EntityManager entityMgr(entityStorage);
+        EntityManager entityMgr(entityStorage);
         if (entityMgr.HasComponent(trapPlatform, TrapPlatformComponentType)) {
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapPlatform);
             if (!trapComp.isTriggered && !trapComp.hasFallen) {
@@ -78,7 +77,7 @@ namespace Framework {
 
     void resetTrapPlatform(EntityStorage& entityStorage, Entity trapPlatform)
     {
-		EntityManager entityMgr(entityStorage);
+        EntityManager entityMgr(entityStorage);
         if (entityMgr.HasComponent(trapPlatform, TrapPlatformComponentType) && entityMgr.HasComponent(trapPlatform, PositionType)) {
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapPlatform);
             trapComp.isTriggered = false;

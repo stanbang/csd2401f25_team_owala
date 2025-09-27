@@ -2,9 +2,13 @@
  * \file   Components.h
  *
  * \primary_author
- *      Ng Jing Wen
+ *      Ng Jing Wen (16%)
  * \secondary_author
- *
+ *		Lur Pei Hao Stanley (16%)
+ *      Sitara Anil (16%)
+ *      Lou Jason (16%)
+ *      Ng Jing Wen (16%)
+ *      Yar Xuan (16%)
  *
  * \brief
  *
@@ -122,7 +126,6 @@ namespace Framework{
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };
 		Vector2D originalPosition;
-		float maxFallDistance{ 0.0f };
 		float currentFallDistance{ 0.0f };
 	};
 

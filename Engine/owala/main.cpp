@@ -2,13 +2,13 @@
  * \file   main.cpp
  * 
  * \primary_author 
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (16%)
  * \secondary_author 
- *      Lur Pei Hao Stanley
- *      Sitara Anil
- *      Lou Jason
- *      Ng Jing Wen
- *      Yar Xuan
+ *      Lur Pei Hao Stanley (16%)
+ *      Sitara Anil (16%)
+ *      Lou Jason (16%)
+ *      Ng Jing Wen (16%)
+ *      Yar Xuan (16%)
  * 
  * \brief  Contains the main entry point for the application. 
  * All core systems are initialized and registered to the CoreEngine here.
