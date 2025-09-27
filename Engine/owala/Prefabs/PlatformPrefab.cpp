@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <PlatformPrefab.h>
+#include "EntityManager.h"
 
 namespace Framework {
 
@@ -29,9 +30,10 @@ namespace Framework {
 
         const PlatformPrefab& prefab = it->second;
         Entity platform = createPlatform(storage, position, prefab.size, prefab.textureID);
+        EntityManager entityManager{storage};
 
-        if (storage.rigidBody.count(platform)) {
-            storage.rigidBody[platform].SetMass(prefab.mass);
+        if (entityManager.HasComponent(platform, RigidBodyType)) {
+            entityManager.GetComponent<RigidBody>(platform).SetMass(prefab.mass);
         }
 
         return platform;
@@ -57,10 +59,11 @@ namespace Framework {
         trapComp.fallSpeed = prefab.fallSpeed;
         trapComp.triggerDelay = prefab.triggerDelay;
 
-        storage.trapPlatform[trapPlatform] = trapComp;
+        EntityManager entityManager{storage};
+        entityManager.AddComponent(trapPlatform, trapComp);
 
-        if (storage.rigidBody.count(trapPlatform)) {
-            storage.rigidBody[trapPlatform].SetMass(0.0f);
+        if (entityManager.HasComponent(trapPlatform, RigidBodyType)) {
+            entityManager.GetComponent<RigidBody>(trapPlatform).SetMass(prefab.mass);
         }
 
         return trapPlatform;
