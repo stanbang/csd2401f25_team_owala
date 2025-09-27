@@ -1,3 +1,23 @@
+/*****************************************************************//**
+ * \file   main.cpp
+ * 
+ * \primary_author 
+ *      Ng Jordain Ying Zhe
+ * \secondary_author 
+ *      Lur Pei Hao Stanley
+ *      Sitara Anil
+ *      Lou Jason
+ *      Ng Jing Wen
+ *      Yar Xuan
+ * 
+ * \brief  Contains the main entry point for the application. 
+ * All core systems are initialized and registered to the CoreEngine here.
+ * 
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include <Windows.h>
 #include "Core.h"
 #include "WindowsSystem.h"
@@ -57,8 +77,8 @@ int main() {
 	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio); // Register all core systems to the GameManager
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer); // Register all core systems to the GameManager
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -69,7 +89,6 @@ int main() {
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
-    engine.AddSystem(renderer); // <--- draw all sprites here
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();

@@ -1,5 +1,6 @@
 #include "SpriteRenderSystem.h"
 #include "SpriteComponents.h"   // for ecs_.tex (textureKey)
+#include "EntityManager.h"
 #include "Matrix3x3.h"
 #include <cmath>
 
@@ -19,18 +20,21 @@ namespace Framework {
         // Note: your Graphics system (added last) should still be the one that swaps buffers.
     }
     void SpriteRenderSystem::RenderSprites() {
+		EntityManager entityMgr(ecs_);
+
         // Iterate all entities that have a sprite component
-        for (const auto& [e, sprite] : ecs_.tex) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(TextureComponentType)) {
+			TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(e);
             // Only require a position now
-            if (!ecs_.position.count(e))
+            if (!entityMgr.HasComponent(e, PositionType))
                 continue;
 
-            const auto& pos = ecs_.position.at(e).Pos;
+            const auto& pos = entityMgr.GetComponent<Position>(e).Pos;
 
             // Determine halfSize:
             Vector2D halfSize;
-            if (ecs_.colliders.count(e)) {
-                halfSize = ecs_.colliders.at(e).HalfSize;  // use physics size if available
+            if (entityMgr.HasComponent(e, AABBColliderType)) {
+                halfSize = entityMgr.GetComponent<AABBCollider>(e).HalfSize;  // use physics size if available
             }
             else {
                 // Fallback size for non-physics sprites (backgrounds/UI/etc.)
@@ -40,8 +44,8 @@ namespace Framework {
 
             // Optional rotation (degrees -> radians)
             float rotationRad = 0.0f;
-            if (ecs_.rotationFlag.count(e)) {
-                rotationRad = ecs_.rotationFlag.at(e).currentRotation * (M_PI / 180.0f);
+            if (entityMgr.HasComponent(e, RotationFlagType)) {
+                rotationRad = entityMgr.GetComponent<RotationFlag>(e).currentRotation * (M_PI / 180.0f);
             }
 
             // Fetch the texture by key from ResourceManager
@@ -55,15 +59,16 @@ namespace Framework {
 
         // --- Render Text ---
         // This loop now handles text wrapping
-        for (const auto& [entity, component] : ecs_.text) {
-            if (ecs_.position.count(entity)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TextComponentType)) {
+			const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
+            if (entityMgr.HasComponent(entity, PositionType)) {
                 Font& font = resources_.get<Font>(component.fontName);
                 // logger not yet added
                 /*if (font == nullptr) {
                             logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
                             continue;
                         }*/
-                const auto& original_pos = ecs_.position.at(entity).Pos;
+                Vector2D& original_pos = entityMgr.GetComponent<Position>(entity).Pos;
 
                 // --- NEW WRAPPING LOGIC ---
 
@@ -89,15 +94,17 @@ namespace Framework {
 
 
     void SpriteRenderSystem::RenderColliderOutlines() {
-        for (const auto& [e, collider] : ecs_.colliders) {
-            if (!ecs_.position.count(e)) continue;
+		EntityManager entityMgr(ecs_);
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
+			const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
+            if (!entityMgr.HasComponent(e, PositionType)) continue;
 
-            const auto& pos = ecs_.position.at(e).Pos;
-            const auto& halfSize = collider.HalfSize;
+            const Vector2D& pos = entityMgr.GetComponent<Position>(e).Pos;
+            const Vector2D& halfSize = collider.HalfSize;
 
             float deg = 0.0f;
-            if (ecs_.rotationFlag.count(e)) {
-                deg = ecs_.rotationFlag.at(e).currentRotation;
+            if (entityMgr.HasComponent(e, RotationFlagType)) {
+                deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
             }
 
             // Compute AABB of the (optionally) rotated box for quick debug rendering

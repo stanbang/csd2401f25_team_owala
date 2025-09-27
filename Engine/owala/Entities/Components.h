@@ -1,10 +1,16 @@
 /*****************************************************************//**
  * \file   Components.h
- * \brief  All components used for entities and the ECS architecture
- *		   are stored here.
- * 
- * \author Ng Jing Wen
- * \date   9 September 2025
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #pragma once
 #include "Graphics.h"

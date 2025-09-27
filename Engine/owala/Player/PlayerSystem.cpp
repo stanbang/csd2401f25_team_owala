@@ -14,6 +14,7 @@
 #include "InputSystem.h" // Include for Input System
 #include "PhysicsSystem.h"
 #include "FileUtility.h" // Include to write player data on Shutdown
+#include "EntityManager.h"
 
 namespace Framework {
 
@@ -26,8 +27,9 @@ namespace Framework {
 
         const float jumpVelocity = std::sqrt(2.0f * gravity * JumpHeight);
 
+		EntityManager entityMgr(*entityStorage_); // To access entity creation/destruction if needed
 		// Loop through each entity that is in the playerTag map
-		for (const auto& [entity, tag] : entityStorage_->playerTag) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
 			// Check if player entity has position and velocity components
 			//if (entityStorage_->position.find(entity) != entityStorage_->position.end() &&
 			//	entityStorage_->velocity.find(entity) != entityStorage_->velocity.end()) {
@@ -42,9 +44,9 @@ namespace Framework {
 			
 
                           // We need a RigidBody, Velocity, and PlayerState to control the player
-            if (entityStorage_->velocity.count(entity) && entityStorage_->playerState.count(entity)) {
-                auto& vel = entityStorage_->velocity.at(entity);
-                auto& state = entityStorage_->playerState.at(entity);
+            if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType)) {
+                Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
+                PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
 
                 // --- Horizontal Movement ---
                 float targetVelX = 0.0f;
@@ -67,11 +69,12 @@ namespace Framework {
 
         /*FileIOSystem fileIO;
         PlayerStats newStats;
+        EntityManager entityMgr(*entityStorage_);
 
-        for (const auto& [entity, tag] : entityStorage_->playerTag) {
-            newStats = entityStorage_->playerStats.at(entity);
-            newStats.pos = entityStorage_->position.at(entity);
-        }*/
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+            newStats = entityMgr.GetComponent<PlayerStats>(entity);
+            newStats.pos = entityMgr.GetComponent<Position>(entity);
+        } */
 
         //logger.Info(DebugType::PlayerSystem) << "Writing Player Stats" << std::endl;
         //fileIO.WritePlayerStats(newStats);

@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "Player.h"
 #include "Platform.h"
-#include "Background.h"
+#include "BackgroundEntity.h"
 #include "Text.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
@@ -149,6 +149,7 @@ namespace TestScene {
 		Graphics* gfx_ = gm.GetSystems().gfx_;
         ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
 		AudioSystem* audio_ = gm.GetSystems().audio_;
+		EntityManager entityMgr(*ecs_);
 
         //  --- START THE IMGUI FRAME ---
         //press T to play scream, for not a entity yet, because we don't want to play it from the start
@@ -202,12 +203,12 @@ namespace TestScene {
 
             if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
                 // Check if the player entity and its components exist.
-                if (ecs_->position.count(playerEntity) && ecs_->velocity.count(playerEntity) && ecs_->playerState.count(playerEntity)) {
+                if (entityMgr.HasComponent(playerEntity, PositionType) && entityMgr.HasComponent(playerEntity, VelocityType) && entityMgr.HasComponent(playerEntity, PlayerStateType)) {
 
                     // Get references to the player's components.
-                    auto& pos = ecs_->position.at(playerEntity).Pos;
-                    auto& vel = ecs_->velocity.at(playerEntity).Vel;
-                    auto& state = ecs_->playerState.at(playerEntity);
+                    Vector2D& pos = entityMgr.GetComponent<Position>(playerEntity).Pos;
+                    Vector2D& vel = entityMgr.GetComponent<Velocity>(playerEntity).Vel;
+                    PlayerState& state = entityMgr.GetComponent<PlayerState>(playerEntity);
 
                     // Create ImGui widgets linked to the component data.
                     ImGui::DragFloat2("Position", &pos.x, 0.01f);

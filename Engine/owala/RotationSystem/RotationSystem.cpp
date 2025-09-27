@@ -1,6 +1,7 @@
 // RotationSystem.cpp
 #include "RotationSystem.h"
 #include "Transformation.h"
+#include "EntityManager.h"
 #include <cmath>
 #include <iostream>
 
@@ -13,6 +14,8 @@ namespace Framework {
     }
 
     void RotationSystem::Update(float dt) {
+		EntityManager entityMgr(*ecs_);
+
         if (input_->KeyPressed(InputSystem::Key::E)) {
             targetGlobalRotation -= 90.0f; // Rotate clockwise
             physics_->SetPaused(true);
@@ -63,19 +66,22 @@ namespace Framework {
             if (std::abs(rotationIncrement) > 0.001f) {
                 Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
 
-                for (auto& [entity, rotationFlag] : ecs_->rotationFlag) {
-                    if (ecs_->position.count(entity)) {
-                        Vector2D originalPos = ecs_->position[entity].Pos;
-                        ecs_->position[entity].Pos = rotationMat * originalPos;
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
+                    RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+                    if (entityMgr.HasComponent(entity, PositionType)) {
+                        Vector2D originalPos = entityMgr.GetComponent<Position>(entity).Pos;
+                        entityMgr.GetComponent<Position>(entity).Pos = rotationMat * originalPos;
                     }
                 }
 
-                for (auto& [entity, state] : ecs_->playerState) {
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
+                    PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
                     state.isGrounded = true;
                 }
 
-                for (auto& [entity, rotationFlag] : ecs_->rotationFlag) {
-                    if (ecs_->playerTag.count(entity)) {
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
+                    RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+                    if (entityMgr.HasComponent(entity, PlayerTagType)) {
                         continue;
                     }
                     rotationFlag.currentRotation += rotationIncrement;

@@ -1,11 +1,18 @@
-#pragma once
 /*****************************************************************//**
- * \file   SceneComponents.h
- * \brief  A subset of Components that are specific to scene management
- *
- * \author Jason
- * \date   14 September 2025
- *********************************************************************/
+* \file   SceneComponents.h
+*
+* \primary_author
+*      Jason Lou
+* \secondary_author
+*
+*
+* \brief	A subset of Components that are specific to scene management.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+#pragma once
 #include <string>
 
 namespace Framework {

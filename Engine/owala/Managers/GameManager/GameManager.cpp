@@ -47,7 +47,7 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// GameManager Internals
 	// ---------------------------------------------------------------------------
-	void GameManager::CheckSystems() {
+	void GameManager::CheckSystems() const {
 		if (!systems_.resourceManager_) {
 			throw GameException(DebugType::GameManager,"ResourceManager not registered!");
 		}
@@ -69,6 +69,9 @@ namespace Framework {
 		if (!systems_.audio_) {
 			throw GameException(DebugType::GameManager, "AudioSystem not registered!");
 		}
+		if (!systems_.spriteRenderer_) {
+			throw std::runtime_error("[GameManager] SpriteRenderSystem not registered!");
+		}
 		if (!SceneManager::Exists()) {
 			throw GameException(DebugType::GameManager, "SceneManager not registered!");
 		}
@@ -77,7 +80,8 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// GameManager Config
 	// ---------------------------------------------------------------------------
-	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio) {
+	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio, 
+		SpriteRenderSystem& renderer) {
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -85,7 +89,8 @@ namespace Framework {
 		systems_.input_ = &input;
 		systems_.physics_ = &physics;
 		systems_.audio_ = &audio;
-		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
+		systems_.spriteRenderer_ = &renderer;
+		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 	}
 
 	// ---------------------------------------------------------------------------
@@ -152,6 +157,8 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 		}
+
+		systems_.spriteRenderer_->Update(dt);
 		// --- END GAME UPDATE ---
 
 		// --- RENDER RUNTIME STATS USING IMGUI ---
@@ -179,6 +186,12 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpFree) {
 			sceneCallbacks_[currentSceneIndex].fpFree();
 		}
+
+		// Renderer Cleanup
+		systems_.spriteRenderer_->Shutdown();
+		delete systems_.spriteRenderer_;
+		systems_.spriteRenderer_ = nullptr;
+
 		instance = nullptr; // Reset instance pointer
 	}
 

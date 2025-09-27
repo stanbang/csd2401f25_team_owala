@@ -8,6 +8,7 @@
  *********************************************************************/
 #include "SceneManager.h"
 #include "EntityStorage.h"
+#include "EntityManager.h"
 #include "Logger.h"
 
 namespace Framework {
@@ -143,12 +144,16 @@ namespace Framework {
 
 		UnloadScene(); // Unload current active scene first if any
 
-		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
+		EntityManager entityMgr(*entityStorageRef_);
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
 			if (sceneOwned.sceneName == sceneName) {
-				entityStorageRef_->activeTag[entity] = ActiveTag{};
+				entityMgr.AddComponent(entity, ActiveTag{});
+				//entityStorageRef_->activeTag[entity] = ActiveTag{};
 			}
-			else if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) { // Checks if entity has a scene component and is persistent
-				entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+			else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
+				entityMgr.AddComponent(entity, ActiveTag{});
+				//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
 			}
 		}
 
@@ -164,12 +169,17 @@ namespace Framework {
 		}
 
 		UnloadScene(); // Unload current active scene first if any
-		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
+
+		EntityManager entityMgr(*entityStorageRef_);
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
 			if (sceneOwned.sceneName == sceneToLoad.name) {
-				entityStorageRef_->activeTag[entity] = ActiveTag{};
+				entityMgr.AddComponent(entity, ActiveTag{});
+				//entityStorageRef_->activeTag[entity] = ActiveTag{};
 			}
-			else if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) { // Checks if entity has a scene component and is persistent
-				entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+			else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
+				entityMgr.AddComponent(entity, ActiveTag{});
+				//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
 			}
 		}
 
@@ -186,7 +196,11 @@ namespace Framework {
 
 		if (currentScene_ == 0) return; // No scene is currently loaded
 
-		entityStorageRef_->activeTag.clear();
+		EntityManager entityMgr(*entityStorageRef_);
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ActiveTagType)) {
+			entityMgr.RemoveComponent(entity, ActiveTagType);
+		}
+
 		GetSceneAssetMutable(currentScene_)->isLoaded = false;
 		prevScene_ = currentScene_;
 		currentScene_ = 0;
@@ -208,12 +222,13 @@ namespace Framework {
 			return;
 		}
 
-		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
+		EntityManager entityMgr(*entityStorageRef_);
+		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
 		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
-			entityStorageRef_->activeTag[entity] = ActiveTag{};
+			entityMgr.AddComponent(entity, ActiveTag{});
 		}
 	}
 
@@ -225,12 +240,13 @@ namespace Framework {
 			return;
 		}
 
-		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
+		EntityManager entityMgr(*entityStorageRef_);
+		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
 		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" + entity << "] to Scene [" << targetScene.name << "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
-			entityStorageRef_->activeTag[entity] = ActiveTag{};
+			entityMgr.AddComponent(entity, ActiveTag{});
 		}
 	}
 
@@ -242,42 +258,43 @@ namespace Framework {
 			return;
 		}
 
-		entityStorageRef_->sceneOwned[entity] = SceneOwned{ targetScene.name };
+		EntityManager entityMgr(*entityStorageRef_);
+		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
 		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name + "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
-			entityStorageRef_->activeTag[entity] = ActiveTag{};
+			entityMgr.AddComponent(entity, ActiveTag{});
 		}
 	}
 
 	void SceneManager::RemoveEntityFromScene(Entity entity) {
 		CheckStorage();
 
-		entityStorageRef_->sceneOwned.erase(entity);
-		entityStorageRef_->activeTag.erase(entity);
+		EntityManager entityMgr(*entityStorageRef_);
+		entityMgr.RemoveComponent(entity, SceneOwnedType);
+		entityMgr.RemoveComponent(entity, ActiveTagType);
 		Logger::Get().Info(DebugType::SceneManager) << "Removed Entity[" << entity << "] from its Scene" << std::endl;
 	}
 
 	void SceneManager::SetEntityAsPersistent(Entity entity, bool shouldPersist) {
 		CheckStorage();
 
+		EntityManager entityMgr(*entityStorageRef_);
 		if (shouldPersist) {
-			entityStorageRef_->persistentTag[entity] = PersistentTag{};
+			entityMgr.AddComponent(entity, PersistentTag{});
 		}
 		else {
-			entityStorageRef_->persistentTag.erase(entity);
+			entityMgr.RemoveComponent(entity, PersistentTagType);
 		}
 	}
 
 	std::vector<Entity> SceneManager::GetEntitiesInScene(const std::string& scene) const {
 		CheckStorage();
 
-		std::vector<Entity> entitiesInScene;
-		for (const auto& [entity, activeTag] : entityStorageRef_->activeTag) {
-			entitiesInScene.push_back(entity);
-		}
-		return entitiesInScene;
+		EntityManager entityMgr(*entityStorageRef_);
+
+		return entityMgr.GetAllEntitiesWithComponent(ActiveTagType);
 	}
 
 	#pragma endregion
@@ -288,8 +305,10 @@ namespace Framework {
 	void SceneManager::PrintAllScenesInfo() const {
 		CheckStorage();
 
+		EntityManager entityMgr(*entityStorageRef_);
 		std::unordered_map<std::string, std::vector<Entity>> scenes;
-		for (const auto& [entity, sceneOwned] : entityStorageRef_->sceneOwned) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
 			scenes[sceneOwned.sceneName].push_back(entity);
 		}
 
@@ -300,8 +319,8 @@ namespace Framework {
 			size_t persistentCount = 0;
 
 			// Count how many entities in this scene are persistent
-			for (Entity e : entities) {
-				if (entityStorageRef_->persistentTag.find(e) != entityStorageRef_->persistentTag.end()) {
+			for (const Entity e : entities) {
+				if (entityMgr.HasComponent(e, PersistentTagType)) {
 					++persistentCount;
 				}
 			}
@@ -317,6 +336,7 @@ namespace Framework {
 	void SceneManager::PrintCurrentSceneInfo() const {
 		CheckStorage();
 
+		EntityManager entityMgr(*entityStorageRef_);
 		if (!GetSceneAt(currentScene_, true).IsValid()) {
 			Logger::Get().Info(DebugType::SceneManager) << "No active scene currently loaded." << std::endl;
 			return;
@@ -324,13 +344,13 @@ namespace Framework {
 		
 		Logger::Get().Info(DebugType::SceneManager) << "----- Current Scene Info -----" << std::endl;
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " + GetSceneAt(currentScene_).name << std::endl;
-		Logger::Get().Info(DebugType::SceneManager) << "Active Entities Count: " + entityStorageRef_->activeTag.size() << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Active Entities Count: " + entityMgr.GetAllEntitiesWithComponent(ActiveTagType).size() << std::endl;
 
 		std::ostream& logStream = Logger::Get().Info(DebugType::SceneManager);
 		logStream << "Active Entities IDs: ";
-		for (const auto& [entity, activeTag] : entityStorageRef_->activeTag) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ActiveTagType)) {
 			logStream << "Entity[" << entity << "]";
-			if (entityStorageRef_->persistentTag.find(entity) != entityStorageRef_->persistentTag.end()) {
+			if (entityMgr.HasComponent(entity, PersistentTagType)) {
 				logStream << " (Persistent)";
 			}
 			logStream << ", ";

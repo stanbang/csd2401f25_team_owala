@@ -1,12 +1,19 @@
-#pragma once
 /*****************************************************************//**
- * \file	GameManager.h
- * \brief	Manager responsible for managing game state
- *
- *
- * \author	Jason Lou
- * \date	18 September 2025
- *********************************************************************/
+* \file   GameManager.h
+*
+* \primary_author
+*		Jason Lou(80%)
+* \secondary_author
+*		Lur Pei Hao Stanley(20%)
+*
+* \brief	Manager responsible for managing game state.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+
+#pragma once
 #include "SceneManager.h"
 #include "ISystem.h"
 #include "EntityStorage.h"
@@ -15,6 +22,7 @@
 #include "ResourceManager.h"
 #include "AudioSystem.h"
 #include "WindowsSystem.h"
+#include "SpriteRenderSystem.h"
 #include "Graphics.h"
 
 namespace Framework {
@@ -51,6 +59,7 @@ namespace Framework {
 			PhysicsSystem* physics_ = nullptr;
 			ResourceManager* resourceManager_ = nullptr;
 			AudioSystem* audio_ = nullptr;   // <-- store it
+			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
 		};
 
 		RegisteredSystems systems_;
@@ -62,7 +71,7 @@ namespace Framework {
 		~GameManager() = default;
 
 		// Internal Checkers
-		void CheckSystems();
+		void CheckSystems() const;
 	public:
 		// GLOBAL STATES
 		int testState = 0;
@@ -85,7 +94,7 @@ namespace Framework {
 
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
-		void RegisterSystemsToUse(ResourceManager& rcm,	EntityStorage& ecs,	Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio);
+		void RegisterSystemsToUse(ResourceManager& rcm,	EntityStorage& ecs,	Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio, SpriteRenderSystem& spriteRenderer);
 
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.

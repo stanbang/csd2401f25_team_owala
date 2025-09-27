@@ -1,4 +1,5 @@
 #include "AudioSystem.h"
+#include "EntityManager.h"
 #include <cstdio>   // fprintf
 
 namespace Framework {
@@ -28,12 +29,14 @@ namespace Framework {
     }
 
     void AudioSystem::Update(float /*dt*/) {
+		EntityManager entityMgr(*entityStorage_);
         if (system_) {
             FMOD_RESULT r = system_->update();
             check(r, "System::update");
         }
 
-        for (auto& [entity, comp] : entityStorage_->audio) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AudioComponentType)) {
+			AudioComponent& comp = entityMgr.GetComponent<AudioComponent>(entity);
             if (comp.soundKey.empty()) continue;
 
             try {
