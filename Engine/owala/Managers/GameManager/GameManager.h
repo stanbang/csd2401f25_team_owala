@@ -24,6 +24,10 @@
 #include "WindowsSystem.h"
 #include "SpriteRenderSystem.h"
 #include "Graphics.h"
+#include "Core.h"
+
+#include <vector>
+
 
 namespace Framework {
 	enum class SystemType : unsigned char {
@@ -72,6 +76,12 @@ namespace Framework {
 
 		// Internal Checkers
 		void CheckSystems() const;
+
+		CoreEngine* engine_ = nullptr; // Pointer to the core engine for getting all system time
+		//  Members for the system profiler display
+		float profilerUpdateTimer_ = 0.0f;
+		std::vector<SystemTime> profilerDisplayData_;
+
 	public:
 		// GLOBAL STATES
 		int testState = 0;
@@ -91,6 +101,8 @@ namespace Framework {
 		// Retrieves the interval in seconds from the last frame to the current one (Read only).
 		float GetDeltaTime() const { return deltaTime; }
 		RegisteredSystems GetSystems() const { return systems_;  }
+
+		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.

@@ -167,11 +167,24 @@ namespace TestScene {
         // 'P' key toggles the master pause state.
         if (input_->KeyPressed(InputSystem::Key::P)) {
             physics_->SetPaused(!physics_->IsPaused());
+            if (physics_->IsPaused()) {
+                Logger::Get().Info(DebugType::PhysicsSystem) << "Physics Paused!" << std::endl;
+            }
+            else if (!physics_->IsPaused()) {
+                Logger::Get().Info(DebugType::PhysicsSystem) << "Physics UnPaused!" << std::endl;
+            }
         }
+
 
         // 'O' key toggles the step-by-step debug mode.
         if (input_->KeyPressed(InputSystem::Key::O)) {
             physics_->ToggleStepMode();
+            if (physics_->IsInStepMode()) {
+                Logger::Get().Info(DebugType::PhysicsSystem) << "Step Mode Activated - Press I to step physics forward." << std::endl;
+            }
+            else if (!physics_->IsInStepMode()) {
+                Logger::Get().Info(DebugType::PhysicsSystem) << "Step Mode Deactivated" << std::endl;
+            }
         }
 
         // 'I' key executes a single physics step if in step mode.
@@ -188,13 +201,13 @@ namespace TestScene {
         }
 
         // 3. --- BUILD IMGUI INTERFACE ---
-         // This is where you create all your ImGui windows and widgets.
-        {
-            // Create the main dockspace that will fill the entire game window.
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        // Example of a dockable "Level Editor" window.
+        // Create the main dockspace that will fill the entire game window.
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
 
-            // Example of a dockable "Level Editor" window.
-            ImGui::Begin("Level Editor");
+        ImGui::Begin("Level Editor");
 
             if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
                 // Check if the player entity and its components exist.
@@ -231,8 +244,8 @@ namespace TestScene {
             ImGui::End(); // End "Level Editor" window
 
             // You can also show the ImGui demo window to explore widgets.
-            // ImGui::ShowDemoWindow(); 
-        }
+           //  ImGui::ShowDemoWindow(); 
+        
 
         // Update trap platforms
         float dt = gm.GetDeltaTime();

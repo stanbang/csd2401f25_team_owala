@@ -18,6 +18,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+//Core Engine headers for IMGUI
+#include "Core.h"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -151,6 +154,8 @@ namespace Framework {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		
+
 		// --- GAME UPDATE HERE ---
 		// Hard Coded to load the Test Scene as we'll be doing testing there first.
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
@@ -161,10 +166,68 @@ namespace Framework {
 		systems_.spriteRenderer_->Update(dt);
 		// --- END GAME UPDATE ---
 
+		 //--- NEW: CREATE THE MAIN DOCKSPACE HOST WINDOW ---
+		// This should be done here in the GameManager to provide a consistent
+		 //editor environment across all scenes.
+		//{
+		//	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		//	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		//	ImGui::SetNextWindowPos(viewport->WorkPos);
+		//	ImGui::SetNextWindowSize(viewport->WorkSize);
+		//	ImGui::SetNextWindowViewport(viewport->ID);
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		//	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+		//	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+		//	// Begin the host window that will contain the dockspace
+		//	ImGui::Begin("DockSpace Host", nullptr, window_flags);
+		//	ImGui::PopStyleVar(3);
+
+		//	// Submit the DockSpace itself
+		//	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+		//	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
+
+		//	ImGui::End(); // End the host window
+		//}
+
 		// --- RENDER RUNTIME STATS USING IMGUI ---
-		ImGui::Begin("Game Info");
+		/*ImGui::Begin("Game Info");
 		ImGui::Text("--- Current Game Information ---");
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::End();*/
+
+		//ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_FirstUseEver);
+		// NEW: Performance Profiler Window
+		ImGui::Begin("Game Information / Debugger");
+		{
+			// Add a slider to control how often the profiler updates.
+			static float updateInterval = 1.0f; // Default to updating once per second
+			ImGui::SliderFloat("Update Interval (s)", &updateInterval, 0.1f, 5.0f);
+			ImGui::Separator();
+
+			// Update the profiler data only when the timer expires.
+			profilerUpdateTimer_ += dt;
+			if (profilerUpdateTimer_ >= updateInterval) {
+				profilerUpdateTimer_ = 0.0f;
+				profilerDisplayData_ = engine_->GetSystemTimes(); // Take a snapshot
+			}
+
+			const double totalFrameTime = engine_->GetTotalFrameTime();
+			ImGui::Text("Total Frame Time: %.2f ms (%.1f FPS)", totalFrameTime, ImGui::GetIO().Framerate);
+			ImGui::Separator();
+
+			// Display the (now stable) data from our snapshot.
+			for (const auto& timing : profilerDisplayData_) {
+				char label[128];
+				sprintf(label, "%.1f%%", timing.percentage);
+				ImGui::ProgressBar(timing.percentage / 100.0f, ImVec2(-1.0f, 0.0f), label);
+				ImGui::Separator();
+				ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+				ImGui::Text("%s (%.2f ms)", timing.name.c_str(), timing.milliseconds);
+			}
+		}
 		ImGui::End();
 
 		// --- RENDER THE IMGUI UI ---
