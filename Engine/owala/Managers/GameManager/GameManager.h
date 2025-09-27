@@ -62,7 +62,7 @@ namespace Framework {
 		~GameManager() = default;
 
 		// Internal Checkers
-		void CheckSystems();
+		void CheckSystems() const;
 	public:
 		// GLOBAL STATES
 		int testState = 0;

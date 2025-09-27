@@ -14,6 +14,7 @@
 #include "InputSystem.h" // Include for Input System
 #include "PhysicsSystem.h"
 #include "FileUtility.h" // Include to write player data on Shutdown
+#include "EntityManager.h"
 
 namespace Framework {
 
@@ -26,8 +27,9 @@ namespace Framework {
 
         const float jumpVelocity = std::sqrt(2.0f * gravity * JumpHeight);
 
+		EntityManager entityMgr(*entityStorage_); // To access entity creation/destruction if needed
 		// Loop through each entity that is in the playerTag map
-		for (const auto& [entity, tag] : entityStorage_->playerTag) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
 			// Check if player entity has position and velocity components
 			//if (entityStorage_->position.find(entity) != entityStorage_->position.end() &&
 			//	entityStorage_->velocity.find(entity) != entityStorage_->velocity.end()) {
@@ -68,8 +70,9 @@ namespace Framework {
 
         FileIOSystem fileIO;
         PlayerStats newStats;
+        EntityManager entityMgr(*entityStorage_);
 
-        for (const auto& [entity, tag] : entityStorage_->playerTag) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
             newStats = entityStorage_->playerStats.at(entity);
             newStats.pos = entityStorage_->position.at(entity);
         }

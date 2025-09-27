@@ -47,7 +47,7 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// GameManager Internals
 	// ---------------------------------------------------------------------------
-	void GameManager::CheckSystems() {
+	void GameManager::CheckSystems() const {
 		if (!systems_.resourceManager_) {
 			throw std::runtime_error("[GameManager] ResourceManager not registered!");
 		}

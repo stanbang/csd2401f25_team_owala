@@ -11,6 +11,7 @@
 #include "Components.h"
 #include "EntityStorage.h"
 #include "FileUtility.h"
+#include "EntityManager.h"
 #include <string>
 
 /**
@@ -27,23 +28,26 @@ namespace Framework {
 		Vector2D halfSize, 
 		std::string textureID) {
 
+			//Create an EntityManager to access entity creation APIs
+			EntityManager entityMgr(entityStorage);
+
 			//Create a new entity with a unique ID
-			Entity player = createEntity();
+			Entity player = entityMgr.CreateEntity();
 			/*Assign components to the player entity, and
 			set initial values in the unordered maps.*/
 			//entityStorage.triangle[player] = triangle;
-			entityStorage.playerTag[player] = PlayerTag{}; //Assign PlayerTag component to the player entity
-			entityStorage.playerStats[player] = stats;
-			entityStorage.position[player] = Position{ stats.pos }; //Start at 0,0 coordinates
-			entityStorage.velocity[player] = Velocity{}; //Start with no velocity
+			entityMgr.AddComponent(player, PlayerTag{});
+			entityMgr.AddComponent(player, stats);
+			entityMgr.AddComponent(player, Position{ stats.pos }); //Start at 0,0 coordinates
+			entityMgr.AddComponent(player, Velocity{});  //Start with no velocity
 
 			//entityStorage.tex[player] = TextureComponent{ texture };
-			entityStorage.tex[player] = TextureComponent{ textureID };
-			entityStorage.rigidBody[player] = RigidBody{};
-			entityStorage.rigidBody[player].SetMass(1.0f); // Player has mass
+			entityMgr.AddComponent(player, TextureComponent{ textureID });
+			entityMgr.AddComponent(player, RigidBody{});
+			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 
-			entityStorage.colliders[player] = AABBCollider{ halfSize };
-			entityStorage.playerState[player] = PlayerState{}; // NEW: Add the player state component
+			entityMgr.AddComponent(player, AABBCollider{ halfSize });
+			entityMgr.AddComponent(player, PlayerState{}); // NEW: Add the player state component
 			//Return the entity ID of the player
 			return player;
 	}

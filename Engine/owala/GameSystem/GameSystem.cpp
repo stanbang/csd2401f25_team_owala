@@ -317,8 +317,8 @@ namespace Framework {
                 }
 
                 Color col = { 0.8f, 0.8f, 0.8f, 1.0f }; // Default color is grey
-                if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
-                if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
+                //if (ecs_->playerTag.count(entity))   col = { 1.0f, 0.4f, 0.4f, 1.0f }; // Player is red
+                //if (ecs_->platformTag.count(entity)) col = { 0.4f, 1.0f, 0.4f, 1.0f }; // Platform is green
 
                 // Draw the rotated bounding box
                 gfx_->drawRectangle(

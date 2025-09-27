@@ -1,5 +1,6 @@
 // PhysicsSystem.cpp
 #include "PhysicsSystem.h"
+#include "EntityManager.h"
 #include "AABB_Collision.h"
 #include <algorithm>
 #include <vector>
@@ -75,7 +76,8 @@ namespace Framework {
         const float maxY = 1.0f;
 
         // Iterate through all entities with a player tag.
-        for (const auto& [entity, tag] : ecs_->playerTag) {
+		EntityManager entityMgr(*ecs_);
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
             if (ecs_->position.count(entity) && ecs_->colliders.count(entity)) {
                 auto& pos = ecs_->position.at(entity).Pos;
                 auto& vel = ecs_->velocity.at(entity).Vel;

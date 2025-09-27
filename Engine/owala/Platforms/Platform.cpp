@@ -1,18 +1,20 @@
 #include "Platform.h"
+#include "EntityManager.h"
 
 namespace Framework {
 	Entity createPlatform(EntityStorage& entityStorage, Vector2D pos, Vector2D halfSize, std::string textureID)
 	{
-		Entity ground = createEntity();
+		EntityManager entityMgr(entityStorage);
+		Entity ground = entityMgr.CreateEntity();
 
-		entityStorage.platformTag[ground] = PlatformTag{};
-		entityStorage.position[ground] = Position{ pos };
-		entityStorage.velocity[ground] = Velocity{};
-		entityStorage.rigidBody[ground] = RigidBody{ {0.2f,0.2} };
-		entityStorage.rigidBody[ground].SetMass(0.0f); // A mass of 0 makes it static/immovable.
-		entityStorage.colliders[ground] = AABBCollider{ {1.0f, 0.2f} };
-		entityStorage.rotationFlag[ground] = RotationFlag{}; //added rotation for ground
-		entityStorage.tex[ground] = TextureComponent{ textureID };
+		entityMgr.AddComponent(ground, PlatformTag{});
+		entityMgr.AddComponent(ground, Position{ pos });
+		entityMgr.AddComponent(ground, Velocity{});
+		entityMgr.AddComponent(ground, RigidBody{ {0.2f,0.2} });
+		entityMgr.GetComponent<RigidBody>(ground).SetMass(0.0f); // A mass of 0 makes it static/immovable.
+		entityMgr.AddComponent(ground, AABBCollider{ {1.0f, 0.2f} });
+		entityMgr.AddComponent(ground, RotationFlag{});
+		entityMgr.AddComponent(ground, TextureComponent{ textureID });
 
 		return ground;
 	}
