@@ -2,7 +2,6 @@
 #include "AudioSystem.h"
 #include "Graphics.h"
 #include "GL/glew.h"
-#include "FontManager.h"
 
 using namespace Framework;
 
@@ -122,7 +121,7 @@ std::unordered_map<std::string, std::unique_ptr<Font>>& ResourceManager::getFont
 
 // Loads a font
 bool ResourceManager::loadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
-	FT_Library library = FontManager::GetInstance().GetLibrary();
+	FT_Library library = FreeTypeManager::GetInstance().GetLibrary();
 
 	// Check if the library is valid (e.g., if FT_Init_FreeType failed)
 	if (!library) {

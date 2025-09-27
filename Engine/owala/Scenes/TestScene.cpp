@@ -72,12 +72,12 @@ namespace TestScene {
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
-        rcm_->loadTexture("playerSprite_DuckyWucky", "Assets/duck-rgba-256.tex");
+        rcm_->loadTexture("playerSprite", "Assets/player_sprite_PH.png");
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
-        rcm_->loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
+        rcm_->loadTexture("Background", "Assets/Env_Level2_PH.png");
 		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
-        rcm_->loadFont("minecraft_font", "Assets/Fonts/minecraft.ttf");
-        rcm_->loadFont("kremlin_font", "Assets/Fonts/Kremlin.ttf");
+        rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
+        rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
         rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
@@ -123,14 +123,14 @@ namespace TestScene {
 		Entity bgmEntity = createBGAudio(*ecs, stats, { 0.1f, 0.1f }, "bgm");
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
-        std::string playerDuckID = "playerSprite_DuckyWucky";
-        playerEntity = createPlayer(*ecs, stats, { 0.1f, 0.1f }, playerDuckID);
+        std::string playerID = "playerSprite";
+        playerEntity = createPlayer(*ecs, stats, { 0.07f, 0.2f }, playerID);
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "minecraft_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.0f));
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "kremlin_font", { 0.5,1,1,1 }, { -0.7f, 0.6f }, 1.0f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.565, 0.745, 0.91, 0.8 }, {-0.7f, 0.6f}, 1.5f));
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -167,6 +167,15 @@ namespace TestScene {
             throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");
         }
 
+        //press arrow up/ arrow down to scale player sprite
+        if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
+            GameManager& gm = GameManager::GetInstance();
+            EntityStorage* ecs = gm.GetSystems().ecs_;
+            float diff = input_->KeyPressed(InputSystem::Key::Up) ? 0.01 : -0.01;
+            updatePlayerSize(*ecs, playerEntity, diff);
+            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size +0.01" << std::endl;
+        }
+
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.
         if (input_->KeyPressed(InputSystem::Key::P)) {
@@ -178,8 +187,7 @@ namespace TestScene {
                 Logger::Get().Info(DebugType::PhysicsSystem) << "Physics UnPaused!" << std::endl;
             }
         }
-
-
+        
         // 'O' key toggles the step-by-step debug mode.
         if (input_->KeyPressed(InputSystem::Key::O)) {
             physics_->ToggleStepMode();
@@ -249,7 +257,6 @@ namespace TestScene {
 
             // You can also show the ImGui demo window to explore widgets.
            //  ImGui::ShowDemoWindow(); 
-        
 
         float dt = gm.GetDeltaTime();
         // Update scaling platforms
