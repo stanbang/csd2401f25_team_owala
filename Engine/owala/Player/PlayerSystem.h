@@ -2,9 +2,9 @@
  * \file   PlayerSystem.h
  *
  * \primary_author
- *      Ng Jing Wen
+ *      Ng Jing Wen (50%)
  * \secondary_author
- *
+ *		Lur Pei Hao Stanley (50%)
  *
  * \brief
  *

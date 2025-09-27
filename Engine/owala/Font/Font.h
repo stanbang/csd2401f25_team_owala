@@ -2,9 +2,9 @@
  * \file   Font.h
  *
  * \primary_author
- *      Yar Xuan
+ *      Yar Xuan (80%)
  * \secondary_author
- *
+ *      Lur Pei Hao Stanley (20%)
  *
  * \brief
  *

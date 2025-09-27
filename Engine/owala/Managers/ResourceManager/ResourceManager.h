@@ -2,9 +2,9 @@
 * \file   ResourceManager.h
 *
 * \primary_author
-*      Ng Jing Wen
+*      Ng Jing Wen (80%)
 * \secondary_author
-*
+*      Yar Xuan (20%)
 *
 * \brief
 *
