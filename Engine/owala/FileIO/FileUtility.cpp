@@ -24,16 +24,16 @@ namespace Framework {
 		rapidjson::Document d = ReadFile(WIN_CONFIG_FILEPATH);
 
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing windowConfig in config.json. Defaulting to 800x800" << std::endl;
-			return Vector2D(800.0f, 800.0f);
+			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing windowConfig in config.json. Defaulting to 1920x1080" << std::endl;
+			return Vector2D(1920.0f, 1080.0f);
 		}
 
 		const rapidjson::Value& config = d["windowConfig"];
 
 		if (!config.HasMember("width") || !config["width"].IsInt() ||
 			!config.HasMember("height") || !config["height"].IsInt()) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 800x800" << std::endl;
-			return Vector2D(800.0f, 800.0f);
+			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;
+			return Vector2D(1920.0f, 1080.0f);
 		}
 
 		Vector2D windowSize = { config["width"].GetFloat() ,config["height"].GetFloat() };
