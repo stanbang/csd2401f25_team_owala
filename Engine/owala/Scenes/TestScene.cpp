@@ -16,7 +16,7 @@
 #include "Player.h"
 #include "Platform.h"
 #include "BackgroundEntity.h"
-#include "Text.h"
+#include "TextEntity.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"

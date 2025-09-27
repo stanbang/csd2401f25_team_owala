@@ -1,13 +1,4 @@
-/*****************************************************************//**
- * \file   FontManager.cpp
- * \brief
- *
- *
- * \author Yar Xuan
- * \date   26 September 2025
- *********************************************************************/
 #include "FontManager.h"
-#include <iostream>
 
 namespace Framework {
     FontManager::FontManager() {
