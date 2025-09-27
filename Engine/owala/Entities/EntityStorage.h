@@ -103,8 +103,9 @@ namespace Framework {
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 
-		//Texture Component
-		std::unordered_map<Entity, TextureComponent>      tex;
+		std::unordered_map<Entity, TextureComponent>      tex; //Texture Component
+		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
+		std::unordered_map<Entity, AnimatedTextureComponent> animatedTex; //Animated Texture Component
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
