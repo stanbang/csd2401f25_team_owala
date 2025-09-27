@@ -36,6 +36,10 @@ int main() {
 	SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
 
     using namespace Framework;
+    
+    Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
+    backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
+
     try {
     CoreEngine engine;
 	FileIOSystem fileIO;
@@ -73,16 +77,15 @@ int main() {
 	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
     return 0;
     }
-        catch (const GameException& e) {
-        Logger logger;
-        logger.LogCrash(e.type, e.what());
+    catch (const GameException& e) {
+        Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);
     }
     catch (const std::exception& e) {
-        Logger logger;
-        logger.LogCrash(DebugType::Unknown, e.what());
+        Logger::Get().LogCrash(DebugType::Unknown, e.what());
     }
     catch (...) {
-        Logger logger;
-        logger.LogCrash(DebugType::Unknown, "Unhandled exception");
+        Logger::Get().LogCrash(DebugType::Unknown, "Unhandled exception");
     }
+
+    return 0;
 }

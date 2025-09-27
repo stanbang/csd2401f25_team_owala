@@ -2,6 +2,7 @@
 #include "AudioSystem.h"
 #include "Graphics.h"
 #include "GL/glew.h"
+#include "FontManager.h"
 
 using namespace Framework;
 
@@ -49,48 +50,46 @@ void ResourceManager::Initialize() {
 void ResourceManager::clearAll() {
 	textureMap.clear();
 	soundMap.clear();
+	fontMap.clear();
 }
 
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
 	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
-	Logger logger;
 
 	if (tex == 0) {
-		logger.Info(DebugType::ResourceManager, "Failed to load texture from '" + filepath + "'");
+		Logger::Get().Info(DebugType::ResourceManager) << "Failed to load texture from '" << filepath << "'" << std::endl;
 		return false;
 	}
 
-	logger.Info(DebugType::ResourceManager, "Loaded texture '" + filepath + "'");
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded texture '" << filepath << "'" << std::endl;
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;
 }
-
 
 bool ResourceManager::loadSound(const std::string& id,
     const char* path,
     bool loop,
     bool stream) {
 
-	Logger logger;
 	FMOD::System* system_ = audiosystem_->getFMODSystem();
 
     if (!system_) return false;
     if (!path)     return false;
 
     if (!system_) {
-        std::fprintf(stderr, "[Audio] System not initialized\n");
+		Logger::Get().Error(DebugType::ResourceManager) << "Audio System not initialized" << std::endl;
         return false;
     }
     if (!path) {
-        std::fprintf(stderr, "[Audio] Null path for id '%s'\n", id.c_str());
+		Logger::Get().Error(DebugType::ResourceManager) << "Audio: Null path for id: " << id << std::endl;
         return false;
     }
 
     // Check if file exists
     FILE* test = fopen(path, "rb");
     if (!test) {
-        std::fprintf(stderr, "[Audio] File not found: %s\n", path);
+		Logger::Get().Error(DebugType::ResourceManager) << "Audio file not found: " << path << std::endl;
         return false;
     }
     fclose(test);
@@ -104,7 +103,7 @@ bool ResourceManager::loadSound(const std::string& id,
     audiosystem_->check(r, "System::createSound");
     if (r != FMOD_OK || !snd) return false;
 
-	logger.Info(DebugType::ResourceManager, "Loaded sound '" + std::string(path) + "'");
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded sound '" <<  path << "'" << std::endl;
 	add<Audio>(id, std::unique_ptr<Audio, FMODDeleter>(snd));
     return true;
 }
@@ -117,10 +116,41 @@ std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& ResourceMa
     return soundMap;
 }
 
+std::unordered_map<std::string, std::unique_ptr<Font>>& ResourceManager::getFontMap() {
+	return fontMap;
+}
+
+// Loads a font
+bool ResourceManager::loadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
+	FT_Library library = FontManager::GetInstance().GetLibrary();
+
+	// Check if the library is valid (e.g., if FT_Init_FreeType failed)
+	if (!library) {
+		Logger::Get().Error(DebugType::ResourceManager) << "FreeType Library not initialized." << std::endl;
+		return false;
+	}
+
+	// Font already loaded
+	if (fontMap.count(name) > 0) {
+		Logger::Get().Info(DebugType::ResourceManager) <<  "Already loaded font': " << fontPath << "'" << std::endl;
+		return true;
+	}
+	
+	// Load new font & store in resource manager's font map
+	auto newFont = std::make_unique<Font>();
+	if (newFont->Load(library, fontPath, size)) {
+		add<Font>(name, std::move(newFont)); // Add to resource manager's unordered_map
+		Logger::Get().Info(DebugType::ResourceManager) << "Loaded font '" << fontPath << "' with size " << size << std::endl;
+		return true;
+	}
+
+	// Failed to load
+	Logger::Get().Error(DebugType::ResourceManager) << "Failed to load font from '" << fontPath << "'" << std::endl;
+	return false;
+}
 
 void ResourceManager::Shutdown() {
-    Logger logger;
-    logger.Info(DebugType::ResourceManager, "ResourceManager shutdown: freeing all resources.");
+	Logger::Get().Info(DebugType::ResourceManager) << "ResourceManager shutdown: freeing all resources." << std::endl;
 
     // Clear all maps
 	clearAll();

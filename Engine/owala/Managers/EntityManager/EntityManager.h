@@ -46,9 +46,12 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
+			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
+			else if constexpr (std::is_same_v<T, ScalingPlatformComponent>) ecs.scalingPlatform[entity] = component;
 			else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
 			else if constexpr (std::is_same_v<T, AudioComponent>) ecs.audio[entity] = component;
 			else if constexpr (std::is_same_v<T, AnimatedTextureComponent>) ecs.animatedTex[entity] = component;
+			else if constexpr (std::is_same_v<T, TextComponent>) ecs.text[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
 			else {
 				// If this is a tag-only type, no storage is necessary.
@@ -80,9 +83,12 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
+			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);
+			else if constexpr (std::is_same_v<T, ScalingPlatformComponent>) return ecs.scalingPlatform.at(entity);
 			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
 			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
 			else if constexpr (std::is_same_v<T, AnimatedTextureComponent>) return ecs.animatedTex.at(entity);
+			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");

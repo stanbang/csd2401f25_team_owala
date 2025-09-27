@@ -30,7 +30,7 @@ namespace Framework {
 	GameManager& GameManager::GetInstance() {
 		if (!instance) {
 			instance = new GameManager();
-			std::cout << "[GameManager] GameManager Instantiated!" << std::endl;
+			Logger::Get().Info(DebugType::GameManager) << "GameManager Instantiated!" << std::endl;
 		}
 		return *instance;
 	}
@@ -49,31 +49,31 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	void GameManager::CheckSystems() const {
 		if (!systems_.resourceManager_) {
-			throw std::runtime_error("[GameManager] ResourceManager not registered!");
+			throw GameException(DebugType::GameManager,"ResourceManager not registered!");
 		}
 		if (!systems_.ecs_) {
-			throw std::runtime_error("[GameManager] EntityStorage not registered!");
+			throw GameException(DebugType::GameManager, "EntityStorage not registered!");
 		}
 		if (!systems_.gfx_) {
-			throw std::runtime_error("[GameManager] Graphics not registered!");
+			throw GameException(DebugType::GameManager, "Graphics not registered!");
 		}
 		if (!systems_.win_) {
-			throw std::runtime_error("[GameManager] WindowsSystem not registered!");
+			throw GameException(DebugType::GameManager, "WindowsSystem not registered!");
 		}
 		if (!systems_.input_) {
-			throw std::runtime_error("[GameManager] InputSystem not registered!");
+			throw GameException(DebugType::GameManager, "InputSystem not registered!");
 		}
 		if (!systems_.physics_) {
-			throw std::runtime_error("[GameManager] PhysicsSystem not registered!");
+			throw GameException(DebugType::GameManager, "PhysicsSystem not registered!");
 		}
 		if (!systems_.audio_) {
-			throw std::runtime_error("[GameManager] AudioSystem not registered!");
+			throw GameException(DebugType::GameManager, "AudioSystem not registered!");
 		}
 		if (!systems_.spriteRenderer_) {
 			throw std::runtime_error("[GameManager] SpriteRenderSystem not registered!");
 		}
 		if (!SceneManager::Exists()) {
-			throw std::runtime_error("[GameManager] SceneManager not registered!");
+			throw GameException(DebugType::GameManager, "SceneManager not registered!");
 		}
 	}
 
@@ -116,7 +116,7 @@ namespace Framework {
 		RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
 		sceneCallbacks_[testScene].fpInitialize();
-		std::cout << "[GameManager] Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
+		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
 
 		// --- NEW: IMGUI INITIALIZATION ---

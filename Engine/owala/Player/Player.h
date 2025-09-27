@@ -48,6 +48,7 @@ namespace Framework {
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
 			entityMgr.AddComponent(player, PlayerState{}); // NEW: Add the player state component
+			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
 			//Return the entity ID of the player
 			return player;
 	}

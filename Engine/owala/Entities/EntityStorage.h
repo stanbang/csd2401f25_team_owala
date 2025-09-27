@@ -36,9 +36,12 @@ namespace Framework {
 		AABBColliderType,
 		PlayerStateType,
 		RotationFlagType,
+		TrapPlatformComponentType,
+		ScalingPlatformComponentType,
 		TextureComponentType,
 		AudioComponentType,
 		AnimatedTextureComponentType,
+		TextComponentType,
 		PlayerTagType,
 		PlatformTagType,
 		BackgroundTagType,
@@ -70,9 +73,12 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<AABBCollider> { static constexpr ComponentType value = AABBColliderType; };
 	template <> struct ComponentTypeTrait<PlayerState> { static constexpr ComponentType value = PlayerStateType; };
 	template <> struct ComponentTypeTrait<RotationFlag> { static constexpr ComponentType value = RotationFlagType; };
+	template <> struct ComponentTypeTrait<TrapPlatformComponent> { static constexpr ComponentType value = TrapPlatformComponentType; };
+	template <> struct ComponentTypeTrait<ScalingPlatformComponent> { static constexpr ComponentType value = ScalingPlatformComponentType; };
 	template <> struct ComponentTypeTrait<TextureComponent> { static constexpr ComponentType value = TextureComponentType; };
 	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
 	template <> struct ComponentTypeTrait<AnimatedTextureComponent> { static constexpr ComponentType value = AnimatedTextureComponentType; };
+	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
@@ -106,10 +112,13 @@ namespace Framework {
 		std::unordered_map<Entity, AABBCollider> colliders; 
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
+		std::unordered_map<Entity, TrapPlatformComponent> trapPlatform;
+		std::unordered_map<Entity, ScalingPlatformComponent> scalingPlatform;
 
 		std::unordered_map<Entity, TextureComponent>      tex; //Texture Component
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
 		std::unordered_map<Entity, AnimatedTextureComponent> animatedTex; //Animated Texture Component
+		std::unordered_map<Entity, TextComponent>	text; // Text Component
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
