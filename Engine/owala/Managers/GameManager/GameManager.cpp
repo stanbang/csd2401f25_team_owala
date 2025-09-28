@@ -96,6 +96,10 @@ namespace Framework {
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 	}
 
+	void GameManager::RegisterEditor(Editor::Editor& editor) {
+		editor_ = &editor;
+	}
+
 	// ---------------------------------------------------------------------------
 	// GameManager APIs
 	// ---------------------------------------------------------------------------
@@ -121,40 +125,10 @@ namespace Framework {
 		sceneCallbacks_[testScene].fpInitialize();
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
-
-		// --- NEW: IMGUI INITIALIZATION ---
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
-
-		// Setup Dear ImGui style
-		ImGui::StyleColorsDark();
-
-		// When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-		ImGuiStyle& style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			style.WindowRounding = 0.0f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-		}
-
-		// Setup Platform/Renderer backends
-		ImGui_ImplGlfw_InitForOpenGL(systems_.win_->window(), true);
-		ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
 	void GameManager::Update(float dt) {
 		deltaTime = dt;
-
-		//  --- START THE IMGUI FRAME ---
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-		
 
 		// --- GAME UPDATE HERE ---
 		// Hard Coded to load the Test Scene as we'll be doing testing there first.
@@ -199,48 +173,6 @@ namespace Framework {
 		ImGui::End();*/
 
 		//ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_FirstUseEver);
-		// NEW: Performance Profiler Window
-		ImGui::Begin("Game Information / Debugger");
-		{
-			// Add a slider to control how often the profiler updates.
-			static float updateInterval = 1.0f; // Default to updating once per second
-			ImGui::SliderFloat("Update Interval (s)", &updateInterval, 0.1f, 5.0f);
-			ImGui::Separator();
-
-			// Update the profiler data only when the timer expires.
-			profilerUpdateTimer_ += dt;
-			if (profilerUpdateTimer_ >= updateInterval) {
-				profilerUpdateTimer_ = 0.0f;
-				profilerDisplayData_ = engine_->GetSystemTimes(); // Take a snapshot
-			}
-
-			const double totalFrameTime = engine_->GetTotalFrameTime();
-			ImGui::Text("Total Frame Time: %.2f ms (%.1f FPS)", totalFrameTime, ImGui::GetIO().Framerate);
-			ImGui::Separator();
-
-			// Display the (now stable) data from our snapshot.
-			for (const auto& timing : profilerDisplayData_) {
-				char label[128];
-				sprintf(label, "%.1f%%", timing.percentage);
-				ImGui::ProgressBar(timing.percentage / 100.0f, ImVec2(-1.0f, 0.0f), label);
-				ImGui::Separator();
-				ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-				ImGui::Text("%s (%.2f ms)", timing.name.c_str(), timing.milliseconds);
-			}
-		}
-		ImGui::End();
-
-		// --- RENDER THE IMGUI UI ---
-		// This draws the UI on top of the game world.
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		}
 	}
 
 	void GameManager::Shutdown() {

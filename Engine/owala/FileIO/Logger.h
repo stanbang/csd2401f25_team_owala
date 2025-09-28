@@ -32,7 +32,8 @@ const enum class DebugType {
     ResourceManager,
     GameManager,
     FileIOSystem,
-    Logger
+    Logger,
+    Editor
 };
 
 const std::string DebugTypeLabels[] = {
@@ -47,7 +48,8 @@ const std::string DebugTypeLabels[] = {
     "ResourceManager",
     "GameManager",
     "FileIOSystem",
-    "Logger"
+    "Logger",
+    "Editor"
 };
 
 namespace Framework {

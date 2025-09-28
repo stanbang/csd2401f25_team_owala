@@ -212,48 +212,48 @@ namespace TestScene {
             sceneMgr.LoadScene(nextScene.name);
         }
 
-        // 3. --- BUILD IMGUI INTERFACE ---
-        // Example of a dockable "Level Editor" window.
-        // Create the main dockspace that will fill the entire game window.
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
+        //// 3. --- BUILD IMGUI INTERFACE ---
+        //// Example of a dockable "Level Editor" window.
+        //// Create the main dockspace that will fill the entire game window.
+        //const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        //ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        //ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
 
-        ImGui::Begin("Level Editor");
+        //ImGui::Begin("Level Editor");
 
-            if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
-                // Check if the player entity and its components exist.
-                if (entityMgr.HasComponent(playerEntity, PositionType) && entityMgr.HasComponent(playerEntity, VelocityType) && entityMgr.HasComponent(playerEntity, PlayerStateType)) {
+        //    if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
+        //        // Check if the player entity and its components exist.
+        //        if (entityMgr.HasComponent(playerEntity, PositionType) && entityMgr.HasComponent(playerEntity, VelocityType) && entityMgr.HasComponent(playerEntity, PlayerStateType)) {
 
-                    // Get references to the player's components.
-                    Vector2D& pos = entityMgr.GetComponent<Position>(playerEntity).Pos;
-                    Vector2D& vel = entityMgr.GetComponent<Velocity>(playerEntity).Vel;
-                    PlayerState& state = entityMgr.GetComponent<PlayerState>(playerEntity);
+        //            // Get references to the player's components.
+        //            Vector2D& pos = entityMgr.GetComponent<Position>(playerEntity).Pos;
+        //            Vector2D& vel = entityMgr.GetComponent<Velocity>(playerEntity).Vel;
+        //            PlayerState& state = entityMgr.GetComponent<PlayerState>(playerEntity);
 
-                    // Create ImGui widgets linked to the component data.
-                    ImGui::DragFloat2("Position", &pos.x, 0.01f);
-                    ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-                    ImGui::Checkbox("Is Grounded?", &state.isGrounded);
+        //            // Create ImGui widgets linked to the component data.
+        //            ImGui::DragFloat2("Position", &pos.x, 0.01f);
+        //            ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+        //            ImGui::Checkbox("Is Grounded?", &state.isGrounded);
 
-                    // A button to apply an action to the entity.
-                    if (ImGui::Button("Reset Player Position")) {
-                        pos = { 0.0f, 0.5f };
-                        vel = { 0.0f, 0.0f };
-                    }
-                }
-                else {
-                    ImGui::Text("Player entity data not found!");
-                }
-            }
+        //            // A button to apply an action to the entity.
+        //            if (ImGui::Button("Reset Player Position")) {
+        //                pos = { 0.0f, 0.5f };
+        //                vel = { 0.0f, 0.0f };
+        //            }
+        //        }
+        //        else {
+        //            ImGui::Text("Player entity data not found!");
+        //        }
+        //    }
 
-            if (ImGui::CollapsingHeader("Global Controls")) {
-                static float masterVolume = 0.35f;
-                if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
-                    audio_->setMasterVolume(masterVolume);
-                }
-            }
+        //    if (ImGui::CollapsingHeader("Global Controls")) {
+        //        static float masterVolume = 0.35f;
+        //        if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
+        //            audio_->setMasterVolume(masterVolume);
+        //        }
+        //    }
 
-            ImGui::End(); // End "Level Editor" window
+        //    ImGui::End(); // End "Level Editor" window
 
             // You can also show the ImGui demo window to explore widgets.
            //  ImGui::ShowDemoWindow(); 
@@ -269,9 +269,9 @@ namespace TestScene {
 	}
 
 	void Free() {
-        std::cout << "Freeing IMGUI" << std::endl;
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
+        //std::cout << "Freeing IMGUI" << std::endl;
+        //ImGui_ImplOpenGL3_Shutdown();
+        //ImGui_ImplGlfw_Shutdown();
+        //ImGui::DestroyContext();
 	}
 }

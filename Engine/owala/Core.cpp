@@ -11,6 +11,7 @@
 #include "ResourceManager.h"
 #include "GameManager.h"
 #include "Graphics.h"
+#include "Editor.h"
 
 namespace Framework {
 
@@ -25,6 +26,7 @@ namespace Framework {
         if (info == typeid(Framework::ResourceManager)) return "Resource Manager";
         if (info == typeid(Framework::GameManager))     return "Game Manager";
         if (info == typeid(Framework::Graphics))        return "Graphics";
+        if (info == typeid(Editor::Editor))             return "Editor";
         // Add other systems here
         return "Unknown System"; // if no systems found
     }

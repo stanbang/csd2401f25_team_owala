@@ -66,6 +66,8 @@ namespace Framework {
 
 			ecs.entitySignatures[entity].set(type);
 		}
+		// Adds a empty component of specified ComponentType ID to the entity.
+		void AddComponent(Entity entity, ComponentType componentType);
 		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
 		void RemoveComponent(Entity entity, ComponentType componentType);
 		// Gets the component of type T attached to the specified entity. Throws an error if the entity does not have the component.
@@ -100,6 +102,8 @@ namespace Framework {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}
 		}
+		// Checks if given component is a Tag Component. Returns false if it is a regular component.
+		bool IsTagComponent(ComponentType componentType);
 		// Gets all entities that have been created. Note that this includes entities that have no components.
 		std::vector<Entity> GetAllEntities() const;
 		// Gets all entities that have the specified component type attached to them.
