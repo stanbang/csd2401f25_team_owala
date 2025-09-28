@@ -55,6 +55,15 @@ namespace Framework {
             // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
             Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
+			//Check for animation component
+            if (entityMgr.HasComponent(e, AnimationComponentType) && entityMgr.HasComponent(e, TextureInfoComponentType)) {
+				const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
+				const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
+
+				gfx_.drawSprite(tex, pos, halfSize, rotationRad, animComp.minUV, animComp.maxUV);
+				continue; // Skip the non-animated draw call below
+            }
+
             // Draw
             gfx_.drawSprite(tex, pos, halfSize, rotationRad);
         }

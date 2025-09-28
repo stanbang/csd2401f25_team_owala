@@ -23,6 +23,7 @@
 #include <iostream>
 #include <fstream>
 
+#include "Animation.h"
 #include "Components.h"
 #include "Logger.h"
 
@@ -68,6 +69,7 @@ namespace Framework {
 	public:
 		Vector2D LoadWindowConfig();
 		PlayerStats LoadPlayerStats();
+		AnimationInfo LoadAnimationInfo(std::string filepath);
 		bool WritePlayerStats(const PlayerStats& playerStats);
 	};
 } // namespace Framework
