@@ -161,6 +161,9 @@ namespace TestScene {
                 std::fprintf(stderr, "[Audio] Scream sound not found!\n");
             }
         }
+        if (input_->KeyPressed(InputSystem::Key::L)) {
+            audio_->setMasterVolume(0.0f);
+        }
 
         //press ESC to crash the game
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
