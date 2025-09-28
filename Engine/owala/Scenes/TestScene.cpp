@@ -75,10 +75,10 @@ namespace TestScene {
         rcm_->loadTexture("playerSprite", "Assets/player_sprite_PH.png");
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
         rcm_->loadTexture("Background", "Assets/Env_Level2_PH.png");
-		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
+		rcm_->loadSound("bgm", "Assets/siren.wav", true, true); // siren sound for relaxing background music
         rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
         rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
-        rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
+        rcm_->loadSound("scream", "Assets/Goat.ogg", false, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
