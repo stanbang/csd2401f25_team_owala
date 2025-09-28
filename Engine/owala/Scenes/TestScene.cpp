@@ -128,8 +128,8 @@ namespace TestScene {
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.5f));
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.565, 0.745, 0.91, 0.8 }, {-0.7f, 0.6f}, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.0f, 0.0f, 0.0f, 1.0f }, {-0.3f, 0.85f}, 1.5f));
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -173,9 +173,9 @@ namespace TestScene {
         if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
             GameManager& gm = GameManager::GetInstance();
             EntityStorage* ecs = gm.GetSystems().ecs_;
-            float diff = input_->KeyPressed(InputSystem::Key::Up) ? 0.01 : -0.01;
-            updatePlayerSize(*ecs, playerEntity, diff);
-            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size +0.01" << std::endl;
+            float scale = input_->KeyPressed(InputSystem::Key::Up) ? 1.05f : (1.0f / 1.05f);
+            updatePlayerSize(*ecs, playerEntity, scale);
+            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size *= (" << scale << ')' << std::endl;
         }
 
         // 2. --- HANDLE INPUTS ---

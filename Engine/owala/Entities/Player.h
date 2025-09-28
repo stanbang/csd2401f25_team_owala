@@ -64,10 +64,10 @@ namespace Framework {
 			return player;
 	}
 
-	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float diff) {
+	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float scale) {
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
-		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x += diff;
-		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.y += diff;
+		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x *= scale;
+		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.y *= scale;
 	}
 }
