@@ -67,19 +67,21 @@ namespace Framework {
                 Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
 
                 for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
-                    RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
-                    if (entityMgr.HasComponent(entity, PositionType)) {
+                    if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, ActiveTagType)) {
                         Vector2D originalPos = entityMgr.GetComponent<Position>(entity).Pos;
                         entityMgr.GetComponent<Position>(entity).Pos = rotationMat * originalPos;
                     }
                 }
 
                 for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
+                    if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
                     PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
                     state.isGrounded = true;
                 }
 
                 for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
+                    if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
                     RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     if (entityMgr.HasComponent(entity, PlayerTagType)) {
                         continue;

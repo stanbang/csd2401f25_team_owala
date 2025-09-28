@@ -1,5 +1,6 @@
 #include "AudioSystem.h"
 #include "EntityManager.h"
+#include "SceneManager.h"
 #include <cstdio>   // fprintf
 
 namespace Framework {
@@ -36,6 +37,10 @@ namespace Framework {
         }
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AudioComponentType)) {
+
+			// Check if Entity is active in the scene. Loads if active.
+			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
 			AudioComponent& comp = entityMgr.GetComponent<AudioComponent>(entity);
             if (comp.soundKey.empty()) continue;
 

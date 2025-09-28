@@ -53,13 +53,7 @@ namespace Framework {
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
-		auto it = ecs.entitySignatures.find(entity);
-		if (it != ecs.entitySignatures.end()) {
-			const ComponentSignature& signature = it->second;
-			return signature.test(componentType);
-		}
-
-		return false; // Entity not found or does not have the component
+		return ecs.entitySignatures[entity].test(componentType);
 	}
 
 	//template <typename T>

@@ -28,6 +28,9 @@ namespace Framework {
             if (!entityMgr.HasComponent(e, PositionType))
                 continue;
 
+			// Check if Entity is active in the scene. Loads if active.
+            if (!entityMgr.HasComponent(e, ActiveTagType)) continue;
+
             const auto& pos = entityMgr.GetComponent<Position>(e).Pos;
 
             // Determine halfSize:

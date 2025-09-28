@@ -33,12 +33,18 @@ namespace Framework {
 
         // 1. Reset player state (assume not grounded until a collision proves otherwise).
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
+            // Check if Player is active in the scene. Updates state if active.
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
             PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
             state.isGrounded = false;
         }
 
         // 2. Apply forces (only gravity for now).
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
+            // Check if Entity is active in the scene. Handle Physics if active.
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
 			RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
 
             if (body.InverseMass > 0.0f) {
@@ -66,6 +72,9 @@ namespace Framework {
 		EntityManager entityMgr(*ecs_);
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
+            // Check if Entity is active in the scene. Handle Physics if active.
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
             if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType)) {
 				RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
 				Position& pos = entityMgr.GetComponent<Position>(entity);
