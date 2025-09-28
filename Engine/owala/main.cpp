@@ -61,8 +61,9 @@ int main() {
     Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
     backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
 
-    try {
     CoreEngine engine;
+
+    try {
 	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.LoadWindowConfig();
     WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
@@ -103,12 +104,18 @@ int main() {
     }
     catch (const GameException& e) {
         Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);
+        engine.DestroySystems(); 
+        SceneManager::DestroyInstance();
     }
     catch (const std::exception& e) {
         Logger::Get().LogCrash(DebugType::Unknown, e.what());
+        engine.DestroySystems();
+        SceneManager::DestroyInstance();
     }
     catch (...) {
         Logger::Get().LogCrash(DebugType::Unknown, "Unhandled exception");
+        engine.DestroySystems();
+        SceneManager::DestroyInstance();
     }
 
     return 0;
