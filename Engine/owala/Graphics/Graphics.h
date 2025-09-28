@@ -163,6 +163,10 @@ namespace Framework {
         void drawSprite(Texture& tex, const Vector2D& center,
             const Vector2D& halfSize, float rotation = 0.0f);
 
+
+
+        void drawLine(const Vector2D& start, const Vector2D& end, const Color& color);
+
         // ---------------- Text ----------------
 
         /**

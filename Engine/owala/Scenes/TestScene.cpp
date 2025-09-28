@@ -138,6 +138,8 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+
+
 	}
 
 	void Update() {
@@ -169,7 +171,14 @@ namespace TestScene {
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
             throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");
         }
-
+        // Press 'C' to toggle colliders - much simpler!
+        if (input_->KeyPressed(InputSystem::Key::C)) {
+            GameManager& gm = GameManager::GetInstance();
+            SpriteRenderSystem* renderer = gm.GetSystems().spriteRenderer_;
+            if (renderer) {
+                renderer->ToggleColliders(); // Just one line!
+            }
+        }
         //press arrow up/ arrow down to scale player sprite
         if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
             GameManager& gm = GameManager::GetInstance();
