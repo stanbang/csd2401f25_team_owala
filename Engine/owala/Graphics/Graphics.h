@@ -161,7 +161,7 @@ namespace Framework {
          * \param rotation Rotation in radians (optional).
          */
         void drawSprite(Texture& tex, const Vector2D& center,
-            const Vector2D& halfSize, float rotation = 0.0f);
+            const Vector2D& halfSize, float rotation = 0.0f, const Vector2D& minUV = { 0,0 }, const Vector2D& maxUV = { 1,1 });
 
 
 

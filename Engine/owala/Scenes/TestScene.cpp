@@ -61,6 +61,7 @@ namespace TestScene {
 	using namespace Framework;
 
 	void Initialize() {
+        FileIOSystem fileIO;
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
 		EntityStorage* ecs = gm.GetSystems().ecs_;
@@ -73,6 +74,8 @@ namespace TestScene {
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite", "Assets/player_sprite_PH.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/player_idle_animation.png");
+        rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
         rcm_->loadTexture("Background", "Assets/Env_Level2_PH.png");
 		rcm_->loadSound("bgm", "Assets/siren.wav", true, true); // siren sound for relaxing background music
@@ -115,16 +118,12 @@ namespace TestScene {
         trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
         sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
-        // --- Create Player Entity ---
-        FileIOSystem fileIO;
-        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
-
 		// --- Create Background Music Entity ---
-		Entity bgmEntity = createBGAudio(*ecs, stats, { 0.1f, 0.1f }, "bgm");
+		Entity bgmEntity = createBGAudio(*ecs, "bgm");
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
-        std::string playerID = "playerSprite";
-        playerEntity = createPlayer(*ecs, stats, { 0.07f, 0.2f }, playerID);
+        // --- Create Player Entity ---
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.07f, 0.2f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 

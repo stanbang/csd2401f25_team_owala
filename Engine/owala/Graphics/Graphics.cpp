@@ -282,7 +282,7 @@ namespace Framework {
     }
 
     void Graphics::drawSprite(Texture& tex, const Vector2D& center,
-        const Vector2D& halfSize, float rotation) {
+        const Vector2D& halfSize, float rotation, const Vector2D& minUV, const Vector2D& maxUV) {
 
 
         // two triangles (6 verts), each vert = (x,y,u,v)
@@ -304,13 +304,13 @@ namespace Framework {
 
         const float verts[] = {
             // x,   y,    u,   v
-            p0.x, p0.y,  0.f, 0.f,
-            p1.x, p1.y,  1.f, 0.f,
-            p2.x, p2.y,  1.f, 1.f,
+            p0.x, p0.y,  minUV.x, minUV.y,
+            p1.x, p1.y,  maxUV.x, minUV.y,
+            p2.x, p2.y,  maxUV.x, maxUV.y,
 
-            p0.x, p0.y,  0.f, 0.f,
-            p2.x, p2.y,  1.f, 1.f,
-            p3.x, p3.y,  0.f, 1.f,
+            p0.x, p0.y,  minUV.x, minUV.y,
+            p2.x, p2.y,  maxUV.x, maxUV.y,
+            p3.x, p3.y,  minUV.x, maxUV.y,
         };
 
         glEnable(GL_BLEND);

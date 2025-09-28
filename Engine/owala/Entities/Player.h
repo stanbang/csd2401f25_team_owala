@@ -18,6 +18,8 @@
 #include "EntityStorage.h"
 #include "FileUtility.h"
 #include "EntityManager.h"
+#include "Animation.h"
+#include "ResourceManager.h"
 #include <string>
 
 /**
@@ -30,9 +32,10 @@
 namespace Framework {
 
 	inline Entity createPlayer(EntityStorage& entityStorage, 
+		ResourceManager& rcm,
 		PlayerStats stats, 
 		Vector2D halfSize, 
-		std::string textureID) {
+		std::string textureKey) {
 
 			//Create an EntityManager to access entity creation APIs
 			EntityManager entityMgr(entityStorage);
@@ -47,8 +50,10 @@ namespace Framework {
 			entityMgr.AddComponent(player, Position{ stats.pos }); //Start at 0,0 coordinates
 			entityMgr.AddComponent(player, Velocity{});  //Start with no velocity
 
-			//entityStorage.tex[player] = TextureComponent{ texture };
-			entityMgr.AddComponent(player, TextureComponent{ textureID });
+			AnimationInfo animInfo = rcm.get<AnimationInfo>(textureKey);
+			entityMgr.AddComponent(player, TextureComponent{ textureKey });
+			entityMgr.AddComponent(player, TextureInfoComponent{ animInfo.frameCount, animInfo.frameDuration, animInfo.isLooping, animInfo.startFrame });
+			entityMgr.AddComponent(player, AnimationComponent{});
 			entityMgr.AddComponent(player, RigidBody{});
 			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 

@@ -34,6 +34,7 @@
 #include "Logger.h"
 #include "GameManager.h"
 #include "SpriteRenderSystem.h"
+#include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
 
 // Global pointer to WindowsSystem for console handler
@@ -78,6 +79,7 @@ int main() {
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
+	AnimationSystem* animation = new AnimationSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer); // Register all core systems to the GameManager
 
@@ -90,6 +92,7 @@ int main() {
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
+	engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();

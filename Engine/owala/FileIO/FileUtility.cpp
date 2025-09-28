@@ -92,4 +92,35 @@ namespace Framework {
 
 		return WriteFileJson(PLAYER_CONFIG_FILEPATH, d);
 	}
+
+	AnimationInfo FileIOSystem::LoadAnimationInfo(std::string filepath) {
+		std::string logMsg{};
+		rapidjson::Document d = ReadFile(filepath); //Read the file name passed in as a path
+
+		// Check if the JSON file contains the respective members expected of a playerStats.json file
+		if (!d.HasMember("Animation") || !d["Animation"].IsObject()) {
+			throw GameException(DebugType::FileIOSystem, "Invalid or missing animation data in " + filepath);
+		}
+
+		const rapidjson::Value& stats = d["Animation"]; // Extract the animation data from the JSON file
+
+		// Check if animation members exists in Animation
+		if (!stats.HasMember("frameCount") || !stats.HasMember("frameDuration") || !stats.HasMember("isLooping") || !stats.HasMember("startFrame")) {
+			throw GameException(DebugType::FileIOSystem, "Invalid or missing properties in " + filepath);
+		}
+
+		const rapidjson::Value& frameCount = stats["frameCount"];
+		const rapidjson::Value& frameDuration = stats["frameDuration"];
+		const rapidjson::Value& isLooping = stats["isLooping"];
+		const rapidjson::Value& startFrame = stats["startFrame"];
+
+
+		// Debugging output
+		Logger::Get().Info(DebugType::FileIOSystem) << "Animation Data read from " << filepath << ": frameCount: " << frameCount.GetInt() << ", frameDuration : " << frameDuration.GetFloat() << ", isLooping : " << isLooping.GetBool() << ", startFrame : " << startFrame.GetInt() << std::endl;
+
+		//Create AnimationComponent from data
+		AnimationInfo anim{ frameCount.GetInt(), frameDuration.GetFloat(), isLooping.GetBool(), startFrame.GetInt()};
+
+		return anim;
+	}
 }
