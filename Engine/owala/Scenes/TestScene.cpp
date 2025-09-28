@@ -61,6 +61,7 @@ namespace TestScene {
 	using namespace Framework;
 
 	void Initialize() {
+        FileIOSystem fileIO;
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
 		EntityStorage* ecs = gm.GetSystems().ecs_;
@@ -73,12 +74,14 @@ namespace TestScene {
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite", "Assets/player_sprite_PH.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/player_idle_animation.png");
+        rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
         rcm_->loadTexture("Background", "Assets/Env_Level2_PH.png");
-		rcm_->loadSound("bgm", "Assets/siren.ogg", true, true); // siren sound for relaxing background music
+		rcm_->loadSound("bgm", "Assets/siren.wav", true, true); // siren sound for relaxing background music
         rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
         rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
-        rcm_->loadSound("scream", "Assets/Goat.ogg", true, true); //scream sound effect
+        rcm_->loadSound("scream", "Assets/Goat.ogg", false, true); //scream sound effect
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
@@ -115,22 +118,18 @@ namespace TestScene {
         trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
         sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
-        // --- Create Player Entity ---
-        FileIOSystem fileIO;
-        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
-
 		// --- Create Background Music Entity ---
-		Entity bgmEntity = createBGAudio(*ecs, stats, { 0.1f, 0.1f }, "bgm");
+		Entity bgmEntity = createBGAudio(*ecs, "bgm");
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
-        std::string playerID = "playerSprite";
-        playerEntity = createPlayer(*ecs, stats, { 0.07f, 0.2f }, playerID);
+        // --- Create Player Entity ---
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.07f, 0.2f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.5f));
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.565, 0.745, 0.91, 0.8 }, {-0.7f, 0.6f}, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.0f, 0.0f, 0.0f, 1.0f }, {-0.3f, 0.85f}, 1.5f));
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -138,6 +137,8 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+
+
 	}
 
 	void Update() {
@@ -161,19 +162,29 @@ namespace TestScene {
                 std::fprintf(stderr, "[Audio] Scream sound not found!\n");
             }
         }
+        if (input_->KeyPressed(InputSystem::Key::L)) {
+            audio_->setMasterVolume(0.0f);
+        }
 
         //press ESC to crash the game
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
             throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");
         }
-
+        // Press 'C' to toggle colliders - much simpler!
+        if (input_->KeyPressed(InputSystem::Key::C)) {
+            GameManager& gm = GameManager::GetInstance();
+            SpriteRenderSystem* renderer = gm.GetSystems().spriteRenderer_;
+            if (renderer) {
+                renderer->ToggleColliders(); // Just one line!
+            }
+        }
         //press arrow up/ arrow down to scale player sprite
         if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
             GameManager& gm = GameManager::GetInstance();
             EntityStorage* ecs = gm.GetSystems().ecs_;
-            float diff = input_->KeyPressed(InputSystem::Key::Up) ? 0.01 : -0.01;
-            updatePlayerSize(*ecs, playerEntity, diff);
-            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size +0.01" << std::endl;
+            float scale = input_->KeyPressed(InputSystem::Key::Up) ? 1.05f : (1.0f / 1.05f);
+            updatePlayerSize(*ecs, playerEntity, scale);
+            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size *= (" << scale << ')' << std::endl;
         }
 
         // 2. --- HANDLE INPUTS ---

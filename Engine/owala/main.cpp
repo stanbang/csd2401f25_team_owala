@@ -34,6 +34,7 @@
 #include "Logger.h"
 #include "GameManager.h"
 #include "SpriteRenderSystem.h"
+#include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
 
 // Imgui Editor
@@ -63,8 +64,9 @@ int main() {
     Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
     backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
 
-    try {
     CoreEngine engine;
+
+    try {
 	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.LoadWindowConfig();
     WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
@@ -81,6 +83,7 @@ int main() {
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
+	AnimationSystem* animation = new AnimationSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer); // Register all core systems to the GameManager
 
@@ -97,6 +100,7 @@ int main() {
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
+	engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
     engine.AddSystem(editor);              // Editor
     engine.AddSystem(gfx);                 // swaps buffers last
 
@@ -108,12 +112,18 @@ int main() {
     }
     catch (const GameException& e) {
         Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);
+        engine.DestroySystems(); 
+        SceneManager::DestroyInstance();
     }
     catch (const std::exception& e) {
         Logger::Get().LogCrash(DebugType::Unknown, e.what());
+        engine.DestroySystems();
+        SceneManager::DestroyInstance();
     }
     catch (...) {
         Logger::Get().LogCrash(DebugType::Unknown, "Unhandled exception");
+        engine.DestroySystems();
+        SceneManager::DestroyInstance();
     }
 
     return 0;

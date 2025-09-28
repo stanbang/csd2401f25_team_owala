@@ -74,8 +74,9 @@ namespace Framework {
 		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
 		case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(entity, ScalingPlatformComponent{}); break;
 		case ComponentType::TextureComponentType: AddComponent<TextureComponent>(entity, TextureComponent{}); break;
+		case ComponentType::TextureInfoComponentType: AddComponent<TextureInfoComponent>(entity, TextureInfoComponent{}); break;
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
-		case ComponentType::AnimatedTextureComponentType: AddComponent<AnimatedTextureComponent>(entity, AnimatedTextureComponent{}); break;
+		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
@@ -108,8 +109,9 @@ namespace Framework {
 			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;
 			case ScalingPlatformComponentType: ecs.scalingPlatform.erase(entity); break;
 			case TextureComponentType: ecs.tex.erase(entity); break;
+			case TextureInfoComponentType: ecs.texInfo.erase(entity); break;
 			case AudioComponentType: ecs.audio.erase(entity); break;
-			case AnimatedTextureComponentType: ecs.animatedTex.erase(entity); break;
+			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:

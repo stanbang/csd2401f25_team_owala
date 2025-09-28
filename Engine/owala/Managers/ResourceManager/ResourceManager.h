@@ -27,6 +27,7 @@
 #include <fmod.hpp>
 #include <type_traits>
 #include "Font.h"
+#include "Animation.h"
 
 namespace Framework {
     class AudioSystem; // Forward declaration
@@ -85,15 +86,18 @@ namespace Framework {
         bool loadTexture(const std::string& name, const std::string& filepath);
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
         bool loadFont(const std::string& name, const std::string& fontPath, unsigned int size = 48);
+		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
 
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map
         std::unordered_map<std::string, std::unique_ptr<Font>>& getFontMap(); // Get the font map
+		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& getAnimationMap(); // Get the animation map
 
     private:
         std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>> textureMap; // Texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>> soundMap; // Sound map with custom deleter
         std::unordered_map<std::string, std::unique_ptr<Font>> fontMap; // font map
+		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>> animationMap; // Animation map
 
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
 
@@ -114,6 +118,10 @@ namespace Framework {
         else if constexpr (std::is_same<ResourceType, Font>::value) {
             // Lookup in font map
             return *getFontMap().at(key);
+        }
+        else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
+			// Lookup in animation map
+			return *getAnimationMap().at(key);
         }
         else {
             static_assert(sizeof(ResourceType) == 0, "ResourceManager::get only supports Texture/Audio/Font at the moment.");
@@ -150,14 +158,15 @@ namespace Framework {
             if (map.find(name) != map.end()) return;
             map.emplace(name, std::move(resourcePtr));
         }   
+        else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
+            auto& map = getAnimationMap();
+            if (map.find(name) != map.end()) return;
+            map.emplace(name, std::move(resourcePtr));
+        }
         else {
             static_assert(sizeof(ResourceType) == 0,
-                "add() unique_ptr version only supports Audio/Font at the moment.");
+                "add() unique_ptr version only supports Audio/Font/Animation at the moment.");
         }
     }
-
-    // Overload for unique_ptr (non-copyable types like Audio)
-    template<typename ResourceType, typename Deleter = std::default_delete<ResourceType>>
-    void add(const std::string& name, std::unique_ptr<ResourceType, Deleter> resourcePtr);
 
 } // namespace Framework

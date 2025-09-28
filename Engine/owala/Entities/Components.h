@@ -67,7 +67,14 @@ namespace Framework{
 	};
 
 	struct TextureComponent {
-		std::string textureKey;
+		std::string textureKey; // Key to identify the texture resource
+	};
+
+	struct TextureInfoComponent {
+		int frameCount = 1; // Total number of frames in the animation
+		float frameDuration = 0.1f; // Duration of each frame in seconds
+		bool isPlaying = false; // Is the animation currently playing
+		int currentFrame = 0; // Current frame index
 	};
 
 	struct AudioComponent {
@@ -77,14 +84,13 @@ namespace Framework{
 		float volume = 1.0f;
 	};
 
-	struct AnimatedTextureComponent {
-		std::string textureKey;
-		int frameCount = 1; // Total number of frames in the animation
-		int currentFrame = 0; // Current frame index
-		float frameDuration = 0.1f; // Duration of each frame in seconds
+	struct AnimationComponent {
 		float elapsedTime = 0.0f; // Time elapsed since the last frame change
 		bool isPlaying = true; // Is the animation currently playing
 		bool isLooping = true; // Should the animation loop when it reaches the end
+
+		Vector2D minUV = { 0.0f, 0.0f }; // Top-Left UV of the current frame
+		Vector2D maxUV = { 1.0f, 1.0f }; // Bottom-Right UV of the current frame
 	};
 
 	struct TextComponent {

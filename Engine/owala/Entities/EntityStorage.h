@@ -53,8 +53,9 @@ namespace Framework {
 		TrapPlatformComponentType,
 		ScalingPlatformComponentType,
 		TextureComponentType,
+		TextureInfoComponentType,
 		AudioComponentType,
-		AnimatedTextureComponentType,
+		AnimationComponentType,
 		TextComponentType,
 		PlayerTagType,
 		PlatformTagType,
@@ -90,8 +91,9 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<TrapPlatformComponent> { static constexpr ComponentType value = TrapPlatformComponentType; };
 	template <> struct ComponentTypeTrait<ScalingPlatformComponent> { static constexpr ComponentType value = ScalingPlatformComponentType; };
 	template <> struct ComponentTypeTrait<TextureComponent> { static constexpr ComponentType value = TextureComponentType; };
+	template <> struct ComponentTypeTrait<TextureInfoComponent> { static constexpr ComponentType value = TextureInfoComponentType; };
 	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
-	template <> struct ComponentTypeTrait<AnimatedTextureComponent> { static constexpr ComponentType value = AnimatedTextureComponentType; };
+	template <> struct ComponentTypeTrait<AnimationComponent> { static constexpr ComponentType value = AnimationComponentType; };
 	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
@@ -130,8 +132,9 @@ namespace Framework {
 		std::unordered_map<Entity, ScalingPlatformComponent> scalingPlatform;
 
 		std::unordered_map<Entity, TextureComponent>      tex; //Texture Component
+		std::unordered_map<Entity, TextureInfoComponent>  texInfo; //Texture Info Component
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
-		std::unordered_map<Entity, AnimatedTextureComponent> animatedTex; //Animated Texture Component
+		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
 
 		// Scene Components

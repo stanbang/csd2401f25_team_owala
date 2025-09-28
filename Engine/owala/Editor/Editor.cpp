@@ -34,8 +34,9 @@ namespace {
 		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
 		case ComponentType::ScalingPlatformComponentType:	return "ScalingPlatform";
 		case ComponentType::TextureComponentType:			return "Texture";
+		case ComponentType::TextureInfoComponentType:		return "TextureInfo";
 		case ComponentType::AudioComponentType:				return "Audio";
-		case ComponentType::AnimatedTextureComponentType:	return "AnimatedTexture";
+		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
@@ -526,8 +527,9 @@ namespace Editor {
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
 		}
+		case ComponentType::TextureInfoComponentType:
 		case ComponentType::AudioComponentType:
-		case ComponentType::AnimatedTextureComponentType:
+		case ComponentType::AnimationComponentType:
 		case ComponentType::TextComponentType:
 			ImGui::TextDisabled("Properties are Hidden");
 			break;

@@ -55,6 +55,15 @@ namespace Framework {
             // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
             Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
+			//Check for animation component
+            if (entityMgr.HasComponent(e, AnimationComponentType) && entityMgr.HasComponent(e, TextureInfoComponentType)) {
+				const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
+				const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
+
+				gfx_.drawSprite(tex, pos, halfSize, rotationRad, animComp.minUV, animComp.maxUV);
+				continue; // Skip the non-animated draw call below
+            }
+
             // Draw
             gfx_.drawSprite(tex, pos, halfSize, rotationRad);
         }
@@ -96,9 +105,9 @@ namespace Framework {
 
 
     void SpriteRenderSystem::RenderColliderOutlines() {
-		EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(ecs_);
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
-			const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
+            const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
             if (!entityMgr.HasComponent(e, PositionType)) continue;
 
             const Vector2D& pos = entityMgr.GetComponent<Position>(e).Pos;
@@ -109,31 +118,47 @@ namespace Framework {
                 deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
             }
 
-            // Compute AABB of the (optionally) rotated box for quick debug rendering
+            // Compute corners of the collider
             if (std::abs(deg) < 0.001f) {
-                Vector2D mn{ pos.x - halfSize.x, pos.y - halfSize.y };
-                Vector2D mx{ pos.x + halfSize.x, pos.y + halfSize.y };
-                gfx_.drawRectangle(mn, mx, { 0.8f, 0.8f, 0.8f, 1.0f });
+                // Non-rotated: simple AABB
+                Vector2D corners[4] = {
+                    {pos.x - halfSize.x, pos.y - halfSize.y}, // bottom-left
+                    {pos.x + halfSize.x, pos.y - halfSize.y}, // bottom-right
+                    {pos.x + halfSize.x, pos.y + halfSize.y}, // top-right
+                    {pos.x - halfSize.x, pos.y + halfSize.y}  // top-left
+                };
+
+                // Draw wireframe (4 lines connecting the corners)
+                for (int i = 0; i < 4; ++i) {
+                    int next = (i + 1) % 4;
+                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f }); // Green wireframe
+                }
             }
             else {
+                // Rotated: compute rotated corners
                 float r = deg * (float)M_PI / 180.0f;
                 float c = std::cos(r);
                 float s = std::sin(r);
                 Vector2D corners[4] = {
-                    {-halfSize.x, -halfSize.y}, { halfSize.x, -halfSize.y},
-                    { halfSize.x,  halfSize.y}, {-halfSize.x,  halfSize.y}
+                    {-halfSize.x, -halfSize.y},
+                    { halfSize.x, -halfSize.y},
+                    { halfSize.x,  halfSize.y},
+                    {-halfSize.x,  halfSize.y}
                 };
 
-                float minX = 1e30f, minY = 1e30f, maxX = -1e30f, maxY = -1e30f;
+                // Rotate and translate each corner
+                Vector2D worldCorners[4];
                 for (int i = 0; i < 4; ++i) {
-                    float rx = corners[i].x * c - corners[i].y * s + pos.x;
-                    float ry = corners[i].x * s + corners[i].y * c + pos.y;
-                    if (rx < minX) minX = rx; if (rx > maxX) maxX = rx;
-                    if (ry < minY) minY = ry; if (ry > maxY) maxY = ry;
+                    worldCorners[i].x = corners[i].x * c - corners[i].y * s + pos.x;
+                    worldCorners[i].y = corners[i].x * s + corners[i].y * c + pos.y;
                 }
-                gfx_.drawRectangle({ minX, minY }, { maxX, maxY }, { 0.8f, 0.8f, 0.8f, 1.0f });
+
+                // Draw wireframe (4 lines connecting the corners)
+                for (int i = 0; i < 4; ++i) {
+                    int next = (i + 1) % 4;
+                    gfx_.drawLine(worldCorners[i], worldCorners[next], { 0.0f, 1.0f, 0.0f, 1.0f }); // Green wireframe
+                }
             }
         }
     }
-
 } // namespace Framework

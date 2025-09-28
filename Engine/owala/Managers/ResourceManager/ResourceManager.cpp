@@ -2,6 +2,7 @@
 #include "AudioSystem.h"
 #include "Graphics.h"
 #include "GL/glew.h"
+#include "FileIO/FileUtility.h"
 
 using namespace Framework;
 
@@ -119,6 +120,10 @@ std::unordered_map<std::string, std::unique_ptr<Font>>& ResourceManager::getFont
 	return fontMap;
 }
 
+std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& ResourceManager::getAnimationMap() {
+	return animationMap;
+}
+
 // Loads a font
 bool ResourceManager::loadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
 	FT_Library library = FreeTypeManager::GetInstance().GetLibrary();
@@ -146,6 +151,20 @@ bool ResourceManager::loadFont(const std::string& name, const std::string& fontP
 	// Failed to load
 	Logger::Get().Error(DebugType::ResourceManager) << "Failed to load font from '" << fontPath << "'" << std::endl;
 	return false;
+}
+
+bool ResourceManager::loadAnimationInfo(const std::string& name, const std::string& filepath) {
+	FileIOSystem fileIO;
+	AnimationInfo animState = fileIO.LoadAnimationInfo(filepath);
+
+	if (animState.frameCount == 0) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Failed to load animation info from '" << filepath << "'" << std::endl;
+		return false;
+	}
+
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded animation info '" << filepath << "'" << std::endl;
+	add<AnimationInfo>(name, std::move(std::make_unique<AnimationInfo>(animState))); // Add to resource manager's unordered_map
+	return true;
 }
 
 void ResourceManager::Shutdown() {
