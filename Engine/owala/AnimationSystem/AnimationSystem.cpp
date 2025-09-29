@@ -18,48 +18,62 @@ namespace Framework {
     void AnimationSystem::Update(float dt) {
 		EntityManager entityMgr(*entityStorage_);
         // Loop through each entity that with AnimationComponent
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
-			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
-			//TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
-			// Get the texture info component for frame details
-			TextureInfoComponent& textureInfoComponent = entityMgr.GetComponent<TextureInfoComponent>(entity);
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
+			if (entityMgr.HasComponent(entity, TextureComponentType) && entityMgr.HasComponent(entity, AnimationComponentType)) {
+				AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
+				TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
+				switch (animationComponent.currentState) {
+				case AnimationState::IDLE:    textureComponent.textureKey = "playerSprite_Idle"; std::cout << "Player State : IDLE\n"; break; //When idle, use idle animation
+				case AnimationState::RUNNING: textureComponent.textureKey = "playerSprite_Run"; std::cout << "Player State : RUN\n"; break; //When running, use running animation
+				case AnimationState::JUMPING: textureComponent.textureKey = "playerSprite_Jump"; std::cout << "Player State : JUMP\n"; break; //When jumping, use jumping animation
+				case AnimationState::FALLING: textureComponent.textureKey = "playerSprite_Jump"; std::cout << "Player State : FALL\n"; break; //When falling, use jumping animation
+				}
 
-			//	Check if animation is playing
-			if (!animationComponent.isPlaying) continue;
+				AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(textureComponent.textureKey); // Retrieve the respective AnimationInfo
 
-			// Update elapsed time
-			animationComponent.elapsedTime += dt;
+				//Update animation component properties based on the retrieved AnimationInfo
+				animationComponent.frameCount = animationInfo.frameCount;
+				animationComponent.frameDuration = animationInfo.frameDuration;
+				animationComponent.isLooping = animationInfo.isLooping;
+				animationComponent.startFrame = animationInfo.startFrame;
 
-			//	Check if it's time to switch to the next frame
-			if (animationComponent.elapsedTime >= textureInfoComponent.frameDuration) {
-				animationComponent.elapsedTime -= textureInfoComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
+				//	Check if animation is playing
+				if (!animationComponent.isPlaying) continue;
 
-				textureInfoComponent.currentFrame++; // Move to the next frame
+				// Update elapsed time
+				animationComponent.elapsedTime += dt;
 
-				//Handle looping at the last frame
-				if (textureInfoComponent.currentFrame >= textureInfoComponent.frameCount) {
-					if (animationComponent.isLooping) {
-						textureInfoComponent.currentFrame = 0; // Loop back to the first frame
-					}
+				//	Check if it's time to switch to the next frame
+				if (animationComponent.elapsedTime >= animationComponent.frameDuration) {
+					animationComponent.elapsedTime -= animationComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
 
-					else {
-						textureInfoComponent.currentFrame = textureInfoComponent.frameCount - 1; // Stay on the last frame
-						textureInfoComponent.isPlaying = false; // Stop the animation
+					animationComponent.currentFrame++; // Move to the next frame
+
+					//Handle looping at the last frame
+					if (animationComponent.currentFrame >= animationComponent.frameCount) {
+						if (animationComponent.isLooping) {
+							animationComponent.currentFrame = 0; // Loop back to the first frame
+						}
+
+						else {
+							animationComponent.currentFrame = animationComponent.frameCount - 1; // Stay on the last frame
+							animationComponent.isPlaying = false; // Stop the animation
+						}
 					}
 				}
-			}
 
-			// Calculate UV coordinates based on the current frame
-			if (textureInfoComponent.frameCount > 0) {
-				float frameUVWidth = 1.0f / (float)textureInfoComponent.frameCount; // Width of each frame in UV space based on total frame count
+				// Calculate UV coordinates based on the current frame
+				if (animationComponent.frameCount > 0) {
+					float frameUVWidth = 1.0f / (float)animationComponent.frameCount; // Width of each frame in UV space based on total frame count
 
-				// Calculate U (Horizontal)
-				animationComponent.minUV.x = (float)textureInfoComponent.currentFrame * frameUVWidth;
-				animationComponent.maxUV.x = animationComponent.minUV.x + frameUVWidth;
+					// Calculate U (Horizontal)
+					animationComponent.minUV.x = (float)animationComponent.currentFrame * frameUVWidth;
+					animationComponent.maxUV.x = animationComponent.minUV.x + frameUVWidth;
 
-				// V (Vertical) remains 0.0 to 1.0 for a single-row sprite sheet
-				animationComponent.minUV.y = 0.0f;
-				animationComponent.maxUV.y = 1.0f;
+					// V (Vertical) remains 0.0 to 1.0 for a single-row sprite sheet
+					animationComponent.minUV.y = 0.0f;
+					animationComponent.maxUV.y = 1.0f;
+				}
 			}
         }
     }

@@ -75,8 +75,12 @@ namespace TestScene {
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
-		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/player_idle_animation.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/player_Idle_Anim.png");
+		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/player_Run_Anim.png");
+		rcm_->loadTexture("playerSprite_Jump", "Assets/Sprites/player_Jump_Anim.png");
         rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
+        rcm_->loadAnimationInfo("playerSprite_Run", "Data/playerRunningAnimation.json");
+        rcm_->loadAnimationInfo("playerSprite_Jump", "Data/playerJumpingAnimation.json");
         rcm_->loadTexture("RonaldSprite_Platform", "Assets/Sprites/Platform.png");
         rcm_->loadTexture("Background", "Assets/Sprites/Env_Level2_PH.png");
 		rcm_->loadSound("bgm", "Assets/Audio/bgm.wav", true, true); // Background Music
@@ -124,7 +128,7 @@ namespace TestScene {
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
         // --- Create Player Entity ---
-        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.07f, 0.2f }, "playerSprite_Idle");
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.2f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
