@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include "EntityStorage.h"
+#include "PlatformPrefab.h" // prefab header for creation
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -17,12 +18,21 @@ namespace Editor {
 		bool showLevelEditor = true;
 	};
 
+	// enum to represent the different types of objects we can create
+	enum class PrefabType {
+		None,
+		Platform,
+		TrapPlatform,
+		ScalingPlatform
+	};
+
 	class Editor : public Framework::ISystem {
 	private:
+		// --- System Pointers ---
 		Framework::CoreEngine* engine_ = nullptr; // Enforce that the Editor must be instantiated after engine
 		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after engine
 
-		// Internal Members
+		// --- Internal State ---
 		bool initialized = false;
 		//  Members for the system profiler display
 		float profilerUpdateTimer_ = 0.0f;
@@ -40,14 +50,42 @@ namespace Editor {
 		std::vector<Framework::ComponentType> tagTypes;
 		int selectedTagIndex = 0;
 
+		// Entity factory System members
+		/*std::unordered_map<std::string, Framework::PlatformPrefab> platformPrefabs_;
+		std::unordered_map<std::string, Framework::TrapPlatformPrefab> trapPlatformPrefabs_;
+		std::unordered_map<std::string, Framework::ScalingPlatformPrefab> scalingPlatformPrefabs_;*/
+		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
+		PrefabType selectedPrefabType_ = PrefabType::None;
+		std::string selectedPrefabName_;
+
+		// --- Entity Selection & Deletion ---
+		Entity selectedEntity_ = 0; // Store entity ID
+		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
+
+		// --- Private Helper Functions ---
+		
 		// Internal Checkers
 		void SanityCheck();
+
+		/**
+		 * @brief Converts the current mouse position from screen coordinates to world coordinates.
+		 * @return A Vector2D representing the mouse's position in the game world's normalized device coordinates (-1 to 1).
+		 */
+		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
+
+		/**
+		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
+		 */
+		void HandleSpawning();
+		void HandleSelection();
+		void HandleDeletion();
 
 		// Internal Panels
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
 		void ShowPlayerInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
+	
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;
@@ -59,6 +97,10 @@ namespace Editor {
 
 		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager);
 
+		/**
+		 * @brief Initializes the Editor system.
+		 * @details Loads prefabs from file and sets up the ImGui context and backends.
+		 */
 		void Initialize() override;
 		void Update(float dt) override;
 		void Shutdown() override;

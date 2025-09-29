@@ -135,6 +135,13 @@ namespace Editor {
 			tagItems.push_back(tagName.c_str());
 		}
 
+		// Load all prefabs from the data file when the editor starts
+		// which populates our prefabSystem_ member with spawnable objects
+		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.txt")) {
+			// Log an error if the prefab file can't be found or is invalid.
+			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.txt" << std::endl;
+		}
+
 		initialized = true;
 	}
 
@@ -152,7 +159,16 @@ namespace Editor {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		// --- Handle Editor Logic ---
+		HandleSpawning();  // Check if we should spawn a selected prefab
+		HandleSelection(); // Check if the user is clicking on an entity in the world
+		HandleDeletion();  // Check if the user is deleting the selected entity
+
+
 		// --- RENDER PANELS ---
+
+		
+		// Render all editor UI panels
 
 		// Level Editor Window
 		if (settings.showLevelEditor) {
@@ -163,6 +179,12 @@ namespace Editor {
 		if (settings.showDebugInfo) {
 			ShowPerformanceProfile();
 		}
+
+		
+
+		if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
+
+
 
 		// --- END IMGUI FRAME ---
 		ImGui::Render();
@@ -183,9 +205,131 @@ namespace Editor {
 		ImGui::DestroyContext();
 	}
 
+
+	Vector2D Editor::GetMouseWorldPosition() {
+		auto* input = gameManager_->GetSystems().input_;
+		auto* win = gameManager_->GetSystems().win_;
+		double mouseX, mouseY;
+		input->GetMousePos(&mouseX, &mouseY);
+
+		float ndcX = (static_cast<float>(mouseX) / win->getWidth()) * 2.0f - 1.0f;
+		float ndcY = 1.0f - (static_cast<float>(mouseY) / win->getHeight()) * 2.0f; // Y is inverted for NDC
+
+		return { ndcX, ndcY };
+	}
+
+	void Editor::HandleSpawning() {
+		auto* input = gameManager_->GetSystems().input_;
+
+		// Spawn on left click
+		if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Left)) {
+			if (!ImGui::GetIO().WantCaptureMouse) {
+
+				Vector2D spawnPos = GetMouseWorldPosition();
+				Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+				Entity newEntity = 0;
+
+				switch (selectedPrefabType_) {
+				case PrefabType::Platform:
+					newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+					break;
+				case PrefabType::TrapPlatform:
+					newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+					break;
+				case PrefabType::ScalingPlatform:
+					newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+					break;
+				case PrefabType::None: // Should not happen 
+					break;
+				}
+
+				if (newEntity != 0) {
+					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+				}
+
+				selectedPrefabType_ = PrefabType::None;
+				selectedPrefabName_.clear();
+			}
+		}
+
+		// Cancel on right click
+		if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Right)) {
+			selectedPrefabType_ = PrefabType::None;
+			selectedPrefabName_.clear();
+		}
+	}
+
+	/**
+	 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
+	 */
+	void Editor::HandleSelection() {
+		Framework::InputSystem* input = gameManager_->GetSystems().input_;
+
+		// Only check for selection if a prefab is NOT being spawned
+		if (selectedPrefabType_ != PrefabType::None) return;
+
+		if (!input->MousePressed(Framework::InputSystem::MouseButton::Left) || ImGui::GetIO().WantCaptureMouse) {
+			return;
+		}
+
+		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		Vector2D mouseWorldPos = GetMouseWorldPosition();
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		Entity bestCandidate = 0;
+		bool found = false;
+
+		// CORRECTED: Get the list of entities from the active scene using the correct function.
+		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+		// Iterate in reverse to select the top-most entity if they overlap
+		for (auto it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
+			const Entity& entity = *it;
+			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
+				entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType))
+			{
+				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				Vector2D& halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
+
+				if (mouseWorldPos.x >= pos.x - halfSize.x && mouseWorldPos.x <= pos.x + halfSize.x &&
+					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
+				{
+					bestCandidate = entity;
+					found = true;
+					break; // Stop after finding the top-most one
+				}
+			}
+		}
+
+		if (found) {
+			selectedEntity_ = bestCandidate;
+			isEntitySelected_ = true;
+			selectedEntityIndex = 0; // Reset dropdown selection
+		}
+		else {
+			isEntitySelected_ = false;
+		}
+	}
+
+
+	/**
+	 * @brief Handles the logic for deleting the currently selected entity.
+	 */
+	void Editor::HandleDeletion() {
+		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Backspace)) {
+			Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntity_);
+
+			selectedEntity_ = 0;
+			isEntitySelected_ = false;
+			selectedEntityIndex = 0;
+		}
+	}
+
 	#pragma region INTERNAL PANELS
 
 	void Editor::ShowPerformanceProfile() {
+		
 		ImGui::Begin("Game Information / Debugger");
 		{
 			// Add a slider to control how often the profiler updates.
@@ -282,6 +426,46 @@ namespace Editor {
 			}
 		}
 
+		// --- NEW: ENTITY FACTORY / PREFAB SPAWNER ---
+		ImGui::SeparatorText("Entity Factory");
+
+		// Display a dropdown for each type of prefab we can spawn.
+		if (ImGui::BeginCombo("Platforms", selectedPrefabType_ == PrefabType::Platform ? selectedPrefabName_.c_str() : "Select...")) {
+			for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) { // We'll need to add this getter
+				if (ImGui::Selectable(pair.first.c_str())) {
+					selectedPrefabType_ = PrefabType::Platform;
+					selectedPrefabName_ = pair.first;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (ImGui::BeginCombo("Trap Platforms", selectedPrefabType_ == PrefabType::TrapPlatform ? selectedPrefabName_.c_str() : "Select...")) {
+			for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) { // We'll need to add this getter
+				if (ImGui::Selectable(pair.first.c_str())) {
+					selectedPrefabType_ = PrefabType::TrapPlatform;
+					selectedPrefabName_ = pair.first;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (ImGui::BeginCombo("Scaling Platforms", selectedPrefabType_ == PrefabType::ScalingPlatform ? selectedPrefabName_.c_str() : "Select...")) {
+			for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) { // We'll need to add this getter
+				if (ImGui::Selectable(pair.first.c_str())) {
+					selectedPrefabType_ = PrefabType::ScalingPlatform;
+					selectedPrefabName_ = pair.first;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		// Display a message to the user if a prefab is selected.
+		if (selectedPrefabType_ != PrefabType::None) {
+			ImGui::Text("Spawning: [%s]", selectedPrefabName_.c_str());
+			ImGui::Text("Click in the game view to place. Right-click to cancel.");
+		}
+
 		// --- Global Controls ---
 		if (ImGui::CollapsingHeader("Global Controls")) {
 			static float masterVolume = 0.35f;
@@ -291,13 +475,35 @@ namespace Editor {
 		}
 
 		ImGui::End(); // End "Level Editor" window
+
+		// --- section to show the clicked-on entity ---
+		ImGui::SeparatorText("World Selection");
+		if (isEntitySelected_) {
+			ImGui::Text("Selected Entity: [%u]", selectedEntity_);
+			if (ImGui::Button("Deselect")) {
+				isEntitySelected_ = false;
+				selectedEntity_ = 0;
+			}
+		}
+		else {
+			ImGui::Text("Selected Entity: None");
+			ImGui::TextDisabled("(Click on an object in the game view)");
+		}
+
+	
+			
 	}
+		
+	
+	
 
 	void Editor::ShowPlayerInspector() {
 		using namespace Framework;
 
+		if (!isEntitySelected_) return;
+
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+		Entity selectedEntity = static_cast<Entity>(selectedEntity_ - 1);
 
 		static std::string entityName; // keep the string alive across frames
 		entityName = "Entity [" + std::to_string(selectedEntity) + "]";

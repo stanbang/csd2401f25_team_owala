@@ -71,6 +71,10 @@ namespace Framework {
         const PlatformPrefab* GetPlatformPrefab(const std::string& name) const;
         const TrapPlatformPrefab* GetTrapPlatformPrefab(const std::string& name) const;
         const ScalingPlatformPrefab* GetScalingPlatformPrefab(const std::string& name) const;
+
+        const std::unordered_map<std::string, PlatformPrefab>& GetPlatformPrefabs() const { return platformPrefabs; }
+        const std::unordered_map<std::string, TrapPlatformPrefab>& GetTrapPlatformPrefabs() const { return trapPlatformPrefabs; }
+        const std::unordered_map<std::string, ScalingPlatformPrefab>& GetScalingPlatformPrefabs() const { return scalingPlatformPrefabs; }
     };
 
 } // namespace Framework
