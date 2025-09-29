@@ -19,6 +19,7 @@
 namespace Framework {
 
 	void PlayerSystem::Update(float dt) {
+		(void)dt; //Suppress unused parameter warning if not used
 		const float moveSpeed = 2.0f; // Control velocity directly for more responsive movement
         const float JumpHeight = 0.8f; // The peak height you want to reach, in NDC units.
         // NEW: Calculate initial jump velocity based on desired height and gravity.

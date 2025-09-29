@@ -47,7 +47,7 @@ namespace Framework {
             // Optional rotation (degrees -> radians)
             float rotationRad = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
-                rotationRad = entityMgr.GetComponent<RotationFlag>(e).currentRotation * (M_PI / 180.0f);
+                rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(e).currentRotation * (M_PI / 180.0f));
             }
 
             // Fetch the texture by key from ResourceManager
@@ -58,7 +58,7 @@ namespace Framework {
 			//Check for animation component
             if (entityMgr.HasComponent(e, AnimationComponentType) && entityMgr.HasComponent(e, TextureInfoComponentType)) {
 				const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
-				const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
+				//const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
 
 				gfx_.drawSprite(tex, pos, halfSize, rotationRad, animComp.minUV, animComp.maxUV);
 				continue; // Skip the non-animated draw call below

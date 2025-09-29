@@ -48,7 +48,7 @@ namespace Framework {
     public:
 
         void Initialize() override;
-        void Update(float dt) { /*Empty by design*/ };
+        void Update(float dt);
         void Shutdown();
 
         ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};

@@ -20,7 +20,7 @@ namespace Framework {
         // Loop through each entity that with AnimationComponent
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
-			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
+			//TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 			TextureInfoComponent& textureInfoComponent = entityMgr.GetComponent<TextureInfoComponent>(entity);
 
 			//Check if animation is playing

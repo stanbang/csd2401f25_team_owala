@@ -124,16 +124,16 @@ namespace Framework {
 		// Creates a new entity and returns its ID.
 		Entity CreateEntity();
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
-		Entity CloneEntity(Entity& entity);
+		Entity CloneEntity(/*Entity& entity*/);
 
 		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
 		bool HasComponent(Entity entity, ComponentType componentType) const;
 		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
-		template <typename T>
-		void AddComponent(Entity entity, const T& component);
+		//template <typename T>
+		//void AddComponent(Entity entity, const T& component);
 		// Adds a component of the specified ComponentType to the specified entity.
-		void AddComponent(Entity entity, ComponentType componentType);
+		//void AddComponent(Entity entity, ComponentType componentType);
 		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
-		void RemoveComponent(Entity entity, ComponentType componentType);
+		//void RemoveComponent(Entity entity, ComponentType componentType);
 	};
 }

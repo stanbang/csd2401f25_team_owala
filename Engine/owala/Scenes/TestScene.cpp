@@ -68,7 +68,8 @@ namespace TestScene {
 		AudioSystem* audio = gm.GetSystems().audio_;
 		WindowsSystem* win_ = gm.GetSystems().win_;
 		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
-
+		(void)win_; // Suppress unused parameter warning if not used
+		(void)audio; // Suppress unused parameter warning if not used
         PrefabSystem prefabSystem;
 
         // --- Load Assets ---
@@ -146,7 +147,7 @@ namespace TestScene {
         EntityStorage* ecs_ = gm.GetSystems().ecs_;
 		InputSystem* input_ = gm.GetSystems().input_;
 		PhysicsSystem* physics_ = gm.GetSystems().physics_;
-		Graphics* gfx_ = gm.GetSystems().gfx_;
+		//Graphics* gfx_ = gm.GetSystems().gfx_;
         ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
 		AudioSystem* audio_ = gm.GetSystems().audio_;
 		EntityManager entityMgr(*ecs_);
@@ -159,6 +160,7 @@ namespace TestScene {
                 audio_->play(scream, /*volume*/1.0f, /*paused*/false);
             }
             catch (const GameException& e) {
+				(void)e; //Suppress unused variable warning
                 std::fprintf(stderr, "[Audio] Scream sound not found!\n");
             }
         }
@@ -172,16 +174,16 @@ namespace TestScene {
         }
         // Press 'C' to toggle colliders - much simpler!
         if (input_->KeyPressed(InputSystem::Key::C)) {
-            GameManager& gm = GameManager::GetInstance();
-            SpriteRenderSystem* renderer = gm.GetSystems().spriteRenderer_;
+            //GameManager& gm = GameManager::GetInstance();
+            SpriteRenderSystem* renderer = gm.GetInstance().GetSystems().spriteRenderer_;
             if (renderer) {
                 renderer->ToggleColliders(); // Just one line!
             }
         }
         //press arrow up/ arrow down to scale player sprite
         if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
-            GameManager& gm = GameManager::GetInstance();
-            EntityStorage* ecs = gm.GetSystems().ecs_;
+            //GameManager& gm = GameManager::GetInstance();
+            EntityStorage* ecs = gm.GetInstance().GetSystems().ecs_;
             float scale = input_->KeyPressed(InputSystem::Key::Up) ? 1.05f : (1.0f / 1.05f);
             updatePlayerSize(*ecs, playerEntity, scale);
             Logger::Get().Info(DebugType::PlayerSystem) << "Player Size *= (" << scale << ')' << std::endl;

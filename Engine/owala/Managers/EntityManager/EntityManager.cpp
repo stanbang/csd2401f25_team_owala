@@ -205,7 +205,7 @@ namespace Framework {
 		return newEntity;
 	}
 
-	Entity WIPEntityManager::CloneEntity(Entity& entity) {
+	Entity WIPEntityManager::CloneEntity(/*Entity& entity*/) {
 		using Archetype = WIPEntityStorage::Archetype;
 
 		ComponentSignature otherSignature;
@@ -224,9 +224,9 @@ namespace Framework {
 		return false; // Entity not found or does not have the component
 	}
 
-	void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
+	/*void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
 		// Empty by design.
-	}
+	}*/
 
 #pragma endregion
 }

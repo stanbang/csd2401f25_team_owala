@@ -479,7 +479,7 @@ namespace Framework {
         glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
 
         // Draw all the characters in a single draw call
-        glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 4);
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(vertices.size() / 4));
 
         // --- 5. CLEANUP ---
         glBindVertexArray(0);

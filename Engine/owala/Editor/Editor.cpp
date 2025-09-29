@@ -222,7 +222,7 @@ namespace Editor {
 		// 3. --- BUILD IMGUI INTERFACE ---
 		// Example of a dockable "Level Editor" window.
 		// Create the main dockspace that will fill the entire game window.
-		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		//const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
 
@@ -522,7 +522,7 @@ namespace Editor {
 			break;
 		}
 		case ComponentType::TextureComponentType: {
-			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 
 			ImGui::TextDisabled("Properties are Hidden");
 			break;

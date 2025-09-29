@@ -134,7 +134,7 @@ namespace Framework {
             };
         }
 
-        float rotationRad = rotationDegrees * M_PI / 180.0f;
+        float rotationRad = static_cast<float>(rotationDegrees * M_PI / 180.0f);
         float cos_r = std::cos(rotationRad);
         float sin_r = std::sin(rotationRad);
 

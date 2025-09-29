@@ -47,6 +47,11 @@ void ResourceManager::Initialize() {
 	//loadTexture("Background", "Assets/Env_Level2_Placeholder_Upsized.png");
 }
 
+void ResourceManager::Update(float dt) {
+	(void)dt; //Suppress unused variable warning
+	// Intentionally left empty
+}
+
 void ResourceManager::clearAll() {
 	textureMap.clear();
 	soundMap.clear();

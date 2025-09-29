@@ -63,7 +63,7 @@ namespace Framework{
 
 	struct Triangle { 
 		Vector2D a, b, c; 
-		Color color; 
+		Color color = { 1,1,1,1 };
 	};
 
 	struct TextureComponent {
@@ -96,8 +96,8 @@ namespace Framework{
 	struct TextComponent {
 		std::string textToDraw;
 		std::string fontName;
-		Color color;
-		float scale;
+		Color color = { 1,1,1,1 };
+		float scale = 1.0f;
 	};
 
 	struct PlayerStats {
@@ -126,8 +126,8 @@ namespace Framework{
 
 	// Component to track trap platform state
 	struct TrapPlatformComponent {
-		bool isTriggered;
-		bool hasFallen;
+		bool isTriggered = false;
+		bool hasFallen = false;
 		float triggerDelay{ 0.0f };
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };

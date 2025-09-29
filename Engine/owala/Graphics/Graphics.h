@@ -193,8 +193,8 @@ namespace Framework {
 
     private:
         WindowsSystem* win_ = nullptr; //!< Parent window system for GL context.
-        int screenWidth;               //!< Current screen width.
-        int screenHeight;              //!< Current screen height.
+        int screenWidth = 1920;               //!< Current screen width.
+        int screenHeight = 1080;              //!< Current screen height.
 
         // ---- Colored triangle pipeline ----
         unsigned progCol_ = 0; //!< Shader program (uColor).

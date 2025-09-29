@@ -291,6 +291,7 @@ namespace Framework {
 	}
 
 	std::vector<Entity> SceneManager::GetEntitiesInScene(const std::string& scene) const {
+		(void)scene; // Suppress unused parameter warning for now
 		CheckStorage();
 
 		EntityManager entityMgr(*entityStorageRef_);
