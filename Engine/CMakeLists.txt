@@ -128,7 +128,7 @@ set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall ${DisableWarnings})
 elseif (MSVC)
-    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W3 /WX-)
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W4 /WX-)
 endif()
 
 # ======================= Include Paths =========================
