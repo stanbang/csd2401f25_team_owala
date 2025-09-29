@@ -21,15 +21,16 @@ namespace Framework {
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			//TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
+			// Get the texture info component for frame details
 			TextureInfoComponent& textureInfoComponent = entityMgr.GetComponent<TextureInfoComponent>(entity);
 
-			//Check if animation is playing
+			//	Check if animation is playing
 			if (!animationComponent.isPlaying) continue;
 
 			// Update elapsed time
 			animationComponent.elapsedTime += dt;
 
-			//Check if it's time to switch to the next frame
+			//	Check if it's time to switch to the next frame
 			if (animationComponent.elapsedTime >= textureInfoComponent.frameDuration) {
 				animationComponent.elapsedTime -= textureInfoComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
 

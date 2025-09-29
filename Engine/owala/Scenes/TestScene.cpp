@@ -74,15 +74,15 @@ namespace TestScene {
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
-        rcm_->loadTexture("playerSprite", "Assets/player_sprite_PH.png");
-		rcm_->loadTexture("playerSprite_Idle", "Assets/player_idle_animation.png");
+        rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/player_idle_animation.png");
         rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
-        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
-        rcm_->loadTexture("Background", "Assets/Env_Level2_PH.png");
-		rcm_->loadSound("bgm", "Assets/siren.wav", true, true); // siren sound for relaxing background music
+        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Sprites/Platform.png");
+        rcm_->loadTexture("Background", "Assets/Sprites/Env_Level2_PH.png");
+		rcm_->loadSound("bgm", "Assets/Audio/bgm.wav", true, true); // Background Music
         rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
         rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
-        rcm_->loadSound("scream", "Assets/Goat.ogg", false, true); //scream sound effect
+        rcm_->loadSound("scream", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs

@@ -51,6 +51,7 @@ namespace Framework {
         void Update(float dt);
         void Shutdown();
 
+		// Constructor requires Graphics and AudioSystem instances for loading resources
         ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};
 
         // Add a copyable resource (like Texture)
@@ -69,20 +70,26 @@ namespace Framework {
         template<typename ResourceType>
         void clear() {
 			if constexpr (std::is_same<ResourceType, Texture>::value) {
-				textureMap.clear();
+				textureMap.clear(); // Clear texture map
 			}
 			else if constexpr (std::is_same<ResourceType, Audio>::value) {
-				soundMap.clear();
+				soundMap.clear(); // Clear sound map
+			}
+			else if constexpr (std::is_same<ResourceType, Font>::value) {
+				fontMap.clear(); // Clear font map
+			}
+			else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
+				animationMap.clear(); // Clear animation map
 			}
 			else {
-				static_assert(sizeof(ResourceType) == 0, "ResourceManager::clear only supports Texture or Audio at the moment.");
+				static_assert(sizeof(ResourceType) == 0, "ResourceManager::clear only supports Texture, Audio, Fonts or AnimationData at the moment.");
 			}
         }
 
         // Clear all resources
         void clearAll();
 
-        // Load a texture from file and store it
+		// Load assets from file and store it in their respective maps
         bool loadTexture(const std::string& name, const std::string& filepath);
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
         bool loadFont(const std::string& name, const std::string& fontPath, unsigned int size = 48);

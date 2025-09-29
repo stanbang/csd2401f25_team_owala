@@ -6,7 +6,8 @@
  * \secondary_author
  *      
  *
- * \brief  Changes U and V coordinates of Texture components.
+ * \brief	Changes U and V coordinates of Texture components based on specs
+ *			from textureInfoComponents to create frame-by-frame animation.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior
