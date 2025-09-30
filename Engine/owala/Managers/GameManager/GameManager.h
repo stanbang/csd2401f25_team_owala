@@ -25,6 +25,7 @@
 #include "SpriteRenderSystem.h"
 #include "Graphics.h"
 #include "Core.h"
+#include "Editor.h"
 
 #include <vector>
 
@@ -67,6 +68,7 @@ namespace Framework {
 		};
 
 		RegisteredSystems systems_;
+		Editor::Editor* editor_ = nullptr; // ImGui Editor instance
 
 		float deltaTime = 0.0f;
 		float globalTimeDilation = 1.0f; // 1.0f is normal speed, 0.5f is half speed, 2.0f is double speed
@@ -107,6 +109,7 @@ namespace Framework {
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
 		void RegisterSystemsToUse(ResourceManager& rcm,	EntityStorage& ecs,	Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio, SpriteRenderSystem& spriteRenderer);
+		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
 
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.

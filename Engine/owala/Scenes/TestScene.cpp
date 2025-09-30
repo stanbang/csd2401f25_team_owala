@@ -61,24 +61,32 @@ namespace TestScene {
 	using namespace Framework;
 
 	void Initialize() {
+        FileIOSystem fileIO;
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
 		WindowsSystem* win_ = gm.GetSystems().win_;
 		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
-
+		(void)win_; // Suppress unused parameter warning if not used
+		(void)audio; // Suppress unused parameter warning if not used
         PrefabSystem prefabSystem;
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
-        rcm_->loadTexture("playerSprite", "Assets/player_sprite_PH.png");
-        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Ronald.png");
-        rcm_->loadTexture("Background", "Assets/Env_Level2_PH.png");
-		rcm_->loadSound("bgm", "Assets/siren.wav", true, true); // siren sound for relaxing background music
+        rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/player_Idle_Anim.png");
+		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/player_Run_Anim.png");
+		rcm_->loadTexture("playerSprite_Jump", "Assets/Sprites/player_Jump_Anim.png");
+        rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
+        rcm_->loadAnimationInfo("playerSprite_Run", "Data/playerRunningAnimation.json");
+        rcm_->loadAnimationInfo("playerSprite_Jump", "Data/playerJumpingAnimation.json");
+        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Sprites/Platform.png");
+        rcm_->loadTexture("Background", "Assets/Sprites/Env_Level2_PH.png");
+		rcm_->loadSound("bgm", "Assets/Audio/bgm.wav", true, true); // Background Music
         rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
         rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
-        rcm_->loadSound("scream", "Assets/Goat.ogg", false, true); //scream sound effect
+        rcm_->loadSound("scream", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
@@ -115,22 +123,18 @@ namespace TestScene {
         trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
         sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
-        // --- Create Player Entity ---
-        FileIOSystem fileIO;
-        PlayerStats stats = fileIO.LoadPlayerStats(); // Example stats from file loading
-
 		// --- Create Background Music Entity ---
-		Entity bgmEntity = createBGAudio(*ecs, stats, { 0.1f, 0.1f }, "bgm");
+		Entity bgmEntity = createBGAudio(*ecs, "bgm");
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
-        std::string playerID = "playerSprite";
-        playerEntity = createPlayer(*ecs, stats, { 0.07f, 0.2f }, playerID);
+        // --- Create Player Entity ---
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.2f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
         // --- Create Text Entity ---
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 1,1,1,1 }, { -0.7f, 0.8f }, 1.5f));
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.565, 0.745, 0.91, 0.8 }, {-0.7f, 0.6f}, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
+        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.0f, 0.0f, 0.0f, 1.0f }, {-0.3f, 0.85f}, 1.5f));
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -138,6 +142,8 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
+
+
 	}
 
 	void Update() {
@@ -145,7 +151,7 @@ namespace TestScene {
         EntityStorage* ecs_ = gm.GetSystems().ecs_;
 		InputSystem* input_ = gm.GetSystems().input_;
 		PhysicsSystem* physics_ = gm.GetSystems().physics_;
-		Graphics* gfx_ = gm.GetSystems().gfx_;
+		//Graphics* gfx_ = gm.GetSystems().gfx_;
         ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
 		AudioSystem* audio_ = gm.GetSystems().audio_;
 		EntityManager entityMgr(*ecs_);
@@ -158,6 +164,7 @@ namespace TestScene {
                 audio_->play(scream, /*volume*/1.0f, /*paused*/false);
             }
             catch (const GameException& e) {
+				(void)e; //Suppress unused variable warning
                 std::fprintf(stderr, "[Audio] Scream sound not found!\n");
             }
         }
@@ -169,14 +176,21 @@ namespace TestScene {
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
             throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");
         }
-
+        // Press 'C' to toggle colliders - much simpler!
+        if (input_->KeyPressed(InputSystem::Key::C)) {
+            //GameManager& gm = GameManager::GetInstance();
+            SpriteRenderSystem* renderer = gm.GetInstance().GetSystems().spriteRenderer_;
+            if (renderer) {
+                renderer->ToggleColliders(); // Just one line!
+            }
+        }
         //press arrow up/ arrow down to scale player sprite
         if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
-            GameManager& gm = GameManager::GetInstance();
-            EntityStorage* ecs = gm.GetSystems().ecs_;
-            float diff = input_->KeyPressed(InputSystem::Key::Up) ? 0.01 : -0.01;
-            updatePlayerSize(*ecs, playerEntity, diff);
-            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size +0.01" << std::endl;
+            //GameManager& gm = GameManager::GetInstance();
+            EntityStorage* ecs = gm.GetInstance().GetSystems().ecs_;
+            float scale = input_->KeyPressed(InputSystem::Key::Up) ? 1.05f : (1.0f / 1.05f);
+            updatePlayerSize(*ecs, playerEntity, scale);
+            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size *= (" << scale << ')' << std::endl;
         }
 
         // 2. --- HANDLE INPUTS ---
@@ -215,48 +229,48 @@ namespace TestScene {
             sceneMgr.LoadScene(nextScene.name);
         }
 
-        // 3. --- BUILD IMGUI INTERFACE ---
-        // Example of a dockable "Level Editor" window.
-        // Create the main dockspace that will fill the entire game window.
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
+        //// 3. --- BUILD IMGUI INTERFACE ---
+        //// Example of a dockable "Level Editor" window.
+        //// Create the main dockspace that will fill the entire game window.
+        //const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        //ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        //ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
 
-        ImGui::Begin("Level Editor");
+        //ImGui::Begin("Level Editor");
 
-            if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
-                // Check if the player entity and its components exist.
-                if (entityMgr.HasComponent(playerEntity, PositionType) && entityMgr.HasComponent(playerEntity, VelocityType) && entityMgr.HasComponent(playerEntity, PlayerStateType)) {
+        //    if (ImGui::CollapsingHeader("Player Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
+        //        // Check if the player entity and its components exist.
+        //        if (entityMgr.HasComponent(playerEntity, PositionType) && entityMgr.HasComponent(playerEntity, VelocityType) && entityMgr.HasComponent(playerEntity, PlayerStateType)) {
 
-                    // Get references to the player's components.
-                    Vector2D& pos = entityMgr.GetComponent<Position>(playerEntity).Pos;
-                    Vector2D& vel = entityMgr.GetComponent<Velocity>(playerEntity).Vel;
-                    PlayerState& state = entityMgr.GetComponent<PlayerState>(playerEntity);
+        //            // Get references to the player's components.
+        //            Vector2D& pos = entityMgr.GetComponent<Position>(playerEntity).Pos;
+        //            Vector2D& vel = entityMgr.GetComponent<Velocity>(playerEntity).Vel;
+        //            PlayerState& state = entityMgr.GetComponent<PlayerState>(playerEntity);
 
-                    // Create ImGui widgets linked to the component data.
-                    ImGui::DragFloat2("Position", &pos.x, 0.01f);
-                    ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-                    ImGui::Checkbox("Is Grounded?", &state.isGrounded);
+        //            // Create ImGui widgets linked to the component data.
+        //            ImGui::DragFloat2("Position", &pos.x, 0.01f);
+        //            ImGui::InputFloat2("Velocity", &vel.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+        //            ImGui::Checkbox("Is Grounded?", &state.isGrounded);
 
-                    // A button to apply an action to the entity.
-                    if (ImGui::Button("Reset Player Position")) {
-                        pos = { 0.0f, 0.5f };
-                        vel = { 0.0f, 0.0f };
-                    }
-                }
-                else {
-                    ImGui::Text("Player entity data not found!");
-                }
-            }
+        //            // A button to apply an action to the entity.
+        //            if (ImGui::Button("Reset Player Position")) {
+        //                pos = { 0.0f, 0.5f };
+        //                vel = { 0.0f, 0.0f };
+        //            }
+        //        }
+        //        else {
+        //            ImGui::Text("Player entity data not found!");
+        //        }
+        //    }
 
-            if (ImGui::CollapsingHeader("Global Controls")) {
-                static float masterVolume = 0.35f;
-                if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
-                    audio_->setMasterVolume(masterVolume);
-                }
-            }
+        //    if (ImGui::CollapsingHeader("Global Controls")) {
+        //        static float masterVolume = 0.35f;
+        //        if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
+        //            audio_->setMasterVolume(masterVolume);
+        //        }
+        //    }
 
-            ImGui::End(); // End "Level Editor" window
+        //    ImGui::End(); // End "Level Editor" window
 
             // You can also show the ImGui demo window to explore widgets.
            //  ImGui::ShowDemoWindow(); 
@@ -272,9 +286,9 @@ namespace TestScene {
 	}
 
 	void Free() {
-        std::cout << "Freeing IMGUI" << std::endl;
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
+        //std::cout << "Freeing IMGUI" << std::endl;
+        //ImGui_ImplOpenGL3_Shutdown();
+        //ImGui_ImplGlfw_Shutdown();
+        //ImGui::DestroyContext();
 	}
 }

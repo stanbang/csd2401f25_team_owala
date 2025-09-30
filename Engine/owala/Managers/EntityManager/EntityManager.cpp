@@ -9,6 +9,7 @@
  * \date	26 September 2025
  *********************************************************************/
 #include "EntityManager.h"
+#include "Logger.h"
 
 namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
@@ -56,81 +57,89 @@ namespace Framework {
 		return ecs.entitySignatures[entity].test(componentType);
 	}
 
-	//template <typename T>
-	//void EntityManager::AddComponent(Entity entity, const T& component) {
-	//	// Get the component type from the trait
-	//	constexpr ComponentType type = ComponentTypeTrait<T>::value;
+	void EntityManager::AddComponent(Entity entity, ComponentType componentType) {
+		if (HasComponent(entity, componentType)) return;
 
-	//	if (HasComponent(entity, type)) {
-	//		return; // Component already exists, do nothing
-	//	}
+		switch (componentType)
+		{
+		case ComponentType::PlayerStatsType: AddComponent<PlayerStats>(entity, PlayerStats{}); break;
+		case ComponentType::PositionType: AddComponent<Position>(entity, Position{}); break;
+		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
+		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
+		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
+		case ComponentType::RigidBodyType: AddComponent<RigidBody>(entity, RigidBody{}); break;
+		case ComponentType::AABBColliderType: AddComponent<AABBCollider>(entity, AABBCollider{}); break;
+		case ComponentType::PlayerStateType: AddComponent<PlayerState>(entity, PlayerState{}); break;
+		case ComponentType::RotationFlagType: AddComponent<RotationFlag>(entity, RotationFlag{}); break;
+		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
+		case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(entity, ScalingPlatformComponent{}); break;
+		case ComponentType::TextureComponentType: AddComponent<TextureComponent>(entity, TextureComponent{}); break;
+		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
+		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
+		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
+		case ComponentType::PlayerTagType:
+		case ComponentType::PlatformTagType:
+		case ComponentType::BackgroundTagType:
+		case ComponentType::EnemyTagType: ; break;
+		case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(entity, SceneOwned{}); break;
+		case ComponentType::PersistentTagType:
+		case ComponentType::ActiveTagType: break;
+		default:
+			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
+			return;
+		}
 
-	//	// Store the component in the appropriate map
-	//	if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
-	//	else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
-	//	else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
-	//	else if constexpr (std::is_same_v<T, RigidBody>) ecs.rigidBody[entity] = component;
-	//	else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
-	//	else if constexpr (std::is_same_v<T, Triangle>) ecs.triangle[entity] = component;
-	//	else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
-	//	else if constexpr (std::is_same_v<T, PlayerStats>) ecs.playerStats[entity] = component;
-	//	else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
-	//	else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
-	//	else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
-	//	else {
-	//		static_assert(!std::is_same_v<T, T>, "Unsupported component type");
-	//	}
-
-	//	// Set the bit in the entity signature
-	//	ecs.entitySignatures[entity].set(type);
-	//}
+		ecs.entitySignatures[entity].set(componentType);
+	}
 
 	void EntityManager::RemoveComponent(Entity entity, ComponentType componentType) {
 		if (!HasComponent(entity, componentType)) return;
 
 		switch (componentType) {
+			case PlayerStatsType:   ecs.playerStats.erase(entity); break;
 			case PositionType:      ecs.position.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
+			case TriangleType:      ecs.triangle.erase(entity); break;
 			case RigidBodyType:     ecs.rigidBody.erase(entity); break;
 			case AABBColliderType:  ecs.colliders.erase(entity); break;
-			case TriangleType:      ecs.triangle.erase(entity); break;
-			case TextureComponentType: ecs.tex.erase(entity); break;
-			case PlayerStatsType:   ecs.playerStats.erase(entity); break;
 			case PlayerStateType:   ecs.playerState.erase(entity); break;
 			case RotationFlagType:  ecs.rotationFlag.erase(entity); break;
+			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;
+			case ScalingPlatformComponentType: ecs.scalingPlatform.erase(entity); break;
+			case TextureComponentType: ecs.tex.erase(entity); break;
+			case AudioComponentType: ecs.audio.erase(entity); break;
+			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
+			case TextComponentType: ecs.text.erase(entity); break;
+			case PlayerTagType:
+			case PlatformTagType:
+			case BackgroundTagType:
+			case EnemyTagType:; break;
 			case SceneOwnedType: ecs.sceneOwned.erase(entity); break;
-			default: break;
+			case PersistentTagType:
+			case ActiveTagType: break;
+			default: 
+				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
+				return;
 		}
 
 		ecs.entitySignatures[entity].reset(componentType);
 	}
 
-	//template <typename T>
-	//T& EntityManager::GetComponent(Entity entity) {
-	//	// Get the component type from the trait
-	//	constexpr ComponentType type = ComponentTypeTrait<T>::value;
-
-	//	// Ensure the entity actually has this component
-	//	if (!HasComponent(entity, type)) {
-	//		throw std::runtime_error("GetComponent: Entity does not have the requested component");
-	//	}
-
-	//	// Return a reference to the component in the map
-	//	if constexpr (std::is_same_v<T, Position>)      return ecs.position.at(entity);
-	//	else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
-	//	else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
-	//	else if constexpr (std::is_same_v<T, RigidBody>) return ecs.rigidBody.at(entity);
-	//	else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
-	//	else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
-	//	else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
-	//	else if constexpr (std::is_same_v<T, PlayerStats>) return ecs.playerStats.at(entity);
-	//	else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
-	//	else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
-	//	else {
-	//		static_assert(!std::is_same_v<T, T>, "Unsupported component type");
-	//	}
-	//}
+	bool EntityManager::IsTagComponent(ComponentType componentType) {
+		switch (componentType)
+		{
+		case ComponentType::PlayerTagType:
+		case ComponentType::PlatformTagType:
+		case ComponentType::BackgroundTagType:
+		case ComponentType::EnemyTagType:
+		case ComponentType::PersistentTagType:
+		case ComponentType::ActiveTagType:
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	std::vector<Entity> EntityManager::GetAllEntities() const {
 		std::vector<Entity> entities;
@@ -194,7 +203,7 @@ namespace Framework {
 		return newEntity;
 	}
 
-	Entity WIPEntityManager::CloneEntity(Entity& entity) {
+	Entity WIPEntityManager::CloneEntity(/*Entity& entity*/) {
 		using Archetype = WIPEntityStorage::Archetype;
 
 		ComponentSignature otherSignature;
@@ -213,9 +222,9 @@ namespace Framework {
 		return false; // Entity not found or does not have the component
 	}
 
-	void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
+	/*void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
 		// Empty by design.
-	}
+	}*/
 
 #pragma endregion
 }

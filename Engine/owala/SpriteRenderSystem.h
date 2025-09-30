@@ -93,7 +93,16 @@ namespace Framework {
          * \param c New RGBA clear color.
          */
         void SetClearColor(const Color& c) { clearColor_ = c; }
+        /**
+         * \brief Check if collider outlines are being drawn.
+         * \return True if collider debug rendering is enabled.
+         */
+        bool IsDrawingColliders() const { return drawColliders_; }
 
+        /**
+         * \brief Toggle collider outline rendering on/off.
+         */
+        void ToggleColliders() { drawColliders_ = !drawColliders_; }
     private:
         /**
          * \brief Render all sprites for active entities.

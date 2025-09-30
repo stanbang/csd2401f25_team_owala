@@ -54,7 +54,7 @@ namespace Framework {
 		ScalingPlatformComponentType,
 		TextureComponentType,
 		AudioComponentType,
-		AnimatedTextureComponentType,
+		AnimationComponentType,
 		TextComponentType,
 		PlayerTagType,
 		PlatformTagType,
@@ -91,7 +91,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<ScalingPlatformComponent> { static constexpr ComponentType value = ScalingPlatformComponentType; };
 	template <> struct ComponentTypeTrait<TextureComponent> { static constexpr ComponentType value = TextureComponentType; };
 	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
-	template <> struct ComponentTypeTrait<AnimatedTextureComponent> { static constexpr ComponentType value = AnimatedTextureComponentType; };
+	template <> struct ComponentTypeTrait<AnimationComponent> { static constexpr ComponentType value = AnimationComponentType; };
 	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
@@ -131,7 +131,7 @@ namespace Framework {
 
 		std::unordered_map<Entity, TextureComponent>      tex; //Texture Component
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
-		std::unordered_map<Entity, AnimatedTextureComponent> animatedTex; //Animated Texture Component
+		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
 
 		// Scene Components

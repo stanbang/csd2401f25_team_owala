@@ -1,0 +1,46 @@
+Custom Engine and Solution Setup
+
+----------------------------------
+PRE-REQUISITES
+----------------------------------
+-CMake 4.1.1
+	-(Website Link): https://cmake.org/download/
+	-(Direct Download Link): https://github.com/Kitware/CMake/releases/download/v4.1.1/cmake-4.1.1-windows-x86_64.msi
+
+
+----------------------------------
+FOLDER STRUCTURE
+----------------------------------
+The "Engine" folder contains:
+	-Assets
+	-cmake
+	-Data
+	-lib
+	-owala
+	-CMakeLists.txt
+	-ProjectGuide.txt
+	-run.bat
+	-clean.bat
+
+
+----------------------------------
+GENERATING THE SOLUTION(.sln) FILE
+----------------------------------
+1. Run "clean.bat" (To clean any existing "build" folder)
+2. Run "run.bat" (To generate "build" folder and run cmake)
+3. The "build" folder should be generated under the "Engine" folder.
+4. The solution file is located in "Engine/build/owala.sln"
+
+
+--------------------------------------------------
+PRE-REQUISITES FOR RUNNING THE SOLUTION(.sln) FILE
+--------------------------------------------------
+1. Right click "owala" project > Set as Startup Project
+
+
+--------------------------------------------------
+IMGUI
+--------------------------------------------------
+1. IMGUI is visible/on by default.
+2. If IMGUI is closed/collapsed, re-enable it by going 
+   to "Engine/Debug/imgui.ini"(Can be "Debug" or "Release" based on where you build) and setting all "Collapsed" fields to 0.

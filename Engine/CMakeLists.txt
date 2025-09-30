@@ -66,11 +66,14 @@ GROUP_FILES_BY_FOLDER("${APP_SRC}")
 # ======================= Executable =========================
 add_executable(${CMAKE_PROJECT_NAME} ${APP_SRC})
 
+# ======================= Set working directory to Debug/Release folders =========================
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
+    "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>"
+)
+
 # ======================================================
 # Copy Data and Assets folders at configure time
 # ======================================================
-file(COPY "${CMAKE_SOURCE_DIR}/Data" DESTINATION "${CMAKE_BINARY_DIR}")
-file(COPY "${CMAKE_SOURCE_DIR}/Assets" DESTINATION "${CMAKE_BINARY_DIR}")
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/Logs)
 
 # ======================================================
@@ -79,14 +82,24 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/Logs)
 add_custom_command(
     TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/Data"
-            "$/Data"
+              "${CMAKE_SOURCE_DIR}/Data"
+              "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Data"
+    COMMENT "Copying Data folder to output directory."
 )
 add_custom_command(
     TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/Assets"
-            "$/Assets"
+              "${CMAKE_SOURCE_DIR}/Assets"
+              "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Assets"
+    COMMENT "Copying Assets folder to output directory."
+)
+
+# Also create the Logs folder in the final output directory
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+              "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/Logs"
+    COMMENT "Creating Logs directory."
 )
 
 # ======================= Linking =========================
@@ -128,7 +141,7 @@ set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall ${DisableWarnings})
 elseif (MSVC)
-    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W3 /WX-)
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE /W4 /WX-)
 endif()
 
 # ======================= Include Paths =========================

@@ -2,8 +2,6 @@
 
 namespace Framework {
 	Entity createBGAudio(EntityStorage& entityStorage,
-		PlayerStats stats,
-		Vector2D halfSize,
 		std::string audioID) {
 
 		EntityManager entityMgr(entityStorage);

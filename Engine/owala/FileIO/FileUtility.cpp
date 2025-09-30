@@ -6,15 +6,18 @@ namespace Framework {
 
 	Vector2D FileIOSystem::LoadWindowConfig() {
 		std::string logMsg{};
-		rapidjson::Document d = ReadFile(WIN_CONFIG_FILEPATH);
+		rapidjson::Document d = ReadFile(WIN_CONFIG_FILEPATH); //Read the file name passed in as a path
 
+		// Check if the JSON file contains the respective members expected of the config.json file
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing windowConfig in config.json. Defaulting to 1920x1080" << std::endl;
 			return Vector2D(1920.0f, 1080.0f);
 		}
 
+		// Extract windowConfig object
 		const rapidjson::Value& config = d["windowConfig"];
 
+		// Check that extracted data has the expected properties
 		if (!config.HasMember("width") || !config["width"].IsInt() ||
 			!config.HasMember("height") || !config["height"].IsInt()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;
@@ -91,5 +94,36 @@ namespace Framework {
 		playerY.SetFloat(playerStats.pos.Pos.y);
 
 		return WriteFileJson(PLAYER_CONFIG_FILEPATH, d);
+	}
+
+	AnimationInfo FileIOSystem::LoadAnimationInfo(std::string filepath) {
+		std::string logMsg{};
+		rapidjson::Document d = ReadFile(filepath); //Read the file name passed in as a path
+
+		// Check if the JSON file contains the respective members expected of a playerStats.json file
+		if (!d.HasMember("Animation") || !d["Animation"].IsObject()) {
+			throw GameException(DebugType::FileIOSystem, "Invalid or missing animation data in " + filepath);
+		}
+
+		const rapidjson::Value& stats = d["Animation"]; // Extract the animation data from the JSON file
+
+		// Check if animation members exists in Animation
+		if (!stats.HasMember("frameCount") || !stats.HasMember("frameDuration") || !stats.HasMember("isLooping") || !stats.HasMember("startFrame")) {
+			throw GameException(DebugType::FileIOSystem, "Invalid or missing properties in " + filepath);
+		}
+
+		const rapidjson::Value& frameCount = stats["frameCount"];
+		const rapidjson::Value& frameDuration = stats["frameDuration"];
+		const rapidjson::Value& isLooping = stats["isLooping"];
+		const rapidjson::Value& startFrame = stats["startFrame"];
+
+
+		// Debugging output
+		Logger::Get().Info(DebugType::FileIOSystem) << "Animation Data read from " << filepath << ": frameCount: " << frameCount.GetInt() << ", frameDuration : " << frameDuration.GetFloat() << ", isLooping : " << isLooping.GetBool() << ", startFrame : " << startFrame.GetInt() << std::endl;
+
+		//Create AnimationComponent from data
+		AnimationInfo anim{ frameCount.GetInt(), frameDuration.GetFloat(), isLooping.GetBool(), startFrame.GetInt()};
+
+		return anim;
 	}
 }

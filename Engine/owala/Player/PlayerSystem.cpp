@@ -19,6 +19,7 @@
 namespace Framework {
 
 	void PlayerSystem::Update(float dt) {
+		(void)dt; //Suppress unused parameter warning if not used
 		const float moveSpeed = 2.0f; // Control velocity directly for more responsive movement
         const float JumpHeight = 0.8f; // The peak height you want to reach, in NDC units.
         // NEW: Calculate initial jump velocity based on desired height and gravity.
@@ -47,9 +48,10 @@ namespace Framework {
 			
 
                           // We need a RigidBody, Velocity, and PlayerState to control the player
-            if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType)) {
+            if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType) && entityMgr.HasComponent(entity, AnimationComponentType)) {
                 Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+                AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 
                 // --- Horizontal Movement ---
                 float targetVelX = 0.0f;
@@ -62,6 +64,20 @@ namespace Framework {
                     vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity.
                     
                 }
+
+                // Animation State Handling
+				AnimationState animState = AnimationState::IDLE; // Default to IDLE
+
+				if (state.isGrounded) {
+                    if (std::abs(vel.Vel.x) > 0.01f) { animState = AnimationState::RUNNING; } //If player is on ground and moving, set to running
+                    else { animState = AnimationState::IDLE; } //If player is on ground and not moving, set to idle
+				}
+				else {
+                    if (vel.Vel.y > 0.01f) { animState = AnimationState::JUMPING; } //If player is in air and moving upwards, set to jumping
+                    else if (vel.Vel.y <= 0.0f) { animState = AnimationState::FALLING; } //If player is in air, at the point he is beginning to fall down or moving downwards, set to falling
+				}
+
+				animationComponent.currentState = animState;
             }
         }
     }

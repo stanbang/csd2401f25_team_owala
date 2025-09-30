@@ -66,6 +66,7 @@ namespace Framework {
 
             }
             catch (const GameException& e) {
+				(void)e; //Suppress unused variable warning
                 std::fprintf(stderr, "[Audio] Sound '%s' not found in ResourceManager\n", comp.soundKey.c_str());
             }
         }
@@ -141,6 +142,7 @@ namespace Framework {
     }
 
     bool AudioSystem::play(FMOD::Sound& sound, float volume, bool paused) {
+		(void)volume; //Suppress unused variable warning
         if (!system_) return false;
 
         /*std::unordered_map<std::string, FMOD::Sound*>::iterator it = sounds_.find(id);

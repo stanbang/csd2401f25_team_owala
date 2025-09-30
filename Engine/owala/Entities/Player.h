@@ -18,6 +18,8 @@
 #include "EntityStorage.h"
 #include "FileUtility.h"
 #include "EntityManager.h"
+#include "Animation.h"
+#include "ResourceManager.h"
 #include <string>
 
 /**
@@ -30,9 +32,10 @@
 namespace Framework {
 
 	inline Entity createPlayer(EntityStorage& entityStorage, 
+		ResourceManager& rcm,
 		PlayerStats stats, 
 		Vector2D halfSize, 
-		std::string textureID) {
+		std::string textureKey) {
 
 			//Create an EntityManager to access entity creation APIs
 			EntityManager entityMgr(entityStorage);
@@ -47,22 +50,23 @@ namespace Framework {
 			entityMgr.AddComponent(player, Position{ stats.pos }); //Start at 0,0 coordinates
 			entityMgr.AddComponent(player, Velocity{});  //Start with no velocity
 
-			//entityStorage.tex[player] = TextureComponent{ texture };
-			entityMgr.AddComponent(player, TextureComponent{ textureID });
+			entityMgr.AddComponent(player, TextureComponent{ textureKey });
+			entityMgr.AddComponent(player, AnimationComponent{AnimationState::IDLE});
 			entityMgr.AddComponent(player, RigidBody{});
 			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
 			entityMgr.AddComponent(player, PlayerState{}); // NEW: Add the player state component
 			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
+
 			//Return the entity ID of the player
 			return player;
 	}
 
-	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float diff) {
+	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float scale) {
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
-		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x += diff;
-		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.y += diff;
+		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x *= scale;
+		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.y *= scale;
 	}
 }

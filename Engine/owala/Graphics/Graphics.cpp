@@ -282,7 +282,7 @@ namespace Framework {
     }
 
     void Graphics::drawSprite(Texture& tex, const Vector2D& center,
-        const Vector2D& halfSize, float rotation) {
+        const Vector2D& halfSize, float rotation, const Vector2D& minUV, const Vector2D& maxUV) {
 
 
         // two triangles (6 verts), each vert = (x,y,u,v)
@@ -304,13 +304,13 @@ namespace Framework {
 
         const float verts[] = {
             // x,   y,    u,   v
-            p0.x, p0.y,  0.f, 0.f,
-            p1.x, p1.y,  1.f, 0.f,
-            p2.x, p2.y,  1.f, 1.f,
+            p0.x, p0.y,  minUV.x, minUV.y,
+            p1.x, p1.y,  maxUV.x, minUV.y,
+            p2.x, p2.y,  maxUV.x, maxUV.y,
 
-            p0.x, p0.y,  0.f, 0.f,
-            p2.x, p2.y,  1.f, 1.f,
-            p3.x, p3.y,  0.f, 1.f,
+            p0.x, p0.y,  minUV.x, minUV.y,
+            p2.x, p2.y,  maxUV.x, maxUV.y,
+            p3.x, p3.y,  minUV.x, maxUV.y,
         };
 
         glEnable(GL_BLEND);
@@ -375,6 +375,37 @@ namespace Framework {
 
         // default to PNG if no/unknown extension
         return loadTextureFromPNG(path, /*flipY*/ true, /*srgb*/ false);
+    }
+
+    void Graphics::drawLine(const Vector2D& start, const Vector2D& end, const Color& color) {
+        // Use the colored triangle pipeline
+        glUseProgram(progCol_);
+        GLint loc = glGetUniformLocation(progCol_, "uColor");
+        glUniform4f(loc, color.r, color.g, color.b, color.a);
+
+        // Create a thin rectangle (line) between start and end points
+        Vector2D dir = { end.x - start.x, end.y - start.y };
+        float length = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+
+        if (length < 0.001f) return; // Too short
+
+        // Normalize and get perpendicular for line thickness
+        dir.x /= length;
+        dir.y /= length;
+        Vector2D perp = { -dir.y, dir.x };
+
+        const float thickness = 0.005f; // Line thickness
+        Vector2D halfThickness = { perp.x * thickness, perp.y * thickness };
+
+        // Create a thin quad for the line
+        Vector2D p1 = { start.x - halfThickness.x, start.y - halfThickness.y };
+        Vector2D p2 = { start.x + halfThickness.x, start.y + halfThickness.y };
+        Vector2D p3 = { end.x - halfThickness.x, end.y - halfThickness.y };
+        Vector2D p4 = { end.x + halfThickness.x, end.y + halfThickness.y };
+
+        // Draw as two triangles
+        drawTriangle(p1, p3, p2, color);
+        drawTriangle(p2, p3, p4, color);
     }
 
     void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
@@ -448,7 +479,7 @@ namespace Framework {
         glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
 
         // Draw all the characters in a single draw call
-        glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 4);
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(vertices.size() / 4));
 
         // --- 5. CLEANUP ---
         glBindVertexArray(0);

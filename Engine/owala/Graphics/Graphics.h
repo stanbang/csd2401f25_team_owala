@@ -161,7 +161,11 @@ namespace Framework {
          * \param rotation Rotation in radians (optional).
          */
         void drawSprite(Texture& tex, const Vector2D& center,
-            const Vector2D& halfSize, float rotation = 0.0f);
+            const Vector2D& halfSize, float rotation = 0.0f, const Vector2D& minUV = { 0,0 }, const Vector2D& maxUV = { 1,1 });
+
+
+
+        void drawLine(const Vector2D& start, const Vector2D& end, const Color& color);
 
         // ---------------- Text ----------------
 
@@ -189,8 +193,8 @@ namespace Framework {
 
     private:
         WindowsSystem* win_ = nullptr; //!< Parent window system for GL context.
-        int screenWidth;               //!< Current screen width.
-        int screenHeight;              //!< Current screen height.
+        int screenWidth = 1920;               //!< Current screen width.
+        int screenHeight = 1080;              //!< Current screen height.
 
         // ---- Colored triangle pipeline ----
         unsigned progCol_ = 0; //!< Shader program (uColor).

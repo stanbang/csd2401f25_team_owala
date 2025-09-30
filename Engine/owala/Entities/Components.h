@@ -24,6 +24,15 @@
 #include <memory> // for std::shared_ptr
 
 namespace Framework{
+
+	// Enum for animation states
+	enum class AnimationState {
+		IDLE,
+		RUNNING,
+		JUMPING,
+		FALLING
+	};
+
 	/*	Position component to store x and y 
 		coordinates of an entity.*/
 	struct Position {
@@ -63,11 +72,11 @@ namespace Framework{
 
 	struct Triangle { 
 		Vector2D a, b, c; 
-		Color color; 
+		Color color = { 1,1,1,1 };
 	};
 
 	struct TextureComponent {
-		std::string textureKey;
+		std::string textureKey; // Key to identify the texture resource
 	};
 
 	struct AudioComponent {
@@ -77,21 +86,26 @@ namespace Framework{
 		float volume = 1.0f;
 	};
 
-	struct AnimatedTextureComponent {
-		std::string textureKey;
-		int frameCount = 1; // Total number of frames in the animation
-		int currentFrame = 0; // Current frame index
-		float frameDuration = 0.1f; // Duration of each frame in seconds
+	struct AnimationComponent {
+		AnimationState currentState = AnimationState::IDLE; // Default animation state is IDLE
+
+		int currentFrame = 0;      // Frame index
+		float frameDuration = 0.1f;
+		int startFrame = 0;        // which frame to start the animation from
+		int frameCount = 1;        // how many frames this animation has
 		float elapsedTime = 0.0f; // Time elapsed since the last frame change
 		bool isPlaying = true; // Is the animation currently playing
 		bool isLooping = true; // Should the animation loop when it reaches the end
+
+		Vector2D minUV = { 0.0f, 0.0f }; // Top-Left UV of the current frame
+		Vector2D maxUV = { 1.0f, 1.0f }; // Bottom-Right UV of the current frame
 	};
 
 	struct TextComponent {
 		std::string textToDraw;
 		std::string fontName;
-		Color color;
-		float scale;
+		Color color = { 1,1,1,1 };
+		float scale = 1.0f;
 	};
 
 	struct PlayerStats {
@@ -120,8 +134,8 @@ namespace Framework{
 
 	// Component to track trap platform state
 	struct TrapPlatformComponent {
-		bool isTriggered;
-		bool hasFallen;
+		bool isTriggered = false;
+		bool hasFallen = false;
 		float triggerDelay{ 0.0f };
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };

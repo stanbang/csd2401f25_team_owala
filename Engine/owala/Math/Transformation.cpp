@@ -6,7 +6,7 @@
 #endif
 namespace Framework {
     Matrix3x3 Transformation::CreateRotationMatrix(float angleDegrees) {
-        float angleRad = angleDegrees * M_PI / 180.0f;
+        float angleRad = static_cast<float>(angleDegrees * M_PI / 180.0f);
         return Matrix3x3::CreateRotation(angleRad);
     }
 
