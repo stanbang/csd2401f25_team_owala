@@ -31,3 +31,18 @@ DOWN Arrow Key - Scale player size down.
 ---PHYSICS---
 O - Pause the game and enter physics step mode.
 I - Advance physics mode forward.
+
+
+					TEAM ROSTER
+------------------------------------------------------------------------------------------------
+NAME			PRIMARY ROLE	|	SECONDARY ROLE	|	CHAMPION ROLE
+------------------------------------------------------------------------------------------------
+LUR Pei Hao Stanley 	Programmer	|	Audio Lead	|	Physics/Collision Champion
+SITARA Anil 		Programmer	|	Designer	|	Transformation Champion
+NG Jordain Ying Zhe	Technical Lead	|	Audio Lead	|	Graphics Champion
+LOU Jason		Programmer	|	Designer	|	Game System Champion
+NG Jing Wen		Product Manager	|	Programmer	|	Production Champion
+YAR Xuan		Programmer	|	Designer	|	Debugging Champion
+TAN Cello		Design Lead	|	Artist		|	Level Design Champion
+GOH Jia Hui		Art Lead	|	Designer	|	Art Champion
+LIM Yi Xuan		Artist		|	Designer	|	Art Champion
