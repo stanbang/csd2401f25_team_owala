@@ -56,7 +56,7 @@ namespace Framework {
             Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
 			//Check for animation component
-            if (entityMgr.HasComponent(e, AnimationComponentType) && entityMgr.HasComponent(e, TextureInfoComponentType)) {
+            if (entityMgr.HasComponent(e, AnimationComponentType)) {
 				const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
 				//const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
 

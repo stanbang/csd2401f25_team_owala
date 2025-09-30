@@ -1,4 +1,5 @@
 #include "Font.h"
+#include "Logger.h"
 
 using namespace Framework;
 
@@ -60,7 +61,7 @@ bool Font::Load(FT_Library library, const std::string& fontPath, unsigned int si
 
     for (unsigned char c = 32; c <= 126; ++c) {
         if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
-            std::cerr << "FreeType: Failed to load glyph for character " << c << std::endl;
+            Logger::Error(DebugType::Font) << "FreeType: Failed to load glyph for character " << c << std::endl;
             continue;
         }
 
@@ -72,7 +73,7 @@ bool Font::Load(FT_Library library, const std::string& fontPath, unsigned int si
 
         rowHeight = std::max(rowHeight, static_cast<int>(m_face->glyph->bitmap.rows));
         if (yOffset + rowHeight > ATLAS_HEIGHT) {
-            std::cerr << "Atlas size is too small!" << std::endl;
+            Logger::Error(DebugType::Font) << "Atlas size is too small!" << std::endl;
             break;
         }
 

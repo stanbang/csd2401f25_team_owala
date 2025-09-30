@@ -50,16 +50,15 @@ namespace Framework {
 			entityMgr.AddComponent(player, Position{ stats.pos }); //Start at 0,0 coordinates
 			entityMgr.AddComponent(player, Velocity{});  //Start with no velocity
 
-			AnimationInfo animInfo = rcm.get<AnimationInfo>(textureKey);
 			entityMgr.AddComponent(player, TextureComponent{ textureKey });
-			entityMgr.AddComponent(player, TextureInfoComponent{ animInfo.frameCount, animInfo.frameDuration, animInfo.isLooping, animInfo.startFrame });
-			entityMgr.AddComponent(player, AnimationComponent{});
+			entityMgr.AddComponent(player, AnimationComponent{AnimationState::IDLE});
 			entityMgr.AddComponent(player, RigidBody{});
 			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
 			entityMgr.AddComponent(player, PlayerState{}); // NEW: Add the player state component
 			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
+
 			//Return the entity ID of the player
 			return player;
 	}

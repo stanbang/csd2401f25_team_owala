@@ -61,11 +61,13 @@ namespace Framework {
         }
     }
 
+    // Informative logging
     std::ostream& Logger::Info(DebugType type) {
         std::cout << GetDebugType(type) << ' ';
         return std::cout;
     }
 
+    // Error logging
     std::ostream& Logger::Error(DebugType type) {
         std::cerr << "[ERROR] " << GetDebugType(type) << ' ';
         return std::cerr;

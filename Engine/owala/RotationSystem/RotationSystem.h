@@ -6,7 +6,10 @@
 * \secondary_author
 *
 *
-* \brief
+* \brief    System that handles global world rotation mechanics and
+*           the entire game world to rotate in 90-degree increments using
+*           Q and E keys. Pauses physics during rotation transitions.
+*
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior

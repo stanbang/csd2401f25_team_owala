@@ -24,6 +24,15 @@
 #include <memory> // for std::shared_ptr
 
 namespace Framework{
+
+	// Enum for animation states
+	enum class AnimationState {
+		IDLE,
+		RUNNING,
+		JUMPING,
+		FALLING
+	};
+
 	/*	Position component to store x and y 
 		coordinates of an entity.*/
 	struct Position {
@@ -70,13 +79,6 @@ namespace Framework{
 		std::string textureKey; // Key to identify the texture resource
 	};
 
-	struct TextureInfoComponent {
-		int frameCount = 1; // Total number of frames in the animation
-		float frameDuration = 0.1f; // Duration of each frame in seconds
-		bool isPlaying = false; // Is the animation currently playing
-		int currentFrame = 0; // Current frame index
-	};
-
 	struct AudioComponent {
 		std::string soundKey;
 		bool loop = false;
@@ -85,6 +87,12 @@ namespace Framework{
 	};
 
 	struct AnimationComponent {
+		AnimationState currentState = AnimationState::IDLE; // Default animation state is IDLE
+
+		int currentFrame = 0;      // Frame index
+		float frameDuration = 0.1f;
+		int startFrame = 0;        // which frame to start the animation from
+		int frameCount = 1;        // how many frames this animation has
 		float elapsedTime = 0.0f; // Time elapsed since the last frame change
 		bool isPlaying = true; // Is the animation currently playing
 		bool isLooping = true; // Should the animation loop when it reaches the end

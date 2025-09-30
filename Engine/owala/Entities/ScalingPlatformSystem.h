@@ -6,7 +6,8 @@
 * \secondary_author
 *
 *
-* \brief
+* \brief    System that manages the update cycle for all scaling platforms,
+*           handling their animation and transformation updates each frame.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior

@@ -6,13 +6,32 @@
 #include <iostream>
 
 namespace Framework {
+    /*!
+    @brief      Constructs the rotation system with references to required
+                subsystems
+    @param      ecs Reference to entity storage
+    @param      input Reference to input system for key detection
+    @param      physics Reference to physics system for pause control
+    @return     N/A
+*//*______________________________________________________________*/
+
     RotationSystem::RotationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics)
         : ecs_(&ecs), input_(&input), physics_(&physics), globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false) {
     }
-
+    /*!
+    @brief      Initializes the rotation system (currently empty)
+    @param      void
+    @return     void
+*//*______________________________________________________________*/
     void RotationSystem::Initialize() {
     }
-
+    /*!
+    @brief      Updates the global rotation state, handling input for rotation
+                triggers and smoothly interpolating between rotation angles.
+                Transforms all entities with RotationFlag components.
+    @param      dt Delta time in seconds since last frame
+    @return     void
+*//*______________________________________________________________*/
     void RotationSystem::Update(float dt) {
 		EntityManager entityMgr(*ecs_);
 
@@ -93,7 +112,11 @@ namespace Framework {
             }
         }
     }
-
+    /*!
+    @brief      Shuts down the rotation system
+    @param      void
+    @return     void
+*//*______________________________________________________________*/
     void RotationSystem::Shutdown() {
     }
 }

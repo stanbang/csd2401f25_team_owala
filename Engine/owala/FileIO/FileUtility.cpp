@@ -6,15 +6,18 @@ namespace Framework {
 
 	Vector2D FileIOSystem::LoadWindowConfig() {
 		std::string logMsg{};
-		rapidjson::Document d = ReadFile(WIN_CONFIG_FILEPATH);
+		rapidjson::Document d = ReadFile(WIN_CONFIG_FILEPATH); //Read the file name passed in as a path
 
+		// Check if the JSON file contains the respective members expected of the config.json file
 		if (!d.HasMember("windowConfig") || !d["windowConfig"].IsObject()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing windowConfig in config.json. Defaulting to 1920x1080" << std::endl;
 			return Vector2D(1920.0f, 1080.0f);
 		}
 
+		// Extract windowConfig object
 		const rapidjson::Value& config = d["windowConfig"];
 
+		// Check that extracted data has the expected properties
 		if (!config.HasMember("width") || !config["width"].IsInt() ||
 			!config.HasMember("height") || !config["height"].IsInt()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;

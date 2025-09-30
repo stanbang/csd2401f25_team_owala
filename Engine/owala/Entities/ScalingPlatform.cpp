@@ -9,7 +9,18 @@
 #endif
 
 namespace Framework {
-
+    /*!
+    @brief      Creates a scaling platform entity that animates between
+                minimum and maximum scale values
+    @param      entityStorage Reference to the entity storage system
+    @param      pos Initial position of the scaling platform
+    @param      baseHalfSize Base half-dimensions before scaling is applied
+    @param      textureID String identifier for the platform's texture
+    @param      scaleSpeed Speed of the scaling animation (default: 1.0f)
+    @param      minScale Minimum scale multiplier (default: 0.5f)
+    @param      maxScale Maximum scale multiplier (default: 2.0f)
+    @return     Entity handle for the created scaling platform
+*//*______________________________________________________________*/
     Entity createScalingPlatform(EntityStorage& entityStorage, Vector2D pos, Vector2D baseHalfSize, std::string textureID, float scaleSpeed, float minScale, float maxScale)
     {
 		EntityManager entityMgr(entityStorage);
@@ -26,7 +37,13 @@ namespace Framework {
         entityMgr.AddComponent(scalingPlatform, scalingComp);
         return scalingPlatform;
     }
-
+    /*!
+    @brief      Updates all scaling platforms, animating their scale and
+                updating collision boxes and transformation matrices
+    @param      entityStorage Reference to the entity storage system
+    @param      dt Delta time in seconds since last frame
+    @return     void
+*//*______________________________________________________________*/
     void updateScalingPlatforms(EntityStorage& entityStorage, float dt)
     {
 		EntityManager entityMgr(entityStorage);
@@ -59,7 +76,13 @@ namespace Framework {
             }
         }
     }
-
+    /*!
+    @brief      Retrieves the current transformation matrix for a scaling
+                platform, used for rendering
+    @param      entityStorage Reference to the entity storage system
+    @param      entity Entity handle of the scaling platform
+    @return     Matrix3x3 transformation matrix (identity if entity invalid)
+*//*______________________________________________________________*/
     Matrix3x3 getScalingPlatformTransform(EntityStorage& entityStorage, Entity entity) {
 		EntityManager entityMgr(entityStorage);
         if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
