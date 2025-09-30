@@ -8,7 +8,14 @@
 #endif
 
 namespace Framework {
-
+    /*!
+    @brief      Creates a trap platform entity at a specified position
+    @param      entityStorage Reference to the entity storage system
+    @param      pos Initial position of the trap platform
+    @param      halfSize Half-dimensions of the platform's collision box
+    @param      textureID String identifier for the platform's texture
+    @return     Entity handle for the created trap platform
+*//*______________________________________________________________*/
     Entity createTrapPlatform(EntityStorage& entityStorage, Vector2D pos, Vector2D halfSize, std::string textureID)
     {
         EntityManager entityMgr(entityStorage);
@@ -26,14 +33,20 @@ namespace Framework {
         entityMgr.AddComponent(trapPlatform, trapComponent);
         return trapPlatform;
     }
-
+    /*!
+    @brief      Updates all trap platforms in the scene, handling trigger delays
+                and falling behavior
+    @param      entityStorage Reference to the entity storage system
+    @param      dt Delta time in seconds since last frame
+    @return     void
+*//*______________________________________________________________*/
     void updateTrapPlatforms(EntityStorage& entityStorage, float dt)
     {
         EntityManager entityMgr(entityStorage);
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(entity);
-
+       
             if (trapComp.hasFallen) {
                 continue;
             }
@@ -52,7 +65,7 @@ namespace Framework {
             if (trapComp.hasFallen && entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType)) {
                 Vector2D currentVel = entityMgr.GetComponent<Velocity>(entity).Vel;
 
-                if (currentVel.y == 0.0f) {
+                if (currentVel.y == 0.0f) {                
                     continue;
                 }
 
@@ -62,7 +75,13 @@ namespace Framework {
             }
         }
     }
-
+    /*!
+    @brief      Triggers a trap platform to begin its falling sequence after
+                the configured delay
+    @param      entityStorage Reference to the entity storage system
+    @param      trapPlatform Entity handle of the trap platform to trigger
+    @return     void
+*//*______________________________________________________________*/
     void triggerTrapPlatform(EntityStorage& entityStorage, Entity trapPlatform)
     {
         EntityManager entityMgr(entityStorage);
@@ -74,7 +93,13 @@ namespace Framework {
             }
         }
     }
-
+    /*!
+    @brief      Resets a trap platform to its original state and position,
+                ready to be triggered again
+    @param      entityStorage Reference to the entity storage system
+    @param      trapPlatform Entity handle of the trap platform to reset
+    @return     void
+*//*______________________________________________________________*/
     void resetTrapPlatform(EntityStorage& entityStorage, Entity trapPlatform)
     {
         EntityManager entityMgr(entityStorage);

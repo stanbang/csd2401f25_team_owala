@@ -8,19 +8,37 @@
 #include "EntityManager.h"
 
 namespace Framework {
-
+    /*!
+    @brief      Registers a platform prefab template
+    @param      prefab Platform prefab configuration to register
+    @return     void
+*//*______________________________________________________________*/
     void PrefabSystem::RegisterPlatformPrefab(const PlatformPrefab& prefab) {
         platformPrefabs[prefab.name] = prefab;
     }
-
+    /*!
+    @brief      Registers a trap platform prefab template
+    @param      prefab Trap platform prefab configuration to register
+    @return     void
+*//*______________________________________________________________*/
     void PrefabSystem::RegisterTrapPlatformPrefab(const TrapPlatformPrefab& prefab) {
         trapPlatformPrefabs[prefab.name] = prefab;
     }
-
+    /*!
+    @brief      Registers a scaling platform prefab template
+    @param      prefab Scaling platform prefab configuration to register
+    @return     void
+*//*______________________________________________________________*/
     void PrefabSystem::RegisterScalingPlatformPrefab(const ScalingPlatformPrefab& prefab) {
         scalingPlatformPrefabs[prefab.name] = prefab;
     }
-
+    /*!
+    @brief      Creates a platform entity instance from a registered prefab
+    @param      storage Reference to entity storage system
+    @param      prefabName Name of the registered prefab to instantiate
+    @param      position World position for the new platform
+    @return     Entity handle for created platform (0 if prefab not found)
+*//*______________________________________________________________*/
     Entity PrefabSystem::CreatePlatformFromPrefab(EntityStorage& storage, const std::string& prefabName, const Vector2D& position) {
         auto it = platformPrefabs.find(prefabName);
         if (it == platformPrefabs.end()) {
@@ -38,7 +56,13 @@ namespace Framework {
 
         return platform;
     }
-
+    /*!
+    @brief      Creates a trap platform entity instance from a registered prefab
+    @param      storage Reference to entity storage system
+    @param      prefabName Name of the registered trap prefab to instantiate
+    @param      position World position for the new trap platform
+    @return     Entity handle for created trap platform (0 if prefab not found)
+*//*______________________________________________________________*/
     Entity PrefabSystem::CreateTrapPlatformFromPrefab(EntityStorage& storage, const std::string& prefabName, const Vector2D& position) {
         auto it = trapPlatformPrefabs.find(prefabName);
         if (it == trapPlatformPrefabs.end()) {
@@ -68,7 +92,13 @@ namespace Framework {
 
         return trapPlatform;
     }
-
+    /*!
+    @brief      Creates a scaling platform entity instance from a registered prefab
+    @param      storage Reference to entity storage system
+    @param      prefabName Name of the registered scaling prefab to instantiate
+    @param      position World position for the new scaling platform
+    @return     Entity handle for created scaling platform (0 if prefab not found)
+*//*______________________________________________________________*/
     Entity PrefabSystem::CreateScalingPlatformFromPrefab(EntityStorage& storage, const std::string& prefabName, const Vector2D& position) {
         auto it = scalingPlatformPrefabs.find(prefabName);
         if (it == scalingPlatformPrefabs.end()) {
@@ -80,7 +110,12 @@ namespace Framework {
         Entity scalingPlatformEntity = createScalingPlatform(storage,position,prefab.size,prefab.textureID,prefab.scaleSpeed,prefab.minScale, prefab.maxScale);
         return scalingPlatformEntity;
     }
-
+    /*!
+       @brief      Loads and registers multiple platform prefabs from a text file.
+                   Supports PLATFORM, TRAP_PLATFORM, and SCALING_PLATFORM types.
+       @param      filename Path to the prefab definition file
+       @return     bool True if file loaded successfully, false otherwise
+   *//*______________________________________________________________*/
     bool PrefabSystem::LoadPrefabsFromFile(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -142,15 +177,27 @@ namespace Framework {
         file.close();
         return true;
     }
-
+    /*!
+    @brief      Checks if a platform prefab with given name is registered
+    @param      name Prefab name to check
+    @return     bool True if prefab exists, false otherwise
+*//*______________________________________________________________*/
     bool PrefabSystem::HasPlatformPrefab(const std::string& name) const {
         return platformPrefabs.find(name) != platformPrefabs.end();
     }
-
+    /*!
+    @brief      Checks if a trap platform prefab with given name is registered
+    @param      name Prefab name to check
+    @return     bool True if trap prefab exists, false otherwise
+*//*______________________________________________________________*/
     bool PrefabSystem::HasTrapPlatformPrefab(const std::string& name) const {
         return trapPlatformPrefabs.find(name) != trapPlatformPrefabs.end();
     }
-
+    /*!
+    @brief      Checks if a scaling platform prefab with given name is registered
+    @param      name Prefab name to check
+    @return     bool True if scaling prefab exists, false otherwise
+*//*______________________________________________________________*/
     bool PrefabSystem::HasScalingPlatformPrefab(const std::string& name) const {
         return scalingPlatformPrefabs.find(name) != scalingPlatformPrefabs.end();
     }
