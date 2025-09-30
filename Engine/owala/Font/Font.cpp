@@ -6,13 +6,14 @@ using namespace Framework;
 // FreeTypeManager Class
 FreeTypeManager::FreeTypeManager() {
     if (FT_Init_FreeType(&m_library)) {
-        std::cerr << "FreeType: Could not init FreeType library" << std::endl;
+        Logger::Error(DebugType::Font) << "FreeType: Could not init FreeType library" << std::endl;
     }
 }
 
 FreeTypeManager::~FreeTypeManager() {
     if (m_library) {
         FT_Done_FreeType(m_library);
+        Logger::Info(DebugType::Font) << "Freed FreeType Library" << std::endl;
     }
 }
 
@@ -30,13 +31,13 @@ Font::~Font() {
 
 bool Font::Load(FT_Library library, const std::string& fontPath, unsigned int size) {
     if (FT_New_Face(library, fontPath.c_str(), 0, &m_face)) {
-        std::cerr << "FreeType: Failed to load font: " << fontPath << std::endl;
+        Logger::Error(DebugType::Font) << "FreeType: Failed to load font: " << fontPath << std::endl;
         return false;
     }
 
     // Set font size
     if (FT_Set_Pixel_Sizes(m_face, 0, size)) {
-        std::cerr << "FreeType: Failed to set font size." << std::endl;
+        Logger::Error(DebugType::Font) << "FreeType: Failed to set font size." << std::endl;
         m_face = nullptr;
         return false;
     }
