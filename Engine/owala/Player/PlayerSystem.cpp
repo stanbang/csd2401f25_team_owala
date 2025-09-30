@@ -1,10 +1,17 @@
 /*****************************************************************//**
  * \file   PlayerSystem.cpp
- * \brief  
- * 
- * 
- * \author Ng Jing Wen
- * \date   10 September 2025
+ *
+ * \primary_author
+ *      Ng Jing Wen (50%)
+ * \secondary_author
+ *		Lur Pei Hao Stanley (50%)
+ *
+ * \brief	Contains Implementations of a Player System that
+ *			updates the player entity's components.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "EntityStorage.h"
 #include "PlayerSystem.h"
@@ -35,7 +42,7 @@ namespace Framework {
 
 			
 
-                          // We need a RigidBody, Velocity, and PlayerState to control the player
+            // We need a RigidBody, Velocity, and PlayerState to control the player
             if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType) && entityMgr.HasComponent(entity, AnimationComponentType)) {
                 Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);

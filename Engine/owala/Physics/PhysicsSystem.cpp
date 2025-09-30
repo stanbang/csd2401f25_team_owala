@@ -44,7 +44,7 @@ namespace Framework {
 
 		EntityManager entityMgr(*ecs_);
 
-        // 1. Reset player state (assume not grounded until a collision proves otherwise).
+        // Reset player state (assume not grounded until a collision)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
             // Check if Player is active in the scene. Updates state if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
@@ -53,7 +53,7 @@ namespace Framework {
             state.isGrounded = false;
         }
 
-        // 2. Apply forces (only gravity for now).
+        // Apply forces (only gravity for now)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
@@ -65,22 +65,23 @@ namespace Framework {
             }
         }
 
-        // 3. Update position and velocity based on forces.
+        //  Update position and velocity based on forces
         Integrate(dt);
 
+        // Ensure Player is not able to move out of viewport bounds
         EnforceViewportBounds();
 
-        // 4. Detect and resolve collisions.
+        // Detect and resolve collisions
         ResolveCollisions(dt);
 
-        // 5. Clear all forces for the next frame.
+        // Clear all forces for the next frame
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
             body.Force = Vector2D::Zero();
         }
     }
 
-    // Updates position and velocity using Semi-Implicit Euler integration.
+    // Updates position and velocity using Semi-Implicit Euler integration
     void PhysicsSystem::Integrate(float dt) {
 		EntityManager entityMgr(*ecs_);
 
@@ -101,13 +102,13 @@ namespace Framework {
 
     // Implementation of the function to keep the player on-screen.
     void PhysicsSystem::EnforceViewportBounds() {
-        // The viewport uses Normalized Device Coordinates (NDC), from -1.0 to 1.0.
+        // The viewport uses  (NDC), from -1.0 to 1.0
         const float minX = -1.0f;
         const float maxX = 1.0f;
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        // Iterate through all entities with a player tag.
+        // Iterate through all entities with a player tag
 		EntityManager entityMgr(*ecs_);
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
             if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, AABBColliderType)) {

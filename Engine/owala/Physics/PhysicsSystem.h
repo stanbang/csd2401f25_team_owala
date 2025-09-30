@@ -71,6 +71,11 @@ namespace Framework {
          */
         void ResolveCollisions(float dt);
 
+
+        /**
+         * @brief Detects and resolves all collisions between Player Entity and Viewport Bounds.
+         * 
+         */
         void EnforceViewportBounds();
 
         // --- Member Variables ---

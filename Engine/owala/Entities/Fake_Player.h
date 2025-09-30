@@ -41,7 +41,8 @@ namespace Framework {
 
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
-
+		(void)rcm; // suppress warning level
+		(void)halfSize; // suppress warning level
 		//Create a new entity with a unique ID
 		Entity player = entityMgr.CreateEntity();
 		/*Assign components to the player entity, and

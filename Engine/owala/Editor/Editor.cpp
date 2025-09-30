@@ -305,9 +305,9 @@ namespace Editor {
 
 		if (found) {
 			selectedEntityIndex  = bestCandidate;
-			//selectedEntityIndex -= 1;
+			selectedEntity_ = bestCandidate;
 			isEntitySelected_ = true;
-			//selectedEntityIndex = 0; // Reset dropdown selection
+			
 		}
 		else {
 			isEntitySelected_ = false;
@@ -332,7 +332,7 @@ namespace Editor {
 
 	void Editor::ShowPerformanceProfile() {
 		
-		ImGui::Begin("Game Information / Debugger");
+		ImGui::Begin("Performance Profiler");
 		{
 			// Add a slider to control how often the profiler updates.
 			static float updateInterval = 1.0f; // Default to updating once per second
@@ -365,7 +365,7 @@ namespace Editor {
 
 	void Editor::ShowLevelEditor() {
 		using namespace Framework;
-		// 3. --- BUILD IMGUI INTERFACE ---
+		// --- BUILD IMGUI INTERFACE ---
 		// Example of a dockable "Level Editor" window.
 		// Create the main dockspace that will fill the entire game window.
 		//const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -509,7 +509,6 @@ namespace Editor {
 			if (ecs) {
 				//  Loop 2500 times, creating 2500 player sprites for testing
 				for (int i = 0; i < 2500; ++i) {
-
 
 					Entity fake_player = createFakePlayer(*ecs, *rcm, { 0.01f, 0.01f }, "playerSprite_Idle");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);

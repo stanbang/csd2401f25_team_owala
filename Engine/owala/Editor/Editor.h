@@ -1,3 +1,17 @@
+/*****************************************************************//**
+* \file   SceneComponents.h
+*
+* \primary_author
+*      Jason Lou
+* \secondary_author
+*
+*
+* \brief	A subset of Components that are specific to scene management.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "ISystem.h"
 #include <vector>
@@ -57,7 +71,7 @@ namespace Editor {
 		std::string selectedPrefabName_;
 
 		// --- Entity Selection & Deletion ---
-		//Entity selectedEntity_ = 0; // Store entity ID
+		Entity selectedEntity_ = 0; // Store entity ID
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
 
 		// --- Private Helper Functions ---
