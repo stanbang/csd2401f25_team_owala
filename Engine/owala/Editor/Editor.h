@@ -32,6 +32,7 @@ namespace Editor {
 		Framework::CoreEngine* engine_ = nullptr; // Enforce that the Editor must be instantiated after engine
 		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after engine
 
+
 		// --- Internal State ---
 		bool initialized = false;
 		//  Members for the system profiler display
@@ -51,15 +52,12 @@ namespace Editor {
 		int selectedTagIndex = 0;
 
 		// Entity factory System members
-		/*std::unordered_map<std::string, Framework::PlatformPrefab> platformPrefabs_;
-		std::unordered_map<std::string, Framework::TrapPlatformPrefab> trapPlatformPrefabs_;
-		std::unordered_map<std::string, Framework::ScalingPlatformPrefab> scalingPlatformPrefabs_;*/
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
 		PrefabType selectedPrefabType_ = PrefabType::None;
 		std::string selectedPrefabName_;
 
 		// --- Entity Selection & Deletion ---
-		Entity selectedEntity_ = 0; // Store entity ID
+		//Entity selectedEntity_ = 0; // Store entity ID
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
 
 		// --- Private Helper Functions ---
@@ -77,6 +75,10 @@ namespace Editor {
 		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
 		 */
 		void HandleSpawning();
+
+		/**
+		 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
+		 */
 		void HandleSelection();
 		void HandleDeletion();
 

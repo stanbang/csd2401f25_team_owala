@@ -38,10 +38,14 @@ namespace Framework {
             if (entityMgr.HasComponent(e, AABBColliderType)) {
                 halfSize = entityMgr.GetComponent<AABBCollider>(e).HalfSize;  // use physics size if available
             }
-            else {
+            else if (entityMgr.HasComponent(e, BackgroundTagType)){
                 // Fallback size for non-physics sprites (backgrounds/UI/etc.)
                 // Adjust these values to your world scale
-                halfSize = { 1.0f, 1.0f };
+                halfSize = { 1.f, 1.0f };
+            }
+            else {
+                // FOR TESTING THE DAMN 2500 SPRITES FAKE PLAYER 
+                halfSize = { 0.05f, 0.05f };
             }
 
             // Optional rotation (degrees -> radians)

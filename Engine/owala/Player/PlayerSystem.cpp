@@ -33,17 +33,6 @@ namespace Framework {
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-			// Check if player entity has position and velocity components
-			//if (entityStorage_->position.find(entity) != entityStorage_->position.end() &&
-			//	entityStorage_->velocity.find(entity) != entityStorage_->velocity.end()) {
-
-				// Update the player's position based on its velocity and delta time
-				/*entityStorage_->position[entity].Pos.x += entityStorage_->velocity[entity].Vel.x * dt;
-				entityStorage_->position[entity].Pos.y += entityStorage_->velocity[entity].Vel.y * dt;*/
-				
-				// Print player position for debugging
-				/*std::cout << "Player Position - X: " << entityStorage_->position[entity].x
-						  << ", Y: " << entityStorage_->position[entity].y << std::endl;*/
 			
 
                           // We need a RigidBody, Velocity, and PlayerState to control the player

@@ -23,10 +23,10 @@ namespace Framework {
 				AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 				TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    textureComponent.textureKey = "playerSprite_Idle"; std::cout << "Player State : IDLE\n"; break; //When idle, use idle animation
-				case AnimationState::RUNNING: textureComponent.textureKey = "playerSprite_Run"; std::cout << "Player State : RUN\n"; break; //When running, use running animation
-				case AnimationState::JUMPING: textureComponent.textureKey = "playerSprite_Jump"; std::cout << "Player State : JUMP\n"; break; //When jumping, use jumping animation
-				case AnimationState::FALLING: textureComponent.textureKey = "playerSprite_Jump"; std::cout << "Player State : FALL\n"; break; //When falling, use jumping animation
+				case AnimationState::IDLE:    textureComponent.textureKey = "playerSprite_Idle"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
+				case AnimationState::RUNNING: textureComponent.textureKey = "playerSprite_Run"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
+				case AnimationState::JUMPING: textureComponent.textureKey = "playerSprite_Jump"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
+				case AnimationState::FALLING: textureComponent.textureKey = "playerSprite_Jump"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
 				}
 
 				AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(textureComponent.textureKey); // Retrieve the respective AnimationInfo

@@ -15,6 +15,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <random> // for random generation
+
+#include "Fake_Player.h"
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -259,9 +263,7 @@ namespace Editor {
 		}
 	}
 
-	/**
-	 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
-	 */
+	
 	void Editor::HandleSelection() {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 
@@ -279,11 +281,11 @@ namespace Editor {
 		Entity bestCandidate = 0;
 		bool found = false;
 
-		// CORRECTED: Get the list of entities from the active scene using the correct function.
+		// Get the list of entities from the active scene using the correct function
 		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
 
 		// Iterate in reverse to select the top-most entity if they overlap
-		for (auto it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
+		for (std::vector<Entity>::const_reverse_iterator it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
 			const Entity& entity = *it;
 			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
 				entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType))
@@ -302,9 +304,10 @@ namespace Editor {
 		}
 
 		if (found) {
-			selectedEntity_ = bestCandidate;
+			selectedEntityIndex  = bestCandidate;
+			//selectedEntityIndex -= 1;
 			isEntitySelected_ = true;
-			selectedEntityIndex = 0; // Reset dropdown selection
+			//selectedEntityIndex = 0; // Reset dropdown selection
 		}
 		else {
 			isEntitySelected_ = false;
@@ -317,11 +320,11 @@ namespace Editor {
 	 */
 	void Editor::HandleDeletion() {
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Backspace)) {
-			Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntity_);
+			Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex);
 
-			selectedEntity_ = 0;
-			isEntitySelected_ = false;
 			selectedEntityIndex = 0;
+			isEntitySelected_ = false;
+		
 		}
 	}
 
@@ -466,7 +469,6 @@ namespace Editor {
 		}
 
 
-
 		// --- Global Controls ---
 		if (ImGui::CollapsingHeader("Global Controls")) {
 			static float masterVolume = 0.35f;
@@ -475,15 +477,13 @@ namespace Editor {
 			}
 		}
 
-		
-
 		// --- section to show the clicked-on entity ---
 		ImGui::SeparatorText("World Selection");
 		if (isEntitySelected_) {
-			ImGui::Text("Selected Entity: [%u]", selectedEntity_);
+			ImGui::Text("Selected Entity: [%u]", selectedEntityIndex);
 			if (ImGui::Button("Deselect")) {
 				isEntitySelected_ = false;
-				selectedEntity_ = 0;
+				selectedEntityIndex = 0;
 			}
 		}
 		else {
@@ -491,6 +491,26 @@ namespace Editor {
 			ImGui::TextDisabled("(Click on an object in the game view)");
 		}
 
+
+		// --- Section for Spawning 2500 objects -----//
+		ImGui::SeparatorText("Spawn 2500 Objects");
+		if (ImGui::Button("Create 2500 Objects")) {
+
+			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
+			
+			if (ecs) {
+				//  Loop 2500 times, creating 2500 player sprites for testing
+				for (int i = 0; i < 2500; ++i) {
+
+
+					Entity fake_player = createFakePlayer(*ecs, *rcm, { 0.01f, 0.01f }, "playerSprite_Idle");
+					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
+				}
+				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 2500 objects" << std::endl;
+			}
+		}
+		
 		ImGui::End(); // End "Level Editor" window
 			
 	}
@@ -501,10 +521,8 @@ namespace Editor {
 	void Editor::ShowPlayerInspector() {
 		using namespace Framework;
 
-		if (!isEntitySelected_) return;
-
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Entity selectedEntity = static_cast<Entity>(selectedEntity_ - 1);
+		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex);
 
 		static std::string entityName; // keep the string alive across frames
 		entityName = "Entity [" + std::to_string(selectedEntity) + "]";
@@ -536,7 +554,7 @@ namespace Editor {
 				ImGui::Combo("Component", &selectedComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
 
 				if (selectedComponentIndex > 0) {
-					size_t compIndex = static_cast<size_t>(selectedComponentIndex - 1); // Offset for "None"
+					size_t compIndex = static_cast<size_t>(selectedComponentIndex-1); // Offset for "None"
 
 					if (compIndex < componentTypes.size()) {
 						ComponentType selectedComponent = componentTypes[compIndex];
@@ -562,8 +580,6 @@ namespace Editor {
 					}
 				}
 			} // End Components Section
-
-
 
 			// --- Tags Section ---
 			if (ImGui::CollapsingHeader("Tags"))
