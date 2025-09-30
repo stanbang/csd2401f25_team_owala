@@ -170,7 +170,7 @@ namespace Framework {
 
     // Detects and resolves collisions using direct positional correction.
     void PhysicsSystem::ResolveCollisions(float dt) {
-        EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(*ecs_);
         std::vector<Entity> colliders = entityMgr.GetAllEntitiesWithComponent(AABBColliderType);
 
         for (auto it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
@@ -178,11 +178,7 @@ namespace Framework {
                 Entity e1 = *it_a;
                 Entity e2 = *it_b;
 
-                float invMass1 = entityMgr.GetComponent<RigidBody>(e1).InverseMass;
-                float invMass2 = entityMgr.GetComponent<RigidBody>(e2).InverseMass;
-
-                // Skip if both are static
-                if (invMass1 == 0.0f && invMass2 == 0.0f)
+                if (entityMgr.GetComponent<RigidBody>(e1).InverseMass == 0.0f && entityMgr.GetComponent<RigidBody>(e2).InverseMass == 0.0f)
                     continue;
 
                 // --- Get rotation for each entity ---
@@ -199,10 +195,13 @@ namespace Framework {
                 // --- Convert to min/max format for the collision functions ---
                 const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
                 const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
+                //AABB_Bounds bounds1 = { {pos1.x - halfSize1.x, pos1.y - halfSize1.y}, {pos1.x + halfSize1.x, pos1.y + halfSize1.y} };
                 AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+
 
                 const Vector2D& pos2 = entityMgr.GetComponent<Position>(e2).Pos;
                 const Vector2D& halfSize2 = entityMgr.GetComponent<AABBCollider>(e2).HalfSize;
+                //AABB_Bounds bounds2 = { {pos2.x - halfSize2.x, pos2.y - halfSize2.y}, {pos2.x + halfSize2.x, pos2.y + halfSize2.y} };
                 AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
 
                 // --- Determine Collision State ---
@@ -219,94 +218,47 @@ namespace Framework {
 
                 // --- Perform Resolution only if overlapping ---
                 if (contact.State == CollisionState::Overlapping) {
+                    // Ensure e1 is always the dynamic object for consistent resolution
+                    Entity dynE = e1, staticE = e2;
+                    if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
+                        std::swap(dynE, staticE);
+                    }
+
+                    Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;
+                    const auto& dynBounds = (dynE == e1) ? bounds1 : bounds2;
+                    const auto& staticBounds = (dynE == e1) ? bounds2 : bounds1;
+
                     // Calculate overlaps on all four sides
-                    float overlapLeft = bounds1.max.x - bounds2.min.x;
-                    float overlapRight = bounds2.max.x - bounds1.min.x;
-                    float overlapTop = bounds1.max.y - bounds2.min.y;
-                    float overlapBottom = bounds2.max.y - bounds1.min.y;
+                    float overlapLeft = dynBounds.max.x - staticBounds.min.x;
+                    float overlapRight = staticBounds.max.x - dynBounds.min.x;
+                    float overlapTop = dynBounds.max.y - staticBounds.min.y;
+                    float overlapBottom = staticBounds.max.y - dynBounds.min.y;
 
                     // Find the minimum overlap
                     float minOverlapX = std::min(overlapLeft, overlapRight);
                     float minOverlapY = std::min(overlapTop, overlapBottom);
 
-                    Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
-                    Vector2D& pos2 = entityMgr.GetComponent<Position>(e2).Pos;
-                    Vector2D& vel1 = entityMgr.GetComponent<Velocity>(e1).Vel;
-                    Vector2D& vel2 = entityMgr.GetComponent<Velocity>(e2).Vel;
-
-                    // Determine if both are dynamic or one is static
-                    bool bothDynamic = (invMass1 > 0.0f && invMass2 > 0.0f);
+                    Vector2D& dynVel = entityMgr.GetComponent<Velocity>(dynE).Vel;
 
                     if (minOverlapY < minOverlapX) {
                         // Vertical collision has priority for platformers
                         if (overlapTop < overlapBottom) {
-                            // e1 hit its head on e2's bottom
-                            if (bothDynamic) {
-                                pos1.y -= overlapTop;
-                                pos2.y += overlapTop;
-                                if (vel1.y > 0) vel1.y = 0;
-                                if (vel2.y < 0) vel2.y = 0;
-                                if (entityMgr.HasComponent(e2, PlayerStateType)) entityMgr.GetComponent<PlayerState>(e2).isGrounded = true;
-                            }
-                            else if (invMass1 > 0.0f) {
-                                pos1.y -= overlapTop;
-                                if (vel1.y > 0) vel1.y = 0;
-                                if (entityMgr.HasComponent(e2, PlayerStateType)) entityMgr.GetComponent<PlayerState>(e2).isGrounded = true;
-                            }
-                            else {
-                                pos2.y += overlapTop;
-                                if (vel2.y < 0) vel2.y = 0;
-                                if (entityMgr.HasComponent(e2, PlayerStateType)) entityMgr.GetComponent<PlayerState>(e2).isGrounded = true;
-                            }
+                            dynPos.y -= overlapTop; // Push down (hit head)
+                            if (dynVel.y > 0) dynVel.y = 0;
                         }
                         else {
-                            // e1 landed on e2's top
-                            if (bothDynamic) {               
-                                pos1.y += overlapBottom;
-                                pos2.y -= overlapBottom;
-                                if (vel1.y < 0) vel1.y = 0;
-                                if (vel2.y > 0) vel2.y = 0;
-                                if (entityMgr.HasComponent(e1, PlayerStateType)) entityMgr.GetComponent<PlayerState>(e1).isGrounded = true;
-                            }
-                            else if (invMass1 > 0.0f) {
-                                pos1.y += overlapBottom;
-                                if (vel1.y < 0) vel1.y = 0;
-                                if (entityMgr.HasComponent(e1, PlayerStateType)) entityMgr.GetComponent<PlayerState>(e1).isGrounded = true;
-                            }
-                            else {
-                                pos2.y -= overlapBottom;
-                                if (vel2.y > 0) vel2.y = 0;
-                                if (entityMgr.HasComponent(e1, PlayerStateType)) entityMgr.GetComponent<PlayerState>(e1).isGrounded = true;
-                            }
+                            dynPos.y += overlapBottom; // Push up (landed)
+                            if (dynVel.y < 0) dynVel.y = 0;
+                            if (entityMgr.HasComponent(dynE, PlayerStateType)) entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
                         }
                     }
                     else {
                         // Horizontal collision
                         if (overlapLeft < overlapRight) {
-                            // e1 collided from the right side
-                            if (bothDynamic) {
-                                pos1.x -= overlapLeft ;
-                                pos2.x += overlapLeft;
-                            }
-                            else if (invMass1 > 0.0f) {
-                                pos1.x -= overlapLeft;
-                            }
-                            else {
-                                pos2.x += overlapLeft;
-                            }
+                            dynPos.x -= overlapLeft; // Push left
                         }
                         else {
-                            // e1 collided from the left side
-                            if (bothDynamic) {                              
-                                pos1.x += overlapRight;
-                                pos2.x -= overlapRight;
-                            }
-                            else if (invMass1 > 0.0f) {
-                                pos1.x += overlapRight;
-                            }
-                            else {
-                                pos2.x -= overlapRight;
-                            }
+                            dynPos.x += overlapRight; // Push right
                         }
                     }
                 }
