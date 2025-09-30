@@ -466,6 +466,8 @@ namespace Editor {
 			ImGui::Text("Click in the game view to place. Right-click to cancel.");
 		}
 
+
+
 		// --- Global Controls ---
 		if (ImGui::CollapsingHeader("Global Controls")) {
 			static float masterVolume = 0.35f;
@@ -474,7 +476,7 @@ namespace Editor {
 			}
 		}
 
-		ImGui::End(); // End "Level Editor" window
+		
 
 		// --- section to show the clicked-on entity ---
 		ImGui::SeparatorText("World Selection");
@@ -490,7 +492,7 @@ namespace Editor {
 			ImGui::TextDisabled("(Click on an object in the game view)");
 		}
 
-	
+		ImGui::End(); // End "Level Editor" window
 			
 	}
 		
@@ -561,6 +563,8 @@ namespace Editor {
 					}
 				}
 			} // End Components Section
+
+
 
 			// --- Tags Section ---
 			if (ImGui::CollapsingHeader("Tags"))
