@@ -37,18 +37,35 @@ namespace Framework {
 
 		Entity newEntity = CreateEntity();
 		ComponentSignature otherSignature = ecs.entitySignatures[entity];
-		ecs.entitySignatures[newEntity] = otherSignature;
 
-		if (otherSignature[PositionType])     ecs.position[newEntity] = ecs.position[entity];
-		if (otherSignature[VelocityType])     ecs.velocity[newEntity] = ecs.velocity[entity];
-		if (otherSignature[AccelerationType]) ecs.acceleration[newEntity] = ecs.acceleration[entity];
-		if (otherSignature[RigidBodyType])    ecs.rigidBody[newEntity] = ecs.rigidBody[entity];
-		if (otherSignature[AABBColliderType]) ecs.colliders[newEntity] = ecs.colliders[entity];
-		if (otherSignature[TriangleType])     ecs.triangle[newEntity] = ecs.triangle[entity];
-		if (otherSignature[TextureComponentType]) ecs.tex[newEntity] = ecs.tex[entity];
-		if (otherSignature[PlayerStatsType])  ecs.playerStats[newEntity] = ecs.playerStats[entity];
-		if (otherSignature[PlayerStateType])  ecs.playerState[newEntity] = ecs.playerState[entity];
-		if (otherSignature[RotationFlagType]) ecs.rotationFlag[newEntity] = ecs.rotationFlag[entity];
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+
+			if (HasComponent(entity, componentType)) {
+				switch (componentType) {
+					case ComponentType::PlayerStatsType: AddComponent<PlayerStats>(newEntity, GetComponent<PlayerStats>(entity)); break;
+					case ComponentType::PositionType: AddComponent<Position>(newEntity, GetComponent<Position>(entity)); break;
+					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
+					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
+					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
+					case ComponentType::RigidBodyType: AddComponent<RigidBody>(newEntity, GetComponent<RigidBody>(entity)); break;
+					case ComponentType::AABBColliderType: AddComponent<AABBCollider>(newEntity, GetComponent<AABBCollider>(entity)); break;
+					case ComponentType::PlayerStateType: AddComponent<PlayerState>(newEntity, GetComponent<PlayerState>(entity)); break;
+					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
+					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
+					case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(newEntity, GetComponent<ScalingPlatformComponent>(entity)); break;
+					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
+					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
+					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
+					case ComponentType::TextComponentType: 	AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
+					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
+					default:
+						break;
+				}
+			}
+		}
+
+		ecs.entitySignatures[newEntity] = otherSignature;
 
 		return newEntity;
 	}
