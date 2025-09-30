@@ -171,6 +171,9 @@ namespace TestScene {
         if (input_->KeyPressed(InputSystem::Key::L)) {
             audio_->setMasterVolume(0.0f);
         }
+        if (input_->KeyPressed(InputSystem::Key::K)) {
+            audio_->setMasterVolume(0.35f);
+        }
 
         //press ESC to crash the game
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
