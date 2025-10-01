@@ -286,12 +286,11 @@ namespace TestScene {
 
 
         float dt = gm.GetDeltaTime();
-        // Update scaling platforms
-        ScalingPlatformSystem scaleTrapSystem(*ecs_);
-        scaleTrapSystem.Update(dt);
         // Update trap platforms
-        TrapPlatformSystem tempTrapSystem(*ecs_);
-        tempTrapSystem.Update(dt);
+        TrapPlatformSystem::Update(*ecs_, dt);
+
+        // Update scaling platforms
+        scaleTrapSystem.Update(dt);
         //   RenderColliders();
 	}
 
