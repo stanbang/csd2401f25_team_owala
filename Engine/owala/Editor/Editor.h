@@ -44,7 +44,7 @@ namespace Editor {
 	private:
 		// --- System Pointers ---
 		Framework::CoreEngine* engine_ = nullptr; // Enforce that the Editor must be instantiated after engine
-		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after engine
+		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after GameManager
 
 
 		// --- Internal State ---

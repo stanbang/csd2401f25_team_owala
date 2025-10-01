@@ -304,12 +304,13 @@ namespace Editor {
 		}
 
 		if (found) {
-			selectedEntityIndex  = bestCandidate;
-			selectedEntity_ = bestCandidate;
+			selectedEntityIndex = bestCandidate;
+			selectedEntityIndex += 1;
 			isEntitySelected_ = true;
 			
 		}
 		else {
+			selectedEntityIndex = 0;
 			isEntitySelected_ = false;
 		}
 	}
@@ -320,11 +321,13 @@ namespace Editor {
 	 */
 	void Editor::HandleDeletion() {
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Backspace)) {
-			Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex);
+			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
+				Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex - 1);
 
-			selectedEntityIndex = 0;
-			isEntitySelected_ = false;
-		
+				selectedEntityIndex = 0;
+				isEntitySelected_ = false;
+			}
 		}
 	}
 
@@ -429,6 +432,7 @@ namespace Editor {
 
 				if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(entitiesLoaded.size() + 1))) {
 					ImGui::Separator();
+					isEntitySelected_ = true;
 
 					ShowPlayerInspector();
 				}
@@ -528,7 +532,7 @@ namespace Editor {
 		using namespace Framework;
 
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex);
+		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
 		static std::string entityName; // keep the string alive across frames
 		entityName = "Entity [" + std::to_string(selectedEntity) + "]";
