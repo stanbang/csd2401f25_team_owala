@@ -143,7 +143,7 @@ namespace Framework {
                 if (!(iss >> prefab.mass)) {
                     prefab.mass = 0.0f;
                 }
-                std::cout << "[PARSING] Platform - Size: " << prefab.size.x << "," << prefab.size.y << "Mass" << prefab.mass << std::endl;
+                std::cout << "[PARSING] Platform - Size: (" << prefab.size.x << " , " << prefab.size.y << "), Mass: " << prefab.mass << std::endl;
                 RegisterPlatformPrefab(prefab);
                 std::cout << "Registered platform prefab: " << name << std::endl;
             }
@@ -153,7 +153,7 @@ namespace Framework {
                     std::cerr << "Invalid trap platform parameters: " << line << std::endl;
                     continue;
                 }
-                std::cout << "[PARSING] Trap Platform - Size: " << prefab.size.x <<","<< prefab.size.y << "Trigger Delay: " << prefab.triggerDelay << ", Fall Speed: " << prefab.fallSpeed << std::endl;
+                std::cout << "[PARSING] Trap Platform - Size: (" << prefab.size.x <<" , "<< prefab.size.y << "), Trigger Delay: " << prefab.triggerDelay << ", Fall Speed: " << prefab.fallSpeed << std::endl;
 
                 RegisterTrapPlatformPrefab(prefab);
                 std::cout << "Registered trap platform prefab: " << name << std::endl;
@@ -164,7 +164,7 @@ namespace Framework {
                     std::cerr << "Invalid scaling platform parameters: " << line << std::endl;
                     continue;
                 }
-                std::cout << "[PARSING] Scaling Platform - Size: " << prefab.size.x << "," << prefab.size.y << "Scale Speed" << prefab.scaleSpeed << ", Min: " << prefab.minScale << ", Max: " << prefab.maxScale << std::endl;
+                std::cout << "[PARSING] Scaling Platform - Size: (" << prefab.size.x << " , " << prefab.size.y << "), Scale Speed" << prefab.scaleSpeed << ", Min: " << prefab.minScale << ", Max: " << prefab.maxScale << std::endl;
 
                 RegisterScalingPlatformPrefab(prefab);
                 std::cout << "Registered scaling platform prefab: " << name << std::endl;
