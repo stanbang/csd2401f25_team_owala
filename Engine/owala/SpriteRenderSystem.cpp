@@ -42,7 +42,7 @@ namespace Framework {
             else if (entityMgr.HasComponent(e, BackgroundTagType)){
                 // Fallback size for non-physics sprites (backgrounds/UI/etc.)
                 // Adjust these values to your world scale
-                halfSize = { 1.f, 1.0f };
+                halfSize = sprite.HalfSize;
             }
             else {
                 // FOR TESTING THE DAMN 2500 SPRITES FAKE PLAYER 
@@ -53,7 +53,7 @@ namespace Framework {
                 //std::uniform_real_distribution<float> distribY(0.01f, 0.05f);
 
                 //Vector2D randomSize = { distribX(gen), distribY(gen) };
-                halfSize = { 0.01f, 0.01f };
+                halfSize = sprite.HalfSize;
             }
 
             // Optional rotation (degrees -> radians)
