@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "Matrix3x3.h"
 #include <cmath>
+#include <random>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -45,7 +46,14 @@ namespace Framework {
             }
             else {
                 // FOR TESTING THE DAMN 2500 SPRITES FAKE PLAYER 
-                halfSize = { 0.05f, 0.05f };
+                ////generate random seed for random size
+                //std::random_device rd;
+                //std::mt19937 gen(rd());
+                //std::uniform_real_distribution<float> distribX(0.01f, 0.05f);
+                //std::uniform_real_distribution<float> distribY(0.01f, 0.05f);
+
+                //Vector2D randomSize = { distribX(gen), distribY(gen) };
+                halfSize = { 0.01f, 0.01f };
             }
 
             // Optional rotation (degrees -> radians)

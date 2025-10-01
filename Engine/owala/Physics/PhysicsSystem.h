@@ -3,10 +3,10 @@
 *
 * \primary_author
 *      Lur Pei Hao Stanley
-* \secondary_author
 *
 *
 * \brief
+* Declares the physics system, which manages forces, movement, and collisions.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -29,10 +29,28 @@ namespace Framework {
      */
     class PhysicsSystem : public ISystem {
     public:
+        /**
+         * @brief Constructs the PhysicsSystem.
+         * @param storage A reference to the central EntityStorage.
+         */
         explicit PhysicsSystem(EntityStorage& storage);
 
+
+        /**
+         * @brief Initializes the physics system .
+         */
         void Initialize() override {}
+
+        /**
+         * @brief Runs the physics simulation for a given time delta.
+         * @details Uses a fixed timestep internally for stability.
+         * @param dt The time elapsed since the last frame.
+         */
         void Update(float dt) override;
+
+        /**
+         * @brief Shuts down the physics system (currently not in use).
+         */
         void Shutdown() override {}
 
         // --- Public Properties ---
@@ -40,12 +58,34 @@ namespace Framework {
         static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
 
         // --- Public Methods ---
+
+         /**
+         * @brief Pauses or unpauses the entire physics simulation.
+         * @param paused True to pause, false to resume.
+         */
         void SetPaused(bool paused) { isPaused_ = paused; }
 
         // Debugging controls
+         /**
+         * @brief Toggles the step-by-step debug mode.
+         */
         void ToggleStepMode() { stepModeActive_ = !stepModeActive_; isPaused_ = false; }
+
+        /**
+         * @brief If in step mode, executes a single frame of the physics simulation.
+         */
         void ExecuteNextStep() { if (stepModeActive_) { Step(1.0f / 60.0f); } }
+
+        /**
+         * @brief Checks if the simulation is currently paused.
+         * @return True if paused, false otherwise.
+         */
         bool IsPaused() const { return isPaused_; }
+
+        /**
+         * @brief Checks if the simulation is in step-by-step debug mode.
+         * @return True if in step mode, false otherwise.
+         */
         bool IsInStepMode() const { return stepModeActive_; }
 
     private:

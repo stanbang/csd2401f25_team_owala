@@ -1,3 +1,21 @@
+/*****************************************************************//**
+ * \file   Core.cpp
+ *
+ * \primary_author
+ *      Ng Jordain Ying Zhe (80%)
+ * \secondary_author
+ *     Lur Pei Hao Stanley (20%)
+ *
+ * \brief
+ *   Core engine loop and system manager. Handles initialization,
+ *   per-frame updates, shutdown, and performance timing of subsystems
+ *   derived from ISystem.
+ *
+ * \copyright
+ *   Copyright (C) 2025 DigiPen Institute of Technology.
+ *   Reproduction or disclosure of this file or its contents without the prior
+ *   written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "Core.h"
 #include <algorithm>
 #include <chrono>

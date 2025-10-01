@@ -25,7 +25,10 @@ namespace Framework {
 
     PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
 
-    // The main update loop, which uses a fixed timestep for physics stability.
+    // ----------------------------------------------------------------------------
+    // The main update loop, which uses a fixed timestep for stability.
+    // This accumulates delta time and runs the simulation
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::Update(float dt) {
         if (isPaused_ || stepModeActive_) {
             return; // If paused or in step mode, do not automatically advance time.
@@ -38,7 +41,10 @@ namespace Framework {
         }
     }
 
-    // A single step of the physics simulation pipeline.
+    // ----------------------------------------------------------------------------
+    // A single step of the physics simulation pipeline. This is the main
+    // sequence of physics operations for one fixed timestep.
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::Step(float dt) {
         contacts_.clear();
 
@@ -81,7 +87,9 @@ namespace Framework {
         }
     }
 
-    // Updates position and velocity using Semi-Implicit Euler integration
+    // ----------------------------------------------------------------------------
+    // Updates position and velocity using Semi-Implicit Euler integration.
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::Integrate(float dt) {
 		EntityManager entityMgr(*ecs_);
 
@@ -100,7 +108,10 @@ namespace Framework {
         }
     }
 
-    // Implementation of the function to keep the player on-screen.
+    // ----------------------------------------------------------------------------
+   // Implementation of the function to keep the player on-screen.
+   // It clamps the player's position to the viewport boundaries (-1.0 to 1.0).
+   // ----------------------------------------------------------------------------
     void PhysicsSystem::EnforceViewportBounds() {
         // The viewport uses  (NDC), from -1.0 to 1.0
         const float minX = -1.0f;
@@ -182,13 +193,15 @@ namespace Framework {
         return { {minX, minY}, {maxX, maxY} };
     }
 
+    // ----------------------------------------------------------------------------
     // Detects and resolves collisions using direct positional correction.
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
 		EntityManager entityMgr(*ecs_);
         std::vector<Entity> colliders = entityMgr.GetAllEntitiesWithComponent(AABBColliderType);
 
-        for (auto it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
-            for (auto it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {
+        for (std::vector<Entity>::iterator it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
+            for (std::vector<Entity>::iterator it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {
                 Entity e1 = *it_a;
                 Entity e2 = *it_b;
 
@@ -230,12 +243,12 @@ namespace Framework {
                     }
                 }
 
-                // --- Perform Resolution only if overlapping ---
+                // --- Perform Resolution if overlapping ---
                 if (contact.State == CollisionState::Overlapping) {
                     // Ensure e1 is always the dynamic object for consistent resolution
                     Entity dynE = e1, staticE = e2;
                     if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
-                        std::swap(dynE, staticE);
+                        std::swap(dynE, staticE); // swaps if E1 is the static object IE. Mass = 0
                     }
 
                     Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;

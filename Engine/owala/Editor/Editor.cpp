@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   Editor.cpp
+*
+* \primary_author
+*      Jason Lou (50%)
+* \secondary_author
+*	   Lur Pei Hao Stanley (50%)
+*
+*
+* \brief	Implementation of the Editor system for in-game level editing and
+			debugging using ImGUI.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+
 #include "Editor.h"
 #include "Core.h"
 #include "GameManager.h"
@@ -54,6 +71,7 @@ namespace {
 }
 
 namespace Editor {
+	// --- Constructor ---
 	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager) : engine_(&engine), gameManager_(&gameManager) {};
 
 	void Editor::SanityCheck() {
@@ -76,6 +94,11 @@ namespace Editor {
 		}
 	}
 
+	
+	// ----------------------------------------------------------------------------
+	// Initializes the Editor system
+	// Loads prefabs from file and sets up the ImGui context and backends.
+	// ----------------------------------------------------------------------------
 	void Editor::Initialize() {
 		if (initialized || !isEnabled) return; // Skip initialization if Editor is not enabled or has already initialized
 
@@ -90,7 +113,7 @@ namespace Editor {
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
-		// When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+		// When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
@@ -184,12 +207,14 @@ namespace Editor {
 		}
 
 		
-
 		if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
 
 
-
 		// --- END IMGUI FRAME ---
+
+		// ----------------------------------------------------------------------------
+		// Finalize the ImGui frame and render all its draw data.
+		// ----------------------------------------------------------------------------
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -201,6 +226,9 @@ namespace Editor {
 		}
 	}
 
+	// ----------------------------------------------------------------------------
+	// Clean up ImGui resources when the application closes.
+	// ----------------------------------------------------------------------------
 	void Editor::Shutdown() {
 		std::cout << "Freeing IMGUI" << std::endl;
 		ImGui_ImplOpenGL3_Shutdown();
@@ -208,6 +236,8 @@ namespace Editor {
 		ImGui::DestroyContext();
 	}
 
+
+	// --- Private Helper Functions ---
 
 	Vector2D Editor::GetMouseWorldPosition() {
 		auto* input = gameManager_->GetSystems().input_;
@@ -270,6 +300,8 @@ namespace Editor {
 		// Only check for selection if a prefab is NOT being spawned
 		if (selectedPrefabType_ != PrefabType::None) return;
 
+		// We only check for selection on a new mouse click.
+		// We also check 'WantCaptureMouse' to ensure the click wasn't on an ImGui window.
 		if (!input->MousePressed(Framework::InputSystem::MouseButton::Left) || ImGui::GetIO().WantCaptureMouse) {
 			return;
 		}
@@ -281,10 +313,11 @@ namespace Editor {
 		Entity bestCandidate = 0;
 		bool found = false;
 
-		// Get the list of entities from the active scene using the correct function
+		// Get the list of entities from the active scene 
 		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
 
-		// Iterate in reverse to select the top-most entity if they overlap
+		// Iterate through entities to find which one was clicked.
+		// iterate in reverse to correctly select the entity that is rendered on top.
 		for (std::vector<Entity>::const_reverse_iterator it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
 			const Entity& entity = *it;
 			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
@@ -293,6 +326,7 @@ namespace Editor {
 				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
 				Vector2D& halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
 
+				// check using AABB.
 				if (mouseWorldPos.x >= pos.x - halfSize.x && mouseWorldPos.x <= pos.x + halfSize.x &&
 					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
 				{
@@ -302,7 +336,7 @@ namespace Editor {
 				}
 			}
 		}
-
+		// Update the editor's selection state
 		if (found) {
 			selectedEntityIndex = bestCandidate;
 			selectedEntityIndex += 1;
@@ -316,12 +350,13 @@ namespace Editor {
 	}
 
 
-	/**
-	 * @brief Handles the logic for deleting the currently selected entity.
-	 */
+	
 	void Editor::HandleDeletion() {
+		// Check if an entity is selected and if the Backspace key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Backspace)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+
+			// Tell the SceneManager to remove the entity
 			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
 				Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex - 1);
 
@@ -337,23 +372,23 @@ namespace Editor {
 		
 		ImGui::Begin("Performance Profiler");
 		{
-			// Add a slider to control how often the profiler updates.
+			// Add a slider to control how often the profiler updates
 			static float updateInterval = 1.0f; // Default to updating once per second
 			ImGui::SliderFloat("Update Interval (s)", &updateInterval, 0.1f, 5.0f);
 			ImGui::Separator();
 
-			// Update the profiler data only when the timer expires.
+			// Update the profiler data only when the timer ends
 			profilerUpdateTimer_ += deltatime;
 			if (profilerUpdateTimer_ >= updateInterval) {
 				profilerUpdateTimer_ = 0.0f;
-				profilerDisplayData_ = engine_->GetSystemTimes(); // Take a snapshot
+				profilerDisplayData_ = engine_->GetSystemTimes(); // Get system time
 			}
 
 			const double totalFrameTime = engine_->GetTotalFrameTime();
 			ImGui::Text("Total Frame Time: %.2f ms (%.1f FPS)", totalFrameTime, ImGui::GetIO().Framerate);
 			ImGui::Separator();
 
-			// Display the (now stable) data from our snapshot.
+			// Display data from all systems using progress bar (can be changed to graph)
 			for (const SystemTime& timing : profilerDisplayData_) {
 				char label[128];
 				sprintf(label, "%.1f%%", timing.percentage);
@@ -371,7 +406,6 @@ namespace Editor {
 		// --- BUILD IMGUI INTERFACE ---
 		// Example of a dockable "Level Editor" window.
 		// Create the main dockspace that will fill the entire game window.
-		//const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
 
@@ -439,12 +473,13 @@ namespace Editor {
 			}
 		}
 
-		// --- NEW: ENTITY FACTORY / PREFAB SPAWNER ---
+		// ---  ENTITY FACTORY / PREFAB SPAWNER ---
 		ImGui::SeparatorText("Entity Factory");
 
-		// Display a dropdown for each type of prefab we can spawn.
+		// Display a dropdown for each type of prefab we can spawn
+		// uses prefabsystem to collate data of the prefabs
 		if (ImGui::BeginCombo("Platforms", selectedPrefabType_ == PrefabType::Platform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) { // We'll need to add this getter
+			for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) { 
 				if (ImGui::Selectable(pair.first.c_str())) {
 					selectedPrefabType_ = PrefabType::Platform;
 					selectedPrefabName_ = pair.first;
@@ -454,7 +489,7 @@ namespace Editor {
 		}
 
 		if (ImGui::BeginCombo("Trap Platforms", selectedPrefabType_ == PrefabType::TrapPlatform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) { // We'll need to add this getter
+			for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) { 
 				if (ImGui::Selectable(pair.first.c_str())) {
 					selectedPrefabType_ = PrefabType::TrapPlatform;
 					selectedPrefabName_ = pair.first;
@@ -464,7 +499,7 @@ namespace Editor {
 		}
 
 		if (ImGui::BeginCombo("Scaling Platforms", selectedPrefabType_ == PrefabType::ScalingPlatform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) { // We'll need to add this getter
+			for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) { 
 				if (ImGui::Selectable(pair.first.c_str())) {
 					selectedPrefabType_ = PrefabType::ScalingPlatform;
 					selectedPrefabName_ = pair.first;
@@ -491,7 +526,7 @@ namespace Editor {
 		// --- section to show the clicked-on entity ---
 		ImGui::SeparatorText("World Selection");
 		if (isEntitySelected_) {
-			ImGui::Text("Selected Entity: [%u]", selectedEntityIndex);
+			ImGui::Text("Selected Entity: [%u]", selectedEntityIndex-1);
 			if (ImGui::Button("Deselect")) {
 				isEntitySelected_ = false;
 				selectedEntityIndex = 0;

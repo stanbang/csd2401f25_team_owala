@@ -2,12 +2,12 @@
 * \file   Fake_Player.h
 *
 * \primary_author
-*      Ng Jing Wen
+*      Ng Jing Wen (50%)
 * \secondary_author
-* Stanley
+*	   Stanley Lur (50%)
 *
 *
-* \brief	Contains declaration and definitions to create a player entity.
+* \brief	Contains declaration and definitions to create a Fake player entity.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -32,31 +32,36 @@ namespace Framework {
 		Vector2D halfSize,
 		std::string textureKey) {
 
+		//generate random seed for random pos
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> distribX(-1.0f, 1.0f);
-		std::uniform_real_distribution<float> distribY(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> PosX_Distrib(-0.9f, 0.9f);
+		std::uniform_real_distribution<float> PosY_Distrib(-0.9f, 0.9f);
+		std::uniform_real_distribution<float> VelX_Distrib(-0.1f, 0.1f);
+		std::uniform_real_distribution<float> VelY_Distrib(-0.1f, 0.1f);
 
-		Vector2D randomPos = { distribX(gen), distribY(gen) };
+		Vector2D randomPos = { PosY_Distrib(gen), PosX_Distrib(gen) };
+		Vector2D randomVel = { VelX_Distrib(gen), VelY_Distrib(gen) };
 
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
 		(void)rcm; // suppress warning level
 		(void)halfSize; // suppress warning level
 		//Create a new entity with a unique ID
-		Entity player = entityMgr.CreateEntity();
-		/*Assign components to the player entity, and
-		set initial values in the unordered maps.*/
-		//entityStorage.triangle[player] = triangle;
-		entityMgr.AddComponent(player, PlayerTag{});
+		Entity fake_player = entityMgr.CreateEntity();
 		
-		entityMgr.AddComponent(player, Position{randomPos}); //Start at 0,0 coordinates
+		entityMgr.AddComponent(fake_player, PlayerTag{});
+		
+		entityMgr.AddComponent(fake_player, Position{ randomPos });  // Start with rand Pos
+		entityMgr.AddComponent(fake_player, Velocity{ randomVel });  // Start with rand velocity
+
+		entityMgr.AddComponent(fake_player, RigidBody{});
 		
 
-		entityMgr.AddComponent(player, TextureComponent{ textureKey });
+		entityMgr.AddComponent(fake_player, TextureComponent{ textureKey });
 		
-		//Return the entity ID of the player
-		return player;
+		//Return the entity ID of the fake player
+		return fake_player;
 	}
 
 }

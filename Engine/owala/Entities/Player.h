@@ -56,7 +56,7 @@ namespace Framework {
 			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
-			entityMgr.AddComponent(player, PlayerState{}); // NEW: Add the player state component
+			entityMgr.AddComponent(player, PlayerState{}); //  Add the player state component
 			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
 
 			//Return the entity ID of the player

@@ -1,17 +1,20 @@
-/*****************************************************************//**
-* \file   SceneComponents.h
+/*********************************************************************//**
+* \file   Editor.h
 *
 * \primary_author
-*      Jason Lou
+*      Jason Lou (50%)
 * \secondary_author
+*	   Lur Pei Hao Stanley (50%)
 *
 *
-* \brief	A subset of Components that are specific to scene management.
+* \brief	Declares the Editor system for in-game level editing and 
+			debugging using ImGUI.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+
 #pragma once
 #include "ISystem.h"
 #include <vector>
@@ -96,7 +99,7 @@ namespace Editor {
 		void HandleSelection();
 		void HandleDeletion();
 
-		// Internal Panels
+		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
 		void ShowPlayerInspector();

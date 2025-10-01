@@ -1,30 +1,50 @@
-// AABB_Collision.cpp
+/*****************************************************************//**
+ * \file   AABB_Collision.cpp
+ *
+ * \primary_author
+ *      Lur Pei Hao Stanley
+ * \secondary_author
+ *
+ *
+ * \brief Implementation of static and dynamic collision functions
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "AABB_Collision.h"
 #include <algorithm> // For std::min/max
 
 namespace Framework {
 
-    // Implementation of the static AABB overlap test.
+    // ----------------------------------------------------------------------------
+    // Performs a simple overlap test on two AABBs.
+    // It checks for overlap on both the X and Y axes independently.
+    // A collision occurs only if there is an overlap on both axes.
+    // ----------------------------------------------------------------------------
     bool CollisionIntersection_RectRect_Static(const AABB_Bounds& aabb1, const AABB_Bounds& aabb2) {
         bool xOverlap = (aabb1.max.x >= aabb2.min.x) && (aabb1.min.x <= aabb2.max.x);
         bool yOverlap = (aabb1.max.y >= aabb2.min.y) && (aabb1.min.y <= aabb2.max.y);
         return xOverlap && yOverlap;
     }
 
-    // Implementation of the dynamic (swept) AABB test.
+    // ----------------------------------------------------------------------------
+   // Implementation of the dynamic AABB test.
+   // This  projects the bounding boxes along their relative velocity
+   // to find the precise time of first and last contact.
+   // ----------------------------------------------------------------------------
     bool CollisionIntersection_RectRect_Dynamic(
         const AABB_Bounds& aabb1, const Vector2D& vel1,
         const AABB_Bounds& aabb2, const Vector2D& vel2,
         float dt, float& firstTimeOfCollision)
     {
         // Calculate the relative velocity of object 2 with respect to object 1.
-        // This simplifies the problem to a moving box and a stationary box.
         Vector2D relativeVel = vel2 - vel1;
 
         float tFirst = 0.0f; // The time of the first potential contact
         float tLast = dt;    // The time of the last potential contact
 
-        // --- X-Axis Sweep ---
+        // --- X-Axis  ---
         if (relativeVel.x < 0.0f) {
             if (aabb1.max.x < aabb2.min.x) return false; // Separated and moving apart
             if (aabb2.max.x < aabb1.min.x) {
