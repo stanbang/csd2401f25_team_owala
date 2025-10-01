@@ -9,11 +9,9 @@ namespace Framework {
     @param      dt Delta time in seconds since last frame
     @return     void
 *//*______________________________________________________________*/
-    void TrapPlatformSystem::Update(float dt) {
-        EntityManager entityManager(*ecs_);
-        updateTrapPlatforms(*ecs_, dt);
-        for (const Entity& entity : entityManager.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
-            triggerTrapPlatform(*ecs_, entity);
-        }
+
+    void TrapPlatformSystem::Update(EntityStorage& ecs, float dt) {
+        EntityManager entityManager(ecs);
+        updateTrapPlatforms(ecs, dt);
     }
-}
+    }

@@ -14,19 +14,15 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #pragma once
-#include "ISystem.h"
 #include "EntityStorage.h"
 
 namespace Framework {
-    class TrapPlatformSystem : public ISystem {
+    class TrapPlatformSystem {
     private:
-        EntityStorage* ecs_;
+        EntityStorage& ecs_;
 
     public:
-        TrapPlatformSystem(EntityStorage& storage) : ecs_(&storage) {}
-
-        void Initialize() override {}
-        void Update(float dt) override;
-        void Shutdown() override {}
+        TrapPlatformSystem(EntityStorage& ecs) : ecs_(ecs) {}
+        static void Update(EntityStorage& ecs, float dt);
     };
 }
