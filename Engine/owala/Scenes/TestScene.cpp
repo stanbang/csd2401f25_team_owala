@@ -116,7 +116,7 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", downGround);
 
         // Scaling Platform
-        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { -0.5f, 0.0f });
+        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { -0.5f, 0.3f });
         sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
         // Trap Platforms
@@ -155,6 +155,8 @@ namespace TestScene {
         ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
 		AudioSystem* audio_ = gm.GetSystems().audio_;
 		EntityManager entityMgr(*ecs_);
+        ScalingPlatformSystem scaleTrapSystem(*ecs_);
+        TrapPlatformSystem tempTrapSystem(*ecs_);
 
         //  --- START THE IMGUI FRAME ---
         //press T to play scream, for not a entity yet, because we don't want to play it from the start
@@ -278,13 +280,13 @@ namespace TestScene {
             // You can also show the ImGui demo window to explore widgets.
            //  ImGui::ShowDemoWindow(); 
 
+
         float dt = gm.GetDeltaTime();
-        // Update scaling platforms
-        ScalingPlatformSystem scaleTrapSystem(*ecs_);
-        scaleTrapSystem.Update(dt);
         // Update trap platforms
-        TrapPlatformSystem tempTrapSystem(*ecs_);
-        tempTrapSystem.Update(dt);
+        TrapPlatformSystem::Update(*ecs_, dt);
+
+        // Update scaling platforms
+        scaleTrapSystem.Update(dt);
         //   RenderColliders();
 	}
 

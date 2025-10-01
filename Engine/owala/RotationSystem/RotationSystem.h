@@ -38,7 +38,8 @@ namespace Framework {
         InputSystem* input_;
         PhysicsSystem* physics_;
 
-     
+        float rotationCooldown;
+        float rotationCooldownDuration;
         float globalRotation;
         float targetGlobalRotation;
         bool isGlobalRotating;
