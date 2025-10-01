@@ -39,7 +39,7 @@ namespace Framework {
 
 			//Create an EntityManager to access entity creation APIs
 			EntityManager entityMgr(entityStorage);
-
+			(void) rcm; // suppress warning level
 			//Create a new entity with a unique ID
 			Entity player = entityMgr.CreateEntity();
 			/*Assign components to the player entity, and
@@ -56,12 +56,14 @@ namespace Framework {
 			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
-			entityMgr.AddComponent(player, PlayerState{}); // NEW: Add the player state component
+			entityMgr.AddComponent(player, PlayerState{}); //  Add the player state component
 			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
 
 			//Return the entity ID of the player
 			return player;
 	}
+
+	
 
 	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float scale) {
 		//Create an EntityManager to access entity creation APIs

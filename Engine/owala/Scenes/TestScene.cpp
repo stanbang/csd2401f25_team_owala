@@ -176,6 +176,10 @@ namespace TestScene {
         if (input_->KeyPressed(InputSystem::Key::K)) {
             audio_->setMasterVolume(0.35f);
         }
+        if (input_->KeyPressed(InputSystem::Key::J)) {
+            Entity newEntity = entityMgr.CloneEntity(playerEntity);
+            SceneManager::GetInstance().AddEntityToScene(SceneManager::GetInstance().GetActiveScene().name, newEntity);
+        }
 
         //press ESC to crash the game
         if (input_->KeyPressed(InputSystem::Key::Escape)) {

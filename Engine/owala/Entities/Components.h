@@ -65,9 +65,12 @@ namespace Framework{
 	/*	Acceleration component to store x and y 
 		acceleration of an entity.*/
 	struct Acceleration {
-		/*float xAccel;
-		float yAccel;*/
 		Vector2D Accel;
+	};
+
+	// A component to store player-specific states
+	struct PlayerState {
+		bool isGrounded = false; // Flag for checking if player is grounded on floor
 	};
 
 	struct Triangle { 
@@ -119,17 +122,15 @@ namespace Framework{
 	struct PlatformTag {};
 	struct BackgroundTag {};
 	struct EnemyTag {};
+
 	struct RotationFlag {
-		//bool shouldRotate = false;
+		
 		bool isRotating = false;
 		float currentRotation = 0.0f;
 		float targetRotation = 0.0f;
 	};
 
-	// A component to store player-specific states
-	struct PlayerState {
-		bool isGrounded = false;
-	};
+	
 
 
 	// Component to track trap platform state

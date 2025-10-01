@@ -1,4 +1,17 @@
-// PhysicsSystem.cpp
+/*****************************************************************//**
+* \file   PhysicsSystem.cpp
+*
+* \primary_author
+*      Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "PhysicsSystem.h"
 #include "EntityManager.h"
 #include "AABB_Collision.h"
@@ -12,7 +25,10 @@ namespace Framework {
 
     PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
 
-    // The main update loop, which uses a fixed timestep for physics stability.
+    // ----------------------------------------------------------------------------
+    // The main update loop, which uses a fixed timestep for stability.
+    // This accumulates delta time and runs the simulation
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::Update(float dt) {
         if (isPaused_ || stepModeActive_) {
             return; // If paused or in step mode, do not automatically advance time.
@@ -25,13 +41,16 @@ namespace Framework {
         }
     }
 
-    // A single step of the physics simulation pipeline.
+    // ----------------------------------------------------------------------------
+    // A single step of the physics simulation pipeline. This is the main
+    // sequence of physics operations for one fixed timestep.
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::Step(float dt) {
         contacts_.clear();
 
 		EntityManager entityMgr(*ecs_);
 
-        // 1. Reset player state (assume not grounded until a collision proves otherwise).
+        // Reset player state (assume not grounded until a collision)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
             // Check if Player is active in the scene. Updates state if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
@@ -40,7 +59,7 @@ namespace Framework {
             state.isGrounded = false;
         }
 
-        // 2. Apply forces (only gravity for now).
+        // Apply forces (only gravity for now)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
@@ -52,22 +71,25 @@ namespace Framework {
             }
         }
 
-        // 3. Update position and velocity based on forces.
+        //  Update position and velocity based on forces
         Integrate(dt);
 
+        // Ensure Player is not able to move out of viewport bounds
         EnforceViewportBounds();
 
-        // 4. Detect and resolve collisions.
+        // Detect and resolve collisions
         ResolveCollisions(dt);
 
-        // 5. Clear all forces for the next frame.
+        // Clear all forces for the next frame
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
             body.Force = Vector2D::Zero();
         }
     }
 
+    // ----------------------------------------------------------------------------
     // Updates position and velocity using Semi-Implicit Euler integration.
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::Integrate(float dt) {
 		EntityManager entityMgr(*ecs_);
 
@@ -86,15 +108,18 @@ namespace Framework {
         }
     }
 
-    // Implementation of the function to keep the player on-screen.
+    // ----------------------------------------------------------------------------
+   // Implementation of the function to keep the player on-screen.
+   // It clamps the player's position to the viewport boundaries (-1.0 to 1.0).
+   // ----------------------------------------------------------------------------
     void PhysicsSystem::EnforceViewportBounds() {
-        // The viewport uses Normalized Device Coordinates (NDC), from -1.0 to 1.0.
+        // The viewport uses  (NDC), from -1.0 to 1.0
         const float minX = -1.0f;
         const float maxX = 1.0f;
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        // Iterate through all entities with a player tag.
+        // Iterate through all entities with a player tag
 		EntityManager entityMgr(*ecs_);
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
             if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, AABBColliderType)) {
@@ -168,13 +193,15 @@ namespace Framework {
         return { {minX, minY}, {maxX, maxY} };
     }
 
+    // ----------------------------------------------------------------------------
     // Detects and resolves collisions using direct positional correction.
+    // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
 		EntityManager entityMgr(*ecs_);
         std::vector<Entity> colliders = entityMgr.GetAllEntitiesWithComponent(AABBColliderType);
 
-        for (auto it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
-            for (auto it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {
+        for (std::vector<Entity>::iterator it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
+            for (std::vector<Entity>::iterator it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {
                 Entity e1 = *it_a;
                 Entity e2 = *it_b;
 
@@ -216,12 +243,12 @@ namespace Framework {
                     }
                 }
 
-                // --- Perform Resolution only if overlapping ---
+                // --- Perform Resolution if overlapping ---
                 if (contact.State == CollisionState::Overlapping) {
                     // Ensure e1 is always the dynamic object for consistent resolution
                     Entity dynE = e1, staticE = e2;
                     if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
-                        std::swap(dynE, staticE);
+                        std::swap(dynE, staticE); // swaps if E1 is the static object IE. Mass = 0
                     }
 
                     Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;

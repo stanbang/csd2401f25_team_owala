@@ -2,8 +2,9 @@
  * \file   Core.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (80%)
  * \secondary_author
+ *     Lur Pei Hao Stanley (20%)
  *
  * \brief
  *   Core engine loop and system manager. Handles initialization,

@@ -82,6 +82,11 @@ namespace Framework {
          */
         GLFWwindow* window() const { return win_; }
 
+        //getter for width
+        int getWidth() const { return w_; }
+
+        int getHeight() const { return h_; }
+
     private:
         CoreEngine* core_ = nullptr;   //!< Owning engine (used for quit handling).
         const char* title_;            //!< Window title string.

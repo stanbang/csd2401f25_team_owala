@@ -1,10 +1,17 @@
 /*****************************************************************//**
  * \file   PlayerSystem.cpp
- * \brief  
- * 
- * 
- * \author Ng Jing Wen
- * \date   10 September 2025
+ *
+ * \primary_author
+ *      Ng Jing Wen (50%)
+ * \secondary_author
+ *		Lur Pei Hao Stanley (50%)
+ *
+ * \brief	Contains Implementations of a Player System that
+ *			updates the player entity's components.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "EntityStorage.h"
 #include "PlayerSystem.h"
@@ -20,10 +27,9 @@ namespace Framework {
 
 	void PlayerSystem::Update(float dt) {
 		(void)dt; //Suppress unused parameter warning if not used
-		const float moveSpeed = 2.0f; // Control velocity directly for more responsive movement
-        const float JumpHeight = 0.8f; // The peak height you want to reach, in NDC units.
-        // NEW: Calculate initial jump velocity based on desired height and gravity.
-        // Formula from your PDF: v = sqrt(2 * g * h)
+		const float moveSpeed = 2.0f; // movement speed
+        const float JumpHeight = 0.8f; // jump height
+        // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_->gravity_.y);
 
         const float jumpVelocity = std::sqrt(2.0f * gravity * JumpHeight);
@@ -34,20 +40,9 @@ namespace Framework {
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-			// Check if player entity has position and velocity components
-			//if (entityStorage_->position.find(entity) != entityStorage_->position.end() &&
-			//	entityStorage_->velocity.find(entity) != entityStorage_->velocity.end()) {
-
-				// Update the player's position based on its velocity and delta time
-				/*entityStorage_->position[entity].Pos.x += entityStorage_->velocity[entity].Vel.x * dt;
-				entityStorage_->position[entity].Pos.y += entityStorage_->velocity[entity].Vel.y * dt;*/
-				
-				// Print player position for debugging
-				/*std::cout << "Player Position - X: " << entityStorage_->position[entity].x
-						  << ", Y: " << entityStorage_->position[entity].y << std::endl;*/
 			
 
-                          // We need a RigidBody, Velocity, and PlayerState to control the player
+            // We need a RigidBody, Velocity, and PlayerState to control the player
             if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType) && entityMgr.HasComponent(entity, AnimationComponentType)) {
                 Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
@@ -59,9 +54,9 @@ namespace Framework {
                 if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
                 vel.Vel.x = targetVelX;
 
-                // --- Physics-Based Jumping ---
+                // --- Jumping ---
                 if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
-                    vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity.
+                    vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
                     
                 }
 
