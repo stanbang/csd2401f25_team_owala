@@ -109,8 +109,8 @@ namespace Framework {
     }
 
     // ----------------------------------------------------------------------------
-   // Implementation of the function to keep the player on-screen.
-   // It clamps the player's position to the viewport boundaries (-1.0 to 1.0).
+    // Implementation of the function to keep the player on-screen.
+    // It clamps the player's position to the viewport boundaries (-1.0 to 1.0).
    // ----------------------------------------------------------------------------
     void PhysicsSystem::EnforceViewportBounds() {
         // The viewport uses  (NDC), from -1.0 to 1.0

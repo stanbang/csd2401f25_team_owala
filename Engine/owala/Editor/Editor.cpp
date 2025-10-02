@@ -434,7 +434,8 @@ namespace Editor {
 			ImGui::SameLine();
 			if (ImGui::Button("Clone Selected Entity")) {
 				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity_);
+				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
 			}
 
