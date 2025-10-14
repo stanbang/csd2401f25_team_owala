@@ -128,7 +128,7 @@ namespace TestScene {
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
         // --- Create Player Entity ---
-        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 1.0f, 1.0f }, "playerSprite_Idle");
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.2f, 0.2f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
