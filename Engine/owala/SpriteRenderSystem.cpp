@@ -69,15 +69,20 @@ namespace Framework {
 
 			//Check for animation component
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
-				const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
-				//const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
+                const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
 
-				gfx_.drawSprite(tex, pos, halfSize, rotationRad, animComp.minUV, animComp.maxUV);
-				continue; // Skip the non-animated draw call below
+                // CHANGE TO:
+                Vector2D topLeft = { pos.x - halfSize.x, pos.y - halfSize.y };
+                Vector2D fullSize = { halfSize.x * 2, halfSize.y * 2 };
+                gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad, animComp.minUV, animComp.maxUV);
+
+                continue;
             }
 
             // Draw
-            gfx_.drawSprite(tex, pos, halfSize, rotationRad);
+            Vector2D topLeft = { pos.x - halfSize.x, pos.y - halfSize.y };
+            Vector2D fullSize = { halfSize.x * 2, halfSize.y * 2 };
+            gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad);
         }
 
         // --- Render Text ---

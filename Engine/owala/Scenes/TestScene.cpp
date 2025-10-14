@@ -116,7 +116,7 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", downGround);
 
         // Scaling Platform
-        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { -0.5f, 0.0f });
+        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { 0.5f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
         // Trap Platforms
@@ -128,7 +128,7 @@ namespace TestScene {
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
         // --- Create Player Entity ---
-        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.2f }, "playerSprite_Idle");
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 1.0f, 1.0f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
 
