@@ -112,6 +112,9 @@ namespace Framework {
         if (glewInit() != GLEW_OK) {
             std::fprintf(stderr, "GLEW init failed\n");
         }
+        //back face culling and culling
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);  // Don't render back-facing triangles
 
         // Set initial viewport
         int fbw = 0, fbh = 0;

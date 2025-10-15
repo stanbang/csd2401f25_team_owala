@@ -19,17 +19,18 @@ namespace Framework {
         }
         // Note: your Graphics system (added last) should still be the one that swaps buffers.
     }
+
     void SpriteRenderSystem::RenderSprites() {
-		EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(ecs_);
 
         // Iterate all entities that have a sprite component
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(TextureComponentType)) {
-			TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(e);
+            TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(e);
             // Only require a position now
             if (!entityMgr.HasComponent(e, PositionType))
                 continue;
 
-			// Check if Entity is active in the scene. Loads if active.
+            // Check if Entity is active in the scene. Loads if active.
             if (!entityMgr.HasComponent(e, ActiveTagType)) continue;
 
             const auto& pos = entityMgr.GetComponent<Position>(e).Pos;
@@ -39,7 +40,7 @@ namespace Framework {
             if (entityMgr.HasComponent(e, AABBColliderType)) {
                 halfSize = entityMgr.GetComponent<AABBCollider>(e).HalfSize;  // use physics size if available
             }
-            else if (entityMgr.HasComponent(e, BackgroundTagType)){
+            else if (entityMgr.HasComponent(e, BackgroundTagType)) {
                 // Fallback size for non-physics sprites (backgrounds/UI/etc.)
                 // Adjust these values to your world scale
                 halfSize = sprite.HalfSize;
@@ -56,6 +57,19 @@ namespace Framework {
                 halfSize = sprite.HalfSize;
             }
 
+            // === FRUSTUM CULLING CHECK ===
+            // Calculate sprite bounds in screen space
+            float left = pos.x - halfSize.x;
+            float right = pos.x + halfSize.x;
+            float bottom = pos.y - halfSize.y;
+            float top = pos.y + halfSize.y;
+
+            // Check if sprite is completely outside screen bounds (-1 to 1)
+            if (right < -1.0f || left > 1.0f || bottom < -1.0f || top > 1.0f) {
+                continue; // Skip rendering - sprite is offscreen
+            }
+            // === END CULLING CHECK ===
+
             // Optional rotation (degrees -> radians)
             float rotationRad = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
@@ -67,28 +81,26 @@ namespace Framework {
             // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
             Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
-			//Check for animation component
+            // Convert center + halfSize to topLeft + fullSize for easy drawing
+            Vector2D topLeft = { pos.x - halfSize.x, pos.y - halfSize.y };
+            Vector2D fullSize = { halfSize.x * 2, halfSize.y * 2 };
+
+            //Check for animation component
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
 
-                // CHANGE TO:
-                Vector2D topLeft = { pos.x - halfSize.x, pos.y - halfSize.y };
-                Vector2D fullSize = { halfSize.x * 2, halfSize.y * 2 };
                 gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad, animComp.minUV, animComp.maxUV);
-
-                continue;
+                continue; // Skip the non-animated draw call below
             }
 
             // Draw
-            Vector2D topLeft = { pos.x - halfSize.x, pos.y - halfSize.y };
-            Vector2D fullSize = { halfSize.x * 2, halfSize.y * 2 };
             gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad);
         }
 
         // --- Render Text ---
         // This loop now handles text wrapping
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TextComponentType)) {
-			const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
+            const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
             if (entityMgr.HasComponent(entity, PositionType)) {
                 Font& font = resources_.get<Font>(component.fontName);
                 // logger not yet added
