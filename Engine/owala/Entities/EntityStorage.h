@@ -17,6 +17,7 @@
 #include "Entity.h"
 #include "Components.h"
 #include "SceneComponents.h"
+#include "CameraSystem.h"  
 #include <bitset> //For a bitset to track which components an entity has
 #include <unordered_map> //For a hash map to store entity-component pairs
 
@@ -56,6 +57,7 @@ namespace Framework {
 		AudioComponentType,
 		AnimationComponentType,
 		TextComponentType,
+		CameraType,
 		PlayerTagType,
 		PlatformTagType,
 		BackgroundTagType,
@@ -93,6 +95,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
 	template <> struct ComponentTypeTrait<AnimationComponent> { static constexpr ComponentType value = AnimationComponentType; };
 	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
+	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
@@ -133,6 +136,8 @@ namespace Framework {
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
 		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
+
+		std::unordered_map<Entity, Camera> cameras;//Camera
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to

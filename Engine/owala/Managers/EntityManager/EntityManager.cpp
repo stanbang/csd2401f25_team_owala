@@ -94,6 +94,7 @@ namespace Framework {
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
+		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -128,6 +129,7 @@ namespace Framework {
 			case AudioComponentType: ecs.audio.erase(entity); break;
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
+			case CameraType: ecs.cameras.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:
 			case BackgroundTagType:

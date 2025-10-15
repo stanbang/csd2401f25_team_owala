@@ -59,6 +59,8 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AnimationComponent>) ecs.animatedTex[entity] = component;
 			else if constexpr (std::is_same_v<T, TextComponent>) ecs.text[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
+			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
+
 			else {
 				// If this is a tag-only type, no storage is necessary.
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
@@ -98,6 +100,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
+			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}
