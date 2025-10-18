@@ -70,9 +70,23 @@ namespace TestScene {
 		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
         CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
         SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
+        PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
         PrefabSystem prefabSystem;
+
+        // --- CONFIGURE COLLISION MATRIX ---
+        // Player should collide with Platforms, but not with other Players (or default objects for now)
+        // This setup ensures that players will land on platforms, 
+        // but multiple players could pass through each other without interacting, 
+        // and static platforms won't needlessly check for collisions against other static platforms. 
+        // This is exactly the kind of powerful, high-level control that a layer-based system provides.
+        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform, true);
+        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Player, false);
+        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Default, false);
+
+        // Platforms will collide with each other
+        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager

@@ -50,6 +50,7 @@ namespace Framework {
 					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
 					case ComponentType::RigidBodyType: AddComponent<RigidBody>(newEntity, GetComponent<RigidBody>(entity)); break;
 					case ComponentType::AABBColliderType: AddComponent<AABBCollider>(newEntity, GetComponent<AABBCollider>(entity)); break;
+					case ComponentType::CollisionLayerComponentType: AddComponent<CollisionLayerComponent>(newEntity, GetComponent<CollisionLayerComponent>(entity)); break;
 					case ComponentType::PlayerStateType: AddComponent<PlayerState>(newEntity, GetComponent<PlayerState>(entity)); break;
 					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
 					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
@@ -86,6 +87,7 @@ namespace Framework {
 		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
 		case ComponentType::RigidBodyType: AddComponent<RigidBody>(entity, RigidBody{}); break;
 		case ComponentType::AABBColliderType: AddComponent<AABBCollider>(entity, AABBCollider{}); break;
+		case ComponentType::CollisionLayerComponentType: AddComponent<CollisionLayerComponent>(entity, CollisionLayerComponent{}); break;
 		case ComponentType::PlayerStateType: AddComponent<PlayerState>(entity, PlayerState{}); break;
 		case ComponentType::RotationFlagType: AddComponent<RotationFlag>(entity, RotationFlag{}); break;
 		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
@@ -121,6 +123,7 @@ namespace Framework {
 			case TriangleType:      ecs.triangle.erase(entity); break;
 			case RigidBodyType:     ecs.rigidBody.erase(entity); break;
 			case AABBColliderType:  ecs.colliders.erase(entity); break;
+			case CollisionLayerComponentType: ecs.collisionLayer.erase(entity); break;
 			case PlayerStateType:   ecs.playerState.erase(entity); break;
 			case RotationFlagType:  ecs.rotationFlag.erase(entity); break;
 			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;

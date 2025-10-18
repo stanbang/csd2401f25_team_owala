@@ -25,6 +25,22 @@
 
 namespace Framework{
 
+	// Enum for defining physics layers
+	enum class CollisionLayer : uint8_t {
+		Default = 0,
+		Player,
+		Platform,
+		Enemy,
+		Trigger,
+		Count // track the number of layers
+	};
+
+
+	/* Component to define which collision layer an entity belongs to. */
+	struct CollisionLayerComponent {
+		CollisionLayer layer = CollisionLayer::Default;
+	};
+
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
@@ -61,6 +77,8 @@ namespace Framework{
 	struct AABBCollider {
 		Vector2D HalfSize; // Half-width and half-height of the box
 	};
+
+	
 
 	/*	Acceleration component to store x and y 
 		acceleration of an entity.*/

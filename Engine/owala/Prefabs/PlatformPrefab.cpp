@@ -50,6 +50,9 @@ namespace Framework {
         Entity platform = createPlatform(storage, position, prefab.size, prefab.textureID);
         EntityManager entityManager{storage};
 
+        // Assign the platform to the Platform collision layer.
+        entityManager.AddComponent(platform, CollisionLayerComponent{ CollisionLayer::Platform });
+
         if (entityManager.HasComponent(platform, RigidBodyType)) {
             entityManager.GetComponent<RigidBody>(platform).SetMass(prefab.mass);
         }
@@ -86,6 +89,8 @@ namespace Framework {
         EntityManager entityManager{storage};
         entityManager.AddComponent(trapPlatform, trapComp);
 
+        entityManager.AddComponent(trapPlatform, CollisionLayerComponent{ CollisionLayer::Platform });
+
         if (entityManager.HasComponent(trapPlatform, RigidBodyType)) {
             entityManager.GetComponent<RigidBody>(trapPlatform).SetMass(prefab.mass);
         }
@@ -108,6 +113,10 @@ namespace Framework {
         const ScalingPlatformPrefab& prefab = it->second;
 
         Entity scalingPlatformEntity = createScalingPlatform(storage,position,prefab.size,prefab.textureID,prefab.scaleSpeed,prefab.minScale, prefab.maxScale);
+        
+        // Assign the scaling platform to the Platform collision layer.
+        EntityManager entityManager(storage);
+        entityManager.AddComponent(scalingPlatformEntity, CollisionLayerComponent{ CollisionLayer::Platform });
         return scalingPlatformEntity;
     }
     /*!

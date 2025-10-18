@@ -50,6 +50,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
 			else if constexpr (std::is_same_v<T, RigidBody>) ecs.rigidBody[entity] = component;
 			else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
+			else if constexpr (std::is_same_v<T, CollisionLayerComponent>) ecs.collisionLayer[entity] = component;
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
@@ -91,6 +92,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
 			else if constexpr (std::is_same_v<T, RigidBody>) return ecs.rigidBody.at(entity);
 			else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
+			else if constexpr (std::is_same_v<T, CollisionLayerComponent>) return ecs.collisionLayer.at(entity);
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);

@@ -49,6 +49,7 @@ namespace Framework {
 		TriangleType,
 		RigidBodyType,
 		AABBColliderType,
+		CollisionLayerComponentType, 
 		PlayerStateType,
 		RotationFlagType,
 		TrapPlatformComponentType,
@@ -87,6 +88,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<Triangle> { static constexpr ComponentType value = TriangleType; };
 	template <> struct ComponentTypeTrait<RigidBody> { static constexpr ComponentType value = RigidBodyType; };
 	template <> struct ComponentTypeTrait<AABBCollider> { static constexpr ComponentType value = AABBColliderType; };
+	template <> struct ComponentTypeTrait<CollisionLayerComponent> { static constexpr ComponentType value = CollisionLayerComponentType; }; 
 	template <> struct ComponentTypeTrait<PlayerState> { static constexpr ComponentType value = PlayerStateType; };
 	template <> struct ComponentTypeTrait<RotationFlag> { static constexpr ComponentType value = RotationFlagType; };
 	template <> struct ComponentTypeTrait<TrapPlatformComponent> { static constexpr ComponentType value = TrapPlatformComponentType; };
@@ -127,6 +129,7 @@ namespace Framework {
 		std::unordered_map<Entity, Triangle>     triangle;
 		std::unordered_map<Entity, RigidBody>    rigidBody;    
 		std::unordered_map<Entity, AABBCollider> colliders; 
+		std::unordered_map<Entity, CollisionLayerComponent> collisionLayer; 
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 		std::unordered_map<Entity, TrapPlatformComponent> trapPlatform;
@@ -163,6 +166,7 @@ namespace Framework {
 			std::vector<Acceleration> accelerations;
 			std::vector<RigidBody> rigidBodies;
 			std::vector<AABBCollider> aabbColliders;
+			std::vector<CollisionLayerComponent> collisionLayers;
 			std::vector<Triangle> triangles;
 			std::vector<TextureComponent> textures;
 			std::vector<PlayerStats> playerStats;

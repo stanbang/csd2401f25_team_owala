@@ -25,6 +25,30 @@ namespace Framework {
 
     PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
 
+    void PhysicsSystem::InitializeCollisionMatrix() {
+        // Resize the matrix to fit all layers
+        collisionMatrix_.resize(static_cast<size_t>(CollisionLayer::Count));
+        // By default, make all layers collide with all other layers
+        for (auto& row : collisionMatrix_) {
+            row.set(); // Sets all bits to true
+        }
+    }
+
+    void PhysicsSystem::SetLayerCollision(CollisionLayer layer1, CollisionLayer layer2, bool canCollide) {
+        size_t l1 = static_cast<size_t>(layer1);
+        size_t l2 = static_cast<size_t>(layer2);
+
+        if (l1 < collisionMatrix_.size() && l2 < collisionMatrix_.size()) {
+            // Set the interaction symmetrically
+            collisionMatrix_[l1][l2] = canCollide;
+            collisionMatrix_[l2][l1] = canCollide;
+        }
+    }
+
+    void PhysicsSystem::Initialize() {
+        InitializeCollisionMatrix();
+    }
+
     // ----------------------------------------------------------------------------
     // The main update loop, which uses a fixed timestep for stability.
     // This accumulates delta time and runs the simulation
@@ -204,6 +228,20 @@ namespace Framework {
             for (std::vector<Entity>::iterator it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {
                 Entity e1 = *it_a;
                 Entity e2 = *it_b;
+
+                // --- LAYER-BASED COLLISION CHECK ---
+                // If entities don't have layer components, skip them.
+                if (!entityMgr.HasComponent(e1, CollisionLayerComponentType) || !entityMgr.HasComponent(e2, CollisionLayerComponentType)) {
+                    continue;
+                }
+
+                auto& layer1 = entityMgr.GetComponent<CollisionLayerComponent>(e1);
+                auto& layer2 = entityMgr.GetComponent<CollisionLayerComponent>(e2);
+
+                // Check the collision matrix. If they can't collide, skip to the next pair.
+                if (!collisionMatrix_[static_cast<size_t>(layer1.layer)][static_cast<size_t>(layer2.layer)]) {
+                    continue;
+                }
 
                 if (entityMgr.GetComponent<RigidBody>(e1).InverseMass == 0.0f && entityMgr.GetComponent<RigidBody>(e2).InverseMass == 0.0f)
                     continue;
