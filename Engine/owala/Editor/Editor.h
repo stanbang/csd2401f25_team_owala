@@ -37,6 +37,7 @@ namespace Editor {
 	// enum to represent the different types of objects we can create
 	enum class PrefabType {
 		None,
+		Eraser,
 		Platform,
 		TrapPlatform,
 		ScalingPlatform
@@ -67,6 +68,16 @@ namespace Editor {
 		std::vector<Framework::ComponentType> tagTypes;
 		int selectedTagIndex = 0;
 
+		// --- Tilemap Editor State ---
+		bool isTileEditorActive_ = false; // NEW: Flag to control tile editor mode
+		bool showGrid_ = false;
+		int gridWidth_ = 20;
+		int gridHeight_ = 20;
+		float gridCellSizeX_ = 0.1f;
+		float gridCellSizeY_ = 0.1f;
+		std::string selectedTilePrefabName_;
+		PrefabType selectedTileType_ = PrefabType::None;
+
 		// Entity factory System members
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
 		PrefabType selectedPrefabType_ = PrefabType::None;
@@ -90,6 +101,18 @@ namespace Editor {
 		/**
 		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
 		 */
+		void HandleTilePlacement();
+
+
+		/**
+		 * @brief Handles logic for erasing a tile from the grid.
+		 */
+		void HandleTileErasing();
+
+
+		/**
+		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
+		 */
 		void HandleSpawning();
 
 		/**
@@ -103,7 +126,12 @@ namespace Editor {
 		void ShowLevelEditor();
 		void ShowPlayerInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
-	
+		void ShowTilemapEditor();
+
+		// --- Grid Helper Functions ---
+		void DrawEditorGrid();
+		Vector2D SnapToGrid(const Vector2D& worldPos);
+
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;

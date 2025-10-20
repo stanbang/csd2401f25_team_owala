@@ -138,6 +138,11 @@ namespace Editor {
 		ImGui_ImplGlfw_InitForOpenGL(gameManager_->GetSystems().win_->window(), true);
 		ImGui_ImplOpenGL3_Init("#version 330");
 
+		// ---  Calculate Grid Cell Size ---
+		// World space is from -1 to 1, so total width/height is 2.0
+		gridCellSizeX_ = 2.0f / gridWidth_;
+		gridCellSizeY_ = 2.0f / gridHeight_;
+
 		// Prepare Dropdown arrays for Entity Inspector
 		componentNames.clear();
 		componentItems.clear();
@@ -198,11 +203,20 @@ namespace Editor {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		// --- Handle Editor Logic ---
-		HandleSpawning();  // Check if we should spawn a selected prefab
-		HandleSelection(); // Check if the user is clicking on an entity in the world
-		HandleDeletion();  // Check if the user is deleting the selected entity
+		// ---  Draw the editor grid ---
+		if (showGrid_) {
+			DrawEditorGrid();
+		}
 
+		// --- Handle Editor Logic ---
+		if (isTileEditorActive_) {
+			HandleTilePlacement();
+			HandleTileErasing();
+		}
+		else {
+			HandleSelection();
+		}
+		HandleDeletion();
 
 		// --- RENDER PANELS ---
 
@@ -222,6 +236,10 @@ namespace Editor {
 		
 		if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
 
+		//  Show Tilemap Editor as a separate window if active
+		if (isTileEditorActive_) {
+			ShowTilemapEditor();
+		}
 
 		// --- END IMGUI FRAME ---
 
@@ -262,6 +280,107 @@ namespace Editor {
 		float ndcY = 1.0f - (static_cast<float>(mouseY) / win->getHeight()) * 2.0f; // Y is inverted for NDC
 
 		return { ndcX, ndcY };
+	}
+
+	void Editor::HandleTilePlacement() {
+		auto* input = gameManager_->GetSystems().input_;
+
+		// Only place if a tile is selected and the left mouse is pressed on the game view
+		if (selectedTileType_ == PrefabType::None || selectedTileType_ == PrefabType::Eraser) return;
+		if (!input->MouseDown(Framework::InputSystem::MouseButton::Left) || ImGui::GetIO().WantCaptureMouse) return;
+
+		Vector2D snappedPos = SnapToGrid(GetMouseWorldPosition());
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		// Check if a tile already exists at this position before placing
+		for (const std::vector<std::seed_seq::result_type>::iterator::value_type& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
+			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+				const Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				if (std::abs(pos.x - snappedPos.x) < 0.001f && std::abs(pos.y - snappedPos.y) < 0.001f) {
+					return; // A tile is already here, so do nothing.
+				}
+			}
+		}
+
+		// Create new entity and add components manually to control size
+		Entity newEntity = entityMgr.CreateEntity();
+		Vector2D tileHalfSize = { gridCellSizeX_ / 2.0f, gridCellSizeY_ / 2.0f };
+
+		// Common components for all platforms
+		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
+		entityMgr.AddComponent(newEntity, Framework::Velocity{});
+		entityMgr.AddComponent(newEntity, Framework::RigidBody{});
+		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f); // Static by default
+		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
+		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
+		entityMgr.AddComponent(newEntity, Framework::CollisionLayerComponent{ Framework::CollisionLayer::Platform });
+
+		const auto* prefab = prefabSystem_.GetPlatformPrefab(selectedTilePrefabName_);
+		if (prefab)
+			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ prefab->textureID });
+
+		// Type-specific components
+		switch (selectedTileType_) {
+		case PrefabType::TrapPlatform: {
+			const auto* trapPrefab = prefabSystem_.GetTrapPlatformPrefab(selectedTilePrefabName_);
+			if (trapPrefab) {
+				Framework::TrapPlatformComponent trapComp;
+				trapComp.originalPosition = snappedPos;
+				trapComp.fallSpeed = trapPrefab->fallSpeed;
+				trapComp.triggerDelay = trapPrefab->triggerDelay;
+				entityMgr.AddComponent(newEntity, trapComp);
+				entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(trapPrefab->mass); // Make it dynamic
+			}
+			break;
+		}
+		case PrefabType::ScalingPlatform: {
+			const auto* scalePrefab = prefabSystem_.GetScalingPlatformPrefab(selectedTilePrefabName_);
+			if (scalePrefab) {
+				Framework::ScalingPlatformComponent scaleComp;
+				scaleComp.baseHalfSize = tileHalfSize;
+				scaleComp.scaleSpeed = scalePrefab->scaleSpeed;
+				scaleComp.minScale = scalePrefab->minScale;
+				scaleComp.maxScale = scalePrefab->maxScale;
+				entityMgr.AddComponent(newEntity, scaleComp);
+			}
+			break;
+		}
+		default: // Includes standard Platform
+			break;
+		}
+
+		if (newEntity != 0) {
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+		}
+	}
+
+	void Editor::HandleTileErasing() {
+		auto* input = gameManager_->GetSystems().input_;
+
+		if (selectedTileType_ != PrefabType::Eraser) return;
+		if (!input->MouseDown(Framework::InputSystem::MouseButton::Left) || ImGui::GetIO().WantCaptureMouse) return;
+
+		Vector2D snappedPos = SnapToGrid(GetMouseWorldPosition());
+		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		Entity entityToErase = 0;
+
+		for (const std::vector<std::seed_seq::result_type>::iterator::value_type& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
+			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+				const Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				if (std::abs(pos.x - snappedPos.x) < 0.001f && std::abs(pos.y - snappedPos.y) < 0.001f) {
+					entityToErase = entity;
+					break;
+				}
+			}
+		}
+
+		if (entityToErase != 0) {
+			sceneMgr.RemoveEntityFromScene(entityToErase);
+		}
 	}
 
 	void Editor::HandleSpawning() {
@@ -455,6 +574,13 @@ namespace Editor {
 			// --- Entity Inspector ---
 			ImGui::Separator();
 
+			// Button to activate the tile editor mode
+			if (ImGui::Button("Open Tilemap Editor")) {
+				isTileEditorActive_ = true;
+			}
+
+			ImGui::Separator();
+
 			if (entitiesLoaded.empty()) {
 				ImGui::TextDisabled("No Entities!");
 			}
@@ -482,51 +608,54 @@ namespace Editor {
 					ImGui::Separator();
 					isEntitySelected_ = true;
 
-					ShowPlayerInspector();
+					//ShowPlayerInspector();
+				}
+				else {
+					isEntitySelected_ = false;
 				}
 			}
 		}
 
 		// ---  ENTITY FACTORY / PREFAB SPAWNER ---
-		ImGui::SeparatorText("Entity Factory");
+		/*ImGui::SeparatorText("Entity Factory");*/
 
-		// Display a dropdown for each type of prefab we can spawn
-		// uses prefabsystem to collate data of the prefabs
-		if (ImGui::BeginCombo("Platforms", selectedPrefabType_ == PrefabType::Platform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) { 
-				if (ImGui::Selectable(pair.first.c_str())) {
-					selectedPrefabType_ = PrefabType::Platform;
-					selectedPrefabName_ = pair.first;
-				}
-			}
-			ImGui::EndCombo();
-		}
+		//// Display a dropdown for each type of prefab we can spawn
+		//// uses prefabsystem to collate data of the prefabs
+		//if (ImGui::BeginCombo("Platforms", selectedPrefabType_ == PrefabType::Platform ? selectedPrefabName_.c_str() : "Select...")) {
+		//	for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) { 
+		//		if (ImGui::Selectable(pair.first.c_str())) {
+		//			selectedPrefabType_ = PrefabType::Platform;
+		//			selectedPrefabName_ = pair.first;
+		//		}
+		//	}
+		//	ImGui::EndCombo();
+		//}
 
-		if (ImGui::BeginCombo("Trap Platforms", selectedPrefabType_ == PrefabType::TrapPlatform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) { 
-				if (ImGui::Selectable(pair.first.c_str())) {
-					selectedPrefabType_ = PrefabType::TrapPlatform;
-					selectedPrefabName_ = pair.first;
-				}
-			}
-			ImGui::EndCombo();
-		}
+		//if (ImGui::BeginCombo("Trap Platforms", selectedPrefabType_ == PrefabType::TrapPlatform ? selectedPrefabName_.c_str() : "Select...")) {
+		//	for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) { 
+		//		if (ImGui::Selectable(pair.first.c_str())) {
+		//			selectedPrefabType_ = PrefabType::TrapPlatform;
+		//			selectedPrefabName_ = pair.first;
+		//		}
+		//	}
+		//	ImGui::EndCombo();
+		//}
 
-		if (ImGui::BeginCombo("Scaling Platforms", selectedPrefabType_ == PrefabType::ScalingPlatform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) { 
-				if (ImGui::Selectable(pair.first.c_str())) {
-					selectedPrefabType_ = PrefabType::ScalingPlatform;
-					selectedPrefabName_ = pair.first;
-				}
-			}
-			ImGui::EndCombo();
-		}
+		//if (ImGui::BeginCombo("Scaling Platforms", selectedPrefabType_ == PrefabType::ScalingPlatform ? selectedPrefabName_.c_str() : "Select...")) {
+		//	for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) { 
+		//		if (ImGui::Selectable(pair.first.c_str())) {
+		//			selectedPrefabType_ = PrefabType::ScalingPlatform;
+		//			selectedPrefabName_ = pair.first;
+		//		}
+		//	}
+		//	ImGui::EndCombo();
+		//}
 
-		// Display a message to the user if a prefab is selected.
-		if (selectedPrefabType_ != PrefabType::None) {
-			ImGui::Text("Spawning: [%s]", selectedPrefabName_.c_str());
-			ImGui::Text("Click in the game view to place. Right-click to cancel.");
-		}
+		//// Display a message to the user if a prefab is selected.
+		//if (selectedPrefabType_ != PrefabType::None) {
+		//	ImGui::Text("Spawning: [%s]", selectedPrefabName_.c_str());
+		//	ImGui::Text("Click in the game view to place. Right-click to cancel.");
+		//}
 
 
 		// --- Global Controls ---
@@ -535,6 +664,7 @@ namespace Editor {
 			if (ImGui::SliderFloat("Master Volume", &masterVolume, 0.0f, 1.0f)) {
 				gameManager_->GetSystems().audio_->setMasterVolume(masterVolume);
 			}
+			ImGui::Checkbox("Show Grid", &showGrid_);
 		}
 
 		// --- section to show the clicked-on entity ---
@@ -574,7 +704,61 @@ namespace Editor {
 			
 	}
 		
-	
+	void Editor::ShowTilemapEditor()
+	{
+		//  Make this a standalone window. The `&isTileEditorActive_` gives it a close 'X' button.
+		ImGui::Begin("Tile Palette", &isTileEditorActive_);
+
+		showGrid_ = true; // Automatically show grid when palette is open
+
+		// Eraser Tool
+		if (ImGui::Selectable("Eraser", selectedTileType_ == PrefabType::Eraser)) {
+			selectedTileType_ = PrefabType::Eraser;
+			selectedTilePrefabName_ = "Eraser";
+		}
+		ImGui::Separator();
+
+		// Iterate through the different prefab maps to create selectable buttons
+		for (const std::list<std::pair<const std::string, Framework::PlatformPrefab>, std::allocator<std::pair<const std::string, Framework::PlatformPrefab>>>::const_iterator::value_type& pair : prefabSystem_.GetPlatformPrefabs()) {
+			if (ImGui::Selectable(pair.first.c_str(), selectedTilePrefabName_ == pair.first)) {
+				selectedTileType_ = PrefabType::Platform;
+				selectedTilePrefabName_ = pair.first;
+			}
+		}
+		for (const std::list<std::pair<const std::string, Framework::PlatformPrefab>, std::allocator<std::pair<const std::string, Framework::PlatformPrefab>>>::const_iterator::value_type& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
+			if (ImGui::Selectable(pair.first.c_str(), selectedTilePrefabName_ == pair.first)) {
+				selectedTileType_ = PrefabType::TrapPlatform;
+				selectedTilePrefabName_ = pair.first;
+			}
+		}
+		for (const std::list<std::pair<const std::string, Framework::PlatformPrefab>, std::allocator<std::pair<const std::string, Framework::PlatformPrefab>>>::const_iterator::value_type& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
+			if (ImGui::Selectable(pair.first.c_str(), selectedTilePrefabName_ == pair.first)) {
+				selectedTileType_ = PrefabType::ScalingPlatform;
+				selectedTilePrefabName_ = pair.first;
+			}
+		}
+
+		// Display a message to the user if a tile is selected for placement.
+		if (selectedTileType_ != PrefabType::None) {
+			ImGui::Separator();
+			ImGui::Text("Selected: [%s]", selectedTilePrefabName_.c_str());
+			ImGui::Text("Left-click in the world to place/erase.");
+			if (ImGui::Button("Cancel"))
+			{
+				selectedTileType_ = PrefabType::None;
+				selectedTilePrefabName_.clear();
+			}
+		}
+
+		ImGui::End();
+
+		// If the window was closed, disable tile editor mode
+		if (!isTileEditorActive_) {
+			showGrid_ = false;
+			selectedTileType_ = PrefabType::None;
+			selectedTilePrefabName_.clear();
+		}
+	}
 	
 
 	void Editor::ShowPlayerInspector() {
@@ -856,6 +1040,37 @@ namespace Editor {
 			break;
 		}
 		ImGui::Separator();
+	}
+
+	void Editor::DrawEditorGrid() {
+		auto* gfx = gameManager_->GetSystems().gfx_;
+		if (!gfx) return;
+
+		Color gridColor = { 0.5f, 0.5f, 0.5f, 0.3f };
+
+		// Draw vertical lines
+		for (int i = 0; i <= gridWidth_; ++i) {
+			float x = -1.0f + i * gridCellSizeX_;
+			gfx->drawLine({ x, -1.0f }, { x, 1.0f }, gridColor);
+		}
+
+		// Draw horizontal lines
+		for (int i = 0; i <= gridHeight_; ++i) {
+			float y = -1.0f + i * gridCellSizeY_;
+			gfx->drawLine({ -1.0f, y }, { 1.0f, y }, gridColor);
+		}
+	}
+
+	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
+		// Calculate the grid cell index the mouse is in
+		int gridX = static_cast<int>(floor((worldPos.x + 1.0f) / gridCellSizeX_));
+		int gridY = static_cast<int>(floor((worldPos.y + 1.0f) / gridCellSizeY_));
+
+		// Calculate the center of that grid cell
+		float snappedX = (gridX * gridCellSizeX_) + (gridCellSizeX_ / 2.0f) - 1.0f;
+		float snappedY = (gridY * gridCellSizeY_) + (gridCellSizeY_ / 2.0f) - 1.0f;
+
+		return { snappedX, snappedY };
 	}
 
 	#pragma endregion

@@ -416,7 +416,7 @@ namespace Framework {
         dir.y /= length;
         Vector2D perp = { -dir.y, dir.x };
 
-        const float thickness = 0.005f; // Line thickness
+        const float thickness = 0.001f; // Line thickness
         Vector2D halfThickness = { perp.x * thickness, perp.y * thickness };
 
         // Create a thin quad for the line
