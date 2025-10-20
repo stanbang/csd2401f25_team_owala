@@ -766,6 +766,7 @@ namespace Editor {
 			break;
 		}
 		case ComponentType::CollisionLayerComponentType: {
+			// Checks if the entity has the component
 			if (entityMgr.HasComponent(selectedEntity, CollisionLayerComponentType)) {
 				auto& layerComp = entityMgr.GetComponent<CollisionLayerComponent>(selectedEntity);
 
@@ -777,6 +778,8 @@ namespace Editor {
 
 				int currentLayer = static_cast<int>(layerComp.layer);
 				if (ImGui::Combo("Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+					// If a new item was selected, it updates the component's layer
+					// with the new value.
 					layerComp.layer = static_cast<CollisionLayer>(currentLayer);
 				}
 			}

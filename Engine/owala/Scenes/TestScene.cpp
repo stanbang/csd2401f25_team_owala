@@ -76,17 +76,16 @@ namespace TestScene {
         PrefabSystem prefabSystem;
 
         // --- CONFIGURE COLLISION MATRIX ---
-        // Player should collide with Platforms, but not with other Players (or default objects for now)
+        // Player should collide with Platforms, but not with other Players 
         // This setup ensures that players will land on platforms, 
         // but multiple players could pass through each other without interacting, 
         // and static platforms won't needlessly check for collisions against other static platforms. 
-        // This is exactly the kind of powerful, high-level control that a layer-based system provides.
         physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform, true);
         physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Player, false);
         physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Default, false);
 
         // Platforms will collide with each other
-        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
+        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, false);
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
