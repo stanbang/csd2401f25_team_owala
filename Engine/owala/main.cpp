@@ -37,8 +37,8 @@
 #include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
 
-// Imgui Editor
-#include "Editor.h"
+//// Imgui Editor
+//#include "Editor.h"
 
 // Global pointer to WindowsSystem for console handler
 Framework::WindowsSystem* g_win = nullptr;
@@ -87,9 +87,9 @@ int main() {
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer); // Register all core systems to the GameManager
 
-	// Editor Registration
-	Editor::Editor* editor = new Editor::Editor(engine, *gm);
-	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
+	//// Editor Registration
+	//Editor::Editor* editor = new Editor::Editor(engine, *gm);
+	//gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -101,7 +101,7 @@ int main() {
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
 	engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
-    engine.AddSystem(editor);              // Editor
+    //engine.AddSystem(editor);              // Editor
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();
