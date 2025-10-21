@@ -112,6 +112,9 @@ namespace Framework {
         if (glewInit() != GLEW_OK) {
             std::fprintf(stderr, "GLEW init failed\n");
         }
+        //back face culling and culling
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);  // Don't render back-facing triangles
 
         // Set initial viewport
         int fbw = 0, fbh = 0;
@@ -331,6 +334,25 @@ namespace Framework {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
+
+    void Graphics::drawSpriteEasy(Texture& tex, const Vector2D& topLeft,
+        const Vector2D& size, float rotation,
+        const Vector2D& minUV, const Vector2D& maxUV)
+    {
+        // Convert to center/halfSize
+        Vector2D center = {
+            topLeft.x + size.x / 2.0f,
+            topLeft.y + size.y / 2.0f
+        };
+        Vector2D halfSize = {
+            size.x / 2.0f,
+            size.y / 2.0f
+        };
+
+        // Call your existing function
+        drawSprite(tex, center, halfSize, rotation, minUV, maxUV);
+    }
+
     Texture Graphics::loadTextureFromPNG(const char* path, bool flipY, bool srgb)
     {
         if (flipY) stbi_set_flip_vertically_on_load(1); else stbi_set_flip_vertically_on_load(0);

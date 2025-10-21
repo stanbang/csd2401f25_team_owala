@@ -25,7 +25,6 @@
 namespace Framework {
 	class GameManager; // Forward Declaration
 	class CoreEngine; // Forward Declaration
-
 	struct SystemTime; // Forward Declaration
 }
 
@@ -74,7 +73,7 @@ namespace Editor {
 		std::string selectedPrefabName_;
 
 		// --- Entity Selection & Deletion ---
-		Entity selectedEntity_ = 0; // Store entity ID
+		Entity selectedEntity_ = 0; // Store entity ID (no longer in use)
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
 
 		// --- Private Helper Functions ---

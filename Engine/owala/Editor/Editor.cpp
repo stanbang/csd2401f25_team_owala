@@ -50,6 +50,7 @@ namespace {
 		case ComponentType::TriangleType:					return "Triangle";
 		case ComponentType::RigidBodyType:					return "RigidBody";
 		case ComponentType::AABBColliderType:				return "AABBCollider";
+		case ComponentType::CollisionLayerComponentType:    return "CollisionLayer";
 		case ComponentType::PlayerStateType:				return "PlayerState";
 		case ComponentType::RotationFlagType:				return "RotationFlag";
 		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
@@ -66,6 +67,18 @@ namespace {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		default:											return "Unknown";
+		}
+	}
+
+	// Helper to convert a CollisionLayer enum to its string representation.
+	const char* LayerToString(CollisionLayer layer) {
+		switch (layer) {
+		case CollisionLayer::Default:   return "Default";
+		case CollisionLayer::Player:    return "Player";
+		case CollisionLayer::Platform:  return "Platform";
+		case CollisionLayer::Enemy:     return "Enemy";
+		case CollisionLayer::Trigger:   return "Trigger";
+		default:                        return "Invalid";
 		}
 	}
 }
@@ -434,7 +447,8 @@ namespace Editor {
 			ImGui::SameLine();
 			if (ImGui::Button("Clone Selected Entity")) {
 				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity_);
+				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
 			}
 
@@ -751,6 +765,27 @@ namespace Editor {
 			ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
 			break;
 		}
+		case ComponentType::CollisionLayerComponentType: {
+			// Checks if the entity has the component
+			if (entityMgr.HasComponent(selectedEntity, CollisionLayerComponentType)) {
+				auto& layerComp = entityMgr.GetComponent<CollisionLayerComponent>(selectedEntity);
+
+				// Create a list of layer names for the dropdown
+				const char* layerNames[static_cast<int>(CollisionLayer::Count)];
+				for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
+					layerNames[i] = LayerToString(static_cast<CollisionLayer>(i));
+				}
+
+				int currentLayer = static_cast<int>(layerComp.layer);
+				if (ImGui::Combo("Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+					// If a new item was selected, it updates the component's layer
+					// with the new value.
+					layerComp.layer = static_cast<CollisionLayer>(currentLayer);
+				}
+			}
+			break;
+		}
+
 		case ComponentType::PlayerStateType: {
 			PlayerState& pState = entityMgr.GetComponent<PlayerState>(selectedEntity);
 

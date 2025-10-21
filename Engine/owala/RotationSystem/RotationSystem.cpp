@@ -15,8 +15,9 @@ namespace Framework {
     @return     N/A
 *//*______________________________________________________________*/
 
-    RotationSystem::RotationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics)
-        : ecs_(&ecs), input_(&input), physics_(&physics), globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false) {
+    RotationSystem::RotationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics) : ecs_(&ecs), input_(&input), 
+        physics_(&physics), globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false), 
+        rotationCooldown(0.0f), rotationCooldownDuration(0.5f) {
     }
     /*!
     @brief      Initializes the rotation system (currently empty)
@@ -33,20 +34,32 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void RotationSystem::Update(float dt) {
-		EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(*ecs_);
 
-        if (input_->KeyPressed(InputSystem::Key::E)) {
-            targetGlobalRotation -= 90.0f; // Rotate clockwise
-            physics_->SetPaused(true);
-            isGlobalRotating = true;
-            //std::cout << "Rotating world clockwise 90 degrees" << std::endl;
+        // Update cooldown timer
+        if (rotationCooldown > 0.0f) {
+            rotationCooldown -= dt;
+            if (rotationCooldown < 0.0f) {
+                rotationCooldown = 0.0f;
+            }
         }
 
-        if (input_->KeyPressed(InputSystem::Key::Q)) {
-            targetGlobalRotation += 90.0f; // Rotate counterclockwise
-            physics_->SetPaused(true);
-            isGlobalRotating = true;
-            //std::cout << "Rotating world counterclockwise 90 degrees" << std::endl;
+        if (!isGlobalRotating && rotationCooldown <= 0.0f) {
+            if (input_->KeyPressed(InputSystem::Key::E)) {
+                targetGlobalRotation -= 90.0f; // Rotate clockwise
+                physics_->SetPaused(true);
+                isGlobalRotating = true;
+                rotationCooldown = rotationCooldownDuration;
+                //std::cout << "Rotating world clockwise 90 degrees" << std::endl;
+            }
+
+            if (input_->KeyPressed(InputSystem::Key::Q)) {
+                targetGlobalRotation += 90.0f; // Rotate counterclockwise
+                physics_->SetPaused(true);
+                isGlobalRotating = true;
+                rotationCooldown = rotationCooldownDuration;
+                //std::cout << "Rotating world counterclockwise 90 degrees" << std::endl;
+            }
         }
 
         if (isGlobalRotating) {

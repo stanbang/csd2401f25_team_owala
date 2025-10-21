@@ -50,6 +50,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
 			else if constexpr (std::is_same_v<T, RigidBody>) ecs.rigidBody[entity] = component;
 			else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
+			else if constexpr (std::is_same_v<T, CollisionLayerComponent>) ecs.collisionLayer[entity] = component;
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
@@ -59,6 +60,8 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AnimationComponent>) ecs.animatedTex[entity] = component;
 			else if constexpr (std::is_same_v<T, TextComponent>) ecs.text[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
+			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
+
 			else {
 				// If this is a tag-only type, no storage is necessary.
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
@@ -89,6 +92,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
 			else if constexpr (std::is_same_v<T, RigidBody>) return ecs.rigidBody.at(entity);
 			else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
+			else if constexpr (std::is_same_v<T, CollisionLayerComponent>) return ecs.collisionLayer.at(entity);
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);
@@ -98,6 +102,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
+			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}

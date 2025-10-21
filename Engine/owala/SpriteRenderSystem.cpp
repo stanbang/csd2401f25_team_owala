@@ -19,98 +19,118 @@ namespace Framework {
         }
         // Note: your Graphics system (added last) should still be the one that swaps buffers.
     }
+
     void SpriteRenderSystem::RenderSprites() {
-		EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(ecs_);
+
+        // === GET ACTIVE CAMERA ===
+        Entity activeCamera = 0;
+        if (cameraSystem_) {
+            activeCamera = cameraSystem_->GetActiveCamera();
+        }
+
+        // Default view bounds if no camera
+        float left = -1.0f, right = 1.0f, bottom = -1.0f, top = 1.0f;
+
+        // If we have an active camera, get its view bounds (in WORLD SPACE)
+        if (activeCamera != 0 && cameraSystem_) {
+            cameraSystem_->GetViewBounds(activeCamera, left, right, bottom, top);
+        }
 
         // Iterate all entities that have a sprite component
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(TextureComponentType)) {
-			TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(e);
-            // Only require a position now
-            if (!entityMgr.HasComponent(e, PositionType))
-                continue;
-
-			// Check if Entity is active in the scene. Loads if active.
+            TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(e);
+            if (!entityMgr.HasComponent(e, PositionType)) continue;
             if (!entityMgr.HasComponent(e, ActiveTagType)) continue;
 
-            const auto& pos = entityMgr.GetComponent<Position>(e).Pos;
+            const Vector2D& worldPos = entityMgr.GetComponent<Position>(e).Pos;
 
-            // Determine halfSize:
+            // World-space half size (physics/authoring units)
             Vector2D halfSize;
             if (entityMgr.HasComponent(e, AABBColliderType)) {
-                halfSize = entityMgr.GetComponent<AABBCollider>(e).HalfSize;  // use physics size if available
+                halfSize = entityMgr.GetComponent<AABBCollider>(e).HalfSize;
             }
-            else if (entityMgr.HasComponent(e, BackgroundTagType)){
-                // Fallback size for non-physics sprites (backgrounds/UI/etc.)
-                // Adjust these values to your world scale
-                halfSize = { 1.f, 1.0f };
+            else if (entityMgr.HasComponent(e, BackgroundTagType)) {
+                halfSize = sprite.HalfSize;
             }
             else {
-                // FOR TESTING THE DAMN 2500 SPRITES FAKE PLAYER 
-                ////generate random seed for random size
-                //std::random_device rd;
-                //std::mt19937 gen(rd());
-                //std::uniform_real_distribution<float> distribX(0.01f, 0.05f);
-                //std::uniform_real_distribution<float> distribY(0.01f, 0.05f);
+                halfSize = sprite.HalfSize;
+            }
 
-                //Vector2D randomSize = { distribX(gen), distribY(gen) };
-                halfSize = { 0.01f, 0.01f };
+            // === CULLING IN WORLD SPACE ===
+            if (activeCamera != 0 && cameraSystem_) {
+                if (worldPos.x + halfSize.x < left || worldPos.x - halfSize.x > right ||
+                    worldPos.y + halfSize.y < bottom || worldPos.y - halfSize.y > top) {
+                    continue;
+                }
             }
 
             // Optional rotation (degrees -> radians)
             float rotationRad = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
-                rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(e).currentRotation * (M_PI / 180.0f));
+                rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(e).currentRotation * (M_PI / 180.0));
             }
 
             // Fetch the texture by key from ResourceManager
-            // NOTE: your ResourceManager::get<T>(key) returns a T (by value) in your examples.
-            // If it returns a shared_ptr or a ref in your impl, adjust accordingly.
             Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
-			//Check for animation component
-            if (entityMgr.HasComponent(e, AnimationComponentType)) {
-				const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
-				//const TextureInfoComponent& texInfoComp = entityMgr.GetComponent<TextureInfoComponent>(e);
+            // === WORLD -> SCREEN TRANSFORM ===
+            Vector2D screenPos = worldPos;
+            Vector2D screenHalfSize = halfSize; // default if no camera
 
-				gfx_.drawSprite(tex, pos, halfSize, rotationRad, animComp.minUV, animComp.maxUV);
-				continue; // Skip the non-animated draw call below
+            if (activeCamera != 0 && cameraSystem_) {
+                // Position to screen
+                screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+
+                // Derive per-axis screen scale for 1 world unit
+                const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
+                const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
+
+                // Map world half-size to screen half-size (assumes axis-aligned camera)
+                screenHalfSize.x = std::abs(sx.x) * halfSize.x;
+                screenHalfSize.y = std::abs(sy.y) * halfSize.y;
             }
 
+            // Convert center + half to topLeft + full in SCREEN SPACE (now zoom-aware)
+            Vector2D topLeft = { screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y };
+            Vector2D fullSize = { screenHalfSize.x * 2.0f,       screenHalfSize.y * 2.0f };
+
             // Draw
-            gfx_.drawSprite(tex, pos, halfSize, rotationRad);
+            if (entityMgr.HasComponent(e, AnimationComponentType)) {
+                const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
+                gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad, animComp.minUV, animComp.maxUV);
+            }
+            else {
+                gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad);
+            }
         }
 
         // --- Render Text ---
-        // This loop now handles text wrapping
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TextComponentType)) {
-			const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
-            if (entityMgr.HasComponent(entity, PositionType)) {
-                Font& font = resources_.get<Font>(component.fontName);
-                // logger not yet added
-                /*if (font == nullptr) {
-                            logger.Info(DebugType::GraphicsSystem, "Font not found!!! " + fontName);
-                            continue;
-                        }*/
-                Vector2D& original_pos = entityMgr.GetComponent<Position>(entity).Pos;
+            const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
+            if (!entityMgr.HasComponent(entity, PositionType)) continue;
 
-                // --- NEW WRAPPING LOGIC ---
+            Font& font = resources_.get<Font>(component.fontName);
+            const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
 
-                // Define the maximum width for wrapping in NDC (-1.0 to 1.0).
-                const float max_width_ndc = 1.8f;
-                // Convert NDC width to pixel width for our wrapper function.
-                const float max_width_pixels = max_width_ndc * 0.5f * gfx_.getScreenWidth();
+            // WORLD -> SCREEN for text position
+            Vector2D screenTextPos = worldTextPos;
+            if (activeCamera != 0 && cameraSystem_) {
+                screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
+            }
 
-                // Call the new WrapText function to get the lines.
-                std::vector<std::string> lines = gfx_.WrapText(font, component.textToDraw, component.scale, max_width_pixels);
+            // Wrapping in pixels (unchanged)
+            const float max_width_ndc = 1.8f;
+            const float max_width_pixels = max_width_ndc * 0.5f * gfx_.getScreenWidth();
+            std::vector<std::string> lines = gfx_.WrapText(font, component.textToDraw, component.scale, max_width_pixels);
 
-                // Render each line, moving down for each new line.
-                Vector2D current_pos = original_pos;
-                const float line_height_ndc = 0.08f; // Vertical distance between lines in NDC. Adjust as needed.
+            // Render each line
+            Vector2D current_pos = screenTextPos;
+            const float line_height_ndc = 0.08f;
 
-                for (const auto& line : lines) {
-                    gfx_.drawText(font, line, current_pos, component.scale, component.color);
-                    current_pos.y -= line_height_ndc; // Move down for the next line
-                }
+            for (const auto& line : lines) {
+                gfx_.drawText(font, line, current_pos, component.scale, component.color);
+                current_pos.y -= line_height_ndc;
             }
         }
     }
@@ -118,59 +138,77 @@ namespace Framework {
 
     void SpriteRenderSystem::RenderColliderOutlines() {
         EntityManager entityMgr(ecs_);
+
+        // === GET ACTIVE CAMERA ===
+        Entity activeCamera = 0;
+        if (cameraSystem_) {
+            activeCamera = cameraSystem_->GetActiveCamera();
+        }
+
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
             const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
             if (!entityMgr.HasComponent(e, PositionType)) continue;
 
-            const Vector2D& pos = entityMgr.GetComponent<Position>(e).Pos;
+            const Vector2D& worldPos = entityMgr.GetComponent<Position>(e).Pos;
             const Vector2D& halfSize = collider.HalfSize;
+
+            // WORLD -> SCREEN
+            Vector2D screenPos = worldPos;
+            Vector2D screenHalfSize = halfSize;
+
+            if (activeCamera != 0 && cameraSystem_) {
+                screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+
+                const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
+                const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
+
+                screenHalfSize.x = std::abs(sx.x) * halfSize.x;
+                screenHalfSize.y = std::abs(sy.y) * halfSize.y;
+            }
 
             float deg = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
                 deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
             }
 
-            // Compute corners of the collider
             if (std::abs(deg) < 0.001f) {
-                // Non-rotated: simple AABB
+                // Non-rotated AABB in screen space
                 Vector2D corners[4] = {
-                    {pos.x - halfSize.x, pos.y - halfSize.y}, // bottom-left
-                    {pos.x + halfSize.x, pos.y - halfSize.y}, // bottom-right
-                    {pos.x + halfSize.x, pos.y + halfSize.y}, // top-right
-                    {pos.x - halfSize.x, pos.y + halfSize.y}  // top-left
+                    {screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y},
+                    {screenPos.x + screenHalfSize.x, screenPos.y - screenHalfSize.y},
+                    {screenPos.x + screenHalfSize.x, screenPos.y + screenHalfSize.y},
+                    {screenPos.x - screenHalfSize.x, screenPos.y + screenHalfSize.y}
                 };
-
-                // Draw wireframe (4 lines connecting the corners)
                 for (int i = 0; i < 4; ++i) {
                     int next = (i + 1) % 4;
-                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f }); // Green wireframe
+                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
                 }
             }
             else {
-                // Rotated: compute rotated corners
-                float r = deg * (float)M_PI / 180.0f;
-                float c = std::cos(r);
-                float s = std::sin(r);
-                Vector2D corners[4] = {
-                    {-halfSize.x, -halfSize.y},
-                    { halfSize.x, -halfSize.y},
-                    { halfSize.x,  halfSize.y},
-                    {-halfSize.x,  halfSize.y}
+                // Rotated rectangle in screen space
+                const float r = deg * (float)M_PI / 180.0f;
+                const float c = std::cos(r);
+                const float s = std::sin(r);
+
+                Vector2D local[4] = {
+                    {-screenHalfSize.x, -screenHalfSize.y},
+                    { screenHalfSize.x, -screenHalfSize.y},
+                    { screenHalfSize.x,  screenHalfSize.y},
+                    {-screenHalfSize.x,  screenHalfSize.y}
                 };
 
-                // Rotate and translate each corner
-                Vector2D worldCorners[4];
+                Vector2D corners[4];
                 for (int i = 0; i < 4; ++i) {
-                    worldCorners[i].x = corners[i].x * c - corners[i].y * s + pos.x;
-                    worldCorners[i].y = corners[i].x * s + corners[i].y * c + pos.y;
+                    corners[i].x = local[i].x * c - local[i].y * s + screenPos.x;
+                    corners[i].y = local[i].x * s + local[i].y * c + screenPos.y;
                 }
 
-                // Draw wireframe (4 lines connecting the corners)
                 for (int i = 0; i < 4; ++i) {
                     int next = (i + 1) % 4;
-                    gfx_.drawLine(worldCorners[i], worldCorners[next], { 0.0f, 1.0f, 0.0f, 1.0f }); // Green wireframe
+                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
                 }
             }
         }
     }
+
 } // namespace Framework

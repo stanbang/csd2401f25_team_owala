@@ -1,8 +1,17 @@
 /*****************************************************************//**
  * \file   EditorMain.cpp
  *
- * \brief  Entry point for the Editor executable.
- * Contains the same core systems as main.cpp but includes the Editor system.
+ * \primary_author
+ *      Ng Jordain Ying Zhe (16%)
+ * \secondary_author
+ *      Lur Pei Hao Stanley (16%)
+ *      Sitara Anil (16%)
+ *      Lou Jason (16%)
+ *      Ng Jing Wen (16%)
+ *      Yar Xuan (16%)
+ *
+ * \brief  Contains the main entry point for the application.
+ * All core systems are initialized and registered to the CoreEngine here.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior
@@ -27,15 +36,16 @@
 #include "SpriteRenderSystem.h"
 #include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
+#include "CameraSystem.h"
 
  // Imgui Editor
-#include "Editor.h"
+ #include "Editor.h"
 
-// Global pointer to WindowsSystem for console handler
-static Framework::WindowsSystem* g_win = nullptr;
+ // Global pointer to WindowsSystem for console handler
+Framework::WindowsSystem* g_win = nullptr;
 
 // Console control handler to catch close events from the console window(aka pressing the 'X' button)
-static BOOL WINAPI ConsoleHandler(DWORD signal) {
+BOOL WINAPI ConsoleHandler(DWORD signal) {
     if (signal == CTRL_CLOSE_EVENT || signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT) {
         std::cout << "[ConsoleHandler] Console is closing. Triggering clean shutdown..." << std::endl;
         if (g_win) {
@@ -60,7 +70,7 @@ int main() {
     try {
         FileIOSystem fileIO;
         Vector2D windowConfig = fileIO.LoadWindowConfig();
-        WindowsSystem* win = new WindowsSystem(engine, "Owala Editor", (int)windowConfig.x, (int)windowConfig.y);
+        WindowsSystem* win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
         g_win = win; // Set global pointer for console handler
         InputSystem* input = new InputSystem(*win);
         std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();
@@ -75,10 +85,11 @@ int main() {
         GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
         gm->SetEngine(engine); // Link the engine to the game manager
         AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
+        CameraSystem* camera = new CameraSystem(*ecs);
         SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
-        gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer); // Register all core systems to the GameManager
+        gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera); // Register all core systems to the GameManager
 
-        // Editor Registration - THIS IS THE KEY DIFFERENCE
+        // Editor Registration
         Editor::Editor* editor = new Editor::Editor(engine, *gm);
         gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
 
@@ -91,8 +102,9 @@ int main() {
         engine.AddSystem(audio);               //audio 
         engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
         engine.AddSystem(gm);                  // GameManager for executing Game Logic
+        engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
         engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
-        engine.AddSystem(editor);              // Editor - INCLUDED IN EDITOR BUILD
+        engine.AddSystem(editor);              // Editor
         engine.AddSystem(gfx);                 // swaps buffers last
 
         engine.Initialize();
