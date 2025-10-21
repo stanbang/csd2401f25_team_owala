@@ -118,25 +118,25 @@ namespace TestScene {
 
 
         // Create 4 borders around the screen
-        topGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "TopBorder", { 0.0f, 1.0f });
-        sceneMgr.AddEntityToScene("Test Scene", topGround);
+        //topGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "TopBorder", { 0.0f, 1.0f });
+        //sceneMgr.AddEntityToScene("Test Scene", topGround);
 
-        leftGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { -1.0f, 0.0f });
-        sceneMgr.AddEntityToScene("Test Scene", leftGround);
+        //leftGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { -1.0f, 0.0f });
+        //sceneMgr.AddEntityToScene("Test Scene", leftGround);
 
-        rightGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { 1.0f, 0.0f });
-        sceneMgr.AddEntityToScene("Test Scene", rightGround);
+        //rightGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { 1.0f, 0.0f });
+        //sceneMgr.AddEntityToScene("Test Scene", rightGround);
 
-        downGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "BottomBorder", { 0.0f, -1.0f });
-        sceneMgr.AddEntityToScene("Test Scene", downGround);
+        //downGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "BottomBorder", { 0.0f, -1.0f });
+        //sceneMgr.AddEntityToScene("Test Scene", downGround);
 
-        // Scaling Platform
-        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { 0.5f, 0.0f });
-        sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
+        //// Scaling Platform
+        //scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { 0.5f, 0.0f });
+        //sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
-        // Trap Platforms
-        trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
-        sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
+        //// Trap Platforms
+        //trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
+        //sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
 		// --- Create Background Music Entity ---
 		Entity bgmEntity = createBGAudio(*ecs, "bgm");
