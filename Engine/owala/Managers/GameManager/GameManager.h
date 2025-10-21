@@ -65,7 +65,6 @@ namespace Framework {
 			ResourceManager* resourceManager_ = nullptr;
 			AudioSystem* audio_ = nullptr;   // <-- store it
 			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
-			CameraSystem* camera_ = nullptr;  
 		};
 
 		RegisteredSystems systems_;
@@ -109,11 +108,7 @@ namespace Framework {
 
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
-		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
-			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
-			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera);		
-
+		void RegisterSystemsToUse(ResourceManager& rcm,	EntityStorage& ecs,	Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio, SpriteRenderSystem& spriteRenderer);
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
 
 		/* GameManager APIs */

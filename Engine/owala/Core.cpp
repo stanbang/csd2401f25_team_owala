@@ -64,32 +64,32 @@ namespace Framework {
         systemTimes_.resize(systems_.size());
 
         while (running_) {
-            std::chrono::steady_clock::time_point now = clock::now();
+            auto now = clock::now();
             float dt = std::chrono::duration<float>(now - prev).count();
             prev = now;
             dt = std::min(dt, 0.25f); // protect against giant stalls
 
-            std::chrono::steady_clock::time_point frameStartTime = clock::now();
+            auto frameStartTime = clock::now();
 
             // --------FOR IMGUI INDIVIDUAL SYSTEM PROFILLING------------ //
             for (size_t i = 0; i < systems_.size(); ++i) {
-                std::chrono::steady_clock::time_point start = clock::now();
+                auto start = clock::now();
                 if (systems_[i]) {
                     systems_[i]->Update(dt);
                 }
-                std::chrono::steady_clock::time_point end = clock::now();
+                auto end = clock::now();
 
                 //Use helper function to get system name
                 systemTimes_[i].name = GetSystemName(typeid(*systems_[i]));
                 systemTimes_[i].milliseconds = std::chrono::duration<double, std::milli>(end - start).count();
             }
 
-            std::chrono::steady_clock::time_point frameEndTime = clock::now();
+            auto frameEndTime = clock::now();
             totalFrameTime_ = std::chrono::duration<double, std::milli>(frameEndTime - frameStartTime).count();
 
             // Calculate percentages based on the total frame time
             if (totalFrameTime_ > 0.0) {
-                for (std::vector<Framework::SystemTime>::iterator::value_type & timing : systemTimes_) {
+                for (auto& timing : systemTimes_) {
                     timing.percentage = static_cast<float>((timing.milliseconds / totalFrameTime_) * 100.0);
                 }
             }
@@ -99,10 +99,10 @@ namespace Framework {
 
     void CoreEngine::DestroySystems() {
         // shutdown in reverse add order, then delete
-        for(std::vector<Framework::ISystem *>::reverse_iterator it = systems_.rbegin(); it != systems_.rend(); ++it) {
+        for (auto it = systems_.rbegin(); it != systems_.rend(); ++it) {
             if (*it) (*it)->Shutdown();
         }
-        for (std::vector<Framework::ISystem*>::reverse_iterator it = systems_.rbegin(); it != systems_.rend(); ++it) {
+        for (auto it = systems_.rbegin(); it != systems_.rend(); ++it) {
             delete* it;
         }
         systems_.clear();

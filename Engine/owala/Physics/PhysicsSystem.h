@@ -15,11 +15,8 @@
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
-#include "Components.h"
 #include "Collision.h"
 #include <vector>
-#include <bitset>
-// bitset is for storing binary data IE. layercollider data
 
 namespace Framework {
 
@@ -42,7 +39,7 @@ namespace Framework {
         /**
          * @brief Initializes the physics system .
          */
-        void Initialize() override; 
+        void Initialize() override {}
 
         /**
          * @brief Runs the physics simulation for a given time delta.
@@ -59,15 +56,6 @@ namespace Framework {
         // --- Public Properties ---
         Vector2D gravity_ = { 0.0f, -9.81f }; // Public for easy access/modification (e.g., world rotation)
         static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
-
-        // --- Layer-Based Collision API ---
-        /**
-        * @brief Configures the collision interaction between two layers.
-        * @param layer1 The first collision layer.
-        * @param layer2 The second collision layer.
-        * @param canCollide True if objects on these layers should collide, false otherwise.
-        */
-        void SetLayerCollision(CollisionLayer layer1, CollisionLayer layer2, bool canCollide);
 
         // --- Public Methods ---
 
@@ -101,11 +89,6 @@ namespace Framework {
         bool IsInStepMode() const { return stepModeActive_; }
 
     private:
-        /**
-        * @brief Initializes the collision matrix with default values (all layers collide).
-        */
-        void InitializeCollisionMatrix();
-
         /**
          * @brief Executes a single, fixed-duration step of the physics simulation.
          * @param dt The fixed timestep (e.g., 1/60th of a second).
@@ -141,9 +124,6 @@ namespace Framework {
         bool isPaused_ = false;
         bool stepModeActive_ = false;
         std::vector<Contact> contacts_; // Stores info about collisions from the last frame.
-
-        // The collision matrix. collisionMatrix_[layer1][layer2] is true if they can collide.
-        std::vector<std::bitset<static_cast<size_t>(CollisionLayer::Count)>> collisionMatrix_;
     };
 
 } // namespace Framework

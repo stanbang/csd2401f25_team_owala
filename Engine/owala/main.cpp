@@ -36,7 +36,6 @@
 #include "SpriteRenderSystem.h"
 #include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
-#include "CameraSystem.h"
 
 //// Imgui Editor
 //#include "Editor.h"
@@ -85,9 +84,8 @@ int main() {
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
-    CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer); // Register all core systems to the GameManager
 
 	//// Editor Registration
 	//Editor::Editor* editor = new Editor::Editor(engine, *gm);
@@ -102,8 +100,7 @@ int main() {
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
-    engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
-    engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
+	engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
     //engine.AddSystem(editor);              // Editor
     engine.AddSystem(gfx);                 // swaps buffers last
 

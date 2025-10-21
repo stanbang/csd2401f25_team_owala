@@ -56,8 +56,6 @@ namespace Framework {
 			entityMgr.GetComponent<RigidBody>(player).SetMass(1.0f); // Player has mass
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
-			//Assign the player to the Player collision layer.
-			entityMgr.AddComponent(player, CollisionLayerComponent{ CollisionLayer::Player });
 			entityMgr.AddComponent(player, PlayerState{}); //  Add the player state component
 			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
 

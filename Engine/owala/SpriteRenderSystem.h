@@ -26,7 +26,6 @@
 
 namespace Framework {
 
-    class CameraSystem;
     /**
      * \class SpriteRenderSystem
      * \brief ECS-driven system that renders textured sprites for entities.
@@ -64,9 +63,6 @@ namespace Framework {
             drawColliders_(drawColliders), clearColor_(clearColor) {
         }
 
-        void SetCameraSystem(CameraSystem* cameraSystem) {
-            cameraSystem_ = cameraSystem;
-        }
         /**
          * \brief Initialize the render system.
          * \details No-op here, provided for ISystem compliance.
@@ -127,7 +123,6 @@ namespace Framework {
         ResourceManager& resources_;    //!< Resource manager reference (textures).
         bool             drawColliders_ = false; //!< Flag for collider debug rendering.
         Color            clearColor_;   //!< Background clear color.
-        CameraSystem* cameraSystem_ = nullptr;
     };
 
 } // namespace Framework

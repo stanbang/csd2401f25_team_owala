@@ -32,17 +32,16 @@ namespace Framework {
 		Vector2D halfSize,
 		std::string textureKey) {
 
+		//generate random seed for random pos
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> PosX_Distrib(-1.0f, 1.0f);
-		std::uniform_real_distribution<float> PosY_Distrib(-1.0f, 1.0f);
-
-		//Generate random scale/halfsize between 0.01 to 0.005
-		std::uniform_real_distribution<float> Scale_DistribX(0.005f, 0.1f);
-		std::uniform_real_distribution<float> Scale_DistribY(0.005f, 0.1f);
+		std::uniform_real_distribution<float> PosX_Distrib(-0.9f, 0.9f);
+		std::uniform_real_distribution<float> PosY_Distrib(-0.9f, 0.9f);
+		std::uniform_real_distribution<float> VelX_Distrib(-0.1f, 0.1f);
+		std::uniform_real_distribution<float> VelY_Distrib(-0.1f, 0.1f);
 
 		Vector2D randomPos = { PosY_Distrib(gen), PosX_Distrib(gen) };
-		Vector2D randomScale = { Scale_DistribX(gen), Scale_DistribX(gen) };
+		Vector2D randomVel = { VelX_Distrib(gen), VelY_Distrib(gen) };
 
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
@@ -54,9 +53,12 @@ namespace Framework {
 		entityMgr.AddComponent(fake_player, PlayerTag{});
 		
 		entityMgr.AddComponent(fake_player, Position{ randomPos });  // Start with rand Pos
+		entityMgr.AddComponent(fake_player, Velocity{ randomVel });  // Start with rand velocity
+
+		entityMgr.AddComponent(fake_player, RigidBody{});
 		
 
-		entityMgr.AddComponent(fake_player, TextureComponent{ textureKey , randomScale });
+		entityMgr.AddComponent(fake_player, TextureComponent{ textureKey });
 		
 		//Return the entity ID of the fake player
 		return fake_player;

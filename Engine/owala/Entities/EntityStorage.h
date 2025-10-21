@@ -17,7 +17,6 @@
 #include "Entity.h"
 #include "Components.h"
 #include "SceneComponents.h"
-#include "CameraSystem.h"  
 #include <bitset> //For a bitset to track which components an entity has
 #include <unordered_map> //For a hash map to store entity-component pairs
 
@@ -49,7 +48,6 @@ namespace Framework {
 		TriangleType,
 		RigidBodyType,
 		AABBColliderType,
-		CollisionLayerComponentType, 
 		PlayerStateType,
 		RotationFlagType,
 		TrapPlatformComponentType,
@@ -58,7 +56,6 @@ namespace Framework {
 		AudioComponentType,
 		AnimationComponentType,
 		TextComponentType,
-		CameraType,
 		PlayerTagType,
 		PlatformTagType,
 		BackgroundTagType,
@@ -88,7 +85,6 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<Triangle> { static constexpr ComponentType value = TriangleType; };
 	template <> struct ComponentTypeTrait<RigidBody> { static constexpr ComponentType value = RigidBodyType; };
 	template <> struct ComponentTypeTrait<AABBCollider> { static constexpr ComponentType value = AABBColliderType; };
-	template <> struct ComponentTypeTrait<CollisionLayerComponent> { static constexpr ComponentType value = CollisionLayerComponentType; }; 
 	template <> struct ComponentTypeTrait<PlayerState> { static constexpr ComponentType value = PlayerStateType; };
 	template <> struct ComponentTypeTrait<RotationFlag> { static constexpr ComponentType value = RotationFlagType; };
 	template <> struct ComponentTypeTrait<TrapPlatformComponent> { static constexpr ComponentType value = TrapPlatformComponentType; };
@@ -97,7 +93,6 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
 	template <> struct ComponentTypeTrait<AnimationComponent> { static constexpr ComponentType value = AnimationComponentType; };
 	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
-	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
@@ -129,7 +124,6 @@ namespace Framework {
 		std::unordered_map<Entity, Triangle>     triangle;
 		std::unordered_map<Entity, RigidBody>    rigidBody;    
 		std::unordered_map<Entity, AABBCollider> colliders; 
-		std::unordered_map<Entity, CollisionLayerComponent> collisionLayer; 
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 		std::unordered_map<Entity, TrapPlatformComponent> trapPlatform;
@@ -139,8 +133,6 @@ namespace Framework {
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
 		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
-
-		std::unordered_map<Entity, Camera> cameras;//Camera
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
@@ -166,7 +158,6 @@ namespace Framework {
 			std::vector<Acceleration> accelerations;
 			std::vector<RigidBody> rigidBodies;
 			std::vector<AABBCollider> aabbColliders;
-			std::vector<CollisionLayerComponent> collisionLayers;
 			std::vector<Triangle> triangles;
 			std::vector<TextureComponent> textures;
 			std::vector<PlayerStats> playerStats;

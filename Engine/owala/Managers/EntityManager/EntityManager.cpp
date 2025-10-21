@@ -50,7 +50,6 @@ namespace Framework {
 					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
 					case ComponentType::RigidBodyType: AddComponent<RigidBody>(newEntity, GetComponent<RigidBody>(entity)); break;
 					case ComponentType::AABBColliderType: AddComponent<AABBCollider>(newEntity, GetComponent<AABBCollider>(entity)); break;
-					case ComponentType::CollisionLayerComponentType: AddComponent<CollisionLayerComponent>(newEntity, GetComponent<CollisionLayerComponent>(entity)); break;
 					case ComponentType::PlayerStateType: AddComponent<PlayerState>(newEntity, GetComponent<PlayerState>(entity)); break;
 					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
 					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
@@ -87,7 +86,6 @@ namespace Framework {
 		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
 		case ComponentType::RigidBodyType: AddComponent<RigidBody>(entity, RigidBody{}); break;
 		case ComponentType::AABBColliderType: AddComponent<AABBCollider>(entity, AABBCollider{}); break;
-		case ComponentType::CollisionLayerComponentType: AddComponent<CollisionLayerComponent>(entity, CollisionLayerComponent{}); break;
 		case ComponentType::PlayerStateType: AddComponent<PlayerState>(entity, PlayerState{}); break;
 		case ComponentType::RotationFlagType: AddComponent<RotationFlag>(entity, RotationFlag{}); break;
 		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
@@ -96,7 +94,6 @@ namespace Framework {
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
-		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -123,7 +120,6 @@ namespace Framework {
 			case TriangleType:      ecs.triangle.erase(entity); break;
 			case RigidBodyType:     ecs.rigidBody.erase(entity); break;
 			case AABBColliderType:  ecs.colliders.erase(entity); break;
-			case CollisionLayerComponentType: ecs.collisionLayer.erase(entity); break;
 			case PlayerStateType:   ecs.playerState.erase(entity); break;
 			case RotationFlagType:  ecs.rotationFlag.erase(entity); break;
 			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;
@@ -132,7 +128,6 @@ namespace Framework {
 			case AudioComponentType: ecs.audio.erase(entity); break;
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
-			case CameraType: ecs.cameras.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:
 			case BackgroundTagType:

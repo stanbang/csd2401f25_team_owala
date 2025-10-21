@@ -162,7 +162,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}_Editor
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
 )
 
-
 # ======================= Compiler Settings =========================
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${CMAKE_PROJECT_NAME}_Editor PROPERTY CXX_STANDARD 20)

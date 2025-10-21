@@ -191,10 +191,6 @@ namespace Framework {
         std::vector<std::string> WrapText(Font& font, const std::string& text,
             float scale, float maxWidth);
 
-        void drawSpriteEasy(Texture& tex, const Vector2D& topLeft,
-            const Vector2D& size, float rotation = 0.0f,
-            const Vector2D& minUV = { 0,0 }, const Vector2D& maxUV = { 1,1 });
-
     private:
         WindowsSystem* win_ = nullptr; //!< Parent window system for GL context.
         int screenWidth = 1920;               //!< Current screen width.

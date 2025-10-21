@@ -68,24 +68,9 @@ namespace TestScene {
 		AudioSystem* audio = gm.GetSystems().audio_;
 		WindowsSystem* win_ = gm.GetSystems().win_;
 		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
-        CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
-        SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
-        PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
         PrefabSystem prefabSystem;
-
-        // --- CONFIGURE COLLISION MATRIX ---
-        // Player should collide with Platforms, but not with other Players 
-        // This setup ensures that players will land on platforms, 
-        // but multiple players could pass through each other without interacting, 
-        // and static platforms won't needlessly check for collisions against other static platforms. 
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform, true);
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Player, false);
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Default, false);
-
-        // Platforms will collide with each other
-        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, false);
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
@@ -131,7 +116,7 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", downGround);
 
         // Scaling Platform
-        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { 0.5f, 0.0f });
+        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { -0.5f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
         // Trap Platforms
@@ -143,24 +128,9 @@ namespace TestScene {
 		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
         // --- Create Player Entity ---
-        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.1f }, "playerSprite_Idle");
+        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.2f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
-
-
-        // -- Create Camear Entity that follows player
-        Entity mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, true);
-        sceneMgr.AddEntityToScene("Test Scene", mainCamera);
-
-
-        //set camera to follow player
-        //cameraSystem->SetFollowTarget(mainCamera, playerEntity, 3.0f);
-
-
-        // SET THE CAMERA SYSTEM ON THE SPRITE RENDERER
-        if (spriteRenderer && cameraSystem) {
-            spriteRenderer->SetCameraSystem(cameraSystem);
-        }
 
         // --- Create Text Entity ---
         sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
@@ -184,7 +154,6 @@ namespace TestScene {
 		//Graphics* gfx_ = gm.GetSystems().gfx_;
         ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
 		AudioSystem* audio_ = gm.GetSystems().audio_;
-        CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
 		EntityManager entityMgr(*ecs_);
 
         //  --- START THE IMGUI FRAME ---
@@ -265,37 +234,6 @@ namespace TestScene {
 
             SceneAsset nextScene = sceneMgr.GetActiveScene().sceneIndex == 1 ? sceneMgr.GetSceneAt(2) : sceneMgr.GetSceneByName("Test Scene");
             sceneMgr.LoadScene(nextScene.name);
-        }
-
-
-
-
-        // === ADD CAMERA CONTROLS ===
-
-        // Press 'Z' to zoom in
-        if (input_->KeyPressed(InputSystem::Key::Z)) {
-            Entity activeCamera = cameraSystem->GetActiveCamera();
-            if (activeCamera != 0) {
-                Camera& camera = entityMgr.GetComponent<Camera>(activeCamera);
-                cameraSystem->SetZoom(activeCamera, camera.zoom * 0.8f); // Zoom in
-            }
-        }
-
-        // Press 'X' to zoom out
-        if (input_->KeyPressed(InputSystem::Key::X)) {
-            Entity activeCamera = cameraSystem->GetActiveCamera();
-            if (activeCamera != 0) {
-                Camera& camera = entityMgr.GetComponent<Camera>(activeCamera);
-                cameraSystem->SetZoom(activeCamera, camera.zoom * 1.2f); // Zoom out
-            }
-        }
-
-        // Press 'R' to reset camera zoom
-        if (input_->KeyPressed(InputSystem::Key::R)) {
-            Entity activeCamera = cameraSystem->GetActiveCamera();
-            if (activeCamera != 0) {
-                cameraSystem->SetZoom(activeCamera, 1.0f); // Reset zoom
-            }
         }
 
         //// 3. --- BUILD IMGUI INTERFACE ---
