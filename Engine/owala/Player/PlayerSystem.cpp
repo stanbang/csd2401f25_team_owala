@@ -22,6 +22,8 @@
 #include "PhysicsSystem.h"
 #include "FileUtility.h" // Include to write player data on Shutdown
 #include "EntityManager.h"
+#include "MessageBus.h"
+#include "GameMessages.h"
 
 namespace Framework {
 
@@ -57,7 +59,7 @@ namespace Framework {
                 // --- Jumping ---
                 if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
                     vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
-                    
+                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity });
                 }
 
                 // Animation State Handling

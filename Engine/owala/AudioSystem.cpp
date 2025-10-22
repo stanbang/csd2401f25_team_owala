@@ -1,6 +1,8 @@
 #include "AudioSystem.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
+#include "GameMessages.h"
+#include "MessageBus.h"
 #include <cstdio>   // fprintf
 
 namespace Framework {
@@ -27,6 +29,17 @@ namespace Framework {
         // Optional: get a master channel group to control overall volume
         r = system_->getMasterChannelGroup(&masterGroup_);
         check(r, "System::getMasterChannelGroup");
+        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {
+            try {
+                FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>("jump");
+                this->play(jumpSound);
+            }
+            catch (...) {
+                std::fprintf(stderr, "[AudioSystem] Missing sound: jump.ogg\n");
+            }
+            });
+
+
     }
 
     void AudioSystem::Update(float /*dt*/) {
