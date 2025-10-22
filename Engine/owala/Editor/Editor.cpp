@@ -20,6 +20,7 @@
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
+#include "AssetBrowser.h"
 
 // Debug
 #include "Logger.h"
@@ -85,7 +86,7 @@ namespace {
 
 namespace Editor {
 	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager) : engine_(&engine), gameManager_(&gameManager) {};
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm) {};
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -137,6 +138,11 @@ namespace Editor {
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForOpenGL(gameManager_->GetSystems().win_->window(), true);
 		ImGui_ImplOpenGL3_Init("#version 330");
+
+		// Init Asset Browser to root Engine directory
+		fs::path exePath = fs::current_path();
+		fs::path rootPath = fs::absolute(exePath / "../../"); //Moves out of Debug, then out of build, to reach Engine root
+		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
 		componentNames.clear();
@@ -205,7 +211,8 @@ namespace Editor {
 
 
 		// --- RENDER PANELS ---
-
+		//Render Asset Browser
+		ShowAssetBrowser();
 		
 		// Render all editor UI panels
 
@@ -870,6 +877,10 @@ namespace Editor {
 			break;
 		}
 		ImGui::Separator();
+	}
+
+	void Editor::ShowAssetBrowser() {
+		assetBrowser.RenderUI();
 	}
 
 	#pragma endregion

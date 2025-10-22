@@ -21,6 +21,7 @@
 #include <string>
 #include "EntityStorage.h"
 #include "PlatformPrefab.h" // prefab header for creation
+#include "AssetBrowser.h"
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -29,6 +30,7 @@ namespace Framework {
 }
 
 namespace Editor {
+
 	struct EditorSettings {
 		bool showDebugInfo = true;
 		bool showLevelEditor = true;
@@ -47,7 +49,9 @@ namespace Editor {
 		// --- System Pointers ---
 		Framework::CoreEngine* engine_ = nullptr; // Enforce that the Editor must be instantiated after engine
 		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after GameManager
+		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
 
+		AssetBrowser assetBrowser;
 
 		// --- Internal State ---
 		bool initialized = false;
@@ -103,7 +107,8 @@ namespace Editor {
 		void ShowLevelEditor();
 		void ShowPlayerInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
-	
+		void ShowAssetBrowser();
+
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;
@@ -113,7 +118,7 @@ namespace Editor {
 		Editor(const Editor&) = delete;
 		Editor& operator=(const Editor&) = delete;
 
-		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager);
+		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm);
 
 		/**
 		 * @brief Initializes the Editor system.
