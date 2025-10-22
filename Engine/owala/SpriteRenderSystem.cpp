@@ -3,6 +3,7 @@
 #include "Matrix3x3.h"
 #include <cmath>
 #include <random>
+#include <algorithm> // Add this for std::sort
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -11,13 +12,12 @@
 namespace Framework {
 
     void SpriteRenderSystem::Update(float /*dt*/) {
-        // Clear frame once per frame (do NOT also clear in GameSystem anymore)
+        // Clear frame once per frame
         gfx_.beginFrame(clearColor_);
         RenderSprites();
         if (drawColliders_) {
             RenderColliderOutlines();
         }
-        // Note: your Graphics system (added last) should still be the one that swaps buffers.
     }
 
     void SpriteRenderSystem::RenderSprites() {
@@ -32,10 +32,23 @@ namespace Framework {
         // Default view bounds if no camera
         float left = -1.0f, right = 1.0f, bottom = -1.0f, top = 1.0f;
 
-        // If we have an active camera, get its view bounds (in WORLD SPACE)
+        // If we have an active camera, get its view bounds
         if (activeCamera != 0 && cameraSystem_) {
             cameraSystem_->GetViewBounds(activeCamera, left, right, bottom, top);
         }
+
+        // === BATCH COLLECTION ===
+        // Use a struct to group by texture AND render order
+        struct BatchKey {
+            Texture texture;
+            int renderOrder;
+
+            bool operator<(const BatchKey& other) const {
+                return renderOrder < other.renderOrder;
+            }
+        };
+
+        std::map<BatchKey, std::vector<BatchedSprite>> batches;
 
         // Iterate all entities that have a sprite component
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(TextureComponentType)) {
@@ -45,7 +58,7 @@ namespace Framework {
 
             const Vector2D& worldPos = entityMgr.GetComponent<Position>(e).Pos;
 
-            // World-space half size (physics/authoring units)
+            // World-space half size
             Vector2D halfSize;
             if (entityMgr.HasComponent(e, AABBColliderType)) {
                 halfSize = entityMgr.GetComponent<AABBCollider>(e).HalfSize;
@@ -74,38 +87,77 @@ namespace Framework {
             // Fetch the texture by key from ResourceManager
             Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
+            // === DETERMINE RENDER ORDER ===
+            int renderOrder = 0; // Default order
+
+            // Background gets lowest priority
+            if (entityMgr.HasComponent(e, BackgroundTagType)) {
+                renderOrder = -100;
+            }
+            // Players and important objects get higher priority
+            else if (entityMgr.HasComponent(e, PlayerTagType)) {
+                renderOrder = 100;
+            }
+            // Platforms and normal objects get medium priority
+            else if (entityMgr.HasComponent(e, PlatformTagType)) {
+                renderOrder = 50;
+            }
+            // Enemies get higher priority than platforms but lower than players
+            else if (entityMgr.HasComponent(e, EnemyTagType)) {
+                renderOrder = 75;
+            }
+
             // === WORLD -> SCREEN TRANSFORM ===
             Vector2D screenPos = worldPos;
-            Vector2D screenHalfSize = halfSize; // default if no camera
+            Vector2D screenHalfSize = halfSize;
 
             if (activeCamera != 0 && cameraSystem_) {
                 // Position to screen
                 screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
-                // Derive per-axis screen scale for 1 world unit
+                // Derive per-axis screen scale
                 const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
                 const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
 
-                // Map world half-size to screen half-size (assumes axis-aligned camera)
                 screenHalfSize.x = std::abs(sx.x) * halfSize.x;
                 screenHalfSize.y = std::abs(sy.y) * halfSize.y;
             }
 
-            // Convert center + half to topLeft + full in SCREEN SPACE (now zoom-aware)
+            // Convert center + half to topLeft + full in SCREEN SPACE
             Vector2D topLeft = { screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y };
             Vector2D fullSize = { screenHalfSize.x * 2.0f,       screenHalfSize.y * 2.0f };
 
-            // Draw
+            // Create batched sprite
+            BatchedSprite batchedSprite;
+            batchedSprite.topLeft = topLeft;
+            batchedSprite.size = fullSize;
+            batchedSprite.rotation = rotationRad;
+
+            // Get UV coordinates for animation
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(e);
-                gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad, animComp.minUV, animComp.maxUV);
+                batchedSprite.minUV = animComp.minUV;
+                batchedSprite.maxUV = animComp.maxUV;
             }
             else {
-                gfx_.drawSpriteEasy(tex, topLeft, fullSize, rotationRad);
+                batchedSprite.minUV = { 0.0f, 0.0f };
+                batchedSprite.maxUV = { 1.0f, 1.0f };
+            }
+
+            // Add to batch with render order
+            BatchKey key{ tex, renderOrder };
+            batches[key].push_back(batchedSprite);
+        }
+
+        // === RENDER BATCHES IN ORDER ===
+        // std::map automatically sorts by key (which includes renderOrder)
+        for (auto& [key, sprites] : batches) {
+            if (!sprites.empty()) {
+                gfx_.drawSpriteBatch(key.texture, sprites);
             }
         }
 
-        // --- Render Text ---
+        // --- Render Text (always on top) ---
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TextComponentType)) {
             const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
             if (!entityMgr.HasComponent(entity, PositionType)) continue;
@@ -113,18 +165,15 @@ namespace Framework {
             Font& font = resources_.get<Font>(component.fontName);
             const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
 
-            // WORLD -> SCREEN for text position
             Vector2D screenTextPos = worldTextPos;
             if (activeCamera != 0 && cameraSystem_) {
                 screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
             }
 
-            // Wrapping in pixels (unchanged)
             const float max_width_ndc = 1.8f;
             const float max_width_pixels = max_width_ndc * 0.5f * gfx_.getScreenWidth();
             std::vector<std::string> lines = gfx_.WrapText(font, component.textToDraw, component.scale, max_width_pixels);
 
-            // Render each line
             Vector2D current_pos = screenTextPos;
             const float line_height_ndc = 0.08f;
 
@@ -135,11 +184,10 @@ namespace Framework {
         }
     }
 
-
     void SpriteRenderSystem::RenderColliderOutlines() {
+        // This remains unchanged from your original implementation
         EntityManager entityMgr(ecs_);
 
-        // === GET ACTIVE CAMERA ===
         Entity activeCamera = 0;
         if (cameraSystem_) {
             activeCamera = cameraSystem_->GetActiveCamera();
@@ -152,7 +200,6 @@ namespace Framework {
             const Vector2D& worldPos = entityMgr.GetComponent<Position>(e).Pos;
             const Vector2D& halfSize = collider.HalfSize;
 
-            // WORLD -> SCREEN
             Vector2D screenPos = worldPos;
             Vector2D screenHalfSize = halfSize;
 
@@ -172,7 +219,6 @@ namespace Framework {
             }
 
             if (std::abs(deg) < 0.001f) {
-                // Non-rotated AABB in screen space
                 Vector2D corners[4] = {
                     {screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y},
                     {screenPos.x + screenHalfSize.x, screenPos.y - screenHalfSize.y},
@@ -185,7 +231,6 @@ namespace Framework {
                 }
             }
             else {
-                // Rotated rectangle in screen space
                 const float r = deg * (float)M_PI / 180.0f;
                 const float c = std::cos(r);
                 const float s = std::sin(r);

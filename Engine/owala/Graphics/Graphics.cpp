@@ -68,10 +68,22 @@ namespace Framework {
         FragColor = vec4(uColor.rgb, uColor.a * alpha);
     }
     )";
+     
+     
+    // Shader File Loading Helpers
+    // =========================
 
-    // =========================
-    // Internal state / helpers
-    // =========================
+    static std::string LoadShaderFromFile(const char* path) {
+        std::ifstream file(path);
+        if (!file) {
+            std::fprintf(stderr, "Failed to open shader file: %s\n", path);
+            return "";
+        }
+
+        std::string content((std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>());
+        return content;
+    }
 
     static GLuint compile(GLenum type, const char* src) {
         GLuint s = glCreateShader(type);
@@ -102,6 +114,21 @@ namespace Framework {
         return p;
     }
 
+    static GLuint linkProgramFromFiles(const char* vsPath, const char* fsPath) {
+        std::string vsSrc = LoadShaderFromFile(vsPath);
+        std::string fsSrc = LoadShaderFromFile(fsPath);
+
+        if (vsSrc.empty() || fsSrc.empty()) {
+            std::fprintf(stderr, "Failed to load shader files: %s, %s\n", vsPath, fsPath);
+            return 0;
+        }
+
+        return linkProgram(vsSrc.c_str(), fsSrc.c_str());
+    }
+    // =========================
+    // Internal state / helpers
+    // =========================
+
     // Cached uniform locations (avoid glGetUniformLocation per draw)
     static GLint g_uColorLoc = -1;
     static GLint g_uTexLoc_Tex = -1;
@@ -112,7 +139,7 @@ namespace Framework {
     static std::vector<float> g_batchVerts; // interleaved x,y,u,v for 6 verts per sprite
 
     // Pick a generous default; you can tune this
-    static constexpr int MAX_SPRITES_DEFAULT = 20000;
+    static constexpr int MAX_SPRITES_DEFAULT = 10000;
 
     // =========================
     // ISystem
@@ -139,6 +166,8 @@ namespace Framework {
 
         // ----- Colored pipeline -----
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
+        //progCol_ = linkProgramFromFiles("../Shaders/color.vert", "../Shaders/color.frag");
+
 
         glGenVertexArrays(1, &vaoCol_);
         glBindVertexArray(vaoCol_);
@@ -154,6 +183,8 @@ namespace Framework {
 
         // ----- Textured sprite pipeline -----
         progTex_ = linkProgram(VS_TEX, FS_TEX);
+        //progTex_ = linkProgramFromFiles("../Shaders/texture.vert", "../Shaders/texture.frag");
+
 
         glGenVertexArrays(1, &vaoTex_);
         glBindVertexArray(vaoTex_);
@@ -178,6 +209,7 @@ namespace Framework {
 
         // ----- Text rendering pipeline -----
         progText_ = linkProgram(VS_TEXT, FS_TEXT);
+        //progText_ = linkProgramFromFiles("../Shaders/text.vert", "../Shaders/text.frag");
 
         glGenVertexArrays(1, &vaoText_);
         glBindVertexArray(vaoText_);
@@ -362,36 +394,29 @@ namespace Framework {
     // Batched sprites (NEW)
     // =========================
 
-    // Raw version: interleaved [x,y,u,v] for 6 verts per sprite
-    void Graphics::drawSpriteBatchRaw(Texture tex, const float* interleavedXYUV, size_t spriteCount) {
-        if (!spriteCount || !interleavedXYUV) return;
+    void Graphics::drawSpriteBatch(Texture tex, const std::vector<BatchedSprite>& sprites) {
 
-        const size_t vertCount = spriteCount * 6;
-        const size_t byteCount = vertCount * 4 * sizeof(float);
+        if (sprites.empty()) {
+            return;
+        }
 
-        glEnable(GL_BLEND);
-        glUseProgram(progTex_);
+        // Safety: Handle large batches by splitting
+        const size_t MAX_SPRITES_PER_BATCH = 1000;
+        if (sprites.size() > MAX_SPRITES_PER_BATCH) {
+            // Draw in chunks
+            for (size_t i = 0; i < sprites.size(); i += MAX_SPRITES_PER_BATCH) {
+                size_t end = std::min(i + MAX_SPRITES_PER_BATCH, sprites.size());
+                std::vector<BatchedSprite> chunk(sprites.begin() + i, sprites.begin() + end);
+                drawSpriteBatchChunk(tex, chunk);
+            }
+        }
+        else {
+            drawSpriteBatchChunk(tex, sprites);
+        }
 
-        glBindVertexArray(vaoTex_);
-        glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
-
-        // NOTE: assumes the VBO was allocated large enough in Initialize()
-        glBufferSubData(GL_ARRAY_BUFFER, 0, byteCount, interleavedXYUV);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glUniform1i(g_uTexLoc_Tex, 0);
-
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertCount));
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
     }
 
-    // Friendly version: takes BatchedSprite array and builds the buffer
-    void Graphics::drawSpriteBatch(Texture tex, const std::vector<BatchedSprite>& sprites) {
-        if (sprites.empty()) return;
+    void Graphics::drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites) {
 
         g_batchVerts.clear();
         g_batchVerts.reserve(sprites.size() * 6 * 4);
@@ -414,7 +439,6 @@ namespace Framework {
             Vector2D p2 = rot(hx, hy);
             Vector2D p3 = rot(-hx, hy);
 
-            // push 6 verts (two triangles) interleaved x,y,u,v
             g_batchVerts.insert(g_batchVerts.end(), {
                 p0.x, p0.y, s.minUV.x, s.minUV.y,
                 p1.x, p1.y, s.maxUV.x, s.minUV.y,
@@ -425,8 +449,66 @@ namespace Framework {
                 p3.x, p3.y, s.minUV.x, s.maxUV.y
                 });
         }
-
         drawSpriteBatchRaw(tex, g_batchVerts.data(), sprites.size());
+
+    }
+
+    void Graphics::drawSpriteBatchRaw(Texture tex, const float* interleavedXYUV, size_t spriteCount) {
+
+        if (!spriteCount || !interleavedXYUV) {
+            return;
+        }
+
+        const size_t vertCount = spriteCount * 6;
+        const size_t byteCount = vertCount * 4 * sizeof(float);
+
+        // === CRITICAL SAFETY CHECK ===
+        if (spriteCount > MAX_SPRITES_DEFAULT) {
+            return;
+        }
+
+
+        // Save state
+        GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+        GLint prevProgram;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &prevProgram);
+
+        if (!blendWasEnabled) {
+            glEnable(GL_BLEND);
+        }
+
+        glUseProgram(progTex_);
+        glBindVertexArray(vaoTex_);
+        glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
+
+
+        // Orphan buffer for better performance
+        glBufferData(GL_ARRAY_BUFFER, byteCount, nullptr, GL_DYNAMIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, byteCount, interleavedXYUV);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glUniform1i(g_uTexLoc_Tex, 0);
+
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertCount));
+
+        // Check for OpenGL errors
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR) {
+        }
+        else {
+        }
+
+        // Restore state
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        glUseProgram(prevProgram);
+
+        if (!blendWasEnabled) {
+            glDisable(GL_BLEND);
+        }
+
     }
 
     // =========================

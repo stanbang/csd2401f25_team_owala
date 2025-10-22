@@ -36,7 +36,6 @@ namespace Framework {
     // Sprite batching data structure
     // ------------------------------------------------------------------
     struct BatchedSprite {
-        Texture tex;        //!< Texture handle for grouping
         Vector2D topLeft;   //!< Top-left position in screen-space
         Vector2D size;      //!< Width/height in screen-space
         float rotation;     //!< Rotation in radians
@@ -99,6 +98,7 @@ namespace Framework {
          * \param spriteCount Number of sprites in the array.
          */
         void drawSpriteBatchRaw(Texture tex, const float* interleavedXYUV, size_t spriteCount);
+        void drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites);
 
         // -------- Text --------
         void drawText(Font& font, const std::string& text,

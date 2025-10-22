@@ -29,36 +29,32 @@
 namespace Framework {
 	inline Entity createFakePlayer(EntityStorage& entityStorage,
 		ResourceManager& rcm,
-		Vector2D halfSize,
+		Vector2D position,  // Position from grid
 		std::string textureKey) {
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> PosX_Distrib(-1.0f, 1.0f);
-		std::uniform_real_distribution<float> PosY_Distrib(-1.0f, 1.0f);
 
-		//Generate random scale/halfsize between 0.01 to 0.005
-		std::uniform_real_distribution<float> Scale_DistribX(0.005f, 0.1f);
-		std::uniform_real_distribution<float> Scale_DistribY(0.005f, 0.1f);
+		// Generate random size between 0.02 to 0.08 (visible but varied)
+		std::uniform_real_distribution<float> sizeDistrib(0.02f, 0.08f);
 
-		Vector2D randomPos = { PosY_Distrib(gen), PosX_Distrib(gen) };
-		Vector2D randomScale = { Scale_DistribX(gen), Scale_DistribX(gen) };
+		// Create random size
+		float randomSize = sizeDistrib(gen);
+		Vector2D randomScale = { randomSize, randomSize };
 
-		//Create an EntityManager to access entity creation APIs
+		// Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
 		(void)rcm; // suppress warning level
-		(void)halfSize; // suppress warning level
-		//Create a new entity with a unique ID
-		Entity fake_player = entityMgr.CreateEntity();
-		
-		entityMgr.AddComponent(fake_player, PlayerTag{});
-		
-		entityMgr.AddComponent(fake_player, Position{ randomPos });  // Start with rand Pos
-		
 
-		entityMgr.AddComponent(fake_player, TextureComponent{ textureKey , randomScale });
-		
-		//Return the entity ID of the fake player
+		// Create a new entity with a unique ID
+		Entity fake_player = entityMgr.CreateEntity();
+
+		entityMgr.AddComponent(fake_player, PlayerTag{});
+		entityMgr.AddComponent(fake_player, Position{ position });  // Use grid position
+		entityMgr.AddComponent(fake_player, TextureComponent{ textureKey, randomScale });
+		entityMgr.AddComponent(fake_player, ActiveTag{});  // Critical for rendering
+
+		// Return the entity ID of the fake player
 		return fake_player;
 	}
 

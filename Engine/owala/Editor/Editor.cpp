@@ -553,17 +553,31 @@ namespace Editor {
 
 
 		// --- Section for Spawning 2500 objects -----//
+// --- Section for Spawning 2500 objects -----//
 		ImGui::SeparatorText("Spawn 2500 Objects");
+		// In your Editor.cpp spawning section:
 		if (ImGui::Button("Create 2500 Objects")) {
-
 			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
-			
-			if (ecs) {
-				//  Loop 2500 times, creating 2500 player sprites for testing
-				for (int i = 0; i < 2500; ++i) {
 
-					Entity fake_player = createFakePlayer(*ecs, *rcm, { 0.01f, 0.01f }, "playerSprite_Idle");
+			if (ecs) {
+				// Create a grid of 2500 entities spread out
+				int gridSize = 50; // 50x50 grid = 2500 entities
+				float spacing = 0.1f; // Adjust this for proper spacing
+
+				for (int i = 0; i < 2500; ++i) {
+					// Calculate grid position
+					int row = i / gridSize;
+					int col = i % gridSize;
+
+					// Spread entities in a grid formation
+					Vector2D position = {
+						(col - gridSize / 2) * spacing,  // Center the grid around (0,0)
+						(row - gridSize / 2) * spacing
+					};
+
+					// FIX: Pass the calculated position, not halfSize
+					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 2500 objects" << std::endl;
