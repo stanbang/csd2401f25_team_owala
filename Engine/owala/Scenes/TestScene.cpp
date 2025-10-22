@@ -155,7 +155,7 @@ namespace TestScene {
 
 
         //set camera to follow player
-        //cameraSystem->SetFollowTarget(mainCamera, playerEntity, 3.0f);
+        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
 
 
         // SET THE CAMERA SYSTEM ON THE SPRITE RENDERER
