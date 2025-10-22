@@ -228,48 +228,54 @@ void AssetBrowser::RenderUI()
             const auto& asset = currentAssets_[i];
             ImGui::PushID(static_cast<int>(i));
 
-            ImTextureID texID = 0;
+            ImVec2 itemSize(100, 100);
 
-            // Only try to load preview for image files
-            if (!asset.isDirectory) {
+            if (asset.isDirectory)
+            {
+                std::string displayName = "[DIR] " + asset.name;
+                if (ImGui::Button(displayName.c_str(), itemSize))
+                {
+                    if (asset.name == "..")
+                        NavigateUp();
+                    else
+                        NavigateTo(asset.path);
+                }
+            }
+            else
+            {
                 std::string ext = asset.path.extension().string();
                 std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-                    try {
+                bool clicked = false;
+
+                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+                {
+                    try
+                    {
                         Texture& tex = resourceManager_->get<Texture>(asset.path.string());
-                        texID = (ImTextureID)(intptr_t)tex;
+                        clicked = ImGui::ImageButton(("asset_" + asset.name).c_str(), tex, itemSize, ImVec2(0, 1), ImVec2(1, 0));
                     }
-                    catch (const std::out_of_range&) {
-                        // Texture not loaded yet, try loading it
-                        if (resourceManager_->loadTexture(asset.path.string(), asset.path.string())) {
+                    catch (const std::out_of_range&)
+                    {
+                        if (resourceManager_->loadTexture(asset.path.string(), asset.path.string()))
+                        {
                             Texture& tex = resourceManager_->get<Texture>(asset.path.string());
-                            texID = (ImTextureID)(intptr_t)tex;
+                            clicked = ImGui::ImageButton(("asset_" + asset.name).c_str(), tex, itemSize, ImVec2(0, 1), ImVec2(1, 0));
                         }
                     }
                 }
-            }
 
-            ImVec2 itemSize(100, 100);
-
-            if (asset.isDirectory) {
-                ImGui::Button("[DIR]", itemSize);
-            }
-            else if (texID) {
-                ImGui::Image(texID, itemSize);
-            }
-            else {
-                ImGui::Button(asset.display.c_str(), itemSize);
-            }
-
-            // Handle clicks
-            if (ImGui::IsItemClicked()) {
-                if (asset.name == "..")
-                    NavigateUp();
-                else if (asset.isDirectory)
-                    NavigateTo(asset.path);
-                else
+                if (clicked)
+                {
                     Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
+                }
+                else if (!(ext == ".png" || ext == ".jpg" || ext == ".jpeg"))
+                {
+                    if (ImGui::Button(asset.display.c_str(), itemSize))
+                    {
+                        Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
+                    }
+                }
             }
 
             ImGui::PopID();
