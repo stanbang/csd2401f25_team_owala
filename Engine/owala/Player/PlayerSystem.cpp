@@ -59,7 +59,9 @@ namespace Framework {
                 // --- Jumping ---
                 if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
                     vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
-                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity });
+
+                    //messageBus
+                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity }); //empty cause currently theres nothign to pass and just for testing
                 }
 
                 // Animation State Handling

@@ -29,7 +29,8 @@ namespace Framework {
         // Optional: get a master channel group to control overall volume
         r = system_->getMasterChannelGroup(&masterGroup_);
         check(r, "System::getMasterChannelGroup");
-        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {
+        //MessageBus
+        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
             try {
                 FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>("jump");
                 this->play(jumpSound);

@@ -10,6 +10,15 @@ namespace Framework {
     // --------------------------------------------------------------
     // MessageBus: decouples communication between systems
     // --------------------------------------------------------------
+
+
+    //can use the jumpevent for example in gamemessages.h, PlayerSystem.cpp, AudioSystem.cpp
+    /* how to use
+    *   -   create a event(struct) in gamemessages.h, containing all the information needed
+    *   -   then decide a event that will trigger the publishing of the event (e.g. in PlayerSystem.cpp)
+    *   -   then choose which systems to subscribe to the event and collect all the necessary information from 
+            the struct, and what to do with the information (e.g. AudioSystem.cpp)
+    */
     class MessageBus {
     public:
         static MessageBus& Instance() {
@@ -17,7 +26,7 @@ namespace Framework {
             return instance;
         }
 
-        // Subscribe to a specific message type (e.g. CollisionEvent)
+        // Subscribe to a specific message type (e.g. PlayerJumpedEvent)
         template <typename T>
         void Subscribe(std::function<void(const T&)> callback) {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -40,9 +49,13 @@ namespace Framework {
 
     private:
         using AnyCallback = std::function<void(const void*)>;
+        /*
+        * std::type_index stores all the events created, then std::vector<AnyCallBack> stores all the systems that is subscribed to the event
+        */
         std::unordered_map<std::type_index, std::vector<AnyCallback>> subscribers_;
         std::mutex mutex_;
 
+        //std stuff
         MessageBus() = default;
         MessageBus(const MessageBus&) = delete;
         MessageBus& operator=(const MessageBus&) = delete;
