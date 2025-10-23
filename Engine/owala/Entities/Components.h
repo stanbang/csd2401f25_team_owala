@@ -35,18 +35,18 @@ namespace Framework{
 		Count // track the number of layers
 	};
 
-
-	/* Component to define which collision layer an entity belongs to. */
-	struct CollisionLayerComponent {
-		CollisionLayer layer = CollisionLayer::Default;
-	};
-
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
 		RUNNING,
 		JUMPING,
 		FALLING
+	};
+
+	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
+	struct EntityProperties {
+		std::string name = "Empty";
+		CollisionLayer layer = CollisionLayer::Default;
 	};
 
 	/*	Position component to store x and y 

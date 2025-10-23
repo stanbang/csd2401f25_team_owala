@@ -51,7 +51,6 @@ namespace {
 		case ComponentType::TriangleType:					return "Triangle";
 		case ComponentType::RigidBodyType:					return "RigidBody";
 		case ComponentType::AABBColliderType:				return "AABBCollider";
-		case ComponentType::CollisionLayerComponentType:    return "CollisionLayer";
 		case ComponentType::PlayerStateType:				return "PlayerState";
 		case ComponentType::RotationFlagType:				return "RotationFlag";
 		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
@@ -373,7 +372,7 @@ namespace Editor {
 	
 	void Editor::HandleDeletion() {
 		// Check if an entity is selected and if the Backspace key was just pressed
-		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Backspace)) {
+		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
 
 			// Tell the SceneManager to remove the entity
@@ -433,6 +432,7 @@ namespace Editor {
 
 		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
 		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
+		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
 		// --- Scene Info ---
 		if (!currentScene.IsValid()) {
@@ -446,14 +446,12 @@ namespace Editor {
 		    ImGui::Separator();
 
 			if (ImGui::Button("Create Empty")) {
-				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
 			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("Clone Selected Entity")) {
-				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
@@ -476,7 +474,7 @@ namespace Editor {
 				items.push_back(displayNames.back().c_str());
 
 				for (const Entity& entity : entitiesLoaded) {
-					std::string name = "Entity [" + std::to_string(entity) + "]";
+					std::string name = entityMgr.GetProperties(entity).name;
 					displayNames.push_back(name);
 					items.push_back(displayNames.back().c_str());
 				}
@@ -490,6 +488,9 @@ namespace Editor {
 					isEntitySelected_ = true;
 
 					ShowPlayerInspector();
+				}
+				else {
+					isEntitySelected_ = false;
 				}
 			}
 		}
@@ -604,11 +605,38 @@ namespace Editor {
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
-		static std::string entityName; // keep the string alive across frames
-		entityName = "Entity [" + std::to_string(selectedEntity) + "]";
+		std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
 		if (ImGui::CollapsingHeader("Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Text("Entity: %s", entityName.c_str());
+			char nameBuffer[128];
+			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
+
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
+				entityName = nameBuffer; // update ECS data when user edits
+			}
+
+			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
+
+			// Create a list of layer names for the dropdown
+			std::string layerLabels[static_cast<int>(CollisionLayer::Count)]{};
+			const char* layerNames[static_cast<int>(CollisionLayer::Count)]{};
+			for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
+				std::string label = std::to_string(i) + ": " + LayerToString(static_cast<CollisionLayer>(i));
+				layerLabels[i] = label;
+				layerNames[i] = layerLabels[i].c_str();
+			}
+
+			int currentLayer = static_cast<int>(entityLayer);
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("Layer");
+			ImGui::SameLine(); // adjust offset spacing
+			ImGui::SetNextItemWidth(150);
+			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+				// If a new item was selected, it updates the component's layer
+				// with the new value.
+				entityLayer = static_cast<CollisionLayer>(currentLayer);
+			}
 
 			// --- Component Section ---
 			if (ImGui::CollapsingHeader("Components")) {
@@ -786,27 +814,6 @@ namespace Editor {
 			ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
 			break;
 		}
-		case ComponentType::CollisionLayerComponentType: {
-			// Checks if the entity has the component
-			if (entityMgr.HasComponent(selectedEntity, CollisionLayerComponentType)) {
-				auto& layerComp = entityMgr.GetComponent<CollisionLayerComponent>(selectedEntity);
-
-				// Create a list of layer names for the dropdown
-				const char* layerNames[static_cast<int>(CollisionLayer::Count)];
-				for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
-					layerNames[i] = LayerToString(static_cast<CollisionLayer>(i));
-				}
-
-				int currentLayer = static_cast<int>(layerComp.layer);
-				if (ImGui::Combo("Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
-					// If a new item was selected, it updates the component's layer
-					// with the new value.
-					layerComp.layer = static_cast<CollisionLayer>(currentLayer);
-				}
-			}
-			break;
-		}
-
 		case ComponentType::PlayerStateType: {
 			PlayerState& pState = entityMgr.GetComponent<PlayerState>(selectedEntity);
 
