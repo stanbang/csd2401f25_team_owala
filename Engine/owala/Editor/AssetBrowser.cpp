@@ -1,6 +1,5 @@
 #pragma once
 #include "AssetBrowser.h"
-
 #include <imgui.h>
 #include "Logger.h"
 
@@ -197,7 +196,7 @@ void AssetBrowser::ShowFolderTree(const fs::path& path)
     }
 }
 
-void AssetBrowser::RenderUI()
+void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 {
     // --- Left: Folder Tree ---
     if (ImGui::Begin("Project Explorer"))
@@ -218,6 +217,45 @@ void AssetBrowser::RenderUI()
         ImGui::Separator();
 
         ImGui::BeginChild("AssetList", ImVec2(0, 0), true);
+        
+        if (!droppedFiles.empty() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow))
+        {
+            Logger::Get().Info(DebugType::Editor) << "Detected drop of " << droppedFiles.size() << " files." << std::endl;
+            bool filesCopied = false;
+            for (const auto& sourcePath : droppedFiles)
+            {
+                try
+                {
+                    // Only copy if it's a regular file
+                    if (fs::is_regular_file(sourcePath))
+                    {
+                        fs::path destinationPath = currentPath_ / sourcePath.filename();
+                        fs::copy(sourcePath, destinationPath, fs::copy_options::overwrite_existing);
+
+                        Logger::Get().Info(DebugType::Editor) << "Copied '" << sourcePath.string() << "' to '" << destinationPath.string() << "'" << std::endl;
+                        filesCopied = true;
+                    }
+                    else
+                    {
+                        Logger::Get().Info(DebugType::Editor) << "Skipping non-file drop: " << sourcePath.string() << std::endl;
+                    }
+                }
+                catch (const fs::filesystem_error& e)
+                {
+                    Logger::Get().Error(DebugType::Editor) << "Failed to copy file: " << e.what() << std::endl;
+                }
+            }
+
+            // If we successfully copied anything, refresh the asset list
+            if (filesCopied)
+            {
+                ScanDirectory(currentPath_);
+            }
+
+			// Clear the dropped files after processing
+            droppedFiles.clear();
+        }
+
         float availableWidth = ImGui::GetContentRegionAvail().x;
         float itemWidth = 120.0f;
         int columns = std::max(1, (int)(availableWidth / itemWidth));
@@ -348,48 +386,4 @@ void AssetBrowser::RenderAssetEditor()
     }
 
 	ImGui::End();
-}
-
-void AssetBrowser::AddDroppedFiles(const std::vector<std::filesystem::path>& paths)
-{
-    for (const auto& path : paths)
-    {
-        if (!fs::exists(path))
-            continue;
-
-        // Only accept files (optional: you can accept directories too)
-        if (fs::is_regular_file(path))
-        {
-            // Avoid duplicates
-            auto it = std::find_if(currentAssets_.begin(), currentAssets_.end(),
-                [&path](const AssetEntry& e) { return e.path == path; });
-            if (it == currentAssets_.end())
-            {
-                AssetEntry asset;
-                asset.path = fs::absolute(path);
-                asset.name = path.filename().string();
-                asset.display = asset.name;
-                asset.isDirectory = false;
-                currentAssets_.push_back(std::move(asset));
-            }
-        }
-    }
-
-    // Optional: sort after adding
-    std::sort(currentAssets_.begin(), currentAssets_.end(), [](const AssetEntry& a, const AssetEntry& b) {
-        if (a.isDirectory != b.isDirectory)
-            return a.isDirectory > b.isDirectory;
-        return a.name < b.name;
-        });
-}
-
-void AssetBrowser::ProcessQueuedFiles() {
-    constexpr size_t maxPerFrame = 5;
-    size_t count = std::min(maxPerFrame, queuedDroppedFiles.size());
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        AddDroppedFileInternal(queuedDroppedFiles[i]); // actual heavy processing
-    }
-    queuedDroppedFiles.erase(queuedDroppedFiles.begin(), queuedDroppedFiles.begin() + count);
 }

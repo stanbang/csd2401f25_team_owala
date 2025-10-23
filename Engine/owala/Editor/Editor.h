@@ -19,9 +19,13 @@
 #include "ISystem.h"
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "EntityStorage.h"
 #include "PlatformPrefab.h" // prefab header for creation
+#include "ResourceManager.h"
 #include "AssetBrowser.h"
+#include <GLFW/glfw3.h>
+#include <algorithm>
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -80,6 +84,10 @@ namespace Editor {
 		Entity selectedEntity_ = 0; // Store entity ID (no longer in use)
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
 
+		// Drag and Drop Support (Windows to Editor)
+		std::vector<std::filesystem::path> droppedFilePaths_;
+		static void DropCallback(GLFWwindow* window, int count, const char* paths[]);
+
 		// --- Private Helper Functions ---
 		
 		// Internal Checkers
@@ -107,12 +115,11 @@ namespace Editor {
 		void ShowLevelEditor();
 		void ShowPlayerInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
-		void ShowAssetBrowser();
+		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;
-		static std::vector<std::filesystem::path> g_droppedFiles;
 
 		/* Constructors */
 		// Editors should not be cloneable or assignable. Only 1 should ever exist on the engine.

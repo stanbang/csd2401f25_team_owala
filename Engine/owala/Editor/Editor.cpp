@@ -37,8 +37,6 @@
 
 #include "Fake_Player.h"
 
-std::vector<std::filesystem::path> Editor::Editor::g_droppedFiles;
-
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -110,16 +108,6 @@ namespace Editor {
 		}
 	}
 
-	void EditorDropCallback(GLFWwindow* window, int count, const char** paths)
-	{
-		Editor::g_droppedFiles.clear();
-		for (int i = 0; i < count; ++i)
-		{
-			Editor::g_droppedFiles.emplace_back(paths[i]);
-			std::printf("[Editor] Dropped file: %s\n", paths[i]);
-		}
-	}
-
 	// ----------------------------------------------------------------------------
 	// Initializes the Editor system
 	// Loads prefabs from file and sets up the ImGui context and backends.
@@ -151,7 +139,10 @@ namespace Editor {
 		ImGui_ImplOpenGL3_Init("#version 330");
 
 		GLFWwindow* window = gameManager_->GetSystems().win_->window();
-		glfwSetDropCallback(window, EditorDropCallback);
+
+		// GLFW Drag and Drop callback
+		glfwSetWindowUserPointer(window, this);
+		glfwSetDropCallback(window, Editor::DropCallback);
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
@@ -204,6 +195,20 @@ namespace Editor {
 		initialized = true;
 	}
 
+	// Drag and drop callback function
+	void Editor::DropCallback(GLFWwindow* window, int count, const char* paths[])
+	{
+		Editor* editor = static_cast<Editor*>(glfwGetWindowUserPointer(window));
+		if (editor)
+		{
+			editor->droppedFilePaths_.clear();
+			for (int i = 0; i < count; ++i)
+			{
+				editor->droppedFilePaths_.push_back(paths[i]);
+			}
+		}
+	}
+
 	void Editor::Update(float dt) {
 		deltatime = dt;
 
@@ -218,6 +223,15 @@ namespace Editor {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		// IMGui Cursor State
+		ImGuiIO& io = ImGui::GetIO();
+
+		// When ImGui needs to use the mouse, unlock cursor so you can actually click the window
+		if (io.WantCaptureMouse || io.WantSetMousePos)
+		{
+			gameManager_->GetSystems().input_->SetCursorLocked(false);
+		}
+
 		// --- Handle Editor Logic ---
 		HandleSpawning();  // Check if we should spawn a selected prefab
 		HandleSelection(); // Check if the user is clicking on an entity in the world
@@ -226,7 +240,7 @@ namespace Editor {
 
 		// --- RENDER PANELS ---
 		//Render Asset Browser
-		ShowAssetBrowser();
+		ShowAssetBrowser(droppedFilePaths_);
 		
 		// Render all editor UI panels
 
@@ -893,18 +907,8 @@ namespace Editor {
 		ImGui::Separator();
 	}
 
-	void Editor::ShowAssetBrowser() {
-		assetBrowser.RenderUI();
-
-		if (!Editor::g_droppedFiles.empty())
-		{
-			// Copy the vector locally, clear the global to allow next drops
-			auto filesToProcess = Editor::g_droppedFiles;
-			Editor::g_droppedFiles.clear();
-
-			// Push files to AssetBrowser's queue (non-blocking)
-			assetBrowser.QueueDroppedFiles(filesToProcess);
-		}
+	void Editor::ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles) {
+		assetBrowser.RenderUI(droppedFiles);
 	}
 
 	#pragma endregion

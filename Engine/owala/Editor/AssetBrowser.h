@@ -33,10 +33,8 @@ public:
     void NavigateTo(const fs::path& target);
     void NavigateUp();
     void ShowFolderTree(const fs::path& path);
-    void AddDroppedFiles(const std::vector<std::filesystem::path>& paths);
-    void ProcessQueuedFiles();
     // UI rendering function (takes ImGui's current state/context)
-    void RenderUI();
+    void RenderUI(std::vector<fs::path>& droppedFiles);
     void RenderAssetEditor();
 
     const std::vector<AssetEntry>& GetCurrentAssets() const { return currentAssets_; }
