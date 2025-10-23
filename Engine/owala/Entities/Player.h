@@ -57,7 +57,10 @@ namespace Framework {
 
 			entityMgr.AddComponent(player, AABBCollider{ halfSize });
 			//Assign the player to the Player collision layer.
-			entityMgr.AddComponent(player, CollisionLayerComponent{ CollisionLayer::Player });
+			EntityProperties& playerProperties = entityMgr.GetProperties(player);
+
+			playerProperties.name = "Player";
+			playerProperties.layer = CollisionLayer::Player;
 			entityMgr.AddComponent(player, PlayerState{}); //  Add the player state component
 			entityMgr.AddComponent(player, RotationFlag{}); // added rotation flag
 

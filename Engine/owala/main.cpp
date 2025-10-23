@@ -90,7 +90,7 @@ int main() {
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera); // Register all core systems to the GameManager
 
 	// Editor Registration
-	Editor::Editor* editor = new Editor::Editor(engine, *gm);
+	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
 	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.

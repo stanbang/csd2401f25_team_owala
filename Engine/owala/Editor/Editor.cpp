@@ -22,6 +22,7 @@
 #include "SceneManager.h"
 #include "CameraSystem.h"
 #include "Graphics.h"     // Include Graphics for drawing preview
+#include "AssetBrowser.h"
 
 // Debug
 #include "Logger.h"
@@ -52,7 +53,6 @@ namespace {
 		case ComponentType::TriangleType:					return "Triangle";
 		case ComponentType::RigidBodyType:					return "RigidBody";
 		case ComponentType::AABBColliderType:				return "AABBCollider";
-		case ComponentType::CollisionLayerComponentType:    return "CollisionLayer";
 		case ComponentType::PlayerStateType:				return "PlayerState";
 		case ComponentType::RotationFlagType:				return "RotationFlag";
 		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
@@ -87,24 +87,7 @@ namespace {
 
 namespace Editor {
 	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager)
-		: engine_(&engine),                   // Store engine pointer
-		gameManager_(&gameManager),         // Store game manager pointer
-		// --- Initialize system pointers by GETTING them FROM gameManager ---
-		cameraSystem_(gameManager_->GetSystems().camera_),
-		graphicsSystem_(gameManager_->GetSystems().gfx_),
-		resourceManager_(gameManager_->GetSystems().resourceManager_),
-		// --- Initialize other members ---
-		palettePrepared_(false) // Ensure this starts false
-		// No need to initialize paletteItems_ here, PreparePaletteItems does that
-	{
-		// Constructor body can be empty or contain other setup logic if needed
-		if (!cameraSystem_ || !graphicsSystem_ || !resourceManager_) {
-			// Add an immediate check and throw if any pointer is null AFTER initialization attempt
-			throw Framework::GameException(DebugType::Editor, "Failed to get required system pointers in Editor constructor!");
-		}
-		Framework::Logger::Get().Info(DebugType::Editor) << "Editor Constructor: System pointers initialized." << std::endl;
-	}; // End of constructor
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm) {};
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -166,7 +149,10 @@ namespace Editor {
 		ImGui_ImplGlfw_InitForOpenGL(gameManager_->GetSystems().win_->window(), true);
 		ImGui_ImplOpenGL3_Init("#version 330");
 
-		
+		// Init Asset Browser to root Engine directory
+		fs::path exePath = fs::current_path();
+		fs::path rootPath = fs::absolute(exePath / "../../"); //Moves out of Debug, then out of build, to reach Engine root
+		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
 		componentNames.clear();
@@ -308,7 +294,8 @@ namespace Editor {
 		}
 
 		// --- RENDER PANELS ---
-
+		//Render Asset Browser
+		ShowAssetBrowser();
 		
 		// Render all editor UI panels
 
@@ -745,7 +732,7 @@ namespace Editor {
 	
 	void Editor::HandleDeletion() {
 		// Check if an entity is selected and if the Backspace key was just pressed
-		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Backspace)) {
+		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
 
 			// Tell the SceneManager to remove the entity
@@ -805,6 +792,7 @@ namespace Editor {
 
 		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
 		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
+		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
 		// --- Scene Info ---
 		if (!currentScene.IsValid()) {
@@ -818,14 +806,12 @@ namespace Editor {
 		    ImGui::Separator();
 
 			if (ImGui::Button("Create Empty")) {
-				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
 			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("Clone Selected Entity")) {
-				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
@@ -855,7 +841,7 @@ namespace Editor {
 				items.push_back(displayNames.back().c_str());
 
 				for (const Entity& entity : entitiesLoaded) {
-					std::string name = "Entity [" + std::to_string(entity) + "]";
+					std::string name = entityMgr.GetProperties(entity).name;
 					displayNames.push_back(name);
 					items.push_back(displayNames.back().c_str());
 				}
@@ -869,6 +855,9 @@ namespace Editor {
 					isEntitySelected_ = true;
 
 					//ShowPlayerInspector();
+				}
+				else {
+					isEntitySelected_ = false;
 				}
 				else {
 					isEntitySelected_ = false;
@@ -901,17 +890,31 @@ namespace Editor {
 
 
 		// --- Section for Spawning 2500 objects -----//
+// --- Section for Spawning 2500 objects -----//
 		ImGui::SeparatorText("Spawn 2500 Objects");
+		// In your Editor.cpp spawning section:
 		if (ImGui::Button("Create 2500 Objects")) {
-
 			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
-			
-			if (ecs) {
-				//  Loop 2500 times, creating 2500 player sprites for testing
-				for (int i = 0; i < 2500; ++i) {
 
-					Entity fake_player = createFakePlayer(*ecs, *rcm, { 0.01f, 0.01f }, "playerSprite_Idle");
+			if (ecs) {
+				// Create a grid of 2500 entities spread out
+				int gridSize = 50; // 50x50 grid = 2500 entities
+				float spacing = 0.1f; // Adjust this for proper spacing
+
+				for (int i = 0; i < 2500; ++i) {
+					// Calculate grid position
+					int row = i / gridSize;
+					int col = i % gridSize;
+
+					// Spread entities in a grid formation
+					Vector2D position = {
+						(col - gridSize / 2) * spacing,  // Center the grid around (0,0)
+						(row - gridSize / 2) * spacing
+					};
+
+					// FIX: Pass the calculated position, not halfSize
+					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 2500 objects" << std::endl;
@@ -1028,11 +1031,38 @@ namespace Editor {
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
-		static std::string entityName; // keep the string alive across frames
-		entityName = "Entity [" + std::to_string(selectedEntity) + "]";
+		std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
 		if (ImGui::CollapsingHeader("Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Text("Entity: %s", entityName.c_str());
+			char nameBuffer[128];
+			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
+
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
+				entityName = nameBuffer; // update ECS data when user edits
+			}
+
+			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
+
+			// Create a list of layer names for the dropdown
+			std::string layerLabels[static_cast<int>(CollisionLayer::Count)]{};
+			const char* layerNames[static_cast<int>(CollisionLayer::Count)]{};
+			for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
+				std::string label = std::to_string(i) + ": " + LayerToString(static_cast<CollisionLayer>(i));
+				layerLabels[i] = label;
+				layerNames[i] = layerLabels[i].c_str();
+			}
+
+			int currentLayer = static_cast<int>(entityLayer);
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("Layer");
+			ImGui::SameLine(); // adjust offset spacing
+			ImGui::SetNextItemWidth(150);
+			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+				// If a new item was selected, it updates the component's layer
+				// with the new value.
+				entityLayer = static_cast<CollisionLayer>(currentLayer);
+			}
 
 			// --- Component Section ---
 			if (ImGui::CollapsingHeader("Components")) {
@@ -1210,27 +1240,6 @@ namespace Editor {
 			ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
 			break;
 		}
-		case ComponentType::CollisionLayerComponentType: {
-			// Checks if the entity has the component
-			if (entityMgr.HasComponent(selectedEntity, CollisionLayerComponentType)) {
-				auto& layerComp = entityMgr.GetComponent<CollisionLayerComponent>(selectedEntity);
-
-				// Create a list of layer names for the dropdown
-				const char* layerNames[static_cast<int>(CollisionLayer::Count)];
-				for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
-					layerNames[i] = LayerToString(static_cast<CollisionLayer>(i));
-				}
-
-				int currentLayer = static_cast<int>(layerComp.layer);
-				if (ImGui::Combo("Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
-					// If a new item was selected, it updates the component's layer
-					// with the new value.
-					layerComp.layer = static_cast<CollisionLayer>(currentLayer);
-				}
-			}
-			break;
-		}
-
 		case ComponentType::PlayerStateType: {
 			PlayerState& pState = entityMgr.GetComponent<PlayerState>(selectedEntity);
 
@@ -1371,7 +1380,10 @@ namespace Editor {
 		float snappedY = (static_cast<float>(gridY) * currentGridCellSize_) + (currentGridCellSize_ / 2.0f);
 		return { snappedX, snappedY };
 
-		
+	}
+	
+	void Editor::ShowAssetBrowser() {
+		assetBrowser.RenderUI();
 	}
 
 	#pragma endregion

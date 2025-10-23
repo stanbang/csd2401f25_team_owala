@@ -102,6 +102,7 @@ namespace TestScene {
         rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
         rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
         rcm_->loadSound("scream", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
+        rcm_->loadSound("jump", "Assets/Audio/jump.ogg", false, false);
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
@@ -154,7 +155,7 @@ namespace TestScene {
 
 
         //set camera to follow player
-        //cameraSystem->SetFollowTarget(mainCamera, playerEntity, 3.0f);
+        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
 
 
         // SET THE CAMERA SYSTEM ON THE SPRITE RENDERER

@@ -230,16 +230,16 @@ namespace Framework {
                 Entity e2 = *it_b;
 
                 // --- LAYER-BASED COLLISION CHECK ---
-                // If entities don't have layer components, skip them.
-                if (!entityMgr.HasComponent(e1, CollisionLayerComponentType) || !entityMgr.HasComponent(e2, CollisionLayerComponentType)) {
+                // If either entities is default layer, skip them.
+                if (entityMgr.GetProperties(e1).layer == CollisionLayer::Default|| entityMgr.GetProperties(e2).layer == CollisionLayer::Default) {
                     continue;
                 }
 
-                auto& layer1 = entityMgr.GetComponent<CollisionLayerComponent>(e1);
-                auto& layer2 = entityMgr.GetComponent<CollisionLayerComponent>(e2);
+                CollisionLayer& layer1 = entityMgr.GetProperties(e1).layer;
+                CollisionLayer& layer2 = entityMgr.GetProperties(e2).layer;
 
                 // Check the collision matrix. If they can't collide, skip to the next pair.
-                if (!collisionMatrix_[static_cast<size_t>(layer1.layer)][static_cast<size_t>(layer2.layer)]) {
+                if (!collisionMatrix_[static_cast<size_t>(layer1)][static_cast<size_t>(layer2)]) {
                     continue;
                 }
 

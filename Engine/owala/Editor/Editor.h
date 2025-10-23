@@ -28,6 +28,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "AssetBrowser.h"
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -37,6 +38,7 @@ namespace Framework {
 }
 
 namespace Editor {
+
 	struct EditorSettings {
 		bool showDebugInfo = true;
 		bool showLevelEditor = true;
@@ -68,7 +70,9 @@ namespace Editor {
 		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after GameManager
 		Framework::CameraSystem* cameraSystem_ = nullptr; // Pointer to camera systems for level editor
 		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
-		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to Resource Manager
+		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
+
+		AssetBrowser assetBrowser;
 
 		// --- Internal State ---
 		bool initialized = false;
@@ -171,6 +175,7 @@ namespace Editor {
 	    * @brief Loads textures and prepares palette items.
 		*/
 		void PreparePaletteItems();
+		void ShowAssetBrowser();
 
 	public:
 		bool isEnabled = true;
@@ -181,7 +186,7 @@ namespace Editor {
 		Editor(const Editor&) = delete;
 		Editor& operator=(const Editor&) = delete;
 
-		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager);
+		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm);
 
 		/**
 		 * @brief Initializes the Editor system.
