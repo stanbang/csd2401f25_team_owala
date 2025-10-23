@@ -220,13 +220,18 @@ namespace Editor {
 			ShowLevelEditor();
 		}
 
+		if (settings.showHierarchy) {
+			ShowHierarchy();
+		}
+
+		if (settings.showInspector) {
+			ShowInspector();
+		}
+
 		// Performance Profiler Window
 		if (settings.showDebugInfo) {
 			ShowPerformanceProfile();
 		}
-
-		
-		if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
 
 
 		// --- END IMGUI FRAME ---
@@ -443,7 +448,7 @@ namespace Editor {
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
 
 			// --- Entity Factory ---
-		    ImGui::Separator();
+			ImGui::Separator();
 
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
@@ -455,43 +460,6 @@ namespace Editor {
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
-			}
-
-			// --- Entity Inspector ---
-			ImGui::Separator();
-
-			if (entitiesLoaded.empty()) {
-				ImGui::TextDisabled("No Entities!");
-			}
-			else {
-				std::vector<std::string> displayNames;
-				std::vector<const char*> items;
-
-				displayNames.reserve(entitiesLoaded.size() + 1);
-				items.reserve(entitiesLoaded.size() + 1);
-
-				displayNames.push_back("");
-				items.push_back(displayNames.back().c_str());
-
-				for (const Entity& entity : entitiesLoaded) {
-					std::string name = entityMgr.GetProperties(entity).name;
-					displayNames.push_back(name);
-					items.push_back(displayNames.back().c_str());
-				}
-
-				if (ImGui::Combo("Entities", &selectedEntityIndex, items.data(), static_cast<int>(items.size()), 5)) {
-					selectedTagIndex = selectedComponentIndex = 0;
-				}
-
-				if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(entitiesLoaded.size() + 1))) {
-					ImGui::Separator();
-					isEntitySelected_ = true;
-
-					ShowPlayerInspector();
-				}
-				else {
-					isEntitySelected_ = false;
-				}
 			}
 		}
 
@@ -595,19 +563,56 @@ namespace Editor {
 		ImGui::End(); // End "Level Editor" window
 			
 	}
-		
 	
-	
-
-	void Editor::ShowPlayerInspector() {
+	void Editor::ShowHierarchy() {
 		using namespace Framework;
 
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 1500, 20), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 300), ImGuiCond_FirstUseEver);
+
+		ImGui::Begin("Hierarchy");
+
+		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
+
+		// --- Scene Info ---
+		if (!currentScene.IsValid()) {
+			ImGui::TextDisabled("No Scene Loaded!");
+			ImGui::End();
+			return;
+		}
+
+		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+		if (ImGui::BeginChild("Hierarchy List", ImVec2{ 0, 0 }, true)) {
+			int localWidgetID = 0;
+			for (const Entity entity : entitiesLoaded) {
+				std::string name = entityMgr.GetProperties(entity).name;
+				ImGui::PushID(localWidgetID++);
+				bool selected = ((selectedEntityIndex - 1) == entity);
+				if (ImGui::Selectable(name.c_str(), &selected)) {
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+		ImGui::End(); // Hierarchy End
+	}
 
-		std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
+	void Editor::ShowInspector() {
+		using namespace Framework;
 
-		if (ImGui::CollapsingHeader("Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 400, 20), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 100), ImGuiCond_FirstUseEver);
+
+		ImGui::Begin("Inspector");
+		if (isEntitySelected_) {
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+
+			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
+
 			char nameBuffer[128];
 			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
@@ -742,6 +747,8 @@ namespace Editor {
 				}
 			} // End Tags Section
 		}
+
+		ImGui::End(); // End Inspector window
 	}
 
 	void Editor::ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent) {

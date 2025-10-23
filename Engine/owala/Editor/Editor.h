@@ -34,6 +34,8 @@ namespace Editor {
 	struct EditorSettings {
 		bool showDebugInfo = true;
 		bool showLevelEditor = true;
+		bool showHierarchy = true;
+		bool showInspector = true;
 	};
 
 	// enum to represent the different types of objects we can create
@@ -105,7 +107,8 @@ namespace Editor {
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
-		void ShowPlayerInspector();
+		void ShowHierarchy();
+		void ShowInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
 		void ShowAssetBrowser();
 
