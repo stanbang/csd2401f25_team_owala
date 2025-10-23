@@ -226,11 +226,11 @@ namespace Editor {
 		// IMGui Cursor State
 		ImGuiIO& io = ImGui::GetIO();
 
-		// When ImGui needs to use the mouse, unlock cursor so you can actually click the window
-		if (io.WantCaptureMouse || io.WantSetMousePos)
-		{
-			gameManager_->GetSystems().input_->SetCursorLocked(false);
-		}
+		bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
+
+		// Always keep cursor unlocked while editor is active
+		gameManager_->GetSystems().input_->SetCursorLocked(false);
 
 		// --- Handle Editor Logic ---
 		HandleSpawning();  // Check if we should spawn a selected prefab
