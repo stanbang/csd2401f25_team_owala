@@ -3,7 +3,7 @@
 #include "Components.h"  // ? THIS IS CRITICAL - includes Camera struct
 #include <memory>
 #include "entity.h"
-
+#include "Components.h"
 
 namespace Framework {
     class EntityStorage;
@@ -31,6 +31,7 @@ namespace Framework {
         void SetFollowTarget(Entity cameraEntity, Entity targetEntity, float followSpeed = 5.0f);
 
     private:
+
         Camera& GetCamera(Entity cameraEntity);
 
         EntityStorage& ecs_;

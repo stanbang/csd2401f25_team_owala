@@ -21,10 +21,18 @@
 #include <string>
 #include "EntityStorage.h"
 #include "PlatformPrefab.h" // prefab header for creation
+#include "Graphics.h"
+#include "ResourceManager.h"
+
+// Imgui Dependencies
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 namespace Framework {
 	class GameManager; // Forward Declaration
 	class CoreEngine; // Forward Declaration
+	class CameraSystem;
 	struct SystemTime; // Forward Declaration
 }
 
@@ -43,12 +51,24 @@ namespace Editor {
 		ScalingPlatform
 	};
 
+	// NEW: Structure to hold info about a draggable prefab for the palette
+	struct DraggablePrefabInfo {
+		std::string name;
+		PrefabType type = PrefabType::None;
+		Framework::Texture textureID = 0; // OpenGL Texture ID
+		// tex coords(uses dearimgui vec struct)
+		ImVec2 uv0{ 0.0f, 0.0f }; 
+		ImVec2 uv1{ 1.0f, 1.0f }; 
+	};
+
 	class Editor : public Framework::ISystem {
 	private:
 		// --- System Pointers ---
 		Framework::CoreEngine* engine_ = nullptr; // Enforce that the Editor must be instantiated after engine
 		Framework::GameManager* gameManager_ = nullptr; // Enforce that the Editor must be instantiated after GameManager
-
+		Framework::CameraSystem* cameraSystem_ = nullptr; // Pointer to camera systems for level editor
+		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
+		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to Resource Manager
 
 		// --- Internal State ---
 		bool initialized = false;
@@ -69,14 +89,22 @@ namespace Editor {
 		int selectedTagIndex = 0;
 
 		// --- Tilemap Editor State ---
-		bool isTileEditorActive_ = false; // NEW: Flag to control tile editor mode
+		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
-		int gridWidth_ = 20;
-		int gridHeight_ = 20;
-		float gridCellSizeX_ = 0.1f;
-		float gridCellSizeY_ = 0.1f;
-		std::string selectedTilePrefabName_;
-		PrefabType selectedTileType_ = PrefabType::None;
+		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
+		float currentGridCellSize_ = 0.1f; // NEW: Effective cell size this frame
+		/*float gridCellSizeY_ = 0.1f;*/
+		/*std::string selectedTilePrefabName_;
+		PrefabType selectedTileType_ = PrefabType::None;*/
+
+		// NEW: Drag and Drop State
+		bool isDraggingPrefab_ = false;
+		DraggablePrefabInfo dragDropPayload_; // Holds info about the prefab being dragged
+		Vector2D dragDropPreviewPos_; // World position for preview rendering
+
+		// NEW: Palette Info storage
+		bool palettePrepared_ = false; // flag for storing palette items
+		std::vector<DraggablePrefabInfo> paletteItems_;
 
 		// Entity factory System members
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
@@ -99,9 +127,9 @@ namespace Editor {
 		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
 
 		/**
-		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
+		 * @brief Handles placing the dragged prefab when the mouse is released.
 		 */
-		void HandleTilePlacement();
+		void HandleDragDropPlacement(); // Renamed from HandleTilePlacement	
 
 
 		/**
@@ -131,6 +159,18 @@ namespace Editor {
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid();
 		Vector2D SnapToGrid(const Vector2D& worldPos);
+
+		// --- NEW Helper ---
+
+		 /**
+		 * @brief Renders a preview of the tile being dragged.
+		 */
+		void DrawDragDropPreview(); // NEW: Function to draw preview
+
+		/**
+	    * @brief Loads textures and prepares palette items.
+		*/
+		void PreparePaletteItems();
 
 	public:
 		bool isEnabled = true;
