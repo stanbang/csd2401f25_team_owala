@@ -1,5 +1,6 @@
 #pragma once
 #include "AssetBrowser.h"
+
 #include <imgui.h>
 #include "Logger.h"
 
@@ -347,4 +348,48 @@ void AssetBrowser::RenderAssetEditor()
     }
 
 	ImGui::End();
+}
+
+void AssetBrowser::AddDroppedFiles(const std::vector<std::filesystem::path>& paths)
+{
+    for (const auto& path : paths)
+    {
+        if (!fs::exists(path))
+            continue;
+
+        // Only accept files (optional: you can accept directories too)
+        if (fs::is_regular_file(path))
+        {
+            // Avoid duplicates
+            auto it = std::find_if(currentAssets_.begin(), currentAssets_.end(),
+                [&path](const AssetEntry& e) { return e.path == path; });
+            if (it == currentAssets_.end())
+            {
+                AssetEntry asset;
+                asset.path = fs::absolute(path);
+                asset.name = path.filename().string();
+                asset.display = asset.name;
+                asset.isDirectory = false;
+                currentAssets_.push_back(std::move(asset));
+            }
+        }
+    }
+
+    // Optional: sort after adding
+    std::sort(currentAssets_.begin(), currentAssets_.end(), [](const AssetEntry& a, const AssetEntry& b) {
+        if (a.isDirectory != b.isDirectory)
+            return a.isDirectory > b.isDirectory;
+        return a.name < b.name;
+        });
+}
+
+void AssetBrowser::ProcessQueuedFiles() {
+    constexpr size_t maxPerFrame = 5;
+    size_t count = std::min(maxPerFrame, queuedDroppedFiles.size());
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        AddDroppedFileInternal(queuedDroppedFiles[i]); // actual heavy processing
+    }
+    queuedDroppedFiles.erase(queuedDroppedFiles.begin(), queuedDroppedFiles.begin() + count);
 }

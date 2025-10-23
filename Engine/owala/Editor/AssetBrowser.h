@@ -4,6 +4,7 @@
 #include <string>
 #include <filesystem>
 #include "ResourceManager.h"
+#include <algorithm>
 
 namespace fs = std::filesystem;
 using namespace Framework;
@@ -32,7 +33,8 @@ public:
     void NavigateTo(const fs::path& target);
     void NavigateUp();
     void ShowFolderTree(const fs::path& path);
-
+    void AddDroppedFiles(const std::vector<std::filesystem::path>& paths);
+    void ProcessQueuedFiles();
     // UI rendering function (takes ImGui's current state/context)
     void RenderUI();
     void RenderAssetEditor();

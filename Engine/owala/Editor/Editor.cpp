@@ -37,6 +37,8 @@
 
 #include "Fake_Player.h"
 
+std::vector<std::filesystem::path> Editor::Editor::g_droppedFiles;
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -108,7 +110,16 @@ namespace Editor {
 		}
 	}
 
-	
+	void EditorDropCallback(GLFWwindow* window, int count, const char** paths)
+	{
+		Editor::g_droppedFiles.clear();
+		for (int i = 0; i < count; ++i)
+		{
+			Editor::g_droppedFiles.emplace_back(paths[i]);
+			std::printf("[Editor] Dropped file: %s\n", paths[i]);
+		}
+	}
+
 	// ----------------------------------------------------------------------------
 	// Initializes the Editor system
 	// Loads prefabs from file and sets up the ImGui context and backends.
@@ -138,6 +149,9 @@ namespace Editor {
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForOpenGL(gameManager_->GetSystems().win_->window(), true);
 		ImGui_ImplOpenGL3_Init("#version 330");
+
+		GLFWwindow* window = gameManager_->GetSystems().win_->window();
+		glfwSetDropCallback(window, EditorDropCallback);
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
@@ -881,6 +895,16 @@ namespace Editor {
 
 	void Editor::ShowAssetBrowser() {
 		assetBrowser.RenderUI();
+
+		if (!Editor::g_droppedFiles.empty())
+		{
+			// Copy the vector locally, clear the global to allow next drops
+			auto filesToProcess = Editor::g_droppedFiles;
+			Editor::g_droppedFiles.clear();
+
+			// Push files to AssetBrowser's queue (non-blocking)
+			assetBrowser.QueueDroppedFiles(filesToProcess);
+		}
 	}
 
 	#pragma endregion

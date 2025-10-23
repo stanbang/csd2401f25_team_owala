@@ -112,6 +112,7 @@ namespace Editor {
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;
+		static std::vector<std::filesystem::path> g_droppedFiles;
 
 		/* Constructors */
 		// Editors should not be cloneable or assignable. Only 1 should ever exist on the engine.
