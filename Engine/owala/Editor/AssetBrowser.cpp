@@ -1,7 +1,6 @@
 #pragma once
 #include "AssetBrowser.h"
 #include <imgui.h>
-#include <algorithm>
 #include "Logger.h"
 
 using namespace Framework;
@@ -267,12 +266,14 @@ void AssetBrowser::RenderUI()
 
                 if (clicked)
                 {
+                    selectedAsset_ = asset.path;
                     Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                 }
                 else if (!(ext == ".png" || ext == ".jpg" || ext == ".jpeg"))
                 {
                     if (ImGui::Button(asset.display.c_str(), itemSize))
                     {
+                        selectedAsset_ = asset.path;
                         Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                     }
                 }
@@ -286,4 +287,64 @@ void AssetBrowser::RenderUI()
         ImGui::EndChild();
     }
     ImGui::End();
+
+    RenderAssetEditor();
+}
+
+void AssetBrowser::RenderAssetEditor()
+{
+    if (ImGui::Begin("Asset Editor")) {
+        // If selected asset is not empty, aka something is selected
+        if (!selectedAsset_.empty()) {
+			ImGui::TextWrapped("Selected Asset: %s", selectedAsset_.string().c_str());
+            ImGui::Separator();
+            std::string ext = selectedAsset_.extension().string();
+			std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+            if (ImGui::Button("Reimport Asset", ImVec2(150, 30)))
+            {
+                Logger::Get().Info(DebugType::Editor) << "Reimporting asset: " << selectedAsset_.string() << std::endl;
+
+                try
+                {
+                    // Unload old texture if needed
+                    resourceManager_->unload<Texture>(selectedAsset_.string());
+
+                    // Reload texture
+                    if (resourceManager_->loadTexture(selectedAsset_.string(), selectedAsset_.string()))
+                    {
+                        Logger::Get().Info(DebugType::Editor) << "Reimport successful for: " << selectedAsset_.string() << std::endl;
+                    }
+                    else
+                    {
+                        Logger::Get().Error(DebugType::Editor) << "Reimport failed for: " << selectedAsset_.string() << std::endl;
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    Logger::Get().Error(DebugType::Editor) << "Reimport exception: " << e.what() << std::endl;
+                }
+            }
+
+			if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+				try {
+					Texture& tex = resourceManager_->get<Texture>(selectedAsset_.string());
+					ImGui::Image(tex, ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
+				}
+				catch (const std::out_of_range&) {
+					ImGui::Text("Image not loaded.");
+				}
+			}
+			else {
+				ImGui::Text("No preview available for this file type.");
+			}
+		}
+
+		else {
+			ImGui::Text("No asset selected.");
+        }
+
+    }
+
+	ImGui::End();
 }

@@ -35,6 +35,7 @@ public:
 
     // UI rendering function (takes ImGui's current state/context)
     void RenderUI();
+    void RenderAssetEditor();
 
     const std::vector<AssetEntry>& GetCurrentAssets() const { return currentAssets_; }
     const fs::path& GetCurrentPath() const { return currentPath_; }
@@ -42,6 +43,7 @@ public:
 private:
     fs::path rootPath_;
     fs::path currentPath_;
+	fs::path selectedAsset_;
     std::vector<AssetEntry> currentAssets_;
 	ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for loading icons
 };
