@@ -36,7 +36,7 @@ using namespace rapidjson;
 namespace Framework {
 	class FileIOSystem {
 		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH;
-
+	public:
 		static const Document ReadFile(const string& fileName) {
 			ifstream file(fileName);
 			if (!file) throw GameException(DebugType::FileIOSystem, "Could not open file: " + fileName);
@@ -69,7 +69,6 @@ namespace Framework {
 			}
 		}
 
-	public:
 		Vector2D LoadWindowConfig();
 		PlayerStats LoadPlayerStats();
 		AnimationInfo LoadAnimationInfo(std::string filepath);

@@ -11,7 +11,7 @@ namespace Framework {
     class EntitySerializer {
     private:
         // Main Serialization Logic
-        static void SerializeEntityInternal(Entity entity, EntityStorage& ecs, rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator);
+        static void SerializeEntityInternal(Entity entity, EntityStorage& ecs, rapidjson::Document& doc);
     public:
 
         /* Serialization APIs */

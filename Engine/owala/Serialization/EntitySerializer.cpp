@@ -1,5 +1,7 @@
 #include "EntitySerializer.h"
 #include "EntityManager.h"
+#include "FileUtility.h"
+#include "Logger.h"
 
 // Internal Helpers - Will move this and the Editor's version to a global utils file later.
 namespace {
@@ -63,24 +65,22 @@ namespace {
 }
 
 namespace Framework {
-	void EntitySerializer::SerializeEntityInternal(Entity entity, EntityStorage& ecs, rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator) {
-		outData.SetObject();
-		rapidjson::Document::AllocatorType& alloc = allocator;
-
+	void EntitySerializer::SerializeEntityInternal(Entity entity, EntityStorage& ecs, rapidjson::Document& doc) {
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 		EntityManager entityMgr(ecs);
 
 		// Entity Properties Serialization
 		EntityProperties& properties = entityMgr.GetProperties(entity);
-		outData.AddMember("name", rapidjson::StringRef(properties.name.c_str()), alloc);
-		outData.AddMember("layer", rapidjson::StringRef(LayerToString(properties.layer)), alloc);
+		doc.AddMember("name", rapidjson::StringRef(properties.name.c_str()), alloc);
+		doc.AddMember("layer", rapidjson::StringRef(LayerToString(properties.layer)), alloc);
 
-		rapidjson::Value componentList(rapidjson::kArrayType);
-
+		rapidjson::Value componentList(rapidjson::kObjectType);
+		
 		// Serialize PlayerStats Component
 		if (entityMgr.HasComponent(entity, ComponentType::PlayerStatsType)) {
 			PlayerStats& stats = entityMgr.GetComponent<PlayerStats>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
-			value.AddMember("movespeed", stats.moveSpeed, alloc);
+			value.AddMember("moveSpeed", stats.moveSpeed, alloc);
 			componentList.AddMember("PlayerStats", value, alloc);
 		}
 
@@ -101,5 +101,17 @@ namespace Framework {
 			value.AddMember("y", vel.Vel.y, alloc);
 			componentList.AddMember("Velocity", value, alloc);
 		}
+
+		doc.AddMember("components", componentList, alloc);
+	}
+
+	void EntitySerializer::SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath) {
+		rapidjson::Document doc;
+		doc.SetObject();
+
+		Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing entity to " << filepath << std::endl;
+		SerializeEntityInternal(entity, ecs, doc);
+		Logger::Get().Info(DebugType::EntitySeralizer) << "writing data to Data/" << filepath << std::endl;
+		FileIOSystem::WriteFileJson("Data/" + filepath, doc);
 	}
 }
