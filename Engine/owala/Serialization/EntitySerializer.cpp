@@ -103,6 +103,40 @@ namespace Framework {
 		}
 
 		doc.AddMember("components", componentList, alloc);
+
+		// Serialize Tags into an array
+		rapidjson::Value tagsList(rapidjson::kArrayType);
+
+		if (entityMgr.HasComponent(entity, ComponentType::PlayerTagType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::PlayerTagType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::PlatformTagType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::PlatformTagType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::BackgroundTagType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::BackgroundTagType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::EnemyTagType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::EnemyTagType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::SceneOwnedType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::PersistentTagType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::PersistentTagType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::ActiveTagType)) {
+			rapidjson::Value tagVal(ComponentToString(ComponentType::ActiveTagType).c_str(), alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+
+		doc.AddMember("tags", tagsList, alloc);
 	}
 
 	void EntitySerializer::SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath) {
