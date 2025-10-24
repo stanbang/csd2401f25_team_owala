@@ -22,6 +22,7 @@
 #include "EntityStorage.h"
 #include "PlatformPrefab.h" // prefab header for creation
 #include "AssetBrowser.h"
+#include <optional>
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -79,8 +80,8 @@ namespace Editor {
 		std::string selectedPrefabName_;
 
 		// --- Entity Selection & Deletion ---
-		Entity selectedEntity_ = 0; // Store entity ID (no longer in use)
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
+		std::optional<Entity> copiedEntity;
 
 		// --- Private Helper Functions ---
 		

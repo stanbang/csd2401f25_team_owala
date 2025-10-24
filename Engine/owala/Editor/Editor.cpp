@@ -567,8 +567,8 @@ namespace Editor {
 	void Editor::ShowHierarchy() {
 		using namespace Framework;
 
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 1500, 20), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 300), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 1500, 20), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 300), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Hierarchy");
 
@@ -583,19 +583,131 @@ namespace Editor {
 
 		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		if (ImGui::BeginChild("Hierarchy List", ImVec2{ 0, 0 }, true)) {
+		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
 			int localWidgetID = 0;
 			for (const Entity entity : entitiesLoaded) {
 				std::string name = entityMgr.GetProperties(entity).name;
 				ImGui::PushID(localWidgetID++);
 				bool selected = ((selectedEntityIndex - 1) == entity);
 				if (ImGui::Selectable(name.c_str(), &selected)) {
+					selectedTagIndex = selectedComponentIndex = 0;
 					selectedEntityIndex = entity + 1;
 					isEntitySelected_ = true;
 				}
 				ImGui::PopID();
+
+				// Allows right-click selection
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Selectable Context Menu
+				if (ImGui::BeginPopupContextItem()) {
+					// Copy
+					if (ImGui::MenuItem("Copy")) {
+						copiedEntity = entity;
+					}
+					// Paste
+					if (copiedEntity) {
+						if (ImGui::MenuItem("Paste")) {
+							Entity clonedEntity = entityMgr.CloneEntity(*copiedEntity);
+							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+						}
+					}
+					else {
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+						ImGui::Text("Paste");
+						ImGui::PopStyleColor(1);
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItem("Duplicate")) {
+						Entity clonedEntity = entityMgr.CloneEntity(entity);
+						SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+					}
+					if (ImGui::MenuItem("Delete")) {
+						SceneManager::GetInstance().RemoveEntityFromScene(entity);
+						if ((selectedEntityIndex - 1) == entity) {
+							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+							isEntitySelected_ = false;
+						}
+
+						// HARD CODED TO CLEAR COPY ATM. Once I incorporate clipboard based copying, then can remove this.
+						if (entity == copiedEntity) {
+							copiedEntity = std::nullopt;
+						}
+					}
+					ImGui::EndPopup();
+				}
+			}
+
+			// Child Window Context Menu
+			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+
+				// Paste
+				if (copiedEntity) {
+					if (ImGui::MenuItem("Paste")) {
+						Entity clonedEntity = entityMgr.CloneEntity(*copiedEntity);
+						SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+					}
+				}
+				else {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+					ImGui::Text("Paste");
+					ImGui::PopStyleColor(1);
+				}
+
+				ImGui::Separator();
+
+				// Prefabs
+				if (ImGui::BeginMenu("Prefabs")) {
+					// Platforms
+					if (ImGui::BeginMenu("Platforms")) {
+						for (const std::pair<std::string, PlatformPrefab>& pair : prefabSystem_.GetPlatformPrefabs()) {
+							if (ImGui::MenuItem(pair.first.c_str())) {
+								selectedPrefabType_ = PrefabType::Platform;
+								selectedPrefabName_ = pair.first;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					// Trap Platforms
+					if (ImGui::BeginMenu("Trap Platforms")) {
+						for (const std::pair<std::string, TrapPlatformPrefab>& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
+							if (ImGui::MenuItem(pair.first.c_str())) {
+								selectedPrefabType_ = PrefabType::TrapPlatform;
+								selectedPrefabName_ = pair.first;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					// Scaling Platforms
+					if (ImGui::BeginMenu("Scaling Platforms")) {
+						for (const std::pair<std::string, ScalingPlatformPrefab>& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
+							if (ImGui::MenuItem(pair.first.c_str())) {
+								selectedPrefabType_ = PrefabType::ScalingPlatform;
+								selectedPrefabName_ = pair.first;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					ImGui::EndMenu(); // End Prefabs Menu
+				}
+
+				ImGui::Separator();
+
+				// Create Empty Entity
+				if (ImGui::MenuItem("Create Empty")) {
+					Entity newEntity = entityMgr.CreateEntity();
+					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+				}
+				ImGui::EndPopup();
 			}
 		}
+
 		ImGui::EndChild();
 		ImGui::End(); // Hierarchy End
 	}
@@ -603,8 +715,8 @@ namespace Editor {
 	void Editor::ShowInspector() {
 		using namespace Framework;
 
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 400, 20), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 100), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 400, 20), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 100), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Inspector");
 		if (isEntitySelected_) {
