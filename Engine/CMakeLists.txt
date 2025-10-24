@@ -14,6 +14,7 @@ importDependencies()
 # Global compile flags and macros
 add_definitions(-DGLEW_STATIC)
 add_definitions(-DUSE_CSD3151_AUTOMATION=0) # Used for instructor's automation
+add_definitions(-DGLEW_NO_GLU) # Prevent GLU-related issues
 
 # List of external libraries (common for both builds)
 set(COMMON_LIBS

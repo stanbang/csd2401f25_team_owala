@@ -57,21 +57,19 @@ endmacro()
 
 # Macro to import glew
 macro(import_glew)
-    if(NOT TARGET glew_s)  # Guard to prevent multiple inclusion
-        include(FetchContent)
-
-        FetchContent_Declare(
-            glew
-            GIT_REPOSITORY https://github.com/omniavinco/glew-cmake.git
-            GIT_TAG master  # Or use a specific commit or tag if preferred
-        )
-
-        # Disable shared builds if needed
-        set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
-        FetchContent_MakeAvailable(glew)
-
-        # Optional: include directories if needed manually (though target_link_libraries handles it)
-        include_directories(${glew_SOURCE_DIR}/include)
+    if(NOT TARGET libglew_static)  # Guard to prevent multiple inclusion
+        # Set options for building GLEW
+        set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
+        set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+        set(glew-cmake_BUILD_STATIC ON CACHE BOOL "" FORCE)
+        set(ONLY_LIBS ON CACHE BOOL "" FORCE)
+        set(glew-cmake_BUILD_SINGLE_CONTEXT ON CACHE BOOL "" FORCE)
+        
+        # Add GLEW from local lib directory
+        add_subdirectory(${CMAKE_SOURCE_DIR}/lib/glew ${CMAKE_BINARY_DIR}/glew EXCLUDE_FROM_ALL)
+        
+        # Include GLEW headers
+        include_directories(${CMAKE_SOURCE_DIR}/lib/glew/include)
     endif()
 endmacro()
 
