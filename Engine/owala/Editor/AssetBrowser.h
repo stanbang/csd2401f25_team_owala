@@ -35,7 +35,10 @@ public:
     void ShowFolderTree(const fs::path& path);
     // UI rendering function (takes ImGui's current state/context)
     void RenderUI(std::vector<fs::path>& droppedFiles);
-    void RenderAssetEditor();
+    void RenderAssetEditor(std::vector<fs::path>& droppedFiles);
+
+    void HandleDroppedFiles(const std::vector<fs::path>& droppedFiles);
+    void HandleReplaceFile(const std::vector<fs::path>& droppedFiles);
 
     const std::vector<AssetEntry>& GetCurrentAssets() const { return currentAssets_; }
     const fs::path& GetCurrentPath() const { return currentPath_; }
@@ -46,4 +49,9 @@ private:
 	fs::path selectedAsset_;
     std::vector<AssetEntry> currentAssets_;
 	ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for loading icons
+
+	// Replacement mode variables
+    bool isReplaceModeActive_ = false;
+    fs::path replacementFilePath_;
+    bool showReplaceConfirmation_ = false;
 };
