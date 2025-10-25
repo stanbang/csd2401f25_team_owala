@@ -12,6 +12,8 @@ namespace Framework {
     private:
         // Main Serialization Logic
         static void SerializeEntityInternal(Entity entity, EntityStorage& ecs, rapidjson::Document& doc);
+        static void DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
+        static void DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
     public:
 
         /* Serialization APIs */
