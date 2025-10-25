@@ -87,7 +87,11 @@ namespace {
 
 namespace Editor {
 	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm) {};
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm), 
+		cameraSystem_(gameManager_->GetSystems().camera_), // for tile editor to work with camera
+		graphicsSystem_(gameManager_->GetSystems().gfx_) { // for drag drop and placing of prefabs
+		
+	};	
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -226,36 +230,6 @@ namespace Editor {
 		SanityCheck();
 
 		
-
-		Entity activeCamEntity = cameraSystem_->GetActiveCamera();
-		if (activeCamEntity != 0) {
-			try {
-				// Use EntityManager to get the Camera component
-				Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-				// Check if the entity actually has the camera component before getting it
-				if (entityMgr.HasComponent(activeCamEntity, Framework::CameraType)) {
-					const Framework::Camera& activeCam = entityMgr.GetComponent<Framework::Camera>(activeCamEntity);
-					// Ensure zoom doesn't go below a minimum to avoid huge grids
-					currentGridCellSize_ = baseGridCellSize_ / std::max(activeCam.zoom, 0.1f); // CHANGED: Inversely scale with zoom
-				}
-				else {
-					Framework::Logger::Get().Error(DebugType::Editor) << "Active camera entity " << activeCamEntity << " does not have a Camera component!" << std::endl;
-					currentGridCellSize_ = baseGridCellSize_; // Fallback
-				}
-			}
-			catch (const std::runtime_error& e) { // Catch potential errors from GetComponent
-				Framework::Logger::Get().Error(DebugType::Editor) << "Error getting camera component: " << e.what() << std::endl;
-				currentGridCellSize_ = baseGridCellSize_; // Fallback
-			}
-			catch (...) { // Catch any other unexpected exceptions
-				Framework::Logger::Get().Error(DebugType::Editor) << "Unknown error getting camera component for entity " << activeCamEntity << std::endl;
-				currentGridCellSize_ = baseGridCellSize_; // Fallback
-			}
-		}
-		else {
-			currentGridCellSize_ = baseGridCellSize_; // Fallback if no active camera
-		}
-
 		//  --- START THE IMGUI FRAME ---
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -446,7 +420,8 @@ namespace Editor {
 			<< "', Payload Type=" << static_cast<int>(dragDropPayload_.type) << std::endl;
 
 		// Check for existing tile (using current grid size for tolerance)
-		const float placementTolerance = currentGridCellSize_ * 0.1f;
+		const float placementTolerance = baseGridCellSize_ * 0.1f;
+
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
 			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
@@ -462,7 +437,7 @@ namespace Editor {
 		// Create new entity and add components manually to control size
 		Entity newEntity = entityMgr.CreateEntity();
 		// Use the dynamically calculated currentGridCellSize_ for square tiles
-		Vector2D tileHalfSize = { currentGridCellSize_ / 2.0f, currentGridCellSize_ / 2.0f };
+		Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
 
 		// Common components for all platforms
 		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
@@ -472,7 +447,9 @@ namespace Editor {
 		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f); // Set default mass
 		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
 		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-		entityMgr.AddComponent(newEntity, Framework::CollisionLayerComponent{ Framework::CollisionLayer::Platform });
+		//entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
+		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
+		
 
 		// Type-specific components using info from dragDropPayload_
 		std::string textureKey = "";
@@ -535,7 +512,7 @@ namespace Editor {
 		if (!textureKey.empty()) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Assigning Texture Key: '" << textureKey << "'" << std::endl;
 			// *** Get the calculated tileHalfSize we used for the collider ***
-			tileHalfSize = { currentGridCellSize_ / 2.0f, currentGridCellSize_ / 2.0f };
+			tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
 
 			// *** ADD TextureComponent HERE, INCLUDING the HalfSize ***
 			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize }); // Pass tileHalfSize here
@@ -566,13 +543,34 @@ namespace Editor {
 		// Get current mouse position and snap it
 		Vector2D worldMousePos = GetMouseWorldPosition();
 		dragDropPreviewPos_ = SnapToGrid(worldMousePos); // Store for potential placement
-
+		
 		// Get texture ID from the payload
 		Texture previewTextureID = dragDropPayload_.textureID;
 		if (previewTextureID == 0) return; // Don't draw if texture invalid
 
 		// Calculate size based on current grid cell size
-		Vector2D previewHalfSize = { currentGridCellSize_ / 2.0f, currentGridCellSize_ / 2.0f };
+		Vector2D previewHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
+		
+		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		if (activeCamera == 0) return; // No camera, can't draw
+
+		// Convert world center to screen center
+		Vector2D screenCenter = cameraSystem_->WorldToScreen(dragDropPreviewPos_, activeCamera);
+		
+		// Convert world corners to screen space to get screen-space size
+		Vector2D worldTopLeft = { dragDropPreviewPos_.x - previewHalfSize.x,
+								  dragDropPreviewPos_.y - previewHalfSize.y };
+		Vector2D worldBottomRight = { dragDropPreviewPos_.x + previewHalfSize.x,
+									  dragDropPreviewPos_.y + previewHalfSize.y };
+
+		Vector2D screenTopLeft = cameraSystem_->WorldToScreen(worldTopLeft, activeCamera);
+		Vector2D screenBottomRight = cameraSystem_->WorldToScreen(worldBottomRight, activeCamera);
+
+		// Calculate screen-space size
+		Vector2D screenSize = {
+			screenBottomRight.x - screenTopLeft.x,
+			screenBottomRight.y - screenTopLeft.y
+		};
 
 		// Draw using Graphics system's drawSprite
 		// Note: drawSprite currently doesn't support alpha tint easily.
@@ -582,13 +580,15 @@ namespace Editor {
 		try {
 			// Need a non-const Texture reference for drawSpriteEasy/drawSprite
 			Texture tempTexID = previewTextureID;
+
 			graphicsSystem_->drawSpriteEasy(tempTexID,
-				{ dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y }, // Top-left
-				{ previewHalfSize.x * 2.0f, previewHalfSize.y * 2.0f }, // Full size
-				0.0f, // Rotation
+				screenTopLeft,     // Top-left in NDC
+				screenSize,        // Size in NDC
+				0.0f,              // Rotation
 				{ dragDropPayload_.uv0.x, dragDropPayload_.uv0.y }, // min UV
 				{ dragDropPayload_.uv1.x, dragDropPayload_.uv1.y }  // max UV
 			);
+
 			// TODO: Add alpha blending specifically for the preview?
 			// graphicsSystem_->setAlphaBlend(true); // Ensure blending is on
 			// ... draw call ...
@@ -612,7 +612,7 @@ namespace Editor {
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
 		Entity entityToErase = 0;
-		const float eraseTolerance = currentGridCellSize_ * 0.1f;
+		const float eraseTolerance = baseGridCellSize_ * 0.1f;
 
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
@@ -855,9 +855,6 @@ namespace Editor {
 					isEntitySelected_ = true;
 
 					//ShowPlayerInspector();
-				}
-				else {
-					isEntitySelected_ = false;
 				}
 				else {
 					isEntitySelected_ = false;
@@ -1315,19 +1312,22 @@ namespace Editor {
 	void Editor::DrawEditorGrid() {
 		
 		auto* gfx = graphicsSystem_; // Use stored pointer
-		if (!gfx || !cameraSystem_ || currentGridCellSize_ <= 0.0f) return; // Added check for cell size
-
+		if (!gfx || !cameraSystem_ || baseGridCellSize_ <= 0.0f) return; // Added check for cell size
 		Framework::Color gridColor = { 0.5f, 0.5f, 0.5f, 0.3f }; // Semi-transparent grey
+
+		// Get active camera
+		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		if (activeCamera == 0) return;
 
 		// Get the current camera view bounds in world space
 		float viewLeft, viewRight, viewBottom, viewTop;
 		cameraSystem_->GetViewBounds(cameraSystem_->GetActiveCamera(), viewLeft, viewRight, viewBottom, viewTop);
 
 		// Calculate start/end grid lines based on view bounds and the SINGLE world-space cell size
-		float startX = std::floor(viewLeft / currentGridCellSize_) * currentGridCellSize_;
-		float startY = std::floor(viewBottom / currentGridCellSize_) * currentGridCellSize_;
-		float endX = std::ceil(viewRight / currentGridCellSize_) * currentGridCellSize_;
-		float endY = std::ceil(viewTop / currentGridCellSize_) * currentGridCellSize_;
+		float startX = std::floor(viewLeft / baseGridCellSize_) * baseGridCellSize_;
+		float startY = std::floor(viewBottom / baseGridCellSize_) * baseGridCellSize_;
+		float endX = std::ceil(viewRight / baseGridCellSize_) * baseGridCellSize_;
+		float endY = std::ceil(viewTop / baseGridCellSize_) * baseGridCellSize_;
 
 		// Determine the world coordinates of the first grid lines just INSIDE or AT the view bounds
 		// Align these start points precisely with the grid snapping logic.
@@ -1339,45 +1339,43 @@ namespace Editor {
 		//int startGridX = static_cast<int>(std::floor(viewLeft / currentGridCellSize_));
 		//int startGridY = static_cast<int>(std::floor(viewBottom / currentGridCellSize_));
 
-		//// The first vertical line coordinate >= viewLeft
-		//float firstVertLineX = static_cast<float>(startGridX) * currentGridCellSize_;
-		//if (firstVertLineX < viewLeft) { // Ensure it's within or past the left edge
-		//	firstVertLineX += currentGridCellSize_;
-		//}
-		//// The first horizontal line coordinate >= viewBottom
-		//float firstHorzLineY = static_cast<float>(startGridY) * currentGridCellSize_;
-		//if (firstHorzLineY < viewBottom) { // Ensure it's within or past the bottom edge
-		//	firstHorzLineY += currentGridCellSize_;
-		//}
+		// **FIX**: Transform view bounds to screen space for clamping lines
+		Vector2D screenViewBottomLeft = cameraSystem_->WorldToScreen({ viewLeft, viewBottom }, activeCamera);
+		Vector2D screenViewTopRight = cameraSystem_->WorldToScreen({ viewRight, viewTop }, activeCamera);
 
-		// Define a maximum number of lines to prevent infinite loops if something goes wrong
-		const int maxLinesPerAxis = 500; // Increased limit slightly
-		/*int linesDrawnX = 0;
-		int linesDrawnY = 0;*/
 
 		// Draw vertical lines (at positions x) from view bottom to view top
-		for (float x = startX; x <= endX + (currentGridCellSize_ * 0.5f); x += currentGridCellSize_) {
-			gfx->drawLine({ x, viewBottom }, { x, viewTop }, gridColor); // Correctly uses world coords
+		for (float x = startX; x <= endX + (baseGridCellSize_ * 0.5f); x += baseGridCellSize_) {
+			Vector2D worldStart = { x, viewBottom };
+			Vector2D worldEnd = { x, viewTop };
+
+			Vector2D screenStart = cameraSystem_->WorldToScreen(worldStart, activeCamera);
+			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
+
+			gfx->drawLine(screenStart, screenEnd, gridColor);
 		}
 
 		// Draw horizontal lines (at positions y) from view left to view right
-		for (float y = startY; y <= endY + (currentGridCellSize_ * 0.5f); y += currentGridCellSize_) {
-			gfx->drawLine({ viewLeft, y }, { viewRight, y }, gridColor); // Correctly uses world coords
+		for (float y = startY; y <= endY + (baseGridCellSize_ * 0.5f); y += baseGridCellSize_) {
+			Vector2D worldStart = { viewLeft, y };
+			Vector2D worldEnd = { viewRight, y };
+
+			Vector2D screenStart = cameraSystem_->WorldToScreen(worldStart, activeCamera);
+			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
+
+			gfx->drawLine(screenStart, screenEnd, gridColor);
 		}
 	}
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		if (currentGridCellSize_ <= 1e-6f) { // Use a small epsilon for zero check
-			Framework::Logger::Get().Error(DebugType::Editor) << "SnapToGrid error: currentGridCellSize_ is too small or negative." << std::endl;
-			return worldPos; // Return original position if grid size is invalid
-		}
+		
 
 		// Calculate index
-		int gridX = static_cast<int>(std::floor(worldPos.x / currentGridCellSize_));
-		int gridY = static_cast<int>(std::floor(worldPos.y / currentGridCellSize_));
+		int gridX = static_cast<int>(std::floor(worldPos.x  / baseGridCellSize_));
+		int gridY = static_cast<int>(std::floor(worldPos.y / baseGridCellSize_));
 		// Calculate center
-		float snappedX = (static_cast<float>(gridX) * currentGridCellSize_) + (currentGridCellSize_ / 2.0f);
-		float snappedY = (static_cast<float>(gridY) * currentGridCellSize_) + (currentGridCellSize_ / 2.0f);
+		float snappedX = (static_cast<float>(gridX) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
+		float snappedY = (static_cast<float>(gridY) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
 		return { snappedX, snappedY };
 
 	}

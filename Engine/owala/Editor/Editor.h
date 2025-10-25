@@ -96,7 +96,10 @@ namespace Editor {
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
 		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
-		float currentGridCellSize_ = 0.1f; // NEW: Effective cell size this frame
+		float baseGridCellSizeX_ = 0.1f;
+		float baseGridCellSizeY_ = 0.1f;
+
+		//float currentGridCellSize_ = 0.1f; // NEW: Effective cell size this frame
 		/*float gridCellSizeY_ = 0.1f;*/
 		/*std::string selectedTilePrefabName_;
 		PrefabType selectedTileType_ = PrefabType::None;*/
