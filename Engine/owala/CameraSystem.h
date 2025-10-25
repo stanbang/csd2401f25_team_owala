@@ -27,6 +27,8 @@ namespace Framework {
         Entity CreateCamera(const Vector2D& position = { 0.0f, 0.0f },
             Entity targetEntity = 0,
             bool isActive = false);
+
+        void SetAspectRatio(Entity cameraEntity, float aspectRatio); 
         void SetZoom(Entity cameraEntity, float zoom);
         void SetFollowTarget(Entity cameraEntity, Entity targetEntity, float followSpeed = 5.0f);
 

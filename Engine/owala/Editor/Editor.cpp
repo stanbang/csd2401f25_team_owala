@@ -284,7 +284,7 @@ namespace Editor {
 		}
 
 		
-		if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
+	//	if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
 
 		//  Show Tilemap Editor as a separate window if active
 		if (isTileEditorActive_) {
@@ -390,6 +390,13 @@ namespace Editor {
 			return { 0.0f, 0.0f }; // Return zero vector if systems are missing
 		}
 
+		// Get active camera
+		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		if (activeCamera == 0) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "No active camera in GetMouseWorldPosition" << std::endl;
+			return { 0.0f, 0.0f };
+		}
+
 		double mouseX, mouseY;
 		input->GetMousePos(&mouseX, &mouseY);
 
@@ -438,7 +445,7 @@ namespace Editor {
 		Entity newEntity = entityMgr.CreateEntity();
 		// Use the dynamically calculated currentGridCellSize_ for square tiles
 		Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
-
+		
 		// Common components for all platforms
 		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
 		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
@@ -879,6 +886,7 @@ namespace Editor {
 				isEntitySelected_ = false;
 				selectedEntityIndex = 0;
 			}
+			ShowPlayerInspector();
 		}
 		else {
 			ImGui::Text("Selected Entity: None");
@@ -1234,7 +1242,11 @@ namespace Editor {
 		case ComponentType::AABBColliderType: {
 			AABBCollider& col = entityMgr.GetComponent<AABBCollider>(selectedEntity);
 
-			ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
+			//ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f)); // Dim background
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f)); // Dim text
+			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::PopStyleColor(2); // Pop both colors
 			break;
 		}
 		case ComponentType::PlayerStateType: {
@@ -1315,9 +1327,16 @@ namespace Editor {
 		if (!gfx || !cameraSystem_ || baseGridCellSize_ <= 0.0f) return; // Added check for cell size
 		Framework::Color gridColor = { 0.5f, 0.5f, 0.5f, 0.3f }; // Semi-transparent grey
 
+		int width = gameManager_->GetSystems().win_->getWidth();
+		int height = gameManager_->GetSystems().win_->getHeight();
+		float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+
 		// Get active camera
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
 		if (activeCamera == 0) return;
+		if (activeCamera != 0) {
+			cameraSystem_->SetAspectRatio(activeCamera, aspectRatio);
+		}
 
 		// Get the current camera view bounds in world space
 		float viewLeft, viewRight, viewBottom, viewTop;
@@ -1353,6 +1372,7 @@ namespace Editor {
 			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
 
 			gfx->drawLine(screenStart, screenEnd, gridColor);
+			
 		}
 
 		// Draw horizontal lines (at positions y) from view left to view right
