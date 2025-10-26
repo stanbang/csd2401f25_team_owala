@@ -454,13 +454,13 @@ namespace Editor {
 		Framework::EntityManager entityMgr(*ecs);
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
-		// *** ADD Log for payload check ***
 		Framework::Logger::Get().Info(DebugType::Editor)
 			<< "HandleDragDropPlacement: Payload Name='" << dragDropPayload_.name
 			<< "', Payload Type=" << static_cast<int>(dragDropPayload_.type) << std::endl;
 
-		// Check for existing tile (using current grid size for tolerance)
-		const float placementTolerance = baseGridCellSize_ * 0.1f;
+		// FIX: Use prefab size for placement tolerance, not baseGridCellSize_
+		Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
+		const float placementTolerance = std::min(prefabSize.x, prefabSize.y) * 0.1f;
 
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
@@ -474,6 +474,7 @@ namespace Editor {
 			}
 		}
 
+		// ... rest of your function remains the same ...
 		// Create new entity and add components manually to control size
 		Entity newEntity = entityMgr.CreateEntity();
 		// Use prefab-defined size instead
@@ -503,7 +504,6 @@ namespace Editor {
 		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
 		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
 		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
-
 
 		// Type-specific components using info from dragDropPayload_
 		std::string textureKey = "";
@@ -565,9 +565,6 @@ namespace Editor {
 		// Assign the texture key
 		if (!textureKey.empty()) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Assigning Texture Key: '" << textureKey << "'" << std::endl;
-			// *** REMOVED: Don't override tileHalfSize with base grid size! ***
-			// tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f }; // DELETE THIS LINE
-
 			// *** ADD TextureComponent HERE, USING THE SAME tileHalfSize FROM PREFAB ***
 			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize }); // Pass tileHalfSize here
 
@@ -1491,10 +1488,6 @@ namespace Editor {
 		return { baseGridCellSize_, baseGridCellSize_ }; // Fallback
 	}
 
-
-
-
-	
 	void Editor::ShowAssetBrowser() {
 		assetBrowser.RenderUI();
 	}
