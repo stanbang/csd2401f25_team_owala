@@ -207,10 +207,8 @@ namespace Framework {
 			value.AddMember(rapidjson::StringRef(Serialization::MAX_SCALE), scalingPlatform.maxScale, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::ELAPSED_TIME), scalingPlatform.time, alloc);
 			rapidjson::Value transformMtx(rapidjson::kArrayType);
-			for (int i = 0; i < 3; ++i) {
-				for (int j = 0; j < 3; ++j) {
-					transformMtx.PushBack(transformMtx[i][j], alloc);
-				}
+			for (int i = 0; i < 9; ++i) {
+				transformMtx.PushBack(scalingPlatform.transformMatrix.m[i], alloc);
 			}
 			value.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_MATRIX), transformMtx, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::SCALING_PLATFORM_COMPONENT), value, alloc);
