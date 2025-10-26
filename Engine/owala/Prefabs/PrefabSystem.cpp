@@ -236,4 +236,183 @@ namespace Framework {
         return (it != prefabs_.end()) ? &it->second : nullptr;
     }
 
+
+    // ========== HELPER FUNCTIONS TO GET SPECIFIC TYPE PLATFORMS DATA ==========
+
+    PlatformPrefab PrefabSystem::ExtractPlatformData(const EntityPrefab& prefab) const {
+        PlatformPrefab result;
+
+        for (const auto& compData : prefab.components) {
+            if (compData.type == "TextureComponent" && compData.data.HasMember("textureID")) {
+                result.textureID = compData.data["textureID"].GetString();
+            }
+            if (compData.type == "RigidBody" && compData.data.HasMember("mass")) {
+                result.mass = compData.data["mass"].GetFloat();
+            }
+        }
+
+        return result;
+    }
+
+    TrapPlatformPrefab PrefabSystem::ExtractTrapPlatformData(const EntityPrefab& prefab) const {
+        TrapPlatformPrefab result;
+
+        for (const auto& compData : prefab.components) {
+            if (compData.type == "TextureComponent" && compData.data.HasMember("textureID")) {
+                result.textureID = compData.data["textureID"].GetString();
+            }
+            if (compData.type == "RigidBody" && compData.data.HasMember("mass")) {
+                result.mass = compData.data["mass"].GetFloat();
+            }
+            if (compData.type == "TrapPlatformComponent") {
+                if (compData.data.HasMember("fallSpeed"))
+                    result.fallSpeed = compData.data["fallSpeed"].GetFloat();
+                if (compData.data.HasMember("triggerDelay"))
+                    result.triggerDelay = compData.data["triggerDelay"].GetFloat();
+            }
+        }
+
+        return result;
+    }
+
+    ScalingPlatformPrefab PrefabSystem::ExtractScalingPlatformData(const EntityPrefab& prefab) const {
+        ScalingPlatformPrefab result;
+
+        for (const auto& compData : prefab.components) {
+            if (compData.type == "TextureComponent" && compData.data.HasMember("textureID")) {
+                result.textureID = compData.data["textureID"].GetString();
+            }
+            if (compData.type == "RigidBody" && compData.data.HasMember("mass")) {
+                result.mass = compData.data["mass"].GetFloat();
+            }
+            if (compData.type == "ScalingPlatformComponent") {
+                if (compData.data.HasMember("scaleSpeed"))
+                    result.scaleSpeed = compData.data["scaleSpeed"].GetFloat();
+                if (compData.data.HasMember("minScale"))
+                    result.minScale = compData.data["minScale"].GetFloat();
+                if (compData.data.HasMember("maxScale"))
+                    result.maxScale = compData.data["maxScale"].GetFloat();
+            }
+        }
+
+        return result;
+    }
+
+    std::unordered_map<std::string, PlatformPrefab> PrefabSystem::GetPlatformPrefabs() const {
+        std::unordered_map<std::string, PlatformPrefab> platforms;
+
+        for (const auto& pair : prefabs_) {
+            const EntityPrefab& prefab = pair.second;
+
+            // Check if it's a basic platform
+            bool hasTrap = false;
+            bool hasScaling = false;
+
+            for (const auto& compData : prefab.components) {
+                if (compData.type == "TrapPlatformComponent") hasTrap = true;
+                if (compData.type == "ScalingPlatformComponent") hasScaling = true;
+            }
+
+            if (!hasTrap && !hasScaling) {
+                platforms[pair.first] = ExtractPlatformData(prefab);
+            }
+        }
+
+        return platforms;
+    }
+
+    std::unordered_map<std::string, TrapPlatformPrefab> PrefabSystem::GetTrapPlatformPrefabs() const {
+        std::unordered_map<std::string, TrapPlatformPrefab> trapPlatforms;
+
+        for (const auto& pair : prefabs_) {
+            const EntityPrefab& prefab = pair.second;
+
+            // Check if it has TrapPlatformComponent
+            for (const auto& compData : prefab.components) {
+                if (compData.type == "TrapPlatformComponent") {
+                    trapPlatforms[pair.first] = ExtractTrapPlatformData(prefab);
+                    break;
+                }
+            }
+        }
+
+        return trapPlatforms;
+    }
+
+    std::unordered_map<std::string, ScalingPlatformPrefab> PrefabSystem::GetScalingPlatformPrefabs() const {
+        std::unordered_map<std::string, ScalingPlatformPrefab> scalingPlatforms;
+
+        for (const auto& pair : prefabs_) {
+            const EntityPrefab& prefab = pair.second;
+
+            // Check if it has ScalingPlatformComponent
+            for (const auto& compData : prefab.components) {
+                if (compData.type == "ScalingPlatformComponent") {
+                    scalingPlatforms[pair.first] = ExtractScalingPlatformData(prefab);
+                    break;
+                }
+            }
+        }
+
+        return scalingPlatforms;
+    }
+
+    const PlatformPrefab* PrefabSystem::GetPlatformPrefab(const std::string& name) const {
+        auto it = prefabs_.find(name);
+        if (it == prefabs_.end()) return nullptr;
+
+        const EntityPrefab& prefab = it->second;
+
+        bool hasTrap = false;
+        bool hasScaling = false;
+
+        for (const auto& compData : prefab.components) {
+            if (compData.type == "TrapPlatformComponent") hasTrap = true;
+            if (compData.type == "ScalingPlatformComponent") hasScaling = true;
+        }
+
+        if (hasTrap || hasScaling) return nullptr;
+
+        static PlatformPrefab result;
+        result = ExtractPlatformData(prefab);
+        return &result;
+    }
+
+    const TrapPlatformPrefab* PrefabSystem::GetTrapPlatformPrefab(const std::string& name) const {
+        auto it = prefabs_.find(name);
+        if (it == prefabs_.end()) return nullptr;
+
+        const EntityPrefab& prefab = it->second;
+
+        // Check if it has TrapPlatformComponent
+        for (const auto& compData : prefab.components) {
+            if (compData.type == "TrapPlatformComponent") {
+                static TrapPlatformPrefab result;
+                result = ExtractTrapPlatformData(prefab);
+                return &result;
+            }
+        }
+
+        return nullptr;
+    }
+
+    const ScalingPlatformPrefab* PrefabSystem::GetScalingPlatformPrefab(const std::string& name) const {
+        auto it = prefabs_.find(name);
+        if (it == prefabs_.end()) return nullptr;
+
+        const EntityPrefab& prefab = it->second;
+
+        // Check if it has ScalingPlatformComponent
+        for (const auto& compData : prefab.components) {
+            if (compData.type == "ScalingPlatformComponent") {
+                static ScalingPlatformPrefab result;
+                result = ExtractScalingPlatformData(prefab);
+                return &result;
+            }
+        }
+
+        return nullptr;
+    }
+
+
 } // namespace Framework
