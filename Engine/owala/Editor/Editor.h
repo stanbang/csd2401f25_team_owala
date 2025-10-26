@@ -32,6 +32,7 @@
 #include "AssetBrowser.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
+#include <optional>
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -45,6 +46,8 @@ namespace Editor {
 	struct EditorSettings {
 		bool showDebugInfo = true;
 		bool showLevelEditor = true;
+		bool showHierarchy = true;
+		bool showInspector = true;
 	};
 
 	// enum to represent the different types of objects we can create
@@ -122,8 +125,8 @@ namespace Editor {
 		std::string selectedPrefabName_;
 
 		// --- Entity Selection & Deletion ---
-		Entity selectedEntity_ = 0; // Store entity ID (no longer in use)
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
+		std::optional<std::string> entityClipboard;
 
 		// Drag and Drop Support (Windows to Editor)
 		std::vector<std::filesystem::path> droppedFilePaths_;
@@ -163,10 +166,15 @@ namespace Editor {
 		void HandleSelection();
 		void HandleDeletion();
 
+		/* Entity Copy & Pasting APIs */
+		void CopyEntityToClipboard(const Entity& entity);
+		void PasteEntityFromClipboard();
+
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
-		void ShowPlayerInspector();
+		void ShowHierarchy();
+		void ShowInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
 		void ShowTilemapEditor();
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);

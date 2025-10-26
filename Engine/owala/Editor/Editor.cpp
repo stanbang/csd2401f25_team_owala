@@ -39,6 +39,9 @@
 
 #include "Fake_Player.h"
 
+// Serialization
+#include "EntitySerializer.h"
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -311,13 +314,18 @@ namespace Editor {
 			ShowLevelEditor();
 		}
 
+		if (settings.showHierarchy) {
+			ShowHierarchy();
+		}
+
+		if (settings.showInspector) {
+			ShowInspector();
+		}
+
 		// Performance Profiler Window
 		if (settings.showDebugInfo) {
 			ShowPerformanceProfile();
 		}
-
-		
-	//	if (isEntitySelected_) ShowPlayerInspector(); // Show inspector if an entity is selected
 
 		//  Show Tilemap Editor as a separate window if active
 		if (isTileEditorActive_) {
@@ -785,6 +793,42 @@ namespace Editor {
 		}
 	}
 
+	void Editor::CopyEntityToClipboard(const Entity& entity) {
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value entityData(rapidjson::kObjectType);
+		EntitySerializer::SerializeEntity(entity, *ecs, entityData, alloc);
+		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+		entityClipboard = buffer.GetString();
+	}
+
+	void Editor::PasteEntityFromClipboard() {
+		// Check if there is an entity in the clipboard
+		if (!entityClipboard.has_value()) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "No entity in clipboard to paste!" << std::endl;
+			return;
+		}
+
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+
+		doc.Parse(entityClipboard->c_str());
+		if (doc.HasParseError()) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to parse entity data from clipboard!" << std::endl;
+			return;
+		}
+
+		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
+	}
+
 	#pragma region INTERNAL PANELS
 
 	void Editor::ShowPerformanceProfile() {
@@ -843,7 +887,7 @@ namespace Editor {
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
 
 			// --- Entity Factory ---
-		    ImGui::Separator();
+			ImGui::Separator();
 
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
@@ -864,42 +908,6 @@ namespace Editor {
 			if (ImGui::Button("Open Tilemap Editor")) {
 				isTileEditorActive_ = true;
 			}
-
-			ImGui::Separator();
-
-			if (entitiesLoaded.empty()) {
-				ImGui::TextDisabled("No Entities!");
-			}
-			else {
-				std::vector<std::string> displayNames;
-				std::vector<const char*> items;
-
-				displayNames.reserve(entitiesLoaded.size() + 1);
-				items.reserve(entitiesLoaded.size() + 1);
-
-				displayNames.push_back("");
-				items.push_back(displayNames.back().c_str());
-
-				for (const Entity& entity : entitiesLoaded) {
-					std::string name = entityMgr.GetProperties(entity).name;
-					displayNames.push_back(name);
-					items.push_back(displayNames.back().c_str());
-				}
-
-				if (ImGui::Combo("Entities", &selectedEntityIndex, items.data(), static_cast<int>(items.size()), 5)) {
-					selectedTagIndex = selectedComponentIndex = 0;
-				}
-
-				if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(entitiesLoaded.size() + 1))) {
-					ImGui::Separator();
-					isEntitySelected_ = true;
-
-					//ShowPlayerInspector();
-				}
-				else {
-					isEntitySelected_ = false;
-				}
-			}
 		}
 
 		// --- Global Controls ---
@@ -919,7 +927,6 @@ namespace Editor {
 				isEntitySelected_ = false;
 				selectedEntityIndex = 0;
 			}
-			ShowPlayerInspector();
 		}
 		else {
 			ImGui::Text("Selected Entity: None");
@@ -1062,16 +1069,160 @@ namespace Editor {
 		}
 	}
 	
-
-	void Editor::ShowPlayerInspector() {
+	void Editor::ShowHierarchy() {
 		using namespace Framework;
 
+		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 1500, 20), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 300), ImGuiCond_FirstUseEver);
+
+		ImGui::Begin("Hierarchy");
+
+		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
+
+		// --- Scene Info ---
+		if (!currentScene.IsValid()) {
+			ImGui::TextDisabled("No Scene Loaded!");
+			ImGui::End();
+			return;
+		}
+
+		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
+			int localWidgetID = 0;
+			for (const Entity entity : entitiesLoaded) {
+				std::string name = entityMgr.GetProperties(entity).name;
+				ImGui::PushID(localWidgetID++);
+				bool selected = ((selectedEntityIndex - 1) == entity);
+				if (ImGui::Selectable(name.c_str(), &selected)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+				ImGui::PopID();
 
-		std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
+				// Allows right-click selection
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
 
-		if (ImGui::CollapsingHeader("Inspector", ImGuiTreeNodeFlags_DefaultOpen)) {
+				// Selectable Context Menu
+				if (ImGui::BeginPopupContextItem()) {
+					// Copy
+					if (ImGui::MenuItem("Copy")) {
+						CopyEntityToClipboard(entity);
+					}
+					// Paste
+					if (entityClipboard) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
+						}
+					}
+					else {
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+						ImGui::Text("Paste");
+						ImGui::PopStyleColor(1);
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItem("Duplicate")) {
+						Entity clonedEntity = entityMgr.CloneEntity(entity);
+						SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+					}
+					if (ImGui::MenuItem("Delete")) {
+						SceneManager::GetInstance().RemoveEntityFromScene(entity);
+						if ((selectedEntityIndex - 1) == entity) {
+							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+							isEntitySelected_ = false;
+						}
+					}
+					ImGui::EndPopup();
+				}
+			}
+
+			// Child Window Context Menu
+			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+
+				// Paste
+				if (entityClipboard) {
+					if (ImGui::MenuItem("Paste")) {
+						PasteEntityFromClipboard();
+					}
+				}
+				else {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+					ImGui::Text("Paste");
+					ImGui::PopStyleColor(1);
+				}
+
+				ImGui::Separator();
+
+				// Prefabs
+				if (ImGui::BeginMenu("Prefabs")) {
+					// Platforms
+					if (ImGui::BeginMenu("Platforms")) {
+						for (const std::pair<std::string, PlatformPrefab>& pair : prefabSystem_.GetPlatformPrefabs()) {
+							if (ImGui::MenuItem(pair.first.c_str())) {
+								selectedPrefabType_ = PrefabType::Platform;
+								selectedPrefabName_ = pair.first;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					// Trap Platforms
+					if (ImGui::BeginMenu("Trap Platforms")) {
+						for (const std::pair<std::string, TrapPlatformPrefab>& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
+							if (ImGui::MenuItem(pair.first.c_str())) {
+								selectedPrefabType_ = PrefabType::TrapPlatform;
+								selectedPrefabName_ = pair.first;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					// Scaling Platforms
+					if (ImGui::BeginMenu("Scaling Platforms")) {
+						for (const std::pair<std::string, ScalingPlatformPrefab>& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
+							if (ImGui::MenuItem(pair.first.c_str())) {
+								selectedPrefabType_ = PrefabType::ScalingPlatform;
+								selectedPrefabName_ = pair.first;
+							}
+						}
+						ImGui::EndMenu();
+					}
+					ImGui::EndMenu(); // End Prefabs Menu
+				}
+
+				ImGui::Separator();
+
+				// Create Empty Entity
+				if (ImGui::MenuItem("Create Empty")) {
+					Entity newEntity = entityMgr.CreateEntity();
+					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+				}
+				ImGui::EndPopup();
+			}
+		}
+
+		ImGui::EndChild();
+		ImGui::End(); // Hierarchy End
+	}
+
+	void Editor::ShowInspector() {
+		using namespace Framework;
+
+		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 400, 20), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 100), ImGuiCond_FirstUseEver);
+
+		ImGui::Begin("Inspector");
+		if (isEntitySelected_) {
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+
+			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
+
 			char nameBuffer[128];
 			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
@@ -1206,6 +1357,8 @@ namespace Editor {
 				}
 			} // End Tags Section
 		}
+
+		ImGui::End(); // End Inspector window
 	}
 
 	void Editor::ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent) {

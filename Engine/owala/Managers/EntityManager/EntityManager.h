@@ -32,7 +32,7 @@ namespace Framework {
 		// Creates a new entity and returns its ID.
 		Entity CreateEntity();
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
-		Entity CloneEntity(Entity& entity);
+		Entity CloneEntity(const Entity& entity);
 
 		// Gets the property data of the specified entity.
 		EntityProperties& GetProperties(Entity entity);

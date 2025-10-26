@@ -29,6 +29,7 @@
 #include <TrapPlatformSystem.h>
 #include <ScalingPlatformSystem.h>
 #include "InputSystem.h"   // if you want toggles
+#include "EntitySerializer.h"
 #include <iostream>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -173,8 +174,7 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
-
-
+        EntitySerializer::SerializeEntityToFile(playerEntity, *ecs, "serializedPlayer.json");
 	}
 
 	void Update() {
