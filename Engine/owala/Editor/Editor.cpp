@@ -476,7 +476,6 @@ namespace Editor {
 
 		// Create new entity and add components manually to control size
 		Entity newEntity = entityMgr.CreateEntity();
-		// Use the dynamically calculated currentGridCellSize_ for square tiles
 		// Use prefab-defined size instead
 		Vector2D tileHalfSize;
 		if (dragDropPayload_.type == PrefabType::Platform) {
@@ -503,9 +502,8 @@ namespace Editor {
 		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f); // Set default mass
 		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
 		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-		//entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
 		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
-		
+
 
 		// Type-specific components using info from dragDropPayload_
 		std::string textureKey = "";
@@ -567,10 +565,10 @@ namespace Editor {
 		// Assign the texture key
 		if (!textureKey.empty()) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Assigning Texture Key: '" << textureKey << "'" << std::endl;
-			// *** Get the calculated tileHalfSize we used for the collider ***
-			tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
+			// *** REMOVED: Don't override tileHalfSize with base grid size! ***
+			// tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f }; // DELETE THIS LINE
 
-			// *** ADD TextureComponent HERE, INCLUDING the HalfSize ***
+			// *** ADD TextureComponent HERE, USING THE SAME tileHalfSize FROM PREFAB ***
 			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize }); // Pass tileHalfSize here
 
 			// Now add to scene
@@ -1421,20 +1419,81 @@ namespace Editor {
 		}
 	}
 
+	Vector2D Editor::SnapToGrid(const Vector2D& worldPos)
+	{
+		// If placing a prefab, use the prefab's actual size for snapping
+		if (isDraggingPrefab_ && dragDropPayload_.type != PrefabType::None &&
+			dragDropPayload_.type != PrefabType::Eraser) {
 
+			Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
+			Vector2D halfSize = { prefabSize.x / 2.0f, prefabSize.y / 2.0f };
 
-	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		
+			// Use the PREFAB SIZE for snapping, not baseGridCellSize_
+			// This ensures the prefab aligns with its own size grid
 
-		// Calculate index
-		int gridX = static_cast<int>(std::floor(worldPos.x  / baseGridCellSize_));
-		int gridY = static_cast<int>(std::floor(worldPos.y / baseGridCellSize_));
-		// Calculate center
-		float snappedX = (static_cast<float>(gridX) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
-		float snappedY = (static_cast<float>(gridY) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
+			// For X-axis: snap left edge using prefab width as grid size
+			float leftEdge = worldPos.x - halfSize.x;
+			float snappedLeftX = std::round(leftEdge / prefabSize.x) * prefabSize.x;
+			float snappedX = snappedLeftX + halfSize.x;
+
+			// For Y-axis: snap bottom edge using prefab height as grid size  
+			float bottomEdge = worldPos.y - halfSize.y;
+			float snappedBottomY = std::round(bottomEdge / prefabSize.y) * prefabSize.y;
+			float snappedY = snappedBottomY + halfSize.y;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "PrefabSize Snap - World: (" << worldPos.x << ", " << worldPos.y
+				<< ") -> Grid: (" << snappedX << ", " << snappedY
+				<< ") PrefabSize: (" << prefabSize.x << ", " << prefabSize.y << ")" << std::endl;
+
+			return { snappedX, snappedY };
+		}
+
+		// Default snapping for other cases (eraser) uses base grid size
+		float cell = baseGridCellSize_;
+		float snappedX = std::round(worldPos.x / cell) * cell;
+		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
-
 	}
+
+	float Editor::GetCurrentGridCellSize() const
+	{
+		// If we're dragging a prefab, use its size
+		if (isDraggingPrefab_ && dragDropPayload_.type != PrefabType::None &&
+			dragDropPayload_.type != PrefabType::Eraser) {
+
+			// Get size from the currently dragged prefab
+			Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
+			return std::max(prefabSize.x, prefabSize.y); // Use largest dimension
+		}
+
+		// Default to the base grid size
+		return baseGridCellSize_;
+	}
+	Vector2D Editor::GetPrefabSize(const std::string& name, PrefabType type) const
+	{
+		switch (type) {
+		case PrefabType::Platform:
+			if (const auto* prefab = prefabSystem_.GetPlatformPrefab(name))
+				return prefab->size;
+			break;
+		case PrefabType::TrapPlatform:
+			if (const auto* prefab = prefabSystem_.GetTrapPlatformPrefab(name))
+				return prefab->size;
+			break;
+		case PrefabType::ScalingPlatform:
+			if (const auto* prefab = prefabSystem_.GetScalingPlatformPrefab(name))
+				return prefab->size;
+			break;
+		default:
+			break;
+		}
+		return { baseGridCellSize_, baseGridCellSize_ }; // Fallback
+	}
+
+
+
+
 	
 	void Editor::ShowAssetBrowser() {
 		assetBrowser.RenderUI();

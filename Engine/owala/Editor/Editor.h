@@ -138,6 +138,8 @@ namespace Editor {
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid();
 		Vector2D SnapToGrid(const Vector2D& worldPos);
+		float GetCurrentGridCellSize() const;
+		Vector2D GetPrefabSize(const std::string& name, PrefabType type) const;
 
 		// --- NEW Helpers ---
 		void DrawDragDropPreview(); // Renders tile being dragged
