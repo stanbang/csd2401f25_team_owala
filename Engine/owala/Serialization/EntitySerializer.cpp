@@ -8,60 +8,11 @@
 namespace {
 	using namespace Framework;
 
-	std::string ComponentToString(ComponentType componentType) {
-		switch (componentType)
-		{
-		case ComponentType::PlayerStatsType:				return "PlayerStats";
-		case ComponentType::PositionType:					return "Position";
-		case ComponentType::VelocityType:					return "Velocity";
-		case ComponentType::AccelerationType:				return "Acceleration";
-		case ComponentType::TriangleType:					return "Triangle";
-		case ComponentType::RigidBodyType:					return "RigidBody";
-		case ComponentType::AABBColliderType:				return "AABBCollider";
-		case ComponentType::PlayerStateType:				return "PlayerState";
-		case ComponentType::RotationFlagType:				return "RotationFlag";
-		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
-		case ComponentType::ScalingPlatformComponentType:	return "ScalingPlatform";
-		case ComponentType::TextureComponentType:			return "Texture";
-		case ComponentType::AudioComponentType:				return "Audio";
-		case ComponentType::AnimationComponentType:			return "Animation";
-		case ComponentType::TextComponentType:				return "Text";
-		case ComponentType::PlayerTagType:					return "PlayerTag";
-		case ComponentType::PlatformTagType:				return "PlatformTag";
-		case ComponentType::BackgroundTagType:				return "BackgroundTag";
-		case ComponentType::EnemyTagType:					return "EnemyTag";
-		case ComponentType::SceneOwnedType:					return "SceneOwned";
-		case ComponentType::PersistentTagType:				return "PersistentTag";
-		case ComponentType::ActiveTagType:					return "ActiveTag";
-		default:											return "Unknown";
-		}
-	}
-
-	// Helper to convert a CollisionLayer enum to its string representation.
-	const char* LayerToString(CollisionLayer layer) {
-		switch (layer) {
-		case CollisionLayer::Default:   return "Default";
-		case CollisionLayer::Player:    return "Player";
-		case CollisionLayer::Platform:  return "Platform";
-		case CollisionLayer::Enemy:     return "Enemy";
-		case CollisionLayer::Trigger:   return "Trigger";
-		default:                        return "Invalid";
-		}
-	}
-
 	static void WriteVector2D(rapidjson::Value& parent, const char* name, const Vector2D& vec, rapidjson::Document::AllocatorType& alloc) {
 		rapidjson::Value obj(rapidjson::kObjectType);
 		obj.AddMember("x", vec.x, alloc);
 		obj.AddMember("y", vec.y, alloc);
 		parent.AddMember(rapidjson::StringRef(name), obj, alloc);
-	}
-
-	static Vector2D ReadVector2D(const rapidjson::Value& obj, const char* name) {
-		const rapidjson::Value& v = obj[name];
-		Vector2D vec;
-		vec.x = v["x"].GetFloat();
-		vec.y = v["y"].GetFloat();
-		return vec;
 	}
 }
 
@@ -323,6 +274,12 @@ namespace Framework {
 		doc.AddMember(rapidjson::StringRef(Serialization::TAGS), tagsList, alloc);
 	}
 
+	void EntitySerializer::SerializeEntity(Entity entity, EntityStorage& ecs, rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator) {
+		rapidjson::Document doc;
+		SerializeEntityInternal(entity, ecs, doc);
+		outData.CopyFrom(doc, allocator);
+	}
+
 	void EntitySerializer::SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath) {
 		rapidjson::Document doc;
 
@@ -499,7 +456,13 @@ namespace Framework {
 				trapPlatform.fallSpeed = trapData[Serialization::FALL_SPEED].GetFloat();
 			}
 			if (trapData.HasMember(Serialization::ORIGINAL_POSITION) && trapData[Serialization::ORIGINAL_POSITION].IsObject()) {
-				trapPlatform.originalPosition = ReadVector2D(trapData, Serialization::ORIGINAL_POSITION);
+				const rapidjson::Value& originalPosData = trapData[Serialization::ORIGINAL_POSITION];
+				if (originalPosData.HasMember(Serialization::VEC2_X) && originalPosData[Serialization::VEC2_X].IsFloat()) {
+					trapPlatform.originalPosition.x = originalPosData[Serialization::VEC2_X].GetFloat();
+				}
+				if (originalPosData.HasMember(Serialization::VEC2_Y) && originalPosData[Serialization::VEC2_Y].IsFloat()) {
+					trapPlatform.originalPosition.y = originalPosData[Serialization::VEC2_Y].GetFloat();
+				}
 			}
 			if (trapData.HasMember(Serialization::CURRENT_FALL_DISTANCE) && trapData[Serialization::CURRENT_FALL_DISTANCE].IsFloat()) {
 				trapPlatform.currentFallDistance = trapData[Serialization::CURRENT_FALL_DISTANCE].GetFloat();
@@ -513,7 +476,13 @@ namespace Framework {
 
 			ScalingPlatformComponent scalingPlatform;
 			if (scalingData.HasMember(Serialization::BASE_HALFSIZE) && scalingData[Serialization::BASE_HALFSIZE].IsObject()) {
-				scalingPlatform.baseHalfSize = ReadVector2D(scalingData, Serialization::BASE_HALFSIZE);
+				const rapidjson::Value& baseHalfSizeData = scalingData[Serialization::BASE_HALFSIZE];
+				if (baseHalfSizeData.HasMember(Serialization::VEC2_X) && baseHalfSizeData[Serialization::VEC2_X].IsFloat()) {
+					scalingPlatform.baseHalfSize.x = baseHalfSizeData[Serialization::VEC2_X].GetFloat();
+				}
+				if (baseHalfSizeData.HasMember(Serialization::VEC2_Y) && baseHalfSizeData[Serialization::VEC2_Y].IsFloat()) {
+					scalingPlatform.baseHalfSize.y = baseHalfSizeData[Serialization::VEC2_Y].GetFloat();
+				}
 			}
 			if (scalingData.HasMember(Serialization::CURRENT_SCALE) && scalingData[Serialization::CURRENT_SCALE].IsObject()) {
 				const rapidjson::Value& currentScaleData = scalingData[Serialization::CURRENT_SCALE];
@@ -548,7 +517,13 @@ namespace Framework {
 				textureComp.textureKey = texData[Serialization::TEXTURE_KEY].GetString();
 			}
 			if (texData.HasMember(Serialization::HALF_SIZE) && texData[Serialization::HALF_SIZE].IsObject()) {
-				textureComp.HalfSize = ReadVector2D(texData, Serialization::HALF_SIZE);
+				const rapidjson::Value& halfSizeData = texData[Serialization::HALF_SIZE];
+				if (halfSizeData.HasMember(Serialization::VEC2_X) && halfSizeData[Serialization::VEC2_X].IsFloat()) {
+					textureComp.HalfSize.x = halfSizeData[Serialization::VEC2_X].GetFloat();
+				}
+				if (halfSizeData.HasMember(Serialization::VEC2_Y) && halfSizeData[Serialization::VEC2_Y].IsFloat()) {
+					textureComp.HalfSize.y = halfSizeData[Serialization::VEC2_Y].GetFloat();
+				}
 			}
 			entityMgr.AddComponent<TextureComponent>(loadedEntity, textureComp);
 		}
@@ -633,10 +608,22 @@ namespace Framework {
 			const rapidjson::Value& cameraData = componentLists[Serialization::CAMERA_COMPONENT];
 			Camera cameraComp;
 			if (cameraData.HasMember(Serialization::POSITION) && cameraData[Serialization::POSITION].IsObject()) {
-				cameraComp.position = ReadVector2D(cameraData, Serialization::POSITION);
+				const rapidjson::Value& positionData = cameraData[Serialization::POSITION];
+				if (positionData.HasMember(Serialization::VEC2_X) && positionData[Serialization::VEC2_X].IsFloat()) {
+					cameraComp.position.x = positionData[Serialization::VEC2_X].GetFloat();
+				}
+				if (positionData.HasMember(Serialization::VEC2_Y) && positionData[Serialization::VEC2_Y].IsFloat()) {
+					cameraComp.position.y = positionData[Serialization::VEC2_Y].GetFloat();
+				}
 			}
 			if (cameraData.HasMember(Serialization::SIZE) && cameraData[Serialization::SIZE].IsObject()) {
-				cameraComp.size = ReadVector2D(cameraData, Serialization::SIZE);
+				const rapidjson::Value& sizeData = cameraData[Serialization::SIZE];
+				if (sizeData.HasMember(Serialization::WIDTH) && sizeData[Serialization::WIDTH].IsFloat()) {
+					cameraComp.size.x = sizeData[Serialization::WIDTH].GetFloat();
+				}
+				if (sizeData.HasMember(Serialization::HEIGHT) && sizeData[Serialization::HEIGHT].IsFloat()) {
+					cameraComp.size.y = sizeData[Serialization::HEIGHT].GetFloat();
+				}
 			}
 			if (cameraData.HasMember(Serialization::ZOOM) && cameraData[Serialization::ZOOM].IsFloat()) {
 				cameraComp.zoom = cameraData[Serialization::ZOOM].GetFloat();

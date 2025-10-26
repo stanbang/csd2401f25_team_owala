@@ -37,6 +37,9 @@
 
 #include "Fake_Player.h"
 
+// Serialization
+#include "EntitySerializer.h"
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -390,6 +393,42 @@ namespace Editor {
 		}
 	}
 
+	void Editor::CopyEntityToClipboard(const Entity& entity) {
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value entityData(rapidjson::kObjectType);
+		EntitySerializer::SerializeEntity(entity, *ecs, entityData, alloc);
+		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+		entityClipboard = buffer.GetString();
+	}
+
+	void Editor::PasteEntityFromClipboard() {
+		// Check if there is an entity in the clipboard
+		if (!entityClipboard.has_value()) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "No entity in clipboard to paste!" << std::endl;
+			return;
+		}
+
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+
+		doc.Parse(entityClipboard->c_str());
+		if (doc.HasParseError()) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to parse entity data from clipboard!" << std::endl;
+			return;
+		}
+
+		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
+	}
+
 	#pragma region INTERNAL PANELS
 
 	void Editor::ShowPerformanceProfile() {
@@ -607,13 +646,12 @@ namespace Editor {
 				if (ImGui::BeginPopupContextItem()) {
 					// Copy
 					if (ImGui::MenuItem("Copy")) {
-						copiedEntity = entity;
+						CopyEntityToClipboard(entity);
 					}
 					// Paste
-					if (copiedEntity) {
+					if (entityClipboard) {
 						if (ImGui::MenuItem("Paste")) {
-							Entity clonedEntity = entityMgr.CloneEntity(*copiedEntity);
-							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+							PasteEntityFromClipboard();
 						}
 					}
 					else {
@@ -634,11 +672,6 @@ namespace Editor {
 							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 							isEntitySelected_ = false;
 						}
-
-						// HARD CODED TO CLEAR COPY ATM. Once I incorporate clipboard based copying, then can remove this.
-						if (entity == copiedEntity) {
-							copiedEntity = std::nullopt;
-						}
 					}
 					ImGui::EndPopup();
 				}
@@ -648,10 +681,9 @@ namespace Editor {
 			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
 
 				// Paste
-				if (copiedEntity) {
+				if (entityClipboard) {
 					if (ImGui::MenuItem("Paste")) {
-						Entity clonedEntity = entityMgr.CloneEntity(*copiedEntity);
-						SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+						PasteEntityFromClipboard();
 					}
 				}
 				else {

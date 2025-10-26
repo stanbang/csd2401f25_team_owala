@@ -81,7 +81,7 @@ namespace Editor {
 
 		// --- Entity Selection & Deletion ---
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
-		std::optional<Entity> copiedEntity;
+		std::optional<std::string> entityClipboard;
 
 		// --- Private Helper Functions ---
 		
@@ -104,6 +104,10 @@ namespace Editor {
 		 */
 		void HandleSelection();
 		void HandleDeletion();
+
+		/* Entity Copy & Pasting APIs */
+		void CopyEntityToClipboard(const Entity& entity);
+		void PasteEntityFromClipboard();
 
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
