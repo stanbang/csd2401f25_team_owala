@@ -15,7 +15,7 @@ namespace Framework {
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
-            camera.size = { 2.0f * camera.zoom, 2.0f * camera.zoom };
+            camera.size = { 2.0f * camera.zoom * camera.aspectRatio, 2.0f * camera.zoom }; // use aspect ratio to maintain equivalent sizing
 
             if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, PositionType)) {
                 const auto& targetPos = entityMgr.GetComponent<Position>(camera.targetEntity).Pos;
@@ -99,6 +99,7 @@ namespace Framework {
         camera.position = position;
         camera.targetEntity = targetEntity;
         camera.isActive = isActive;
+        camera.aspectRatio = 16.0f / 9.0f; // Set default aspect ratio
 
         entityMgr.AddComponent(cameraEntity, camera);
 
@@ -107,6 +108,11 @@ namespace Framework {
         }
 
         return cameraEntity;
+    }
+
+    void CameraSystem::SetAspectRatio(Entity cameraEntity, float aspectRatio) {
+        Camera& camera = GetCamera(cameraEntity);
+        camera.aspectRatio = aspectRatio;
     }
 
     void CameraSystem::SetZoom(Entity cameraEntity, float zoom) {

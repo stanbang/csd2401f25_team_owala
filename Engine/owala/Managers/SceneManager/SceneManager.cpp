@@ -275,6 +275,7 @@ namespace Framework {
 		EntityManager entityMgr(*entityStorageRef_);
 		entityMgr.RemoveComponent(entity, SceneOwnedType);
 		entityMgr.RemoveComponent(entity, ActiveTagType);
+		
 		Logger::Get().Info(DebugType::SceneManager) << "Removed Entity[" << entity << "] from its Scene" << std::endl;
 	}
 

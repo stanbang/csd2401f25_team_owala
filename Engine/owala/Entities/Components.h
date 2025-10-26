@@ -101,6 +101,7 @@ namespace Framework{
 		Vector2D position = { 0.0f, 0.0f };  // World position camera is looking at
 		Vector2D size = { 2.0f, 2.0f };      // How much world space is visible (width, height)
 		float zoom = 1.0f;                 // Zoom level (1.0 = normal)
+		float aspectRatio = 16.0f / 9.0f; // Add this
 		uint32_t targetEntity = 0;        // Use uint32_t instead
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
