@@ -202,6 +202,17 @@ namespace Editor {
 		}
 
 		// --- Prepare Palette Items (Load Textures) ---
+		// --- Setup a dedicated Editor Camera ---
+		if (!editorCamera_ && cameraSystem_) {
+			// Create a camera independent from the game’s active one
+			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false);
+
+			// Optional: set an initial zoom (default 1.0f is fine)
+			cameraSystem_->SetZoom(editorCamera_, 1.0f);
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Editor camera created successfully (Entity ID: " << editorCamera_ << ")" << std::endl;
+		}
 
 		initialized = true;
 	}
@@ -281,6 +292,28 @@ namespace Editor {
 		// Performance Profiler Window
 		if (settings.showDebugInfo) {
 			ShowPerformanceProfile();
+		}
+
+		auto* input = gameManager_->GetSystems().input_;
+		if (!input || !cameraSystem_ || editorCamera_ == 0) return;
+
+		// Get camera reference
+		Entity activeCam = editorCamera_;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
+		if (input->KeyPressed(InputSystem::Key::Z)) {
+			Camera& camera = entityMgr.GetComponent<Camera>(activeCam);
+			cameraSystem_->SetZoom(activeCam, camera.zoom * 0.8f); // Zoom in
+		}
+
+		if (input->KeyPressed(InputSystem::Key::X)) {
+			Camera& camera = entityMgr.GetComponent<Camera>(activeCam);
+			cameraSystem_->SetZoom(activeCam, camera.zoom * 1.2f); // Zoom out
+		}
+
+		if (input->KeyPressed(InputSystem::Key::R)) {
+			cameraSystem_->SetZoom(activeCam, 1.0f); // Reset zoom
 		}
 
 		
@@ -391,7 +424,7 @@ namespace Editor {
 		}
 
 		// Get active camera
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		Entity activeCamera = editorCamera_ ? editorCamera_ : cameraSystem_->GetActiveCamera();
 		if (activeCamera == 0) {
 			Framework::Logger::Get().Error(DebugType::Editor) << "No active camera in GetMouseWorldPosition" << std::endl;
 			return { 0.0f, 0.0f };
@@ -444,8 +477,24 @@ namespace Editor {
 		// Create new entity and add components manually to control size
 		Entity newEntity = entityMgr.CreateEntity();
 		// Use the dynamically calculated currentGridCellSize_ for square tiles
-		Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
-		
+		// Use prefab-defined size instead
+		Vector2D tileHalfSize;
+		if (dragDropPayload_.type == PrefabType::Platform) {
+			const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
+			tileHalfSize = { prefab->size.x / 2.0f, prefab->size.y / 2.0f };
+		}
+		else if (dragDropPayload_.type == PrefabType::TrapPlatform) {
+			const auto* prefab = prefabSystem_.GetTrapPlatformPrefab(dragDropPayload_.name);
+			tileHalfSize = { prefab->size.x / 2.0f, prefab->size.y / 2.0f };
+		}
+		else if (dragDropPayload_.type == PrefabType::ScalingPlatform) {
+			const auto* prefab = prefabSystem_.GetScalingPlatformPrefab(dragDropPayload_.name);
+			tileHalfSize = { prefab->size.x / 2.0f, prefab->size.y / 2.0f };
+		}
+		else {
+			tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
+		}
+
 		// Common components for all platforms
 		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
 		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
@@ -1320,72 +1369,59 @@ namespace Editor {
 		}
 		ImGui::Separator();
 	}
-
 	void Editor::DrawEditorGrid() {
-		
-		auto* gfx = graphicsSystem_; // Use stored pointer
-		if (!gfx || !cameraSystem_ || baseGridCellSize_ <= 0.0f) return; // Added check for cell size
-		Framework::Color gridColor = { 0.5f, 0.5f, 0.5f, 0.3f }; // Semi-transparent grey
+		auto* gfx = graphicsSystem_;
+		if (!gfx || !cameraSystem_ || baseGridCellSize_ <= 0.0f) return;
 
-		int width = gameManager_->GetSystems().win_->getWidth();
-		int height = gameManager_->GetSystems().win_->getHeight();
-		float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+		Framework::Color gridColor = { 0.5f, 0.5f, 0.5f, 0.3f };
 
-		// Get active camera
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		Entity activeCamera = editorCamera_ ? editorCamera_ : cameraSystem_->GetActiveCamera();
 		if (activeCamera == 0) return;
-		if (activeCamera != 0) {
-			cameraSystem_->SetAspectRatio(activeCamera, aspectRatio);
+
+		// Get camera reference
+		const Framework::Camera& cam = cameraSystem_->GetCameraConst(activeCamera);
+		float aspect = static_cast<float>(gfx->getScreenWidth()) / static_cast<float>(gfx->getScreenHeight());
+
+		// Compute visible bounds in WORLD space
+		float viewHalfHeight = cam.zoom;
+		float viewHalfWidth = viewHalfHeight * aspect; // aspect = width / height
+		float viewLeft = cam.position.x - viewHalfWidth;
+		float viewRight = cam.position.x + viewHalfWidth;
+		float viewBottom = cam.position.y - viewHalfHeight;
+		float viewTop = cam.position.y + viewHalfHeight;
+
+		// Grid cell size (world-space units)
+		float cell = baseGridCellSize_;
+
+		float startX = std::floor(viewLeft / cell) * cell;
+		float endX = std::ceil(viewRight / cell) * cell;
+		float startY = std::floor(viewBottom / cell) * cell;
+		float endY = std::ceil(viewTop / cell) * cell;
+
+		// --- Convert world to NDC manually ---
+		auto WorldToNDC = [&](Vector2D world) -> Vector2D {
+			Vector2D view;
+			view.x = (world.x - cam.position.x) / viewHalfWidth;
+			view.y = (world.y - cam.position.y) / viewHalfHeight;
+			return view;
+			};
+
+		// --- Draw vertical lines ---
+		for (float x = startX; x <= endX; x += cell) {
+			Vector2D a = { x, viewBottom };
+			Vector2D b = { x, viewTop };
+			gfx->drawLine(WorldToNDC(a), WorldToNDC(b), gridColor);
 		}
 
-		// Get the current camera view bounds in world space
-		float viewLeft, viewRight, viewBottom, viewTop;
-		cameraSystem_->GetViewBounds(cameraSystem_->GetActiveCamera(), viewLeft, viewRight, viewBottom, viewTop);
-
-		// Calculate start/end grid lines based on view bounds and the SINGLE world-space cell size
-		float startX = std::floor(viewLeft / baseGridCellSize_) * baseGridCellSize_;
-		float startY = std::floor(viewBottom / baseGridCellSize_) * baseGridCellSize_;
-		float endX = std::ceil(viewRight / baseGridCellSize_) * baseGridCellSize_;
-		float endY = std::ceil(viewTop / baseGridCellSize_) * baseGridCellSize_;
-
-		// Determine the world coordinates of the first grid lines just INSIDE or AT the view bounds
-		// Align these start points precisely with the grid snapping logic.
-		// Find the snapped coordinate of the bottom-left corner, then adjust to find the first line.
-		//Vector2D snappedBottomLeft = SnapToGrid({ viewLeft, viewBottom });
-		// The first vertical line might be at snappedX - halfCell or snappedX + halfCell.
-		// We want the line closest to viewLeft but >= viewLeft.
-		// Calculate the index of the snapped cell, find the line coord.
-		//int startGridX = static_cast<int>(std::floor(viewLeft / currentGridCellSize_));
-		//int startGridY = static_cast<int>(std::floor(viewBottom / currentGridCellSize_));
-
-		// **FIX**: Transform view bounds to screen space for clamping lines
-		Vector2D screenViewBottomLeft = cameraSystem_->WorldToScreen({ viewLeft, viewBottom }, activeCamera);
-		Vector2D screenViewTopRight = cameraSystem_->WorldToScreen({ viewRight, viewTop }, activeCamera);
-
-
-		// Draw vertical lines (at positions x) from view bottom to view top
-		for (float x = startX; x <= endX + (baseGridCellSize_ * 0.5f); x += baseGridCellSize_) {
-			Vector2D worldStart = { x, viewBottom };
-			Vector2D worldEnd = { x, viewTop };
-
-			Vector2D screenStart = cameraSystem_->WorldToScreen(worldStart, activeCamera);
-			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
-
-			gfx->drawLine(screenStart, screenEnd, gridColor);
-			
-		}
-
-		// Draw horizontal lines (at positions y) from view left to view right
-		for (float y = startY; y <= endY + (baseGridCellSize_ * 0.5f); y += baseGridCellSize_) {
-			Vector2D worldStart = { viewLeft, y };
-			Vector2D worldEnd = { viewRight, y };
-
-			Vector2D screenStart = cameraSystem_->WorldToScreen(worldStart, activeCamera);
-			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
-
-			gfx->drawLine(screenStart, screenEnd, gridColor);
+		// --- Draw horizontal lines ---
+		for (float y = startY; y <= endY; y += cell) {
+			Vector2D a = { viewLeft, y };
+			Vector2D b = { viewRight, y };
+			gfx->drawLine(WorldToNDC(a), WorldToNDC(b), gridColor);
 		}
 	}
+
+
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
 		

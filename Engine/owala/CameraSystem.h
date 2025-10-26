@@ -1,9 +1,8 @@
 #pragma once
 #include "ISystem.h"
-#include "Components.h"  // ? THIS IS CRITICAL - includes Camera struct
+#include "Components.h"
 #include <memory>
 #include "entity.h"
-#include "Components.h"
 
 namespace Framework {
     class EntityStorage;
@@ -28,13 +27,15 @@ namespace Framework {
             Entity targetEntity = 0,
             bool isActive = false);
 
-        void SetAspectRatio(Entity cameraEntity, float aspectRatio); 
+        void SetAspectRatio(Entity cameraEntity, float aspectRatio);
         void SetZoom(Entity cameraEntity, float zoom);
         void SetFollowTarget(Entity cameraEntity, Entity targetEntity, float followSpeed = 5.0f);
 
-    private:
+        // ? NEW — read-only access for external systems like Editor
+        const Camera& GetCameraConst(Entity cameraEntity) const;
 
-        Camera& GetCamera(Entity cameraEntity);
+    private:
+        Camera& GetCamera(Entity cameraEntity);  // internal write-access
 
         EntityStorage& ecs_;
         Entity activeCamera_ = 0;

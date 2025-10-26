@@ -6,17 +6,18 @@
 
 namespace Framework {
 
-    CameraSystem::CameraSystem(EntityStorage& ecs) : ecs_(ecs) {
-        // Constructor
-    }
+    CameraSystem::CameraSystem(EntityStorage& ecs) : ecs_(ecs) {}
 
     void CameraSystem::Update(float dt) {
         EntityManager entityMgr(ecs_);
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
-            camera.size = { 2.0f * camera.zoom * camera.aspectRatio, 2.0f * camera.zoom }; // use aspect ratio to maintain equivalent sizing
 
+            // Camera size depends only on zoom (aspect-free)
+            camera.size = { 2.0f * camera.zoom, 2.0f * camera.zoom };
+
+            // Follow target logic (unchanged)
             if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, PositionType)) {
                 const auto& targetPos = entityMgr.GetComponent<Position>(camera.targetEntity).Pos;
 
@@ -31,13 +32,14 @@ namespace Framework {
             }
         }
     }
+
     Vector2D CameraSystem::WorldToScreen(const Vector2D& worldPos, Entity cameraEntity) {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D screenPos;
 
-        // Only transform position, don't affect size
-        screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f * camera.zoom);
-        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f * camera.zoom);
+        // Convert world ? normalized screen coordinates
+        screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f);
+        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f);
 
         return screenPos;
     }
@@ -45,8 +47,10 @@ namespace Framework {
     Vector2D CameraSystem::ScreenToWorld(const Vector2D& screenPos, Entity cameraEntity) {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D worldPos;
+
         worldPos.x = camera.position.x + (screenPos.x * camera.size.x * 0.5f);
         worldPos.y = camera.position.y + (screenPos.y * camera.size.y * 0.5f);
+
         return worldPos;
     }
 
@@ -71,22 +75,21 @@ namespace Framework {
     }
 
     void CameraSystem::GetViewBounds(Entity camera, float& left, float& right, float& bottom, float& top) {
-        EntityManager entityMgr(ecs_); // FIX: Create EntityManager instance
+        EntityManager entityMgr(ecs_);
 
         if (entityMgr.HasComponent(camera, CameraType)) {
-            Camera& cam = entityMgr.GetComponent<Camera>(camera); // FIX: Properly initialize cam
+            Camera& cam = entityMgr.GetComponent<Camera>(camera);
 
-            // Account for zoom in view bounds calculation
-            float zoomedWidth = cam.size.x * cam.zoom;
-            float zoomedHeight = cam.size.y * cam.zoom;
+            // Simplified aspect-free bounds
+            float halfWidth = cam.size.x * 0.5f;
+            float halfHeight = cam.size.y * 0.5f;
 
-            left = cam.position.x - zoomedWidth * 0.5f;
-            right = cam.position.x + zoomedWidth * 0.5f;
-            bottom = cam.position.y - zoomedHeight * 0.5f;
-            top = cam.position.y + zoomedHeight * 0.5f;
+            left = cam.position.x - halfWidth;
+            right = cam.position.x + halfWidth;
+            bottom = cam.position.y - halfHeight;
+            top = cam.position.y + halfHeight;
         }
         else {
-            // Default bounds if camera not found
             left = -1.0f; right = 1.0f; bottom = -1.0f; top = 1.0f;
         }
     }
@@ -99,7 +102,9 @@ namespace Framework {
         camera.position = position;
         camera.targetEntity = targetEntity;
         camera.isActive = isActive;
-        camera.aspectRatio = 16.0f / 9.0f; // Set default aspect ratio
+
+        // REMOVE: aspectRatio no longer used
+        // camera.aspectRatio = 16.0f / 9.0f;
 
         entityMgr.AddComponent(cameraEntity, camera);
 
@@ -108,11 +113,6 @@ namespace Framework {
         }
 
         return cameraEntity;
-    }
-
-    void CameraSystem::SetAspectRatio(Entity cameraEntity, float aspectRatio) {
-        Camera& camera = GetCamera(cameraEntity);
-        camera.aspectRatio = aspectRatio;
     }
 
     void CameraSystem::SetZoom(Entity cameraEntity, float zoom) {
@@ -125,17 +125,25 @@ namespace Framework {
         camera.targetEntity = targetEntity;
         camera.followSpeed = followSpeed;
     }
+    const Camera& CameraSystem::GetCameraConst(Entity cameraEntity) const {
+        EntityManager entityMgr(ecs_);
+
+        Entity camEntity = cameraEntity ? cameraEntity : activeCamera_;
+        if (camEntity == 0 || !entityMgr.HasComponent(camEntity, CameraType)) {
+            throw std::runtime_error("CameraSystem::GetCameraConst - Camera entity not found or invalid");
+        }
+
+        return entityMgr.GetComponent<Camera>(camEntity);
+    }
 
     Camera& CameraSystem::GetCamera(Entity cameraEntity) {
         EntityManager entityMgr(ecs_);
 
-        if (cameraEntity == 0) {
+        if (cameraEntity == 0)
             cameraEntity = activeCamera_;
-        }
 
-        if (cameraEntity == 0 || !entityMgr.HasComponent(cameraEntity, CameraType)) {
+        if (cameraEntity == 0 || !entityMgr.HasComponent(cameraEntity, CameraType))
             throw std::runtime_error("CameraSystem: Camera not found");
-        }
 
         return entityMgr.GetComponent<Camera>(cameraEntity);
     }
