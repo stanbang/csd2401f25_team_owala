@@ -34,6 +34,9 @@ namespace Framework {
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
 		Entity CloneEntity(Entity& entity);
 
+		// Gets the property data of the specified entity.
+		EntityProperties& GetProperties(Entity entity);
+
 		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
 		bool HasComponent(Entity entity, ComponentType componentType) const;
 		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
@@ -50,7 +53,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
 			else if constexpr (std::is_same_v<T, RigidBody>) ecs.rigidBody[entity] = component;
 			else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
-			else if constexpr (std::is_same_v<T, CollisionLayerComponent>) ecs.collisionLayer[entity] = component;
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
@@ -92,7 +94,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
 			else if constexpr (std::is_same_v<T, RigidBody>) return ecs.rigidBody.at(entity);
 			else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
-			else if constexpr (std::is_same_v<T, CollisionLayerComponent>) return ecs.collisionLayer.at(entity);
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);

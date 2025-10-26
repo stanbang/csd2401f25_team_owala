@@ -135,7 +135,7 @@ namespace Framework {
     static GLint g_uColorLoc_Text = -1;
     static GLint g_uTexLoc_Text = -1;
 
-    // Batch buffer — reused each call (to avoid reallocations)
+    // Batch buffer ï¿½ reused each call (to avoid reallocations)
     static std::vector<float> g_batchVerts; // interleaved x,y,u,v for 6 verts per sprite
 
     // Pick a generous default; you can tune this
@@ -573,7 +573,7 @@ namespace Framework {
         dir.y /= length;
         Vector2D perp = { -dir.y, dir.x };
 
-        const float thickness = 0.005f;
+        const float thickness = 0.001f; // Line thickness
         Vector2D halfThickness = { perp.x * thickness, perp.y * thickness };
 
         Vector2D p1 = { start.x - halfThickness.x, start.y - halfThickness.y };

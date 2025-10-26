@@ -126,8 +126,12 @@ namespace Framework {
         case Key::Num3: return GLFW_KEY_3; case Key::Num4: return GLFW_KEY_4; case Key::Num5: return GLFW_KEY_5;
         case Key::Num6: return GLFW_KEY_6; case Key::Num7: return GLFW_KEY_7; case Key::Num8: return GLFW_KEY_8;
         case Key::Num9: return GLFW_KEY_9;
-        case Key::Space: return GLFW_KEY_SPACE; case Key::Enter: return GLFW_KEY_ENTER; case Key::Escape: return GLFW_KEY_ESCAPE;
+        case Key::Enter: return GLFW_KEY_ENTER; case Key::Escape: return GLFW_KEY_ESCAPE; 
         case Key::Tab: return GLFW_KEY_TAB; case Key::Backspace: return GLFW_KEY_BACKSPACE;
+        case Key::Space: return GLFW_KEY_SPACE;
+		case Key::PageUp: return GLFW_KEY_PAGE_UP; case Key::PageDown: return GLFW_KEY_PAGE_DOWN;
+		case Key::Home: return GLFW_KEY_HOME; case Key::End: return GLFW_KEY_END;
+        case Key::Insert: return GLFW_KEY_INSERT; case Key::Delete: return GLFW_KEY_DELETE;
         case Key::Left: return GLFW_KEY_LEFT; case Key::Right: return GLFW_KEY_RIGHT;
         case Key::Up: return GLFW_KEY_UP; case Key::Down: return GLFW_KEY_DOWN;
         case Key::LShift: return GLFW_KEY_LEFT_SHIFT; case Key::RShift: return GLFW_KEY_RIGHT_SHIFT;

@@ -51,6 +51,7 @@ namespace Framework {
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 //std::cout << "Rotating world clockwise 90 degrees" << std::endl;
+              
             }
 
             if (input_->KeyPressed(InputSystem::Key::Q)) {

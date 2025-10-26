@@ -35,18 +35,18 @@ namespace Framework{
 		Count // track the number of layers
 	};
 
-
-	/* Component to define which collision layer an entity belongs to. */
-	struct CollisionLayerComponent {
-		CollisionLayer layer = CollisionLayer::Default;
-	};
-
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
 		RUNNING,
 		JUMPING,
 		FALLING
+	};
+
+	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
+	struct EntityProperties {
+		std::string name = "Empty";
+		CollisionLayer layer = CollisionLayer::Default;
 	};
 
 	/*	Position component to store x and y 
@@ -101,6 +101,7 @@ namespace Framework{
 		Vector2D position = { 0.0f, 0.0f };  // World position camera is looking at
 		Vector2D size = { 2.0f, 2.0f };      // How much world space is visible (width, height)
 		float zoom = 1.0f;                 // Zoom level (1.0 = normal)
+		float aspectRatio = 16.0f / 9.0f; // Add this
 		uint32_t targetEntity = 0;        // Use uint32_t instead
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
