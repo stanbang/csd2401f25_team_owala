@@ -670,47 +670,47 @@ namespace Editor {
 		}
 	}
 
-	//void Editor::HandleSpawning() {
-	//	auto* input = gameManager_->GetSystems().input_;
+	void Editor::HandleSpawning() {
+		auto* input = gameManager_->GetSystems().input_;
 
-	//	// Spawn on left click
-	//	if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Left)) {
-	//		if (!ImGui::GetIO().WantCaptureMouse) {
+		// Spawn on left click
+		if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Left)) {
+			if (!ImGui::GetIO().WantCaptureMouse) {
 
-	//			Vector2D spawnPos = GetMouseWorldPosition();
-	//			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-	//			Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-	//			Entity newEntity = 0;
+				Vector2D spawnPos = GetMouseWorldPosition();
+				Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+				Entity newEntity = 0;
 
-	//			switch (selectedPrefabType_) {
-	//			case PrefabType::Platform:
-	//				newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-	//				break;
-	//			case PrefabType::TrapPlatform:
-	//				newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-	//				break;
-	//			case PrefabType::ScalingPlatform:
-	//				newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-	//				break;
-	//			case PrefabType::None: // Should not happen 
-	//				break;
-	//			}
+				switch (selectedPrefabType_) {
+				case PrefabType::Platform:
+					newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+					break;
+				case PrefabType::TrapPlatform:
+					newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+					break;
+				case PrefabType::ScalingPlatform:
+					newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+					break;
+				case PrefabType::None: // Should not happen 
+					break;
+				}
 
-	//			if (newEntity != 0) {
-	//				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-	//			}
+				if (newEntity != 0) {
+					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+				}
 
-	//			selectedPrefabType_ = PrefabType::None;
-	//			selectedPrefabName_.clear();
-	//		}
-	//	}
+				selectedPrefabType_ = PrefabType::None;
+				selectedPrefabName_.clear();
+			}
+		}
 
-	//	// Cancel on right click
-	//	if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Right)) {
-	//		selectedPrefabType_ = PrefabType::None;
-	//		selectedPrefabName_.clear();
-	//	}
-	//}
+		// Cancel on right click
+		if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Right)) {
+			selectedPrefabType_ = PrefabType::None;
+			selectedPrefabName_.clear();
+		}
+	}
 
 	
 	void Editor::HandleSelection() {

@@ -5,9 +5,11 @@
 #include <filesystem>
 #include "ResourceManager.h"
 #include <algorithm>
+#include <imgui.h>
 
 namespace fs = std::filesystem;
-using namespace Framework;
+using Texture = Framework::Texture;
+using ResourceManager = Framework::ResourceManager;
 
 struct AssetEntry
 {

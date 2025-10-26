@@ -1,6 +1,5 @@
 #pragma once
 #include "AssetBrowser.h"
-#include <imgui.h>
 #include "Logger.h"
 
 using namespace Framework;
