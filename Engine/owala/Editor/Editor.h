@@ -20,7 +20,7 @@
 #include <vector>
 #include <string>
 #include "EntityStorage.h"
-#include "PlatformPrefab.h" // prefab header for creation
+#include "PrefabSystem.h" // prefab header for creation
 #include "AssetBrowser.h"
 
 namespace Framework {
@@ -39,9 +39,7 @@ namespace Editor {
 	// enum to represent the different types of objects we can create
 	enum class PrefabType {
 		None,
-		Platform,
-		TrapPlatform,
-		ScalingPlatform
+		Platform
 	};
 
 	class Editor : public Framework::ISystem {

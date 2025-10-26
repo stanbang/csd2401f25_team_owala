@@ -181,9 +181,9 @@ namespace Editor {
 
 		// Load all prefabs from the data file when the editor starts
 		// which populates our prefabSystem_ member with spawnable objects
-		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.txt")) {
+		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
 			// Log an error if the prefab file can't be found or is invalid.
-			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.txt" << std::endl;
+			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
 		}
 
 		initialized = true;
@@ -282,7 +282,7 @@ namespace Editor {
 				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 				Entity newEntity = 0;
 
-				switch (selectedPrefabType_) {
+			/*	switch (selectedPrefabType_) {
 				case PrefabType::Platform:
 					newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 					break;
@@ -294,8 +294,9 @@ namespace Editor {
 					break;
 				case PrefabType::None: // Should not happen 
 					break;
-				}
+				}*/
 
+				newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 				if (newEntity != 0) {
 					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
 				}
@@ -497,20 +498,23 @@ namespace Editor {
 
 		// ---  ENTITY FACTORY / PREFAB SPAWNER ---
 		ImGui::SeparatorText("Entity Factory");
+		const auto& allPrefabs = prefabSystem_.GetAllPrefabs();
 
 		// Display a dropdown for each type of prefab we can spawn
 		// uses prefabsystem to collate data of the prefabs
-		if (ImGui::BeginCombo("Platforms", selectedPrefabType_ == PrefabType::Platform ? selectedPrefabName_.c_str() : "Select...")) {
-			for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) { 
+		ImGui::Text("Loaded Prefabs: %i", allPrefabs.size());
+
+		if (ImGui::BeginCombo("Platforms", selectedPrefabType_ != PrefabType::None ? selectedPrefabName_.c_str() : "Select...")) {
+			for (const auto& pair : allPrefabs) {
 				if (ImGui::Selectable(pair.first.c_str())) {
-					selectedPrefabType_ = PrefabType::Platform;
+					selectedPrefabType_ = PrefabType::Platform; 
 					selectedPrefabName_ = pair.first;
 				}
 			}
 			ImGui::EndCombo();
 		}
 
-		if (ImGui::BeginCombo("Trap Platforms", selectedPrefabType_ == PrefabType::TrapPlatform ? selectedPrefabName_.c_str() : "Select...")) {
+		/*if (ImGui::BeginCombo("Trap Platforms", selectedPrefabType_ == PrefabType::TrapPlatform ? selectedPrefabName_.c_str() : "Select...")) {
 			for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) { 
 				if (ImGui::Selectable(pair.first.c_str())) {
 					selectedPrefabType_ = PrefabType::TrapPlatform;
@@ -528,7 +532,7 @@ namespace Editor {
 				}
 			}
 			ImGui::EndCombo();
-		}
+		}*/
 
 		// Display a message to the user if a prefab is selected.
 		if (selectedPrefabType_ != PrefabType::None) {

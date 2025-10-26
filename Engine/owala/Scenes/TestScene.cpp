@@ -14,20 +14,14 @@
 #include <cstdio>
 #include <algorithm>
 #include "Player.h"
-#include "Platform.h"
 #include "BackgroundEntity.h"
 #include "TextEntity.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
-#include "TrapPlatform.h"
 #include "Transformation.h"
-#include "ScalingPlatform.h"
 #include "AudioEntity.h"
-#include <PlatformPrefab.h>
-#include <TrapPlatformSystem.h>
-#include <ScalingPlatformSystem.h>
 #include "InputSystem.h"   // if you want toggles
 #include <iostream>
 #ifndef M_PI
@@ -85,7 +79,7 @@ namespace TestScene {
         physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Default, false);
 
         // Platforms will collide with each other
-        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, false);
+        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
@@ -106,7 +100,7 @@ namespace TestScene {
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
-        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.txt");
+        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.json");
 
         // --- Create Background Entity ---
         std::string backgroundID = "Background";
@@ -114,29 +108,29 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", backgroundEntity);
 
         // --- Create Ground Entity ---
-        Entity ground = prefabSystem.CreatePlatformFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
+        Entity ground = prefabSystem.CreateEntityFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
         sceneMgr.AddEntityToScene("Test Scene", ground);
 
 
         // Create 4 borders around the screen
-        topGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "TopBorder", { 0.0f, 1.0f });
+        topGround = prefabSystem.CreateEntityFromPrefab(*ecs, "TopBorder", { 0.0f, 1.0f });
         sceneMgr.AddEntityToScene("Test Scene", topGround);
 
-        leftGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { -1.0f, 0.0f });
+        leftGround = prefabSystem.CreateEntityFromPrefab(*ecs, "SideBorder", { -1.0f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", leftGround);
 
-        rightGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "SideBorder", { 1.0f, 0.0f });
+        rightGround = prefabSystem.CreateEntityFromPrefab(*ecs, "SideBorder", { 1.0f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", rightGround);
 
-        downGround = prefabSystem.CreatePlatformFromPrefab(*ecs, "BottomBorder", { 0.0f, -1.0f });
+        downGround = prefabSystem.CreateEntityFromPrefab(*ecs, "BottomBorder", { 0.0f, -1.0f });
         sceneMgr.AddEntityToScene("Test Scene", downGround);
 
         // Scaling Platform
-        scalingPlatform = prefabSystem.CreateScalingPlatformFromPrefab(*ecs, "ScalePlatform", { 0.5f, 0.0f });
+        scalingPlatform = prefabSystem.CreateEntityFromPrefab(*ecs, "ScalePlatform", { 0.5f, 0.0f });
         sceneMgr.AddEntityToScene("Test Scene", scalingPlatform);
 
         // Trap Platforms
-        trapPlatform = prefabSystem.CreateTrapPlatformFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });        
+        trapPlatform = prefabSystem.CreateEntityFromPrefab(*ecs, "FallingTrap", { 0.0f, 0.5f });
         sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
 		// --- Create Background Music Entity ---
@@ -344,14 +338,6 @@ namespace TestScene {
 
             // You can also show the ImGui demo window to explore widgets.
            //  ImGui::ShowDemoWindow(); 
-
-        float dt = gm.GetDeltaTime();
-        // Update scaling platforms
-        ScalingPlatformSystem scaleTrapSystem(*ecs_);
-        scaleTrapSystem.Update(dt);
-        // Update trap platforms
-        TrapPlatformSystem tempTrapSystem(*ecs_);
-        tempTrapSystem.Update(dt);
         //   RenderColliders();
 	}
 
