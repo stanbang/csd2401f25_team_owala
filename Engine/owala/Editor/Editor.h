@@ -97,8 +97,6 @@ namespace Editor {
 		bool isTileEditorActive_ = false;
 		bool showGrid_ = false;
 		float baseGridCellSize_ = 0.1f;
-		float baseGridCellSizeX_ = 0.1f;
-		float baseGridCellSizeY_ = 0.1f;
 
 		// --- Drag and Drop State ---
 		bool isDraggingPrefab_ = false;
@@ -123,7 +121,7 @@ namespace Editor {
 		Vector2D GetMouseWorldPosition();
 		void HandleDragDropPlacement();
 		void HandleTileErasing();
-		void HandleSpawning();
+		
 		void HandleSelection();
 		void HandleDeletion();
 
@@ -144,6 +142,11 @@ namespace Editor {
 		// --- NEW Helpers ---
 		void DrawDragDropPreview(); // Renders tile being dragged
 		void PreparePaletteItems(); // Loads textures and prepares palette
+
+		// NEW: Aspect-aware coordinate conversion helpers
+		float GetAspectRatio() const;
+		Vector2D WorldToNDC(const Vector2D& worldPos, Entity cameraEntity) const;
+		Vector2D NDCToWorld(const Vector2D& ndcPos, Entity cameraEntity) const;
 
 	public:
 		bool isEnabled = true;

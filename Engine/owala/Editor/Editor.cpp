@@ -437,8 +437,8 @@ namespace Editor {
 		float ndcX = (static_cast<float>(mouseX) / win->getWidth()) * 2.0f - 1.0f;
 		float ndcY = 1.0f - (static_cast<float>(mouseY) / win->getHeight()) * 2.0f; // Y is inverted
 
-		// Convert NDC to World using the camera system
-		return cameraSystem_->ScreenToWorld({ ndcX, ndcY });
+		// FIX: Use our aspect-aware NDCToWorld helper instead of CameraSystem
+		return NDCToWorld({ ndcX, ndcY }, activeCamera);
 	}
 
 	void Editor::HandleDragDropPlacement() {
@@ -449,7 +449,7 @@ namespace Editor {
 		}
 
 		Vector2D worldMousePos = GetMouseWorldPosition();
-		Vector2D snappedPos = SnapToGrid(GetMouseWorldPosition());
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		Framework::EntityManager entityMgr(*ecs);
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
@@ -458,55 +458,50 @@ namespace Editor {
 			<< "HandleDragDropPlacement: Payload Name='" << dragDropPayload_.name
 			<< "', Payload Type=" << static_cast<int>(dragDropPayload_.type) << std::endl;
 
-		// FIX: Use prefab size for placement tolerance, not baseGridCellSize_
-		Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
-		const float placementTolerance = std::min(prefabSize.x, prefabSize.y) * 0.1f;
+		//// FIX: Use prefab size for placement tolerance, not baseGridCellSize_
+		//Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
+		//const float placementTolerance = std::min(prefabSize.x, prefabSize.y) * 0.1f;
+
+		  // Check for existing tile at snapped position
+		const float placementTolerance = baseGridCellSize_ * 0.1f; // Use grid size for tolerance
 
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
 			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
 				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				if (std::abs(pos.x - snappedPos.x) < placementTolerance && std::abs(pos.y - snappedPos.y) < placementTolerance) {
-					Framework::Logger::Get().Info(DebugType::Editor) << "Tile already exists at placement location." << std::endl;
-					isDraggingPrefab_ = false; // Stop drag operation
+				if (std::abs(pos.x - snappedPos.x) < placementTolerance &&
+					std::abs(pos.y - snappedPos.y) < placementTolerance) {
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Tile already exists at placement location." << std::endl;
+					isDraggingPrefab_ = false;
 					return;
 				}
 			}
 		}
 
-		// ... rest of your function remains the same ...
-		// Create new entity and add components manually to control size
+		// Create new entity
 		Entity newEntity = entityMgr.CreateEntity();
-		// Use prefab-defined size instead
-		Vector2D tileHalfSize;
-		if (dragDropPayload_.type == PrefabType::Platform) {
-			const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
-			tileHalfSize = { prefab->size.x / 2.0f, prefab->size.y / 2.0f };
-		}
-		else if (dragDropPayload_.type == PrefabType::TrapPlatform) {
-			const auto* prefab = prefabSystem_.GetTrapPlatformPrefab(dragDropPayload_.name);
-			tileHalfSize = { prefab->size.x / 2.0f, prefab->size.y / 2.0f };
-		}
-		else if (dragDropPayload_.type == PrefabType::ScalingPlatform) {
-			const auto* prefab = prefabSystem_.GetScalingPlatformPrefab(dragDropPayload_.name);
-			tileHalfSize = { prefab->size.x / 2.0f, prefab->size.y / 2.0f };
-		}
-		else {
-			tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
-		}
+
+		// FIX: ALWAYS use grid size for tile, not prefab size
+		// This ensures placed tiles match the preview and grid
+		Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
+
 
 		// Common components for all platforms
 		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
 		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
 		entityMgr.AddComponent(newEntity, Framework::Velocity{});
-		entityMgr.AddComponent(newEntity, Framework::RigidBody{}); // Add RigidBody first
-		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f); // Set default mass
+		entityMgr.AddComponent(newEntity, Framework::RigidBody{});
+		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
 		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
 		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
 		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
 
+
+
 		// Type-specific components using info from dragDropPayload_
 		std::string textureKey = "";
+
 		if (dragDropPayload_.type == PrefabType::Platform) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "If/Else: Matched Platform" << std::endl; // Add log
 			const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
@@ -570,7 +565,11 @@ namespace Editor {
 
 			// Now add to scene
 			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-			Framework::Logger::Get().Info(DebugType::Editor) << "Placed tile: " << dragDropPayload_.name << " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
+		
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Placed tile: " << dragDropPayload_.name
+				<< " at (" << snappedPos.x << ", " << snappedPos.y << ")"
+				<< " with size (" << tileHalfSize.x * 2 << " x " << tileHalfSize.y * 2 << ")" << std::endl;
 		}
 		else {
 			Framework::Logger::Get().Error(DebugType::Editor) << "Could not find texture key for placed prefab: " << dragDropPayload_.name << std::endl;
@@ -581,7 +580,7 @@ namespace Editor {
 		// --- Crucial: Reset drag state ---
 		isDraggingPrefab_ = false;
 		// Optionally clear dragDropPayload_ if needed, but it will be overwritten on next drag start
-		// dragDropPayload_ = {};
+	    dragDropPayload_ = {};
 	}
 
 	// Draws a preview of the tile being dragged
@@ -602,20 +601,19 @@ namespace Editor {
 		// Calculate size based on current grid cell size
 		Vector2D previewHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
 		
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		Entity activeCamera = editorCamera_ ? editorCamera_ : cameraSystem_->GetActiveCamera();
 		if (activeCamera == 0) return; // No camera, can't draw
 
-		// Convert world center to screen center
-		Vector2D screenCenter = cameraSystem_->WorldToScreen(dragDropPreviewPos_, activeCamera);
+	
 		
 		// Convert world corners to screen space to get screen-space size
 		Vector2D worldTopLeft = { dragDropPreviewPos_.x - previewHalfSize.x,
-								  dragDropPreviewPos_.y - previewHalfSize.y };
+								 dragDropPreviewPos_.y - previewHalfSize.y };
 		Vector2D worldBottomRight = { dragDropPreviewPos_.x + previewHalfSize.x,
 									  dragDropPreviewPos_.y + previewHalfSize.y };
 
-		Vector2D screenTopLeft = cameraSystem_->WorldToScreen(worldTopLeft, activeCamera);
-		Vector2D screenBottomRight = cameraSystem_->WorldToScreen(worldBottomRight, activeCamera);
+		Vector2D screenTopLeft = WorldToNDC(worldTopLeft, activeCamera);
+		Vector2D screenBottomRight = WorldToNDC(worldBottomRight, activeCamera);
 
 		// Calculate screen-space size
 		Vector2D screenSize = {
@@ -681,48 +679,7 @@ namespace Editor {
 		}
 	}
 
-	//void Editor::HandleSpawning() {
-	//	auto* input = gameManager_->GetSystems().input_;
-
-	//	// Spawn on left click
-	//	if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Left)) {
-	//		if (!ImGui::GetIO().WantCaptureMouse) {
-
-	//			Vector2D spawnPos = GetMouseWorldPosition();
-	//			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-	//			Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-	//			Entity newEntity = 0;
-
-	//			switch (selectedPrefabType_) {
-	//			case PrefabType::Platform:
-	//				newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-	//				break;
-	//			case PrefabType::TrapPlatform:
-	//				newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-	//				break;
-	//			case PrefabType::ScalingPlatform:
-	//				newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-	//				break;
-	//			case PrefabType::None: // Should not happen 
-	//				break;
-	//			}
-
-	//			if (newEntity != 0) {
-	//				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-	//			}
-
-	//			selectedPrefabType_ = PrefabType::None;
-	//			selectedPrefabName_.clear();
-	//		}
-	//	}
-
-	//	// Cancel on right click
-	//	if (selectedPrefabType_ != PrefabType::None && input->MousePressed(Framework::InputSystem::MouseButton::Right)) {
-	//		selectedPrefabType_ = PrefabType::None;
-	//		selectedPrefabName_.clear();
-	//	}
-	//}
-
+	
 	
 	void Editor::HandleSelection() {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
@@ -1375,7 +1332,8 @@ namespace Editor {
 
 		// Get camera reference
 		const Framework::Camera& cam = cameraSystem_->GetCameraConst(activeCamera);
-		float aspect = static_cast<float>(gfx->getScreenWidth()) / static_cast<float>(gfx->getScreenHeight());
+		//float aspect = static_cast<float>(gfx->getScreenWidth()) / static_cast<float>(gfx->getScreenHeight());
+		float aspect = GetAspectRatio();
 
 		// Compute visible bounds in WORLD space
 		float viewHalfHeight = cam.zoom;
@@ -1393,64 +1351,152 @@ namespace Editor {
 		float startY = std::floor(viewBottom / cell) * cell;
 		float endY = std::ceil(viewTop / cell) * cell;
 
-		// --- Convert world to NDC manually ---
-		auto WorldToNDC = [&](Vector2D world) -> Vector2D {
-			Vector2D view;
-			view.x = (world.x - cam.position.x) / viewHalfWidth;
-			view.y = (world.y - cam.position.y) / viewHalfHeight;
-			return view;
-			};
+		//// --- Convert world to NDC manually ---
+		//auto WorldToNDC = [&](Vector2D world) -> Vector2D {
+		//	Vector2D view;
+		//	view.x = (world.x - cam.position.x) / viewHalfWidth;
+		//	view.y = (world.y - cam.position.y) / viewHalfHeight;
+		//	return view;
+		//	};
 
+
+		// --- Use CameraSystem's WorldToScreen instead of custom lambda ---
+	   // This ensures consistency with preview and placement
 		// --- Draw vertical lines ---
 		for (float x = startX; x <= endX; x += cell) {
-			Vector2D a = { x, viewBottom };
+		/*	Vector2D a = { x, viewBottom };
 			Vector2D b = { x, viewTop };
-			gfx->drawLine(WorldToNDC(a), WorldToNDC(b), gridColor);
+			gfx->drawLine(WorldToNDC(a), WorldToNDC(b), gridColor);*/
+
+			Vector2D worldA = { x, viewBottom };
+			Vector2D worldB = { x, viewTop };
+
+			// Use our helper for consistency
+			Vector2D ndcA = WorldToNDC(worldA, activeCamera);
+			Vector2D ndcB = WorldToNDC(worldB, activeCamera);
+
+			gfx->drawLine(ndcA, ndcB, gridColor);
+
 		}
 
 		// --- Draw horizontal lines ---
 		for (float y = startY; y <= endY; y += cell) {
-			Vector2D a = { viewLeft, y };
+		/*	Vector2D a = { viewLeft, y };
 			Vector2D b = { viewRight, y };
-			gfx->drawLine(WorldToNDC(a), WorldToNDC(b), gridColor);
+			gfx->drawLine(WorldToNDC(a), WorldToNDC(b), gridColor);*/
+
+			Vector2D worldA = { viewLeft, y };
+			Vector2D worldB = { viewRight, y };
+
+			// Use our helper for consistency
+			Vector2D ndcA = WorldToNDC(worldA, activeCamera);
+			Vector2D ndcB = WorldToNDC(worldB, activeCamera);
+
+			gfx->drawLine(ndcA, ndcB, gridColor);
 		}
 	}
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos)
 	{
-		// If placing a prefab, use the prefab's actual size for snapping
-		if (isDraggingPrefab_ && dragDropPayload_.type != PrefabType::None &&
-			dragDropPayload_.type != PrefabType::Eraser) {
+		//// If placing a prefab, use the prefab's actual size for snapping
+		//if (isDraggingPrefab_ && dragDropPayload_.type != PrefabType::None &&
+		//	dragDropPayload_.type != PrefabType::Eraser) {
 
-			Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
-			Vector2D halfSize = { prefabSize.x / 2.0f, prefabSize.y / 2.0f };
+		//	Vector2D prefabSize = GetPrefabSize(dragDropPayload_.name, dragDropPayload_.type);
+		//	Vector2D halfSize = { prefabSize.x / 2.0f, prefabSize.y / 2.0f };
 
-			// Use the PREFAB SIZE for snapping, not baseGridCellSize_
-			// This ensures the prefab aligns with its own size grid
+		//	// Use the PREFAB SIZE for snapping, not baseGridCellSize_
+		//	// This ensures the prefab aligns with its own size grid
 
-			// For X-axis: snap left edge using prefab width as grid size
-			float leftEdge = worldPos.x - halfSize.x;
-			float snappedLeftX = std::round(leftEdge / prefabSize.x) * prefabSize.x;
-			float snappedX = snappedLeftX + halfSize.x;
+		//	// For X-axis: snap left edge using prefab width as grid size
+		//	float leftEdge = worldPos.x - halfSize.x;
+		//	float snappedLeftX = std::round(leftEdge / prefabSize.x) * prefabSize.x;
+		//	float snappedX = snappedLeftX + halfSize.x;
 
-			// For Y-axis: snap bottom edge using prefab height as grid size  
-			float bottomEdge = worldPos.y - halfSize.y;
-			float snappedBottomY = std::round(bottomEdge / prefabSize.y) * prefabSize.y;
-			float snappedY = snappedBottomY + halfSize.y;
+		//	// For Y-axis: snap bottom edge using prefab height as grid size  
+		//	float bottomEdge = worldPos.y - halfSize.y;
+		//	float snappedBottomY = std::round(bottomEdge / prefabSize.y) * prefabSize.y;
+		//	float snappedY = snappedBottomY + halfSize.y;
 
-			Framework::Logger::Get().Info(DebugType::Editor)
-				<< "PrefabSize Snap - World: (" << worldPos.x << ", " << worldPos.y
-				<< ") -> Grid: (" << snappedX << ", " << snappedY
-				<< ") PrefabSize: (" << prefabSize.x << ", " << prefabSize.y << ")" << std::endl;
+		//	Framework::Logger::Get().Info(DebugType::Editor)
+		//		<< "PrefabSize Snap - World: (" << worldPos.x << ", " << worldPos.y
+		//		<< ") -> Grid: (" << snappedX << ", " << snappedY
+		//		<< ") PrefabSize: (" << prefabSize.x << ", " << prefabSize.y << ")" << std::endl;
 
-			return { snappedX, snappedY };
-		}
+		//	return { snappedX, snappedY };
+		//}
 
 		// Default snapping for other cases (eraser) uses base grid size
-		float cell = baseGridCellSize_;
+		/*float cell = baseGridCellSize_;
 		float snappedX = std::round(worldPos.x / cell) * cell;
 		float snappedY = std::round(worldPos.y / cell) * cell;
+		return { snappedX, snappedY };*/
+
+		// ALWAYS snap to the base grid, regardless of prefab size
+	    // The grid is your reference coordinate system
+
+		float cell = baseGridCellSize_;
+
+		//// Calculate which grid cell the position is in
+		//int gridX = static_cast<int>(std::floor(worldPos.x / cell));
+		//int gridY = static_cast<int>(std::floor(worldPos.y / cell));
+
+		//// Calculate center of that grid cell
+		//float snappedX = (static_cast<float>(gridX) * cell) + (cell / 2.0f);
+		//float snappedY = (static_cast<float>(gridY) * cell) + (cell / 2.0f);
+
+		// Step 1: Find which grid cell we're in (using floor)
+	    // For worldPos.x = 0.23, cell = 0.1: floor(0.23/0.1) = floor(2.3) = 2
+		float gridX = std::floor(worldPos.x / cell);
+		float gridY = std::floor(worldPos.y / cell);
+
+		// Step 2: Find center of that cell
+		// gridX = 2, cell = 0.1: center = 2 * 0.1 + 0.05 = 0.25 
+		float snappedX = gridX * cell + (cell * 0.5f);
+		float snappedY = gridY * cell + (cell * 0.5f);
+
 		return { snappedX, snappedY };
+	}
+
+
+	float Editor::GetAspectRatio() const {
+		if (!graphicsSystem_) return 16.0f / 9.0f;
+		return static_cast<float>(graphicsSystem_->getScreenWidth()) /
+			static_cast<float>(graphicsSystem_->getScreenHeight());
+	}
+
+	Vector2D Editor::WorldToNDC(const Vector2D& worldPos, Entity cameraEntity) const {
+		if (!cameraSystem_ || cameraEntity == 0) return { 0.0f, 0.0f };
+
+		const Framework::Camera& cam = cameraSystem_->GetCameraConst(cameraEntity);
+		float aspect = GetAspectRatio();
+
+		// Match the grid's WorldToNDC lambda exactly
+		float viewHalfHeight = cam.zoom;
+		float viewHalfWidth = viewHalfHeight * aspect;
+
+		Vector2D ndc;
+		ndc.x = (worldPos.x - cam.position.x) / viewHalfWidth;
+		ndc.y = (worldPos.y - cam.position.y) / viewHalfHeight;
+
+		return ndc;
+	}
+
+	Vector2D Editor::NDCToWorld(const Vector2D& ndcPos, Entity cameraEntity) const {
+		if (!cameraSystem_ || cameraEntity == 0) return { 0.0f, 0.0f };
+
+		const Framework::Camera& cam = cameraSystem_->GetCameraConst(cameraEntity);
+		float aspect = GetAspectRatio();
+
+		// Inverse of WorldToNDC
+		float viewHalfHeight = cam.zoom;
+		float viewHalfWidth = viewHalfHeight * aspect;
+
+		Vector2D world;
+		world.x = cam.position.x + (ndcPos.x * viewHalfWidth);
+		world.y = cam.position.y + (ndcPos.y * viewHalfHeight);
+
+		return world;
 	}
 
 	float Editor::GetCurrentGridCellSize() const
