@@ -142,7 +142,6 @@ namespace Framework {
 		}
 		//glfwSwapInterval(0); //just for testing to turn vsync off
 
-		systems_.spriteRenderer_->Update(dt);
 		// --- END GAME UPDATE ---
 
 		 //--- NEW: CREATE THE MAIN DOCKSPACE HOST WINDOW ---

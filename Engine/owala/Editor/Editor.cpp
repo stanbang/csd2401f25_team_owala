@@ -28,9 +28,10 @@
 #include "Logger.h"
 
 // Imgui Dependencies
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_internal.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -211,6 +212,7 @@ namespace Editor {
 
 		// --- Prepare Palette Items (Load Textures) ---
 
+		firstUpdate = true;
 		initialized = true;
 	}
 
@@ -251,11 +253,73 @@ namespace Editor {
 		// Check if Editor has been initialized
 		SanityCheck();
 
-
 		//  --- START THE IMGUI FRAME ---
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		// --- DOCKSPACE SETUP ---
+		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking |	ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |	ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground | 
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+		ImGui::Begin("Owala Editor Dockspace", nullptr, windowFlags);
+		ImGui::PopStyleVar(3);
+
+		ImGuiID dockspaceID = ImGui::GetID("EditorDockSpace");
+		ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f));
+
+		if (firstUpdate)
+		{
+			firstUpdate = false;
+			ImGui::DockBuilderRemoveNode(dockspaceID);
+			ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
+			ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->Size);
+
+			// Docking Regions
+			ImGuiID dock_main_id = dockspaceID;
+
+			// Top Region (Toolbar)
+			ImGuiID dock_toolbar = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.03f, nullptr, &dock_main_id);
+			ImGui::DockBuilderDockWindow("Toolbar", dock_toolbar);
+
+			if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(dock_toolbar)) {
+				node->LocalFlags |= ImGuiDockNodeFlags_HiddenTabBar | ImGuiDockNodeFlags_NoDocking | ImGuiDockNodeFlags_NoTabBar;
+			}
+
+			// Right Region
+			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
+			ImGui::DockBuilderDockWindow("Inspector", dock_right);
+			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
+			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
+
+			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
+			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
+
+			// Bottom Region
+			ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
+			ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
+			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
+			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
+
+			// Left Region
+			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
+			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
+
+			// Central Region
+			ImGui::DockBuilderDockWindow("Game", dock_main_id);
+
+			ImGui::DockBuilderFinish(dockspaceID);
+		}
 
 		// IMGui Cursor State
 		ImGuiIO& io = ImGui::GetIO();
@@ -308,34 +372,47 @@ namespace Editor {
 
 		// --- RENDER PANELS ---
 		//Render Asset Browser
-		ShowAssetBrowser(droppedFilePaths_);
+
 		
 		// Render all editor UI panels
 
-		// Level Editor Window
-		if (settings.showLevelEditor) {
-			ShowLevelEditor();
+		// Top Region
+		if (settings.showToolbar) {
+			ShowToolbar();
 		}
 
-		if (settings.showHierarchy) {
-			ShowHierarchy();
-		}
-
+		// Right Region
 		if (settings.showInspector) {
 			ShowInspector();
 		}
-
-		// Performance Profiler Window
 		if (settings.showDebugInfo) {
 			ShowPerformanceProfile();
 		}
 
+		// Bottom Region
+		if (settings.showAssetBrowser) {
+			ShowAssetBrowser(droppedFilePaths_);
+		}
+
+		// Left Region
+		if (settings.showHierarchy) {
+			ShowHierarchy();
+		}
+		if (settings.showLevelEditor) {
+			ShowLevelEditor();
+		}
 		//  Show Tilemap Editor as a separate window if active
 		if (isTileEditorActive_) {
 			ShowTilemapEditor();
 		}
 
+		// Central Region
+		if (settings.showGameViewport) {
+			ShowGameViewport();
+		}
+
 		// --- END IMGUI FRAME ---
+		ImGui::End();
 
 		// ----------------------------------------------------------------------------
 		// Finalize the ImGui frame and render all its draw data.
@@ -363,6 +440,7 @@ namespace Editor {
 
 
 	// --- Private Helper Functions ---
+	#pragma region INTERNAL HELPERS
 
 	// NEW Helper: Load textures and create palette items
 	void Editor::PreparePaletteItems() {
@@ -423,7 +501,6 @@ namespace Editor {
 		}
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
-
 
 	Vector2D Editor::GetMouseWorldPosition() {
 		auto* input = gameManager_->GetSystems().input_;
@@ -723,7 +800,6 @@ namespace Editor {
 		}
 	}
 
-	
 	void Editor::HandleSelection() {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 
@@ -778,8 +854,6 @@ namespace Editor {
 			isEntitySelected_ = false;
 		}
 	}
-
-
 	
 	void Editor::HandleDeletion() {
 		// Check if an entity is selected and if the Backspace key was just pressed
@@ -795,6 +869,8 @@ namespace Editor {
 			}
 		}
 	}
+
+	#pragma region COPY AND PASTING APIs
 
 	void Editor::CopyEntityToClipboard(const Entity& entity) {
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
@@ -832,8 +908,14 @@ namespace Editor {
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 	}
 
+	#pragma endregion
+
+	#pragma endregion
+
+	// --- Panel Rendering ---
 	#pragma region INTERNAL PANELS
 
+	#pragma region PERFORMANCE PROFILER PANEL
 	void Editor::ShowPerformanceProfile() {
 		
 		ImGui::Begin("Performance Profiler");
@@ -866,6 +948,10 @@ namespace Editor {
 		}
 		ImGui::End();
 	}
+
+	#pragma endregion
+
+	#pragma region LEVEL EDITOR PANEL
 
 	void Editor::ShowLevelEditor() {
 		using namespace Framework;
@@ -965,7 +1051,6 @@ namespace Editor {
 
 
 		// --- Section for Spawning 2500 objects -----//
-// --- Section for Spawning 2500 objects -----//
 		ImGui::SeparatorText("Spawn 2500 Objects");
 		// In your Editor.cpp spawning section:
 		if (ImGui::Button("Create 2500 Objects")) {
@@ -999,6 +1084,10 @@ namespace Editor {
 		ImGui::End(); // End "Level Editor" window
 			
 	}
+
+	#pragma endregion
+
+	#pragma region TILEMAP EDITOR PANEL
 
 	void Editor::ShowTilemapEditor()
 	{
@@ -1098,7 +1187,11 @@ namespace Editor {
 			// dragDropPayload_ = {};
 		}
 	}
+
+	#pragma endregion
 	
+	#pragma region HIERARCHY PANEL
+
 	void Editor::ShowHierarchy() {
 		using namespace Framework;
 
@@ -1239,6 +1332,10 @@ namespace Editor {
 		ImGui::EndChild();
 		ImGui::End(); // Hierarchy End
 	}
+
+	#pragma endregion
+
+	#pragma region INSPECTOR PANEL
 
 	void Editor::ShowInspector() {
 		using namespace Framework;
@@ -1537,6 +1634,126 @@ namespace Editor {
 		ImGui::Separator();
 	}
 
+	#pragma endregion
+
+	#pragma region GAME VIEW PANEL
+
+	void Editor::ShowGameViewport() {
+		using namespace Framework;
+
+		ImGui::Begin("Game");
+		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
+			Graphics* gfx = gameManager_->GetSystems().gfx_;
+			SpriteRenderSystem* spriteRenderer_ = gameManager_->GetSystems().spriteRenderer_;
+			if (gfx) {
+				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
+				gfx->BindGameFramebuffer();
+				spriteRenderer_->Update(deltatime);
+				gfx->UnbindGameFramebuffer();
+
+				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
+			}
+		}
+		ImGui::End();
+	}
+
+	#pragma endregion
+
+	#pragma region TOOLBAR
+
+	void Editor::ShowToolbar() {
+		// --- Style setup ---
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 6));
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.f, 0.f, 0.f, 1.0f));
+
+		ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+		// --- Begin docked window ---
+		if (ImGui::Begin("Toolbar", nullptr, windowFlags))
+		{
+			PhysicsSystem* physics_ = gameManager_->GetSystems().physics_;
+
+			// Align Center the Toolbar buttons
+			float regionWidth = ImGui::GetContentRegionAvail().x; // Gets available width inside the docked window
+			const float buttonWidth = 40.0f;
+			const float buttonHeight = 20.0f;
+			const float spacing = 10.0f;
+			const float totalWidth = (buttonWidth * 3) + (spacing * 2);
+
+			float offsetX = (regionWidth - totalWidth) * 0.5f;
+			if (offsetX > 0.0f) {
+				ImGui::SetCursorPosX(offsetX);
+			}
+
+			// Play Button
+			ImGui::PushStyleColor(ImGuiCol_Button, isGamePlaying ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
+			{
+				isGamePlaying = !isGamePlaying;
+				isGamePaused = false;
+
+				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
+				if (physics_->IsPaused()) physics_->SetPaused(false);
+			}
+			ImGui::PopStyleColor();
+
+			ImGui::SameLine(0, spacing);
+
+			// Pause Button
+			ImGui::PushStyleColor(ImGuiCol_Button, isGamePaused ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+			if (!isGamePlaying) ImGui::BeginDisabled();
+			if (ImGui::Button("Pause", ImVec2(buttonWidth, buttonHeight)))
+			{
+				if (physics_->IsInStepMode()) {
+					physics_->ToggleStepMode();
+				}
+				else {
+					physics_->SetPaused(!physics_->IsPaused());
+				}
+
+				isGamePaused = physics_->IsPaused();
+			}
+			if (!isGamePlaying) ImGui::EndDisabled();
+			ImGui::PopStyleColor();
+
+			ImGui::SameLine(0, spacing);
+
+			// Stop Button
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+			if (!isGamePlaying) ImGui::BeginDisabled();
+			if (ImGui::Button("Step", ImVec2(buttonWidth, buttonHeight)))
+			{
+				if (!physics_->IsInStepMode()) {
+					physics_->ToggleStepMode();
+					physics_->ExecuteNextStep();
+					isGamePaused = true;
+				}
+				else {
+					physics_->ExecuteNextStep();
+				}
+			}
+			if (!isGamePlaying) ImGui::EndDisabled();
+			ImGui::PopStyleColor();
+
+			ImGui::End();
+		}
+
+		ImGui::PopStyleColor();
+		ImGui::PopStyleVar();
+	}
+
+	#pragma endregion
+
+	#pragma region EDITOR GRID
+
 	void Editor::DrawEditorGrid() {
 		
 		auto* gfx = graphicsSystem_; // Use stored pointer
@@ -1615,10 +1832,16 @@ namespace Editor {
 		return { snappedX, snappedY };
 
 	}
+
+	#pragma endregion
 	
+	#pragma region ASSET BROWSER PANEL
+
 	void Editor::ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles) {
 		assetBrowser.RenderUI(droppedFiles);
 	}
+
+	#pragma endregion
 
 	#pragma endregion
 

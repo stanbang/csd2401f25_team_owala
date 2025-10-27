@@ -107,6 +107,42 @@ namespace Framework {
         std::vector<std::string> WrapText(Font& font, const std::string& text,
             float scale, float maxWidth);
 
+        // ----- Frame Buffer stuff (For Game Viewport) -----
+        struct FramebufferSpecs {
+            unsigned width = 800;
+            unsigned height = 600;
+		};
+
+        class Framebuffer {
+        private:
+            FramebufferSpecs specs;
+			unsigned rendererID = 0;
+			unsigned colorAttachment = 0;
+			unsigned depthAttachment = 0;
+        public:
+            /* Constructors */
+            Framebuffer(const FramebufferSpecs& specs);
+            Framebuffer(unsigned width, unsigned height);
+            ~Framebuffer();
+            
+            /* Getters */
+			const FramebufferSpecs& GetSpecifications() const { return specs; }
+			unsigned GetRendererID() const { return rendererID; }
+			unsigned GetColorAttachment() const { return colorAttachment; }
+
+            /* APIs */
+            void Bind() const;
+            void Unbind() const;
+            void Resize(FramebufferSpecs specifications);
+			void Resize(unsigned width, unsigned height);
+        };
+
+        void CreateGameFramebuffer(unsigned width, unsigned height);
+		void ResizeGameFramebuffer(unsigned width, unsigned height);
+		void BindGameFramebuffer() const;
+		void UnbindGameFramebuffer() const;
+        unsigned GetGameTexture() const { return gameFramebuffer_ ? gameFramebuffer_->GetColorAttachment() : 0; };
+
     private:
         WindowsSystem* win_ = nullptr;
         int screenWidth = 1920;
@@ -128,6 +164,9 @@ namespace Framework {
         unsigned vboText_ = 0;
 
         float t_ = 0.f;
+
+        // Game Frame
+		std::unique_ptr<Framebuffer> gameFramebuffer_;
     };
 
 } // namespace Framework
