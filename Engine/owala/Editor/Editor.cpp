@@ -322,13 +322,10 @@ namespace Editor {
 		}
 
 		// IMGui Cursor State
-		ImGuiIO& io = ImGui::GetIO();
+		//ImGuiIO& io = ImGui::GetIO();
 
-		bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
-			ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
-
-		// Prevent game input system from capturing mouse/keyboard input while user is on editor window
-		gameManager_->GetSystems().input_->SetKeyboardLocked(imguiHasFocus);
+		//bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
+			//ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
 
 		// Always keep cursor unlocked while editor is active
 		gameManager_->GetSystems().input_->SetCursorLocked(false);
@@ -978,12 +975,15 @@ namespace Editor {
 			// --- Save/Load Level Data ---
 			ImGui::SeparatorText("Save/Load Level");
 			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+			
+			// Text Input for file name
 			static char filePathBuffer[256] = "";
-
 			ImGui::Text("Save level as:");
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth(150.0f);
+			ImGui::SetNextItemWidth(100.0f);
 			ImGui::InputText("##FilePath", filePathBuffer, IM_ARRAYSIZE(filePathBuffer));
+			// Prevent game input system from capturing mouse/keyboard input while user is on editor window
+			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
 			ImGui::SameLine();
 			ImGui::Text(".json");
 
@@ -992,7 +992,6 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Saving level data: " << filePath << std::endl;
 				// Clear the buffer immediately for the UI
 				filePathBuffer[0] = '\0';
-
 				EntitySerializer::SerializeEntityToFile(entitiesLoaded[2], *ecs, filePath);
 			}
 			ImGui::SameLine();
