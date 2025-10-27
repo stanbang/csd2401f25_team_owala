@@ -390,10 +390,10 @@ namespace Framework {
 			}
 			if (triangleData.HasMember(Serialization::COLOR) && triangleData[Serialization::COLOR].IsArray()) {
 				const rapidjson::Value& colorArr = triangleData[Serialization::COLOR];
-				triangle.color.r = colorArr[0].GetUint();
-				triangle.color.g = colorArr[1].GetUint();
-				triangle.color.b = colorArr[2].GetUint();
-				triangle.color.a = colorArr[3].GetUint();
+				triangle.color.r = (float)colorArr[0].GetUint();
+				triangle.color.g = (float)colorArr[1].GetUint();
+				triangle.color.b = (float)colorArr[2].GetUint();
+				triangle.color.a = (float)colorArr[3].GetUint();
 			}
 			entityMgr.AddComponent<Triangle>(loadedEntity, triangle);
 		}
@@ -615,10 +615,10 @@ namespace Framework {
 			}
 			if (textData.HasMember(Serialization::FONT_COLOR) && textData[Serialization::FONT_COLOR].IsArray()) {
 				const rapidjson::Value& colorArr = textData[Serialization::FONT_COLOR];
-				textComp.color.r = colorArr[0].GetUint();
-				textComp.color.g = colorArr[1].GetUint();
-				textComp.color.b = colorArr[2].GetUint();
-				textComp.color.a = colorArr[3].GetUint();
+				textComp.color.r = (float)colorArr[0].GetUint();
+				textComp.color.g = (float)colorArr[1].GetUint();
+				textComp.color.b = (float)colorArr[2].GetUint();
+				textComp.color.a = (float)colorArr[3].GetUint();
 			}
 			if (textData.HasMember(Serialization::FONT_SIZE) && textData[Serialization::FONT_SIZE].IsFloat()) {
 				textComp.scale = textData[Serialization::FONT_SIZE].GetFloat();
@@ -652,7 +652,7 @@ namespace Framework {
 				cameraComp.zoom = cameraData[Serialization::ZOOM].GetFloat();
 			}
 			if (cameraData.HasMember(Serialization::TARGET_ENTITY) && cameraData[Serialization::TARGET_ENTITY].IsUint64()) {
-				cameraComp.targetEntity = cameraData[Serialization::TARGET_ENTITY].GetUint64();
+				cameraComp.targetEntity = (uint32_t)cameraData[Serialization::TARGET_ENTITY].GetUint64();
 			}
 			if (cameraData.HasMember(Serialization::FOLLOW_SPEED) && cameraData[Serialization::FOLLOW_SPEED].IsFloat()) {
 				cameraComp.followSpeed = cameraData[Serialization::FOLLOW_SPEED].GetFloat();
