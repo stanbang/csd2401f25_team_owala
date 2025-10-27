@@ -48,6 +48,9 @@ namespace Editor {
 		bool showLevelEditor = true;
 		bool showHierarchy = true;
 		bool showInspector = true;
+		bool showGameViewport = true;
+		bool showAssetBrowser = true;
+		bool showToolbar = true;
 	};
 
 	// enum to represent the different types of objects we can create
@@ -82,6 +85,9 @@ namespace Editor {
 
 		// --- Internal State ---
 		bool initialized = false;
+		bool firstUpdate = true;
+		bool isGamePlaying = false;
+		bool isGamePaused = false;
 		//  Members for the system profiler display
 		float profilerUpdateTimer_ = 0.0f;
 		std::vector<Framework::SystemTime> profilerDisplayData_;
@@ -178,6 +184,8 @@ namespace Editor {
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
 		void ShowTilemapEditor();
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
+		void ShowGameViewport();
+		void ShowToolbar();
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid();
 		Vector2D SnapToGrid(const Vector2D& worldPos);
