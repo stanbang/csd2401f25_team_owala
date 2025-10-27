@@ -205,9 +205,9 @@ namespace Editor {
 
 		// Load all prefabs from the data file when the editor starts
 		// which populates our prefabSystem_ member with spawnable objects
-		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.txt")) {
+		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
 			// Log an error if the prefab file can't be found or is invalid.
-			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.txt" << std::endl;
+			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
 		}
 
 		// --- Prepare Palette Items (Load Textures) ---
@@ -767,7 +767,7 @@ namespace Editor {
 				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 				Entity newEntity = 0;
 
-				switch (selectedPrefabType_) {
+			/*	switch (selectedPrefabType_) {
 				case PrefabType::Platform:
 					newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 					break;
@@ -779,8 +779,9 @@ namespace Editor {
 					break;
 				case PrefabType::None: // Should not happen 
 					break;
-				}
+				}*/
 
+				newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 				if (newEntity != 0) {
 					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
 				}

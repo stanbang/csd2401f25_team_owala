@@ -1,13 +1,12 @@
 /*****************************************************************//**
-* \file   ScalingPlatformSystem.h
+* \file   PlatformBehaviorSystem.h
 *
 * \primary_author
 *      Sitara Anil
 * \secondary_author
 *
 *
-* \brief    System that manages the update cycle for all scaling platforms,
-*           handling their animation and transformation updates each frame.
+* \brief
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -16,17 +15,31 @@
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
+#include "Entity.h"
+#include "Matrix3x3.h"
 
 namespace Framework {
-    class ScalingPlatformSystem : public ISystem {
+    class PlatformBehaviorSystem : public ISystem {
     private:
         EntityStorage* ecs_;
 
+        // Internal update methods for different platform types
+        void UpdateTrapPlatforms(float dt);
+        void UpdateScalingPlatforms(float dt);
+
     public:
-        ScalingPlatformSystem(EntityStorage& storage) : ecs_(&storage) {}
+        PlatformBehaviorSystem(EntityStorage& storage) : ecs_(&storage) {}
 
         void Initialize() override {}
         void Update(float dt) override;
         void Shutdown() override {}
+
+        // Trap platform specific methods
+        void TriggerTrap(Entity trapPlatform);
+        void TriggerAllTraps();
+        void ResetTrap(Entity trapPlatform);
+
+        // Scaling platform specific methods
+        Matrix3x3 GetScalingTransform(Entity scalingPlatform) const;
     };
 }

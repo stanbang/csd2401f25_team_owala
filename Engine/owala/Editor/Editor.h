@@ -21,7 +21,7 @@
 #include <string>
 #include <filesystem>
 #include "EntityStorage.h"
-#include "PlatformPrefab.h" // prefab header for creation
+#include "PrefabSystem.h" // prefab header for creation
 #include "Graphics.h"
 #include "ResourceManager.h"
 

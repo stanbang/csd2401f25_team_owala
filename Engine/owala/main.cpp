@@ -37,6 +37,7 @@
 #include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
 #include "CameraSystem.h"
+#include "PlatformBehaviorSystem.h"
 
 // Imgui Editor
 #include "Editor.h"
@@ -77,6 +78,7 @@ int main() {
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
     SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     RotationSystem* rotation = new RotationSystem(*ecs, *input, *phx);
+    PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
@@ -101,6 +103,7 @@ int main() {
     engine.AddSystem(phx);                 // Physics comes after input
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
+    engine.AddSystem(platform);
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
     engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
