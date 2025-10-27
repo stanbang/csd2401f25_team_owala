@@ -71,7 +71,7 @@ int main() {
     try {
 	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.LoadWindowConfig();
-    WindowsSystem *win = new WindowsSystem(engine, "Owala", (int)windowConfig.x, (int)windowConfig.y);
+    WindowsSystem *win = new WindowsSystem(engine, "Owala Engine", (int)windowConfig.x, (int)windowConfig.y);
 	g_win = win; // Set global pointer for console handler
     InputSystem *input = new InputSystem(*win);
     std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();

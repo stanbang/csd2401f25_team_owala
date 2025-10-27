@@ -14,6 +14,7 @@ namespace Framework {
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 		win_ = glfwCreateWindow(w_, h_, title_, nullptr, nullptr);
+		glfwMaximizeWindow(win_);
 		if (!win_) { std::fprintf(stderr, "CreateWindow failed\n"); core_->RequestQuit(); return; }
 		glfwMakeContextCurrent(win_);
 		glfwSwapInterval(1);
