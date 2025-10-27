@@ -975,29 +975,45 @@ namespace Editor {
 			// --- Save/Load Level Data ---
 			ImGui::SeparatorText("Save/Load Level");
 			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+			bool isTyping = false;
 			
+			// Text Input for scene name
+			static char sceneNameBuffer[256] = "";
+			static bool isDefaultNameSet = false;
+			if (!isDefaultNameSet)
+			{
+				snprintf(sceneNameBuffer, sizeof(sceneNameBuffer), "%s", currentScene.name.c_str());
+				isDefaultNameSet = true;
+			}
+			ImGui::Text("Scene Name:");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
+			if (ImGui::IsItemActive()) isTyping = true;
+
 			// Text Input for file name
 			static char filePathBuffer[256] = "";
 			ImGui::Text("Save level as:");
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(100.0f);
 			ImGui::InputText("##FilePath", filePathBuffer, IM_ARRAYSIZE(filePathBuffer));
-			// Prevent game input system from capturing mouse/keyboard input while user is on editor window
-			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
+			if (ImGui::IsItemActive()) isTyping = true;
 			ImGui::SameLine();
 			ImGui::Text(".json");
 
+			// Prevent game input system from capturing mouse/keyboard input while user is on editor window
+			gameManager_->GetSystems().input_->SetKeyboardLocked(isTyping);
+
 			if (ImGui::Button("Save")) {
-				std::string filePath = "../../Data/"; filePath += filePathBuffer; filePath += ".json";
-				Logger::Get().Info(DebugType::Editor) << "Saving level data: " << filePath << std::endl;
+				std::string filePath = "../../Data/Scenes/"; filePath += filePathBuffer; filePath += ".json";
+				std::string sceneName = sceneNameBuffer;
+				Logger::Get().Info(DebugType::Editor) << "Saving scene: " << sceneName << " to: " << filePath << std::endl;
 				// Clear the buffer immediately for the UI
 				filePathBuffer[0] = '\0';
-				EntitySerializer::SerializeEntityToFile(entitiesLoaded[2], *ecs, filePath);
+				EntitySerializer::SerializeSceneData(entitiesLoaded, *ecs, filePath, sceneName);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Load from JSON file")) {
-				Entity newEntity = entityMgr.CreateEntity();
-				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
 			}
 
 

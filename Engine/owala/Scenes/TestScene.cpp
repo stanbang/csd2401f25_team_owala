@@ -174,7 +174,7 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
-        EntitySerializer::SerializeEntityToFile(playerEntity, *ecs, "serializedPlayer.json");
+        //EntitySerializer::SerializeEntityToFile(playerEntity, *ecs, "Data/serializedPlayer.json");
 	}
 
 	void Update() {
