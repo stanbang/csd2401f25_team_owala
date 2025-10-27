@@ -28,5 +28,8 @@ namespace Framework {
 
         // Deserialize a new entity from JSON (creates a new entity and adds components).
         static Entity DeserializeEntity(EntityStorage& ecs, const rapidjson::Value& entityData);
+        // Deserialize scene data from JSON file (modifies sceneName and entitiesList)
+        static void DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList);
+
     };
 }

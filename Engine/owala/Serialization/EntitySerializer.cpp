@@ -26,7 +26,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
 
 		rapidjson::Value componentList(rapidjson::kObjectType);
-		
+
 		/* Components Serialization */
 		// Serialize PlayerStats Component
 		if (entityMgr.HasComponent(entity, ComponentType::PlayerStatsType)) {
@@ -147,7 +147,7 @@ namespace Framework {
 			baseHalfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scalingPlatform.baseHalfSize.x, alloc);
 			baseHalfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scalingPlatform.baseHalfSize.y, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::BASE_HALFSIZE), baseHalfSize, alloc);
-			rapidjson::Value currentScale (rapidjson::kObjectType);
+			rapidjson::Value currentScale(rapidjson::kObjectType);
 			currentScale.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scalingPlatform.currentScaleX, alloc);
 			currentScale.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scalingPlatform.currentScaleY, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::CURRENT_SCALE), currentScale, alloc);
@@ -295,18 +295,18 @@ namespace Framework {
 			outArray.PushBack(entityObject, alloc);
 		}
 	}
-	
+
 	void EntitySerializer::SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filepath, const std::string& sceneName) {
 		Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing scene <" << sceneName << "> to: " << filepath << std::endl;
 		rapidjson::Document doc;
 		doc.SetObject();
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 		rapidjson::Value sceneNameValue(sceneName.c_str(), alloc);
-		doc.AddMember("sceneName", sceneNameValue, alloc);
+		doc.AddMember(rapidjson::StringRef(Serialization::SCENE_NAME), sceneNameValue, alloc);
 
 		rapidjson::Value entitiesData(rapidjson::kArrayType);
 		SerializeEntities(entities, ecs, entitiesData, alloc);
-		doc.AddMember("entities", entitiesData, alloc);
+		doc.AddMember(rapidjson::StringRef(Serialization::ENTITIES), entitiesData, alloc);
 
 		FileIOSystem::WriteFileJson(filepath, doc);
 		Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filepath << std::endl;
@@ -615,10 +615,10 @@ namespace Framework {
 			}
 			if (textData.HasMember(Serialization::FONT_COLOR) && textData[Serialization::FONT_COLOR].IsArray()) {
 				const rapidjson::Value& colorArr = textData[Serialization::FONT_COLOR];
-				textComp.color.r = (float)colorArr[0].GetUint();
-				textComp.color.g = (float)colorArr[1].GetUint();
-				textComp.color.b = (float)colorArr[2].GetUint();
-				textComp.color.a = (float)colorArr[3].GetUint();
+				textComp.color.r = colorArr[0].GetFloat();
+				textComp.color.g = colorArr[1].GetFloat();
+				textComp.color.b = colorArr[2].GetFloat();
+				textComp.color.a = colorArr[3].GetFloat();
 			}
 			if (textData.HasMember(Serialization::FONT_SIZE) && textData[Serialization::FONT_SIZE].IsFloat()) {
 				textComp.scale = textData[Serialization::FONT_SIZE].GetFloat();
@@ -697,9 +697,8 @@ namespace Framework {
 	}
 
 	Entity EntitySerializer::DeserializeEntity(EntityStorage& ecs, const rapidjson::Value& entityData) {
-		rapidjson::Document doc;
 		EntityManager entityMgr(ecs);
-		
+
 		Entity loadedEntity = entityMgr.CreateEntity();
 
 		/* Entity Properties Deserialization */
@@ -715,7 +714,8 @@ namespace Framework {
 		if (entityData.HasMember(Serialization::COMPONENTS)) {
 			if (entityData[Serialization::COMPONENTS].IsObject()) {
 				DeserializeComponents(entityMgr, loadedEntity, entityData);
-			} else {
+			}
+			else {
 				Logger::Get().Error(DebugType::EntitySeralizer) << "Components data is not an object." << std::endl;
 			}
 		}
@@ -731,5 +731,22 @@ namespace Framework {
 		}
 
 		return loadedEntity;
+	}
+
+	void EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList) {
+		Logger::Get().Info(DebugType::EntitySeralizer) << "Deserializing scene data from: " << filePath << std::endl;
+		rapidjson::Document sceneData = FileIOSystem::ReadFile(filePath);
+		sceneName = sceneData[Serialization::SCENE_NAME].GetString();
+
+		// Deserialize entities
+		const rapidjson::Value& entitiesData = sceneData[Serialization::ENTITIES];
+		if (entitiesData.IsArray()) {
+			for (const rapidjson::Value& en : entitiesData.GetArray()) {
+				entitiesList.push_back(DeserializeEntity(ecs, en));
+			}
+		}
+		else {
+			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize entities from " << filePath << ". Not an array!" << std::endl;
+		}
 	}
 }

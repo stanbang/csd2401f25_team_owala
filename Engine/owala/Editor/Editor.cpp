@@ -39,6 +39,7 @@
 #include <random> // for random generation
 
 #include "Fake_Player.h"
+#include "LoadedScene.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -1014,8 +1015,23 @@ namespace Editor {
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Load from JSON file")) {
-			}
+				// todo: get filepath from imgui UI
+				std::string filePath = "../../Data/Scenes/testing.json";
+				
+				SceneManager& sceneMgr = SceneManager::GetInstance();
+				std::string sceneNameFromFile{};
+				std::vector<Entity> entitiesList;
+				EntitySerializer::DeserializeSceneData(*ecs, filePath, sceneNameFromFile, entitiesList);
+				SceneGUID loadedScene = sceneMgr.CreateSceneAsset(sceneNameFromFile, filePath);
+				gameManager_->RegisterScriptToScene(loadedScene, LoadedScene::Initialize, LoadedScene::Update, LoadedScene::Free);
 
+				sceneMgr.LoadScene(loadedScene);
+				isDefaultNameSet = false;
+
+				for (Entity& en : entitiesList) {
+					sceneMgr.AddEntityToScene(loadedScene, en);
+				}
+			}
 
 			// --- Entity Factory ---
 			ImGui::Separator();

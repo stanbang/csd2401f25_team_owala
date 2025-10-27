@@ -10,6 +10,7 @@
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "Logger.h"
+#include "EntitySerializer.h"
 
 namespace Framework {
 	using namespace SceneManagement;
@@ -243,7 +244,7 @@ namespace Framework {
 
 		EntityManager entityMgr(*entityStorageRef_);
 		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
-		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" + entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
