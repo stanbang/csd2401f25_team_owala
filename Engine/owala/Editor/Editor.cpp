@@ -321,11 +321,15 @@ namespace Editor {
 			ImGui::DockBuilderFinish(dockspaceID);
 		}
 
+		// ---  UPDATE VIEWPORT DATA ---
+		// This caches the "Game" window's state for this frame
+		UpdateViewportData();
+
 		// IMGui Cursor State
 		ImGuiIO& io = ImGui::GetIO();
 
-		bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
-			ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
+		/*bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);*/
 
 		// Always keep cursor unlocked while editor is active
 		gameManager_->GetSystems().input_->SetCursorLocked(false);
@@ -335,29 +339,28 @@ namespace Editor {
 		HandleSelection(); // Check if the user is clicking on an entity in the world
 		HandleDeletion();  // Check if the user is deleting the selected entity
 		
-		// ---  Draw the editor grid ---
-		if (showGrid_) {
-			DrawEditorGrid();
+
+		// 1. Check for Drag-and-Drop Placement (on Mouse Release)
+		// This happens only if we were dragging a prefab and let go.
+		if (isTileEditorActive_ && isDraggingPrefab_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			HandleDragDropPlacement();
 		}
 
-		// --- NEW: Draw Drag Preview ---
-		if (isDraggingPrefab_) {
-			DrawDragDropPreview();
+		// 2. Check for Erasing (while Mouse Down)
+		// This happens only if our "tool" is the eraser.
+		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
+			HandleTileErasing(); // This function checks for MouseDown internally
 		}
 
-		// --- Handle Editor Logic ---
-		// Placement/Erasing only happen if tile editor is active
-		if (isTileEditorActive_) {
-			// Check for drop first (mouse release)
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-				HandleDragDropPlacement(); // Try to place if dragging
-			}
-			HandleTileErasing(); // Eraser might still be click/drag based
+		// 3. Check for Selection (on Mouse Press)
+		// This is the new part. We run selection if we aren't dragging a new tile
+		// and we aren't using the eraser.
+		if (!isDraggingPrefab_ && dragDropPayload_.type != PrefabType::Eraser) {
+			HandleSelection(); // This function checks for MousePressed internally
 		}
-		else {
-			// Selection only happens if tile editor is NOT active
-			HandleSelection();
-		}
+
+		// 4. Deletion can happen anytime
+		HandleDeletion();
 		// Deletion can happen anytime if an entity is selected
 		HandleDeletion();
 		
@@ -515,20 +518,26 @@ namespace Editor {
 			return { 0.0f, 0.0f };
 		}
 
-		double mouseX, mouseY;
-		input->GetMousePos(&mouseX, &mouseY);
+		
+		// Get mouse position in absolute desktop coordinates from ImGui
+		ImVec2 mousePos = ImGui::GetMousePos();
 
-		// Convert screen pixel coordinates (0,0 top-left) to NDC (-1 to 1, origin center)
-		float ndcX = (static_cast<float>(mouseX) / win->getWidth()) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (static_cast<float>(mouseY) / win->getHeight()) * 2.0f; // Y is inverted
+		// Transform to viewport-relative coordinates
+	    // (gameViewportPos_ is the absolute desktop pos of the viewport's top-left)
+		float viewportMouseX = mousePos.x - gameViewportPos_.x;
+		float viewportMouseY = mousePos.y - gameViewportPos_.y;
+
+		// Convert to NDC relative to game viewport (-1 to 1)
+		float ndcX = (viewportMouseX / gameViewportSize_.x) * 2.0f - 1.0f;
+		float ndcY = 1.0f - (viewportMouseY / gameViewportSize_.y) * 2.0f; // Y is inverted
 
 		// Convert NDC to World using the camera system
-		return cameraSystem_->ScreenToWorld({ ndcX, ndcY });
+		return cameraSystem_->ScreenToWorld({ ndcX, ndcY }, activeCamera);
 	}
 
 	void Editor::HandleDragDropPlacement() {
-		// Check if we were actually dragging a prefab and if mouse is released over game view
-		if (!isDraggingPrefab_ || ImGui::GetIO().WantCaptureMouse) {
+		// Check if we were actually dragging a prefab and if mouse is over game viewport
+		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
 			isDraggingPrefab_ = false; // Ensure dragging stops if mouse released over UI
 			return;
 		}
@@ -659,69 +668,50 @@ namespace Editor {
 	}
 
 	// Draws a preview of the tile being dragged
-	void Editor::DrawDragDropPreview() {
-		// Ensure graphics system is available and we are dragging a valid prefab
-		if (!graphicsSystem_ || !isDraggingPrefab_ || dragDropPayload_.type == PrefabType::None || dragDropPayload_.type == PrefabType::Eraser) {
+	void Editor::DrawDragDropPreview(ImDrawList* drawList) { 
+
+		if (!isDraggingPrefab_ || dragDropPayload_.type == PrefabType::None || dragDropPayload_.type == PrefabType::Eraser) {
 			return;
 		}
 
-		// Get current mouse position and snap it
+		// Get current mouse position and snap it (same as before)
 		Vector2D worldMousePos = GetMouseWorldPosition();
-		dragDropPreviewPos_ = SnapToGrid(worldMousePos); // Store for potential placement
-		
-		// Get texture ID from the payload
+		dragDropPreviewPos_ = SnapToGrid(worldMousePos);
+
 		Texture previewTextureID = dragDropPayload_.textureID;
-		if (previewTextureID == 0) return; // Don't draw if texture invalid
+		if (previewTextureID == 0) return;
 
-		// Calculate size based on current grid cell size
+		// Calculate size (same as before)
 		Vector2D previewHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
-		
+
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
-		if (activeCamera == 0) return; // No camera, can't draw
+		if (activeCamera == 0) return;
 
-		// Convert world center to screen center
-		Vector2D screenCenter = cameraSystem_->WorldToScreen(dragDropPreviewPos_, activeCamera);
-		
-		// Convert world corners to screen space to get screen-space size
+		// --- NEW IMGUI DRAWING ---
+
+		// 1. Get world corners (World Y+ is up)
 		Vector2D worldTopLeft = { dragDropPreviewPos_.x - previewHalfSize.x,
-								  dragDropPreviewPos_.y - previewHalfSize.y };
+								  dragDropPreviewPos_.y + previewHalfSize.y };
 		Vector2D worldBottomRight = { dragDropPreviewPos_.x + previewHalfSize.x,
-									  dragDropPreviewPos_.y + previewHalfSize.y };
+									  dragDropPreviewPos_.y - previewHalfSize.y };
 
-		Vector2D screenTopLeft = cameraSystem_->WorldToScreen(worldTopLeft, activeCamera);
-		Vector2D screenBottomRight = cameraSystem_->WorldToScreen(worldBottomRight, activeCamera);
+		// 2. Convert world corners to ImGui screen-space
+		ImVec2 screenTopLeft = WorldToImGuiScreen(worldTopLeft);
+		ImVec2 screenBottomRight = WorldToImGuiScreen(worldBottomRight);
 
-		// Calculate screen-space size
-		Vector2D screenSize = {
-			screenBottomRight.x - screenTopLeft.x,
-			screenBottomRight.y - screenTopLeft.y
-		};
+		// 3. Set up UVs (from payload)
+		ImVec2 uv0 = dragDropPayload_.uv0;
+		ImVec2 uv1 = dragDropPayload_.uv1;
 
-		// Draw using Graphics system's drawSprite
-		// Note: drawSprite currently doesn't support alpha tint easily.
-		// We might need to modify drawSprite or use a dedicated preview shader later.
-		// For now, just draw it normally. A simple transparency could be added
-		// by modifying the shader or using glColor4f if not using shaders directly.
-		try {
-			// Need a non-const Texture reference for drawSpriteEasy/drawSprite
-			Texture tempTexID = previewTextureID;
+		// 4. Set tint color (semi-transparent white)
+		ImU32 tintColor = IM_COL32(255, 255, 255, 150); // ~60% alpha
 
-			graphicsSystem_->drawSpriteEasy(tempTexID,
-				screenTopLeft,     // Top-left in NDC
-				screenSize,        // Size in NDC
-				0.0f,              // Rotation
-				{ dragDropPayload_.uv0.x, dragDropPayload_.uv0.y }, // min UV
-				{ dragDropPayload_.uv1.x, dragDropPayload_.uv1.y }  // max UV
-			);
+		// 5. Add to draw list
+		// We must cast our OpenGL Texture (unsigned int) to ImTextureID (void*)
+		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
 
-			// TODO: Add alpha blending specifically for the preview?
-			// graphicsSystem_->setAlphaBlend(true); // Ensure blending is on
-			// ... draw call ...
-			// Need a way to tint alpha, maybe modify shader or drawSprite
-		}
-		catch (const std::exception& e) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Error drawing preview: " << e.what() << std::endl;
-		}
+		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
+
 	}
 
 	void Editor::HandleTileErasing() {
@@ -729,7 +719,10 @@ namespace Editor {
 
 		if (dragDropPayload_.type != PrefabType::Eraser) return; // Check payload type now
 		// Use MouseDown for continuous erasing
-		if (!input->MouseDown(Framework::InputSystem::MouseButton::Left) || ImGui::GetIO().WantCaptureMouse) return;
+		// Check if mouse is over game viewport
+		if (!input->MouseDown(Framework::InputSystem::MouseButton::Left) || !isMouseOverGameViewport_) {
+			return;
+		}
 
 		Vector2D worldMousePos = GetMouseWorldPosition();
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
@@ -804,9 +797,9 @@ namespace Editor {
 		// Only check for selection if a prefab is NOT being spawned
 		if (selectedPrefabType_ != PrefabType::None) return;
 
-		// We only check for selection on a new mouse click.
-		// We also check 'WantCaptureMouse' to ensure the click wasn't on an ImGui window.
-		if (!input->MousePressed(Framework::InputSystem::MouseButton::Left) || ImGui::GetIO().WantCaptureMouse) {
+		// Check if click is over game viewport
+		if (!input->MousePressed(Framework::InputSystem::MouseButton::Left) ||
+			!isMouseOverGameViewport_) {
 			return;
 		}
 
@@ -842,14 +835,17 @@ namespace Editor {
 		}
 		// Update the editor's selection state
 		if (found) {
-			selectedEntityIndex = bestCandidate;
-			selectedEntityIndex += 1;
+			selectedEntityIndex = bestCandidate + 1;
 			isEntitySelected_ = true;
+			selectedComponentIndex = 0; 
+			selectedTagIndex = 0;       
 			
 		}
 		else {
 			selectedEntityIndex = 0;
 			isEntitySelected_ = false;
+			selectedComponentIndex = 0; 
+			selectedTagIndex = 0;       
 		}
 	}
 	
@@ -1108,6 +1104,11 @@ namespace Editor {
 					Framework::Logger::Get().Info(DebugType::Editor) << "Clicked palette item: " << item.name << std::endl;
 				}
 
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", item.name.c_str());
+				}
+
 				// --- Drag Source ---
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
 					// Set payload to be the DraggablePrefabInfo struct itself
@@ -1140,12 +1141,6 @@ namespace Editor {
 				ImGui::NewLine();
 			}
 
-			// --- Display Current Tool (Redundant if preview works) ---
-			// if (isDraggingPrefab_ && dragDropPayload_.type != PrefabType::None) {
-			//     ImGui::Separator();
-			//     ImGui::Text("Dragging: [%s]", dragDropPayload_.name.c_str());
-			//     ImGui::Text("Release Left Mouse Button in world to place.");
-			// }
 
 		}
 		ImGui::End();
@@ -1609,21 +1604,77 @@ namespace Editor {
 
 	#pragma region GAME VIEW PANEL
 
+	void Editor::UpdateViewportData() {
+		// This function just "peeks" at the "Game" window's state
+		// This ensures our viewport data is up-to-date *before* any logic.
+
+		ImGuiWindow* gameWindow = ImGui::FindWindowByName("Game");
+		if (!gameWindow || gameWindow->Collapsed) {
+			isMouseOverGameViewport_ = false;
+			return; // Window not visible or found
+		}
+
+		// Get the absolute screen position of the content region's top-left corner
+		gameViewportPos_ = gameWindow->ContentRegionRect.Min;
+
+		// Get the size of the content region
+		gameViewportSize_ = gameWindow->ContentRegionRect.GetSize();
+
+		// Check if mouse is over the game viewport
+		ImVec2 mousePos = ImGui::GetMousePos(); // ImGui::GetMousePos() gives absolute screen coords
+		isMouseOverGameViewport_ =
+			mousePos.x >= gameViewportPos_.x &&
+			mousePos.x <= gameViewportPos_.x + gameViewportSize_.x &&
+			mousePos.y >= gameViewportPos_.y &&
+			mousePos.y <= gameViewportPos_.y + gameViewportSize_.y;
+	}
+
 	void Editor::ShowGameViewport() {
 		using namespace Framework;
 
 		ImGui::Begin("Game");
-		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+		ImVec2 viewportPanelSize = gameViewportSize_;
+
+
 		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
 			Graphics* gfx = gameManager_->GetSystems().gfx_;
 			SpriteRenderSystem* spriteRenderer_ = gameManager_->GetSystems().spriteRenderer_;
 			if (gfx) {
+
+
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
+
+				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
+
+			
+
 				spriteRenderer_->Update(deltatime);
 				gfx->UnbindGameFramebuffer();
 
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
+
+				// --- ADD NEW OVERLAY DRAWING ---
+			    // Get the draw list for the current window
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+				// Set a clipping rectangle so overlays don't draw outside the game panel
+				ImVec2 clipMin = gameViewportPos_;
+				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
+				drawList->PushClipRect(clipMin, clipMax, true);
+
+				// Call our new overlay functions
+				if (showGrid_) {
+					DrawEditorGrid(drawList);
+				}
+
+				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
+					DrawDragDropPreview(drawList);
+				}
+
+				// Remove the clipping rectangle
+				drawList->PopClipRect();
 			}
 		}
 		ImGui::End();
@@ -1725,70 +1776,49 @@ namespace Editor {
 
 	#pragma region EDITOR GRID
 
-	void Editor::DrawEditorGrid() {
-		
-		auto* gfx = graphicsSystem_; // Use stored pointer
-		if (!gfx || !cameraSystem_ || baseGridCellSize_ <= 0.0f) return; // Added check for cell size
-		Framework::Color gridColor = { 0.5f, 0.5f, 0.5f, 0.3f }; // Semi-transparent grey
+	void Editor::DrawEditorGrid(ImDrawList* drawList) { // MODIFIED
 
-		int width = gameManager_->GetSystems().win_->getWidth();
-		int height = gameManager_->GetSystems().win_->getHeight();
-		float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+		if (!cameraSystem_ || baseGridCellSize_ <= 0.0f) return;
 
-		// Get active camera
+		// ImGui color format (R, G, B, A) from 0-255
+		// This is (0.5f, 0.5f, 0.5f, 0.3f) * 255
+		ImU32 gridColor = IM_COL32(128, 128, 128, 77);
+
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
 		if (activeCamera == 0) return;
-		if (activeCamera != 0) {
-			cameraSystem_->SetAspectRatio(activeCamera, aspectRatio);
-		}
 
-		// Get the current camera view bounds in world space
+		// Get the current camera view bounds in world space (same as before)
 		float viewLeft, viewRight, viewBottom, viewTop;
 		cameraSystem_->GetViewBounds(cameraSystem_->GetActiveCamera(), viewLeft, viewRight, viewBottom, viewTop);
 
-		// Calculate start/end grid lines based on view bounds and the SINGLE world-space cell size
+		// Calculate start/end grid lines (same as before)
 		float startX = std::floor(viewLeft / baseGridCellSize_) * baseGridCellSize_;
 		float startY = std::floor(viewBottom / baseGridCellSize_) * baseGridCellSize_;
 		float endX = std::ceil(viewRight / baseGridCellSize_) * baseGridCellSize_;
 		float endY = std::ceil(viewTop / baseGridCellSize_) * baseGridCellSize_;
 
-		// Determine the world coordinates of the first grid lines just INSIDE or AT the view bounds
-		// Align these start points precisely with the grid snapping logic.
-		// Find the snapped coordinate of the bottom-left corner, then adjust to find the first line.
-		//Vector2D snappedBottomLeft = SnapToGrid({ viewLeft, viewBottom });
-		// The first vertical line might be at snappedX - halfCell or snappedX + halfCell.
-		// We want the line closest to viewLeft but >= viewLeft.
-		// Calculate the index of the snapped cell, find the line coord.
-		//int startGridX = static_cast<int>(std::floor(viewLeft / currentGridCellSize_));
-		//int startGridY = static_cast<int>(std::floor(viewBottom / currentGridCellSize_));
 
-		// **FIX**: Transform view bounds to screen space for clamping lines
-		Vector2D screenViewBottomLeft = cameraSystem_->WorldToScreen({ viewLeft, viewBottom }, activeCamera);
-		Vector2D screenViewTopRight = cameraSystem_->WorldToScreen({ viewRight, viewTop }, activeCamera);
-
-
-		// Draw vertical lines (at positions x) from view bottom to view top
+		// Draw vertical lines
 		for (float x = startX; x <= endX + (baseGridCellSize_ * 0.5f); x += baseGridCellSize_) {
-			Vector2D worldStart = { x, viewBottom };
-			Vector2D worldEnd = { x, viewTop };
+			// Convert world-space line ends to ImGui screen-space
+			ImVec2 screenStart = WorldToImGuiScreen({ x, viewBottom });
+			ImVec2 screenEnd = WorldToImGuiScreen({ x, viewTop });
 
-			Vector2D screenStart = cameraSystem_->WorldToScreen(worldStart, activeCamera);
-			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
-
-			gfx->drawLine(screenStart, screenEnd, gridColor);
-			
+			// Use ImGui's draw list
+			drawList->AddLine(screenStart, screenEnd, gridColor, 1.0f);
 		}
 
-		// Draw horizontal lines (at positions y) from view left to view right
+		// Draw horizontal lines
 		for (float y = startY; y <= endY + (baseGridCellSize_ * 0.5f); y += baseGridCellSize_) {
-			Vector2D worldStart = { viewLeft, y };
-			Vector2D worldEnd = { viewRight, y };
+			// Convert world-space line ends to ImGui screen-space
+			ImVec2 screenStart = WorldToImGuiScreen({ viewLeft, y });
+			ImVec2 screenEnd = WorldToImGuiScreen({ viewRight, y });
 
-			Vector2D screenStart = cameraSystem_->WorldToScreen(worldStart, activeCamera);
-			Vector2D screenEnd = cameraSystem_->WorldToScreen(worldEnd, activeCamera);
-
-			gfx->drawLine(screenStart, screenEnd, gridColor);
+			// Use ImGui's draw list
+			drawList->AddLine(screenStart, screenEnd, gridColor, 1.0f);
 		}
+
+		// No need for gfx-> or blend state changes
 	}
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
@@ -1815,5 +1845,24 @@ namespace Editor {
 	#pragma endregion
 
 	#pragma endregion
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
+	{
+		// 1. Get Active Camera
+		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		if (activeCamera == 0) {
+			// Return a position outside the viewport if no camera
+			return ImVec2(gameViewportPos_.x - 100.0f, gameViewportPos_.y - 100.0f);
+		}
 
+		// 2. Convert World to NDC [-1, 1]
+		// This still uses your camera system's logic
+		Vector2D ndcPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+
+		// 3. Convert NDC to ImGui Screen-Space (relative to viewport)
+		float screenX = gameViewportPos_.x + (ndcPos.x + 1.0f) * 0.5f * gameViewportSize_.x;
+		// Y is (1.0f - ndcPos.y) because ImGui Y-axis is top-down, but NDC Y-axis is bottom-up
+		float screenY = gameViewportPos_.y + (1.0f - ndcPos.y) * 0.5f * gameViewportSize_.y;
+
+		return ImVec2(screenX, screenY);
+	}
 }
