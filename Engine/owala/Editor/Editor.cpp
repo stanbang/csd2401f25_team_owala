@@ -1020,10 +1020,10 @@ namespace Editor {
 		}
 
 
-		// --- Section for Spawning 2500 objects -----//
-		ImGui::SeparatorText("Spawn 2500 Objects");
+		// --- Section for Spawning 1000 objects -----//
+		ImGui::SeparatorText("Spawn 1000 Objects");
 		// In your Editor.cpp spawning section:
-		if (ImGui::Button("Create 2500 Objects")) {
+		if (ImGui::Button("Create 1000 Objects")) {
 			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
 
@@ -1032,7 +1032,7 @@ namespace Editor {
 				int gridSize = 50; // 50x50 grid = 2500 entities
 				float spacing = 0.1f; // Adjust this for proper spacing
 
-				for (int i = 0; i < 2500; ++i) {
+				for (int i = 0; i < 1000; ++i) {
 					// Calculate grid position
 					int row = i / gridSize;
 					int col = i % gridSize;
@@ -1047,7 +1047,7 @@ namespace Editor {
 					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}
-				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 2500 objects" << std::endl;
+				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
 		
@@ -1183,58 +1183,69 @@ namespace Editor {
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
 			int localWidgetID = 0;
-			for (const Entity entity : entitiesLoaded) {
-				std::string name = entityMgr.GetProperties(entity).name;
-				ImGui::PushID(localWidgetID++);
-				bool selected = ((selectedEntityIndex - 1) == entity);
-				if (ImGui::Selectable(name.c_str(), &selected)) {
-					selectedTagIndex = selectedComponentIndex = 0;
-					selectedEntityIndex = entity + 1;
-					isEntitySelected_ = true;
-				}
-				ImGui::PopID();
 
-				// Allows right-click selection
-				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-					selectedTagIndex = selectedComponentIndex = 0;
-					selectedEntityIndex = entity + 1;
-					isEntitySelected_ = true;
-				}
+			// Clipper for large list optimization(This only process entities in view in the list)
+			ImGuiListClipper clipper;
+			clipper.Begin(static_cast<int>(entitiesLoaded.size()));
+			
+			while (clipper.Step()) {
+				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+					const Entity entity = entitiesLoaded[i];
 
-				// Selectable Context Menu
-				if (ImGui::BeginPopupContextItem()) {
-					// Copy
-					if (ImGui::MenuItem("Copy")) {
-						CopyEntityToClipboard(entity);
+					std::string name = entityMgr.GetProperties(entity).name;
+					ImGui::PushID(localWidgetID++);
+					bool selected = ((selectedEntityIndex - 1) == entity);
+					if (ImGui::Selectable(name.c_str(), &selected)) {
+						selectedTagIndex = selectedComponentIndex = 0;
+						selectedEntityIndex = entity + 1;
+						isEntitySelected_ = true;
 					}
-					// Paste
-					if (entityClipboard) {
-						if (ImGui::MenuItem("Paste")) {
-							PasteEntityFromClipboard();
+					ImGui::PopID();
+
+					// Allows right-click selection
+					if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+						selectedTagIndex = selectedComponentIndex = 0;
+						selectedEntityIndex = entity + 1;
+						isEntitySelected_ = true;
+					}
+
+					// Selectable Context Menu
+					if (ImGui::BeginPopupContextItem()) {
+						// Copy
+						if (ImGui::MenuItem("Copy")) {
+							CopyEntityToClipboard(entity);
 						}
-					}
-					else {
-						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-						ImGui::Text("Paste");
-						ImGui::PopStyleColor(1);
-					}
-
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Duplicate")) {
-						Entity clonedEntity = entityMgr.CloneEntity(entity);
-						SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
-					}
-					if (ImGui::MenuItem("Delete")) {
-						SceneManager::GetInstance().RemoveEntityFromScene(entity);
-						if ((selectedEntityIndex - 1) == entity) {
-							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
-							isEntitySelected_ = false;
+						// Paste
+						if (entityClipboard) {
+							if (ImGui::MenuItem("Paste")) {
+								PasteEntityFromClipboard();
+							}
 						}
+						else {
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+							ImGui::Text("Paste");
+							ImGui::PopStyleColor(1);
+						}
+
+						ImGui::Separator();
+
+						if (ImGui::MenuItem("Duplicate")) {
+							Entity clonedEntity = entityMgr.CloneEntity(entity);
+							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+						}
+						if (ImGui::MenuItem("Delete")) {
+							SceneManager::GetInstance().RemoveEntityFromScene(entity);
+							if ((selectedEntityIndex - 1) == entity) {
+								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+								isEntitySelected_ = false;
+							}
+						}
+						ImGui::EndPopup();
 					}
-					ImGui::EndPopup();
 				}
 			}
+			// End clipper
+			clipper.End();
 
 			// Child Window Context Menu
 			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {

@@ -211,6 +211,23 @@ namespace TestScene {
             SceneManager::GetInstance().AddEntityToScene(SceneManager::GetInstance().GetActiveScene().name, newEntity);
         }
 
+		// Change fake player animation between IDLE and RUNNING
+		if (input_->KeyPressed(InputSystem::Key::F)) {
+			//Get all entities with FakePlayerTag
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(FakePlayerTagType)) {
+				AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
+				if (animationComponent.currentState != AnimationState::RUNNING) {
+					animationComponent.currentState = AnimationState::RUNNING;
+					Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to RUNNING" << std::endl;
+				}
+
+                else {
+					animationComponent.currentState = AnimationState::IDLE;
+                    Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to IDLE" << std::endl;
+                }
+            }
+		}
+
         //press ESC to crash the game
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
             throw GameException(DebugType::Unknown, "Intentionally crashed the game for testing");

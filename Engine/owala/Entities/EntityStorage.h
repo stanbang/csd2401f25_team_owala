@@ -59,6 +59,7 @@ namespace Framework {
 		TextComponentType,
 		CameraType,
 		PlayerTagType,
+		FakePlayerTagType,
 		PlatformTagType,
 		BackgroundTagType,
 		EnemyTagType,
@@ -97,6 +98,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
 	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
+	template <> struct ComponentTypeTrait<FakePlayerTag> { static constexpr ComponentType value = FakePlayerTagType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
 	template <> struct ComponentTypeTrait<EnemyTag> { static constexpr ComponentType value = EnemyTagType; };
