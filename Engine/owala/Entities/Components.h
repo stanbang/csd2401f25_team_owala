@@ -64,6 +64,7 @@ namespace Framework{
 	/* Rigidbody component for physics simulation properties. */
 	struct RigidBody {
 		Vector2D Force;
+		bool isAffectedByGravity = true;
 		float Mass = 1.0f;
 		float InverseMass = 1.0f;
 
@@ -149,6 +150,7 @@ namespace Framework{
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */
 	struct PlayerTag {};
+	struct FakePlayerTag {};
 	struct PlatformTag {};
 	struct BackgroundTag {};
 	struct EnemyTag {};

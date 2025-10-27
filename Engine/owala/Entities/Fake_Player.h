@@ -38,9 +38,13 @@ namespace Framework {
 		// Generate random size between 0.02 to 0.08 (visible but varied)
 		std::uniform_real_distribution<float> sizeDistrib(0.02f, 0.08f);
 
-		// Create random size
+		// Generate random velocity between -0.5 to 0.5 for both x and y
+		std::uniform_real_distribution<float> velDistrib(-0.5f, 0.5f);
+
+		// Create random size, scale, and velocity
 		float randomSize = sizeDistrib(gen);
 		Vector2D randomScale = { randomSize, randomSize };
+		Vector2D randomVelocity = { velDistrib(gen), velDistrib(gen) };
 
 		// Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
@@ -49,9 +53,10 @@ namespace Framework {
 		// Create a new entity with a unique ID
 		Entity fake_player = entityMgr.CreateEntity();
 
-		entityMgr.AddComponent(fake_player, PlayerTag{});
+		entityMgr.AddComponent(fake_player, FakePlayerTag{});
 		entityMgr.AddComponent(fake_player, Position{ position });  // Use grid position
 		entityMgr.AddComponent(fake_player, TextureComponent{ textureKey, randomScale });
+		entityMgr.AddComponent(fake_player, AnimationComponent{ AnimationState::IDLE });
 		entityMgr.AddComponent(fake_player, ActiveTag{});  // Critical for rendering
 
 		// Return the entity ID of the fake player
