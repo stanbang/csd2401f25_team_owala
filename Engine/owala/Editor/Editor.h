@@ -108,22 +108,21 @@ namespace Editor {
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
 		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
-		float baseGridCellSizeX_ = 0.1f;
-		float baseGridCellSizeY_ = 0.1f;
+		
 
-		//float currentGridCellSize_ = 0.1f; // NEW: Effective cell size this frame
-		/*float gridCellSizeY_ = 0.1f;*/
-		/*std::string selectedTilePrefabName_;
-		PrefabType selectedTileType_ = PrefabType::None;*/
-
-		// NEW: Drag and Drop State
+		//Drag and Drop State
 		bool isDraggingPrefab_ = false;
 		DraggablePrefabInfo dragDropPayload_; // Holds info about the prefab being dragged
 		Vector2D dragDropPreviewPos_; // World position for preview rendering
 
-		// NEW: Palette Info storage
+		//Palette Info storage
 		bool palettePrepared_ = false; // flag for storing palette items
 		std::vector<DraggablePrefabInfo> paletteItems_;
+
+		// Game viewport tracking for proper mouse coordinate transformation
+		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
+		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
+		bool isMouseOverGameViewport_ = false;
 
 		// Entity factory System members
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
@@ -187,7 +186,7 @@ namespace Editor {
 		void ShowGameViewport();
 		void ShowToolbar();
 		// --- Grid Helper Functions ---
-		void DrawEditorGrid();
+		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);
 
 		// --- NEW Helper ---
@@ -195,12 +194,18 @@ namespace Editor {
 		 /**
 		 * @brief Renders a preview of the tile being dragged.
 		 */
-		void DrawDragDropPreview(); // NEW: Function to draw preview
+		void DrawDragDropPreview(ImDrawList* drawList); // NEW: Function to draw preview
 
 		/**
 	    * @brief Loads textures and prepares palette items.
 		*/
 		void PreparePaletteItems();
+
+		// NEW HELPER: Converts world-space coordinates to ImGui screen-space
+		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
+
+		// NEW: Caches the game viewport's position and size
+		void UpdateViewportData();
 
 	public:
 		bool isEnabled = true;

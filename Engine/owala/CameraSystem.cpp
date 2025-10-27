@@ -36,8 +36,11 @@ namespace Framework {
         Vector2D screenPos;
 
         // Only transform position, don't affect size
-        screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f * camera.zoom);
-        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f * camera.zoom);
+        /*screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f * camera.zoom);
+        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f * camera.zoom);*/
+
+        screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f);
+        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f);
 
         return screenPos;
     }
@@ -76,14 +79,13 @@ namespace Framework {
         if (entityMgr.HasComponent(camera, CameraType)) {
             Camera& cam = entityMgr.GetComponent<Camera>(camera); // FIX: Properly initialize cam
 
-            // Account for zoom in view bounds calculation
-            float zoomedWidth = cam.size.x * cam.zoom;
-            float zoomedHeight = cam.size.y * cam.zoom;
-
-            left = cam.position.x - zoomedWidth * 0.5f;
-            right = cam.position.x + zoomedWidth * 0.5f;
-            bottom = cam.position.y - zoomedHeight * 0.5f;
-            top = cam.position.y + zoomedHeight * 0.5f;
+           
+         
+            // cam.size already includes zoom from the Update() function
+            left = cam.position.x - cam.size.x * 0.5f;
+            right = cam.position.x + cam.size.x * 0.5f;
+            bottom = cam.position.y - cam.size.y * 0.5f;
+            top = cam.position.y + cam.size.y * 0.5f;
         }
         else {
             // Default bounds if camera not found

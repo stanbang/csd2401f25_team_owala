@@ -564,6 +564,15 @@ namespace Framework {
     // =========================
 
     void Graphics::drawLine(const Vector2D& start, const Vector2D& end, const Color& color) {
+
+        // Save the current blend state
+        GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+        if (!blendWasEnabled) {
+            // Enable blending if it's not already on
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+
         glUseProgram(progCol_);
         glUniform4f(g_uColorLoc, color.r, color.g, color.b, color.a);
 
@@ -586,6 +595,10 @@ namespace Framework {
 
         drawTriangle(p1, p3, p2, color);
         drawTriangle(p2, p3, p4, color);
+
+        if (!blendWasEnabled) {
+            glDisable(GL_BLEND);
+        }
     }
 
     void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
