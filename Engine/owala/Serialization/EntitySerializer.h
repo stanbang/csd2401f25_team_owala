@@ -21,6 +21,8 @@ namespace Framework {
         static void SerializeEntity(Entity entity, EntityStorage& ecs, rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator);
         // Serializes an entity to a JSON file.
         static void SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath);
+        // Serializes multiple entities to a single JSON file.
+        static void SerializeEntitiesToFile(std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filepath);
 
         // Deserialize a new entity from JSON (creates a new entity and adds components).
         static Entity DeserializeEntity(EntityStorage& ecs, const rapidjson::Value& entityData);

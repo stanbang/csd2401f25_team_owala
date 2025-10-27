@@ -251,7 +251,7 @@ namespace Editor {
 		// Check if Editor has been initialized
 		SanityCheck();
 
-		
+
 		//  --- START THE IMGUI FRAME ---
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -262,6 +262,9 @@ namespace Editor {
 
 		bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
 			ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
+
+		// Prevent game input system from capturing mouse/keyboard input while user is on editor window
+		gameManager_->GetSystems().input_->SetKeyboardLocked(imguiHasFocus);
 
 		// Always keep cursor unlocked while editor is active
 		gameManager_->GetSystems().input_->SetCursorLocked(false);
@@ -885,6 +888,33 @@ namespace Editor {
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
+
+			// --- Save/Load Level Data ---
+			ImGui::SeparatorText("Save/Load Level");
+			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+			static char filePathBuffer[256] = "";
+
+			ImGui::Text("Save level as:");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(150.0f);
+			ImGui::InputText("##FilePath", filePathBuffer, IM_ARRAYSIZE(filePathBuffer));
+			ImGui::SameLine();
+			ImGui::Text(".json");
+
+			if (ImGui::Button("Save")) {
+				std::string filePath = "../../Data/"; filePath += filePathBuffer; filePath += ".json";
+				Logger::Get().Info(DebugType::Editor) << "Saving level data: " << filePath << std::endl;
+				// Clear the buffer immediately for the UI
+				filePathBuffer[0] = '\0';
+
+				EntitySerializer::SerializeEntityToFile(entitiesLoaded[2], *ecs, filePath);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Load from JSON file")) {
+				Entity newEntity = entityMgr.CreateEntity();
+				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+			}
+
 
 			// --- Entity Factory ---
 			ImGui::Separator();

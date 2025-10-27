@@ -285,8 +285,8 @@ namespace Framework {
 
 		Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing entity to " << filepath << std::endl;
 		SerializeEntityInternal(entity, ecs, doc);
-		Logger::Get().Info(DebugType::EntitySeralizer) << "writing data to Data/" << filepath << std::endl;
-		FileIOSystem::WriteFileJson("Data/" + filepath, doc);
+		Logger::Get().Info(DebugType::EntitySeralizer) << "writing data to " << filepath << std::endl;
+		FileIOSystem::WriteFileJson(filepath, doc);
 	}
 
 	void EntitySerializer::DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {

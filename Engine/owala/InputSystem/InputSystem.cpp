@@ -49,15 +49,15 @@ namespace Framework {
     // ---------------------- integer queries ----------------------
 
     bool InputSystem::KeyDown(int key) const {
-        if (key < 0 || key >= kMaxKeys) return false;
+        if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
         return keyNow_[key];
     }
     bool InputSystem::KeyPressed(int key) const {
-        if (key < 0 || key >= kMaxKeys) return false;
+        if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
         return keyNow_[key] && !keyPrev_[key];
     }
     bool InputSystem::KeyReleased(int key) const {
-        if (key < 0 || key >= kMaxKeys) return false;
+        if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
         return !keyNow_[key] && keyPrev_[key];
     }
 
@@ -104,6 +104,10 @@ namespace Framework {
         cursorLocked_ = locked;
         if (!window_) return;
         glfwSetInputMode(window_, GLFW_CURSOR, locked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+    }
+
+    void InputSystem::SetKeyboardLocked(bool locked) {
+        keyboardLocked_ = locked;
     }
 
     // ---------------------- mappings ----------------------
