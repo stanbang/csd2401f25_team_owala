@@ -400,7 +400,7 @@ namespace Editor {
 			ShowHierarchy();
 		}
 		if (settings.showLevelEditor) {
-			ShowLevelEditor();
+			ShowLevelEditor(droppedFilePaths_);
 		}
 		//  Show Tilemap Editor as a separate window if active
 		if (isTileEditorActive_) {
@@ -948,7 +948,7 @@ namespace Editor {
 
 	#pragma region LEVEL EDITOR PANEL
 
-	void Editor::ShowLevelEditor() {
+	void Editor::ShowLevelEditor(std::vector<std::filesystem::path>& droppedFiles) {
 		using namespace Framework;
 		// --- BUILD IMGUI INTERFACE ---
 		// Example of a dockable "Level Editor" window.
@@ -1011,22 +1011,107 @@ namespace Editor {
 				EntitySerializer::SerializeSceneData(entitiesLoaded, *ecs, filePath, sceneName);
 			}
 			ImGui::SameLine();
+			static bool isLoadFileActive_ = false;
 			if (ImGui::Button("Load from JSON file")) {
-				// todo: get filepath from imgui UI
-				std::string filePath = "../../Data/Scenes/testing.json";
-				
-				SceneManager& sceneMgr = SceneManager::GetInstance();
-				std::string sceneNameFromFile{};
-				std::vector<Entity> entitiesList;
-				EntitySerializer::DeserializeSceneData(*ecs, filePath, sceneNameFromFile, entitiesList);
-				SceneGUID loadedScene = sceneMgr.CreateSceneAsset(sceneNameFromFile, filePath);
-				gameManager_->RegisterScriptToScene(loadedScene, LoadedScene::Initialize, LoadedScene::Update, LoadedScene::Free);
+				isLoadFileActive_ = true;
+			}
 
-				sceneMgr.LoadScene(loadedScene);
-				isDefaultNameSet = false;
+			static std::string filePath{};
+			static bool invalidFileFormat_ = false;
+			if (isLoadFileActive_) {
+				ImGui::Separator();
+				ImGui::Text("Drag and drop a scene JSON file below:");
 
-				for (Entity& en : entitiesList) {
-					sceneMgr.AddEntityToScene(loadedScene, en);
+				// Create a drop zone
+				ImVec2 dropZoneSize(250, 100);
+
+				ImGui::BeginChild("ReplaceDropZone", dropZoneSize, true, ImGuiWindowFlags_NoScrollbar);
+
+				// Handle drops on the drop zone
+				if (!droppedFiles.empty() && ImGui::IsWindowHovered())
+				{
+					// Get the first dropped file
+					const fs::path& droppedFile = droppedFiles[0];
+
+					// Validate that it's a regular file
+					if (!fs::is_regular_file(droppedFile))
+					{
+						Logger::Get().Error(DebugType::Editor)
+							<< "Dropped item is not a file: " << droppedFile.string() << std::endl;
+						return;
+					}
+
+					// Check if the file extensions match
+					std::string droppedExt = droppedFile.extension().string();
+					std::transform(droppedExt.begin(), droppedExt.end(), droppedExt.begin(), ::tolower);
+
+					if (droppedExt != ".json")
+					{
+						Logger::Get().Error(DebugType::Editor) << "Wrong file format! Need a .json file. Dropped file: " << droppedFile.string() << std::endl;
+						invalidFileFormat_ = true;
+						droppedFiles.clear();
+					}
+					else {
+						Logger::Get().Info(DebugType::Editor) << "Dropped JSON file to import: " << droppedFile.string() << std::endl;
+						filePath = droppedFile.string();
+						droppedFiles.clear();
+						invalidFileFormat_ = false;
+					}
+				}
+
+				// Visual feedback for drop zone
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
+				ImVec2 min = ImGui::GetWindowPos();
+				ImVec2 max = ImVec2(min.x + dropZoneSize.x, min.y + dropZoneSize.y);
+
+				// Dashed border effect
+				ImU32 borderColor = IM_COL32(100, 150, 255, 255);
+				if (ImGui::IsWindowHovered())
+				{
+					borderColor = IM_COL32(150, 200, 255, 255);
+					drawList->AddRectFilled(min, max, IM_COL32(50, 100, 150, 50));
+				}
+				drawList->AddRect(min, max, borderColor, 0.0f, 0, 2.0f);
+
+				// Center text in drop zone
+				const char* dropText = "Drop file here";
+				ImVec2 textSize = ImGui::CalcTextSize(dropText);
+				ImGui::SetCursorPos(ImVec2(
+					(dropZoneSize.x - textSize.x) * 0.5f,
+					(dropZoneSize.y - textSize.y) * 0.5f
+				));
+				ImGui::TextDisabled("%s", dropText);
+
+				ImGui::EndChild();
+
+				ImGui::Text("Dropped file: ");
+				size_t pos = filePath.find_last_of("/\\");
+				if (invalidFileFormat_) {
+					ImGui::Text("Invalid file format! Please import JSON files only.");
+				}
+				else {
+					ImGui::Text(filePath.substr(pos + 1).c_str());
+				}
+				if (ImGui::Button("Confirm") && !filePath.empty())
+				{
+					SceneManager& sceneMgr = SceneManager::GetInstance();
+					std::string sceneNameFromFile{};
+					std::vector<Entity> entitiesList;
+					EntitySerializer::DeserializeSceneData(*ecs, filePath, sceneNameFromFile, entitiesList);
+					SceneGUID loadedScene = sceneMgr.CreateSceneAsset(sceneNameFromFile, filePath);
+					gameManager_->RegisterScriptToScene(loadedScene, LoadedScene::Initialize, LoadedScene::Update, LoadedScene::Free);
+
+					sceneMgr.LoadScene(loadedScene);
+					isDefaultNameSet = false;
+
+					for (Entity& en : entitiesList) {
+						sceneMgr.AddEntityToScene(loadedScene, en);
+					}
+					isLoadFileActive_ = false;
+				}
+				if (ImGui::Button("Cancel"))
+				{
+					isLoadFileActive_ = false;
 				}
 			}
 

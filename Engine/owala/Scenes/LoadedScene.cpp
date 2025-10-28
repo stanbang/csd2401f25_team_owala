@@ -9,6 +9,7 @@
 #include "GameManager.h"
 #include "LoadedScene.h"
 #include "EntityManager.h"
+#include "Player.h"
 
 namespace LoadedScene {
     using namespace Framework;
@@ -21,13 +22,11 @@ namespace LoadedScene {
         EntityStorage* ecs_ = gm.GetSystems().ecs_;
         InputSystem* input_ = gm.GetSystems().input_;
         PhysicsSystem* physics_ = gm.GetSystems().physics_;
-        //Graphics* gfx_ = gm.GetSystems().gfx_;
         ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
         AudioSystem* audio_ = gm.GetSystems().audio_;
         CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
         EntityManager entityMgr(*ecs_);
 
-        //  --- START THE IMGUI FRAME ---
         //press T to play scream, for not a entity yet, because we don't want to play it from the start
         if (input_->KeyPressed(InputSystem::Key::T)) {
             try {
@@ -63,14 +62,15 @@ namespace LoadedScene {
                 renderer->ToggleColliders(); // Just one line!
             }
         }
-        ////press arrow up/ arrow down to scale player sprite
-        //if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
-        //    //GameManager& gm = GameManager::GetInstance();
-        //    EntityStorage* ecs = gm.GetInstance().GetSystems().ecs_;
-        //    float scale = input_->KeyPressed(InputSystem::Key::Up) ? 1.05f : (1.0f / 1.05f);
-        //    updatePlayerSize(*ecs, playerEntity, scale);
-        //    Logger::Get().Info(DebugType::PlayerSystem) << "Player Size *= (" << scale << ')' << std::endl;
-        //}
+        //press arrow up/ arrow down to scale player sprite
+        if (input_->KeyPressed(InputSystem::Key::Up) || input_->KeyPressed(InputSystem::Key::Down)) {
+            //GameManager& gm = GameManager::GetInstance();
+            EntityStorage* ecs = gm.GetInstance().GetSystems().ecs_;
+            float scale = input_->KeyPressed(InputSystem::Key::Up) ? 1.05f : (1.0f / 1.05f);
+            Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(ComponentType::PlayerTagType)[0];
+            updatePlayerSize(*ecs, playerEntity, scale);
+            Logger::Get().Info(DebugType::PlayerSystem) << "Player Size *= (" << scale << ')' << std::endl;
+        }
 
         // 2. --- HANDLE INPUTS ---
         // 'P' key toggles the master pause state.

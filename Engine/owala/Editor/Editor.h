@@ -177,7 +177,7 @@ namespace Editor {
 
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
-		void ShowLevelEditor();
+		void ShowLevelEditor(std::vector<std::filesystem::path>&droppedFiles);
 		void ShowHierarchy();
 		void ShowInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
