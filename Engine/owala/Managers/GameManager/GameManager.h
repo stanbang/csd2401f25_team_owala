@@ -26,6 +26,7 @@
 #include "Graphics.h"
 #include "Core.h"
 #include "Editor.h"
+#include "FileUtility.h"
 
 #include <vector>
 

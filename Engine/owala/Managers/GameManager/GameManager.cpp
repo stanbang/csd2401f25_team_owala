@@ -7,6 +7,7 @@
  * \date	18 September 2025
  *********************************************************************/
 #include "GameManager.h"
+#include "EntitySerializer.h"
 #include <iostream>
 
 // Scene Scripts
@@ -119,12 +120,33 @@ namespace Framework {
 		CheckSystems();
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 
-		// Testing Scene Creation - Hard Coded at the moment
-		SceneGUID splashScreen = sceneMgr.CreateSceneAsset("Splash Screen");
-		SceneGUID testScene = sceneMgr.CreateSceneAsset("Test Scene");
+		SceneGUID testScene{};
+		// Create scene assets from file
+		rapidjson::Document scenesData;
+		if (FileIOSystem::LoadSceneAssets(scenesData)) {
+			for (const rapidjson::Value& val : scenesData.GetArray()) {
+				std::string sceneName = val["name"].GetString();
+				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val["path"].GetString());
 
-		RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
-		RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				if (sceneName == "Splash Screen") {
+					RegisterScriptToScene(sceneID, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+				}
+				if (sceneName == "Test Scene") {
+					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+					testScene = sceneID;
+				}
+			}
+		}
+		else {
+			Logger::Get().Error(DebugType::GameManager) << "Failed to load scene assets from file" << std::endl;
+		}
+
+		// Testing Scene Creation - Hard Coded at the moment
+		//SceneGUID splashScreen = sceneMgr.CreateSceneAsset("Splash Screen");
+		//testScene = sceneMgr.CreateSceneAsset("Test Scene");
+
+		//RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
 		sceneCallbacks_[testScene].fpInitialize();
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;

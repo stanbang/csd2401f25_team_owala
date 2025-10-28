@@ -234,6 +234,13 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::CAMERA_COMPONENT), value, alloc);
 		}
 
+		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
+			SceneOwned& sceneOwnedComp = entityMgr.GetComponent<SceneOwned>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::COMP_SCENE_NAME), rapidjson::StringRef(sceneOwnedComp.sceneName.c_str()), alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::SCENE_OWNED_COMPONENT), value, alloc);
+		}
+
 		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
 
 		/* Tags Serialization */
@@ -254,10 +261,6 @@ namespace Framework {
 		}
 		if (entityMgr.HasComponent(entity, ComponentType::EnemyTagType)) {
 			rapidjson::Value tagVal(Serialization::ENEMY_TAG, alloc);
-			tagsList.PushBack(tagVal, alloc);
-		}
-		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
-			rapidjson::Value tagVal(Serialization::SCENE_OWNED_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
 		if (entityMgr.HasComponent(entity, ComponentType::PersistentTagType)) {
@@ -667,6 +670,17 @@ namespace Framework {
 			}
 			entityMgr.AddComponent<Camera>(loadedEntity, cameraComp);
 		}
+
+		// Deserialize SceneOwned Component
+		if (componentLists.HasMember(Serialization::SCENE_OWNED_COMPONENT)) {
+			const rapidjson::Value& sceneOwnedData = componentLists[Serialization::SCENE_OWNED_COMPONENT];
+			SceneOwned sceneOwnedComp;
+			if (sceneOwnedData.HasMember(Serialization::COMP_SCENE_NAME) && sceneOwnedData[Serialization::COMP_SCENE_NAME].IsString()) {
+				sceneOwnedComp.sceneName = sceneOwnedData[Serialization::COMP_SCENE_NAME].GetString();
+			}
+			
+			entityMgr.AddComponent<SceneOwned>(loadedEntity, sceneOwnedComp);
+		}
 	}
 
 	void EntitySerializer::DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {
@@ -687,9 +701,6 @@ namespace Framework {
 				}
 				else if (tag == Serialization::ENEMY_TAG) {
 					entityMgr.AddComponent<EnemyTag>(loadedEntity, EnemyTag{});
-				}
-				else if (tag == Serialization::SCENE_OWNED_TAG) {
-					entityMgr.AddComponent<SceneOwned>(loadedEntity, SceneOwned{});
 				}
 				else if (tag == Serialization::PERSISTENT_TAG) {
 					entityMgr.AddComponent<PersistentTag>(loadedEntity, PersistentTag{});
@@ -738,20 +749,35 @@ namespace Framework {
 		return loadedEntity;
 	}
 
-	void EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList) {
-		Logger::Get().Info(DebugType::EntitySeralizer) << "Deserializing scene data from: " << filePath << std::endl;
-		rapidjson::Document sceneData = FileIOSystem::ReadFile(filePath);
-		sceneName = sceneData[Serialization::SCENE_NAME].GetString();
-
-		// Deserialize entities
-		const rapidjson::Value& entitiesData = sceneData[Serialization::ENTITIES];
-		if (entitiesData.IsArray()) {
-			for (const rapidjson::Value& en : entitiesData.GetArray()) {
-				entitiesList.push_back(DeserializeEntity(ecs, en));
+	bool EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList) {
+		try {
+			Logger::Get().Info(DebugType::EntitySeralizer) << "Deserializing scene data from: " << filePath << std::endl;
+			rapidjson::Document sceneData;
+			if (!FileIOSystem::ReadFile(filePath, sceneData)) {
+				Logger::Get().Error(DebugType::EntitySeralizer) << "Unable to read file " << filePath << std::endl;
+				return false;
 			}
+			if (!sceneData.HasMember(Serialization::SCENE_NAME) || !sceneData[Serialization::SCENE_NAME].IsString()) {
+				Logger::Get().Error(DebugType::EntitySeralizer) << "Missing or invalid '" << std::string(Serialization::SCENE_NAME) << "' field.\n";
+				return false;
+			}
+			if (!sceneData.HasMember(Serialization::ENTITIES) || !sceneData[Serialization::ENTITIES].IsArray()) {
+				Logger::Get().Error(DebugType::EntitySeralizer) << "Missing or invalid '" << std::string(Serialization::ENTITIES) << "' array.\n";
+				return false;
+			}
+
+			// Deserialize scene name and entities
+			sceneName = sceneData[Serialization::SCENE_NAME].GetString();
+			const rapidjson::Value& entitiesData = sceneData[Serialization::ENTITIES];
+			if (entitiesData.IsArray()) {
+				for (const rapidjson::Value& en : entitiesData.GetArray()) {
+					entitiesList.push_back(DeserializeEntity(ecs, en));
+				}
+			}
+			return true;
 		}
-		else {
-			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize entities from " << filePath << ". Not an array!" << std::endl;
+		catch (...) {
+			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize entities from " << filePath << std::endl;
 		}
 	}
 }

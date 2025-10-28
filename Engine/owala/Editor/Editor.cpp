@@ -400,7 +400,7 @@ namespace Editor {
 			ShowHierarchy();
 		}
 		if (settings.showLevelEditor) {
-			ShowLevelEditor(droppedFilePaths_);
+			ShowLevelEditor();
 		}
 		//  Show Tilemap Editor as a separate window if active
 		if (isTileEditorActive_) {
@@ -948,7 +948,7 @@ namespace Editor {
 
 	#pragma region LEVEL EDITOR PANEL
 
-	void Editor::ShowLevelEditor(std::vector<std::filesystem::path>& droppedFiles) {
+	void Editor::ShowLevelEditor() {
 		using namespace Framework;
 		// --- BUILD IMGUI INTERFACE ---
 		// Example of a dockable "Level Editor" window.
@@ -970,152 +970,7 @@ namespace Editor {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
 
-			// --- Save/Load Level Data ---
-			ImGui::SeparatorText("Save/Load Level");
-			bool isTyping = false;
-			
-			// Text Input for scene name
-			static char sceneNameBuffer[256] = "";
-			static bool isDefaultNameSet = false;
-			if (!isDefaultNameSet)
-			{
-				snprintf(sceneNameBuffer, sizeof(sceneNameBuffer), "%s", currentScene.name.c_str());
-				isDefaultNameSet = true;
-			}
-			ImGui::Text("Scene Name:");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(100.0f);
-			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
-			if (ImGui::IsItemActive()) isTyping = true;
-
-			// Text Input for file name
-			static char filePathBuffer[256] = "";
-			ImGui::Text("Save level as:");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(100.0f);
-			ImGui::InputText("##FilePath", filePathBuffer, IM_ARRAYSIZE(filePathBuffer));
-			if (ImGui::IsItemActive()) isTyping = true;
-			ImGui::SameLine();
-			ImGui::Text(".json");
-
-			// Prevent game input system from capturing mouse/keyboard input while user is on editor window
-			gameManager_->GetSystems().input_->SetKeyboardLocked(isTyping);
-
-			if (ImGui::Button("Save") && sceneNameBuffer[0] != '\0' && filePathBuffer[0] != '\0') {
-				std::string filePath = "../../Data/Scenes/"; filePath += filePathBuffer; filePath += ".json";
-				std::string sceneName = sceneNameBuffer;
-				Logger::Get().Info(DebugType::Editor) << "Saving scene: " << sceneName << " to: " << filePath << std::endl;
-				// Clear the buffer immediately for the UI
-				filePathBuffer[0] = '\0';
-				sceneNameBuffer[0] = '\0';
-				EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, sceneName);
-				
-			}
-			ImGui::SameLine();
-			static bool isLoadFileActive_ = false;
-			if (ImGui::Button("Load from JSON file")) {
-				isLoadFileActive_ = !isLoadFileActive_;
-			}
-
-			static std::string filePath{};
-			static bool invalidFileFormat_ = false;
-			if (isLoadFileActive_) {
-				ImGui::Separator();
-				ImGui::Text("Drag and drop a scene JSON file below:");
-
-				// Create a drop zone
-				ImVec2 dropZoneSize(250, 100);
-
-				ImGui::BeginChild("ReplaceDropZone", dropZoneSize, true, ImGuiWindowFlags_NoScrollbar);
-
-				// Handle drops on the drop zone
-				if (!droppedFiles.empty() && ImGui::IsWindowHovered())
-				{
-					// Get the first dropped file
-					const fs::path& droppedFile = droppedFiles[0];
-
-					// Validate that it's a regular file
-					if (!fs::is_regular_file(droppedFile))
-					{
-						Logger::Get().Error(DebugType::Editor)
-							<< "Dropped item is not a file: " << droppedFile.string() << std::endl;
-						return;
-					}
-
-					// Check if the file extensions match
-					std::string droppedExt = droppedFile.extension().string();
-					std::transform(droppedExt.begin(), droppedExt.end(), droppedExt.begin(), ::tolower);
-
-					if (droppedExt != ".json")
-					{
-						Logger::Get().Error(DebugType::Editor) << "Wrong file format! Need a .json file. Dropped file: " << droppedFile.string() << std::endl;
-						invalidFileFormat_ = true;
-						droppedFiles.clear();
-					}
-					else {
-						Logger::Get().Info(DebugType::Editor) << "Dropped JSON file to import: " << droppedFile.string() << std::endl;
-						filePath = droppedFile.string();
-						droppedFiles.clear();
-						invalidFileFormat_ = false;
-					}
-				}
-
-				// Visual feedback for drop zone
-				ImDrawList* drawList = ImGui::GetWindowDrawList();
-				ImVec2 min = ImGui::GetWindowPos();
-				ImVec2 max = ImVec2(min.x + dropZoneSize.x, min.y + dropZoneSize.y);
-
-				// Dashed border effect
-				ImU32 borderColor = IM_COL32(100, 150, 255, 255);
-				if (ImGui::IsWindowHovered())
-				{
-					borderColor = IM_COL32(150, 200, 255, 255);
-					drawList->AddRectFilled(min, max, IM_COL32(50, 100, 150, 50));
-				}
-				drawList->AddRect(min, max, borderColor, 0.0f, 0, 2.0f);
-
-				// Center text in drop zone
-				const char* dropText = "Drop file here";
-				ImVec2 textSize = ImGui::CalcTextSize(dropText);
-				ImGui::SetCursorPos(ImVec2(
-					(dropZoneSize.x - textSize.x) * 0.5f,
-					(dropZoneSize.y - textSize.y) * 0.5f
-				));
-				ImGui::TextDisabled("%s", dropText);
-
-				ImGui::EndChild();
-
-				ImGui::Text("Dropped file: ");
-				size_t pos = filePath.find_last_of("/\\");
-				if (invalidFileFormat_) {
-					ImGui::Text("Invalid file format! Please import JSON files only.");
-				}
-				else {
-					ImGui::Text(filePath.substr(pos + 1).c_str());
-				}
-				if (ImGui::Button("Confirm") && !filePath.empty())
-				{
-					SceneManager& sceneMgr = SceneManager::GetInstance();
-					std::string sceneNameFromFile{};
-					std::vector<Entity> entitiesList;
-					EntitySerializer::DeserializeSceneData(*(gameManager_->GetSystems().ecs_), filePath, sceneNameFromFile, entitiesList);
-					SceneGUID loadedScene = sceneMgr.CreateSceneAsset(sceneNameFromFile, filePath);
-					gameManager_->RegisterScriptToScene(loadedScene, LoadedScene::Initialize, LoadedScene::Update, LoadedScene::Free);
-
-					sceneMgr.LoadScene(loadedScene);
-					isDefaultNameSet = false;
-
-					for (Entity& en : entitiesList) {
-						sceneMgr.AddEntityToScene(loadedScene, en);
-					}
-					isLoadFileActive_ = false;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel"))
-				{
-					isLoadFileActive_ = false;
-				}
-			}
+			SaveAndLoadSection();
 
 			// --- Entity Factory ---
 			ImGui::Separator();
@@ -1200,6 +1055,93 @@ namespace Editor {
 			
 	}
 
+	void Editor::SaveAndLoadSection() {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
+		if (ImGui::Button("Save")) {
+			std::string filePath = FileIOSystem::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+
+			// If its a newly created scene, create new filepath for it based on scene name.
+			if (currentScene.path.empty()) {
+				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
+			}
+
+			Logger::Get().Info(DebugType::Editor) << "Saving scene: " << currentScene.name << " to: " << filePath << std::endl;
+
+			// Serialize Scene name and entities to its own json file
+			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+			// Save scene asset to json file that stores all scene assets
+			FileIOSystem::SaveSceneAsset(currentScene);
+		}
+
+		// --- Create New Scene --- 
+		ImGui::SameLine();
+		if (ImGui::Button("New Scene")) {
+            ImGui::OpenPopup("Create New Scene");
+		}
+
+		// Create New Scene Modal
+		if (ImGui::BeginPopupModal("Create New Scene", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			// Text Input for scene name
+			static char sceneNameBuffer[256] = "";
+			ImGui::Text("Scene Name:");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
+			static bool duplicateNameError = false;
+			// Prevent game input system from capturing mouse/keyboard input
+			gameManager_->GetSystems().input_->SetKeyboardLocked(true);
+			
+			if (duplicateNameError) {
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
+			}
+			
+			if (ImGui::Button("Confirm", ImVec2(120, 0)))
+			{
+				std::string sceneName = sceneNameBuffer;
+				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
+				if (!duplicateNameError) {
+					sceneMgr.CreateSceneAsset(sceneName, "");
+					ImGui::CloseCurrentPopup();
+					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+			{
+				ImGui::CloseCurrentPopup();
+				gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+			}
+
+			ImGui::EndPopup();
+		}
+
+		// Display list of scenes available to load
+		if (ImGui::CollapsingHeader("Scenes List")) {
+			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
+				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
+
+				if (isCurrentScene) {
+					ImGui::BeginDisabled();
+				}
+
+				if (ImGui::Button(scene.name.c_str())) {
+					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
+					if (!isCurrentScene) {
+						sceneMgr.LoadScene(id);
+					}
+				}
+
+				if (isCurrentScene) {
+					ImGui::EndDisabled();
+				}
+			}
+		}
+	}
 	#pragma endregion
 
 	#pragma region TILEMAP EDITOR PANEL
