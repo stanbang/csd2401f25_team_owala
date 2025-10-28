@@ -89,7 +89,8 @@ int main() {
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera); // Register all core systems to the GameManager
+    LevelResetSystem* levelResetter = new LevelResetSystem(*ecs);
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *levelResetter); // Register all core systems to the GameManager
 
 	// Editor Registration
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);

@@ -23,6 +23,7 @@
 #include "AudioSystem.h"
 #include "WindowsSystem.h"
 #include "SpriteRenderSystem.h"
+#include "LevelResetSystem.h"
 #include "Graphics.h"
 #include "Core.h"
 #include "Editor.h"
@@ -67,6 +68,7 @@ namespace Framework {
 			AudioSystem* audio_ = nullptr;   // <-- store it
 			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
 			CameraSystem* camera_ = nullptr;  
+			LevelResetSystem* levelResetter_ = nullptr;
 		};
 
 		RegisteredSystems systems_;
@@ -113,7 +115,7 @@ namespace Framework {
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera);		
+			CameraSystem& camera, LevelResetSystem& levelResetter);		
 
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
 

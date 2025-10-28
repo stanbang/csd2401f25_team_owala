@@ -1062,6 +1062,9 @@ namespace Editor {
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
 		if (ImGui::Button("Save")) {
+			// Reset entity states & stop game on save 
+			isGamePlaying = false;
+			gameManager_->GetSystems().levelResetter_->RunReset();
 			std::string filePath = FileIOSystem::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
 
 			// If its a newly created scene, create new filepath for it based on scene name.
@@ -1818,8 +1821,18 @@ namespace Editor {
 
 			// Play Button
 			ImGui::PushStyleColor(ImGuiCol_Button, isGamePlaying ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+
+			// Start with physics paused
+			if (!isGamePlaying) {
+				physics_->SetPaused(true);
+			}
+
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
+				if (isGamePlaying) {
+					gameManager_->GetSystems().levelResetter_->RunReset();
+				}
 				isGamePlaying = !isGamePlaying;
 				isGamePaused = false;
 

@@ -122,6 +122,8 @@ namespace Framework {
 		bool CheckDuplicateSceneName(const std::string& sceneName);
 		// Update scene asset
 		void UpdateScenePath(const SceneGUID& sceneIndex, const std::string& newPath);
+		// Scene Reset
+		void ResetScene();
 
 		/* DEBUG FUNCTIONS */
 		void PrintAllScenesInfo() const;

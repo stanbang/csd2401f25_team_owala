@@ -118,6 +118,10 @@ namespace Framework {
 		// Gets all entities that have all the specified component types attached to them. (Multiple component support)
 		template<typename... Args>
 		std::vector<Entity> GetAllEntitiesWithComponents(Args... componentTypes) const;
+		// Get entity signatures
+		inline const auto& GetEntitySignatures() const {
+			return ecs.entitySignatures;
+		}
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.

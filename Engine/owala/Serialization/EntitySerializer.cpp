@@ -777,7 +777,7 @@ namespace Framework {
 			return true;
 		}
 		catch (...) {
-			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize entities from " << filePath << std::endl;
+			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize scene data from " << filePath << std::endl;
 		}
 	}
 }
