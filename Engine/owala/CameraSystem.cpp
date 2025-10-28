@@ -15,7 +15,9 @@ namespace Framework {
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
-            camera.size = { 2.0f * camera.zoom * camera.aspectRatio, 2.0f * camera.zoom }; // use aspect ratio to maintain equivalent sizing
+
+            // Keep square coordinates — no aspect ratio scaling
+            camera.size = { 2.0f * camera.zoom, 2.0f * camera.zoom };
 
             if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, PositionType)) {
                 const auto& targetPos = entityMgr.GetComponent<Position>(camera.targetEntity).Pos;
@@ -31,6 +33,7 @@ namespace Framework {
             }
         }
     }
+
     Vector2D CameraSystem::WorldToScreen(const Vector2D& worldPos, Entity cameraEntity) {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D screenPos;
@@ -141,5 +144,15 @@ namespace Framework {
 
         return entityMgr.GetComponent<Camera>(cameraEntity);
     }
+
+    Vector2D CameraSystem::GetCameraPosition(Entity cameraEntity) const {
+        EntityManager entityMgr(ecs_);
+        if (cameraEntity == 0)
+            cameraEntity = activeCamera_;
+        if (cameraEntity == 0 || !entityMgr.HasComponent(cameraEntity, CameraType))
+            return { 0.0f, 0.0f };
+        return entityMgr.GetComponent<Camera>(cameraEntity).position;
+    }
+
 
 } // namespace Framework
