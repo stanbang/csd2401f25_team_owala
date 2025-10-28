@@ -38,6 +38,10 @@ namespace Framework {
         Vector2D screenPos;
 
         // Convert world ? normalized screen coordinates
+        // Only transform position, don't affect size
+        /*screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f * camera.zoom);
+        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f * camera.zoom);*/
+
         screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f);
         screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f);
 

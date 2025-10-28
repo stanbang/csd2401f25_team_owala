@@ -66,6 +66,24 @@ namespace Framework {
         template<typename ResourceType>
         ResourceType& get(std::string key);
 
+        template<typename ResourceType>
+        void unload(const std::string& key) {
+            if (std::is_same<ResourceType, Texture>::value) {
+                textureMap.erase(key); // Erase from texture map
+            }
+            else if (std::is_same<ResourceType, Audio>::value) {
+                soundMap.erase(key); // Erase from sound map
+            }
+            else if (std::is_same<ResourceType, Font>::value) {
+                fontMap.erase(key); // Erase from font map
+            }
+            else if (std::is_same<ResourceType, AnimationInfo>::value) {
+                animationMap.erase(key); // Erase from animation map
+            }
+            else {
+                Logger::Get().Info(DebugType::ResourceManager) << "Unload only supported for Texture, Audio, Font and AnimationInfo\n";
+            }
+        }
         // Clear resources of a specific type
         template<typename ResourceType>
         void clear() {

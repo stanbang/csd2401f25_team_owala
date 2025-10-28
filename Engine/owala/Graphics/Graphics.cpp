@@ -229,6 +229,9 @@ namespace Framework {
         // Unbind
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // Create game framebuffer
+		CreateGameFramebuffer(800, 600);
     }
 
     void Graphics::Update(float dt) {
@@ -561,6 +564,15 @@ namespace Framework {
     // =========================
 
     void Graphics::drawLine(const Vector2D& start, const Vector2D& end, const Color& color) {
+
+        // Save the current blend state
+        GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+        if (!blendWasEnabled) {
+            // Enable blending if it's not already on
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+
         glUseProgram(progCol_);
         glUniform4f(g_uColorLoc, color.r, color.g, color.b, color.a);
 
@@ -583,6 +595,10 @@ namespace Framework {
 
         drawTriangle(p1, p3, p2, color);
         drawTriangle(p2, p3, p4, color);
+
+        if (!blendWasEnabled) {
+            glDisable(GL_BLEND);
+        }
     }
 
     void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
@@ -668,5 +684,114 @@ namespace Framework {
         lines.push_back(currentLine);
         return lines;
     }
+
+    // =========================
+    // Framebuffers
+    // =========================
+    #pragma region FRAMEBUFFERS
+
+    Graphics::Framebuffer::Framebuffer(const FramebufferSpecs& specifications) : specs(specifications) {
+        glGenFramebuffers(1, &rendererID);
+        glBindFramebuffer(GL_FRAMEBUFFER, rendererID);
+
+        // Create color texture
+        glGenTextures(1, &colorAttachment);
+        glBindTexture(GL_TEXTURE_2D, colorAttachment);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, specs.width, specs.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment, 0);
+
+        // Create depth renderbuffer
+        glGenRenderbuffers(1, &depthAttachment);
+        glBindRenderbuffer(GL_RENDERBUFFER, depthAttachment);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, specs.width, specs.height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthAttachment);
+
+        // Sanity check
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			Logger::Error(DebugType::GraphicsSystem) << "Framebuffer is incomplete!" << std::endl;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+    // Delegate Constructor
+    Graphics::Framebuffer::Framebuffer(unsigned width, unsigned height) : Graphics::Framebuffer(FramebufferSpecs{ width, height }) {}
+
+    Graphics::Framebuffer::~Framebuffer() {
+        if (depthAttachment) glDeleteRenderbuffers(1, &depthAttachment);
+        if (colorAttachment) glDeleteTextures(1, &colorAttachment);
+        if (rendererID) glDeleteFramebuffers(1, &rendererID);
+    }
+
+    void Graphics::Framebuffer::Bind() const {
+        glBindFramebuffer(GL_FRAMEBUFFER, rendererID);
+        glViewport(0, 0, specs.width, specs.height);
+	}
+
+    void Graphics::Framebuffer::Unbind() const {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void Graphics::Framebuffer::Resize(FramebufferSpecs specifications) {
+        specs = specifications;
+
+		// Delete old attachments
+        if (depthAttachment) glDeleteRenderbuffers(1, &depthAttachment);
+        if (colorAttachment) glDeleteTextures(1, &colorAttachment);
+
+        // Rebuild framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, rendererID);
+
+        glGenTextures(1, &colorAttachment);
+        glBindTexture(GL_TEXTURE_2D, colorAttachment);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, specs.width, specs.height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment, 0);
+
+        glGenRenderbuffers(1, &depthAttachment);
+        glBindRenderbuffer(GL_RENDERBUFFER, depthAttachment);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, specs.width, specs.height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthAttachment);
+
+        // Sanity check
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            Logger::Error(DebugType::GraphicsSystem) << "Framebuffer is incomplete!" << std::endl;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+    void Graphics::Framebuffer::Resize(unsigned width, unsigned height) {
+        Resize(FramebufferSpecs{ width, height });
+    }
+
+    void Graphics::CreateGameFramebuffer(unsigned width, unsigned height) {
+        gameFramebuffer_ = std::make_unique<Framebuffer>(FramebufferSpecs{ width, height });
+    }
+
+    void Graphics::ResizeGameFramebuffer(unsigned width, unsigned height) {
+        if (gameFramebuffer_) {
+            gameFramebuffer_->Resize(width, height);
+        }
+        else {
+            CreateGameFramebuffer(width, height);
+        }
+    }
+
+    void Graphics::BindGameFramebuffer() const {
+        if (gameFramebuffer_) {
+            gameFramebuffer_->Bind();
+        }
+    }
+
+    void Graphics::UnbindGameFramebuffer() const {
+        if (gameFramebuffer_) {
+            gameFramebuffer_->Unbind();
+        }
+    }
+
+    #pragma endregion
+
 
 } // namespace Framework

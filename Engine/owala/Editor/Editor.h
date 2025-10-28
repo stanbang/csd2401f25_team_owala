@@ -18,8 +18,9 @@
 #include "ISystem.h"
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "EntityStorage.h"
-#include "PlatformPrefab.h" // prefab header for creation
+#include "PrefabSystem.h" // prefab header for creation
 #include "Graphics.h"
 #include "ResourceManager.h"
 
@@ -28,6 +29,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "AssetBrowser.h"
+#include <GLFW/glfw3.h>
+#include <algorithm>
+#include <optional>
 
 namespace Framework {
 	class GameManager;   // Forward Declaration
@@ -41,6 +45,11 @@ namespace Editor {
 	struct EditorSettings {
 		bool showDebugInfo = true;
 		bool showLevelEditor = true;
+		bool showHierarchy = true;
+		bool showInspector = true;
+		bool showGameViewport = true;
+		bool showAssetBrowser = true;
+		bool showToolbar = true;
 	};
 
 	// Enum to represent the different types of objects we can create
@@ -77,6 +86,10 @@ namespace Editor {
 
 		// --- Internal State ---
 		bool initialized = false;
+		bool firstUpdate = true;
+		bool isGamePlaying = false;
+		bool isGamePaused = false;
+		//  Members for the system profiler display
 		float profilerUpdateTimer_ = 0.0f;
 		std::vector<Framework::SystemTime> profilerDisplayData_;
 		float deltatime = 0.f;
@@ -96,25 +109,36 @@ namespace Editor {
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false;
 		bool showGrid_ = false;
-		float baseGridCellSize_ = 0.1f;
+		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
+		
 
-		// --- Drag and Drop State ---
+		//Drag and Drop State
 		bool isDraggingPrefab_ = false;
 		DraggablePrefabInfo dragDropPayload_;
 		Vector2D dragDropPreviewPos_;
 
-		// --- Palette Info Storage ---
-		bool palettePrepared_ = false;
+		//Palette Info storage
+		bool palettePrepared_ = false; // flag for storing palette items
 		std::vector<DraggablePrefabInfo> paletteItems_;
 
-		// Entity Factory System Members
-		Framework::PrefabSystem prefabSystem_;
+		// Game viewport tracking for proper mouse coordinate transformation
+		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
+		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
+		bool isMouseOverGameViewport_ = false;
+
+		// Entity factory System members
+		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
 		PrefabType selectedPrefabType_ = PrefabType::None;
 		std::string selectedPrefabName_;
 
 		// --- Entity Selection & Deletion ---
 		Entity selectedEntity_ = 0;
 		bool isEntitySelected_ = false;
+		std::optional<std::string> entityClipboard;
+
+		// Drag and Drop Support (Windows to Editor)
+		std::vector<std::filesystem::path> droppedFilePaths_;
+		static void DropCallback(GLFWwindow* window, int count, const char* paths[]);
 
 		// --- Private Helper Functions ---
 		void SanityCheck();
@@ -125,16 +149,22 @@ namespace Editor {
 		void HandleSelection();
 		void HandleDeletion();
 
-		// --- GUI Panels ---
+		/* Entity Copy & Pasting APIs */
+		void CopyEntityToClipboard(const Entity& entity);
+		void PasteEntityFromClipboard();
+
+		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
-		void ShowPlayerInspector();
+		void ShowHierarchy();
+		void ShowInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
 		void ShowTilemapEditor();
-		void ShowAssetBrowser();
-
+		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
+		void ShowGameViewport();
+		void ShowToolbar();
 		// --- Grid Helper Functions ---
-		void DrawEditorGrid();
+		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);
 		float GetCurrentGridCellSize() const;
 		Vector2D GetPrefabSize(const std::string& name, PrefabType type) const;
@@ -147,6 +177,21 @@ namespace Editor {
 		float GetAspectRatio() const;
 		Vector2D WorldToNDC(const Vector2D& worldPos, Entity cameraEntity) const;
 		Vector2D NDCToWorld(const Vector2D& ndcPos, Entity cameraEntity) const;
+		 /**
+		 * @brief Renders a preview of the tile being dragged.
+		 */
+		void DrawDragDropPreview(ImDrawList* drawList); // NEW: Function to draw preview
+
+		/**
+	    * @brief Loads textures and prepares palette items.
+		*/
+		void PreparePaletteItems();
+
+		// NEW HELPER: Converts world-space coordinates to ImGui screen-space
+		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
+
+		// NEW: Caches the game viewport's position and size
+		void UpdateViewportData();
 
 	public:
 		bool isEnabled = true;

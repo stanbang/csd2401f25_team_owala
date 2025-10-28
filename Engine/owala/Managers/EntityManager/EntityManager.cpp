@@ -33,12 +33,13 @@ namespace Framework {
 		return newEntity;
 	}
 
-	Entity EntityManager::CloneEntity(Entity& entity) {
+	Entity EntityManager::CloneEntity(const Entity& entity) {
 		if (ecs.entitySignatures.find(entity) == ecs.entitySignatures.end()) {
 			throw std::runtime_error("Attempted to clone a non existent entity!");
 		}
 
 		Entity newEntity = CreateEntity();
+		GetProperties(newEntity) = GetProperties(entity);
 		ComponentSignature otherSignature = ecs.entitySignatures[entity];
 
 		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {

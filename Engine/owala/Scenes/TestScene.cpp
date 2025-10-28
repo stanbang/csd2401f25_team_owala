@@ -14,21 +14,16 @@
 #include <cstdio>
 #include <algorithm>
 #include "Player.h"
-#include "Platform.h"
 #include "BackgroundEntity.h"
 #include "TextEntity.h"
 #include "EntityStorage.h"
 #include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
-#include "TrapPlatform.h"
 #include "Transformation.h"
-#include "ScalingPlatform.h"
 #include "AudioEntity.h"
-#include <PlatformPrefab.h>
-#include <TrapPlatformSystem.h>
-#include <ScalingPlatformSystem.h>
 #include "InputSystem.h"   // if you want toggles
+#include "EntitySerializer.h"
 #include <iostream>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -85,7 +80,7 @@ namespace TestScene {
         physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Default, false);
 
         // Platforms will collide with each other
-        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, false);
+        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
@@ -106,7 +101,7 @@ namespace TestScene {
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
-        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.txt");
+        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.json");
 
         // --- Create Background Entity ---
         std::string backgroundID = "Background";
@@ -114,7 +109,7 @@ namespace TestScene {
         sceneMgr.AddEntityToScene("Test Scene", backgroundEntity);
 
         // --- Create Ground Entity ---
-        Entity ground = prefabSystem.CreatePlatformFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
+        Entity ground = prefabSystem.CreateEntityFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
         sceneMgr.AddEntityToScene("Test Scene", ground);
 
 
@@ -173,8 +168,7 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
-
-
+        EntitySerializer::SerializeEntityToFile(playerEntity, *ecs, "serializedPlayer.json");
 	}
 
 	void Update() {
@@ -210,6 +204,23 @@ namespace TestScene {
             Entity newEntity = entityMgr.CloneEntity(playerEntity);
             SceneManager::GetInstance().AddEntityToScene(SceneManager::GetInstance().GetActiveScene().name, newEntity);
         }
+
+		// Change fake player animation between IDLE and RUNNING
+		if (input_->KeyPressed(InputSystem::Key::F)) {
+			//Get all entities with FakePlayerTag
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(FakePlayerTagType)) {
+				AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
+				if (animationComponent.currentState != AnimationState::RUNNING) {
+					animationComponent.currentState = AnimationState::RUNNING;
+					Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to RUNNING" << std::endl;
+				}
+
+                else {
+					animationComponent.currentState = AnimationState::IDLE;
+                    Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to IDLE" << std::endl;
+                }
+            }
+		}
 
         //press ESC to crash the game
         if (input_->KeyPressed(InputSystem::Key::Escape)) {
@@ -344,14 +355,6 @@ namespace TestScene {
 
             // You can also show the ImGui demo window to explore widgets.
            //  ImGui::ShowDemoWindow(); 
-
-        float dt = gm.GetDeltaTime();
-        // Update scaling platforms
-        ScalingPlatformSystem scaleTrapSystem(*ecs_);
-        scaleTrapSystem.Update(dt);
-        // Update trap platforms
-        TrapPlatformSystem tempTrapSystem(*ecs_);
-        tempTrapSystem.Update(dt);
         //   RenderColliders();
 	}
 

@@ -1,7 +1,5 @@
 #pragma once
 #include "AssetBrowser.h"
-#include <imgui.h>
-#include <algorithm>
 #include "Logger.h"
 
 using namespace Framework;
@@ -197,7 +195,7 @@ void AssetBrowser::ShowFolderTree(const fs::path& path)
     }
 }
 
-void AssetBrowser::RenderUI()
+void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 {
     // --- Left: Folder Tree ---
     if (ImGui::Begin("Project Explorer"))
@@ -218,6 +216,15 @@ void AssetBrowser::RenderUI()
         ImGui::Separator();
 
         ImGui::BeginChild("AssetList", ImVec2(0, 0), true);
+        
+        if (!droppedFiles.empty() && !isReplaceModeActive_ &&
+            (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow) ||
+                ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow)))
+        {
+            HandleDroppedFiles(droppedFiles);
+            droppedFiles.clear();
+        }
+
         float availableWidth = ImGui::GetContentRegionAvail().x;
         float itemWidth = 120.0f;
         int columns = std::max(1, (int)(availableWidth / itemWidth));
@@ -267,12 +274,14 @@ void AssetBrowser::RenderUI()
 
                 if (clicked)
                 {
+                    selectedAsset_ = asset.path;
                     Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                 }
                 else if (!(ext == ".png" || ext == ".jpg" || ext == ".jpeg"))
                 {
                     if (ImGui::Button(asset.display.c_str(), itemSize))
                     {
+                        selectedAsset_ = asset.path;
                         Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                     }
                 }
@@ -286,4 +295,291 @@ void AssetBrowser::RenderUI()
         ImGui::EndChild();
     }
     ImGui::End();
+
+    RenderAssetEditor(droppedFiles);
+}
+
+void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
+{
+    if (ImGui::Begin("Asset Editor")) {
+        // If selected asset is not empty, aka something is selected
+        if (!selectedAsset_.empty()) {
+            ImGui::TextWrapped("Selected Asset: %s", selectedAsset_.string().c_str());
+            ImGui::Separator();
+            std::string ext = selectedAsset_.extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+            if (ImGui::Button("Reimport Asset", ImVec2(150, 30)))
+            {
+                Logger::Get().Info(DebugType::Editor) << "Reimporting asset: " << selectedAsset_.string() << std::endl;
+
+                try
+                {
+                    // Unload old texture if needed
+                    resourceManager_->unload<Texture>(selectedAsset_.string());
+
+                    // Reload texture
+                    if (resourceManager_->loadTexture(selectedAsset_.string(), selectedAsset_.string()))
+                    {
+                        Logger::Get().Info(DebugType::Editor) << "Reimport successful for: " << selectedAsset_.string() << std::endl;
+                    }
+                    else
+                    {
+                        Logger::Get().Error(DebugType::Editor) << "Reimport failed for: " << selectedAsset_.string() << std::endl;
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    Logger::Get().Error(DebugType::Editor) << "Reimport exception: " << e.what() << std::endl;
+                }
+            }
+
+            // Replace Button
+            ImGui::SameLine();
+            if (ImGui::Button("Replace Asset", ImVec2(150, 30)))
+            {
+                isReplaceModeActive_ = !isReplaceModeActive_;
+                if (!isReplaceModeActive_)
+                {
+                    // Cancel replace mode
+                    replacementFilePath_.clear();
+                    showReplaceConfirmation_ = false;
+                }
+            }
+
+            // Drop zone for replacement
+            if (isReplaceModeActive_)
+            {
+                ImGui::Separator();
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Replace Mode Active");
+                ImGui::Text("Drag and drop a replacement file below:");
+
+                // Create a drop zone
+                ImVec2 dropZoneSize(400, 100);
+
+                ImGui::BeginChild("ReplaceDropZone", dropZoneSize, true, ImGuiWindowFlags_NoScrollbar);
+
+                // Handle drops on the drop zone
+                if (!droppedFiles.empty() && ImGui::IsWindowHovered())
+                {
+                    HandleReplaceFile(droppedFiles);
+                    droppedFiles.clear();
+                }
+
+                // Visual feedback for drop zone
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                ImVec2 min = ImGui::GetWindowPos();
+                ImVec2 max = ImVec2(min.x + dropZoneSize.x, min.y + dropZoneSize.y);
+
+                // Dashed border effect
+                ImU32 borderColor = IM_COL32(100, 150, 255, 255);
+                if (ImGui::IsWindowHovered())
+                {
+                    borderColor = IM_COL32(150, 200, 255, 255);
+                    drawList->AddRectFilled(min, max, IM_COL32(50, 100, 150, 50));
+                }
+                drawList->AddRect(min, max, borderColor, 0.0f, 0, 2.0f);
+
+                // Center text in drop zone
+                const char* dropText = "Drop file here";
+                ImVec2 textSize = ImGui::CalcTextSize(dropText);
+                ImGui::SetCursorPos(ImVec2(
+                    (dropZoneSize.x - textSize.x) * 0.5f,
+                    (dropZoneSize.y - textSize.y) * 0.5f
+                ));
+                ImGui::TextDisabled("%s", dropText);
+
+                ImGui::EndChild();
+
+                if (ImGui::Button("Cancel Replace", ImVec2(150, 25)))
+                {
+                    isReplaceModeActive_ = false;
+                    replacementFilePath_.clear();
+                    showReplaceConfirmation_ = false;
+                }
+            }
+
+            // Confirmation Popup
+            if (showReplaceConfirmation_)
+            {
+                ImGui::OpenPopup("Confirm Replace");
+            }
+
+            // Confirmation Modal
+            if (ImGui::BeginPopupModal("Confirm Replace", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Are you sure you want to replace:");
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.5f, 1.0f), "%s", selectedAsset_.filename().string().c_str());
+                ImGui::Text("with:");
+                ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "%s", replacementFilePath_.filename().string().c_str());
+                ImGui::Separator();
+                ImGui::TextWrapped("This action cannot be undone!");
+
+                ImGui::Separator();
+
+                if (ImGui::Button("Confirm", ImVec2(120, 0)))
+                {
+                    try
+                    {
+                        // Unload the texture from resource manager first
+                        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+                        {
+                            resourceManager_->unload<Texture>(selectedAsset_.string());
+                        }
+
+                        // Copy the replacement file over the original
+                        fs::copy(replacementFilePath_, selectedAsset_,
+                            fs::copy_options::overwrite_existing);
+
+                        Logger::Get().Info(DebugType::Editor)
+                            << "Successfully replaced: " << selectedAsset_.string()
+                            << " with " << replacementFilePath_.string() << std::endl;
+
+                        // Reload the texture if it's an image
+                        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+                        {
+                            if (resourceManager_->loadTexture(selectedAsset_.string(), selectedAsset_.string()))
+                            {
+                                Logger::Get().Info(DebugType::Editor)
+                                    << "Reloaded texture after replacement" << std::endl;
+                            }
+                        }
+
+                        // Refresh the directory view
+                        ScanDirectory(currentPath_);
+                    }
+                    catch (const fs::filesystem_error& e)
+                    {
+                        Logger::Get().Error(DebugType::Editor)
+                            << "Failed to replace file: " << e.what() << std::endl;
+                    }
+
+                    // Reset state
+                    showReplaceConfirmation_ = false;
+                    isReplaceModeActive_ = false;
+                    replacementFilePath_.clear();
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                {
+                    showReplaceConfirmation_ = false;
+                    replacementFilePath_.clear();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+
+            ImGui::Separator();
+
+            // Asset preview
+            if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+                try {
+                    Texture& tex = resourceManager_->get<Texture>(selectedAsset_.string());
+                    ImGui::Image(tex, ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
+                }
+                catch (const std::out_of_range&) {
+                    ImGui::Text("Image not loaded.");
+                }
+            }
+            else {
+                ImGui::Text("No preview available for this file type.");
+            }
+        }
+        else {
+            ImGui::Text("No asset selected.");
+        }
+    }
+
+    ImGui::End();
+}
+
+void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
+{
+    if (droppedFiles.empty()) return;
+
+    Logger::Get().Info(DebugType::Editor) << "Processing " << droppedFiles.size() << " dropped files." << std::endl;
+
+    bool filesCopied = false;
+    for (const auto& sourcePath : droppedFiles)
+    {
+        try
+        {
+            // Only copy if it's a regular file
+            if (fs::is_regular_file(sourcePath))
+            {
+                fs::path destinationPath = currentPath_ / sourcePath.filename();
+
+                // Check if file already exists and handle accordingly
+                if (fs::exists(destinationPath))
+                {
+                    Logger::Get().Info(DebugType::Editor)
+                        << "File already exists, overwriting: " << destinationPath.string() << std::endl;
+                }
+
+                fs::copy(sourcePath, destinationPath, fs::copy_options::overwrite_existing);
+
+                Logger::Get().Info(DebugType::Editor)
+                    << "Copied '" << sourcePath.string() << "' to '" << destinationPath.string() << "'" << std::endl;
+                filesCopied = true;
+            }
+            else
+            {
+                Logger::Get().Info(DebugType::Editor)
+                    << "Skipping non-file drop: " << sourcePath.string() << std::endl;
+            }
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            Logger::Get().Error(DebugType::Editor)
+                << "Failed to copy file: " << e.what() << std::endl;
+        }
+    }
+
+    // If we successfully copied anything, refresh the asset list
+    if (filesCopied)
+    {
+        ScanDirectory(currentPath_);
+    }
+}
+
+void AssetBrowser::HandleReplaceFile(const std::vector<fs::path>& droppedFiles)
+{
+    if (droppedFiles.empty() || !isReplaceModeActive_) return;
+
+    // Get the first dropped file
+    const fs::path& droppedFile = droppedFiles[0];
+
+    // Validate that it's a regular file
+    if (!fs::is_regular_file(droppedFile))
+    {
+        Logger::Get().Error(DebugType::Editor)
+            << "Dropped item is not a file: " << droppedFile.string() << std::endl;
+        return;
+    }
+
+    // Check if the file extensions match
+    std::string selectedExt = selectedAsset_.extension().string();
+    std::string droppedExt = droppedFile.extension().string();
+    std::transform(selectedExt.begin(), selectedExt.end(), selectedExt.begin(), ::tolower);
+    std::transform(droppedExt.begin(), droppedExt.end(), droppedExt.begin(), ::tolower);
+
+    if (selectedExt != droppedExt)
+    {
+        Logger::Get().Error(DebugType::Editor)
+            << "File type mismatch! Selected: " << selectedExt
+            << ", Dropped: " << droppedExt << std::endl;
+        return;
+    }
+
+    // Store the replacement file path and show confirmation dialog
+    replacementFilePath_ = droppedFile;
+    showReplaceConfirmation_ = true;
+
+    Logger::Get().Info(DebugType::Editor)
+        << "Replacement file ready: " << droppedFile.string() << std::endl;
 }
