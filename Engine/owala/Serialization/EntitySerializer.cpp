@@ -297,19 +297,24 @@ namespace Framework {
 	}
 
 	void EntitySerializer::SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filepath, const std::string& sceneName) {
-		Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing scene <" << sceneName << "> to: " << filepath << std::endl;
-		rapidjson::Document doc;
-		doc.SetObject();
-		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
-		rapidjson::Value sceneNameValue(sceneName.c_str(), alloc);
-		doc.AddMember(rapidjson::StringRef(Serialization::SCENE_NAME), sceneNameValue, alloc);
+		try {
+			Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing scene <" << sceneName << "> to: " << filepath << std::endl;
+			rapidjson::Document doc;
+			doc.SetObject();
+			rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+			rapidjson::Value sceneNameValue(sceneName.c_str(), alloc);
+			doc.AddMember(rapidjson::StringRef(Serialization::SCENE_NAME), sceneNameValue, alloc);
 
-		rapidjson::Value entitiesData(rapidjson::kArrayType);
-		SerializeEntities(entities, ecs, entitiesData, alloc);
-		doc.AddMember(rapidjson::StringRef(Serialization::ENTITIES), entitiesData, alloc);
+			rapidjson::Value entitiesData(rapidjson::kArrayType);
+			SerializeEntities(entities, ecs, entitiesData, alloc);
+			doc.AddMember(rapidjson::StringRef(Serialization::ENTITIES), entitiesData, alloc);
 
-		FileIOSystem::WriteFileJson(filepath, doc);
-		Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filepath << std::endl;
+			FileIOSystem::WriteFileJson(filepath, doc);
+			Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filepath << std::endl;
+		}
+		catch (...) {
+			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to save scene <" << sceneName << "> to: " << filepath << std::endl;
+		}
 	}
 
 	void EntitySerializer::DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {

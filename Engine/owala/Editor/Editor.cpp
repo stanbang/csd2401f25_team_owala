@@ -972,7 +972,6 @@ namespace Editor {
 
 			// --- Save/Load Level Data ---
 			ImGui::SeparatorText("Save/Load Level");
-			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 			bool isTyping = false;
 			
 			// Text Input for scene name
@@ -1002,18 +1001,20 @@ namespace Editor {
 			// Prevent game input system from capturing mouse/keyboard input while user is on editor window
 			gameManager_->GetSystems().input_->SetKeyboardLocked(isTyping);
 
-			if (ImGui::Button("Save")) {
+			if (ImGui::Button("Save") && sceneNameBuffer[0] != '\0' && filePathBuffer[0] != '\0') {
 				std::string filePath = "../../Data/Scenes/"; filePath += filePathBuffer; filePath += ".json";
 				std::string sceneName = sceneNameBuffer;
 				Logger::Get().Info(DebugType::Editor) << "Saving scene: " << sceneName << " to: " << filePath << std::endl;
 				// Clear the buffer immediately for the UI
 				filePathBuffer[0] = '\0';
-				EntitySerializer::SerializeSceneData(entitiesLoaded, *ecs, filePath, sceneName);
+				sceneNameBuffer[0] = '\0';
+				EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, sceneName);
+				
 			}
 			ImGui::SameLine();
 			static bool isLoadFileActive_ = false;
 			if (ImGui::Button("Load from JSON file")) {
-				isLoadFileActive_ = true;
+				isLoadFileActive_ = !isLoadFileActive_;
 			}
 
 			static std::string filePath{};
@@ -1097,7 +1098,7 @@ namespace Editor {
 					SceneManager& sceneMgr = SceneManager::GetInstance();
 					std::string sceneNameFromFile{};
 					std::vector<Entity> entitiesList;
-					EntitySerializer::DeserializeSceneData(*ecs, filePath, sceneNameFromFile, entitiesList);
+					EntitySerializer::DeserializeSceneData(*(gameManager_->GetSystems().ecs_), filePath, sceneNameFromFile, entitiesList);
 					SceneGUID loadedScene = sceneMgr.CreateSceneAsset(sceneNameFromFile, filePath);
 					gameManager_->RegisterScriptToScene(loadedScene, LoadedScene::Initialize, LoadedScene::Update, LoadedScene::Free);
 
@@ -1109,6 +1110,7 @@ namespace Editor {
 					}
 					isLoadFileActive_ = false;
 				}
+				ImGui::SameLine();
 				if (ImGui::Button("Cancel"))
 				{
 					isLoadFileActive_ = false;
