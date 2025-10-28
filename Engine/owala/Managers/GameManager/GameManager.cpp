@@ -125,8 +125,8 @@ namespace Framework {
 		rapidjson::Document scenesData;
 		if (FileIOSystem::LoadSceneAssets(scenesData)) {
 			for (const rapidjson::Value& val : scenesData.GetArray()) {
-				std::string sceneName = val["name"].GetString();
-				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val["path"].GetString());
+				std::string sceneName = val[Serialization::SCENE_ASSET_NAME].GetString();
+				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
 
 				if (sceneName == "Splash Screen") {
 					RegisterScriptToScene(sceneID, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);

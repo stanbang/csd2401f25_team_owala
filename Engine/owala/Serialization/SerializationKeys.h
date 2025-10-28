@@ -4,6 +4,8 @@ namespace Framework::Serialization {
 	/* Generic Scene JSON Labels */
 	static constexpr const char* SCENE_NAME = "scene_name";
 	static constexpr const char* ENTITIES = "entities";
+	static constexpr const char* SCENE_ASSET_NAME = "name";
+	static constexpr const char* SCENE_ASSET_PATH = "path";
 
 	/* Generic Time JSON Labels */
 	static constexpr const char* ELAPSED_TIME = "elapsed_time";

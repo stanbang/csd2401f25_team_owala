@@ -30,6 +30,7 @@
 #include "Animation.h"
 #include "Components.h"
 #include "Logger.h"
+#include "SerializationKeys.h"
 
 using namespace std;
 using namespace rapidjson;

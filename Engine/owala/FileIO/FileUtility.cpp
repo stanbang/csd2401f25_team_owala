@@ -184,14 +184,14 @@ namespace Framework {
 			for (rapidjson::SizeType i = 0; i < d.GetArray().Size(); ++i) {
 				rapidjson::Value& val = d.GetArray()[i];
 			
-				if (!val.IsObject() || !val.HasMember("name") || !val.HasMember("path") /*|| !val.HasMember("isLoaded")*/) {
+				if (!val.IsObject() || !val.HasMember(Serialization::SCENE_ASSET_NAME) || !val.HasMember(Serialization::SCENE_ASSET_PATH) /*|| !val.HasMember("isLoaded")*/) {
 					Logger::Get().Error(DebugType::FileIOSystem) << "Invalid asset structure encountered in: " << SCENE_ASSETS_FILEPATH << std::endl;
 					return false;
 				}
 
-				if (val["name"].GetString() == sceneAsset.name) {
+				if (val[Serialization::SCENE_ASSET_NAME].GetString() == sceneAsset.name) {
 					sceneAssetExists = true;
-					val["path"].SetString(sceneAsset.path.c_str(), alloc);
+					val[Serialization::SCENE_ASSET_PATH].SetString(sceneAsset.path.c_str(), alloc);
 					//val["isLoaded"].SetBool(sceneAsset.isLoaded);
 					break;
 				}
@@ -199,8 +199,8 @@ namespace Framework {
 
 			if (!sceneAssetExists) {
 				rapidjson::Value asset(kObjectType);
-				asset.AddMember("name", rapidjson::Value(sceneAsset.name.c_str(), alloc).Move(),alloc);
-				asset.AddMember("path", rapidjson::Value(sceneAsset.path.c_str(), alloc).Move(), alloc);
+				asset.AddMember(rapidjson::StringRef(Serialization::SCENE_ASSET_NAME), rapidjson::Value(sceneAsset.name.c_str(), alloc).Move(), alloc);
+				asset.AddMember(rapidjson::StringRef(Serialization::SCENE_ASSET_PATH), rapidjson::Value(sceneAsset.path.c_str(), alloc).Move(), alloc);
 				//asset.AddMember("isLoaded", rapidjson::Value(sceneAsset.isLoaded).Move(), alloc);
 				d.PushBack(asset, alloc);
 			}
@@ -229,8 +229,8 @@ namespace Framework {
 				rapidjson::Value asset(kObjectType);
 
 				// 3. Add all members (Name, Path)
-				asset.AddMember("name", rapidjson::Value(sceneAsset.name.c_str(), alloc).Move(), alloc);
-				asset.AddMember("path", rapidjson::Value(sceneAsset.path.c_str(), alloc).Move(), alloc);
+				asset.AddMember(rapidjson::StringRef(Serialization::SCENE_ASSET_NAME), rapidjson::Value(sceneAsset.name.c_str(), alloc).Move(), alloc);
+				asset.AddMember(rapidjson::StringRef(Serialization::SCENE_ASSET_PATH), rapidjson::Value(sceneAsset.path.c_str(), alloc).Move(), alloc);
 				//asset.AddMember("isLoaded", rapidjson::Value(sceneAsset.isLoaded).Move(), alloc);
 
 				// 4. Push the complete object onto the document's root array
