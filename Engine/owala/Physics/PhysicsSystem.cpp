@@ -222,7 +222,7 @@ namespace Framework {
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
 		EntityManager entityMgr(*ecs_);
-        std::vector<Entity> colliders = entityMgr.GetAllEntitiesWithComponent(AABBColliderType);
+        std::vector<Entity> colliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType);
 
         for (std::vector<Entity>::iterator it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
             for (std::vector<Entity>::iterator it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {

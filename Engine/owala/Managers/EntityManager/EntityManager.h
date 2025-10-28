@@ -17,6 +17,7 @@
 #pragma once
 #include "EntityStorage.h"
 #include <stdexcept>
+#include <bitset>
 
 namespace Framework {
 
@@ -114,6 +115,9 @@ namespace Framework {
 		std::vector<Entity> GetAllEntities() const;
 		// Gets all entities that have the specified component type attached to them.
 		std::vector<Entity> GetAllEntitiesWithComponent(ComponentType componentType) const;
+		// Gets all entities that have all the specified component types attached to them. (Multiple component support)
+		template<typename... Args>
+		std::vector<Entity> GetAllEntitiesWithComponents(Args... componentTypes) const;
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.
@@ -140,4 +144,23 @@ namespace Framework {
 		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
 		//void RemoveComponent(Entity entity, ComponentType componentType);
 	};
+
+	template<typename... Args>
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {
+		// 1. Create the required signature bitset
+		ComponentSignature requiredSignature;
+
+		// This sets a bit for each component type passed in
+		(requiredSignature.set(static_cast<size_t>(componentTypes)), ...);
+
+		std::vector<Entity> entities;
+		for (const auto& [entity, entitySignature] : ecs.entitySignatures) {
+
+			// Check if the entity's signature includes all bits in the required signature
+			if ((entitySignature & requiredSignature) == requiredSignature) {
+				entities.push_back(entity);
+			}
+		}
+		return entities;
+	}
 }
