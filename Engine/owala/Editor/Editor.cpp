@@ -133,22 +133,20 @@ namespace Editor {
 	void Editor::Initialize() {
 		if (initialized || !isEnabled) return; // Skip initialization if Editor is not enabled or has already initialized
 
-
 		// --- IMGUI INITIALIZATION ---
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking;     
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
-		// When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones
+		// When viewports are enabled, tweak WindowRounding/WindowBg so platform windows look identical
 		ImGuiStyle& style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 			style.WindowRounding = 0.0f;
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
@@ -165,12 +163,13 @@ namespace Editor {
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
-		fs::path rootPath = fs::absolute(exePath / "../../"); //Moves out of Debug, then out of build, to reach Engine root
+		fs::path rootPath = fs::absolute(exePath / "../../"); // Moves out of Debug, then out of build, to reach Engine root
 		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
 		componentNames.clear();
 		componentItems.clear();
+		componentTypes.clear();
 		componentTypes.clear();
 		tagNames.clear();
 		tagItems.clear();
@@ -181,11 +180,9 @@ namespace Editor {
 
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
-		for (int i = 0; i < static_cast<int>(ComponentType::MAX_COMPONENTS); ++i)
-		{
+		for (int i = 0; i < static_cast<int>(ComponentType::MAX_COMPONENTS); ++i) {
 			ComponentType type = static_cast<ComponentType>(i);
-			if (!entityMgr.IsTagComponent(type))
-			{
+			if (!entityMgr.IsTagComponent(type)) {
 				componentNames.push_back(ComponentToString(type));
 				componentTypes.push_back(type);
 			}
@@ -205,17 +202,28 @@ namespace Editor {
 		}
 
 		// Load all prefabs from the data file when the editor starts
-		// which populates our prefabSystem_ member with spawnable objects
 		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-			// Log an error if the prefab file can't be found or is invalid.
 			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
 		}
 
 		// --- Prepare Palette Items (Load Textures) ---
-
+		// (assuming this stays as-is)
 		firstUpdate = true;
+
+
+		cameraSystem_ = gameManager_->GetSystems().camera_;
+		graphicsSystem_ = gameManager_->GetSystems().gfx_;
+
+		if (cameraSystem_ && editorCamera_ == 0) {
+			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false); // not active for game
+			cameraSystem_->SetZoom(editorCamera_, editorZoom_);
+			float aspect = gameViewportSize_.x / gameViewportSize_.y;
+			cameraSystem_->SetAspectRatio(editorCamera_, aspect);
+		}
+
 		initialized = true;
 	}
+
 
 	// Drag and drop callback function
 	void Editor::DropCallback(GLFWwindow* window, int count, const char* paths[])
@@ -230,39 +238,37 @@ namespace Editor {
 			}
 		}
 	}
-
 	void Editor::Update(float dt) {
 
-		//Framework::Logger::Get().Info(DebugType::Editor)
-		//	<< "Editor::Update Start Frame. palettePrepared_: " << (palettePrepared_ ? "true" : "false")
-		//	<< ", resourceManager_: " << (resourceManager_ ? "valid" : "null") << std::endl;
-		//// *** END LOGGING BLOCK ***
-
 		if (!palettePrepared_ && resourceManager_) {
-			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl; // Log before running
+			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
 			PreparePaletteItems();
 			palettePrepared_ = true;
-			// Log the size AFTER preparing
 			Framework::Logger::Get().Info(DebugType::Editor) << "PreparePaletteItems finished. paletteItems_ size: " << paletteItems_.size() << std::endl;
 		}
+		//for IMGUI INPUT
+		ImGuiIO& io = ImGui::GetIO();
+
+		// Determine if ImGui currently "owns" the input
+		bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
+
+		// Tell the InputSystem whether to lock gameplay input
+		Framework::InputSystem* input = gameManager_->GetSystems().input_;
+		input->SetCursorLocked(false);
 
 		deltatime = dt;
-
-		// Check if Editor is enabled
 		if (!isEnabled) return;
-
-		// Check if Editor has been initialized
 		SanityCheck();
 
-		//  --- START THE IMGUI FRAME ---
+		// --- START IMGUI FRAME ---
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
 		// --- DOCKSPACE SETUP ---
-		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking |	ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |	ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground | 
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -285,10 +291,8 @@ namespace Editor {
 			ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
 			ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->Size);
 
-			// Docking Regions
 			ImGuiID dock_main_id = dockspaceID;
 
-			// Top Region (Toolbar)
 			ImGuiID dock_toolbar = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.03f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Toolbar", dock_toolbar);
 
@@ -296,7 +300,6 @@ namespace Editor {
 				node->LocalFlags |= ImGuiDockNodeFlags_HiddenTabBar | ImGuiDockNodeFlags_NoDocking | ImGuiDockNodeFlags_NoTabBar;
 			}
 
-			// Right Region
 			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
@@ -305,119 +308,82 @@ namespace Editor {
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
 
-			// Bottom Region
 			ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
-			// Left Region
 			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
 			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
 
-			// Central Region
 			ImGui::DockBuilderDockWindow("Game", dock_main_id);
-
 			ImGui::DockBuilderFinish(dockspaceID);
 		}
 
-		// ---  UPDATE VIEWPORT DATA ---
-		// This caches the "Game" window's state for this frame
+		// --- UPDATE VIEWPORT DATA ---
 		UpdateViewportData();
 
-		// IMGui Cursor State
-		//ImGuiIO& io = ImGui::GetIO();
-
-		//bool imguiHasFocus = io.WantCaptureMouse || io.WantCaptureKeyboard ||
-			//ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
-
-		// Always keep cursor unlocked while editor is active
 		gameManager_->GetSystems().input_->SetCursorLocked(false);
 
-		// --- Handle Editor Logic ---
-		HandleSpawning();  // Check if we should spawn a selected prefab
-		HandleSelection(); // Check if the user is clicking on an entity in the world
-		HandleDeletion();  // Check if the user is deleting the selected entity
-		
+		// === EDITOR CAMERA CONTROLS ===
+		//{
+		//	Framework::InputSystem* input = gameManager_->GetSystems().input_;
 
-		// 1. Check for Drag-and-Drop Placement (on Mouse Release)
-		// This happens only if we were dragging a prefab and let go.
+		//	if (editorCamera_ != 0) {
+		//		Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+		//		
+		//		// Only allow editor camera input when ImGui is focused
+		//		if (imguiHasFocus)
+		//		{
+		//			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+		//			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += dt * 2.0f;
+		//			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= dt * 2.0f;
+		//			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= dt * 2.0f;
+		//			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += dt * 2.0f;
+
+		//			if (input->KeyPressed(Framework::InputSystem::Key::Z)) cam.zoom *= 0.8f;
+		//			if (input->KeyPressed(Framework::InputSystem::Key::X)) cam.zoom *= 1.25f;
+		//		}
+
+		//	}
+		//}
+		// === END EDITOR CAMERA CONTROLS ===
+
+		// --- Handle Editor Logic ---
+		HandleSpawning();
+		HandleSelection();
+		HandleDeletion();
+
 		if (isTileEditorActive_ && isDraggingPrefab_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			HandleDragDropPlacement();
 		}
-
-		// 2. Check for Erasing (while Mouse Down)
-		// This happens only if our "tool" is the eraser.
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
-			HandleTileErasing(); // This function checks for MouseDown internally
+			HandleTileErasing();
 		}
-
-		// 3. Check for Selection (on Mouse Press)
-		// This is the new part. We run selection if we aren't dragging a new tile
-		// and we aren't using the eraser.
 		if (!isDraggingPrefab_ && dragDropPayload_.type != PrefabType::Eraser) {
-			HandleSelection(); // This function checks for MousePressed internally
+			HandleSelection();
 		}
+		HandleDeletion();
 
-		// 4. Deletion can happen anytime
-		HandleDeletion();
-		// Deletion can happen anytime if an entity is selected
-		HandleDeletion();
-		
-		 // Reset drag state if mouse is released anywhere
 		if (!ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 			isDraggingPrefab_ = false;
-			// dragDropPayload_ is cleared inside HandleDragDropPlacement or naturally when drag ends
 		}
 
 		// --- RENDER PANELS ---
-		//Render Asset Browser
+		if (settings.showToolbar) ShowToolbar();
+		if (settings.showInspector) ShowInspector();
+		if (settings.showDebugInfo) ShowPerformanceProfile();
+		if (settings.showAssetBrowser) ShowAssetBrowser(droppedFilePaths_);
+		if (settings.showHierarchy) ShowHierarchy();
+		if (settings.showLevelEditor) ShowLevelEditor();
+		if (isTileEditorActive_) ShowTilemapEditor();
+		if (settings.showGameViewport) ShowGameViewport();
 
-		
-		// Render all editor UI panels
-
-		// Top Region
-		if (settings.showToolbar) {
-			ShowToolbar();
-		}
-
-		// Right Region
-		if (settings.showInspector) {
-			ShowInspector();
-		}
-		if (settings.showDebugInfo) {
-			ShowPerformanceProfile();
-		}
-
-		// Bottom Region
-		if (settings.showAssetBrowser) {
-			ShowAssetBrowser(droppedFilePaths_);
-		}
-
-		// Left Region
-		if (settings.showHierarchy) {
-			ShowHierarchy();
-		}
-		if (settings.showLevelEditor) {
-			ShowLevelEditor();
-		}
-		//  Show Tilemap Editor as a separate window if active
-		if (isTileEditorActive_) {
-			ShowTilemapEditor();
-		}
-
-		// Central Region
-		if (settings.showGameViewport) {
-			ShowGameViewport();
-		}
-
-		// --- END IMGUI FRAME ---
 		ImGui::End();
 
-		// ----------------------------------------------------------------------------
-		// Finalize the ImGui frame and render all its draw data.
-		// ----------------------------------------------------------------------------
+		// --- END IMGUI FRAME ---
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -428,6 +394,7 @@ namespace Editor {
 			glfwMakeContextCurrent(backup_current_context);
 		}
 	}
+
 
 	// ----------------------------------------------------------------------------
 	// Clean up ImGui resources when the application closes.
@@ -513,11 +480,12 @@ namespace Editor {
 		}
 
 		// Get active camera
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		Entity activeCamera = editorCamera_;
 		if (activeCamera == 0) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "No active camera in GetMouseWorldPosition" << std::endl;
+			Framework::Logger::Get().Error(DebugType::Editor) << "Editor camera not initialized in GetMouseWorldPosition" << std::endl;
 			return { 0.0f, 0.0f };
 		}
+
 
 		
 		// Get mouse position in absolute desktop coordinates from ImGui
@@ -1889,51 +1857,66 @@ namespace Editor {
 	#pragma endregion
 
 	#pragma region EDITOR GRID
+	void Editor::DrawEditorGrid(ImDrawList* drawList)
+	{
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return;
 
-	void Editor::DrawEditorGrid(ImDrawList* drawList) { // MODIFIED
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+		const Vector2D camPos = cam.position;
 
-		if (!cameraSystem_ || baseGridCellSize_ <= 0.0f) return;
+		// visible region in world space
+		float halfW = cam.size.x * 0.5f;
+		float halfH = cam.size.y * 0.5f;
 
-		// ImGui color format (R, G, B, A) from 0-255
-		// This is (0.5f, 0.5f, 0.5f, 0.3f) * 255
-		ImU32 gridColor = IM_COL32(128, 128, 128, 77);
+		float left = camPos.x - halfW;
+		float right = camPos.x + halfW;
+		float bottom = camPos.y - halfH;
+		float top = camPos.y + halfH;
 
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
-		if (activeCamera == 0) return;
+		// base grid size (world units)
+		float cell = baseGridCellSize_;
 
-		// Get the current camera view bounds in world space (same as before)
-		float viewLeft, viewRight, viewBottom, viewTop;
-		cameraSystem_->GetViewBounds(cameraSystem_->GetActiveCamera(), viewLeft, viewRight, viewBottom, viewTop);
+		// Aspect ratio compensation factor
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
 
-		// Calculate start/end grid lines (same as before)
-		float startX = std::floor(viewLeft / baseGridCellSize_) * baseGridCellSize_;
-		float startY = std::floor(viewBottom / baseGridCellSize_) * baseGridCellSize_;
-		float endX = std::ceil(viewRight / baseGridCellSize_) * baseGridCellSize_;
-		float endY = std::ceil(viewTop / baseGridCellSize_) * baseGridCellSize_;
+		// Snap grid start to nearest cell
+		float startX = std::floor(left / cell) * cell;
+		float startY = std::floor(bottom / cell) * cell;
 
-
-		// Draw vertical lines
-		for (float x = startX; x <= endX + (baseGridCellSize_ * 0.5f); x += baseGridCellSize_) {
-			// Convert world-space line ends to ImGui screen-space
-			ImVec2 screenStart = WorldToImGuiScreen({ x, viewBottom });
-			ImVec2 screenEnd = WorldToImGuiScreen({ x, viewTop });
-
-			// Use ImGui's draw list
-			drawList->AddLine(screenStart, screenEnd, gridColor, 1.0f);
+		// Draw vertical lines (adjust X spacing by 1/aspect)
+		for (float x = startX; x <= right; x += cell)
+		{
+			ImVec2 a = WorldToImGuiScreen({ x, bottom });
+			ImVec2 b = WorldToImGuiScreen({ x, top });
+			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
 		}
 
-		// Draw horizontal lines
-		for (float y = startY; y <= endY + (baseGridCellSize_ * 0.5f); y += baseGridCellSize_) {
-			// Convert world-space line ends to ImGui screen-space
-			ImVec2 screenStart = WorldToImGuiScreen({ viewLeft, y });
-			ImVec2 screenEnd = WorldToImGuiScreen({ viewRight, y });
-
-			// Use ImGui's draw list
-			drawList->AddLine(screenStart, screenEnd, gridColor, 1.0f);
+		// Draw horizontal lines (adjust Y spacing by aspect)
+		for (float y = startY; y <= top; y += cell)
+		{
+			ImVec2 a = WorldToImGuiScreen({ left, y });
+			ImVec2 b = WorldToImGuiScreen({ right, y });
+			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
 		}
 
-		// No need for gfx-> or blend state changes
+		// Overlay �square� correction lines (this keeps visual square proportions)
+		if (aspect != 1.0f)
+		{
+			for (float x = startX; x <= right; x += cell)
+			{
+				for (float y = startY; y <= top; y += cell)
+				{
+					ImVec2 topLeft = WorldToImGuiScreen({ x, y + cell });
+					ImVec2 bottomRight = WorldToImGuiScreen({ x + cell / aspect, y });
+					drawList->AddRect(topLeft, bottomRight, IM_COL32(100, 100, 255, 60));
+				}
+			}
+		}
 	}
+
+
+
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
 		
@@ -1961,22 +1944,24 @@ namespace Editor {
 	#pragma endregion
 	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
 	{
-		// 1. Get Active Camera
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
-		if (activeCamera == 0) {
-			// Return a position outside the viewport if no camera
-			return ImVec2(gameViewportPos_.x - 100.0f, gameViewportPos_.y - 100.0f);
-		}
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return ImVec2(0, 0);
 
-		// 2. Convert World to NDC [-1, 1]
-		// This still uses your camera system's logic
-		Vector2D ndcPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
-		// 3. Convert NDC to ImGui Screen-Space (relative to viewport)
-		float screenX = gameViewportPos_.x + (ndcPos.x + 1.0f) * 0.5f * gameViewportSize_.x;
-		// Y is (1.0f - ndcPos.y) because ImGui Y-axis is top-down, but NDC Y-axis is bottom-up
-		float screenY = gameViewportPos_.y + (1.0f - ndcPos.y) * 0.5f * gameViewportSize_.y;
+		// Compute offset from camera center
+		Vector2D offset = {
+			(worldPos.x - cam.position.x) / (cam.size.x * 0.5f),
+			(worldPos.y - cam.position.y) / (cam.size.y * 0.5f)
+		};
+
+		// Convert from world normalized (-1..1) to ImGui pixel coordinates
+		float screenX = gameViewportPos_.x + ((offset.x + 1.0f) * 0.5f * gameViewportSize_.x);
+		float screenY = gameViewportPos_.y + ((1.0f - (offset.y + 1.0f) * 0.5f) * gameViewportSize_.y);
 
 		return ImVec2(screenX, screenY);
 	}
+
+
+
 }

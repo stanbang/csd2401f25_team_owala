@@ -81,6 +81,10 @@ namespace Editor {
 		Framework::CameraSystem* cameraSystem_ = nullptr; // Pointer to camera systems for level editor
 		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
 		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
+		Entity editorCamera_ = 0;
+		float editorZoom_ = 1.0f;
+		Vector2D editorCamPos_ = { 0.0f, 0.0f };
+		bool isEditorFocused_ = true; // toggled when ImGui viewport or editor window is active
 
 		AssetBrowser assetBrowser;
 

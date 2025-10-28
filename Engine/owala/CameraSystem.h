@@ -31,10 +31,12 @@ namespace Framework {
         void SetAspectRatio(Entity cameraEntity, float aspectRatio); 
         void SetZoom(Entity cameraEntity, float zoom);
         void SetFollowTarget(Entity cameraEntity, Entity targetEntity, float followSpeed = 5.0f);
+        Vector2D GetCameraPosition(Entity cameraEntity) const;
+        Camera& GetCamera(Entity cameraEntity);
+
 
     private:
 
-        Camera& GetCamera(Entity cameraEntity);
 
         EntityStorage& ecs_;
         Entity activeCamera_ = 0;

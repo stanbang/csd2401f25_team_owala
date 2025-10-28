@@ -89,6 +89,7 @@ namespace Framework{
 
 	// A component to store player-specific states
 	struct PlayerState {
+		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 	};
 
