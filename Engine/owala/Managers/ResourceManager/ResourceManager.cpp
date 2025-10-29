@@ -117,7 +117,7 @@ std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& ResourceManager
 }
 
 // Loads a font from file and stores it inside the resource manager
-bool ResourceManager::loadFont(const std::string& name, const std::string& fontPath, unsigned int size) {
+bool ResourceManager::loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size) {
 	FT_Library library = FreeTypeManager::GetInstance().GetLibrary();
 
 	// Check if the library is valid (e.g., if FT_Init_FreeType failed)
@@ -127,7 +127,7 @@ bool ResourceManager::loadFont(const std::string& name, const std::string& fontP
 	}
 
 	// Font already loaded
-	if (fontMap.count(name) > 0) {
+	if (fontMap.count(fontKey) > 0) {
 		Logger::Get().Info(DebugType::ResourceManager) <<  "Already loaded font': " << fontPath << "'" << std::endl;
 		return true;
 	}
@@ -135,7 +135,7 @@ bool ResourceManager::loadFont(const std::string& name, const std::string& fontP
 	// Load new font & store in resource manager's font map
 	auto newFont = std::make_unique<Font>();
 	if (newFont->Load(library, fontPath, size)) {
-		add<Font>(name, std::move(newFont)); // Add to resource manager's unordered_map
+		add<Font>(fontKey, std::move(newFont)); // Add to resource manager's unordered_map
 		Logger::Get().Info(DebugType::ResourceManager) << "Loaded font '" << fontPath << "' with size " << size << std::endl;
 		return true;
 	}

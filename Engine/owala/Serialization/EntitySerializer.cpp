@@ -206,7 +206,7 @@ namespace Framework {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
 			value.AddMember(rapidjson::StringRef(Serialization::TEXT), rapidjson::StringRef(textComp.textToDraw.c_str()), alloc);
-			value.AddMember(rapidjson::StringRef(Serialization::FONT_KEY), rapidjson::StringRef(textComp.fontName.c_str()), alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::FONT_KEY), rapidjson::StringRef(textComp.fontKey.c_str()), alloc);
 			rapidjson::Value colorList(rapidjson::kArrayType);
 			colorList.PushBack(textComp.color.r, alloc).PushBack(textComp.color.g, alloc);
 			colorList.PushBack(textComp.color.b, alloc).PushBack(textComp.color.a, alloc);
@@ -619,7 +619,7 @@ namespace Framework {
 				textComp.textToDraw = textData[Serialization::TEXT].GetString();
 			}
 			if (textData.HasMember(Serialization::FONT_KEY) && textData[Serialization::FONT_KEY].IsString()) {
-				textComp.fontName = textData[Serialization::FONT_KEY].GetString();
+				textComp.fontKey = textData[Serialization::FONT_KEY].GetString();
 			}
 			if (textData.HasMember(Serialization::FONT_COLOR) && textData[Serialization::FONT_COLOR].IsArray()) {
 				const rapidjson::Value& colorArr = textData[Serialization::FONT_COLOR];

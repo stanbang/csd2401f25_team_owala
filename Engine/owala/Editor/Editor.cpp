@@ -174,6 +174,7 @@ namespace Editor {
 		tagNames.clear();
 		tagItems.clear();
 		tagTypes.clear();
+		fontKeys.clear();
 
 		componentNames.push_back("");
 		tagNames.push_back("");
@@ -199,6 +200,12 @@ namespace Editor {
 
 		for (const std::string& tagName : tagNames) {
 			tagItems.push_back(tagName.c_str());
+		}
+
+		const auto& fontMap = resourceManager_->getFontMap();
+		fontKeys.reserve(fontMap.size());
+		for (const auto& pair : fontMap) {
+			fontKeys.push_back(pair.first.c_str());
 		}
 
 		// Load all prefabs from the data file when the editor starts
@@ -1642,15 +1649,66 @@ namespace Editor {
 		}
 		case ComponentType::TextureComponentType: {
 			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
-
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
 		}
 		case ComponentType::AudioComponentType:
 		case ComponentType::AnimationComponentType:
-		case ComponentType::TextComponentType:
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
+
+		case ComponentType::TextComponentType: {
+			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
+			
+			// Text you want to draw
+			char textBuffer[256] = "";
+
+			// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
+			if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+				std::strncpy(
+					textBuffer,
+					textComp.textToDraw.c_str(),
+					IM_ARRAYSIZE(textBuffer) - 1
+				);
+				textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+			}
+
+			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
+				textComp.textToDraw = textBuffer;
+			}
+			// Lock game keyboard input if typing on text input
+			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
+
+			// Font Selection
+			
+			// Set initial font to first index for new TextComponents, and to its corresponding index if textComponent.fontKey alr exists
+			int selectedFontIndex = 0;
+			if (!textComp.fontKey.empty()) {
+				auto it = std::find(fontKeys.begin(), fontKeys.end(), textComp.fontKey);
+				if (it != fontKeys.end()) {
+					selectedFontIndex = static_cast<int>(std::distance(fontKeys.begin(), it));
+				}
+			}
+
+			textComp.fontKey = fontKeys[selectedFontIndex];
+			
+			// Display Dropdown for font selection
+			if (ImGui::Combo("Font", &selectedFontIndex, fontKeys.data(), static_cast<int>(fontKeys.size()))) {
+				textComp.fontKey = fontKeys[selectedFontIndex];
+			}
+
+			// Color Input
+			ImGui::Text("Color RGBA: ");
+			ImGui::InputFloat("R", &textComp.color.r, 0.f, 0.f, "%.3f");
+			ImGui::InputFloat("G", &textComp.color.g, 0.f, 0.f, "%.3f");
+			ImGui::InputFloat("B", &textComp.color.b, 0.f, 0.f, "%.3f");
+			ImGui::InputFloat("A", &textComp.color.a, 0.f, 0.f, "%.3f");
+
+			// Font Size Input
+			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
+
+			break;
+		}
 		case ComponentType::SceneOwnedType: {
 			SceneOwned& parentScene = entityMgr.GetComponent<SceneOwned>(selectedEntity);
 
@@ -1795,6 +1853,9 @@ namespace Editor {
 			if (!isGamePlaying) {
 				physics_->SetPaused(true);
 			}
+			
+			// Lock game keyboard if !isGamePlaying
+			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
 
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{

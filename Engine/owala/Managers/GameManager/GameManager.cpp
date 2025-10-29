@@ -149,9 +149,9 @@ namespace Framework {
 		//RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
 		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
-		sceneCallbacks_[testScene].fpInitialize();
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		sceneCallbacks_[testScene].fpInitialize();
 	}
 
 	void GameManager::Update(float dt) {
