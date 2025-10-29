@@ -143,11 +143,6 @@ namespace Framework{
 		float scale = 1.0f;
 	};
 
-	struct PlayerStats {
-		float moveSpeed = 0;
-		Position pos;
-	};;
-
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */
 	struct PlayerTag {};

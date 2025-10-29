@@ -131,11 +131,15 @@ namespace Framework {
 
 				if (sceneName == "Splash Screen") {
 					RegisterScriptToScene(sceneID, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+					continue;
 				}
 				if (sceneName == "Test Scene") {
 					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 					testScene = sceneID;
+					continue;
 				}
+				// all other scenes use TestScene.cpp for now
+				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 			}
 		}
 		else {
