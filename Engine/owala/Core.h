@@ -23,6 +23,11 @@
 
 namespace Framework {
 
+    enum class EngineMode {
+        Editor,  // Scene editing mode
+        Play     // Runtime gameplay mode
+    };
+
     /**
      * \struct SystemTime
      * \brief Holds performance timing data for a single system.
@@ -80,11 +85,7 @@ namespace Framework {
          * - If the engine is already running (initialized_), the new system is immediately
          *   initialized (hot-add).
          */
-        ISystem* AddSystem(ISystem* system) {
-            systems_.push_back(system);
-            if (initialized_ && system) system->Initialize(); // hot-add if already running
-            return system;
-        }
+        ISystem* AddSystem(ISystem* system);
 
         /**
          * \brief Access per-system timing data from the last frame.
@@ -128,6 +129,12 @@ namespace Framework {
          */
         void RequestQuit() { running_ = false; }
 
+        // --- Engine Mode Management ---
+        void SetMode(EngineMode mode) { mode_ = mode; }
+        EngineMode GetMode() const { return mode_; }
+        bool IsEditorMode() const { return mode_ == EngineMode::Editor; }
+        bool IsPlayMode() const { return mode_ == EngineMode::Play; }
+
     private:
         bool running_ = false;      //!< Whether the game loop is active.
         bool initialized_ = false;  //!< Whether systems have been initialized.
@@ -136,6 +143,9 @@ namespace Framework {
 
         std::vector<SystemTime> systemTimes_; //!< Timing data per system.
         double totalFrameTime_ = 0.0;         //!< Accumulated frame time (ms).
+
+        EngineMode mode_ = EngineMode::Play;  //!< Current engine mode
+
     };
 
 } // namespace Framework

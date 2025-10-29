@@ -69,9 +69,10 @@ int main() {
 
     CoreEngine engine;
 
+    engine.SetMode(EngineMode::Play);  // Start directly in game mode
+
     try {
-	FileIOSystem fileIO;
-	Vector2D windowConfig = fileIO.LoadWindowConfig();
+	Vector2D windowConfig = FileIOSystem().LoadWindowConfig();
     WindowsSystem *win = new WindowsSystem(engine, "Owala Engine", (int)windowConfig.x, (int)windowConfig.y);
 	g_win = win; // Set global pointer for console handler
     InputSystem *input = new InputSystem(*win);
@@ -92,6 +93,8 @@ int main() {
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem); // Register all core systems to the GameManager
+    LevelResetSystem* levelResetter = new LevelResetSystem(*ecs);
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *levelResetter); // Register all core systems to the GameManager
 
 	// Editor Registration
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);

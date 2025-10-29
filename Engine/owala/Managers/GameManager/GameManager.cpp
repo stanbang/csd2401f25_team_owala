@@ -7,6 +7,7 @@
  * \date	18 September 2025
  *********************************************************************/
 #include "GameManager.h"
+#include "EntitySerializer.h"
 #include <iostream>
 
 // Scene Scripts
@@ -73,10 +74,13 @@ namespace Framework {
 			throw GameException(DebugType::GameManager, "AudioSystem not registered!");
 		}
 		if (!systems_.spriteRenderer_) {
-			throw std::runtime_error("[GameManager] SpriteRenderSystem not registered!");
+			throw GameException(DebugType::GameManager, "SpriteRenderSystem not registered!");
 		}
 		if (!systems_.camera_) {
-			throw std::runtime_error("[GameManager] CameraSystem not registered!");
+			throw GameException(DebugType::GameManager, "CameraSystem not registered!");
+		}
+		if (!systems_.audio_) {
+			throw GameException(DebugType::GameManager, "LevelResetSystem not registered!");
 		}
 		if (!SceneManager::Exists()) {
 			throw GameException(DebugType::GameManager, "SceneManager not registered!");
@@ -92,6 +96,7 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio,
 		SpriteRenderSystem& renderer, CameraSystem& camera, AISystem& ai) { 
+		SpriteRenderSystem& renderer, CameraSystem& camera, LevelResetSystem& levelResetter) {
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -103,6 +108,8 @@ namespace Framework {
 		systems_.camera_ = &camera; 
 		systems_.aiSystem_ = &ai;
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
+		systems_.levelResetter_ = &levelResetter;
+		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
 	}
 
 	void GameManager::RegisterEditor(Editor::Editor& editor) {
@@ -124,16 +131,41 @@ namespace Framework {
 		CheckSystems();
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 
+		SceneGUID testScene{};
+		// Create scene assets from file
+		rapidjson::Document scenesData;
+		if (FileIOSystem::LoadSceneAssets(scenesData)) {
+			for (const rapidjson::Value& val : scenesData.GetArray()) {
+				std::string sceneName = val[Serialization::SCENE_ASSET_NAME].GetString();
+				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
+
+				if (sceneName == "Splash Screen") {
+					RegisterScriptToScene(sceneID, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+					continue;
+				}
+				if (sceneName == "Test Scene") {
+					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+					testScene = sceneID;
+					continue;
+				}
+				// all other scenes use TestScene.cpp for now
+				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+			}
+		}
+		else {
+			Logger::Get().Error(DebugType::GameManager) << "Failed to load scene assets from file" << std::endl;
+		}
+
 		// Testing Scene Creation - Hard Coded at the moment
-		SceneGUID splashScreen = sceneMgr.CreateSceneAsset("Splash Screen");
-		SceneGUID testScene = sceneMgr.CreateSceneAsset("Test Scene");
+		//SceneGUID splashScreen = sceneMgr.CreateSceneAsset("Splash Screen");
+		//testScene = sceneMgr.CreateSceneAsset("Test Scene");
 
-		RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
-		RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
+		//RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
-		sceneCallbacks_[testScene].fpInitialize();
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		sceneCallbacks_[testScene].fpInitialize();
 	}
 
 	void GameManager::Update(float dt) {
@@ -195,6 +227,9 @@ namespace Framework {
 		systems_.spriteRenderer_->Shutdown();
 		delete systems_.spriteRenderer_;
 		systems_.spriteRenderer_ = nullptr;
+
+		// Level resetter cleanup
+		delete systems_.levelResetter_;
 
 		instance = nullptr; // Reset instance pointer
 	}

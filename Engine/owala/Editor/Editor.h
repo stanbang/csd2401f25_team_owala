@@ -24,6 +24,7 @@
 #include "PrefabSystem.h" // prefab header for creation
 #include "Graphics.h"
 #include "ResourceManager.h"
+#include "SceneManager.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -39,6 +40,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
+	
 }
 
 namespace Editor {
@@ -80,6 +82,10 @@ namespace Editor {
 		Framework::CameraSystem* cameraSystem_ = nullptr; // Pointer to camera systems for level editor
 		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
 		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
+		Entity editorCamera_ = 0;
+		float editorZoom_ = 1.0f;
+		Vector2D editorCamPos_ = { 0.0f, 0.0f };
+		bool isEditorFocused_ = true; // toggled when ImGui viewport or editor window is active
 
 		AssetBrowser assetBrowser;
 
@@ -103,6 +109,7 @@ namespace Editor {
 		std::vector<const char*> tagItems;
 		std::vector<Framework::ComponentType> tagTypes;
 		int selectedTagIndex = 0;
+		std::vector<const char*> fontKeys;
 
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
@@ -178,6 +185,7 @@ namespace Editor {
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
+		void SaveAndLoadSection(); // within LevelEditor panel
 		void ShowHierarchy();
 		void ShowInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
@@ -189,6 +197,8 @@ namespace Editor {
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);
+		void ResetPlayerToDefaultPosition();
+
 
 		// --- NEW Helper ---
 
@@ -204,6 +214,7 @@ namespace Editor {
 
 		// NEW HELPER: Converts world-space coordinates to ImGui screen-space
 		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
+		ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
 		// NEW: Caches the game viewport's position and size
 		void UpdateViewportData();

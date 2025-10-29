@@ -17,6 +17,7 @@
 #pragma once
 #include "EntityStorage.h"
 #include <stdexcept>
+#include <bitset>
 
 namespace Framework {
 
@@ -46,8 +47,7 @@ namespace Framework {
 
 			if (HasComponent(entity, type)) return;
 
-			if constexpr (std::is_same_v<T, PlayerStats>) ecs.playerStats[entity] = component;
-			else if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
+			if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
@@ -88,8 +88,7 @@ namespace Framework {
 			}
 
 			// Return a reference to the component in the map
-			if constexpr (std::is_same_v<T, PlayerStats>) return ecs.playerStats.at(entity);
-			else if constexpr (std::is_same_v<T, Position>) return ecs.position.at(entity);
+			if constexpr (std::is_same_v<T, Position>) return ecs.position.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
@@ -116,6 +115,13 @@ namespace Framework {
 		std::vector<Entity> GetAllEntities() const;
 		// Gets all entities that have the specified component type attached to them.
 		std::vector<Entity> GetAllEntitiesWithComponent(ComponentType componentType) const;
+		// Gets all entities that have all the specified component types attached to them. (Multiple component support)
+		template<typename... Args>
+		std::vector<Entity> GetAllEntitiesWithComponents(Args... componentTypes) const;
+		// Get entity signatures
+		inline const auto& GetEntitySignatures() const {
+			return ecs.entitySignatures;
+		}
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.
@@ -142,4 +148,23 @@ namespace Framework {
 		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
 		//void RemoveComponent(Entity entity, ComponentType componentType);
 	};
+
+	template<typename... Args>
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {
+		// 1. Create the required signature bitset
+		ComponentSignature requiredSignature;
+
+		// This sets a bit for each component type passed in
+		(requiredSignature.set(static_cast<size_t>(componentTypes)), ...);
+
+		std::vector<Entity> entities;
+		for (const auto& [entity, entitySignature] : ecs.entitySignatures) {
+
+			// Check if the entity's signature includes all bits in the required signature
+			if ((entitySignature & requiredSignature) == requiredSignature) {
+				entities.push_back(entity);
+			}
+		}
+		return entities;
+	}
 }

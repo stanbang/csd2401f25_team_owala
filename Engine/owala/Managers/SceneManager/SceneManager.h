@@ -36,6 +36,7 @@ namespace SceneManagement {
 		std::string name; // Name of the scene.
 		std::string path; // Path to the scene asset file.
 		bool isLoaded = false;
+		bool isPopulated = false; // Indicate if it has been populated with asset file data
 		bool IsValid() const { return sceneIndex != 0; };
 	};
 }
@@ -114,6 +115,15 @@ namespace Framework {
 		void SetEntityAsPersistent(Entity entity, bool shouldPersist = true);
 		// Retrieves a list of all entities that belong to the specified scene, if the scene exists.
 		std::vector<Entity> GetEntitiesInScene(const std::string& scene) const;
+		// scenes_ map getter
+		const std::unordered_map<SceneGUID, SceneAsset>& GetAllSceneAssets() const;
+
+		// Checker for duplicate scene names
+		bool CheckDuplicateSceneName(const std::string& sceneName);
+		// Update scene asset
+		void UpdateScenePath(const SceneGUID& sceneIndex, const std::string& newPath);
+		// Scene Reset
+		void ResetScene();
 
 		/* DEBUG FUNCTIONS */
 		void PrintAllScenesInfo() const;

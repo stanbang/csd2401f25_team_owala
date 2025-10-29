@@ -91,6 +91,7 @@ namespace Framework{
 
 	// A component to store player-specific states
 	struct PlayerState {
+		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 	};
 
@@ -138,16 +139,11 @@ namespace Framework{
 	};
 
 	struct TextComponent {
-		std::string textToDraw;
-		std::string fontName;
+		std::string textToDraw{};
+		std::string fontKey;
 		Color color = { 1,1,1,1 };
 		float scale = 1.0f;
 	};
-
-	struct PlayerStats {
-		float moveSpeed = 0;
-		Position pos;
-	};;
 
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */

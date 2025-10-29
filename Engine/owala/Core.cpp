@@ -7,9 +7,9 @@
  *     Lur Pei Hao Stanley (20%)
  *
  * \brief
- *   Core engine loop and system manager. Handles initialization,
- *   per-frame updates, shutdown, and performance timing of subsystems
- *   derived from ISystem.
+ *   Core engine loop and system manager.
+ *   Handles initialization, per-frame updates, shutdown, and performance timing
+ *   of subsystems derived from ISystem, with Editor/Play mode support.
  *
  * \copyright
  *   Copyright (C) 2025 DigiPen Institute of Technology.
@@ -33,7 +33,9 @@
 
 namespace Framework {
 
-    // Helper function to get a clean name for each system
+    // ------------------------------------------------------------------------
+    // Helper to return clean display names for profiling UI
+    // ------------------------------------------------------------------------
     static std::string GetSystemName(const std::type_info& info) {
         if (info == typeid(Framework::WindowsSystem))   return "Windows System";
         if (info == typeid(Framework::InputSystem))     return "Input System";
@@ -50,62 +52,102 @@ namespace Framework {
         return "Unknown System"; // if no systems found
     }
 
+    // ------------------------------------------------------------------------
+    // Add systems
+    // ------------------------------------------------------------------------
+    ISystem* CoreEngine::AddSystem(ISystem* system) {
+        systems_.push_back(system);
+        if (initialized_ && system)
+            system->Initialize(); // hot-add
+        return system;
+    }
+
+    // ------------------------------------------------------------------------
+    // Initialize all systems
+    // ------------------------------------------------------------------------
     void CoreEngine::Initialize() {
-        for (auto* s : systems_) s->Initialize();
+        for (auto* s : systems_)
+            if (s) s->Initialize();
         initialized_ = true;
     }
 
+    // ------------------------------------------------------------------------
+    // Main game loop with per-system profiling and mode filtering
+    // ------------------------------------------------------------------------
     void CoreEngine::GameLoop() {
         running_ = true;
 
         using clock = std::chrono::high_resolution_clock;
-        std::chrono::time_point<std::chrono::steady_clock> prev = clock::now();
-
-        //Resize the profiler vector once before the loop starts.
+        auto prev = clock::now();
         systemTimes_.resize(systems_.size());
 
         while (running_) {
-            std::chrono::steady_clock::time_point now = clock::now();
+            // --- Time step calculation ---
+            auto now = clock::now();
             float dt = std::chrono::duration<float>(now - prev).count();
             prev = now;
-            dt = std::min(dt, 0.25f); // protect against giant stalls
+            dt = std::min(dt, 0.25f); // cap huge delta time
 
-            std::chrono::steady_clock::time_point frameStartTime = clock::now();
+            auto frameStart = clock::now();
 
-            // --------FOR IMGUI INDIVIDUAL SYSTEM PROFILLING------------ //
+            // --- Per-system updates with profiling ---
             for (size_t i = 0; i < systems_.size(); ++i) {
-                std::chrono::steady_clock::time_point start = clock::now();
-                if (systems_[i]) {
-                    systems_[i]->Update(dt);
-                }
-                std::chrono::steady_clock::time_point end = clock::now();
+                ISystem* sys = systems_[i];
+                if (!sys) continue;
 
-                //Use helper function to get system name
-                systemTimes_[i].name = GetSystemName(typeid(*systems_[i]));
-                systemTimes_[i].milliseconds = std::chrono::duration<double, std::milli>(end - start).count();
+                auto start = clock::now();
+                std::string sysName = GetSystemName(typeid(*sys));
+                bool shouldUpdate = true;
+
+                // --- Mode-based filtering ---
+                if (mode_ == EngineMode::Editor) {
+                    // Skip gameplay systems in Editor mode
+                    if (sysName == "Player System" ||
+                        sysName == "Physics System" ||
+                        sysName == "Rotation System" ||
+                        sysName == "Audio System") {
+                        shouldUpdate = false;
+                    }
+                }
+                // Always update Editor and Graphics for overlay drawing
+                if (sysName == "Editor" || sysName == "Graphics")
+                    shouldUpdate = true;
+
+                // --- Execute ---
+                if (shouldUpdate)
+                    sys->Update(dt);
+
+                auto end = clock::now();
+                systemTimes_[i].name = sysName;
+                systemTimes_[i].milliseconds =
+                    std::chrono::duration<double, std::milli>(end - start).count();
             }
 
-            std::chrono::steady_clock::time_point frameEndTime = clock::now();
-            totalFrameTime_ = std::chrono::duration<double, std::milli>(frameEndTime - frameStartTime).count();
+            // --- Compute profiling summary ---
+            auto frameEnd = clock::now();
+            totalFrameTime_ = std::chrono::duration<double, std::milli>(frameEnd - frameStart).count();
 
-            // Calculate percentages based on the total frame time
             if (totalFrameTime_ > 0.0) {
-                for (std::vector<Framework::SystemTime>::iterator::value_type & timing : systemTimes_) {
-                    timing.percentage = static_cast<float>((timing.milliseconds / totalFrameTime_) * 100.0);
-                }
+                for (auto& t : systemTimes_)
+                    t.percentage = static_cast<float>((t.milliseconds / totalFrameTime_) * 100.0);
             }
-        
         }
     }
 
+    // ------------------------------------------------------------------------
+    // Shutdown and cleanup
+    // ------------------------------------------------------------------------
     void CoreEngine::DestroySystems() {
-        // shutdown in reverse add order, then delete
-        for(std::vector<Framework::ISystem *>::reverse_iterator it = systems_.rbegin(); it != systems_.rend(); ++it) {
+        // Shutdown in reverse order
+        for (auto it = systems_.rbegin(); it != systems_.rend(); ++it) {
             if (*it) (*it)->Shutdown();
         }
-        for (std::vector<Framework::ISystem*>::reverse_iterator it = systems_.rbegin(); it != systems_.rend(); ++it) {
+
+        // Delete in reverse order
+        for (auto it = systems_.rbegin(); it != systems_.rend(); ++it) {
             delete* it;
         }
+
         systems_.clear();
         initialized_ = false;
     }

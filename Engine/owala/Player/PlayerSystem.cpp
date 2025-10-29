@@ -42,6 +42,7 @@ namespace Framework {
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
+
 			
 
             // We need a RigidBody, Velocity, and PlayerState to control the player
@@ -56,12 +57,20 @@ namespace Framework {
                 if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
                 vel.Vel.x = targetVelX;
 
-                // --- Jumping ---
+				// Apply Jumping
                 if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
                     vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
 
                     //messageBus
                     MessageBus::Instance().Publish(PlayerJumpedEvent{ entity }); //empty cause currently theres nothign to pass and just for testing
+                }
+
+				// Sets the direction the player is facing based on movement
+                if (targetVelX > 0.01f) {
+                    state.isFacingRight = true;
+                }
+                else if (targetVelX < -0.01f) {
+                    state.isFacingRight = false;
                 }
 
                 // Animation State Handling
@@ -83,19 +92,6 @@ namespace Framework {
 
 
     void PlayerSystem::Shutdown() {
-        //Logger::Get().Info(DebugType::PlayerSystem) << "Player system shutdown" << std::endl;
-
-        /*FileIOSystem fileIO;
-        PlayerStats newStats;
-        EntityManager entityMgr(*entityStorage_);
-
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            newStats = entityMgr.GetComponent<PlayerStats>(entity);
-            newStats.pos = entityMgr.GetComponent<Position>(entity);
-        } */
-
-        //logger.Info(DebugType::PlayerSystem) << "Writing Player Stats" << std::endl;
-        //fileIO.WritePlayerStats(newStats);
     }
 
 } // namespace Framework

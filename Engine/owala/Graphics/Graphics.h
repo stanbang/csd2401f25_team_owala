@@ -99,7 +99,6 @@ namespace Framework {
          */
         void drawSpriteBatchRaw(Texture tex, const float* interleavedXYUV, size_t spriteCount);
         void drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites);
-
         // -------- Text --------
         void drawText(Font& font, const std::string& text,
             const Vector2D& pos, float scale, const Color& color);
