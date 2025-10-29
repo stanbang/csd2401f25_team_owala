@@ -151,7 +151,7 @@ namespace Framework {
 
 	template<typename... Args>
 	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {
-		// 1. Create the required signature bitset
+		// Create the required signature bitset
 		ComponentSignature requiredSignature;
 
 		// This sets a bit for each component type passed in

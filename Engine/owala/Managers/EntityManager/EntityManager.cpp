@@ -58,6 +58,7 @@ namespace Framework {
 					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
 					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
 					case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(newEntity, GetComponent<ScalingPlatformComponent>(entity)); break;
+					case ComponentType::ButtonType: AddComponent<Button>(newEntity, GetComponent<Button>(entity)); break;
 					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
 					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
 					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
@@ -107,6 +108,7 @@ namespace Framework {
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
+		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
@@ -143,6 +145,7 @@ namespace Framework {
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case CameraType: ecs.cameras.erase(entity); break;
+			case ButtonType: ecs.button.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:
 			case BackgroundTagType:
