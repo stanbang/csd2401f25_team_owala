@@ -117,8 +117,8 @@ namespace Framework {
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera, AISystem& ai);		
-			CameraSystem& camera, LevelResetSystem& levelResetter);		
+			CameraSystem& camera, AISystem& ai, LevelResetSystem& levelResetter);
+					
 
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
 
