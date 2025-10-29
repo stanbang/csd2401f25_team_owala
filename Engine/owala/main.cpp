@@ -68,6 +68,8 @@ int main() {
 
     CoreEngine engine;
 
+    engine.SetMode(EngineMode::Play);  // Start directly in game mode
+
     try {
 	FileIOSystem fileIO;
 	Vector2D windowConfig = fileIO.LoadWindowConfig();

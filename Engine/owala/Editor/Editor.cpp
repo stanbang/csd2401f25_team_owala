@@ -469,176 +469,189 @@ namespace Editor {
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
-	Vector2D Editor::GetMouseWorldPosition() {
-		auto* input = gameManager_->GetSystems().input_;
-		auto* win = gameManager_->GetSystems().win_;
+Vector2D Editor::GetMouseWorldPosition() {
+    if (!cameraSystem_ || editorCamera_ == 0)
+        return {0.0f, 0.0f};
 
-		if (!input || !win || !cameraSystem_) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Missing required systems in GetMouseWorldPosition" << std::endl;
-			return { 0.0f, 0.0f }; // Return zero vector if systems are missing
-		}
+    ImVec2 mouse = ImGui::GetMousePos();
 
-		// Get active camera
-		Entity activeCamera = editorCamera_;
-		if (activeCamera == 0) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Editor camera not initialized in GetMouseWorldPosition" << std::endl;
-			return { 0.0f, 0.0f };
-		}
+    // convert to relative viewport coords
+    float relX = mouse.x - gameViewportPos_.x;
+    float relY = mouse.y - gameViewportPos_.y;
+
+    if (relX < 0 || relY < 0 || 
+        relX > gameViewportSize_.x || relY > gameViewportSize_.y)
+        return {0.0f, 0.0f};
+
+    // NDC conversion (Y flipped)
+    float ndcX = (relX / gameViewportSize_.x) * 2.0f - 1.0f;
+    float ndcY = 1.0f - (relY / gameViewportSize_.y) * 2.0f; // this flips Y!
+
+    const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+    Vector2D camPos = cam.position;
+    Vector2D camSize = cam.size;
+
+    // Map NDC ? world
+    float worldX = camPos.x + ndcX * (camSize.x * 0.5f);
+    float worldY = camPos.y + ndcY * (camSize.y * 0.5f);
+    return {worldX, worldY};
+}
 
 
-		
-		// Get mouse position in absolute desktop coordinates from ImGui
-		ImVec2 mousePos = ImGui::GetMousePos();
-
-		// Transform to viewport-relative coordinates
-	    // (gameViewportPos_ is the absolute desktop pos of the viewport's top-left)
-		float viewportMouseX = mousePos.x - gameViewportPos_.x;
-		float viewportMouseY = mousePos.y - gameViewportPos_.y;
-
-		// Convert to NDC relative to game viewport (-1 to 1)
-		float ndcX = (viewportMouseX / gameViewportSize_.x) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (viewportMouseY / gameViewportSize_.y) * 2.0f; // Y is inverted
-
-		// Convert NDC to World using the camera system
-		return cameraSystem_->ScreenToWorld({ ndcX, ndcY }, activeCamera);
-	}
 
 	void Editor::HandleDragDropPlacement() {
-		// Check if we were actually dragging a prefab and if mouse is over game viewport
+		// --- SAFETY CHECKS ---
 		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
-			isDraggingPrefab_ = false; // Ensure dragging stops if mouse released over UI
+			isDraggingPrefab_ = false;
 			return;
 		}
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return;
 
-		Vector2D worldMousePos = GetMouseWorldPosition();
-		Vector2D snappedPos = SnapToGrid(GetMouseWorldPosition());
+		// --- ENSURE EDITOR CAMERA IS USED FOR PLACEMENT ---
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+		// --- CALCULATE POSITION ---
+		Vector2D worldMousePos = GetMouseWorldPosition(); // uses editor viewport
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+		// --- FIX Y OFFSET: Align placement Y with ImGui preview ---
+		float yOffset = baseGridCellSize_ * 2; // adjust if off by >1 cell
+		snappedPos.y -= yOffset;
+
+
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		Framework::EntityManager entityMgr(*ecs);
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
-		// *** ADD Log for payload check ***
+		// --- DEBUG LOGGING ---
 		Framework::Logger::Get().Info(DebugType::Editor)
 			<< "HandleDragDropPlacement: Payload Name='" << dragDropPayload_.name
-			<< "', Payload Type=" << static_cast<int>(dragDropPayload_.type) << std::endl;
+			<< "', Type=" << static_cast<int>(dragDropPayload_.type)
+			<< ", Snapped=(" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
 
-		// Check for existing tile (using current grid size for tolerance)
+		// --- CHECK FOR DUPLICATES ---
 		const float placementTolerance = baseGridCellSize_ * 0.1f;
-
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
 			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
 				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				if (std::abs(pos.x - snappedPos.x) < placementTolerance && std::abs(pos.y - snappedPos.y) < placementTolerance) {
-					Framework::Logger::Get().Info(DebugType::Editor) << "Tile already exists at placement location." << std::endl;
-					isDraggingPrefab_ = false; // Stop drag operation
+				if (std::abs(pos.x - snappedPos.x) < placementTolerance &&
+					std::abs(pos.y - snappedPos.y) < placementTolerance) {
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Tile already exists at placement location." << std::endl;
+					isDraggingPrefab_ = false;
 					return;
 				}
 			}
 		}
 
-		// Create new entity and add components manually to control size
+		// --- ENTITY CREATION ---
 		Entity newEntity = entityMgr.CreateEntity();
-		// Use the dynamically calculated currentGridCellSize_ for square tiles
-		Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
-		
-		// Common components for all platforms
+
+		// Correct aspect so tiles are truly square in editor space
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
+
+		// Common components
 		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
 		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
 		entityMgr.AddComponent(newEntity, Framework::Velocity{});
-		entityMgr.AddComponent(newEntity, Framework::RigidBody{}); // Add RigidBody first
-		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f); // Set default mass
+		entityMgr.AddComponent(newEntity, Framework::RigidBody{});
+		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
 		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
 		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-		//entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
 		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
-		
 
-		// Type-specific components using info from dragDropPayload_
+		// --- TYPE-SPECIFIC PREFAB SETUP ---
 		std::string textureKey = "";
-		if (dragDropPayload_.type == PrefabType::Platform) {
-			Framework::Logger::Get().Info(DebugType::Editor) << "If/Else: Matched Platform" << std::endl; // Add log
+
+		switch (dragDropPayload_.type) {
+		case PrefabType::Platform: {
 			const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
 			if (prefab) {
-				Framework::Logger::Get().Info(DebugType::Editor) << " -> Found Platform Prefab. Texture ID: '" << prefab->textureID << "'" << std::endl;
 				textureKey = prefab->textureID;
-				if (prefab->mass > 0.0f) entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(prefab->mass);
+				if (prefab->mass > 0.0f)
+					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(prefab->mass);
 			}
 			else {
-				Framework::Logger::Get().Error(DebugType::Editor) << " -> FAILED to find Platform Prefab: '" << dragDropPayload_.name << "'" << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< "Missing Platform Prefab: " << dragDropPayload_.name << std::endl;
 			}
+			break;
 		}
-		else if (dragDropPayload_.type == PrefabType::TrapPlatform) {
-			Framework::Logger::Get().Info(DebugType::Editor) << "If/Else: Matched TrapPlatform" << std::endl; // Add log
+
+		case PrefabType::TrapPlatform: {
 			const auto* trapPrefab = prefabSystem_.GetTrapPlatformPrefab(dragDropPayload_.name);
 			if (trapPrefab) {
-				Framework::Logger::Get().Info(DebugType::Editor) << " -> Found TrapPlatform Prefab. Texture ID: '" << trapPrefab->textureID << "'" << std::endl;
 				textureKey = trapPrefab->textureID;
 				Framework::TrapPlatformComponent trapComp;
 				trapComp.originalPosition = snappedPos;
 				trapComp.fallSpeed = trapPrefab->fallSpeed;
 				trapComp.triggerDelay = trapPrefab->triggerDelay;
 				entityMgr.AddComponent(newEntity, trapComp);
-				if (trapPrefab->mass > 0.0f) entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(trapPrefab->mass);
+				if (trapPrefab->mass > 0.0f)
+					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(trapPrefab->mass);
 			}
 			else {
-				Framework::Logger::Get().Error(DebugType::Editor) << " -> FAILED to find TrapPlatform Prefab: '" << dragDropPayload_.name << "'" << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< "Missing TrapPlatform Prefab: " << dragDropPayload_.name << std::endl;
 			}
+			break;
 		}
-		else if (dragDropPayload_.type == PrefabType::ScalingPlatform) {
-			Framework::Logger::Get().Info(DebugType::Editor) << "If/Else: Matched ScalingPlatform" << std::endl; // Add log
+
+		case PrefabType::ScalingPlatform: {
 			const auto* scalePrefab = prefabSystem_.GetScalingPlatformPrefab(dragDropPayload_.name);
 			if (scalePrefab) {
-				Framework::Logger::Get().Info(DebugType::Editor) << " -> Found ScalingPlatform Prefab. Texture ID: '" << scalePrefab->textureID << "'" << std::endl;
 				textureKey = scalePrefab->textureID;
 				Framework::ScalingPlatformComponent scaleComp;
 				scaleComp.baseHalfSize = tileHalfSize;
 				scaleComp.scaleSpeed = scalePrefab->scaleSpeed;
 				scaleComp.minScale = scalePrefab->minScale;
 				scaleComp.maxScale = scalePrefab->maxScale;
-				scaleComp.currentScaleX = 1.0f; scaleComp.currentScaleY = 1.0f;
+				scaleComp.currentScaleX = 1.0f;
+				scaleComp.currentScaleY = 1.0f;
 				entityMgr.AddComponent(newEntity, scaleComp);
-				if (scalePrefab->mass > 0.0f) entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(scalePrefab->mass);
+				if (scalePrefab->mass > 0.0f)
+					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(scalePrefab->mass);
 			}
 			else {
-				Framework::Logger::Get().Error(DebugType::Editor) << " -> FAILED to find ScalingPlatform Prefab: '" << dragDropPayload_.name << "'" << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< "Missing ScalingPlatform Prefab: " << dragDropPayload_.name << std::endl;
 			}
+			break;
 		}
-		// Optional: Add an else for Eraser/None if needed, or handle unexpected values
+
+		default:
+			Framework::Logger::Get().Error(DebugType::Editor)
+				<< "Unsupported PrefabType: " << static_cast<int>(dragDropPayload_.type) << std::endl;
+			break;
+		}
+
+		// --- TEXTURE COMPONENT + FINALIZATION ---
+		if (!textureKey.empty()) {
+			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Placed tile: " << dragDropPayload_.name
+				<< " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
+		}
 		else {
 			Framework::Logger::Get().Error(DebugType::Editor)
-				<< "If/Else block received UNEXPECTED PrefabType: "
-				<< static_cast<int>(dragDropPayload_.type) << std::endl;
+				<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
 		}
 
-		// Assign the texture key
-		if (!textureKey.empty()) {
-			Framework::Logger::Get().Info(DebugType::Editor) << "Assigning Texture Key: '" << textureKey << "'" << std::endl;
-			// *** Get the calculated tileHalfSize we used for the collider ***
-			tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
-
-			// *** ADD TextureComponent HERE, INCLUDING the HalfSize ***
-			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize }); // Pass tileHalfSize here
-
-			// Now add to scene
-			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-			Framework::Logger::Get().Info(DebugType::Editor) << "Placed tile: " << dragDropPayload_.name << " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-		}
-		else {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Could not find texture key for placed prefab: " << dragDropPayload_.name << std::endl;
-			// Destroy the entity if texture is missing? Or leave it invisible?
-			// sceneMgr.RemoveEntityFromScene(newEntity);
-		}
-
-		// --- Crucial: Reset drag state ---
+		// --- CLEANUP ---
 		isDraggingPrefab_ = false;
-		// Optionally clear dragDropPayload_ if needed, but it will be overwritten on next drag start
-		// dragDropPayload_ = {};
 	}
 
 	// Draws a preview of the tile being dragged
-	void Editor::DrawDragDropPreview(ImDrawList* drawList) { 
+	void Editor::DrawDragDropPreview(ImDrawList* drawList) {
 
-		if (!isDraggingPrefab_ || dragDropPayload_.type == PrefabType::None || dragDropPayload_.type == PrefabType::Eraser) {
+		if (!isDraggingPrefab_ ||
+			dragDropPayload_.type == PrefabType::None ||
+			dragDropPayload_.type == PrefabType::Eraser) {
 			return;
 		}
 
@@ -649,38 +662,37 @@ namespace Editor {
 		Texture previewTextureID = dragDropPayload_.textureID;
 		if (previewTextureID == 0) return;
 
-		// Calculate size (same as before)
-		Vector2D previewHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
+		// --- ASPECT-CORRECT SIZE ---
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		Vector2D previewHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
 
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
 		if (activeCamera == 0) return;
 
-		// --- NEW IMGUI DRAWING ---
+		// --- WORLD CORNERS ---
+		Vector2D worldTopLeft = {
+			dragDropPreviewPos_.x - previewHalfSize.x,
+			dragDropPreviewPos_.y + previewHalfSize.y
+		};
+		Vector2D worldBottomRight = {
+			dragDropPreviewPos_.x + previewHalfSize.x,
+			dragDropPreviewPos_.y - previewHalfSize.y
+		};
 
-		// 1. Get world corners (World Y+ is up)
-		Vector2D worldTopLeft = { dragDropPreviewPos_.x - previewHalfSize.x,
-								  dragDropPreviewPos_.y + previewHalfSize.y };
-		Vector2D worldBottomRight = { dragDropPreviewPos_.x + previewHalfSize.x,
-									  dragDropPreviewPos_.y - previewHalfSize.y };
-
-		// 2. Convert world corners to ImGui screen-space
+		// --- SCREEN SPACE CONVERSION ---
 		ImVec2 screenTopLeft = WorldToImGuiScreen(worldTopLeft);
 		ImVec2 screenBottomRight = WorldToImGuiScreen(worldBottomRight);
 
-		// 3. Set up UVs (from payload)
+		// --- UVs & COLOR ---
 		ImVec2 uv0 = dragDropPayload_.uv0;
 		ImVec2 uv1 = dragDropPayload_.uv1;
+		ImU32 tintColor = IM_COL32(255, 255, 255, 150); // semi-transparent
 
-		// 4. Set tint color (semi-transparent white)
-		ImU32 tintColor = IM_COL32(255, 255, 255, 150); // ~60% alpha
-
-		// 5. Add to draw list
-		// We must cast our OpenGL Texture (unsigned int) to ImTextureID (void*)
+		// --- DRAW PREVIEW ---
 		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
-
 		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
-
 	}
+
 
 	void Editor::HandleTileErasing() {
 		auto* input = gameManager_->GetSystems().input_;
@@ -1026,101 +1038,105 @@ namespace Editor {
 
 	void Editor::ShowTilemapEditor()
 	{
+		static bool wasTileEditorOpen = false; // Tracks open/close transition
+
 		if (ImGui::Begin("Tile Palette", &isTileEditorActive_)) {
+			// --- ENTER TILE EDITOR (open event) ---
+			if (!wasTileEditorOpen) {
+				wasTileEditorOpen = true;
+
+				if (engine_ && !engine_->IsEditorMode()) {
+					engine_->SetMode(Framework::EngineMode::Editor);
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "[Editor] Switched to EDITOR mode (Tilemap open)" << std::endl;
+				}
+			}
+
 			showGrid_ = true; // Keep grid visible
 
-			ImVec2 buttonSize(64, 64); // Size for image buttons
-			ImVec4 bgCol(0, 0, 0, 0); // Transparent background
-			ImVec4 tintCol(1, 1, 1, 1); // Normal tint
+			ImVec2 buttonSize(64, 64);
+			ImVec4 bgCol(0, 0, 0, 0);
+			ImVec4 tintCol(1, 1, 1, 1);
 
 			// --- Eraser Tool ---
-			 // Still use Selectable for the eraser as it doesn't have an image
 			if (ImGui::Selectable("Eraser", dragDropPayload_.type == PrefabType::Eraser && isDraggingPrefab_)) {
-				// Set payload for eraser drag (optional, can just use click)
-				isDraggingPrefab_ = true; // Allow dragging eraser
+				isDraggingPrefab_ = true;
 				dragDropPayload_ = { "Eraser", PrefabType::Eraser, 0 };
 			}
-			// Or handle eraser purely on click in HandleTileErasing? Current code uses MouseDown.
 			ImGui::Separator();
 
 			// --- Prefab Tiles ---
-			// Iterate through prepared paletteItems_ which contain texture IDs
 			int itemsPerRow = 0;
-			const int maxItemsPerRow = 4; // Adjust as needed
+			const int maxItemsPerRow = 4;
 
 			if (paletteItems_.empty() && palettePrepared_) {
 				ImGui::TextDisabled("No palette items loaded. Check texture keys and loading logs.");
 			}
+
 			for (const auto& item : paletteItems_) {
-			//	Framework::Logger::Get().Info(DebugType::Editor) << "Rendering palette button for: " << item.name << ", TextureID: " << item.textureID << std::endl;
-				ImGui::PushID(item.name.c_str()); // Unique ID for each button
+				ImGui::PushID(item.name.c_str());
+				ImTextureID textureID = item.textureID;
 
-				// Use ImageButton with the texture ID
-				// Need to cast Texture (unsigned int) to ImTextureID (void*)
-				ImTextureID textureID = item.textureID; // Correctly cast texture ID
-
-				// CORRECT ORDER: Pass item name as str_id (1st), textureID as tex_ref (2nd)
-				if (ImGui::ImageButton(item.name.c_str(), // Use the prefab name as the button ID
-					textureID,         // Pass the cast texture ID
+				if (ImGui::ImageButton(item.name.c_str(),
+					textureID,
 					buttonSize,
 					item.uv0,
-					item.uv1,      
+					item.uv1,
 					bgCol,
 					tintCol))
 				{
-					// Click action (optional, could select without starting drag)
-					Framework::Logger::Get().Info(DebugType::Editor) << "Clicked palette item: " << item.name << std::endl;
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Clicked palette item: " << item.name << std::endl;
 				}
 
 				if (ImGui::IsItemHovered())
-				{
 					ImGui::SetTooltip("%s", item.name.c_str());
-				}
 
-				// --- Drag Source ---
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-					// Set payload to be the DraggablePrefabInfo struct itself
 					ImGui::SetDragDropPayload("PREFAB_TILE_DND", &item, sizeof(DraggablePrefabInfo));
-
-					// Tooltip/Preview visible while dragging
 					ImGui::Text("Placing: %s", item.name.c_str());
-					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1); // Smaller preview
+					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
 
-					// Update editor state that we are dragging
 					isDraggingPrefab_ = true;
-					dragDropPayload_ = item; // Store the payload info
-					Framework::Logger::Get().Info(DebugType::Editor) << "Begin Dragging: " << item.name << std::endl; // Log drag start
-					ImGui::EndDragDropSource();
+					dragDropPayload_ = item;
 
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Begin Dragging: " << item.name << std::endl;
+
+					ImGui::EndDragDropSource();
 				}
+
 				ImGui::PopID();
 
-				// Arrange buttons in rows
 				itemsPerRow++;
-				if (itemsPerRow < maxItemsPerRow) {
+				if (itemsPerRow < maxItemsPerRow)
 					ImGui::SameLine();
-				}
-				else {
-					itemsPerRow = 0; // Start new row
-				}
+				else
+					itemsPerRow = 0;
 			}
-			// Ensure cursor is on a new line if the last row wasn't full
-			if (itemsPerRow != 0) {
+
+			if (itemsPerRow != 0)
 				ImGui::NewLine();
-			}
-
-
 		}
 		ImGui::End();
 
-		// If window closed, disable tile editor mode
+		// --- EXIT TILE EDITOR (close event) ---
 		if (!isTileEditorActive_) {
+			if (wasTileEditorOpen) {
+				wasTileEditorOpen = false;
+				if (engine_ && engine_->IsEditorMode()) {
+					engine_->SetMode(Framework::EngineMode::Play);
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
+				}
+			}
+
 			showGrid_ = false;
-			isDraggingPrefab_ = false; // Stop dragging if window closed
-			// Clear payload? Might not be necessary.
-			// dragDropPayload_ = {};
+			isDraggingPrefab_ = false;
 		}
 	}
+
+
 
 	#pragma endregion
 	
@@ -1762,7 +1778,7 @@ namespace Editor {
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
 
-		// visible region in world space
+		// Visible region in world space
 		float halfW = cam.size.x * 0.5f;
 		float halfH = cam.size.y * 0.5f;
 
@@ -1771,61 +1787,66 @@ namespace Editor {
 		float bottom = camPos.y - halfH;
 		float top = camPos.y + halfH;
 
-		// base grid size (world units)
+		// Base grid size (world units)
 		float cell = baseGridCellSize_;
 
-		// Aspect ratio compensation factor
+		// --- Correct for aspect ratio ---
+		// If your camera covers a wider range horizontally (16:9),
+		// each world-space "square" will look rectangular on screen.
+		// Compensate by scaling the X-step by the inverse aspect ratio.
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		float xStep = cell / aspect;  
+		float yStep = cell;
 
 		// Snap grid start to nearest cell
-		float startX = std::floor(left / cell) * cell;
-		float startY = std::floor(bottom / cell) * cell;
+		float startX = std::floor(left / xStep) * xStep;
+		float startY = std::floor(bottom / yStep) * yStep;
 
-		// Draw vertical lines (adjust X spacing by 1/aspect)
-		for (float x = startX; x <= right; x += cell)
+		// --- Draw grid lines ---
+		for (float x = startX; x <= right; x += xStep)
 		{
 			ImVec2 a = WorldToImGuiScreen({ x, bottom });
 			ImVec2 b = WorldToImGuiScreen({ x, top });
 			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
 		}
 
-		// Draw horizontal lines (adjust Y spacing by aspect)
-		for (float y = startY; y <= top; y += cell)
+		for (float y = startY; y <= top; y += yStep)
 		{
 			ImVec2 a = WorldToImGuiScreen({ left, y });
 			ImVec2 b = WorldToImGuiScreen({ right, y });
 			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
 		}
 
-		// Overlay “square” correction lines (this keeps visual square proportions)
-		if (aspect != 1.0f)
-		{
-			for (float x = startX; x <= right; x += cell)
-			{
-				for (float y = startY; y <= top; y += cell)
-				{
-					ImVec2 topLeft = WorldToImGuiScreen({ x, y + cell });
-					ImVec2 bottomRight = WorldToImGuiScreen({ x + cell / aspect, y });
-					drawList->AddRect(topLeft, bottomRight, IM_COL32(100, 100, 255, 60));
-				}
-			}
-		}
+		// --- OPTIONAL: draw thicker origin lines ---
+		ImVec2 xA = WorldToImGuiScreen({ 0.0f, bottom });
+		ImVec2 xB = WorldToImGuiScreen({ 0.0f, top });
+		drawList->AddLine(xA, xB, IM_COL32(255, 0, 0, 180), 2.0f);
+
+		ImVec2 yA = WorldToImGuiScreen({ left, 0.0f });
+		ImVec2 yB = WorldToImGuiScreen({ right, 0.0f });
+		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
 	}
 
-
-
-
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		
+		// Compute aspect ratio once
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
 
-		// Calculate index
-		int gridX = static_cast<int>(std::floor(worldPos.x  / baseGridCellSize_));
-		int gridY = static_cast<int>(std::floor(worldPos.y / baseGridCellSize_));
-		// Calculate center
+		// Adjust X by aspect so snapping grid matches visual grid squares
+		float adjustedX = worldPos.x * aspect;
+		float adjustedY = worldPos.y;
+
+		// Calculate index based on adjusted coords
+		int gridX = static_cast<int>(std::floor(adjustedX / baseGridCellSize_));
+		int gridY = static_cast<int>(std::floor(adjustedY / baseGridCellSize_));
+
+		// Compute snapped center (still in adjusted space)
 		float snappedX = (static_cast<float>(gridX) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
 		float snappedY = (static_cast<float>(gridY) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
-		return { snappedX, snappedY };
 
+		// Convert back to original world space (undo aspect adjustment)
+		snappedX /= aspect;
+
+		return { snappedX, snappedY };
 	}
 
 	#pragma endregion

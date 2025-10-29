@@ -39,6 +39,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
+	
 }
 
 namespace Editor {
@@ -192,6 +193,8 @@ namespace Editor {
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);
+		void ResetPlayerToDefaultPosition();
+
 
 		// --- NEW Helper ---
 
@@ -207,6 +210,7 @@ namespace Editor {
 
 		// NEW HELPER: Converts world-space coordinates to ImGui screen-space
 		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
+		ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
 		// NEW: Caches the game viewport's position and size
 		void UpdateViewportData();
