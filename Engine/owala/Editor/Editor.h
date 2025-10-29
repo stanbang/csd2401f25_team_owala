@@ -53,6 +53,7 @@ namespace Editor {
 		bool showGameViewport = true;
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
+		bool showPrefabEditor = false;
 	};
 
 	// enum to represent the different types of objects we can create
@@ -193,11 +194,20 @@ namespace Editor {
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
 		void ShowToolbar();
+		void ShowPrefabEditor();
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);
 		void ResetPlayerToDefaultPosition();
 
+		std::string selectedPrefabForEditing_;
+		PrefabType selectedPrefabTypeForEditing_ = PrefabType::None;
+		bool isPrefabEditorOpen_ = false;
+
+		// Helper functions
+		
+		void ApplyPrefabChangesToEntities(const std::string& prefabName);
+		void SavePrefabToFile(const std::string& prefabName);
 
 		// --- NEW Helper ---
 

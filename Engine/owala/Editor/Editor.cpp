@@ -23,6 +23,7 @@
 #include "CameraSystem.h"
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
+#include "rapidjson/prettywriter.h"
 
 // Debug
 #include "Logger.h"
@@ -209,7 +210,7 @@ namespace Editor {
 		}
 
 		// Load all prefabs from the data file when the editor starts
-		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
+		if (!prefabSystem_.LoadPrefabsFromFile("../../Data/platformPrefab.json")) {
 			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
 		}
 
@@ -311,6 +312,7 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
+			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
@@ -387,6 +389,7 @@ namespace Editor {
 		if (settings.showLevelEditor) ShowLevelEditor();
 		if (isTileEditorActive_) ShowTilemapEditor();
 		if (settings.showGameViewport) ShowGameViewport();
+		if (isPrefabEditorOpen_) ShowPrefabEditor();
 
 		ImGui::End();
 
@@ -583,8 +586,7 @@ namespace Editor {
 					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(prefab->mass);
 			}
 			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Missing Platform Prefab: " << dragDropPayload_.name << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)<< "Missing Platform Prefab: " << dragDropPayload_.name << std::endl;
 			}
 			break;
 		}
@@ -1130,6 +1132,9 @@ namespace Editor {
 					ImGui::EndDisabled();
 				}
 			}
+		}
+		if (ImGui::Button("Open Prefab Editor")) {
+			isPrefabEditorOpen_ = true;
 		}
 	}
 
@@ -2030,6 +2035,349 @@ namespace Editor {
 
 #pragma endregion
 
+#pragma region PREFAB EDITOR
+	void Editor::ShowPrefabEditor() {
+		using namespace Framework;
+
+		ImGui::Begin("Prefab Editor", &isPrefabEditorOpen_);
+
+		// Prefab Selection Dropdown
+		ImGui::Text("Select Prefab to Edit:");
+
+		static int selectedPrefabIndex = 0;
+		std::vector<std::string> prefabNames;
+		std::vector<const char*> prefabItems;
+
+		prefabNames.push_back("-- Select Prefab --");
+		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
+			prefabNames.push_back(pair.first);
+		}
+
+		for (const auto& name : prefabNames) {
+			prefabItems.push_back(name.c_str());
+		}
+
+		if (ImGui::Combo("##PrefabList", &selectedPrefabIndex, prefabItems.data(), static_cast<int>(prefabItems.size()))) {
+			if (selectedPrefabIndex > 0) {
+				selectedPrefabForEditing_ = prefabNames[selectedPrefabIndex];
+
+				// Determine prefab type
+				if (prefabSystem_.GetPlatformPrefab(selectedPrefabForEditing_)) {
+					selectedPrefabTypeForEditing_ = PrefabType::Platform;
+				}
+				else if (prefabSystem_.GetTrapPlatformPrefab(selectedPrefabForEditing_)) {
+					selectedPrefabTypeForEditing_ = PrefabType::TrapPlatform;
+				}
+				else if (prefabSystem_.GetScalingPlatformPrefab(selectedPrefabForEditing_)) {
+					selectedPrefabTypeForEditing_ = PrefabType::ScalingPlatform;
+				}
+			}
+			else {
+				selectedPrefabForEditing_.clear();
+				selectedPrefabTypeForEditing_ = PrefabType::None;
+			}
+		}
+
+		ImGui::Separator();
+
+		// Edit Prefab Properties
+		if (!selectedPrefabForEditing_.empty()) {
+			ImGui::Text("Editing: %s", selectedPrefabForEditing_.c_str());
+
+			const EntityPrefab* prefab = prefabSystem_.GetPrefab(selectedPrefabForEditing_);
+			if (!prefab) {
+				ImGui::Text("Error: Prefab not found!");
+				ImGui::End();
+				return;
+			}
+
+			bool prefabModified = false;
+
+			// Edit based on type
+			switch (selectedPrefabTypeForEditing_) {
+			case PrefabType::Platform: {
+				ImGui::SeparatorText("Platform Properties");
+
+				// Find and edit components
+				for (auto& compData : const_cast<EntityPrefab*>(prefab)->components) {
+					if (compData.type == "RigidBody") {
+						if (compData.data.HasMember("mass")) {
+							float mass = compData.data["mass"].GetFloat();
+							if (ImGui::DragFloat("Mass", &mass, 0.1f, 0.0f, 1.0f)) {
+								compData.data["mass"].SetFloat(mass);
+								prefabModified = true;
+							}
+						}
+					}
+					else if (compData.type == "AABBCollider") {
+						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
+							float halfX = compData.data["halfSizeX"].GetFloat();
+							float halfY = compData.data["halfSizeY"].GetFloat();
+
+							if (ImGui::DragFloat("Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+								compData.data["halfSizeX"].SetFloat(halfX);
+								prefabModified = true;
+							}
+							if (ImGui::DragFloat("Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+								compData.data["halfSizeY"].SetFloat(halfY);
+								prefabModified = true;
+							}
+						}
+					}
+				}
+				break;
+			}
+
+			case PrefabType::TrapPlatform: {
+				ImGui::SeparatorText("Trap Platform Properties");
+
+				for (auto& compData : const_cast<EntityPrefab*>(prefab)->components) {
+					if (compData.type == "TrapPlatformComponent") {
+						if (compData.data.HasMember("fallSpeed")) {
+							float fallSpeed = compData.data["fallSpeed"].GetFloat();
+							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.1f, 0.1f, 20.0f)) {
+								compData.data["fallSpeed"].SetFloat(fallSpeed);
+								prefabModified = true;
+							}
+						}
+						if (compData.data.HasMember("triggerDelay")) {
+							float triggerDelay = compData.data["triggerDelay"].GetFloat();
+							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.1f, 0.0f, 10.0f)) {
+								compData.data["triggerDelay"].SetFloat(triggerDelay);
+								prefabModified = true;
+							}
+						}
+					}
+					else if (compData.type == "AABBCollider") {
+						float halfX = compData.data["halfSizeX"].GetFloat();
+						float halfY = compData.data["halfSizeY"].GetFloat();
+
+						if (ImGui::DragFloat("Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+							compData.data["halfSizeX"].SetFloat(halfX);
+							prefabModified = true;
+						}
+						if (ImGui::DragFloat("Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+							compData.data["halfSizeY"].SetFloat(halfY);
+							prefabModified = true;
+						}
+					}
+				}
+				break;
+			}
+
+			case PrefabType::ScalingPlatform: {
+				ImGui::SeparatorText("Scaling Platform Properties");
+
+				for (auto& compData : const_cast<EntityPrefab*>(prefab)->components) {
+					if (compData.type == "ScalingPlatformComponent") {
+						if (compData.data.HasMember("scaleSpeed")) {
+							float scaleSpeed = compData.data["scaleSpeed"].GetFloat();
+							if (ImGui::DragFloat("Scale Speed", &scaleSpeed, 0.1f, 0.1f, 10.0f)) {
+								compData.data["scaleSpeed"].SetFloat(scaleSpeed);
+								prefabModified = true;
+							}
+						}
+						if (compData.data.HasMember("minScale")) {
+							float minScale = compData.data["minScale"].GetFloat();
+							if (ImGui::DragFloat("Min Scale", &minScale, 0.01f, 0.01f, 5.0f)) {
+								compData.data["minScale"].SetFloat(minScale);
+								prefabModified = true;
+							}
+						}
+						if (compData.data.HasMember("maxScale")) {
+							float maxScale = compData.data["maxScale"].GetFloat();
+							if (ImGui::DragFloat("Max Scale", &maxScale, 0.01f, 0.1f, 10.0f)) {
+								compData.data["maxScale"].SetFloat(maxScale);
+								prefabModified = true;
+							}
+						}
+					}
+				}
+				break;
+			}
+
+			default:
+				break;
+			}
+
+			if (prefabModified) {
+				ApplyPrefabChangesToEntities(selectedPrefabForEditing_);
+			}
+
+			ImGui::Separator();
+
+			// Save button
+			if (ImGui::Button("Save Prefab to File")) {
+				SavePrefabToFile(selectedPrefabForEditing_);
+
+				if (!prefabSystem_.LoadPrefabsFromFile("../../Data/platformPrefab.json")) {
+					std::cout << "Failed to reload prefabs after save!" << std::endl;
+				}
+				else {
+					std::cout << "Reloaded prefabs after save" << std::endl;
+				}
+
+				palettePrepared_ = false;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Reload from File")) {
+				prefabSystem_.LoadPrefabsFromFile("../../Data/platformPrefab.json");
+				std::cout << "Reloaded prefabs from file" << std::endl;
+			}
+		}
+
+		ImGui::End();
+	}
+
+	// Apply prefab changes to all entities using this prefab
+	void Editor::ApplyPrefabChangesToEntities(const std::string& prefabName) {
+		using namespace Framework;
+
+		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+
+		const EntityPrefab* prefab = prefabSystem_.GetPrefab(prefabName);
+		if (!prefab) return;
+
+		// Get all entities in the current scene
+		const std::vector<Entity>& entities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+		for (const Entity& entity : entities) {
+			// Check if entity name matches prefab name
+			if (entityMgr.GetProperties(entity).name != prefabName) continue;
+
+			// Update components based on prefab data
+			for (const auto& compData : prefab->components) {
+				if (compData.type == "RigidBody") {
+					if (entityMgr.HasComponent(entity, RigidBodyType)) {
+						RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+						if (compData.data.HasMember("mass")) {
+							rb.SetMass(compData.data["mass"].GetFloat());
+						}
+					}
+				}
+				else if (compData.type == "AABBCollider") {
+					if (entityMgr.HasComponent(entity, AABBColliderType)) {
+						AABBCollider& col = entityMgr.GetComponent<AABBCollider>(entity);
+						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
+							col.HalfSize.x = compData.data["halfSizeX"].GetFloat();
+							col.HalfSize.y = compData.data["halfSizeY"].GetFloat();
+
+						}
+					}
+				}
+				else if (compData.type == "TrapPlatformComponent") {
+					if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
+						TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
+						if (compData.data.HasMember("fallSpeed")) {
+							trap.fallSpeed = compData.data["fallSpeed"].GetFloat();
+						}
+						if (compData.data.HasMember("triggerDelay")) {
+							trap.triggerDelay = compData.data["triggerDelay"].GetFloat();
+						}
+					}
+				}
+				else if (compData.type == "ScalingPlatformComponent") {
+					if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
+						ScalingPlatformComponent& scale = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
+						if (compData.data.HasMember("scaleSpeed")) {
+							scale.scaleSpeed = compData.data["scaleSpeed"].GetFloat();
+						}
+						if (compData.data.HasMember("minScale")) {
+							scale.minScale = compData.data["minScale"].GetFloat();
+						}
+						if (compData.data.HasMember("maxScale")) {
+							scale.maxScale = compData.data["maxScale"].GetFloat();
+						}
+					}
+				}
+			}
+		}
+
+		std::cout << "Applied prefab changes to entities: " << prefabName << std::endl;
+	}
+
+	// Save prefab changes to JSON file
+	void Editor::SavePrefabToFile(const std::string& prefabName) {
+		using namespace Framework;
+
+		const EntityPrefab* prefab = prefabSystem_.GetPrefab(prefabName);
+		if (!prefab) {
+			Logger::Get().Error(DebugType::Editor) << "Prefab not found: " << prefabName << std::endl;
+			return;
+		}
+
+		// Read existing file
+		std::ifstream fileIn("../../Data/platformPrefab.json");
+		if (!fileIn.is_open()) {
+			Logger::Get().Error(DebugType::Editor) << "Failed to open prefab file for reading" << std::endl;
+			return;
+		}
+
+		rapidjson::IStreamWrapper isw(fileIn);
+		rapidjson::Document doc;
+		doc.ParseStream(isw);
+		fileIn.close();
+
+		if (!doc.IsObject() || !doc.HasMember("prefabs") || !doc["prefabs"].IsArray()) {
+			Logger::Get().Error(DebugType::Editor) << "Invalid prefab file format" << std::endl;
+			return;
+		}
+
+		// Find and update the prefab in the JSON
+		rapidjson::Value& prefabsArray = doc["prefabs"];
+		bool found = false;
+
+		for (rapidjson::SizeType i = 0; i < prefabsArray.Size(); ++i) {
+			rapidjson::Value& prefabObj = prefabsArray[i];
+
+			if (prefabObj.HasMember("name") && std::string(prefabObj["name"].GetString()) == prefabName) {
+				// Update components
+				if (prefabObj.HasMember("components") && prefabObj["components"].IsArray()) {
+					rapidjson::Value& compsArray = prefabObj["components"];
+
+					// Update each component in the JSON
+					for (const auto& updatedComp : prefab->components) {
+						for (rapidjson::SizeType j = 0; j < compsArray.Size(); ++j) {
+							rapidjson::Value& compObj = compsArray[j];
+
+							if (compObj.HasMember("type") &&
+								std::string(compObj["type"].GetString()) == updatedComp.type) {
+								compObj["data"].CopyFrom(updatedComp.data, doc.GetAllocator());
+								break;
+							}
+						}
+					}
+				}
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			std::cout << "Prefab not found in file: " << prefabName << std::endl;
+			return;
+		}
+
+		std::ofstream fileOut("../../Data/platformPrefab.json");
+		if (!fileOut.is_open()) {
+			std::cout << "Failed to open prefab file for writing" << std::endl;
+			return;
+		}
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);  // ✅ Fixed
+		doc.Accept(prettyWriter);
+
+		fileOut << buffer.GetString();
+		fileOut.close();
+
+		Logger::Get().Info(DebugType::Editor) << "Saved prefab to file: " << prefabName << std::endl;
+	}
+
+
+#pragma endregion
 #pragma endregion
 	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
 	{
