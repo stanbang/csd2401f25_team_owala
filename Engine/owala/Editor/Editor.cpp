@@ -39,7 +39,6 @@
 #include <random> // for random generation
 
 #include "Fake_Player.h"
-#include "LoadedScene.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -92,11 +91,11 @@ namespace {
 
 namespace Editor {
 	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm), 
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
 		cameraSystem_(gameManager_->GetSystems().camera_), // for tile editor to work with camera
 		graphicsSystem_(gameManager_->GetSystems().gfx_) { // for drag drop and placing of prefabs
-		
-	};	
+
+	};
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -174,7 +173,6 @@ namespace Editor {
 		tagNames.clear();
 		tagItems.clear();
 		tagTypes.clear();
-		fontKeys.clear();
 
 		componentNames.push_back("");
 		tagNames.push_back("");
@@ -200,12 +198,6 @@ namespace Editor {
 
 		for (const std::string& tagName : tagNames) {
 			tagItems.push_back(tagName.c_str());
-		}
-
-		const auto& fontMap = resourceManager_->getFontMap();
-		fontKeys.reserve(fontMap.size());
-		for (const auto& pair : fontMap) {
-			fontKeys.push_back(pair.first.c_str());
 		}
 
 		// Load all prefabs from the data file when the editor starts
@@ -415,9 +407,9 @@ namespace Editor {
 
 
 	// --- Private Helper Functions ---
-	#pragma region INTERNAL HELPERS
+#pragma region INTERNAL HELPERS
 
-	// NEW Helper: Load textures and create palette items
+// NEW Helper: Load textures and create palette items
 	void Editor::PreparePaletteItems() {
 		paletteItems_.clear();
 
@@ -477,33 +469,33 @@ namespace Editor {
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
-Vector2D Editor::GetMouseWorldPosition() {
-    if (!cameraSystem_ || editorCamera_ == 0)
-        return {0.0f, 0.0f};
+	Vector2D Editor::GetMouseWorldPosition() {
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return { 0.0f, 0.0f };
 
-    ImVec2 mouse = ImGui::GetMousePos();
+		ImVec2 mouse = ImGui::GetMousePos();
 
-    // convert to relative viewport coords
-    float relX = mouse.x - gameViewportPos_.x;
-    float relY = mouse.y - gameViewportPos_.y;
+		// convert to relative viewport coords
+		float relX = mouse.x - gameViewportPos_.x;
+		float relY = mouse.y - gameViewportPos_.y;
 
-    if (relX < 0 || relY < 0 || 
-        relX > gameViewportSize_.x || relY > gameViewportSize_.y)
-        return {0.0f, 0.0f};
+		if (relX < 0 || relY < 0 ||
+			relX > gameViewportSize_.x || relY > gameViewportSize_.y)
+			return { 0.0f, 0.0f };
 
-    // NDC conversion (Y flipped)
-    float ndcX = (relX / gameViewportSize_.x) * 2.0f - 1.0f;
-    float ndcY = 1.0f - (relY / gameViewportSize_.y) * 2.0f; // this flips Y!
+		// NDC conversion (Y flipped)
+		float ndcX = (relX / gameViewportSize_.x) * 2.0f - 1.0f;
+		float ndcY = 1.0f - (relY / gameViewportSize_.y) * 2.0f; // this flips Y!
 
-    const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-    Vector2D camPos = cam.position;
-    Vector2D camSize = cam.size;
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+		Vector2D camPos = cam.position;
+		Vector2D camSize = cam.size;
 
-    // Map NDC ? world
-    float worldX = camPos.x + ndcX * (camSize.x * 0.5f);
-    float worldY = camPos.y + ndcY * (camSize.y * 0.5f);
-    return {worldX, worldY};
-}
+		// Map NDC → world
+		float worldX = camPos.x + ndcX * (camSize.x * 0.5f);
+		float worldY = camPos.y + ndcY * (camSize.y * 0.5f);
+		return { worldX, worldY };
+	}
 
 
 
@@ -748,19 +740,19 @@ Vector2D Editor::GetMouseWorldPosition() {
 				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 				Entity newEntity = 0;
 
-			/*	switch (selectedPrefabType_) {
-				case PrefabType::Platform:
-					newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-					break;
-				case PrefabType::TrapPlatform:
-					newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-					break;
-				case PrefabType::ScalingPlatform:
-					newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-					break;
-				case PrefabType::None: // Should not happen 
-					break;
-				}*/
+				/*	switch (selectedPrefabType_) {
+					case PrefabType::Platform:
+						newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+						break;
+					case PrefabType::TrapPlatform:
+						newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+						break;
+					case PrefabType::ScalingPlatform:
+						newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
+						break;
+					case PrefabType::None: // Should not happen
+						break;
+					}*/
 
 				newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 				if (newEntity != 0) {
@@ -825,18 +817,18 @@ Vector2D Editor::GetMouseWorldPosition() {
 		if (found) {
 			selectedEntityIndex = bestCandidate + 1;
 			isEntitySelected_ = true;
-			selectedComponentIndex = 0; 
-			selectedTagIndex = 0;       
-			
+			selectedComponentIndex = 0;
+			selectedTagIndex = 0;
+
 		}
 		else {
 			selectedEntityIndex = 0;
 			isEntitySelected_ = false;
-			selectedComponentIndex = 0; 
-			selectedTagIndex = 0;       
+			selectedComponentIndex = 0;
+			selectedTagIndex = 0;
 		}
 	}
-	
+
 	void Editor::HandleDeletion() {
 		// Check if an entity is selected and if the Backspace key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
@@ -852,7 +844,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 		}
 	}
 
-	#pragma region COPY AND PASTING APIs
+#pragma region COPY AND PASTING APIs
 
 	void Editor::CopyEntityToClipboard(const Entity& entity) {
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
@@ -890,16 +882,16 @@ Vector2D Editor::GetMouseWorldPosition() {
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma endregion
+#pragma endregion
 
 	// --- Panel Rendering ---
-	#pragma region INTERNAL PANELS
+#pragma region INTERNAL PANELS
 
-	#pragma region PERFORMANCE PROFILER PANEL
+#pragma region PERFORMANCE PROFILER PANEL
 	void Editor::ShowPerformanceProfile() {
-		
+
 		ImGui::Begin("Performance Profiler");
 		{
 			// Add a slider to control how often the profiler updates
@@ -931,9 +923,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImGui::End();
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region LEVEL EDITOR PANEL
+#pragma region LEVEL EDITOR PANEL
 
 	void Editor::ShowLevelEditor() {
 		using namespace Framework;
@@ -956,8 +948,6 @@ Vector2D Editor::GetMouseWorldPosition() {
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
-
-			SaveAndLoadSection();
 
 			// --- Entity Factory ---
 			ImGui::Separator();
@@ -995,7 +985,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 		// --- section to show the clicked-on entity ---
 		ImGui::SeparatorText("World Selection");
 		if (isEntitySelected_) {
-			ImGui::Text("Selected Entity: [%u]", selectedEntityIndex-1);
+			ImGui::Text("Selected Entity: [%u]", selectedEntityIndex - 1);
 			if (ImGui::Button("Deselect")) {
 				isEntitySelected_ = false;
 				selectedEntityIndex = 0;
@@ -1037,104 +1027,14 @@ Vector2D Editor::GetMouseWorldPosition() {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
-		
+
 		ImGui::End(); // End "Level Editor" window
-			
+
 	}
 
-	void Editor::SaveAndLoadSection() {
-		SceneManager& sceneMgr = SceneManager::GetInstance();
-		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
-		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+#pragma endregion
 
-		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
-		if (ImGui::Button("Save")) {
-			// Reset entity states & stop game on save 
-			isGamePlaying = false;
-			gameManager_->GetSystems().levelResetter_->RunReset();
-			std::string filePath = FileIOSystem::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
-
-			// If its a newly created scene, create new filepath for it based on scene name.
-			if (currentScene.path.empty()) {
-				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
-			}
-
-			Logger::Get().Info(DebugType::Editor) << "Saving scene: " << currentScene.name << " to: " << filePath << std::endl;
-
-			// Serialize Scene name and entities to its own json file
-			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
-			// Save scene asset to json file that stores all scene assets
-			FileIOSystem::SaveSceneAsset(currentScene);
-		}
-
-		// --- Create New Scene --- 
-		ImGui::SameLine();
-		if (ImGui::Button("New Scene")) {
-            ImGui::OpenPopup("Create New Scene");
-		}
-
-		// Create New Scene Modal
-		if (ImGui::BeginPopupModal("Create New Scene", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-		{
-			// Text Input for scene name
-			static char sceneNameBuffer[256] = "";
-			ImGui::Text("Scene Name:");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(100.0f);
-			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
-			static bool duplicateNameError = false;
-			// Prevent game input system from capturing mouse/keyboard input
-			gameManager_->GetSystems().input_->SetKeyboardLocked(true);
-			
-			if (duplicateNameError) {
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
-			}
-			
-			if (ImGui::Button("Confirm", ImVec2(120, 0)))
-			{
-				std::string sceneName = sceneNameBuffer;
-				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
-				if (!duplicateNameError) {
-					sceneMgr.CreateSceneAsset(sceneName, "");
-					ImGui::CloseCurrentPopup();
-					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Cancel", ImVec2(120, 0)))
-			{
-				ImGui::CloseCurrentPopup();
-				gameManager_->GetSystems().input_->SetKeyboardLocked(false);
-			}
-
-			ImGui::EndPopup();
-		}
-
-		// Display list of scenes available to load
-		if (ImGui::CollapsingHeader("Scenes List")) {
-			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
-				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
-
-				if (isCurrentScene) {
-					ImGui::BeginDisabled();
-				}
-
-				if (ImGui::Button(scene.name.c_str())) {
-					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
-					if (!isCurrentScene) {
-						sceneMgr.LoadScene(id);
-					}
-				}
-
-				if (isCurrentScene) {
-					ImGui::EndDisabled();
-				}
-			}
-		}
-	}
-	#pragma endregion
-
-	#pragma region TILEMAP EDITOR PANEL
+#pragma region TILEMAP EDITOR PANEL
 
 	void Editor::ShowTilemapEditor()
 	{
@@ -1238,9 +1138,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 
 
 
-	#pragma endregion
-	
-	#pragma region HIERARCHY PANEL
+#pragma endregion
+
+#pragma region HIERARCHY PANEL
 
 	void Editor::ShowHierarchy() {
 		using namespace Framework;
@@ -1267,7 +1167,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 			// Clipper for large list optimization(This only process entities in view in the list)
 			ImGuiListClipper clipper;
 			clipper.Begin(static_cast<int>(entitiesLoaded.size()));
-			
+
 			while (clipper.Step()) {
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
 					const Entity entity = entitiesLoaded[i];
@@ -1394,9 +1294,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImGui::End(); // Hierarchy End
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region INSPECTOR PANEL
+#pragma region INSPECTOR PANEL
 
 	void Editor::ShowInspector() {
 		using namespace Framework;
@@ -1465,7 +1365,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 				ImGui::Combo("Component", &selectedComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
 
 				if (selectedComponentIndex > 0) {
-					size_t compIndex = static_cast<size_t>(selectedComponentIndex-1); // Offset for "None"
+					size_t compIndex = static_cast<size_t>(selectedComponentIndex - 1); // Offset for "None"
 
 					if (compIndex < componentTypes.size()) {
 						ComponentType selectedComponent = componentTypes[compIndex];
@@ -1665,66 +1565,15 @@ Vector2D Editor::GetMouseWorldPosition() {
 		}
 		case ComponentType::TextureComponentType: {
 			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
 		}
 		case ComponentType::AudioComponentType:
 		case ComponentType::AnimationComponentType:
+		case ComponentType::TextComponentType:
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
-
-		case ComponentType::TextComponentType: {
-			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
-			
-			// Text you want to draw
-			char textBuffer[256] = "";
-
-			// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
-			if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
-				std::strncpy(
-					textBuffer,
-					textComp.textToDraw.c_str(),
-					IM_ARRAYSIZE(textBuffer) - 1
-				);
-				textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
-			}
-
-			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
-				textComp.textToDraw = textBuffer;
-			}
-			// Lock game keyboard input if typing on text input
-			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
-
-			// Font Selection
-			
-			// Set initial font to first index for new TextComponents, and to its corresponding index if textComponent.fontKey alr exists
-			int selectedFontIndex = 0;
-			if (!textComp.fontKey.empty()) {
-				auto it = std::find(fontKeys.begin(), fontKeys.end(), textComp.fontKey);
-				if (it != fontKeys.end()) {
-					selectedFontIndex = static_cast<int>(std::distance(fontKeys.begin(), it));
-				}
-			}
-
-			textComp.fontKey = fontKeys[selectedFontIndex];
-			
-			// Display Dropdown for font selection
-			if (ImGui::Combo("Font", &selectedFontIndex, fontKeys.data(), static_cast<int>(fontKeys.size()))) {
-				textComp.fontKey = fontKeys[selectedFontIndex];
-			}
-
-			// Color Input
-			ImGui::Text("Color RGBA: ");
-			ImGui::InputFloat("R", &textComp.color.r, 0.f, 0.f, "%.3f");
-			ImGui::InputFloat("G", &textComp.color.g, 0.f, 0.f, "%.3f");
-			ImGui::InputFloat("B", &textComp.color.b, 0.f, 0.f, "%.3f");
-			ImGui::InputFloat("A", &textComp.color.a, 0.f, 0.f, "%.3f");
-
-			// Font Size Input
-			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
-
-			break;
-		}
 		case ComponentType::SceneOwnedType: {
 			SceneOwned& parentScene = entityMgr.GetComponent<SceneOwned>(selectedEntity);
 
@@ -1746,9 +1595,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImGui::Separator();
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region GAME VIEW PANEL
+#pragma region GAME VIEW PANEL
 
 	void Editor::UpdateViewportData() {
 		// This function just "peeks" at the "Game" window's state
@@ -1794,7 +1643,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-			
+
 
 				spriteRenderer_->Update(deltatime);
 				gfx->UnbindGameFramebuffer();
@@ -1802,7 +1651,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 
 				// --- ADD NEW OVERLAY DRAWING ---
-			    // Get the draw list for the current window
+				// Get the draw list for the current window
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 				// Set a clipping rectangle so overlays don't draw outside the game panel
@@ -1826,9 +1675,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImGui::End();
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region TOOLBAR
+#pragma region TOOLBAR
 
 	void Editor::ShowToolbar() {
 		// --- Style setup ---
@@ -1863,21 +1712,8 @@ Vector2D Editor::GetMouseWorldPosition() {
 
 			// Play Button
 			ImGui::PushStyleColor(ImGuiCol_Button, isGamePlaying ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-
-			// Start with physics paused
-			if (!isGamePlaying) {
-				physics_->SetPaused(true);
-			}
-			
-			// Lock game keyboard if !isGamePlaying
-			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
-
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
-				if (isGamePlaying) {
-					gameManager_->GetSystems().levelResetter_->RunReset();
-				}
 				isGamePlaying = !isGamePlaying;
 				isGamePaused = false;
 
@@ -1931,9 +1767,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImGui::PopStyleVar();
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region EDITOR GRID
+#pragma region EDITOR GRID
 	void Editor::DrawEditorGrid(ImDrawList* drawList)
 	{
 		if (!cameraSystem_ || editorCamera_ == 0)
@@ -1959,7 +1795,7 @@ Vector2D Editor::GetMouseWorldPosition() {
 		// each world-space "square" will look rectangular on screen.
 		// Compensate by scaling the X-step by the inverse aspect ratio.
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		float xStep = cell / aspect;  
+		float xStep = cell / aspect;  // ✅ wider step if viewport is wide
 		float yStep = cell;
 
 		// Snap grid start to nearest cell
@@ -1989,20 +1825,9 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImVec2 yA = WorldToImGuiScreen({ left, 0.0f });
 		ImVec2 yB = WorldToImGuiScreen({ right, 0.0f });
 		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
-		// Overlay �square� correction lines (this keeps visual square proportions)
-		if (aspect != 1.0f)
-		{
-			for (float x = startX; x <= right; x += cell)
-			{
-				for (float y = startY; y <= top; y += cell)
-				{
-					ImVec2 topLeft = WorldToImGuiScreen({ x, y + cell });
-					ImVec2 bottomRight = WorldToImGuiScreen({ x + cell / aspect, y });
-					drawList->AddRect(topLeft, bottomRight, IM_COL32(100, 100, 255, 60));
-				}
-			}
-		}
 	}
+
+
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
 		// Compute aspect ratio once
@@ -2026,17 +1851,17 @@ Vector2D Editor::GetMouseWorldPosition() {
 		return { snappedX, snappedY };
 	}
 
-	#pragma endregion
-	
-	#pragma region ASSET BROWSER PANEL
+#pragma endregion
+
+#pragma region ASSET BROWSER PANEL
 
 	void Editor::ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles) {
 		assetBrowser.RenderUI(droppedFiles);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma endregion
+#pragma endregion
 	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
 	{
 		if (!cameraSystem_ || editorCamera_ == 0)
