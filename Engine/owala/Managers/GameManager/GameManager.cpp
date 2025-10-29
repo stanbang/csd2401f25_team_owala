@@ -74,10 +74,13 @@ namespace Framework {
 			throw GameException(DebugType::GameManager, "AudioSystem not registered!");
 		}
 		if (!systems_.spriteRenderer_) {
-			throw std::runtime_error("[GameManager] SpriteRenderSystem not registered!");
+			throw GameException(DebugType::GameManager, "SpriteRenderSystem not registered!");
 		}
 		if (!systems_.camera_) {
-			throw std::runtime_error("[GameManager] CameraSystem not registered!");
+			throw GameException(DebugType::GameManager, "CameraSystem not registered!");
+		}
+		if (!systems_.audio_) {
+			throw GameException(DebugType::GameManager, "LevelResetSystem not registered!");
 		}
 		if (!SceneManager::Exists()) {
 			throw GameException(DebugType::GameManager, "SceneManager not registered!");
@@ -99,7 +102,7 @@ namespace Framework {
 		systems_.spriteRenderer_ = &renderer;
 		systems_.camera_ = &camera; 
 		systems_.levelResetter_ = &levelResetter;
-		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
+		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
 	}
 
 	void GameManager::RegisterEditor(Editor::Editor& editor) {
@@ -217,6 +220,9 @@ namespace Framework {
 		systems_.spriteRenderer_->Shutdown();
 		delete systems_.spriteRenderer_;
 		systems_.spriteRenderer_ = nullptr;
+
+		// Level resetter cleanup
+		delete systems_.levelResetter_;
 
 		instance = nullptr; // Reset instance pointer
 	}

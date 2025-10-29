@@ -5,7 +5,7 @@ namespace Framework {
 		std::string sanitized_name = name;
 		// 1. Convert to lowercase
 		std::transform(sanitized_name.begin(), sanitized_name.end(), sanitized_name.begin(),
-			[](unsigned char c) { return std::tolower(c); });
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 		// 2. Replace spaces with underscores
 		std::replace(sanitized_name.begin(), sanitized_name.end(), ' ', '_');
