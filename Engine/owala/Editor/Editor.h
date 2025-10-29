@@ -185,6 +185,7 @@ namespace Editor {
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
 		void ShowToolbar();
+		void ShowAIDebugPanel(); 
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);

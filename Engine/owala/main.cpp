@@ -38,6 +38,7 @@
 #include "GLFW/glfw3.h"
 #include "CameraSystem.h"
 #include "PlatformBehaviorSystem.h"
+#include "AISystem.h" 
 
 // Imgui Editor
 #include "Editor.h"
@@ -82,6 +83,7 @@ int main() {
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
+    AISystem* aiSystem = new AISystem(*ecs, *gfx); // <-- ADD THIS
 	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
@@ -89,7 +91,7 @@ int main() {
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem); // Register all core systems to the GameManager
 
 	// Editor Registration
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
@@ -104,6 +106,7 @@ int main() {
     engine.AddSystem(audio);               //audio 
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
     engine.AddSystem(platform);
+    engine.AddSystem(aiSystem); 
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
     engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering

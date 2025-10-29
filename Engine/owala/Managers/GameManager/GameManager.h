@@ -26,6 +26,7 @@
 #include "Graphics.h"
 #include "Core.h"
 #include "Editor.h"
+#include "AISystem.h"
 
 #include <vector>
 
@@ -65,6 +66,7 @@ namespace Framework {
 			ResourceManager* resourceManager_ = nullptr;
 			AudioSystem* audio_ = nullptr;   // <-- store it
 			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
+			AISystem* aiSystem_ = nullptr;
 			CameraSystem* camera_ = nullptr;  
 		};
 
@@ -112,7 +114,7 @@ namespace Framework {
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera);		
+			CameraSystem& camera, AISystem& ai);		
 
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
 

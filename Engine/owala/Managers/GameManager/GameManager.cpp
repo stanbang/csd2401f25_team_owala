@@ -81,13 +81,17 @@ namespace Framework {
 		if (!SceneManager::Exists()) {
 			throw GameException(DebugType::GameManager, "SceneManager not registered!");
 		}
+
+		if (!systems_.aiSystem_) {
+			throw GameException(DebugType::GameManager, "AI system not registered!");
+		}
 	}
 
 	// ---------------------------------------------------------------------------
 	// GameManager Config
 	// ---------------------------------------------------------------------------
 	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio,
-		SpriteRenderSystem& renderer, CameraSystem& camera) { 
+		SpriteRenderSystem& renderer, CameraSystem& camera, AISystem& ai) { 
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -97,6 +101,7 @@ namespace Framework {
 		systems_.audio_ = &audio;
 		systems_.spriteRenderer_ = &renderer;
 		systems_.camera_ = &camera; 
+		systems_.aiSystem_ = &ai;
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 	}
 

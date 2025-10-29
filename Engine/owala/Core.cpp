@@ -45,6 +45,7 @@ namespace Framework {
         if (info == typeid(Framework::GameManager))     return "Game Manager";
         if (info == typeid(Framework::Graphics))        return "Graphics";
         if (info == typeid(Editor::Editor))             return "Editor";
+        if (info == typeid(Framework::AISystem))         return "AI System";
         // Add other systems here
         return "Unknown System"; // if no systems found
     }

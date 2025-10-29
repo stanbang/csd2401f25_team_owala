@@ -23,6 +23,7 @@
 #include "CameraSystem.h"
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
+#include "AISystem.h" // Include AISystem for debugging purposes
 
 // Debug
 #include "Logger.h"
@@ -359,8 +360,7 @@ namespace Editor {
 			HandleSelection(); // This function checks for MousePressed internally
 		}
 
-		// 4. Deletion can happen anytime
-		HandleDeletion();
+		
 		// Deletion can happen anytime if an entity is selected
 		HandleDeletion();
 		
@@ -388,6 +388,8 @@ namespace Editor {
 		if (settings.showDebugInfo) {
 			ShowPerformanceProfile();
 		}
+
+		ShowAIDebugPanel();
 
 		// Bottom Region
 		if (settings.showAssetBrowser) {
@@ -1047,6 +1049,47 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Spawn Test Bird")) {
+			// Get the systems we need
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+
+			// 1. Create the entity
+			Entity bird = entityMgr.CreateEntity();
+
+			// 2. Set its properties
+			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
+
+			// 3. Add components required for the AI
+			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
+			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
+			entityMgr.AddComponent<BirdAITag>(bird, {});            // Tag for the AISystem
+			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+
+			RigidBody rb;
+			rb.SetMass(0.0f); // Give it some mass
+			rb.isAffectedByGravity = false; // Make sure it doesn't fall
+			entityMgr.AddComponent<RigidBody>(bird, rb);
+
+			// 4. Add components to make it visible and selectable
+			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
+
+			// Use the "fake player texture" as requested.
+			// This texture is loaded in TestScene.cpp
+			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
+
+			// Add a collider so you can click on it in the editor
+			//entityMgr.AddComponent<AABBCollider>(bird, { halfSize });
+
+			// 5. Add it to the active scene
+			sceneMgr.AddEntityToScene(currentScene, bird);
+
+			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
+				<< bird << ")";
+		}
+		// --- END OF NEW CODE ---
 		
 		ImGui::End(); // End "Level Editor" window
 			
@@ -1662,6 +1705,19 @@ namespace Editor {
 			
 
 				spriteRenderer_->Update(deltatime);
+
+
+
+				// --- MODIFICATION: ADD AI DEBUG DRAW CALL ---
+				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_; // Requires modification to GameManager
+				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
+				if (aiSystem && camSystem) {
+					// This calls all the new draw functions inside AISystem
+					aiSystem->DrawDebug(camSystem);
+				}
+
+
+				// --- END MODIFICATION ---
 				gfx->UnbindGameFramebuffer();
 
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
@@ -1875,5 +1931,67 @@ namespace Editor {
 		float screenY = gameViewportPos_.y + (1.0f - ndcPos.y) * 0.5f * gameViewportSize_.y;
 
 		return ImVec2(screenX, screenY);
+	}
+
+
+	void Editor::ShowAIDebugPanel() {
+		if (!ImGui::Begin("AI Debug Visualization")) {
+			ImGui::End();
+			return;
+		}
+
+		// Get the AI system from game manager
+		// !! IMPORTANT: This assumes you have added aiSystem_ to your GameManager systems struct
+		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+
+		if (!aiSystem) {
+			ImGui::TextDisabled("AI System not available");
+			ImGui::End();
+			return;
+		}
+
+		// Master toggle
+		ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+		ImGui::Separator();
+
+		// Individual toggles
+		ImGui::BeginDisabled(!aiSystem->debugVisualization);
+
+		ImGui::Text("Visualization Options:");
+		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);
+
+		ImGui::EndDisabled();
+
+		ImGui::Separator();
+
+		// Color legend
+		if (ImGui::CollapsingHeader("State Colors Legend")) {
+			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
+			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
+		}
+
+		if (ImGui::CollapsingHeader("Radius Legend")) {
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
+			ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
+		}
+
+		if (ImGui::CollapsingHeader("Grid Legend")) {
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
+		}
+
+		if (ImGui::CollapsingHeader("Path Legend")) {
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");
+			ImGui::Text("Squares = Waypoints");
+		}
+
+		ImGui::End();
 	}
 }

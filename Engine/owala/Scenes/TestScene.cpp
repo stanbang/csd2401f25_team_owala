@@ -82,6 +82,10 @@ namespace TestScene {
         // Platforms will collide with each other
         physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
 
+        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Enemy, true); // Player can collide with Enemy
+        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Enemy, true); // Enemy can collide with Platform
+        physics->SetLayerCollision(CollisionLayer::Enemy, CollisionLayer::Enemy, false);  // Enemies don't collide with each other
+
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
@@ -142,6 +146,8 @@ namespace TestScene {
         playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.1f }, "playerSprite_Idle");
         sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         sceneMgr.SetEntityAsPersistent(playerEntity);
+
+        //testBirdEntity = entityMgr.CreateEntity();
 
 
         // -- Create Camear Entity that follows player
