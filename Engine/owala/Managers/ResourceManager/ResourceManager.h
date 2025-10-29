@@ -110,7 +110,7 @@ namespace Framework {
 		// Load assets from file and store it in their respective maps
         bool loadTexture(const std::string& name, const std::string& filepath);
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
-        bool loadFont(const std::string& name, const std::string& fontPath, unsigned int size = 48);
+        bool loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size = 48);
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
 
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map

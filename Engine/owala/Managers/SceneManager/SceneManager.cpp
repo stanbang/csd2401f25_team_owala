@@ -10,6 +10,7 @@
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "Logger.h"
+#include "EntitySerializer.h"
 
 namespace Framework {
 	using namespace SceneManagement;
@@ -91,11 +92,9 @@ namespace Framework {
 	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path) {
 		CheckStorage();
 		// Check if scene with the same name already exists
-		for (const auto& [id, scene] : scenes_) {
-			if (scene.name == sceneName) {
-				Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
-				return 0;
-			}
+		if (CheckDuplicateSceneName(sceneName)) {
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
+			return 0;
 		}
 
 		SceneAsset newScene;
@@ -171,15 +170,29 @@ namespace Framework {
 		UnloadScene(); // Unload current active scene first if any
 
 		EntityManager entityMgr(*entityStorageRef_);
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
-			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
-			if (sceneOwned.sceneName == sceneToLoad.name) {
-				entityMgr.AddComponent(entity, ActiveTag{});
-				//entityStorageRef_->activeTag[entity] = ActiveTag{};
+		// Deserialize and populate the scene's entities if not populated yet
+		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
+			std::vector<Entity> entitiesList;
+			EntitySerializer::DeserializeSceneData(*entityStorageRef_, sceneToLoad.path, sceneToLoad.name, entitiesList);
+
+			for (Entity en : entitiesList) {
+				AddEntityToScene(sceneToLoad, en);
+				entityMgr.AddComponent(en, ActiveTag{});
 			}
-			else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
-				entityMgr.AddComponent(entity, ActiveTag{});
-				//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
+		}
+		// Else iterate through all entities
+		else {
+			for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+				SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
+				if (sceneOwned.sceneName == sceneToLoad.name) {
+					entityMgr.AddComponent(entity, ActiveTag{});
+					//entityStorageRef_->activeTag[entity] = ActiveTag{};
+				}
+				else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
+					entityMgr.AddComponent(entity, ActiveTag{});
+					//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+				}
 			}
 		}
 
@@ -243,7 +256,7 @@ namespace Framework {
 
 		EntityManager entityMgr(*entityStorageRef_);
 		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
-		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" + entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
 
 		// Immediately mark the entity to be displayed if the scene is currently loaded
 		if (targetScene.isLoaded) {
@@ -299,6 +312,28 @@ namespace Framework {
 
 		return entityMgr.GetAllEntitiesWithComponent(ActiveTagType);
 	}
+
+	const std::unordered_map<SceneGUID, SceneAsset>& SceneManager::GetAllSceneAssets() const {
+		return scenes_;
+	}
+
+	bool SceneManager::CheckDuplicateSceneName(const std::string& sceneName) {
+		for (const auto& [id, scene] : scenes_) {
+			if (scene.name == sceneName) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void SceneManager::UpdateScenePath(const SceneGUID& sceneIndex, const std::string& newPath) {
+		for (auto& [id, scene] : scenes_) {
+			if (scene.sceneIndex == sceneIndex) {
+				scene.path = newPath;
+			}
+		}
+	}
+
 
 	#pragma endregion
 

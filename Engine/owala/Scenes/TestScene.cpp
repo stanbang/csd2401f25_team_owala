@@ -42,14 +42,14 @@
 namespace {
     using namespace Framework;
     Entity playerEntity = 0;
-    Entity groundEntity = 0;
-    Entity backgroundEntity = 0;
-    Entity trapPlatform = 0;
-    Entity topGround = 0;
-    Entity leftGround = 0;
-    Entity rightGround = 0;
-    Entity downGround = 0;
-    Entity scalingPlatform = 0;
+    //Entity groundEntity = 0;
+    //Entity backgroundEntity = 0;
+    //Entity trapPlatform = 0;
+    //Entity topGround = 0;
+    //Entity leftGround = 0;
+    //Entity rightGround = 0;
+    //Entity downGround = 0;
+    //Entity scalingPlatform = 0;
 }
 
 namespace TestScene {
@@ -104,13 +104,13 @@ namespace TestScene {
         prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.json");
 
         // --- Create Background Entity ---
-        std::string backgroundID = "Background";
-        backgroundEntity = createBackground(*ecs, { 0.0f, 0.0f }, backgroundID);
-        sceneMgr.AddEntityToScene("Test Scene", backgroundEntity);
+        //std::string backgroundID = "Background";
+        //backgroundEntity = createBackground(*ecs, { 0.0f, 0.0f }, backgroundID);
+        //sceneMgr.AddEntityToScene("Test Scene", backgroundEntity);
 
         // --- Create Ground Entity ---
-        Entity ground = prefabSystem.CreateEntityFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
-        sceneMgr.AddEntityToScene("Test Scene", ground);
+        //Entity ground = prefabSystem.CreateEntityFromPrefab(*ecs, "BasicGround", { 0.0f, -0.5f });
+        //sceneMgr.AddEntityToScene("Test Scene", ground);
 
 
         // Create 4 borders around the screen
@@ -135,14 +135,15 @@ namespace TestScene {
         //sceneMgr.AddEntityToScene("Test Scene", trapPlatform);
 
 		// --- Create Background Music Entity ---
-		Entity bgmEntity = createBGAudio(*ecs, "bgm");
-		sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
+		//Entity bgmEntity = createBGAudio(*ecs, "bgm");
+		//sceneMgr.AddEntityToScene("Test Scene", bgmEntity);
 
         // --- Create Player Entity ---
-        playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.1f }, "playerSprite_Idle");
-        sceneMgr.AddEntityToScene("Test Scene", playerEntity);
-        sceneMgr.SetEntityAsPersistent(playerEntity);
-
+        //playerEntity = createPlayer(*ecs, *rcm_, fileIO.LoadPlayerStats(), { 0.1f, 0.1f }, "playerSprite_Idle");
+        //sceneMgr.AddEntityToScene("Test Scene", playerEntity);
+        //sceneMgr.SetEntityAsPersistent(playerEntity);
+        EntityManager entityMgr(*ecs);
+        playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0]; // hardcoded kinda
 
         // -- Create Camear Entity that follows player
         Entity mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, true);
@@ -159,8 +160,8 @@ namespace TestScene {
         }
 
         // --- Create Text Entity ---
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
-        sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.0f, 0.0f, 0.0f, 1.0f }, {-0.3f, 0.85f}, 1.5f));
+        //sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
+        //sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "Demo", "amethysta_font", { 0.0f, 0.0f, 0.0f, 1.0f }, {-0.3f, 0.85f}, 1.5f));
 
         // ---- AUDIO ----
         // Add AudioSystem BEFORE GameSystem in main.cpp so this is valid now.
@@ -168,7 +169,7 @@ namespace TestScene {
         //FMOD::Sound& bgm = rcm_->get<FMOD::Sound>("bgm");
         //FMOD::Sound& scream = rcm_->get<FMOD::Sound>("scream");
         //audio->play("bgm", /*volume*/0.35f, /*paused*/false);
-        EntitySerializer::SerializeEntityToFile(playerEntity, *ecs, "serializedPlayer.json");
+        //EntitySerializer::SerializeEntityToFile(playerEntity, *ecs, "Data/serializedPlayer.json");
 	}
 
 	void Update() {

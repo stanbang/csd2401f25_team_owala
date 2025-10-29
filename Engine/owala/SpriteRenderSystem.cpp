@@ -51,10 +51,9 @@ namespace Framework {
         std::map<BatchKey, std::vector<BatchedSprite>> batches;
 
         // Iterate all entities that have a sprite component
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(TextureComponentType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, PositionType, ActiveTagType)) {
             TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(e);
-            if (!entityMgr.HasComponent(e, PositionType)) continue;
-            if (!entityMgr.HasComponent(e, ActiveTagType)) continue;
+            if (sprite.textureKey.empty()) continue;
 
             const Vector2D& worldPos = entityMgr.GetComponent<Position>(e).Pos;
 
@@ -158,11 +157,11 @@ namespace Framework {
         }
 
         // --- Render Text (always on top) ---
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TextComponentType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, PositionType, ActiveTagType)) {
             const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
-            if (!entityMgr.HasComponent(entity, PositionType)) continue;
+            if (component.fontKey.empty()) continue;
 
-            Font& font = resources_.get<Font>(component.fontName);
+            Font& font = resources_.get<Font>(component.fontKey);
             const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
 
             Vector2D screenTextPos = worldTextPos;

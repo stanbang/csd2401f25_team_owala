@@ -207,6 +207,14 @@ namespace Framework {
          */
         void SetCursorLocked(bool locked);
 
+
+        /**
+         * \brief Enable or disable keyboard lock (capture/hide).
+         * \param locked If true, lock and disable keyboard input; else, restore keyboard input.
+         * \details Uses GLFW input modes to confine/hide the cursor for mouselook.
+         */
+        void SetKeyboardLocked(bool locked);
+
     private:
         // ---- Mapping helpers (implemented in .cpp) ----
         /**
@@ -242,6 +250,7 @@ namespace Framework {
         double mouseX_ = 0.0, mouseY_ = 0.0;           //!< Current cursor position.
         double prevMouseX_ = 0.0, prevMouseY_ = 0.0;   //!< Previous cursor position.
         bool   cursorLocked_ = false;                  //!< Cursor lock flag.
+        bool   keyboardLocked_ = false;                //!< Keyboard lock flag.
     };
 
 } // namespace Framework

@@ -26,52 +26,31 @@
 #include <iostream>
 #include <fstream>
 
+#include "SceneManager.h"
 #include "Animation.h"
 #include "Components.h"
 #include "Logger.h"
+#include "SerializationKeys.h"
 
 using namespace std;
 using namespace rapidjson;
 
 namespace Framework {
 	class FileIOSystem {
-		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH;
 	public:
-		static const Document ReadFile(const string& fileName) {
-			ifstream file(fileName);
-			if (!file) throw GameException(DebugType::FileIOSystem, "Could not open file: " + fileName);
+		static const string WIN_CONFIG_FILEPATH, PLAYER_CONFIG_FILEPATH, SCENE_ASSETS_FILEPATH, SCENES_FILEPATH_PREFIX;
 
-			IStreamWrapper isw(file);
-			Document d;
-			d.ParseStream(isw);
+		static string SanitizeFileName(const string& name);
 
-			file.close();
-			return d;
-		}
-
-		static const bool WriteFileJson(const string& fileName, Document& d) {
-			try {
-				// Write JSON file
-				std::ofstream os(fileName);
-				if (!os) throw GameException(DebugType::FileIOSystem, "Could not open file: " + fileName);
-					
-				// Convert Document to JSON string
-				StringBuffer buffer;
-				Writer<StringBuffer> writer(buffer);
-				d.Accept(writer);
-
-				// Write to file
-				os << buffer.GetString();
-				return true;
-			}
-			catch (const exception& e) {
-				throw GameException(DebugType::FileIOSystem, e.what());
-			}
-		}
+		static const bool ReadFile(const string& fileName, Document& doc);
+		static const bool WriteFileJson(const string& fileName, Document& d);
 
 		Vector2D LoadWindowConfig();
 		PlayerStats LoadPlayerStats();
 		AnimationInfo LoadAnimationInfo(std::string filepath);
-		bool WritePlayerStats(const PlayerStats& playerStats);
+
+		static bool LoadSceneAssets(Document& doc);
+		static bool SaveSceneAsset(const SceneAsset& sceneAsset);
+		static bool SaveAllSceneAssets(const std::unordered_map<SceneGUID, SceneAsset>& allAssets);
 	};
 } // namespace Framework

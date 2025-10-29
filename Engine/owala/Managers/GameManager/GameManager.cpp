@@ -7,6 +7,7 @@
  * \date	18 September 2025
  *********************************************************************/
 #include "GameManager.h"
+#include "EntitySerializer.h"
 #include <iostream>
 
 // Scene Scripts
@@ -87,7 +88,7 @@ namespace Framework {
 	// GameManager Config
 	// ---------------------------------------------------------------------------
 	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio,
-		SpriteRenderSystem& renderer, CameraSystem& camera) { 
+		SpriteRenderSystem& renderer, CameraSystem& camera, LevelResetSystem& levelResetter) {
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -97,6 +98,7 @@ namespace Framework {
 		systems_.audio_ = &audio;
 		systems_.spriteRenderer_ = &renderer;
 		systems_.camera_ = &camera; 
+		systems_.levelResetter_ = &levelResetter;
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 	}
 
@@ -119,16 +121,37 @@ namespace Framework {
 		CheckSystems();
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 
+		SceneGUID testScene{};
+		// Create scene assets from file
+		rapidjson::Document scenesData;
+		if (FileIOSystem::LoadSceneAssets(scenesData)) {
+			for (const rapidjson::Value& val : scenesData.GetArray()) {
+				std::string sceneName = val[Serialization::SCENE_ASSET_NAME].GetString();
+				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
+
+				if (sceneName == "Splash Screen") {
+					RegisterScriptToScene(sceneID, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+				}
+				if (sceneName == "Test Scene") {
+					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+					testScene = sceneID;
+				}
+			}
+		}
+		else {
+			Logger::Get().Error(DebugType::GameManager) << "Failed to load scene assets from file" << std::endl;
+		}
+
 		// Testing Scene Creation - Hard Coded at the moment
-		SceneGUID splashScreen = sceneMgr.CreateSceneAsset("Splash Screen");
-		SceneGUID testScene = sceneMgr.CreateSceneAsset("Test Scene");
+		//SceneGUID splashScreen = sceneMgr.CreateSceneAsset("Splash Screen");
+		//testScene = sceneMgr.CreateSceneAsset("Test Scene");
 
-		RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
-		RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
+		//RegisterScriptToScene(splashScreen, SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
-		sceneCallbacks_[testScene].fpInitialize();
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		sceneCallbacks_[testScene].fpInitialize();
 	}
 
 	void GameManager::Update(float dt) {

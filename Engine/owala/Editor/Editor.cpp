@@ -39,6 +39,7 @@
 #include <random> // for random generation
 
 #include "Fake_Player.h"
+#include "LoadedScene.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -173,6 +174,7 @@ namespace Editor {
 		tagNames.clear();
 		tagItems.clear();
 		tagTypes.clear();
+		fontKeys.clear();
 
 		componentNames.push_back("");
 		tagNames.push_back("");
@@ -198,6 +200,12 @@ namespace Editor {
 
 		for (const std::string& tagName : tagNames) {
 			tagItems.push_back(tagName.c_str());
+		}
+
+		const auto& fontMap = resourceManager_->getFontMap();
+		fontKeys.reserve(fontMap.size());
+		for (const auto& pair : fontMap) {
+			fontKeys.push_back(pair.first.c_str());
 		}
 
 		// Load all prefabs from the data file when the editor starts
@@ -949,6 +957,8 @@ Vector2D Editor::GetMouseWorldPosition() {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
 
+			SaveAndLoadSection();
+
 			// --- Entity Factory ---
 			ImGui::Separator();
 
@@ -1032,6 +1042,96 @@ Vector2D Editor::GetMouseWorldPosition() {
 			
 	}
 
+	void Editor::SaveAndLoadSection() {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
+		if (ImGui::Button("Save")) {
+			// Reset entity states & stop game on save 
+			isGamePlaying = false;
+			gameManager_->GetSystems().levelResetter_->RunReset();
+			std::string filePath = FileIOSystem::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+
+			// If its a newly created scene, create new filepath for it based on scene name.
+			if (currentScene.path.empty()) {
+				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
+			}
+
+			Logger::Get().Info(DebugType::Editor) << "Saving scene: " << currentScene.name << " to: " << filePath << std::endl;
+
+			// Serialize Scene name and entities to its own json file
+			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+			// Save scene asset to json file that stores all scene assets
+			FileIOSystem::SaveSceneAsset(currentScene);
+		}
+
+		// --- Create New Scene --- 
+		ImGui::SameLine();
+		if (ImGui::Button("New Scene")) {
+            ImGui::OpenPopup("Create New Scene");
+		}
+
+		// Create New Scene Modal
+		if (ImGui::BeginPopupModal("Create New Scene", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			// Text Input for scene name
+			static char sceneNameBuffer[256] = "";
+			ImGui::Text("Scene Name:");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
+			static bool duplicateNameError = false;
+			// Prevent game input system from capturing mouse/keyboard input
+			gameManager_->GetSystems().input_->SetKeyboardLocked(true);
+			
+			if (duplicateNameError) {
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
+			}
+			
+			if (ImGui::Button("Confirm", ImVec2(120, 0)))
+			{
+				std::string sceneName = sceneNameBuffer;
+				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
+				if (!duplicateNameError) {
+					sceneMgr.CreateSceneAsset(sceneName, "");
+					ImGui::CloseCurrentPopup();
+					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+			{
+				ImGui::CloseCurrentPopup();
+				gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+			}
+
+			ImGui::EndPopup();
+		}
+
+		// Display list of scenes available to load
+		if (ImGui::CollapsingHeader("Scenes List")) {
+			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
+				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
+
+				if (isCurrentScene) {
+					ImGui::BeginDisabled();
+				}
+
+				if (ImGui::Button(scene.name.c_str())) {
+					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
+					if (!isCurrentScene) {
+						sceneMgr.LoadScene(id);
+					}
+				}
+
+				if (isCurrentScene) {
+					ImGui::EndDisabled();
+				}
+			}
+		}
+	}
 	#pragma endregion
 
 	#pragma region TILEMAP EDITOR PANEL
@@ -1565,15 +1665,66 @@ Vector2D Editor::GetMouseWorldPosition() {
 		}
 		case ComponentType::TextureComponentType: {
 			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
-
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
 		}
 		case ComponentType::AudioComponentType:
 		case ComponentType::AnimationComponentType:
-		case ComponentType::TextComponentType:
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
+
+		case ComponentType::TextComponentType: {
+			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
+			
+			// Text you want to draw
+			char textBuffer[256] = "";
+
+			// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
+			if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+				std::strncpy(
+					textBuffer,
+					textComp.textToDraw.c_str(),
+					IM_ARRAYSIZE(textBuffer) - 1
+				);
+				textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+			}
+
+			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
+				textComp.textToDraw = textBuffer;
+			}
+			// Lock game keyboard input if typing on text input
+			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
+
+			// Font Selection
+			
+			// Set initial font to first index for new TextComponents, and to its corresponding index if textComponent.fontKey alr exists
+			int selectedFontIndex = 0;
+			if (!textComp.fontKey.empty()) {
+				auto it = std::find(fontKeys.begin(), fontKeys.end(), textComp.fontKey);
+				if (it != fontKeys.end()) {
+					selectedFontIndex = static_cast<int>(std::distance(fontKeys.begin(), it));
+				}
+			}
+
+			textComp.fontKey = fontKeys[selectedFontIndex];
+			
+			// Display Dropdown for font selection
+			if (ImGui::Combo("Font", &selectedFontIndex, fontKeys.data(), static_cast<int>(fontKeys.size()))) {
+				textComp.fontKey = fontKeys[selectedFontIndex];
+			}
+
+			// Color Input
+			ImGui::Text("Color RGBA: ");
+			ImGui::InputFloat("R", &textComp.color.r, 0.f, 0.f, "%.3f");
+			ImGui::InputFloat("G", &textComp.color.g, 0.f, 0.f, "%.3f");
+			ImGui::InputFloat("B", &textComp.color.b, 0.f, 0.f, "%.3f");
+			ImGui::InputFloat("A", &textComp.color.a, 0.f, 0.f, "%.3f");
+
+			// Font Size Input
+			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
+
+			break;
+		}
 		case ComponentType::SceneOwnedType: {
 			SceneOwned& parentScene = entityMgr.GetComponent<SceneOwned>(selectedEntity);
 
@@ -1712,8 +1863,21 @@ Vector2D Editor::GetMouseWorldPosition() {
 
 			// Play Button
 			ImGui::PushStyleColor(ImGuiCol_Button, isGamePlaying ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+
+			// Start with physics paused
+			if (!isGamePlaying) {
+				physics_->SetPaused(true);
+			}
+			
+			// Lock game keyboard if !isGamePlaying
+			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
+
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
+				if (isGamePlaying) {
+					gameManager_->GetSystems().levelResetter_->RunReset();
+				}
 				isGamePlaying = !isGamePlaying;
 				isGamePaused = false;
 
@@ -1825,6 +1989,19 @@ Vector2D Editor::GetMouseWorldPosition() {
 		ImVec2 yA = WorldToImGuiScreen({ left, 0.0f });
 		ImVec2 yB = WorldToImGuiScreen({ right, 0.0f });
 		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
+		// Overlay �square� correction lines (this keeps visual square proportions)
+		if (aspect != 1.0f)
+		{
+			for (float x = startX; x <= right; x += cell)
+			{
+				for (float y = startY; y <= top; y += cell)
+				{
+					ImVec2 topLeft = WorldToImGuiScreen({ x, y + cell });
+					ImVec2 bottomRight = WorldToImGuiScreen({ x + cell / aspect, y });
+					drawList->AddRect(topLeft, bottomRight, IM_COL32(100, 100, 255, 60));
+				}
+			}
+		}
 	}
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {

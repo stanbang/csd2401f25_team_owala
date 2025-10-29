@@ -70,7 +70,7 @@ namespace Framework {
 
 	
 
-	void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float scale) {
+	inline void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float scale) {
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
 		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x *= scale;

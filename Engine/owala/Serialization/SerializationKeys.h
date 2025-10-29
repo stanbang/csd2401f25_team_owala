@@ -1,6 +1,12 @@
 #pragma once
 
 namespace Framework::Serialization {
+	/* Generic Scene JSON Labels */
+	static constexpr const char* SCENE_NAME = "scene_name";
+	static constexpr const char* ENTITIES = "entities";
+	static constexpr const char* SCENE_ASSET_NAME = "name";
+	static constexpr const char* SCENE_ASSET_PATH = "path";
+
 	/* Generic Time JSON Labels */
 	static constexpr const char* ELAPSED_TIME = "elapsed_time";
 
@@ -97,13 +103,15 @@ namespace Framework::Serialization {
 	static constexpr const char* FOLLOW_SPEED = "follow_speed";
 	static constexpr const char* IS_ACTIVE = "is_active";
 
+	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
+	static constexpr const char* COMP_SCENE_NAME = "sceneName";
+	
 	/* Tags JSON Labels */
 	static constexpr const char* TAGS = "tags";
 	static constexpr const char* PLAYER_TAG = "PlayerTag";
 	static constexpr const char* PLATFORM_TAG = "PlatformTag";
 	static constexpr const char* BACKGROUND_TAG = "BackgroundTag";
 	static constexpr const char* ENEMY_TAG = "EnemyTag";
-	static constexpr const char* SCENE_OWNED_TAG = "SceneOwned";
 	static constexpr const char* PERSISTENT_TAG = "PersistentTag";
 	static constexpr const char* ACTIVE_TAG = "ActiveTag";
 }

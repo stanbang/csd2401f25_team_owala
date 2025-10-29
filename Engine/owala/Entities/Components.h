@@ -137,8 +137,8 @@ namespace Framework{
 	};
 
 	struct TextComponent {
-		std::string textToDraw;
-		std::string fontName;
+		std::string textToDraw{};
+		std::string fontKey;
 		Color color = { 1,1,1,1 };
 		float scale = 1.0f;
 	};

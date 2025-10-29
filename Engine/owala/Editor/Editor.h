@@ -24,6 +24,7 @@
 #include "PrefabSystem.h" // prefab header for creation
 #include "Graphics.h"
 #include "ResourceManager.h"
+#include "SceneManager.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -108,6 +109,7 @@ namespace Editor {
 		std::vector<const char*> tagItems;
 		std::vector<Framework::ComponentType> tagTypes;
 		int selectedTagIndex = 0;
+		std::vector<const char*> fontKeys;
 
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
@@ -183,6 +185,7 @@ namespace Editor {
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
 		void ShowLevelEditor();
+		void SaveAndLoadSection(); // within LevelEditor panel
 		void ShowHierarchy();
 		void ShowInspector();
 		void ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent);
