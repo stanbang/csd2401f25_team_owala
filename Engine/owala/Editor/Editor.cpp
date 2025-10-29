@@ -1120,6 +1120,8 @@ namespace Editor {
 				if (ImGui::Button(scene.name.c_str())) {
 					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
 					if (!isCurrentScene) {
+						isGamePlaying = false;
+						gameManager_->GetSystems().levelResetter_->RunReset();
 						sceneMgr.LoadScene(id);
 					}
 				}
