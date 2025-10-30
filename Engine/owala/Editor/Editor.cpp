@@ -1021,7 +1021,7 @@ void Editor::HandleDragDropPlacement() {
 				std::string sceneName = sceneNameBuffer;
 				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
 				if (!duplicateNameError) {
-					sceneMgr.CreateSceneAsset(sceneName, "");
+					sceneMgr.CreateSceneAsset(sceneName, "", true);
 					ImGui::CloseCurrentPopup();
 					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
 				}
