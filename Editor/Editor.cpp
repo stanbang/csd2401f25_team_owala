@@ -32,6 +32,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_internal.h>
+#include <imgui_stdlib.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -1658,9 +1659,19 @@ namespace Editor {
 			break;
 		}
 		case ComponentType::TextureComponentType: {
-			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 
-			ImGui::TextDisabled("Properties are Hidden");
+			//Show text but make it read-only
+			ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newTextureKey = "";
+			ImGui::InputText("New Texture Key", &newTextureKey);
+
+			//Button to update texture key
+			if (ImGui::Button("Update Texture")) {
+				if (!newTextureKey.empty()) {
+					tex.textureKey = newTextureKey;
+				}
+			}
 			break;
 		}
 		case ComponentType::AudioComponentType:
