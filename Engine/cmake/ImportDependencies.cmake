@@ -63,7 +63,7 @@ macro(import_glew)
         FetchContent_Declare(
             glew
             GIT_REPOSITORY https://github.com/omniavinco/glew-cmake.git
-            GIT_TAG master  # Or use a specific commit or tag if preferred
+            GIT_TAG d06782b910213d675925e6e51a69ad0fd1fe1f23  # Or use a specific commit or tag if preferred
         )
 
         # Disable shared builds if needed

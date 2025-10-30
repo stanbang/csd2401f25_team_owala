@@ -15,10 +15,11 @@
 #include "TestScene.h"
 
 // ImGui headers
+#ifdef BUILD_EDITOR
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-
+#endif
 //Core Engine headers for IMGUI
 #include "Core.h"
 
@@ -104,10 +105,12 @@ namespace Framework {
 		systems_.levelResetter_ = &levelResetter;
 		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
 	}
-
+	#ifdef BUILD_EDITOR
 	void GameManager::RegisterEditor(Editor::Editor& editor) {
 		editor_ = &editor;
 	}
+	#endif
+
 
 	// ---------------------------------------------------------------------------
 	// GameManager APIs

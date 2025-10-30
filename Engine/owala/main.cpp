@@ -39,8 +39,10 @@
 #include "CameraSystem.h"
 #include "PlatformBehaviorSystem.h"
 
+#ifdef BUILD_EDITOR
 // Imgui Editor
 #include "Editor.h"
+#endif
 
 // Global pointer to WindowsSystem for console handler
 Framework::WindowsSystem* g_win = nullptr;
@@ -59,10 +61,10 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+    SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
 
     using namespace Framework;
-    
+
     Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
     backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
 
@@ -94,8 +96,24 @@ int main() {
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *levelResetter); // Register all core systems to the GameManager
 
 	// Editor Registration
+    #ifdef BUILD_EDITOR
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
 	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
+    #endif
+        //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
+        engine.AddSystem(win);                 // creates GLFW window + context
+        engine.AddSystem(input);               // MUST come before GameSystem
+        engine.AddSystem(rotation);
+        engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
+        engine.AddSystem(phx);                 // Physics comes after input
+        engine.AddSystem(audio);               //audio 
+        engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
+        engine.AddSystem(gm);                  // GameManager for executing Game Logic
+        engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
+        engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
+        #ifdef BUILD_EDITOR
+        engine.AddSystem(editor);              // Editor
+        #endif
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -112,15 +130,15 @@ int main() {
     engine.AddSystem(editor);              // Editor
     engine.AddSystem(gfx);                 // swaps buffers last
 
-    engine.Initialize();
-    engine.GameLoop();
-    engine.DestroySystems();
-	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
-    return 0;
+        engine.Initialize();
+        engine.GameLoop();
+        engine.DestroySystems();
+        SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
+        return 0;
     }
     catch (const GameException& e) {
         Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);
-        engine.DestroySystems(); 
+        engine.DestroySystems();
         SceneManager::DestroyInstance();
     }
     catch (const std::exception& e) {

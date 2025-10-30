@@ -32,12 +32,12 @@
 #include "SceneManager.h"
 #include "GameManager.h"
 #include "TestScene.h"
-
+#ifdef BUILD_EDITOR
  // ImGui headers
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-
+#endif
 
 namespace {
     using namespace Framework;

@@ -29,7 +29,9 @@
 #include "ResourceManager.h"
 #include "GameManager.h"
 #include "Graphics.h"
+#ifdef BUILD_EDITOR
 #include "Editor.h"
+#endif
 
 namespace Framework {
 
@@ -37,18 +39,21 @@ namespace Framework {
     // Helper to return clean display names for profiling UI
     // ------------------------------------------------------------------------
     static std::string GetSystemName(const std::type_info& info) {
-        using namespace Framework;
-        if (info == typeid(WindowsSystem))   return "Windows System";
-        if (info == typeid(InputSystem))     return "Input System";
-        if (info == typeid(RotationSystem))  return "Rotation System";
-        if (info == typeid(PlayerSystem))    return "Player System";
-        if (info == typeid(PhysicsSystem))   return "Physics System";
-        if (info == typeid(AudioSystem))     return "Audio System";
-        if (info == typeid(ResourceManager)) return "Resource Manager";
-        if (info == typeid(GameManager))     return "Game Manager";
-        if (info == typeid(Graphics))        return "Graphics";
-        if (info == typeid(Editor::Editor))  return "Editor";
-        return "Unknown System";
+        if (info == typeid(Framework::WindowsSystem))   return "Windows System";
+        if (info == typeid(Framework::InputSystem))     return "Input System";
+        if (info == typeid(Framework::RotationSystem))  return "Rotation System";
+        if (info == typeid(Framework::PlayerSystem))    return "Player System";
+        if (info == typeid(Framework::PhysicsSystem))   return "Physics System";
+        if (info == typeid(Framework::AudioSystem))     return "Audio System";
+        if (info == typeid(Framework::ResourceManager)) return "Resource Manager";
+        if (info == typeid(Framework::GameManager))     return "Game Manager";
+        if (info == typeid(Framework::Graphics))        return "Graphics";
+    #ifdef BUILD_EDITOR
+        if (info == typeid(Editor::Editor))             return "Editor";
+    #endif
+
+        // Add other systems here
+        return "Unknown System"; // if no systems found
     }
 
     // ------------------------------------------------------------------------
