@@ -64,8 +64,8 @@ namespace Framework {
 	namespace FileIOKeys {
 		static constexpr const char* WIN_CONFIG_FILEPATH = "Data/config.json";
 		static constexpr const char* PLAYER_CONFIG_FILEPATH = "Data/player.json";
-		static constexpr const char* SCENE_ASSETS_FILEPATH = "../../Data/scenes.json";
-		static constexpr const char* SCENES_FILEPATH_PREFIX = "../../Data/Scenes/";
+		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
+		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";
 
 		static constexpr const char* WINDOW_W = "window_width";
 		static constexpr const char* WINDOW_H = "window_height";

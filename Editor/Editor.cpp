@@ -161,7 +161,7 @@ namespace Editor {
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
-		fs::path rootPath = fs::absolute(exePath / "../../"); // Moves out of Debug, then out of build, to reach Engine root
+		fs::path rootPath = fs::absolute(exePath / "../../"); // Moves out of Debug/Release, then out of build, to reach Engine root
 		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
@@ -1028,7 +1028,7 @@ namespace Editor {
 						(row - gridSize / 2) * spacing
 					};
 
-					// FIX: Pass the calculated position, not halfSize
+					// Pass the calculated position, not halfSize
 					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}

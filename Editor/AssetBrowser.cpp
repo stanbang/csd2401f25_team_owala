@@ -427,9 +427,10 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                             resourceManager_->unload<Texture>(selectedAsset_.string());
                         }
 
-                        // Copy the replacement file over the original
-                        fs::copy(replacementFilePath_, selectedAsset_,
-                            fs::copy_options::overwrite_existing);
+						// Copy the replacement file over the original in the selected asset path
+                        fs::copy(replacementFilePath_, selectedAsset_, fs::copy_options::overwrite_existing);
+                        
+
 
                         Logger::Get().Info(DebugType::Editor)
                             << "Successfully replaced: " << selectedAsset_.string()

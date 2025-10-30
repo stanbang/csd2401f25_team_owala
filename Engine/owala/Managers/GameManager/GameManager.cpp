@@ -173,6 +173,11 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 		}
+
+		//Render sprite in engine if not using editor
+		#ifdef BUILD_ENGINE
+		systems_.spriteRenderer_->Update(dt);
+		#endif
 		//glfwSwapInterval(0); //just for testing to turn vsync off
 
 		// --- END GAME UPDATE ---
