@@ -130,6 +130,7 @@ namespace Editor {
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
 		bool isMouseOverGameViewport_ = false;
+		void DrawEditorGridGfx();
 
 		// Entity factory System members
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system

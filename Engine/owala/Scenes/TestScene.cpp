@@ -143,21 +143,13 @@ namespace TestScene {
         //sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         //sceneMgr.SetEntityAsPersistent(playerEntity);
         EntityManager entityMgr(*ecs);
-        playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0]; // hardcoded kinda
+        Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
+        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
-        // -- Create Camear Entity that follows player
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0]; // hardcoded kinda
-        //Entity mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, true);
-        //sceneMgr.AddEntityToScene("Test Scene", mainCamera);
-
-        //set camera to follow player
+        cameraSystem->SetActiveCamera(mainCamera);
         cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        spriteRenderer->SetCameraSystem(cameraSystem);
 
-
-        // SET THE CAMERA SYSTEM ON THE SPRITE RENDERER
-        if (spriteRenderer && cameraSystem) {
-            spriteRenderer->SetCameraSystem(cameraSystem);
-        }
 
         // --- Create Text Entity ---
         //sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
