@@ -47,7 +47,6 @@ namespace Framework {
 
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
-					case ComponentType::PlayerStatsType: AddComponent<PlayerStats>(newEntity, GetComponent<PlayerStats>(entity)); break;
 					case ComponentType::PositionType: AddComponent<Position>(newEntity, GetComponent<Position>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
 					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
@@ -93,7 +92,6 @@ namespace Framework {
 
 		switch (componentType)
 		{
-		case ComponentType::PlayerStatsType: AddComponent<PlayerStats>(entity, PlayerStats{}); break;
 		case ComponentType::PositionType: AddComponent<Position>(entity, Position{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
 		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
@@ -129,7 +127,6 @@ namespace Framework {
 		if (!HasComponent(entity, componentType)) return;
 
 		switch (componentType) {
-			case PlayerStatsType:   ecs.playerStats.erase(entity); break;
 			case PositionType:      ecs.position.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;

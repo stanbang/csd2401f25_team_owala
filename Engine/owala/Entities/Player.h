@@ -33,7 +33,6 @@ namespace Framework {
 
 	inline Entity createPlayer(EntityStorage& entityStorage, 
 		ResourceManager& rcm,
-		PlayerStats stats, 
 		Vector2D halfSize, 
 		std::string textureKey) {
 
@@ -46,8 +45,7 @@ namespace Framework {
 			set initial values in the unordered maps.*/
 			//entityStorage.triangle[player] = triangle;
 			entityMgr.AddComponent(player, PlayerTag{});
-			entityMgr.AddComponent(player, stats);
-			entityMgr.AddComponent(player, Position{ stats.pos }); //Start at 0,0 coordinates
+			entityMgr.AddComponent(player, Position{ Vector2D{} }); //Start at 0,0 coordinates
 			entityMgr.AddComponent(player, Velocity{});  //Start with no velocity
 
 			entityMgr.AddComponent(player, TextureComponent{ textureKey });

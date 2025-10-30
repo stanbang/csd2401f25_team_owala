@@ -24,7 +24,7 @@ namespace Framework {
         // Serializes multiple entities to outArray.
         static void SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
-        static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filepath, const std::string& sceneName);
+        static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName);
 
         // Deserialize a new entity from JSON (creates a new entity and adds components).
         static Entity DeserializeEntity(EntityStorage& ecs, const rapidjson::Value& entityData);

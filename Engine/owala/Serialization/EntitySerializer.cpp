@@ -28,14 +28,6 @@ namespace Framework {
 		rapidjson::Value componentList(rapidjson::kObjectType);
 
 		/* Components Serialization */
-		// Serialize PlayerStats Component
-		if (entityMgr.HasComponent(entity, ComponentType::PlayerStatsType)) {
-			PlayerStats& stats = entityMgr.GetComponent<PlayerStats>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			value.AddMember(rapidjson::StringRef(Serialization::MOVE_SPEED), stats.moveSpeed, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::PLAYERSTATS_COMPONENT), value, alloc);
-		}
-
 		// Serialize Position Component
 		if (entityMgr.HasComponent(entity, ComponentType::PositionType)) {
 			Position& pos = entityMgr.GetComponent<Position>(entity);
@@ -299,9 +291,9 @@ namespace Framework {
 		}
 	}
 
-	void EntitySerializer::SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filepath, const std::string& sceneName) {
+	void EntitySerializer::SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName) {
 		try {
-			Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing scene <" << sceneName << "> to: " << filepath << std::endl;
+			Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing scene <" << sceneName << "> to: " << filePath << std::endl;
 			rapidjson::Document doc;
 			doc.SetObject();
 			rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
@@ -312,27 +304,16 @@ namespace Framework {
 			SerializeEntities(entities, ecs, entitiesData, alloc);
 			doc.AddMember(rapidjson::StringRef(Serialization::ENTITIES), entitiesData, alloc);
 
-			FileIOSystem::WriteFileJson(filepath, doc);
-			Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filepath << std::endl;
+			FileIOSystem::WriteFileJson(filePath, doc);
+			Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filePath << std::endl;
 		}
 		catch (...) {
-			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to save scene <" << sceneName << "> to: " << filepath << std::endl;
+			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to save scene <" << sceneName << "> to: " << filePath << std::endl;
 		}
 	}
 
 	void EntitySerializer::DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {
 		const rapidjson::Value& componentLists = entityData[Serialization::COMPONENTS];
-
-		// Deserialize PlayerStats Component
-		if (componentLists.HasMember(Serialization::PLAYERSTATS_COMPONENT)) {
-			const rapidjson::Value& stats = componentLists[Serialization::PLAYERSTATS_COMPONENT];
-
-			PlayerStats playerStats;
-			if (stats.HasMember(Serialization::MOVE_SPEED) && stats[Serialization::MOVE_SPEED].IsFloat()) {
-				playerStats.moveSpeed = stats[Serialization::MOVE_SPEED].GetFloat();
-			}
-			entityMgr.AddComponent<PlayerStats>(loadedEntity, playerStats);
-		}
 
 		// Deserialize Position Component
 		if (componentLists.HasMember(Serialization::POSITION)) {

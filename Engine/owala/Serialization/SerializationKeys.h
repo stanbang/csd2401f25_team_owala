@@ -23,8 +23,6 @@ namespace Framework::Serialization {
 
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";
-	static constexpr const char* PLAYERSTATS_COMPONENT = "PlayerStats";
-	static constexpr const char* MOVE_SPEED = "move_speed";
 
 	static constexpr const char* POSITION_COMPONENT = "Position";
 	static constexpr const char* VELOCITY_COMPONENT = "Velocity";
