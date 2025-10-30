@@ -100,6 +100,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
 			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
+			else if constexpr (std::is_same_v<T, Button>) return ecs.button.at(entity);
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);

@@ -108,27 +108,14 @@ int main() {
         engine.AddSystem(phx);                 // Physics comes after input
         engine.AddSystem(audio);               //audio 
         engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
+        engine.AddSystem(platform);
         engine.AddSystem(gm);                  // GameManager for executing Game Logic
         engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
         engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
+        engine.AddSystem(gfx);
         #ifdef BUILD_EDITOR
         engine.AddSystem(editor);              // Editor
         #endif
-
-    //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
-    engine.AddSystem(win);                 // creates GLFW window + context
-    engine.AddSystem(input);               // MUST come before GameSystem
-    engine.AddSystem(rotation);
-    engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
-    engine.AddSystem(phx);                 // Physics comes after input
-    engine.AddSystem(audio);               //audio 
-	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
-    engine.AddSystem(platform);
-	engine.AddSystem(gm);                  // GameManager for executing Game Logic
-    engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
-    engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
-    engine.AddSystem(editor);              // Editor
-    engine.AddSystem(gfx);                 // swaps buffers last
 
         engine.Initialize();
         engine.GameLoop();

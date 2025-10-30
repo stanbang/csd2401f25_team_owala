@@ -1,5 +1,4 @@
 #include "GuiSystem.h"
-#include "imgui.h" // For getting viewport data
 #include "CameraSystem.h" // For the camera
 #include "GameMessages.h" // For ButtonClickedEvent
 #include "MessageBus.h" // For MessageBus
@@ -8,8 +7,6 @@ namespace Framework {
 
 
 	void GuiSystem::Update(float dt) {
-		// If ImGui is using the mouse, skip GUI system update
-		if (ImGui::GetIO().WantCaptureMouse) return;
 
 		// Get mouse position from InputSystem
 		double mouseX, mouseY;
