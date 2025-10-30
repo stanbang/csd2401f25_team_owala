@@ -210,7 +210,7 @@ namespace Editor {
 		}
 
 		// Load all prefabs from the data file when the editor starts
-		if (!prefabSystem_.LoadPrefabsFromFile("../../Data/platformPrefab.json")) {
+		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
 			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
 		}
 
@@ -558,102 +558,40 @@ namespace Editor {
 		}
 
 		// --- ENTITY CREATION ---
-		Entity newEntity = entityMgr.CreateEntity();
-
-		// Correct aspect so tiles are truly square in editor space
+		Entity newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
 		Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
+		if (newEntity != 0) {
+			if (entityMgr.HasComponent(newEntity, Framework::AABBColliderType)) {
+				// Calculate the desired size to match grid cells
+				
+				auto& collider = entityMgr.GetComponent<Framework::AABBCollider>(newEntity);
+				collider.HalfSize = tileHalfSize;
 
-		// Common components
-		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-		entityMgr.AddComponent(newEntity, Framework::Velocity{});
-		entityMgr.AddComponent(newEntity, Framework::RigidBody{});
-		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
-		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
-
-		// --- TYPE-SPECIFIC PREFAB SETUP ---
-		std::string textureKey = "";
-
-		switch (dragDropPayload_.type) {
-		case PrefabType::Platform: {
-			const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
-			if (prefab) {
-				textureKey = prefab->textureID;
-				if (prefab->mass > 0.0f)
-					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(prefab->mass);
+				if (entityMgr.HasComponent(newEntity, Framework::ScalingPlatformComponentType)) {
+					auto& scaling = entityMgr.GetComponent<Framework::ScalingPlatformComponent>(newEntity);
+					scaling.baseHalfSize = tileHalfSize;
+				}
 			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)<< "Missing Platform Prefab: " << dragDropPayload_.name << std::endl;
-			}
-			break;
-		}
 
-		case PrefabType::TrapPlatform: {
-			const auto* trapPrefab = prefabSystem_.GetTrapPlatformPrefab(dragDropPayload_.name);
-			if (trapPrefab) {
-				textureKey = trapPrefab->textureID;
-				Framework::TrapPlatformComponent trapComp;
-				trapComp.originalPosition = snappedPos;
-				trapComp.fallSpeed = trapPrefab->fallSpeed;
-				trapComp.triggerDelay = trapPrefab->triggerDelay;
-				entityMgr.AddComponent(newEntity, trapComp);
-				if (trapPrefab->mass > 0.0f)
-					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(trapPrefab->mass);
+			// --- TEXTURE COMPONENT + FINALIZATION ---
+			std::string textureKey = dragDropPayload_.name;
+			if (!textureKey.empty()) {
+				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
+				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "Placed tile: " << dragDropPayload_.name
+					<< " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
 			}
 			else {
 				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Missing TrapPlatform Prefab: " << dragDropPayload_.name << std::endl;
+					<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
 			}
-			break;
-		}
 
-		case PrefabType::ScalingPlatform: {
-			const auto* scalePrefab = prefabSystem_.GetScalingPlatformPrefab(dragDropPayload_.name);
-			if (scalePrefab) {
-				textureKey = scalePrefab->textureID;
-				Framework::ScalingPlatformComponent scaleComp;
-				scaleComp.baseHalfSize = tileHalfSize;
-				scaleComp.scaleSpeed = scalePrefab->scaleSpeed;
-				scaleComp.minScale = scalePrefab->minScale;
-				scaleComp.maxScale = scalePrefab->maxScale;
-				scaleComp.currentScaleX = 1.0f;
-				scaleComp.currentScaleY = 1.0f;
-				entityMgr.AddComponent(newEntity, scaleComp);
-				if (scalePrefab->mass > 0.0f)
-					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(scalePrefab->mass);
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Missing ScalingPlatform Prefab: " << dragDropPayload_.name << std::endl;
-			}
-			break;
+			// --- CLEANUP ---
+			isDraggingPrefab_ = false;
 		}
-
-		default:
-			Framework::Logger::Get().Error(DebugType::Editor)
-				<< "Unsupported PrefabType: " << static_cast<int>(dragDropPayload_.type) << std::endl;
-			break;
-		}
-
-		// --- TEXTURE COMPONENT + FINALIZATION ---
-		if (!textureKey.empty()) {
-			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-
-			Framework::Logger::Get().Info(DebugType::Editor)
-				<< "Placed tile: " << dragDropPayload_.name
-				<< " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-		}
-		else {
-			Framework::Logger::Get().Error(DebugType::Editor)
-				<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
-		}
-
-		// --- CLEANUP ---
-		isDraggingPrefab_ = false;
 	}
 
 	// Draws a preview of the tile being dragged
@@ -958,9 +896,9 @@ namespace Editor {
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
-			
+
 			SaveAndLoadSection();
-			
+
 			// --- Entity Factory ---
 			ImGui::Separator();
 
@@ -1127,7 +1065,7 @@ namespace Editor {
 						sceneMgr.LoadScene(id);
 					}
 				}
-				
+
 				if (isCurrentScene) {
 					ImGui::EndDisabled();
 				}
@@ -1881,7 +1819,7 @@ namespace Editor {
 			// Lock game keyboard if !isGamePlaying
 			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
 
-			
+
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
 				if (isGamePlaying) {
@@ -2048,6 +1986,7 @@ namespace Editor {
 		std::vector<std::string> prefabNames;
 		std::vector<const char*> prefabItems;
 
+		// Gather all prefab names from the ACTUAL loaded prefabs
 		prefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
 			prefabNames.push_back(pair.first);
@@ -2061,15 +2000,20 @@ namespace Editor {
 			if (selectedPrefabIndex > 0) {
 				selectedPrefabForEditing_ = prefabNames[selectedPrefabIndex];
 
-				// Determine prefab type
-				if (prefabSystem_.GetPlatformPrefab(selectedPrefabForEditing_)) {
-					selectedPrefabTypeForEditing_ = PrefabType::Platform;
-				}
-				else if (prefabSystem_.GetTrapPlatformPrefab(selectedPrefabForEditing_)) {
-					selectedPrefabTypeForEditing_ = PrefabType::TrapPlatform;
-				}
-				else if (prefabSystem_.GetScalingPlatformPrefab(selectedPrefabForEditing_)) {
-					selectedPrefabTypeForEditing_ = PrefabType::ScalingPlatform;
+				// Determine prefab type by checking components
+				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
+				if (prefab) {
+					bool hasTrap = false;
+					bool hasScaling = false;
+
+					for (const auto& compData : prefab->components) {
+						if (compData.type == "TrapPlatformComponent") hasTrap = true;
+						if (compData.type == "ScalingPlatformComponent") hasScaling = true;
+					}
+
+					if (hasTrap) selectedPrefabTypeForEditing_ = PrefabType::TrapPlatform;
+					else if (hasScaling) selectedPrefabTypeForEditing_ = PrefabType::ScalingPlatform;
+					else selectedPrefabTypeForEditing_ = PrefabType::Platform;
 				}
 			}
 			else {
@@ -2084,7 +2028,7 @@ namespace Editor {
 		if (!selectedPrefabForEditing_.empty()) {
 			ImGui::Text("Editing: %s", selectedPrefabForEditing_.c_str());
 
-			const EntityPrefab* prefab = prefabSystem_.GetPrefab(selectedPrefabForEditing_);
+			EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
 			if (!prefab) {
 				ImGui::Text("Error: Prefab not found!");
 				ImGui::End();
@@ -2099,7 +2043,7 @@ namespace Editor {
 				ImGui::SeparatorText("Platform Properties");
 
 				// Find and edit components
-				for (auto& compData : const_cast<EntityPrefab*>(prefab)->components) {
+				for (auto& compData : prefab->components) {
 					if (compData.type == "RigidBody") {
 						if (compData.data.HasMember("mass")) {
 							float mass = compData.data["mass"].GetFloat();
@@ -2131,7 +2075,7 @@ namespace Editor {
 			case PrefabType::TrapPlatform: {
 				ImGui::SeparatorText("Trap Platform Properties");
 
-				for (auto& compData : const_cast<EntityPrefab*>(prefab)->components) {
+				for (auto& compData : prefab->components) {
 					if (compData.type == "TrapPlatformComponent") {
 						if (compData.data.HasMember("fallSpeed")) {
 							float fallSpeed = compData.data["fallSpeed"].GetFloat();
@@ -2149,16 +2093,18 @@ namespace Editor {
 						}
 					}
 					else if (compData.type == "AABBCollider") {
-						float halfX = compData.data["halfSizeX"].GetFloat();
-						float halfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
+							float halfX = compData.data["halfSizeX"].GetFloat();
+							float halfY = compData.data["halfSizeY"].GetFloat();
 
-						if (ImGui::DragFloat("Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
-							compData.data["halfSizeX"].SetFloat(halfX);
-							prefabModified = true;
-						}
-						if (ImGui::DragFloat("Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
-							compData.data["halfSizeY"].SetFloat(halfY);
-							prefabModified = true;
+							if (ImGui::DragFloat("Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+								compData.data["halfSizeX"].SetFloat(halfX);
+								prefabModified = true;
+							}
+							if (ImGui::DragFloat("Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+								compData.data["halfSizeY"].SetFloat(halfY);
+								prefabModified = true;
+							}
 						}
 					}
 				}
@@ -2168,7 +2114,7 @@ namespace Editor {
 			case PrefabType::ScalingPlatform: {
 				ImGui::SeparatorText("Scaling Platform Properties");
 
-				for (auto& compData : const_cast<EntityPrefab*>(prefab)->components) {
+				for (auto& compData : prefab->components) {
 					if (compData.type == "ScalingPlatformComponent") {
 						if (compData.data.HasMember("scaleSpeed")) {
 							float scaleSpeed = compData.data["scaleSpeed"].GetFloat();
@@ -2192,6 +2138,21 @@ namespace Editor {
 							}
 						}
 					}
+					else if (compData.type == "AABBCollider") {
+						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
+							float halfX = compData.data["halfSizeX"].GetFloat();
+							float halfY = compData.data["halfSizeY"].GetFloat();
+
+							if (ImGui::DragFloat("Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+								compData.data["halfSizeX"].SetFloat(halfX);
+								prefabModified = true;
+							}
+							if (ImGui::DragFloat("Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+								compData.data["halfSizeY"].SetFloat(halfY);
+								prefabModified = true;
+							}
+						}
+					}
 				}
 				break;
 			}
@@ -2201,7 +2162,11 @@ namespace Editor {
 			}
 
 			if (prefabModified) {
+				// Apply changes to existing entities AND ensure new entities use updated prefab
 				ApplyPrefabChangesToEntities(selectedPrefabForEditing_);
+
+				// Force palette to reload so new drag/drop uses updated prefab
+				palettePrepared_ = false;
 			}
 
 			ImGui::Separator();
@@ -2210,7 +2175,8 @@ namespace Editor {
 			if (ImGui::Button("Save Prefab to File")) {
 				SavePrefabToFile(selectedPrefabForEditing_);
 
-				if (!prefabSystem_.LoadPrefabsFromFile("../../Data/platformPrefab.json")) {
+				// Reload to ensure everything is synchronized
+				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
 					std::cout << "Failed to reload prefabs after save!" << std::endl;
 				}
 				else {
@@ -2222,8 +2188,9 @@ namespace Editor {
 
 			ImGui::SameLine();
 			if (ImGui::Button("Reload from File")) {
-				prefabSystem_.LoadPrefabsFromFile("../../Data/platformPrefab.json");
+				prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json");
 				std::cout << "Reloaded prefabs from file" << std::endl;
+				palettePrepared_ = false;
 			}
 		}
 
@@ -2309,7 +2276,7 @@ namespace Editor {
 		}
 
 		// Read existing file
-		std::ifstream fileIn("../../Data/platformPrefab.json");
+		std::ifstream fileIn("Data/platformPrefab.json");
 		if (!fileIn.is_open()) {
 			Logger::Get().Error(DebugType::Editor) << "Failed to open prefab file for reading" << std::endl;
 			return;
@@ -2360,20 +2327,26 @@ namespace Editor {
 			return;
 		}
 
-		std::ofstream fileOut("../../Data/platformPrefab.json");
-		if (!fileOut.is_open()) {
-			std::cout << "Failed to open prefab file for writing" << std::endl;
-			return;
-		}
-
 		rapidjson::StringBuffer buffer;
-		rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);  // ✅ Fixed
+		rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);
 		doc.Accept(prettyWriter);
 
-		fileOut << buffer.GetString();
-		fileOut.close();
+		auto writeToFile = [&](const std::string& path) {
+			std::ofstream out(path);
+			if (!out.is_open()) {
+				Logger::Get().Error(DebugType::Editor) << "Failed to open " << path << " for writing" << std::endl;
+				return false;
+			}
+			out << buffer.GetString();
+			out.close();
+			Logger::Get().Info(DebugType::Editor) << "Saved prefab to: " << path << std::endl;
+			return true;
+			};
 
-		Logger::Get().Info(DebugType::Editor) << "Saved prefab to file: " << prefabName << std::endl;
+		// Save to both locations
+		writeToFile("Data/platformPrefab.json");
+		writeToFile("../../Data/platformPrefab.json");
+
 	}
 
 

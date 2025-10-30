@@ -102,6 +102,9 @@ namespace Framework {
         const PlatformPrefab* GetPlatformPrefab(const std::string& name) const;
         const TrapPlatformPrefab* GetTrapPlatformPrefab(const std::string& name) const;
         const ScalingPlatformPrefab* GetScalingPlatformPrefab(const std::string& name) const;
+        bool UpdatePrefabComponentData(const std::string& prefabName,const std::string& componentType,const rapidjson::Value& newData);
+
+        EntityPrefab* GetMutablePrefab(const std::string& name);
     };
 
 } // namespace Framework

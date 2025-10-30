@@ -126,13 +126,7 @@ namespace Framework {
             entityMgr.GetComponent<Position>(entity).Pos = position;
         }
 
-        // Add tags
-        for (const std::string& tagName : prefab.tags) {
-            if (tagName == "PlatformTag") {
-                entityMgr.AddComponent(entity, PlatformTag{});
-            }
-        }
-
+        
         return entity;
     }
 
@@ -236,6 +230,10 @@ namespace Framework {
         return (it != prefabs_.end()) ? &it->second : nullptr;
     }
 
+    EntityPrefab* PrefabSystem::GetMutablePrefab(const std::string& name) {
+        auto it = prefabs_.find(name);
+        return (it != prefabs_.end()) ? &it->second : nullptr;
+    }
 
     // ========== HELPER FUNCTIONS TO GET SPECIFIC TYPE PLATFORMS DATA ==========
 
@@ -373,9 +371,9 @@ namespace Framework {
 
         if (hasTrap || hasScaling) return nullptr;
 
-        static PlatformPrefab result;
-        result = ExtractPlatformData(prefab);
-        return &result;
+        PlatformPrefab* result = new PlatformPrefab();
+        *result = ExtractPlatformData(prefab);
+        return result;
     }
 
     const TrapPlatformPrefab* PrefabSystem::GetTrapPlatformPrefab(const std::string& name) const {
@@ -384,12 +382,11 @@ namespace Framework {
 
         const EntityPrefab& prefab = it->second;
 
-        // Check if it has TrapPlatformComponent
         for (const auto& compData : prefab.components) {
             if (compData.type == "TrapPlatformComponent") {
-                static TrapPlatformPrefab result;
-                result = ExtractTrapPlatformData(prefab);
-                return &result;
+                TrapPlatformPrefab* result = new TrapPlatformPrefab();
+                *result = ExtractTrapPlatformData(prefab);
+                return result;
             }
         }
 
@@ -402,17 +399,35 @@ namespace Framework {
 
         const EntityPrefab& prefab = it->second;
 
-        // Check if it has ScalingPlatformComponent
         for (const auto& compData : prefab.components) {
             if (compData.type == "ScalingPlatformComponent") {
-                static ScalingPlatformPrefab result;
-                result = ExtractScalingPlatformData(prefab);
-                return &result;
+                ScalingPlatformPrefab* result = new ScalingPlatformPrefab();
+                *result = ExtractScalingPlatformData(prefab);
+                return result;
             }
         }
 
         return nullptr;
     }
 
+
+    bool PrefabSystem::UpdatePrefabComponentData(const std::string& prefabName,
+        const std::string& componentType,
+        const rapidjson::Value& newData) {
+        auto it = prefabs_.find(prefabName);
+        if (it == prefabs_.end()) return false;
+
+        EntityPrefab& prefab = it->second;
+
+        // Find the component and update its data
+        for (auto& compData : prefab.components) {
+            if (compData.type == componentType) {
+                compData.data.CopyFrom(newData, compData.data.GetAllocator());
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 } // namespace Framework
