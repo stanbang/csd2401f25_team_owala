@@ -42,8 +42,7 @@ namespace Framework {
 	class WIPEntityManager;
 
 	enum ComponentType {
-		PlayerStatsType = 0,
-		PositionType,
+		PositionType = 0,
 		VelocityType,
 		AccelerationType,
 		TriangleType,
@@ -81,7 +80,6 @@ namespace Framework {
 	struct ComponentTypeTrait;
 
 	// Specializations for each real component
-	template <> struct ComponentTypeTrait<PlayerStats> { static constexpr ComponentType value = PlayerStatsType; };
 	template <> struct ComponentTypeTrait<Position> { static constexpr ComponentType value = PositionType; };
 	template <> struct ComponentTypeTrait<Velocity> { static constexpr ComponentType value = VelocityType; };
 	template <> struct ComponentTypeTrait<Acceleration> { static constexpr ComponentType value = AccelerationType; };
@@ -123,7 +121,6 @@ namespace Framework {
 
 		//Basic Components
 		std::unordered_map<Entity, EntityProperties> properties;
-		std::unordered_map<Entity, PlayerStats> playerStats;
 		std::unordered_map<Entity, Position>     position;
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;
@@ -168,7 +165,6 @@ namespace Framework {
 			std::vector<AABBCollider> aabbColliders;
 			std::vector<Triangle> triangles;
 			std::vector<TextureComponent> textures;
-			std::vector<PlayerStats> playerStats;
 			std::vector<PlayerState> playerStates;
 			std::vector<RotationFlag> rotationFlags;
 			std::vector<SceneOwned> sceneOwned;

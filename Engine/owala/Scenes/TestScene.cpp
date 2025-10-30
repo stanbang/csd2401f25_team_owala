@@ -56,8 +56,8 @@ namespace TestScene {
 	using namespace Framework;
 
 	void Initialize() {
-        FileIOSystem fileIO;
-		SceneManager& sceneMgr = SceneManager::GetInstance();
+        //FileIOSystem fileIO;
+		//SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
@@ -146,9 +146,9 @@ namespace TestScene {
         playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0]; // hardcoded kinda
 
         // -- Create Camear Entity that follows player
-        Entity mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, true);
-        sceneMgr.AddEntityToScene("Test Scene", mainCamera);
-
+        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0]; // hardcoded kinda
+        //Entity mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, true);
+        //sceneMgr.AddEntityToScene("Test Scene", mainCamera);
 
         //set camera to follow player
         cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);

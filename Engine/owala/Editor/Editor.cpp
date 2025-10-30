@@ -40,7 +40,6 @@
 #include <random> // for random generation
 
 #include "Fake_Player.h"
-#include "LoadedScene.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -52,7 +51,6 @@ namespace {
 	std::string ComponentToString(ComponentType componentType) {
 		switch (componentType)
 		{
-		case ComponentType::PlayerStatsType:				return "PlayerStats";
 		case ComponentType::PositionType:					return "Position";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
@@ -992,7 +990,7 @@ namespace Editor {
 			// Reset entity states & stop game on save 
 			isGamePlaying = false;
 			gameManager_->GetSystems().levelResetter_->RunReset();
-			std::string filePath = FileIOSystem::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+			std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
 
 			// If its a newly created scene, create new filepath for it based on scene name.
 			if (currentScene.path.empty()) {
@@ -1062,6 +1060,8 @@ namespace Editor {
 				if (ImGui::Button(scene.name.c_str())) {
 					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
 					if (!isCurrentScene) {
+						isGamePlaying = false;
+						gameManager_->GetSystems().levelResetter_->RunReset();
 						sceneMgr.LoadScene(id);
 					}
 				}
@@ -1499,13 +1499,6 @@ namespace Editor {
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
 		switch (selectedComponent) {
-		case ComponentType::PlayerStatsType: {
-			PlayerStats& playerStats = entityMgr.GetComponent<PlayerStats>(selectedEntity);
-
-			ImGui::InputFloat("Move Speed", &playerStats.moveSpeed, 0.1f, 1.f, "%.2f");
-			ImGui::InputFloat2("Position", &playerStats.pos.Pos.x, "%.2f");
-			break;
-		}
 		case ComponentType::PositionType: {
 			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
 

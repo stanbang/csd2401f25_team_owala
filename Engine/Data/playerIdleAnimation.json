@@ -1,8 +1,6 @@
 {
-  "Animation": {
-    "frameCount": 2,
-    "frameDuration": 0.1,
-    "isLooping": true,
-    "startFrame": 0
-  }
+  "frame_count": 2,
+  "frame_duration": 0.1,
+  "is_looping": true,
+  "start_frame": 0
 }
