@@ -560,6 +560,7 @@ namespace Editor {
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
 		Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
 		if (newEntity != 0) {
+			entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;			
 			if (entityMgr.HasComponent(newEntity, Framework::AABBColliderType)) {
 				// Calculate the desired size to match grid cells
 				
@@ -2224,6 +2225,10 @@ namespace Editor {
 							col.HalfSize.x = compData.data["halfSizeX"].GetFloat();
 							col.HalfSize.y = compData.data["halfSizeY"].GetFloat();
 
+							if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
+								ScalingPlatformComponent& scaleComp = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
+								scaleComp.baseHalfSize = col.HalfSize;
+							}
 						}
 					}
 				}
@@ -2254,8 +2259,6 @@ namespace Editor {
 				}
 			}
 		}
-
-		std::cout << "Applied prefab changes to entities: " << prefabName << std::endl;
 	}
 
 	// Save prefab changes to JSON file

@@ -117,6 +117,12 @@ namespace Framework {
             entityMgr.GetProperties(entity).layer = CollisionLayer::Default;
         }
 
+        for (const std::string& tag : prefab.tags) {
+            if (tag == "PlatformTag") {
+                entityMgr.AddComponent(entity, PlatformTagType);
+            }
+        }
+
         // Add all components from prefab definition
         for (const ComponentData& compData : prefab.components) {
             DeserializeComponent(storage, entity, compData);
