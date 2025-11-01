@@ -1793,7 +1793,18 @@ void Editor::HandleDragDropPlacement() {
 					// --- THIS IS THE FIX ---
 					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
 					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
-					aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+					//aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+
+					// Get the *active game camera* that the sprite renderer is using.
+					Entity gameCamera = camSystem->GetActiveCamera();
+
+					// Fallback to editor camera if no game camera is active
+					if (gameCamera == 0) {
+						gameCamera = editorCamera_;
+					}
+
+					// Pass the correct 'gameCamera' to the debug draw function.
+					aiSystem->DrawDebug(camSystem, drawList, this, gameCamera);
 				}
 
 				// 5. Remove the clipping rectangle
@@ -1939,7 +1950,7 @@ void Editor::HandleDragDropPlacement() {
 		// each world-space "square" will look rectangular on screen.
 		// Compensate by scaling the X-step by the inverse aspect ratio.
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		float xStep = cell / aspect;  // ✅ wider step if viewport is wide
+		float xStep = cell / aspect;  //  wider step if viewport is wide
 		float yStep = cell;
 
 		// Snap grid start to nearest cell
@@ -2004,12 +2015,22 @@ void Editor::HandleDragDropPlacement() {
 #pragma endregion
 
 #pragma endregion
-	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
-	{
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return ImVec2(0, 0);
 
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos, Entity cameraID)
+	{
+		if (!cameraSystem_ || cameraID == 0)
+			return ImVec2(0, 0);
+		
+		// Validate that the entity is a camera
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+
+		if (!entityMgr.HasComponent(cameraID, Framework::CameraType)) {
+			return ImVec2(0, 0);
+		}
+
+		const Camera& cam = cameraSystem_->GetCamera(cameraID); // USE THE PASSED CAMERA
 
 		// Compute offset from camera center
 		Vector2D offset = {
@@ -2022,6 +2043,13 @@ void Editor::HandleDragDropPlacement() {
 		float screenY = gameViewportPos_.y + ((1.0f - (offset.y + 1.0f) * 0.5f) * gameViewportSize_.y);
 
 		return ImVec2(screenX, screenY);
+	}
+
+
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
+	{
+		// use overloaded function, defaulting to the editor camera
+		return WorldToImGuiScreen(worldPos, editorCamera_);
 	}
 
 

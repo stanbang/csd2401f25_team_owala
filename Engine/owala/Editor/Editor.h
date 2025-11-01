@@ -196,7 +196,7 @@ namespace Editor {
 		void ShowToolbar();
 		void ShowAIDebugPanel(); 
 		// --- Grid Helper Functions ---
-		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
+		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
 		Vector2D SnapToGrid(const Vector2D& worldPos);
 		void ResetPlayerToDefaultPosition();
 
@@ -238,6 +238,10 @@ namespace Editor {
 		void Initialize() override;
 		void Update(float dt) override;
 		void Shutdown() override;
+
+		// Converts world - space coordinates to ImGui screen - space
+		// function that accepts a specific camera ID for movement
+		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos, Entity cameraID);
 
 		// Converts world-space coordinates to ImGui screen-space
 		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);

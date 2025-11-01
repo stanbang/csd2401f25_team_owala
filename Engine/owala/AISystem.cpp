@@ -52,6 +52,12 @@ namespace Framework {
 
         Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
 
+        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
+
+       /* cameraSystem->SetActiveCamera(mainCamera);
+        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        spriteRenderer->SetCameraSystem(cameraSystem);*/
+
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += dt;
         if (gridRebuildTimer_ >= gridRebuildInterval_) {
@@ -388,11 +394,6 @@ namespace Framework {
         float viewLeft, viewRight, viewBottom, viewTop;
         cameraSystem->GetViewBounds(activeCam, viewLeft, viewRight, viewBottom, viewTop);
 
-    /*    Logger::Get().Info(DebugType::AISystem)
-            << "DrawDebug called - Player at (" << playerPos.x << ", " << playerPos.y << ")"
-            << ", View bounds: (" << viewLeft << ", " << viewBottom << ") to (" << viewRight << ", " << viewTop << ")"
-            << std::endl;*/
-
         static bool gridTestLogged = false;
         if (!gridTestLogged) {
             // Get screen coords for a single 1x1 world-space square at origin
@@ -423,7 +424,7 @@ namespace Framework {
 
         // Draw navigation grid
         if (showNavigationGrid) {
-            DrawNavigationGrid(viewLeft, viewRight, viewBottom, viewTop, drawList, editor);
+            DrawNavigationGrid(viewLeft, viewRight, viewBottom, viewTop, drawList, editor, activeCam);
             Logger::Get().Info(DebugType::AISystem) << "Drawing navigation grid" << std::endl;
         }
 
@@ -441,54 +442,24 @@ namespace Framework {
             auto& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
             Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
 
-            /*Logger::Get().Info(DebugType::AISystem)
-                << "Drawing bird [" << bird << "] at (" << birdPos.x << ", " << birdPos.y << ")"
-                << std::endl;*/
 
             if (showBirdDebug) {
-                DrawBirdDebug(birdPos, ai, playerPos, drawList, editor);
-
-                if (ai.state == BirdState::HOVER) {
-                    float boxHalfWidth = ai.hoverRadius;
-                    float boxHalfHeight = ai.hoverRadius;
-
-                    Vector2D nodeA = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight };
-                    Vector2D nodeB = { playerPos.x + boxHalfWidth, playerPos.y + ai.hoverHeight };
-                    Vector2D nodeC = { playerPos.x + boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
-                    Vector2D nodeD = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
-
-                    ImU32 boxColor = ToImColor({ 0.0f, 1.0f, 1.0f, 0.3f }); // Cyan, semi-transparent
-                    ImU32 targetColor = ToImColor({ 1.0f, 1.0f, 0.0f, 1.0f }); // Yellow, solid
-
-                    // Draw the box outline
-                    drawList->AddLine(editor->WorldToImGuiScreen(nodeA), editor->WorldToImGuiScreen(nodeB), boxColor);
-                    drawList->AddLine(editor->WorldToImGuiScreen(nodeB), editor->WorldToImGuiScreen(nodeC), boxColor);
-                    drawList->AddLine(editor->WorldToImGuiScreen(nodeC), editor->WorldToImGuiScreen(nodeD), boxColor);
-                    drawList->AddLine(editor->WorldToImGuiScreen(nodeD), editor->WorldToImGuiScreen(nodeA), boxColor);
-
-                    // Draw the 4 nodes and highlight the target
-                    Vector2D nodes[4] = { nodeA, nodeB, nodeC, nodeD };
-                    for (int i = 0; i < 4; ++i) {
-                        bool isTarget = (i == (ai.currentHoverNode % 4));
-                       // DrawCircle(nodes[i], 0.05f, isTarget ? targetColor : boxColor, drawList, editor, 8);
-                    }
-                
-                }
+                DrawBirdDebug(birdPos, ai, playerPos, drawList, editor, activeCam); 
             }
 
             if (showPaths && !ai.currentPath.empty()) {
                 Color pathColor = { 1.0f, 0.0f, 1.0f, 0.8f };
-                DrawPath(ai.currentPath, pathColor, drawList, editor);
+                DrawPath(ai.currentPath, pathColor, drawList, editor, activeCam);
             }
 
             if (showColliders && entityMgr.HasComponent(bird, AABBColliderType)) {
                 Vector2D halfSize = entityMgr.GetComponent<AABBCollider>(bird).HalfSize;
-                DrawAABB(birdPos, halfSize, { 0.0f, 1.0f, 0.0f, 0.5f }, drawList, editor);
+                DrawAABB(birdPos, halfSize, { 0.0f, 1.0f, 0.0f, 0.5f }, drawList, editor, activeCam); 
             }
         }
     }
 
-    void AISystem::DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor) {
+    void AISystem::DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) { 
         Vector2D gridMin = navGrid_.WorldToGrid({ viewLeft, viewBottom });
         Vector2D gridMax = navGrid_.WorldToGrid({ viewRight, viewTop });
 
@@ -503,8 +474,8 @@ namespace Framework {
                 Vector2D min = { worldPos.x - navGrid_.cellSize * 0.5f, worldPos.y - navGrid_.cellSize * 0.5f };
                 Vector2D max = { worldPos.x + navGrid_.cellSize * 0.5f, worldPos.y + navGrid_.cellSize * 0.5f };
 
-                ImVec2 screenMin = editor->WorldToImGuiScreen(min);
-                ImVec2 screenMax = editor->WorldToImGuiScreen(max);
+                ImVec2 screenMin = editor->WorldToImGuiScreen(min, cameraID); 
+                ImVec2 screenMax = editor->WorldToImGuiScreen(max, cameraID); 
                 ImVec2 topLeft = { std::min(screenMin.x, screenMax.x), std::min(screenMin.y, screenMax.y) };
                 ImVec2 botRight = { std::max(screenMin.x, screenMax.x), std::max(screenMin.y, screenMax.y) };
 
@@ -513,7 +484,7 @@ namespace Framework {
         }
     }
 
-    void AISystem::DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos, ImDrawList* drawList, Editor::Editor* editor) {
+    void AISystem::DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) { 
         // State-based colors
         Color stateColor = { 0.5f, 0.5f, 0.5f, 0.8f }; // IDLE
         switch (ai.state) {
@@ -527,29 +498,47 @@ namespace Framework {
         Vector2D halfSize = { 0.1f, 0.1f };
         Vector2D min = birdPos - halfSize;
         Vector2D max = birdPos + halfSize;
-        ImVec2 screenMin = editor->WorldToImGuiScreen(min);
-        ImVec2 screenMax = editor->WorldToImGuiScreen(max);
+        ImVec2 screenMin = editor->WorldToImGuiScreen(min, cameraID); 
+        ImVec2 screenMax = editor->WorldToImGuiScreen(max, cameraID); 
         ImVec2 topLeft = { std::min(screenMin.x, screenMax.x), std::min(screenMin.y, screenMax.y) };
         ImVec2 botRight = { std::max(screenMin.x, screenMax.x), std::max(screenMin.y, screenMax.y) };
         drawList->AddRectFilled(topLeft, botRight, ToImColor(stateColor));
 
         // Radii
-        DrawCircle(birdPos, ai.wakeUpRadius, { 0.7f, 0.7f, 0.0f, 0.5f }, drawList, editor); // Yellow
-        DrawCircle(birdPos, ai.hoverRadius, { 0.0f, 0.7f, 0.7f, 0.5f }, drawList, editor); // Cyan
-        DrawCircle(birdPos, ai.attackRadius, { 1.0f, 0.0f, 0.0f, 0.5f }, drawList, editor); // Red
+        DrawCircle(birdPos, ai.wakeUpRadius, { 0.7f, 0.7f, 0.0f, 0.5f }, drawList, editor, cameraID); 
+        DrawCircle(birdPos, ai.hoverRadius, { 0.0f, 0.7f, 0.7f, 0.5f }, drawList, editor, cameraID);
+        DrawCircle(birdPos, ai.attackRadius, { 1.0f, 0.0f, 0.0f, 0.5f }, drawList, editor, cameraID); 
 
         // Line to player
         if (ai.state != BirdState::IDLE) {
-            drawList->AddLine(editor->WorldToImGuiScreen(birdPos), editor->WorldToImGuiScreen(playerPos), ToImColor({ 1.0f, 1.0f, 1.0f, 0.3f }));
+            drawList->AddLine(editor->WorldToImGuiScreen(birdPos, cameraID), editor->WorldToImGuiScreen(playerPos, cameraID), ToImColor({ 1.0f, 1.0f, 1.0f, 0.3f })); 
         }
 
         // Attack target
         if (ai.state == BirdState::ATTACK) {
-            DrawArrow(birdPos, ai.attackTargetPosition, { 1.0f, 0.0f, 0.0f, 1.0f }, drawList, editor);
+            DrawArrow(birdPos, ai.attackTargetPosition, { 1.0f, 0.0f, 0.0f, 1.0f }, drawList, editor, cameraID); 
+        }
+
+        if (ai.state == BirdState::HOVER) {
+            float boxHalfWidth = ai.hoverRadius;
+            float boxHalfHeight = ai.hoverRadius;
+
+            Vector2D nodeA = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight };
+            Vector2D nodeB = { playerPos.x + boxHalfWidth, playerPos.y + ai.hoverHeight };
+            Vector2D nodeC = { playerPos.x + boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
+            Vector2D nodeD = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
+
+            ImU32 boxColor = ToImColor({ 0.0f, 1.0f, 1.0f, 0.3f }); // Cyan, semi-transparent
+
+            // Draw the box outline
+            drawList->AddLine(editor->WorldToImGuiScreen(nodeA, cameraID), editor->WorldToImGuiScreen(nodeB, cameraID), boxColor); // MODIFIED
+            drawList->AddLine(editor->WorldToImGuiScreen(nodeB, cameraID), editor->WorldToImGuiScreen(nodeC, cameraID), boxColor); // MODIFIED
+            drawList->AddLine(editor->WorldToImGuiScreen(nodeC, cameraID), editor->WorldToImGuiScreen(nodeD, cameraID), boxColor); // MODIFIED
+            drawList->AddLine(editor->WorldToImGuiScreen(nodeD, cameraID), editor->WorldToImGuiScreen(nodeA, cameraID), boxColor); // MODIFIED
         }
     }
 
-    void AISystem::DrawPath(const std::vector<Vector2D>& path, const Color& color, ImDrawList* drawList, Editor::Editor* editor) {
+    void AISystem::DrawPath(const std::vector<Vector2D>& path, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) {
         if (path.size() < 2) return;
 
         ImU32 imLineColor = ToImColor(color);
@@ -557,29 +546,29 @@ namespace Framework {
         Vector2D waypointHalfSize = { 0.02f, 0.02f };
 
         for (size_t i = 0; i < path.size() - 1; ++i) {
-            drawList->AddLine(editor->WorldToImGuiScreen(path[i]), editor->WorldToImGuiScreen(path[i + 1]), imLineColor);
+            drawList->AddLine(editor->WorldToImGuiScreen(path[i], cameraID), editor->WorldToImGuiScreen(path[i + 1], cameraID), imLineColor);
 
             // Draw waypoint marker
-            ImVec2 screenMin = editor->WorldToImGuiScreen(path[i] - waypointHalfSize);
-            ImVec2 screenMax = editor->WorldToImGuiScreen(path[i] + waypointHalfSize);
+            ImVec2 screenMin = editor->WorldToImGuiScreen(path[i] - waypointHalfSize, cameraID);
+            ImVec2 screenMax = editor->WorldToImGuiScreen(path[i] + waypointHalfSize, cameraID);
             ImVec2 topLeft = { std::min(screenMin.x, screenMax.x), std::min(screenMin.y, screenMax.y) };
             ImVec2 botRight = { std::max(screenMin.x, screenMax.x), std::max(screenMin.y, screenMax.y) };
             drawList->AddRectFilled(topLeft, botRight, imWaypointColor);
         }
         // Draw last waypoint
-        ImVec2 screenMin = editor->WorldToImGuiScreen(path.back() - waypointHalfSize);
-        ImVec2 screenMax = editor->WorldToImGuiScreen(path.back() + waypointHalfSize);
+        ImVec2 screenMin = editor->WorldToImGuiScreen(path.back() - waypointHalfSize, cameraID);
+        ImVec2 screenMax = editor->WorldToImGuiScreen(path.back() + waypointHalfSize, cameraID);
         ImVec2 topLeft = { std::min(screenMin.x, screenMax.x), std::min(screenMin.y, screenMax.y) };
         ImVec2 botRight = { std::max(screenMin.x, screenMax.x), std::max(screenMin.y, screenMax.y) };
         drawList->AddRectFilled(topLeft, botRight, imWaypointColor);
     }
 
-    void AISystem::DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color, ImDrawList* drawList, Editor::Editor* editor) {
+    void AISystem::DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) {
         Vector2D min = center - halfSize;
         Vector2D max = center + halfSize;
 
-        ImVec2 screenMin = editor->WorldToImGuiScreen(min);
-        ImVec2 screenMax = editor->WorldToImGuiScreen(max);
+        ImVec2 screenMin = editor->WorldToImGuiScreen(min, cameraID);
+        ImVec2 screenMax = editor->WorldToImGuiScreen(max, cameraID);
 
         ImVec2 topLeft = { std::min(screenMin.x, screenMax.x), std::min(screenMin.y, screenMax.y) };
         ImVec2 botRight = { std::max(screenMin.x, screenMax.x), std::max(screenMin.y, screenMax.y) };
@@ -587,25 +576,25 @@ namespace Framework {
         drawList->AddRect(topLeft, botRight, ToImColor(color));
     }
 
-    void AISystem::DrawCircle(const Vector2D& center, float radius, const Color& color, ImDrawList* drawList, Editor::Editor* editor, int segments) {
+    void AISystem::DrawCircle(const Vector2D& center, float radius, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID, int segments) { // MODIFIED
         // We draw with lines to account for non-uniform camera scaling (aspect ratio)
         Vector2D worldPrevPoint = center + Vector2D(radius, 0);
-        ImVec2 prevPoint = editor->WorldToImGuiScreen(worldPrevPoint);
+        ImVec2 prevPoint = editor->WorldToImGuiScreen(worldPrevPoint, cameraID); 
         ImU32 imColor = ToImColor(color);
 
         for (int i = 1; i <= segments; ++i) {
             float angle = (2.0f * 3.14159265f / segments) * i;
             Vector2D nextWorldPoint = center + Vector2D(std::cos(angle) * radius, std::sin(angle) * radius);
-            ImVec2 nextPoint = editor->WorldToImGuiScreen(nextWorldPoint);
+            ImVec2 nextPoint = editor->WorldToImGuiScreen(nextWorldPoint, cameraID); 
             drawList->AddLine(prevPoint, nextPoint, imColor);
             prevPoint = nextPoint;
         }
     }
 
-    void AISystem::DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor) {
+    void AISystem::DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) {
         ImU32 imColor = ToImColor(color);
-        ImVec2 screenStart = editor->WorldToImGuiScreen(start);
-        ImVec2 screenEnd = editor->WorldToImGuiScreen(end);
+        ImVec2 screenStart = editor->WorldToImGuiScreen(start, cameraID);
+        ImVec2 screenEnd = editor->WorldToImGuiScreen(end, cameraID);
 
         drawList->AddLine(screenStart, screenEnd, imColor);
 
@@ -618,8 +607,8 @@ namespace Framework {
         Vector2D p2_world = end - dir * arrowheadSize - perp * arrowheadSize * 0.5f;
 
         // Convert to screen space and draw
-        drawList->AddLine(screenEnd, editor->WorldToImGuiScreen(p1_world), imColor);
-        drawList->AddLine(screenEnd, editor->WorldToImGuiScreen(p2_world), imColor);
+        drawList->AddLine(screenEnd, editor->WorldToImGuiScreen(p1_world, cameraID), imColor);
+        drawList->AddLine(screenEnd, editor->WorldToImGuiScreen(p2_world, cameraID), imColor);
     }
 
 } // namespace Framework
