@@ -1068,7 +1068,7 @@ namespace Editor {
 			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
 
 			// Add a collider so you can click on it in the editor
-			//entityMgr.AddComponent<AABBCollider>(bird, { halfSize });
+		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
 
 			// 5. Add it to the active scene
 			sceneMgr.AddEntityToScene(currentScene, bird);
@@ -1824,41 +1824,30 @@ namespace Editor {
 			if (gfx) {
 
 
+				// === STEP 1: RENDER GAME TO FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
-
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-
-
+				// Render all game sprites to the FBO
 				spriteRenderer_->Update(deltatime);
 
-
-
-				// --- MODIFICATION: ADD AI DEBUG DRAW CALL ---
-				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_; // Requires modification to GameManager
-				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
-				if (aiSystem && camSystem) {
-					// This calls all the new draw functions inside AISystem
-					aiSystem->DrawDebug(camSystem);
-				}
-
-
-				// --- END MODIFICATION ---
+				// Unbind the FBO *before* drawing to the ImGui window
 				gfx->UnbindGameFramebuffer();
 
+
+				// 1. Draw the game texture as the background
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 
-				// --- ADD NEW OVERLAY DRAWING ---
-				// Get the draw list for the current window
+				// 2. Get the draw list to render overlays ON TOP of the image
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-				// Set a clipping rectangle so overlays don't draw outside the game panel
+				// 3. Set clipping rectangle so overlays don't "bleed"
 				ImVec2 clipMin = gameViewportPos_;
 				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// Call our new overlay functions
+				// 4. Draw all overlays
 				if (showGrid_) {
 					DrawEditorGrid(drawList);
 				}
@@ -1867,7 +1856,17 @@ namespace Editor {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Remove the clipping rectangle
+				// Now your AI System debug draw will also work
+				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
+				if (aiSystem && camSystem && aiSystem->debugVisualization) {
+					// --- THIS IS THE FIX ---
+					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
+					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
+					aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+				}
+
+				// 5. Remove the clipping rectangle
 				drawList->PopClipRect();
 			}
 		}

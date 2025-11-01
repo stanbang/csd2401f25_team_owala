@@ -113,7 +113,7 @@ namespace Framework{
 
 	struct TextureComponent {
 		std::string textureKey; // Key to identify the texture resource
-		Vector2D HalfSize = { 1, 1 };
+		Vector2D HalfSize = {};
 	};
 
 	struct AudioComponent {

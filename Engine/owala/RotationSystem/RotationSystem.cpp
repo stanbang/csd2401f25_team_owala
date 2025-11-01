@@ -99,6 +99,9 @@ namespace Framework {
             if (std::abs(rotationIncrement) > 0.001f) {
                 Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
 
+                // Rotate the global gravity vector
+               // physics_->gravity_ = rotationMat * physics_->gravity_;
+
                 for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
                     if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, ActiveTagType)) {
                         Vector2D originalPos = entityMgr.GetComponent<Position>(entity).Pos;
@@ -123,6 +126,7 @@ namespace Framework {
                     rotationFlag.currentRotation = std::fmod(rotationFlag.currentRotation + 360.0f, 360.0f);
                 }
 
+               
             }
         }
     }

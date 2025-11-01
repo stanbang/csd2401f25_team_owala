@@ -1,9 +1,17 @@
 #include "Pathfinding.h"
 #include "EntityManager.h" // Assuming you have this from your other files
 #include "EntityStorage.h" // For ComponentType enums
+#include "Components.h"     
+#include <cmath>            
+#include "PhysicsSystem.h"  
 #include <algorithm>
 #include <queue>
 #include <map>
+
+// for rotation calculation 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace Framework {
 
@@ -23,18 +31,37 @@ namespace Framework {
                 const auto& pos = entityMgr.GetComponent<Position>(entity).Pos;
                 const auto& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
-                // Get the world-space bounds of the collider
-                Vector2D min = pos - halfSize;
-                Vector2D max = pos + halfSize;
+                float rotation = 0.0f;
+                if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                    rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+                }
 
-                // Convert world bounds to grid bounds
-                Vector2D gridMin = WorldToGrid(min);
-                Vector2D gridMax = WorldToGrid(max);
+                // Get the AABB of the rotated box
+                AABB_Bounds worldAABB = PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
+                Vector2D gridMin = WorldToGrid(worldAABB.min);
+                Vector2D gridMax = WorldToGrid(worldAABB.max);
 
-                // "Rasterize" the collider onto the grid
+                // calculate rotation math
+                float rotationRad = static_cast<float>(rotation * M_PI / 180.0f);
+                float cos_r = std::cos(rotationRad);
+                float sin_r = std::sin(rotationRad);
+
                 for (int x = static_cast<int>(gridMin.x); x <= static_cast<int>(gridMax.x); ++x) {
                     for (int y = static_cast<int>(gridMin.y); y <= static_cast<int>(gridMax.y); ++y) {
-                        wallNodes_.insert({ x, y });
+
+                        Vector2D cellCenterWorld = GridToWorld(x, y);
+                        Vector2D p_local = cellCenterWorld - pos;
+
+                        // Rotate cell center into box's local space
+                        Vector2D p_rot = { p_local.x * cos_r + p_local.y * sin_r,
+                                          -p_local.x * sin_r + p_local.y * cos_r };
+
+                        // Check if cell is inside the halfsize
+                        if (p_rot.x >= -halfSize.x && p_rot.x <= halfSize.x &&
+                            p_rot.y >= -halfSize.y && p_rot.y <= halfSize.y)
+                        {
+                            wallNodes_.insert({ x, y });
+                        }
                     }
                 }
             }

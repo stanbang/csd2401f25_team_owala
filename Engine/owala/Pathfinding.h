@@ -49,6 +49,8 @@ namespace Framework {
          */
         std::vector<std::unique_ptr<PathNode>> GetNeighbors(PathNode* node);
 
+
+
         Vector2D WorldToGrid(const Vector2D& worldPos) const;
         Vector2D GridToWorld(int x, int y) const;
 
