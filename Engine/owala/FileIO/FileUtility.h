@@ -46,10 +46,16 @@ namespace Framework {
 		static const bool WriteFileJson(const string& fileName, Document& d);
 
 		// Load window width and height from json file
-		Vector2D LoadWindowConfig();
+		static Vector2D LoadWindowConfig();
+
+		// Load PlayerStats from player config json file
+		static void LoadPlayerStats(float& moveSpeed, float& jumpHeight);
+
+		// Load world config variables from world config json file
+		static void LoadWorldConfig(float& gravity);
 
 		// Load AnimationInfo from a given filepath
-		AnimationInfo LoadAnimationInfo(std::string filepath);
+		static AnimationInfo LoadAnimationInfo(std::string filepath);
 
 		// Reads SceneAssets file (scenes.json) and assigns its data to doc
 		static bool LoadSceneAssets(Document& doc);
@@ -62,14 +68,26 @@ namespace Framework {
 	};
 
 	namespace FileIOKeys {
+		// Filepath constants
 		static constexpr const char* WIN_CONFIG_FILEPATH = "Data/config.json";
 		static constexpr const char* PLAYER_CONFIG_FILEPATH = "Data/player.json";
+		static constexpr const char* WORLD_CONFIG_FILEPATH = "Data/world.json";
+
 		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
 		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";
 
+		// Window config Json keys
 		static constexpr const char* WINDOW_W = "window_width";
 		static constexpr const char* WINDOW_H = "window_height";
 
+		// Player config Json keys
+		static constexpr const char* PLAYER_MV_SPEED = "move_speed";
+		static constexpr const char* PLAYER_JUMP_HEIGHT = "jump_height";
+
+		// World config Json keys
+		static constexpr const char* WORLD_GRAVITY = "gravity";
+
+		// Animation Json keys
 		static constexpr const char* FRAME_COUNT = "frame_count";
 		static constexpr const char* FRAME_DURATION = "frame_duration";
 		static constexpr const char* IS_LOOPING = "is_looping";

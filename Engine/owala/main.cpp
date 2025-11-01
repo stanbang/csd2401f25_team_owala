@@ -38,6 +38,7 @@
 #include "GLFW/glfw3.h"
 #include "CameraSystem.h"
 #include "PlatformBehaviorSystem.h"
+#include "AISystem.h" 
 
 #ifdef BUILD_EDITOR
 // Imgui Editor
@@ -73,7 +74,7 @@ int main() {
     engine.SetMode(EngineMode::Play);  // Start directly in game mode
 
     try {
-	Vector2D windowConfig = FileIOSystem().LoadWindowConfig();
+	Vector2D windowConfig = FileIOSystem::LoadWindowConfig();
     WindowsSystem *win = new WindowsSystem(engine, "Owala Engine", (int)windowConfig.x, (int)windowConfig.y);
 	g_win = win; // Set global pointer for console handler
     InputSystem *input = new InputSystem(*win);
@@ -85,6 +86,7 @@ int main() {
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
+    AISystem* aiSystem = new AISystem(*ecs, *gfx); // <-- ADD THIS
 	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
@@ -93,35 +95,37 @@ int main() {
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *levelResetter); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *levelResetter); // Register all core systems to the GameManager
 
 	// Editor Registration
     #ifdef BUILD_EDITOR
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
 	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
     #endif
-        //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
-        engine.AddSystem(win);                 // creates GLFW window + context
-        engine.AddSystem(input);               // MUST come before GameSystem
-        engine.AddSystem(rotation);
-        engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
-        engine.AddSystem(phx);                 // Physics comes after input
-        engine.AddSystem(audio);               //audio 
-        engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
-        engine.AddSystem(platform);
-        engine.AddSystem(gm);                  // GameManager for executing Game Logic
-        engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
-        engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
-        engine.AddSystem(gfx);
-        #ifdef BUILD_EDITOR
-        engine.AddSystem(editor);              // Editor
-        #endif
 
-        engine.Initialize();
-        engine.GameLoop();
-        engine.DestroySystems();
-        SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
-        return 0;
+    //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
+    engine.AddSystem(win);                 // creates GLFW window + context
+    engine.AddSystem(input);               // MUST come before GameSystem
+    engine.AddSystem(rotation);
+    engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
+    engine.AddSystem(phx);                 // Physics comes after input
+    engine.AddSystem(audio);               //audio 
+	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
+    engine.AddSystem(platform);
+    engine.AddSystem(aiSystem); 
+	engine.AddSystem(gm);                  // GameManager for executing Game Logic
+    engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
+    engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
+    #ifdef BUILD_EDITOR
+    engine.AddSystem(editor);              // Editor
+    #endif
+    engine.AddSystem(gfx);                 // swaps buffers last
+
+    engine.Initialize();
+    engine.GameLoop();
+    engine.DestroySystems();
+	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
+    return 0;
     }
     catch (const GameException& e) {
         Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);

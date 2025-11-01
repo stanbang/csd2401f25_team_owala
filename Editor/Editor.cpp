@@ -23,6 +23,7 @@
 #include "CameraSystem.h"
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
+#include "AISystem.h" // Include AISystem for debugging purposes
 
 // Debug
 #include "Logger.h"
@@ -136,6 +137,7 @@ namespace Editor {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
+
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
@@ -386,7 +388,7 @@ namespace Editor {
 		if (settings.showLevelEditor) ShowLevelEditor();
 		if (isTileEditorActive_) ShowTilemapEditor();
 		if (settings.showGameViewport) ShowGameViewport();
-
+		ShowAIDebugPanel();
 		ImGui::End();
 
 		// --- END IMGUI FRAME ---
@@ -505,153 +507,78 @@ namespace Editor {
 	}
 
 
+void Editor::HandleDragDropPlacement() {
+    if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
+        isDraggingPrefab_ = false;
+        return;
+    }
+    if (!cameraSystem_ || editorCamera_ == 0)
+        return;
 
-	void Editor::HandleDragDropPlacement() {
-		// --- SAFETY CHECKS ---
-		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
-			isDraggingPrefab_ = false;
-			return;
-		}
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return;
+    const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
-		// --- ENSURE EDITOR CAMERA IS USED FOR PLACEMENT ---
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+    // --- MOUSE POSITION (ImGui → World) ---
+    ImVec2 mousePos = ImGui::GetMousePos();
+    ImVec2 viewportPos = gameViewportPos_;     // top-left corner of game panel
+    ImVec2 viewportSize = gameViewportSize_;   // width, height of game panel
 
-		// --- CALCULATE POSITION ---
-		Vector2D worldMousePos = GetMouseWorldPosition(); // uses editor viewport
-		Vector2D snappedPos = SnapToGrid(worldMousePos);
+    // Convert from ImGui to normalized device coordinates (-1..1)
+    float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
+    float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f); 
+    // note Y is flipped here
 
-		// --- FIX Y OFFSET: Align placement Y with ImGui preview ---
-		float yOffset = baseGridCellSize_ * 2; // adjust if off by >1 cell
-		snappedPos.y -= yOffset;
+    // Convert NDC to world using editor camera
+    Vector2D worldMousePos = {
+        cam.position.x + ndcX * (cam.size.x * 0.5f),
+        cam.position.y + ndcY * (cam.size.y * 0.5f)
+    };
 
+    // --- SNAP TO GRID ---
+    Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		Framework::EntityManager entityMgr(*ecs);
-		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+    Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+    Framework::EntityManager entityMgr(*ecs);
+    Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
-		// --- DEBUG LOGGING ---
-		Framework::Logger::Get().Info(DebugType::Editor)
-			<< "HandleDragDropPlacement: Payload Name='" << dragDropPayload_.name
-			<< "', Type=" << static_cast<int>(dragDropPayload_.type)
-			<< ", Snapped=(" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
+    // Check duplicates
+    const float tolerance = baseGridCellSize_ * 0.1f;
+    for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
+        if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
+        if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+            const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+            if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
+                isDraggingPrefab_ = false;
+                return;
+            }
+        }
+    }
 
-		// --- CHECK FOR DUPLICATES ---
-		const float placementTolerance = baseGridCellSize_ * 0.1f;
-		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				if (std::abs(pos.x - snappedPos.x) < placementTolerance &&
-					std::abs(pos.y - snappedPos.y) < placementTolerance) {
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Tile already exists at placement location." << std::endl;
-					isDraggingPrefab_ = false;
-					return;
-				}
-			}
-		}
+    // --- ENTITY CREATION ---
+    Entity newEntity = entityMgr.CreateEntity();
+    float aspect = gameViewportSize_.x / gameViewportSize_.y;
+    Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
 
-		// --- ENTITY CREATION ---
-		Entity newEntity = entityMgr.CreateEntity();
+    entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
+    entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
+    entityMgr.AddComponent(newEntity, Framework::Velocity{});
+    entityMgr.AddComponent(newEntity, Framework::RigidBody{});
+    entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
+    entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
+    entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
+    entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
 
-		// Correct aspect so tiles are truly square in editor space
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
+    std::string textureKey;
+    const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
+    if (prefab) textureKey = prefab->textureID;
 
-		// Common components
-		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-		entityMgr.AddComponent(newEntity, Framework::Velocity{});
-		entityMgr.AddComponent(newEntity, Framework::RigidBody{});
-		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
-		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
+    if (!textureKey.empty()) {
+        entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
+        sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+    }
 
-		// --- TYPE-SPECIFIC PREFAB SETUP ---
-		std::string textureKey = "";
+    isDraggingPrefab_ = false;
+}
 
-		switch (dragDropPayload_.type) {
-		case PrefabType::Platform: {
-			const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
-			if (prefab) {
-				textureKey = prefab->textureID;
-				if (prefab->mass > 0.0f)
-					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(prefab->mass);
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Missing Platform Prefab: " << dragDropPayload_.name << std::endl;
-			}
-			break;
-		}
-
-		case PrefabType::TrapPlatform: {
-			const auto* trapPrefab = prefabSystem_.GetTrapPlatformPrefab(dragDropPayload_.name);
-			if (trapPrefab) {
-				textureKey = trapPrefab->textureID;
-				Framework::TrapPlatformComponent trapComp;
-				trapComp.originalPosition = snappedPos;
-				trapComp.fallSpeed = trapPrefab->fallSpeed;
-				trapComp.triggerDelay = trapPrefab->triggerDelay;
-				entityMgr.AddComponent(newEntity, trapComp);
-				if (trapPrefab->mass > 0.0f)
-					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(trapPrefab->mass);
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Missing TrapPlatform Prefab: " << dragDropPayload_.name << std::endl;
-			}
-			break;
-		}
-
-		case PrefabType::ScalingPlatform: {
-			const auto* scalePrefab = prefabSystem_.GetScalingPlatformPrefab(dragDropPayload_.name);
-			if (scalePrefab) {
-				textureKey = scalePrefab->textureID;
-				Framework::ScalingPlatformComponent scaleComp;
-				scaleComp.baseHalfSize = tileHalfSize;
-				scaleComp.scaleSpeed = scalePrefab->scaleSpeed;
-				scaleComp.minScale = scalePrefab->minScale;
-				scaleComp.maxScale = scalePrefab->maxScale;
-				scaleComp.currentScaleX = 1.0f;
-				scaleComp.currentScaleY = 1.0f;
-				entityMgr.AddComponent(newEntity, scaleComp);
-				if (scalePrefab->mass > 0.0f)
-					entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(scalePrefab->mass);
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Missing ScalingPlatform Prefab: " << dragDropPayload_.name << std::endl;
-			}
-			break;
-		}
-
-		default:
-			Framework::Logger::Get().Error(DebugType::Editor)
-				<< "Unsupported PrefabType: " << static_cast<int>(dragDropPayload_.type) << std::endl;
-			break;
-		}
-
-		// --- TEXTURE COMPONENT + FINALIZATION ---
-		if (!textureKey.empty()) {
-			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-
-			Framework::Logger::Get().Info(DebugType::Editor)
-				<< "Placed tile: " << dragDropPayload_.name
-				<< " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-		}
-		else {
-			Framework::Logger::Get().Error(DebugType::Editor)
-				<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
-		}
-
-		// --- CLEANUP ---
-		isDraggingPrefab_ = false;
-	}
 
 	// Draws a preview of the tile being dragged
 	void Editor::DrawDragDropPreview(ImDrawList* drawList) {
@@ -699,6 +626,8 @@ namespace Editor {
 		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
 		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
 	}
+
+
 
 
 	void Editor::HandleTileErasing() {
@@ -1036,7 +965,48 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Spawn Test Bird")) {
+			// Get the systems we need
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
+			// 1. Create the entity
+			Entity bird = entityMgr.CreateEntity();
+
+			// 2. Set its properties
+			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
+
+			// 3. Add components required for the AI
+			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
+			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
+			entityMgr.AddComponent<BirdAITag>(bird, {});            // Tag for the AISystem
+			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+
+			RigidBody rb;
+			rb.SetMass(0.0f); // Give it some mass
+			rb.isAffectedByGravity = false; // Make sure it doesn't fall
+			entityMgr.AddComponent<RigidBody>(bird, rb);
+
+			// 4. Add components to make it visible and selectable
+			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
+
+			// Use the "fake player texture" as requested.
+			// This texture is loaded in TestScene.cpp
+			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
+
+			// Add a collider so you can click on it in the editor
+		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
+
+			// 5. Add it to the active scene
+			sceneMgr.AddEntityToScene(currentScene, bird);
+
+			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
+				<< bird << ")";
+		}
+		// --- END OF NEW CODE ---
+		
 		ImGui::End(); // End "Level Editor" window
 
 	}
@@ -1094,7 +1064,7 @@ namespace Editor {
 				std::string sceneName = sceneNameBuffer;
 				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
 				if (!duplicateNameError) {
-					sceneMgr.CreateSceneAsset(sceneName, "");
+					sceneMgr.CreateSceneAsset(sceneName, "", true);
 					ImGui::CloseCurrentPopup();
 					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
 				}
@@ -1795,28 +1765,30 @@ namespace Editor {
 			if (gfx) {
 
 
+				// === STEP 1: RENDER GAME TO FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
-
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-
-
+				// Render all game sprites to the FBO
 				spriteRenderer_->Update(deltatime);
+
+				// Unbind the FBO *before* drawing to the ImGui window
 				gfx->UnbindGameFramebuffer();
 
+
+				// 1. Draw the game texture as the background
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 
-				// --- ADD NEW OVERLAY DRAWING ---
-				// Get the draw list for the current window
+				// 2. Get the draw list to render overlays ON TOP of the image
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-				// Set a clipping rectangle so overlays don't draw outside the game panel
+				// 3. Set clipping rectangle so overlays don't "bleed"
 				ImVec2 clipMin = gameViewportPos_;
 				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// Call our new overlay functions
+				// 4. Draw all overlays
 				if (showGrid_) {
 					DrawEditorGrid(drawList);
 				}
@@ -1825,7 +1797,17 @@ namespace Editor {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Remove the clipping rectangle
+				// Now your AI System debug draw will also work
+				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
+				if (aiSystem && camSystem && aiSystem->debugVisualization) {
+					// --- THIS IS THE FIX ---
+					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
+					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
+					aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+				}
+
+				// 5. Remove the clipping rectangle
 				drawList->PopClipRect();
 			}
 		}
@@ -2000,8 +1982,6 @@ namespace Editor {
 		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
 	}
 
-
-
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
 		// Compute aspect ratio once
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
@@ -2056,5 +2036,64 @@ namespace Editor {
 	}
 
 
+	void Editor::ShowAIDebugPanel() {
+		if (!ImGui::Begin("AI Debug Visualization")) {
+			ImGui::End();
+			return;
+		}
 
+		// Get the AI system from game manager
+		// !! IMPORTANT: This assumes you have added aiSystem_ to your GameManager systems struct
+		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+
+		if (!aiSystem) {
+			ImGui::TextDisabled("AI System not available");
+			ImGui::End();
+			return;
+		}
+
+		// Master toggle
+		ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+		ImGui::Separator();
+
+		// Individual toggles
+		ImGui::BeginDisabled(!aiSystem->debugVisualization);
+
+		ImGui::Text("Visualization Options:");
+		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);
+
+		ImGui::EndDisabled();
+
+		ImGui::Separator();
+
+		// Color legend
+		if (ImGui::CollapsingHeader("State Colors Legend")) {
+			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
+			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
+		}
+
+		if (ImGui::CollapsingHeader("Radius Legend")) {
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
+			ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
+		}
+
+		if (ImGui::CollapsingHeader("Grid Legend")) {
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
+		}
+
+		if (ImGui::CollapsingHeader("Path Legend")) {
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");
+			ImGui::Text("Squares = Waypoints");
+		}
+
+		ImGui::End();
+	}
 }

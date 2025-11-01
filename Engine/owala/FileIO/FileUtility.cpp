@@ -54,7 +54,6 @@ namespace Framework {
 	}
 
 	Vector2D FileIOSystem::LoadWindowConfig() {
-		std::string logMsg{};
 		rapidjson::Document d;
 		
 		//Read the file name passed in as a path
@@ -81,6 +80,55 @@ namespace Framework {
 		// Debugging output
 		Logger::Get().Info(DebugType::FileIOSystem) << "Config data read from config.json: Window Size = " << windowSize.x << " x " << windowSize.y << std::endl;
 		return windowSize;
+	}
+
+	void FileIOSystem::LoadPlayerStats(float& moveSpeed, float& jumpHeight) {
+		rapidjson::Document d;
+		//Read the file name passed in as a path
+		if (!ReadFile(FileIOKeys::PLAYER_CONFIG_FILEPATH, d)) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+		}
+
+		// Check if move_speed member exists && is float
+		if (!(d.HasMember(FileIOKeys::PLAYER_MV_SPEED) && d[FileIOKeys::PLAYER_MV_SPEED].IsFloat())) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "Invalid or missing move_speed in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+		}
+		// Check if jump_height member exists && is float
+		if (!(d.HasMember(FileIOKeys::PLAYER_JUMP_HEIGHT)) && d[FileIOKeys::PLAYER_JUMP_HEIGHT].IsFloat()) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing jump_height in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+		}
+
+		const rapidjson::Value& mvSpeed = d[FileIOKeys::PLAYER_MV_SPEED];
+		const rapidjson::Value& jmpHeight = d[FileIOKeys::PLAYER_JUMP_HEIGHT];
+
+		// Debugging output
+		Logger::Get().Info(DebugType::FileIOSystem) << "Player data read from " << FileIOKeys::PLAYER_CONFIG_FILEPATH 
+			<< ", moveSpeed: " << mvSpeed.GetFloat() << " jumpHeight: " << jmpHeight.GetFloat() << std::endl;
+
+		// Set variables
+		moveSpeed = mvSpeed.GetFloat();
+		jumpHeight = jmpHeight.GetFloat();
+	}
+
+	void FileIOSystem::LoadWorldConfig(float& gravity) {
+		rapidjson::Document d;
+		//Read the file name passed in as a path
+		if (!ReadFile(FileIOKeys::WORLD_CONFIG_FILEPATH, d)) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::WORLD_CONFIG_FILEPATH << std::endl;
+		}
+
+		// Check if gravity member exists && is float
+		if (!(d.HasMember(FileIOKeys::WORLD_GRAVITY) && d[FileIOKeys::WORLD_GRAVITY].IsFloat())) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "Invalid or missing gravity in " << FileIOKeys::WORLD_CONFIG_FILEPATH << std::endl;
+		}
+
+		const rapidjson::Value& gravityData = d[FileIOKeys::WORLD_GRAVITY];
+
+		// Debugging output
+		Logger::Get().Info(DebugType::FileIOSystem) << "World gravity read from " << FileIOKeys::WORLD_CONFIG_FILEPATH << ": " << gravityData.GetFloat() << std::endl;
+
+		// Set variables
+		gravity = gravityData.GetFloat();
 	}
 
 	AnimationInfo FileIOSystem::LoadAnimationInfo(std::string filepath) {

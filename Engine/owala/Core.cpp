@@ -48,10 +48,10 @@ namespace Framework {
         if (info == typeid(Framework::ResourceManager)) return "Resource Manager";
         if (info == typeid(Framework::GameManager))     return "Game Manager";
         if (info == typeid(Framework::Graphics))        return "Graphics";
-    #ifdef BUILD_EDITOR
+        if (info == typeid(Framework::AISystem))         return "AI System";
+	#ifdef BUILD_EDITOR
         if (info == typeid(Editor::Editor))             return "Editor";
     #endif
-
         // Add other systems here
         return "Unknown System"; // if no systems found
     }

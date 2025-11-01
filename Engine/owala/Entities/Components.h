@@ -22,6 +22,8 @@
 #include <string>
 #include "Matrix3x3.h"
 #include <memory> // for std::shared_ptr
+#include <vector> 
+#include <map>    
 
 namespace Framework{
 
@@ -111,7 +113,7 @@ namespace Framework{
 
 	struct TextureComponent {
 		std::string textureKey; // Key to identify the texture resource
-		Vector2D HalfSize = { 1, 1 };
+		Vector2D HalfSize = {};
 	};
 
 	struct AudioComponent {
@@ -150,6 +152,7 @@ namespace Framework{
 	struct PlatformTag {};
 	struct BackgroundTag {};
 	struct EnemyTag {};
+	struct BirdAITag {}; 
 
 	struct RotationFlag {
 		
@@ -187,6 +190,62 @@ namespace Framework{
 		bool isHovered = false; // Mouse is over the button
 		bool isPressed = false; // Button is clicked
 		bool isReleased = false; // Button click is released
+	}
+	
+	// --- ADDED FOR AI ---
+
+	/**
+	 * @enum BirdState
+	 * @brief Defines the possible states for the Bird AI.
+	 */
+	enum class BirdState {
+		IDLE,    // Sleeping, not aware of the player
+		WAKING,  // Alerted, playing "wake up" animation
+		CHASE,   // Using A* to navigate to the player
+		HOVER,   // Close to the player, hovering erratically
+		ATTACK   // Diving at the player's last known position
+	};
+
+	 /**
+	 * @struct BirdAIComponent
+	 * @brief Contains all data for the Bird's state machine and pathfinding.
+	 */
+	struct BirdAIComponent {
+
+		BirdState state = BirdState::IDLE;
+		
+		// Timers
+		float stateTimer = 0.0f;     // General purpose timer for states
+		float attackCooldown = 3.0f; // Time between attacks
+		float attackTimer = 3.0f;    // Countdown for next attack
+
+		// Radii
+		float wakeUpRadius = 0.3f;   // Distance to spot the player
+		float hoverRadius = 0.15f;    // "Close enough" distance to stop chasing
+		float attackRadius = 0.1f;   // Max distance from which to launch an attack
+
+		// Config
+		float moveSpeed = 1.0f;
+		float attackSpeed = 1.0f;
+		float wakeUpTime = 1.0f;     // Duration of WAKING state
+		//float hoverAmplitude = 0.5f; // Erratic up/down motion
+		//float hoverFrequency = 3.0f;
+
+		// Pathfinding
+		std::vector<Vector2D> currentPath{};
+		float pathRecalculateTimer = 0.0f;
+		float pathRecalculateInterval = 0.5f; // How often to find a new path
+
+		// Attack
+		Vector2D attackTargetPosition; // Where the bird is diving towards
+		float attackDuration = 1.0f;
+
+		// --- Hover Behavior (NEW SYSTEM) ---
+		float hoverHeight = 0.8f;       // How far above player to hover
+		float hoverRadius_Circle = 0.6f; // Radius of the circle above player
+		int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)
+		float hoverNodeReachedDist = 0.1f; // How close to get before moving to next node
+		float hoverSpeed = 0.3f;         // Speed when moving between hover nodes
 	};
 
 }

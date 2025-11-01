@@ -66,6 +66,8 @@ namespace Framework {
 		SceneOwnedType,
 		PersistentTagType,
 		ActiveTagType,
+		BirdAITagType,      
+		BirdAIComponentType, 
 		MAX_COMPONENTS
 	};
 
@@ -105,6 +107,8 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<SceneOwned> { static constexpr ComponentType value = SceneOwnedType; };
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
 	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };
+	template <> struct ComponentTypeTrait<BirdAITag> { static constexpr ComponentType value = BirdAITagType; };            
+	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
 
 #pragma endregion
 
@@ -139,6 +143,8 @@ namespace Framework {
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
 		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
+
+		std::unordered_map<Entity, BirdAIComponent> birdAIComponent;
 
 		std::unordered_map<Entity, Camera> cameras;//Camera
 

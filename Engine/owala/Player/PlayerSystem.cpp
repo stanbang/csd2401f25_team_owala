@@ -26,15 +26,15 @@
 #include "GameMessages.h"
 
 namespace Framework {
+    void PlayerSystem::Initialize() {
+        FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight);
+    }
 
 	void PlayerSystem::Update(float dt) {
 		(void)dt; //Suppress unused parameter warning if not used
-		const float moveSpeed = 2.0f; // movement speed
-        const float JumpHeight = 0.8f; // jump height
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_->gravity_.y);
-
-        const float jumpVelocity = std::sqrt(2.0f * gravity * JumpHeight);
+        const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
 
 		EntityManager entityMgr(*entityStorage_); // To access entity creation/destruction if needed
 		// Loop through each entity that is in the playerTag map
@@ -42,8 +42,6 @@ namespace Framework {
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-
-			
 
             // We need a RigidBody, Velocity, and PlayerState to control the player
             if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType) && entityMgr.HasComponent(entity, AnimationComponentType)) {

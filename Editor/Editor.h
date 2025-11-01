@@ -131,6 +131,7 @@ namespace Editor {
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
 		bool isMouseOverGameViewport_ = false;
+		void DrawEditorGridGfx();
 
 		// Entity factory System members
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
@@ -194,6 +195,7 @@ namespace Editor {
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
 		void ShowToolbar();
+		void ShowAIDebugPanel(); 
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
 		Vector2D SnapToGrid(const Vector2D& worldPos);
@@ -205,18 +207,18 @@ namespace Editor {
 		 /**
 		 * @brief Renders a preview of the tile being dragged.
 		 */
-		void DrawDragDropPreview(ImDrawList* drawList); // NEW: Function to draw preview
+		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
 
 		/**
 	    * @brief Loads textures and prepares palette items.
 		*/
 		void PreparePaletteItems();
 
-		// NEW HELPER: Converts world-space coordinates to ImGui screen-space
-		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
-		ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
+		
+		
+		//ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
-		// NEW: Caches the game viewport's position and size
+		// Caches the game viewport's position and size
 		void UpdateViewportData();
 
 	public:
@@ -237,5 +239,8 @@ namespace Editor {
 		void Initialize() override;
 		void Update(float dt) override;
 		void Shutdown() override;
+
+		// Converts world-space coordinates to ImGui screen-space
+		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
 	};
 }

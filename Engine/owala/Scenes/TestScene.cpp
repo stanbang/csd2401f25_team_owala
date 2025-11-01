@@ -84,11 +84,15 @@ namespace TestScene {
         // Platforms will collide with each other
         physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
 
+        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Enemy, true); // Player can collide with Enemy
+        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Enemy, true); // Enemy can collide with Platform
+        physics->SetLayerCollision(CollisionLayer::Enemy, CollisionLayer::Enemy, false);  // Enemies don't collide with each other
+
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
-		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/player_Idle_Anim.png");
-		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/player_Run_Anim.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/Eli/Eli_Idle_Spritesheet.png");
+		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/Eli/Eli_Walk_Spritesheet.png");
 		rcm_->loadTexture("playerSprite_Jump", "Assets/Sprites/player_Jump_Anim.png");
         rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
         rcm_->loadAnimationInfo("playerSprite_Run", "Data/playerRunningAnimation.json");
@@ -145,21 +149,13 @@ namespace TestScene {
         //sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         //sceneMgr.SetEntityAsPersistent(playerEntity);
         EntityManager entityMgr(*ecs);
-        playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0]; // hardcoded kinda
+        playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
+        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
-        // -- Create Camear Entity that follows player
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0]; // hardcoded kinda
-        //Entity mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, true);
-        //sceneMgr.AddEntityToScene("Test Scene", mainCamera);
-
-        //set camera to follow player
+        cameraSystem->SetActiveCamera(mainCamera);
         cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        spriteRenderer->SetCameraSystem(cameraSystem);
 
-
-        // SET THE CAMERA SYSTEM ON THE SPRITE RENDERER
-        if (spriteRenderer && cameraSystem) {
-            spriteRenderer->SetCameraSystem(cameraSystem);
-        }
 
         // --- Create Text Entity ---
         //sceneMgr.AddEntityToScene("Test Scene", createText(*ecs, "StageBound", "kiranghaerang_font", { 0.0f, 0.0f, 0.0f, 1.0f }, { -0.7f, 0.85f }, 1.5f));
