@@ -72,7 +72,7 @@ int main() {
     engine.SetMode(EngineMode::Play);  // Start directly in game mode
 
     try {
-	Vector2D windowConfig = FileIOSystem().LoadWindowConfig();
+	Vector2D windowConfig = FileIOSystem::LoadWindowConfig();
     WindowsSystem *win = new WindowsSystem(engine, "Owala Engine", (int)windowConfig.x, (int)windowConfig.y);
 	g_win = win; // Set global pointer for console handler
     InputSystem *input = new InputSystem(*win);

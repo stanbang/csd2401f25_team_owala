@@ -89,8 +89,8 @@ namespace TestScene {
         // --- Load Assets ---
 		// Load necessary files into the resource manager
         rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
-		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/player_Idle_Anim.png");
-		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/player_Run_Anim.png");
+		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/Eli/Eli_Idle_Spritesheet.png");
+		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/Eli/Eli_Walk_Spritesheet.png");
 		rcm_->loadTexture("playerSprite_Jump", "Assets/Sprites/player_Jump_Anim.png");
         rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
         rcm_->loadAnimationInfo("playerSprite_Run", "Data/playerRunningAnimation.json");
@@ -147,7 +147,7 @@ namespace TestScene {
         //sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         //sceneMgr.SetEntityAsPersistent(playerEntity);
         EntityManager entityMgr(*ecs);
-        Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
+        playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
         Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
         cameraSystem->SetActiveCamera(mainCamera);

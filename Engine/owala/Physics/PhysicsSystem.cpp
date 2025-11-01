@@ -15,6 +15,7 @@
 #include "PhysicsSystem.h"
 #include "EntityManager.h"
 #include "AABB_Collision.h"
+#include "FileUtility.h"
 #include <algorithm>
 #include <vector>
 #ifndef M_PI
@@ -47,6 +48,7 @@ namespace Framework {
 
     void PhysicsSystem::Initialize() {
         InitializeCollisionMatrix();
+        FileIOSystem::LoadWorldConfig(gravity_.y);
     }
 
     // ----------------------------------------------------------------------------
