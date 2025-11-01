@@ -89,7 +89,7 @@ namespace Framework {
 	// Scene Management APIs
 	// ---------------------------------------------------------------------------
 	#pragma region Scene Asset Stuff
-	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path) {
+	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path, const bool entitiesPopulated) {
 		CheckStorage();
 		// Check if scene with the same name already exists
 		if (CheckDuplicateSceneName(sceneName)) {
@@ -101,6 +101,7 @@ namespace Framework {
 		newScene.sceneIndex = nextGUID++;
 		newScene.name = sceneName;
 		newScene.path = path;
+		newScene.isPopulated = entitiesPopulated;
 		scenes_[newScene.sceneIndex] = newScene;
 		Logger::Get().Info(DebugType::SceneManager) << "Created new Scene: " << sceneName << " with ID: " << newScene.sceneIndex << std::endl;
 		return newScene.sceneIndex;
