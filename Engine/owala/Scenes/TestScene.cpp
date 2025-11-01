@@ -147,7 +147,7 @@ namespace TestScene {
         //sceneMgr.AddEntityToScene("Test Scene", playerEntity);
         //sceneMgr.SetEntityAsPersistent(playerEntity);
         EntityManager entityMgr(*ecs);
-        Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
+        playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
         Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
         cameraSystem->SetActiveCamera(mainCamera);
