@@ -73,6 +73,20 @@ namespace Framework {
 		return newEntity;
 	}
 
+	void EntityManager::DestroyEntity(Entity entity) {
+		// True Destruction of an entity
+		ComponentSignature signature = ecs.entitySignatures[entity];
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (signature.test(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
+		}
+
+		ecs.entitySignatures.erase(entity);
+		ecs.properties.erase(entity);
+	}
+
 	EntityProperties& EntityManager::GetProperties(Entity entity) { 
 		if (ecs.properties.find(entity) != ecs.properties.end()) {
 			return ecs.properties.at(entity);
