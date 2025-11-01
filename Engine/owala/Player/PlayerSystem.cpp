@@ -43,8 +43,6 @@ namespace Framework {
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
 
-			
-
             // We need a RigidBody, Velocity, and PlayerState to control the player
             if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType) && entityMgr.HasComponent(entity, AnimationComponentType)) {
                 Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
