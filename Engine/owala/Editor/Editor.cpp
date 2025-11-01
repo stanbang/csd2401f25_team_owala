@@ -557,40 +557,28 @@ namespace Editor {
 
 		// --- ENTITY CREATION ---
 		Entity newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
-		if (newEntity != 0) {
-			entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;			
-			if (entityMgr.HasComponent(newEntity, Framework::AABBColliderType)) {
-				// Calculate the desired size to match grid cells
-				
-				auto& collider = entityMgr.GetComponent<Framework::AABBCollider>(newEntity);
-				collider.HalfSize = tileHalfSize;
 
-				if (entityMgr.HasComponent(newEntity, Framework::ScalingPlatformComponentType)) {
-					auto& scaling = entityMgr.GetComponent<Framework::ScalingPlatformComponent>(newEntity);
-					scaling.baseHalfSize = tileHalfSize;
-				}
-			}
-
-			// --- TEXTURE COMPONENT + FINALIZATION ---
-			std::string textureKey = dragDropPayload_.name;
-			if (!textureKey.empty()) {
-				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-
-				Framework::Logger::Get().Info(DebugType::Editor)
-					<< "Placed tile: " << dragDropPayload_.name
-					<< " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
-			}
-
-			// --- CLEANUP ---
+		if (newEntity == 0) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to create entity from prefab: " << dragDropPayload_.name << std::endl;
 			isDraggingPrefab_ = false;
+			return;
 		}
+		
+		Vector2D texSize = entityMgr.GetComponent<Framework::AABBCollider>(newEntity).HalfSize;
+
+		std::string textureKey = dragDropPayload_.name;
+		if (!textureKey.empty()) {
+			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, texSize });
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+		}
+		else {
+			Framework::Logger::Get().Error(DebugType::Editor)
+				<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
+		}
+
+		// Cleanup
+		isDraggingPrefab_ = false;
+		
 	}
 
 	// Draws a preview of the tile being dragged
@@ -2182,8 +2170,19 @@ namespace Editor {
 
 			ImGui::SameLine();
 			if (ImGui::Button("Reload from File")) {
-				prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json");
-				std::cout << "Reloaded prefabs from file" << std::endl;
+				prefabSystem_ = Framework::PrefabSystem(); 
+				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
+					Framework::Logger::Get().Error(DebugType::Editor)<< "Failed to reload prefabs from file!" << std::endl;
+				}
+				else {
+					Framework::Logger::Get().Info(DebugType::Editor) << "Successfully reloaded prefabs from file" << std::endl;
+				}
+
+				if (!selectedPrefabForEditing_.empty()) {
+					ApplyPrefabChangesToEntities(selectedPrefabForEditing_);
+				}
+
+				paletteItems_.clear();
 				palettePrepared_ = false;
 			}
 		}
@@ -2265,7 +2264,7 @@ namespace Editor {
 	void Editor::SavePrefabToFile(const std::string& prefabName) {
 		using namespace Framework;
 
-		const EntityPrefab* prefab = prefabSystem_.GetPrefab(prefabName);
+		EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(prefabName);
 		if (!prefab) {
 			Logger::Get().Error(DebugType::Editor) << "Prefab not found: " << prefabName << std::endl;
 			return;
@@ -2323,6 +2322,7 @@ namespace Editor {
 			return;
 		}
 
+		// Write the updated JSON back to file
 		rapidjson::StringBuffer buffer;
 		rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);
 		doc.Accept(prettyWriter);
@@ -2343,6 +2343,11 @@ namespace Editor {
 		writeToFile("Data/platformPrefab.json");
 		writeToFile("../../Data/platformPrefab.json");
 
+		ApplyPrefabChangesToEntities(prefabName);
+
+		palettePrepared_ = false;
+
+		Logger::Get().Info(DebugType::Editor)<< "Prefab changes applied to existing entities: " << prefabName << std::endl;
 	}
 
 

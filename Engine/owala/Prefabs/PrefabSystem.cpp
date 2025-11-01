@@ -132,7 +132,13 @@ namespace Framework {
             entityMgr.GetComponent<Position>(entity).Pos = position;
         }
 
-        
+        if (entityMgr.HasComponent(entity, ScalingPlatformComponentType) &&
+            entityMgr.HasComponent(entity, AABBColliderType)) {
+            ScalingPlatformComponent& scale = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
+            AABBCollider& col = entityMgr.GetComponent<AABBCollider>(entity);
+            scale.baseHalfSize = col.HalfSize;
+        }
+
         return entity;
     }
 
@@ -204,10 +210,10 @@ namespace Framework {
         }
         else if (compData.type == "ScalingPlatformComponent") {
             ScalingPlatformComponent scaling;
-            if (data.HasMember("baseHalfSizeX"))
+         /*   if (data.HasMember("baseHalfSizeX"))
                 scaling.baseHalfSize.x = data["baseHalfSizeX"].GetFloat();
             if (data.HasMember("baseHalfSizeY"))
-                scaling.baseHalfSize.y = data["baseHalfSizeY"].GetFloat();
+                scaling.baseHalfSize.y = data["baseHalfSizeY"].GetFloat();*/
             if (data.HasMember("currentScaleX"))
                 scaling.currentScaleX = data["currentScaleX"].GetFloat();
             if (data.HasMember("currentScaleY"))

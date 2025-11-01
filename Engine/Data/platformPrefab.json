@@ -78,8 +78,8 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.5,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 0.029999999329447746,
+                        "halfSizeY": 0.05000000074505806
                     }
                 },
                 {
