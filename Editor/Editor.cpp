@@ -164,7 +164,7 @@ namespace Editor {
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
-		fs::path rootPath = fs::absolute(exePath / "../../"); // Moves out of Debug/Release, then out of build, to reach Engine root
+		fs::path rootPath = fs::absolute(exePath / ""); // Moves out of Debug/Release, then out of build, to reach Engine root
 		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
@@ -959,7 +959,7 @@ void Editor::HandleDragDropPlacement() {
 					};
 
 					// Pass the calculated position, not halfSize
-					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
+					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
@@ -994,7 +994,7 @@ void Editor::HandleDragDropPlacement() {
 
 			// Use the "fake player texture" as requested.
 			// This texture is loaded in TestScene.cpp
-			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
+			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 
 			// Add a collider so you can click on it in the editor
 		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
@@ -1642,6 +1642,7 @@ void Editor::HandleDragDropPlacement() {
 					tex.textureKey = newTextureKey;
 				}
 			}
+
 			break;
 		}
 		case ComponentType::AudioComponentType:

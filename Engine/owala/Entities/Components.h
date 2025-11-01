@@ -190,7 +190,7 @@ namespace Framework{
 		bool isHovered = false; // Mouse is over the button
 		bool isPressed = false; // Button is clicked
 		bool isReleased = false; // Button click is released
-	}
+	};
 	
 	// --- ADDED FOR AI ---
 

@@ -90,20 +90,20 @@ namespace TestScene {
 
         // --- Load Assets ---
 		// Load necessary files into the resource manager
-        rcm_->loadTexture("playerSprite", "Assets/Sprites/player_sprite_PH.png");
-		rcm_->loadTexture("playerSprite_Idle", "Assets/Sprites/Eli/Eli_Idle_Spritesheet.png");
-		rcm_->loadTexture("playerSprite_Run", "Assets/Sprites/Eli/Eli_Walk_Spritesheet.png");
-		rcm_->loadTexture("playerSprite_Jump", "Assets/Sprites/player_Jump_Anim.png");
-        rcm_->loadAnimationInfo("playerSprite_Idle", "Data/playerIdleAnimation.json");
-        rcm_->loadAnimationInfo("playerSprite_Run", "Data/playerRunningAnimation.json");
-        rcm_->loadAnimationInfo("playerSprite_Jump", "Data/playerJumpingAnimation.json");
-        rcm_->loadTexture("RonaldSprite_Platform", "Assets/Sprites/Platform.png");
-        rcm_->loadTexture("Background", "Assets/Sprites/Env_Level2_PH.png");
-		rcm_->loadSound("bgm", "Assets/Audio/bgm.wav", true, true); // Background Music
-        rcm_->loadFont("amethysta_font", "Assets/Fonts/Amethysta-Regular.ttf");
-        rcm_->loadFont("kiranghaerang_font", "Assets/Fonts/KirangHaerang-Regular.ttf");
-        rcm_->loadSound("scream", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
-        rcm_->loadSound("jump", "Assets/Audio/jump.ogg", false, false);
+        rcm_->loadTexture("player_sprite_PH.png", "Assets/Sprites/player_sprite_PH.png");
+		rcm_->loadTexture("Eli_Idle_Spritesheet.png", "Assets/Sprites/Eli/Eli_Idle_Spritesheet.png");
+		rcm_->loadTexture("Eli_Walk_Spritesheet.png", "Assets/Sprites/Eli/Eli_Walk_Spritesheet.png");
+		rcm_->loadTexture("player_Jump_Anim.png", "Assets/Sprites/player_Jump_Anim.png");
+        rcm_->loadAnimationInfo("Eli_Idle_Spritesheet.png", "Data/playerIdleAnimation.json");
+        rcm_->loadAnimationInfo("Eli_Walk_Spritesheet.png", "Data/playerRunningAnimation.json");
+        rcm_->loadAnimationInfo("player_Jump_Anim.png", "Data/playerJumpingAnimation.json");
+        rcm_->loadTexture("Platform.png", "Assets/Sprites/Platform.png");
+        rcm_->loadTexture("Env_Level2_PH.png", "Assets/Sprites/Env_Level2_PH.png");
+		rcm_->loadSound("bgm.wav", "Assets/Audio/bgm.wav", true, true); // Background Music
+        rcm_->loadFont("Amethysta-Regular.ttf", "Assets/Fonts/Amethysta-Regular.ttf");
+        rcm_->loadFont("KirangHaerang-Regular.ttf", "Assets/Fonts/KirangHaerang-Regular.ttf");
+        rcm_->loadSound("jingle.ogg", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
+        rcm_->loadSound("jump.ogg", "Assets/Audio/jump.ogg", false, false);
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
@@ -185,12 +185,12 @@ namespace TestScene {
         //press T to play scream, for not a entity yet, because we don't want to play it from the start
         if (input_->KeyPressed(InputSystem::Key::T)) {
             try {
-                FMOD::Sound& scream = resourceManager_->get<FMOD::Sound>("scream");
+                FMOD::Sound& scream = resourceManager_->get<FMOD::Sound>("jingle.ogg");
                 audio_->play(scream, /*volume*/1.0f, /*paused*/false);
             }
             catch (const GameException& e) {
 				(void)e; //Suppress unused variable warning
-                std::fprintf(stderr, "[Audio] Scream sound not found!\n");
+                std::fprintf(stderr, "[Audio] Jingle sound not found!\n");
             }
         }
         if (input_->KeyPressed(InputSystem::Key::L)) {

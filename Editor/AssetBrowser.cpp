@@ -257,18 +257,26 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 
                 if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
                 {
+                    std::string texName = asset.path.filename().string();
+
+                    // 1. Check if the resource exists
+                    if (!resourceManager_->has<Texture>(texName))
+                    {
+                        // 2. If not, try to load it
+                        resourceManager_->loadTexture(texName, asset.path.string());
+                    }
+
+                    // 3. Now, try to get it.
+                    //    (Still use try/catch in case loading failed and it's *still* not there)
                     try
                     {
-                        Texture& tex = resourceManager_->get<Texture>(asset.path.string());
+                        Texture& tex = resourceManager_->get<Texture>(texName);
                         clicked = ImGui::ImageButton(("asset_" + asset.name).c_str(), tex, itemSize, ImVec2(0, 1), ImVec2(1, 0));
                     }
-                    catch (const std::out_of_range&)
+
+                    catch (const std::exception& e)
                     {
-                        if (resourceManager_->loadTexture(asset.path.string(), asset.path.string()))
-                        {
-                            Texture& tex = resourceManager_->get<Texture>(asset.path.string());
-                            clicked = ImGui::ImageButton(("asset_" + asset.name).c_str(), tex, itemSize, ImVec2(0, 1), ImVec2(1, 0));
-                        }
+                        Logger::Get().Info(DebugType::Editor) << "Failed to load file" << std::endl;
                     }
                 }
 
@@ -439,10 +447,10 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                         // Reload the texture if it's an image
                         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
                         {
-                            if (resourceManager_->loadTexture(selectedAsset_.string(), selectedAsset_.string()))
+                            if (resourceManager_->loadTexture(selectedAsset_.filename().string(), selectedAsset_.string()))
                             {
-                                Logger::Get().Info(DebugType::Editor)
-                                    << "Reloaded texture after replacement" << std::endl;
+                                Logger::Get().Info(DebugType::Editor) << "Texture Key: " << selectedAsset_.filename().string() << std::endl;
+                                Logger::Get().Info(DebugType::Editor) << "Reloaded texture after replacement" << std::endl;
                             }
                         }
 
@@ -479,12 +487,25 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 
             // Asset preview
             if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-                try {
-                    Texture& tex = resourceManager_->get<Texture>(selectedAsset_.string());
+                std::string texName = selectedAsset_.filename().string();
+
+                // Check if the resource exists
+                if (!resourceManager_->has<Texture>(texName))
+                {
+                    // If not, try to load it
+                    resourceManager_->loadTexture(texName, selectedAsset_.string());
+                }
+
+                // Try to get resource
+                try
+                {
+                    Texture& tex = resourceManager_->get<Texture>(texName);
                     ImGui::Image(tex, ImVec2(256, 256), ImVec2(0, 1), ImVec2(1, 0));
                 }
-                catch (const std::out_of_range&) {
-                    ImGui::Text("Image not loaded.");
+
+                catch (const std::exception& e)
+                {
+                    Logger::Get().Info(DebugType::Editor) << "Failed to load file" << std::endl;
                 }
             }
             else {

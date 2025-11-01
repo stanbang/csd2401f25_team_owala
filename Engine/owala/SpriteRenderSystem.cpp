@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 #include <algorithm> // Add this for std::sort
+#include <tuple>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -44,7 +45,8 @@ namespace Framework {
             int renderOrder;
 
             bool operator<(const BatchKey& other) const {
-                return renderOrder < other.renderOrder;
+                // Sort by renderOrder first, THEN by texture
+                return std::tie(renderOrder, texture) < std::tie(other.renderOrder, other.texture);
             }
         };
 
