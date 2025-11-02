@@ -27,7 +27,7 @@ namespace Framework {
 		PlayerSystem(EntityStorage& entityStorage, InputSystem& input, PhysicsSystem& physics)
 			: entityStorage_(&entityStorage), input_(&input), physics_(&physics) {}
 		void Initialize() override;
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
 
 	private:

@@ -45,6 +45,9 @@
 // Serialization
 #include "EntitySerializer.h"
 
+// Time Management
+#include "OwalaTime.h"
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -246,7 +249,7 @@ namespace Editor {
 			}
 		}
 	}
-	void Editor::Update(float dt) {
+	void Editor::Update() {
 
 		if (!palettePrepared_ && resourceManager_) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
@@ -264,7 +267,6 @@ namespace Editor {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 		input->SetCursorLocked(false);
 
-		deltatime = dt;
 		if (!isEnabled) return;
 		SanityCheck();
 
@@ -660,7 +662,7 @@ void Editor::HandleDragDropPlacement() {
 		}
 
 		if (entityToErase != 0) {
-			sceneMgr.RemoveEntityFromScene(entityToErase);
+			entityMgr.DestroyEntity(entityToErase);
 		}
 	}
 
@@ -769,10 +771,11 @@ void Editor::HandleDragDropPlacement() {
 		// Check if an entity is selected and if the Backspace key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
 			// Tell the SceneManager to remove the entity
 			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
-				Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex - 1);
+				entityMgr.DestroyEntity(selectedEntityIndex - 1);
 
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;
@@ -836,7 +839,7 @@ void Editor::HandleDragDropPlacement() {
 			ImGui::Separator();
 
 			// Update the profiler data only when the timer ends
-			profilerUpdateTimer_ += deltatime;
+			profilerUpdateTimer_ += Framework::Time::UnscaledDeltaTime();
 			if (profilerUpdateTimer_ >= updateInterval) {
 				profilerUpdateTimer_ = 0.0f;
 				profilerDisplayData_ = engine_->GetSystemTimes(); // Get system time
@@ -1286,7 +1289,7 @@ void Editor::HandleDragDropPlacement() {
 							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
 						}
 						if (ImGui::MenuItem("Delete")) {
-							SceneManager::GetInstance().RemoveEntityFromScene(entity);
+							entityMgr.DestroyEntity(entity);
 							if ((selectedEntityIndex - 1) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 								isEntitySelected_ = false;
@@ -1772,7 +1775,7 @@ void Editor::HandleDragDropPlacement() {
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
 				// Render all game sprites to the FBO
-				spriteRenderer_->Update(deltatime);
+				spriteRenderer_->Update();
 
 				// Unbind the FBO *before* drawing to the ImGui window
 				gfx->UnbindGameFramebuffer();
@@ -1805,7 +1808,18 @@ void Editor::HandleDragDropPlacement() {
 					// --- THIS IS THE FIX ---
 					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
 					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
-					aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+					//aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+
+					// Get the *active game camera* that the sprite renderer is using.
+					Entity gameCamera = camSystem->GetActiveCamera();
+
+					// Fallback to editor camera if no game camera is active
+					if (gameCamera == 0) {
+						gameCamera = editorCamera_;
+					}
+
+					// Pass the correct 'gameCamera' to the debug draw function.
+					aiSystem->DrawDebug(camSystem, drawList, this, gameCamera);
 				}
 
 				// 5. Remove the clipping rectangle
@@ -1951,7 +1965,7 @@ void Editor::HandleDragDropPlacement() {
 		// each world-space "square" will look rectangular on screen.
 		// Compensate by scaling the X-step by the inverse aspect ratio.
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		float xStep = cell / aspect;  // ✅ wider step if viewport is wide
+		float xStep = cell / aspect;  //  wider step if viewport is wide
 		float yStep = cell;
 
 		// Snap grid start to nearest cell
@@ -2016,12 +2030,22 @@ void Editor::HandleDragDropPlacement() {
 #pragma endregion
 
 #pragma endregion
-	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
-	{
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return ImVec2(0, 0);
 
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos, Entity cameraID)
+	{
+		if (!cameraSystem_ || cameraID == 0)
+			return ImVec2(0, 0);
+		
+		// Validate that the entity is a camera
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+
+		if (!entityMgr.HasComponent(cameraID, Framework::CameraType)) {
+			return ImVec2(0, 0);
+		}
+
+		const Camera& cam = cameraSystem_->GetCamera(cameraID); // USE THE PASSED CAMERA
 
 		// Compute offset from camera center
 		Vector2D offset = {
@@ -2034,6 +2058,13 @@ void Editor::HandleDragDropPlacement() {
 		float screenY = gameViewportPos_.y + ((1.0f - (offset.y + 1.0f) * 0.5f) * gameViewportSize_.y);
 
 		return ImVec2(screenX, screenY);
+	}
+
+
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
+	{
+		// use overloaded function, defaulting to the editor camera
+		return WorldToImGuiScreen(worldPos, editorCamera_);
 	}
 
 

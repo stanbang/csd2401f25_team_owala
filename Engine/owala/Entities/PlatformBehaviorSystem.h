@@ -24,14 +24,14 @@ namespace Framework {
         EntityStorage* ecs_;
 
         // Internal update methods for different platform types
-        void UpdateTrapPlatforms(float dt);
-        void UpdateScalingPlatforms(float dt);
+        void UpdateTrapPlatforms();
+        void UpdateScalingPlatforms();
 
     public:
         PlatformBehaviorSystem(EntityStorage& storage) : ecs_(&storage) {}
 
         void Initialize() override {}
-        void Update(float dt) override;
+        void Update() override;
         void Shutdown() override {}
 
         // Trap platform specific methods

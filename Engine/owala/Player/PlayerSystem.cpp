@@ -30,8 +30,7 @@ namespace Framework {
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight);
     }
 
-	void PlayerSystem::Update(float dt) {
-		(void)dt; //Suppress unused parameter warning if not used
+	void PlayerSystem::Update() {
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_->gravity_.y);
         const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);

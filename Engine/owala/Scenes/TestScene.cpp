@@ -17,7 +17,6 @@
 #include "BackgroundEntity.h"
 #include "TextEntity.h"
 #include "EntityStorage.h"
-#include "RotationSystem.h"
 #include "Matrix3x3.h"
 #include "AudioSystem.h"
 #include "Transformation.h"

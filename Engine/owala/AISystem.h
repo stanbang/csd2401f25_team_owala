@@ -23,7 +23,7 @@ namespace Framework {
         AISystem(EntityStorage& storage, Graphics& gfx);
 
         void Initialize() override;
-        void Update(float dt) override;
+        void Update() override;
         void Shutdown() override;
 
         // Main debug draw call (will be called by the Editor)
@@ -52,23 +52,30 @@ namespace Framework {
 
         // --- State Machine Handlers ---
         void HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
-        void HandleWakingState(Entity bird, BirdAIComponent& ai, float dt);
-        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos, float dt);
-        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos, float dt);
-        void HandleAttackState(Entity bird, BirdAIComponent& ai, float dt);
+        void HandleWakingState(Entity bird, BirdAIComponent& ai);
+        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
+        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
+        void HandleAttackState(Entity bird, BirdAIComponent& ai);
 
         /**
          * @brief Moves the bird along its calculated path.
          */
-        void FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos, float dt);
+        void FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos);
 
         // ---- Private debug drawing helpers ---
-        void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor);
+        /*void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor);
         void DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos, ImDrawList* drawList, Editor::Editor* editor);
         void DrawPath(const std::vector<Vector2D>& path, const Color& color, ImDrawList* drawList, Editor::Editor* editor);
         void DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color, ImDrawList* drawList, Editor::Editor* editor);
         void DrawCircle(const Vector2D& center, float radius, const Color& color, ImDrawList* drawList, Editor::Editor* editor, int segments = 32);
-        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor);
+        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor);*/
+
+        void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawPath(const std::vector<Vector2D>& path, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawCircle(const Vector2D& center, float radius, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID, int segments = 32);
+        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
     };
 
 } // namespace Framework

@@ -33,7 +33,7 @@ namespace Framework {
     //   class MySystem : public ISystem {
     //   public:
     //       void Initialize() override { /* setup resources */ }
-    //       void Update(float dt) override { /* per-frame logic */ }
+    //       void Update() override { /* per-frame logic */ }
     //       void Shutdown() override { /* cleanup */ }
     //   };
     //
@@ -52,7 +52,7 @@ namespace Framework {
          * \param dt Delta time in seconds since last frame.
          * \details Called once per frame in the CoreEngine::GameLoop().
          */
-        virtual void Update(float dt) = 0;
+        virtual void Update() = 0;
 
         /**
          * \brief Shutdown the system.

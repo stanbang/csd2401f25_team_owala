@@ -134,7 +134,7 @@ namespace Framework {
 
 		/* Game Cycle Functions */
 		void Initialize() override;
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
 	};
 }

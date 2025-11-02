@@ -109,8 +109,6 @@ namespace Framework {
 		// Attach the SceneOwned component to the entity, indicating which scene it belongs to. 
 		// Overloaded Function: Uses the Scene Object instead.
 		void AddEntityToScene(const SceneAsset& scene, Entity entity);
-		// Removes the SceneOwned component from the entity if attached.
-		void RemoveEntityFromScene(Entity entity);
 		// Sets or unsets the PersistentTag on the entity, indicating if it should persist across scene changes. Note that the entity must already have a SceneOwned component to be set as persistent.
 		void SetEntityAsPersistent(Entity entity, bool shouldPersist = true);
 		// Retrieves a list of all entities that belong to the specified scene, if the scene exists.

@@ -98,7 +98,6 @@ namespace Editor {
 		//  Members for the system profiler display
 		float profilerUpdateTimer_ = 0.0f;
 		std::vector<Framework::SystemTime> profilerDisplayData_;
-		float deltatime = 0.f;
 
 		// Entity Inspector
 		int selectedEntityIndex = 0;
@@ -197,7 +196,7 @@ namespace Editor {
 		void ShowToolbar();
 		void ShowAIDebugPanel(); 
 		// --- Grid Helper Functions ---
-		void DrawEditorGrid(ImDrawList* drawList); // MODIFIED: Added ImDrawList*
+		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
 		Vector2D SnapToGrid(const Vector2D& worldPos);
 		void ResetPlayerToDefaultPosition();
 
@@ -237,8 +236,12 @@ namespace Editor {
 		 * @details Loads prefabs from file and sets up the ImGui context and backends.
 		 */
 		void Initialize() override;
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
+
+		// Converts world - space coordinates to ImGui screen - space
+		// function that accepts a specific camera ID for movement
+		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos, Entity cameraID);
 
 		// Converts world-space coordinates to ImGui screen-space
 		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);

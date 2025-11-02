@@ -159,6 +159,7 @@ namespace Framework{
 		bool isRotating = false;
 		float currentRotation = 0.0f;
 		float targetRotation = 0.0f;
+		Matrix3x3 transformMatrix;
 	};
 
 	

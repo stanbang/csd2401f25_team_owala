@@ -12,10 +12,11 @@
 #include <iostream>
 #include "WindowsSystem.h" // Include for glfwGetKey
 #include <GLFW/glfw3.h>   // Include for key codes
+#include "OwalaTime.h"
 
 namespace Framework {
 
-    void AnimationSystem::Update(float dt) {
+    void AnimationSystem::Update() {
 		EntityManager entityMgr(*entityStorage_);
         // Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
@@ -66,7 +67,7 @@ namespace Framework {
 			if (!animationComponent.isPlaying) continue;
 
 			// Update elapsed time
-			animationComponent.elapsedTime += dt;
+			animationComponent.elapsedTime += Framework::Time::DeltaTime();
 
 			//	Check if it's time to switch to the next frame
 			if (animationComponent.elapsedTime >= animationComponent.frameDuration) {

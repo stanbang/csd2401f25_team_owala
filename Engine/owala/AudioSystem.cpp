@@ -43,7 +43,7 @@ namespace Framework {
 
     }
 
-    void AudioSystem::Update(float /*dt*/) {
+    void AudioSystem::Update() {
 		EntityManager entityMgr(*entityStorage_);
         if (system_) {
             FMOD_RESULT r = system_->update();

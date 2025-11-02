@@ -26,7 +26,7 @@ namespace Framework {
 		AnimationSystem(EntityStorage& entityStorage, ResourceManager& resourceManager)
 			: entityStorage_(&entityStorage), resourceManager_(&resourceManager) {}
 		void Initialize() override {}
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
 
 	private:
