@@ -22,7 +22,7 @@
 
 #include "WindowsSystem.h"
 #include "InputSystem.h"
-#include "RotationSystem.h"
+#include "TransformationSystem.h"
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
 #include "AudioSystem.h"
@@ -39,7 +39,7 @@ namespace Framework {
     static std::string GetSystemName(const std::type_info& info) {
         if (info == typeid(Framework::WindowsSystem))   return "Windows System";
         if (info == typeid(Framework::InputSystem))     return "Input System";
-        if (info == typeid(Framework::RotationSystem))  return "Rotation System";
+        if (info == typeid(Framework::TransformationSystem))  return "Transformation System";
         if (info == typeid(Framework::PlayerSystem))    return "Player System";
         if (info == typeid(Framework::PhysicsSystem))   return "Physics System";
         if (info == typeid(Framework::AudioSystem))     return "Audio System";
