@@ -19,7 +19,7 @@ namespace Framework {
 		glfwMakeContextCurrent(win_);
 		glfwSwapInterval(1);
 	}
-	void WindowsSystem::Update(float) {
+	void WindowsSystem::Update() {
 		glfwPollEvents();
 		if (win_ && glfwWindowShouldClose(win_)) core_->RequestQuit();
 	}

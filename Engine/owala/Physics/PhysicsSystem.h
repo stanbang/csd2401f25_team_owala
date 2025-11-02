@@ -51,7 +51,7 @@ namespace Framework {
          * @details Uses a fixed timestep internally for stability.
          * @param dt The time elapsed since the last frame.
          */
-        void Update(float dt) override;
+        void Update() override;
 
         /**
          * @brief Shuts down the physics system (currently not in use).

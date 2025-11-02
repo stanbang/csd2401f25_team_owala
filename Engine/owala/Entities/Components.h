@@ -159,6 +159,7 @@ namespace Framework{
 		bool isRotating = false;
 		float currentRotation = 0.0f;
 		float targetRotation = 0.0f;
+		Matrix3x3 transformMatrix;
 	};
 
 	
@@ -186,6 +187,12 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
+	struct Button {
+		bool isHovered = false; // Mouse is over the button
+		bool isPressed = false; // Button is clicked
+		bool isReleased = false; // Button click is released
+	};
+	
 	// --- ADDED FOR AI ---
 
 	/**

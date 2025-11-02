@@ -34,6 +34,8 @@ namespace Framework {
 		Entity CreateEntity();
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
 		Entity CloneEntity(const Entity& entity);
+		// Destroys the specified entity, the entity and all its components are destroyed together.
+		void DestroyEntity(Entity entity);
 
 		// Gets the property data of the specified entity.
 		EntityProperties& GetProperties(Entity entity);
@@ -101,6 +103,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
 			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
+			else if constexpr (std::is_same_v<T, Button>) return ecs.button.at(entity);
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
@@ -151,7 +154,7 @@ namespace Framework {
 
 	template<typename... Args>
 	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {
-		// 1. Create the required signature bitset
+		// Create the required signature bitset
 		ComponentSignature requiredSignature;
 
 		// This sets a bit for each component type passed in

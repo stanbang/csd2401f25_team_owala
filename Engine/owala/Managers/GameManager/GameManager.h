@@ -29,6 +29,9 @@
 #include "Editor.h"
 #include "AISystem.h"
 #include "FileUtility.h"
+#ifdef BUILD_EDITOR
+#include "Editor.h"
+#endif
 
 #include <vector>
 
@@ -74,7 +77,9 @@ namespace Framework {
 		};
 
 		RegisteredSystems systems_;
+#ifdef BUILD_EDITOR
 		Editor::Editor* editor_ = nullptr; // ImGui Editor instance
+#endif
 
 		float deltaTime = 0.0f;
 		float globalTimeDilation = 1.0f; // 1.0f is normal speed, 0.5f is half speed, 2.0f is double speed
@@ -117,11 +122,11 @@ namespace Framework {
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera, AISystem& ai, LevelResetSystem& levelResetter);
-					
-
+			CameraSystem& camera, AISystem& ai, LevelResetSystem& levelResetter);		
+				
+#ifdef BUILD_EDITOR
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
-
+#endif
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.
 		void RegisterScriptToScene(SceneGUID sceneIndex, SceneFunction initFunction, SceneFunction updateFunction, SceneFunction freeFunction);
@@ -129,7 +134,7 @@ namespace Framework {
 
 		/* Game Cycle Functions */
 		void Initialize() override;
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
 	};
 }

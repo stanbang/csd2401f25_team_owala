@@ -27,7 +27,7 @@ namespace Framework {
 		Entity newEntity = nextEntityID++;
 		ecs.entitySignatures[newEntity] = emptySignature;
 
-		std::string entityName = "GameObject (" + std::to_string(newEntity) + ")";
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
@@ -57,6 +57,7 @@ namespace Framework {
 					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
 					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
 					case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(newEntity, GetComponent<ScalingPlatformComponent>(entity)); break;
+					case ComponentType::ButtonType: AddComponent<Button>(newEntity, GetComponent<Button>(entity)); break;
 					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
 					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
 					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
@@ -72,6 +73,20 @@ namespace Framework {
 		ecs.entitySignatures[newEntity] = otherSignature;
 
 		return newEntity;
+	}
+
+	void EntityManager::DestroyEntity(Entity entity) {
+		// True Destruction of an entity
+		ComponentSignature signature = ecs.entitySignatures[entity];
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (signature.test(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
+		}
+
+		ecs.entitySignatures.erase(entity);
+		ecs.properties.erase(entity);
 	}
 
 	EntityProperties& EntityManager::GetProperties(Entity entity) { 
@@ -106,6 +121,7 @@ namespace Framework {
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
+		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
 		case ComponentType::PlayerTagType:
@@ -144,6 +160,7 @@ namespace Framework {
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case CameraType: ecs.cameras.erase(entity); break;
+			case ButtonType: ecs.button.erase(entity); break;
 			case BirdAIComponentType: ecs.birdAIComponent.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:

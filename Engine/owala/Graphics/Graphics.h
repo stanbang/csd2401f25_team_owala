@@ -52,7 +52,7 @@ namespace Framework {
 
         // -------- ISystem interface --------
         void Initialize() override;
-        void Update(float dt) override;
+        void Update() override;
         void Shutdown() override;
 
         // -------- Screen info --------

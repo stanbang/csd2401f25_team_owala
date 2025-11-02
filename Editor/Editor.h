@@ -30,6 +30,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_stdlib.h"
 #include "AssetBrowser.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -97,7 +98,6 @@ namespace Editor {
 		//  Members for the system profiler display
 		float profilerUpdateTimer_ = 0.0f;
 		std::vector<Framework::SystemTime> profilerDisplayData_;
-		float deltatime = 0.f;
 
 		// Entity Inspector
 		int selectedEntityIndex = 0;
@@ -236,7 +236,7 @@ namespace Editor {
 		 * @details Loads prefabs from file and sets up the ImGui context and backends.
 		 */
 		void Initialize() override;
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
 
 		// Converts world - space coordinates to ImGui screen - space

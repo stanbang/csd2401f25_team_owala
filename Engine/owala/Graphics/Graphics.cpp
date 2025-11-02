@@ -14,6 +14,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "Logger.h"
+#include "OwalaTime.h"
 
 namespace Framework {
 
@@ -234,8 +235,8 @@ namespace Framework {
 		CreateGameFramebuffer(800, 600);
     }
 
-    void Graphics::Update(float dt) {
-        t_ += dt;
+    void Graphics::Update() {
+        t_ += Framework::Time::DeltaTime();
         // Present the frame (anything drawn since beginFrame)
         glfwSwapBuffers(win_->window());
     }

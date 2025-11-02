@@ -59,6 +59,7 @@ namespace Framework {
 		CameraType,
 		PlayerTagType,
 		FakePlayerTagType,
+		ButtonType,
 		PlatformTagType,
 		BackgroundTagType,
 		EnemyTagType,
@@ -99,6 +100,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<FakePlayerTag> { static constexpr ComponentType value = FakePlayerTagType; };
+	template <> struct ComponentTypeTrait<Button> { static constexpr ComponentType value = ButtonType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
 	template <> struct ComponentTypeTrait<EnemyTag> { static constexpr ComponentType value = EnemyTagType; };
@@ -135,6 +137,7 @@ namespace Framework {
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 		std::unordered_map<Entity, TrapPlatformComponent> trapPlatform;
 		std::unordered_map<Entity, ScalingPlatformComponent> scalingPlatform;
+		std::unordered_map<Entity, Button> button;
 
 		std::unordered_map<Entity, TextureComponent>      tex; //Texture Component
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component

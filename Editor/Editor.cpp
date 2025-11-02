@@ -33,6 +33,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_internal.h>
+#include <imgui_stdlib.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -43,6 +44,9 @@
 
 // Serialization
 #include "EntitySerializer.h"
+
+// Time Management
+#include "OwalaTime.h"
 
 // Internal Helpers
 namespace {
@@ -163,7 +167,7 @@ namespace Editor {
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
-		fs::path rootPath = fs::absolute(exePath / "../../"); // Moves out of Debug, then out of build, to reach Engine root
+		fs::path rootPath = fs::absolute(exePath / ""); // Moves out of Debug/Release, then out of build, to reach Engine root
 		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
@@ -245,7 +249,7 @@ namespace Editor {
 			}
 		}
 	}
-	void Editor::Update(float dt) {
+	void Editor::Update() {
 
 		if (!palettePrepared_ && resourceManager_) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
@@ -263,7 +267,6 @@ namespace Editor {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 		input->SetCursorLocked(false);
 
-		deltatime = dt;
 		if (!isEnabled) return;
 		SanityCheck();
 
@@ -659,7 +662,7 @@ void Editor::HandleDragDropPlacement() {
 		}
 
 		if (entityToErase != 0) {
-			sceneMgr.RemoveEntityFromScene(entityToErase);
+			entityMgr.DestroyEntity(entityToErase);
 		}
 	}
 
@@ -768,10 +771,11 @@ void Editor::HandleDragDropPlacement() {
 		// Check if an entity is selected and if the Backspace key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
 			// Tell the SceneManager to remove the entity
 			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
-				Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex - 1);
+				entityMgr.DestroyEntity(selectedEntityIndex - 1);
 
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;
@@ -835,7 +839,7 @@ void Editor::HandleDragDropPlacement() {
 			ImGui::Separator();
 
 			// Update the profiler data only when the timer ends
-			profilerUpdateTimer_ += deltatime;
+			profilerUpdateTimer_ += Framework::Time::UnscaledDeltaTime();
 			if (profilerUpdateTimer_ >= updateInterval) {
 				profilerUpdateTimer_ = 0.0f;
 				profilerDisplayData_ = engine_->GetSystemTimes(); // Get system time
@@ -957,8 +961,8 @@ void Editor::HandleDragDropPlacement() {
 						(row - gridSize / 2) * spacing
 					};
 
-					// FIX: Pass the calculated position, not halfSize
-					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
+					// Pass the calculated position, not halfSize
+					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
@@ -993,7 +997,7 @@ void Editor::HandleDragDropPlacement() {
 
 			// Use the "fake player texture" as requested.
 			// This texture is loaded in TestScene.cpp
-			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
+			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 
 			// Add a collider so you can click on it in the editor
 		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
@@ -1285,7 +1289,7 @@ void Editor::HandleDragDropPlacement() {
 							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
 						}
 						if (ImGui::MenuItem("Delete")) {
-							SceneManager::GetInstance().RemoveEntityFromScene(entity);
+							entityMgr.DestroyEntity(entity);
 							if ((selectedEntityIndex - 1) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 								isEntitySelected_ = false;
@@ -1628,9 +1632,20 @@ void Editor::HandleDragDropPlacement() {
 			break;
 		}
 		case ComponentType::TextureComponentType: {
-			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 
-			ImGui::TextDisabled("Properties are Hidden");
+			//Show text but make it read-only
+			ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newTextureKey = "";
+			ImGui::InputText("New Texture Key", &newTextureKey);
+
+			//Button to update texture key
+			if (ImGui::Button("Update Texture")) {
+				if (!newTextureKey.empty()) {
+					tex.textureKey = newTextureKey;
+				}
+			}
+
 			break;
 		}
 		case ComponentType::AudioComponentType:
@@ -1760,7 +1775,7 @@ void Editor::HandleDragDropPlacement() {
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
 				// Render all game sprites to the FBO
-				spriteRenderer_->Update(deltatime);
+				spriteRenderer_->Update();
 
 				// Unbind the FBO *before* drawing to the ImGui window
 				gfx->UnbindGameFramebuffer();

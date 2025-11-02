@@ -104,7 +104,7 @@ namespace Framework {
          * \details Copies current ? previous state, polls GLFW for fresh state,
          *          updates mouse position and per-frame delta.
          */
-        void Update(float dt) override;
+        void Update() override;
 
         /**
          * \brief Shut down input system (no-op).

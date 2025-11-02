@@ -22,14 +22,18 @@
 
 #include "WindowsSystem.h"
 #include "InputSystem.h"
-#include "RotationSystem.h"
+#include "TransformationSystem.h"
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
 #include "AudioSystem.h"
 #include "ResourceManager.h"
 #include "GameManager.h"
 #include "Graphics.h"
+#include "OwalaTime.h"
+#ifdef BUILD_EDITOR
 #include "Editor.h"
+#endif
+
 
 namespace Framework {
 
@@ -39,15 +43,17 @@ namespace Framework {
     static std::string GetSystemName(const std::type_info& info) {
         if (info == typeid(Framework::WindowsSystem))   return "Windows System";
         if (info == typeid(Framework::InputSystem))     return "Input System";
-        if (info == typeid(Framework::RotationSystem))  return "Rotation System";
+        if (info == typeid(Framework::TransformationSystem))  return "Transformation System";
         if (info == typeid(Framework::PlayerSystem))    return "Player System";
         if (info == typeid(Framework::PhysicsSystem))   return "Physics System";
         if (info == typeid(Framework::AudioSystem))     return "Audio System";
         if (info == typeid(Framework::ResourceManager)) return "Resource Manager";
         if (info == typeid(Framework::GameManager))     return "Game Manager";
         if (info == typeid(Framework::Graphics))        return "Graphics";
-        if (info == typeid(Editor::Editor))             return "Editor";
         if (info == typeid(Framework::AISystem))         return "AI System";
+	#ifdef BUILD_EDITOR
+        if (info == typeid(Editor::Editor))             return "Editor";
+    #endif
         // Add other systems here
         return "Unknown System"; // if no systems found
     }
@@ -79,11 +85,13 @@ namespace Framework {
 
         using clock = std::chrono::high_resolution_clock;
         auto prev = clock::now();
+        Framework::Time::Initialize();
         systemTimes_.resize(systems_.size());
 
         while (running_) {
             // --- Time step calculation ---
             auto now = clock::now();
+            Framework::Time::BeginFrame();
             float dt = std::chrono::duration<float>(now - prev).count();
             prev = now;
             dt = std::min(dt, 0.25f); // cap huge delta time
@@ -115,7 +123,7 @@ namespace Framework {
 
                 // --- Execute ---
                 if (shouldUpdate)
-                    sys->Update(dt);
+                    sys->Update();
 
                 auto end = clock::now();
                 systemTimes_[i].name = sysName;
@@ -132,6 +140,8 @@ namespace Framework {
                     t.percentage = static_cast<float>((t.milliseconds / totalFrameTime_) * 100.0);
             }
         }
+
+		Framework::Time::EndFrame();
     }
 
     // ------------------------------------------------------------------------
