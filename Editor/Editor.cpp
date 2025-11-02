@@ -70,6 +70,7 @@ namespace {
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
+		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -77,6 +78,7 @@ namespace {
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::GUITagType:						return "GUITag";
 		default:											return "Unknown";
 		}
 	}
@@ -1663,6 +1665,9 @@ void Editor::HandleDragDropPlacement() {
 				}
 			}
 
+			// Vector2D HalfSize Input
+			ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f");
+
 			break;
 		}
 		case ComponentType::AudioComponentType:
@@ -1754,6 +1759,11 @@ void Editor::HandleDragDropPlacement() {
 		ImGuiWindow* gameWindow = ImGui::FindWindowByName("Game");
 		if (!gameWindow || gameWindow->Collapsed) {
 			isMouseOverGameViewport_ = false;
+
+			if (gameManager_->GetSystems().guiSystem_) { // Check if gui system exists
+				gameManager_->GetSystems().guiSystem_->SetViewportContext({ 0,0 }, { 1,1 });
+			}
+
 			return; // Window not visible or found
 		}
 
@@ -1770,6 +1780,10 @@ void Editor::HandleDragDropPlacement() {
 			mousePos.x <= gameViewportPos_.x + gameViewportSize_.x &&
 			mousePos.y >= gameViewportPos_.y &&
 			mousePos.y <= gameViewportPos_.y + gameViewportSize_.y;
+
+		if (gameManager_->GetSystems().guiSystem_) {
+			gameManager_->GetSystems().guiSystem_->SetViewportContext(gameViewportPos_, gameViewportSize_);
+		}
 	}
 
 	void Editor::ShowGameViewport() {

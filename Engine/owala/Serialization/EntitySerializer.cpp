@@ -123,6 +123,16 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::ROTATIONFLAG_COMPONENT), value, alloc);
 		}
 
+		// Serialize Button Component
+		if (entityMgr.HasComponent(entity, ComponentType::ButtonType)) {
+			Button& button = entityMgr.GetComponent<Button>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_HOVERED), button.isHovered, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_PRESSED), button.isPressed, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_RELEASED), button.isReleased, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::BUTTON_COMPONENT), value, alloc);
+		}
+
 		// Serialize TrapPlatform Component
 		if (entityMgr.HasComponent(entity, ComponentType::TrapPlatformComponentType)) {
 			TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
@@ -270,6 +280,10 @@ namespace Framework {
 		}
 		if (entityMgr.HasComponent(entity, ComponentType::ActiveTagType)) {
 			rapidjson::Value tagVal(Serialization::ACTIVE_TAG, alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+		if (entityMgr.HasComponent(entity, ComponentType::GUITagType)) {
+			rapidjson::Value tagVal(Serialization::GUI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
 
@@ -468,6 +482,22 @@ namespace Framework {
 				rotationFlag.targetRotation = rFlagData[Serialization::TARGET_ROTATION].GetFloat();
 			}
 			entityMgr.AddComponent<RotationFlag>(loadedEntity, rotationFlag);
+		}
+
+		// Deserialize Button Component
+		if (componentLists.HasMember(Serialization::BUTTON_COMPONENT)) {
+			const rapidjson::Value& buttonData = componentLists[Serialization::BUTTON_COMPONENT];
+			Button button;
+			if (buttonData.HasMember(Serialization::IS_HOVERED) && buttonData[Serialization::IS_HOVERED].IsBool()) {
+				button.isHovered = buttonData[Serialization::IS_HOVERED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::IS_PRESSED) && buttonData[Serialization::IS_PRESSED].IsBool()) {
+				button.isPressed = buttonData[Serialization::IS_PRESSED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::IS_RELEASED) && buttonData[Serialization::IS_RELEASED].IsBool()) {
+				button.isReleased = buttonData[Serialization::IS_RELEASED].GetBool();
+			}
+			entityMgr.AddComponent<Button>(loadedEntity, button);
 		}
 
 		// Deserialize TrapPlatform Component
@@ -711,6 +741,9 @@ namespace Framework {
 				}
 				else if (tag == Serialization::ACTIVE_TAG) {
 					entityMgr.AddComponent<ActiveTag>(loadedEntity, ActiveTag{});
+				}
+				else if (tag == Serialization::GUI_TAG) {
+					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
 				}
 			}
 		}

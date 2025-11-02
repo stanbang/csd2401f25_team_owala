@@ -69,6 +69,7 @@ namespace Framework {
 		ActiveTagType,
 		BirdAITagType,      
 		BirdAIComponentType, 
+		GUITagType,
 		MAX_COMPONENTS
 	};
 
@@ -109,7 +110,8 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<SceneOwned> { static constexpr ComponentType value = SceneOwnedType; };
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
 	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };
-	template <> struct ComponentTypeTrait<BirdAITag> { static constexpr ComponentType value = BirdAITagType; };            
+	template <> struct ComponentTypeTrait<BirdAITag> { static constexpr ComponentType value = BirdAITagType; };          
+	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
 
 #pragma endregion

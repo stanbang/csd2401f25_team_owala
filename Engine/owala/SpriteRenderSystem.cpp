@@ -91,11 +91,15 @@ namespace Framework {
 
                 // === DETERMINE RENDER ORDER ===
                 int renderOrder = 0; // Default order
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
                 // Background gets lowest priority
                 if (entityMgr.HasComponent(entity, BackgroundTagType)) {
                     renderOrder = -100;
                 }
+				else if (isUIElement) {
+					renderOrder = 200; // UI elements render on top
+				}
                 // Players and important objects get higher priority
                 else if (entityMgr.HasComponent(entity, PlayerTagType)) {
                     renderOrder = 100;
@@ -113,7 +117,7 @@ namespace Framework {
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
-                if (activeCamera != 0 && cameraSystem_) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     // Position to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
@@ -174,9 +178,10 @@ namespace Framework {
             try {
                 Font& font = resources_.get<Font>(component.fontKey);
                 const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
                 Vector2D screenTextPos = worldTextPos;
-                if (activeCamera != 0 && cameraSystem_) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
                 }
 
