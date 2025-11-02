@@ -27,7 +27,7 @@ namespace Framework {
 		Entity newEntity = nextEntityID++;
 		ecs.entitySignatures[newEntity] = emptySignature;
 
-		std::string entityName = "GameObject (" + std::to_string(newEntity) + ")";
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
@@ -72,6 +72,20 @@ namespace Framework {
 		ecs.entitySignatures[newEntity] = otherSignature;
 
 		return newEntity;
+	}
+
+	void EntityManager::DestroyEntity(Entity entity) {
+		// True Destruction of an entity
+		ComponentSignature signature = ecs.entitySignatures[entity];
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (signature.test(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
+		}
+
+		ecs.entitySignatures.erase(entity);
+		ecs.properties.erase(entity);
 	}
 
 	EntityProperties& EntityManager::GetProperties(Entity entity) { 

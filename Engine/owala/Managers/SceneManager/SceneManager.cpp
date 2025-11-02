@@ -283,16 +283,6 @@ namespace Framework {
 		}
 	}
 
-	void SceneManager::RemoveEntityFromScene(Entity entity) {
-		CheckStorage();
-
-		EntityManager entityMgr(*entityStorageRef_);
-		entityMgr.RemoveComponent(entity, SceneOwnedType);
-		entityMgr.RemoveComponent(entity, ActiveTagType);
-		
-		Logger::Get().Info(DebugType::SceneManager) << "Removed Entity[" << entity << "] from its Scene" << std::endl;
-	}
-
 	void SceneManager::SetEntityAsPersistent(Entity entity, bool shouldPersist) {
 		CheckStorage();
 

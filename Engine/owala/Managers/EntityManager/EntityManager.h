@@ -34,6 +34,8 @@ namespace Framework {
 		Entity CreateEntity();
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
 		Entity CloneEntity(const Entity& entity);
+		// Destroys the specified entity, the entity and all its components are destroyed together.
+		void DestroyEntity(Entity entity);
 
 		// Gets the property data of the specified entity.
 		EntityProperties& GetProperties(Entity entity);
