@@ -658,7 +658,7 @@ void Editor::HandleDragDropPlacement() {
 		}
 
 		if (entityToErase != 0) {
-			sceneMgr.RemoveEntityFromScene(entityToErase);
+			entityMgr.DestroyEntity(entityToErase);
 		}
 	}
 
@@ -767,10 +767,11 @@ void Editor::HandleDragDropPlacement() {
 		// Check if an entity is selected and if the Backspace key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
 			// Tell the SceneManager to remove the entity
 			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
-				Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex - 1);
+				entityMgr.DestroyEntity(selectedEntityIndex - 1);
 
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;

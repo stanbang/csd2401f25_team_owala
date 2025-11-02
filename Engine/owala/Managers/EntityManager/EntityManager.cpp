@@ -27,7 +27,7 @@ namespace Framework {
 		Entity newEntity = nextEntityID++;
 		ecs.entitySignatures[newEntity] = emptySignature;
 
-		std::string entityName = "GameObject (" + std::to_string(newEntity) + ")";
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
