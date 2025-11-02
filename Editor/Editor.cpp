@@ -69,6 +69,7 @@ namespace {
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
+		case ComponentType::BirdAIComponentType:			return "BirdAI";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -76,6 +77,8 @@ namespace {
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::BirdAITagType:					return "BirdAITag";
+		
 		default:											return "Unknown";
 		}
 	}

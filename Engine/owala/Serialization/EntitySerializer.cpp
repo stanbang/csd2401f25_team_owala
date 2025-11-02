@@ -226,6 +226,40 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::CAMERA_COMPONENT), value, alloc);
 		}
 
+		if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
+			BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+
+			value.AddMember(rapidjson::StringRef(Serialization::AI_STATE), static_cast<int>(birdAI.state), alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::STATE_TIMER), birdAI.stateTimer, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::WAKEUP_RADIUS), birdAI.wakeUpRadius, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::WAKEUP_TIME), birdAI.wakeUpTime, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::MOVE_SPEED), birdAI.moveSpeed, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::HOVER_RADIUS), birdAI.hoverRadius, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::HOVER_HEIGHT), birdAI.hoverHeight, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::HOVER_SPEED), birdAI.hoverSpeed, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::HOVER_NODE_REACHED_DIST), birdAI.hoverNodeReachedDist, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::CURRENT_HOVER_NODE), birdAI.currentHoverNode, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ATTACK_RADIUS), birdAI.attackRadius, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ATTACK_SPEED), birdAI.attackSpeed, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ATTACK_DURATION), birdAI.attackDuration, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ATTACK_COOLDOWN), birdAI.attackCooldown, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ATTACK_TIMER), birdAI.attackTimer, alloc);
+
+			// Serialize attack target position
+			rapidjson::Value attackTargetPos(rapidjson::kObjectType);
+			attackTargetPos.AddMember(rapidjson::StringRef(Serialization::VEC2_X), birdAI.attackTargetPosition.x, alloc);
+			attackTargetPos.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), birdAI.attackTargetPosition.y, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ATTACK_TARGET_POSITION), attackTargetPos, alloc);
+
+			value.AddMember(rapidjson::StringRef(Serialization::PATH_RECALCULATE_INTERVAL), birdAI.pathRecalculateInterval, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::PATH_RECALCULATE_TIMER), birdAI.pathRecalculateTimer, alloc);
+
+			// currentPath is runtime state, don't serialize it
+
+			componentList.AddMember(rapidjson::StringRef(Serialization::BIRD_AI_COMPONENT), value, alloc);
+		}
+
 		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
 			SceneOwned& sceneOwnedComp = entityMgr.GetComponent<SceneOwned>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
@@ -261,6 +295,11 @@ namespace Framework {
 		}
 		if (entityMgr.HasComponent(entity, ComponentType::ActiveTagType)) {
 			rapidjson::Value tagVal(Serialization::ACTIVE_TAG, alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
+
+		if (entityMgr.HasComponent(entity, ComponentType::BirdAITagType)) {
+			rapidjson::Value tagVal(Serialization::BIRD_AI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
 
@@ -652,6 +691,78 @@ namespace Framework {
 			entityMgr.AddComponent<Camera>(loadedEntity, cameraComp);
 		}
 
+		if (componentLists.HasMember(Serialization::BIRD_AI_COMPONENT)) {
+			const rapidjson::Value& birdAIData = componentLists[Serialization::BIRD_AI_COMPONENT];
+
+			BirdAIComponent birdAI;
+
+			if (birdAIData.HasMember(Serialization::AI_STATE) && birdAIData[Serialization::AI_STATE].IsInt()) {
+				birdAI.state = static_cast<BirdState>(birdAIData[Serialization::AI_STATE].GetInt());
+			}
+			if (birdAIData.HasMember(Serialization::STATE_TIMER) && birdAIData[Serialization::STATE_TIMER].IsFloat()) {
+				birdAI.stateTimer = birdAIData[Serialization::STATE_TIMER].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::WAKEUP_RADIUS) && birdAIData[Serialization::WAKEUP_RADIUS].IsFloat()) {
+				birdAI.wakeUpRadius = birdAIData[Serialization::WAKEUP_RADIUS].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::WAKEUP_TIME) && birdAIData[Serialization::WAKEUP_TIME].IsFloat()) {
+				birdAI.wakeUpTime = birdAIData[Serialization::WAKEUP_TIME].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::MOVE_SPEED) && birdAIData[Serialization::MOVE_SPEED].IsFloat()) {
+				birdAI.moveSpeed = birdAIData[Serialization::MOVE_SPEED].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::HOVER_RADIUS) && birdAIData[Serialization::HOVER_RADIUS].IsFloat()) {
+				birdAI.hoverRadius = birdAIData[Serialization::HOVER_RADIUS].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::HOVER_HEIGHT) && birdAIData[Serialization::HOVER_HEIGHT].IsFloat()) {
+				birdAI.hoverHeight = birdAIData[Serialization::HOVER_HEIGHT].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::HOVER_SPEED) && birdAIData[Serialization::HOVER_SPEED].IsFloat()) {
+				birdAI.hoverSpeed = birdAIData[Serialization::HOVER_SPEED].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::HOVER_NODE_REACHED_DIST) && birdAIData[Serialization::HOVER_NODE_REACHED_DIST].IsFloat()) {
+				birdAI.hoverNodeReachedDist = birdAIData[Serialization::HOVER_NODE_REACHED_DIST].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::CURRENT_HOVER_NODE) && birdAIData[Serialization::CURRENT_HOVER_NODE].IsInt()) {
+				birdAI.currentHoverNode = birdAIData[Serialization::CURRENT_HOVER_NODE].GetInt();
+			}
+			if (birdAIData.HasMember(Serialization::ATTACK_RADIUS) && birdAIData[Serialization::ATTACK_RADIUS].IsFloat()) {
+				birdAI.attackRadius = birdAIData[Serialization::ATTACK_RADIUS].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::ATTACK_SPEED) && birdAIData[Serialization::ATTACK_SPEED].IsFloat()) {
+				birdAI.attackSpeed = birdAIData[Serialization::ATTACK_SPEED].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::ATTACK_DURATION) && birdAIData[Serialization::ATTACK_DURATION].IsFloat()) {
+				birdAI.attackDuration = birdAIData[Serialization::ATTACK_DURATION].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::ATTACK_COOLDOWN) && birdAIData[Serialization::ATTACK_COOLDOWN].IsFloat()) {
+				birdAI.attackCooldown = birdAIData[Serialization::ATTACK_COOLDOWN].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::ATTACK_TIMER) && birdAIData[Serialization::ATTACK_TIMER].IsFloat()) {
+				birdAI.attackTimer = birdAIData[Serialization::ATTACK_TIMER].GetFloat();
+			}
+
+			// Deserialize attack target position
+			if (birdAIData.HasMember(Serialization::ATTACK_TARGET_POSITION) && birdAIData[Serialization::ATTACK_TARGET_POSITION].IsObject()) {
+				const rapidjson::Value& attackTargetPosData = birdAIData[Serialization::ATTACK_TARGET_POSITION];
+				if (attackTargetPosData.HasMember(Serialization::VEC2_X) && attackTargetPosData[Serialization::VEC2_X].IsFloat()) {
+					birdAI.attackTargetPosition.x = attackTargetPosData[Serialization::VEC2_X].GetFloat();
+				}
+				if (attackTargetPosData.HasMember(Serialization::VEC2_Y) && attackTargetPosData[Serialization::VEC2_Y].IsFloat()) {
+					birdAI.attackTargetPosition.y = attackTargetPosData[Serialization::VEC2_Y].GetFloat();
+				}
+			}
+
+			if (birdAIData.HasMember(Serialization::PATH_RECALCULATE_INTERVAL) && birdAIData[Serialization::PATH_RECALCULATE_INTERVAL].IsFloat()) {
+				birdAI.pathRecalculateInterval = birdAIData[Serialization::PATH_RECALCULATE_INTERVAL].GetFloat();
+			}
+			if (birdAIData.HasMember(Serialization::PATH_RECALCULATE_TIMER) && birdAIData[Serialization::PATH_RECALCULATE_TIMER].IsFloat()) {
+				birdAI.pathRecalculateTimer = birdAIData[Serialization::PATH_RECALCULATE_TIMER].GetFloat();
+			}
+
+			entityMgr.AddComponent<BirdAIComponent>(loadedEntity, birdAI);
+		}
+
 		// Deserialize SceneOwned Component
 		if (componentLists.HasMember(Serialization::SCENE_OWNED_COMPONENT)) {
 			const rapidjson::Value& sceneOwnedData = componentLists[Serialization::SCENE_OWNED_COMPONENT];
@@ -688,6 +799,9 @@ namespace Framework {
 				}
 				else if (tag == Serialization::ACTIVE_TAG) {
 					entityMgr.AddComponent<ActiveTag>(loadedEntity, ActiveTag{});
+				}
+				else if (tag == Serialization::BIRD_AI_TAG) {
+					entityMgr.AddComponent<BirdAITag>(loadedEntity, BirdAITag{});
 				}
 			}
 		}
