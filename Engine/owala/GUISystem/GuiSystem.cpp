@@ -35,6 +35,7 @@ namespace Framework {
 
 			// If mouse clicked while hovering, trigger button action
 			if (isHovering && mouseClicked) {
+
 				// Reset button pressed state
 				buttonComponent.isPressed = false;
 				// Publish ButtonClickedEvent
