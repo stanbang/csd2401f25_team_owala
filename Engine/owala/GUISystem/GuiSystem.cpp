@@ -45,8 +45,8 @@ namespace Framework {
 			float minY = position.Pos.y - tex.HalfSize.y;
 			float maxY = position.Pos.y + tex.HalfSize.y;
 
-			Logger::Get().Info(DebugType::GUISystem) << "Mouse At: " << mouseX_ndc << ", " << mouseY_ndc << std::endl;
-			Logger::Get().Info(DebugType::GUISystem) << "Button At: " << minX << ", " << minY << " to " << maxX << ", " << maxY << std::endl;
+			//Logger::Get().Info(DebugType::GUISystem) << "Mouse At: " << mouseX_ndc << ", " << mouseY_ndc << std::endl;
+			//Logger::Get().Info(DebugType::GUISystem) << "Button At: " << minX << ", " << minY << " to " << maxX << ", " << maxY << std::endl;
 
 			// Check if mouse is hovering over the button
 			bool isHovering = (mouseX_ndc >= minX && mouseX_ndc <= maxX &&
@@ -55,11 +55,6 @@ namespace Framework {
 
 			// Update Button Hovering State
 			buttonComponent.isHovered = isHovering;
-
-			if (isHovering) {
-				Logger::Get().Info(DebugType::GUISystem)
-					<< "Hovering over: " << button << std::endl;
-			}
 
 			bool mouseClicked = inputSystem_->MouseReleased(InputSystem::MouseButton::Left);
 
