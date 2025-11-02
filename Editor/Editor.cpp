@@ -179,7 +179,6 @@ namespace Editor {
 		tagNames.clear();
 		tagItems.clear();
 		tagTypes.clear();
-		fontKeys.clear();
 
 		componentNames.push_back("");
 		tagNames.push_back("");
@@ -205,12 +204,6 @@ namespace Editor {
 
 		for (const std::string& tagName : tagNames) {
 			tagItems.push_back(tagName.c_str());
-		}
-
-		const auto& fontMap = resourceManager_->getFontMap();
-		fontKeys.reserve(fontMap.size());
-		for (const auto& pair : fontMap) {
-			fontKeys.push_back(pair.first.c_str());
 		}
 
 		// Load all prefabs from the data file when the editor starts
@@ -664,6 +657,8 @@ void Editor::HandleDragDropPlacement() {
 
 		if (entityToErase != 0) {
 			entityMgr.DestroyEntity(entityToErase);
+			selectedEntityIndex = 0;
+			isEntitySelected_ = false;
 		}
 	}
 
@@ -1689,25 +1684,22 @@ void Editor::HandleDragDropPlacement() {
 			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
 				textComp.textToDraw = textBuffer;
 			}
-			// Lock game keyboard input if typing on text input
-			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
 
 			// Font Selection
+			char fontKeyBuffer[256] = "";
 
-			// Set initial font to first index for new TextComponents, and to its corresponding index if textComponent.fontKey alr exists
-			int selectedFontIndex = 0;
-			if (!textComp.fontKey.empty()) {
-				auto it = std::find(fontKeys.begin(), fontKeys.end(), textComp.fontKey);
-				if (it != fontKeys.end()) {
-					selectedFontIndex = static_cast<int>(std::distance(fontKeys.begin(), it));
-				}
+			// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
+			if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
+				std::strncpy(
+					fontKeyBuffer,
+					textComp.fontKey.c_str(),
+					IM_ARRAYSIZE(fontKeyBuffer) - 1
+				);
+				fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 			}
 
-			textComp.fontKey = fontKeys[selectedFontIndex];
-
-			// Display Dropdown for font selection
-			if (ImGui::Combo("Font", &selectedFontIndex, fontKeys.data(), static_cast<int>(fontKeys.size()))) {
-				textComp.fontKey = fontKeys[selectedFontIndex];
+			if (ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer))) {
+				textComp.fontKey = fontKeyBuffer;
 			}
 
 			// Color Input

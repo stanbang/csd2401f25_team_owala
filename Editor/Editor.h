@@ -109,7 +109,6 @@ namespace Editor {
 		std::vector<const char*> tagItems;
 		std::vector<Framework::ComponentType> tagTypes;
 		int selectedTagIndex = 0;
-		std::vector<const char*> fontKeys;
 
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
