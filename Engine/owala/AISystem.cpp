@@ -8,6 +8,7 @@
 #include "CameraSystem.h"   // NEW: Include CameraSystem
 #include "Editor.h"         // --- NEW: Include Editor.h for conversion
 #include "imgui.h"          // --- NEW: Include imgui.h for ImDrawList
+#include "OwalaTime.h"
 
 namespace Framework {
 
@@ -35,7 +36,7 @@ namespace Framework {
         return 0; // 0 is an invalid entity ID
     }
 
-    void AISystem::Update(float dt) {
+    void AISystem::Update() {
         EntityManager entityMgr(*ecs_);
 
         // Find the player
@@ -59,7 +60,7 @@ namespace Framework {
         spriteRenderer->SetCameraSystem(cameraSystem);*/
 
         // Rebuild grid periodically in case platforms move
-        gridRebuildTimer_ += dt;
+        gridRebuildTimer_ += Framework::Time::DeltaTime();
         if (gridRebuildTimer_ >= gridRebuildInterval_) {
             navGrid_.BuildGrid(*ecs_);
             gridRebuildTimer_ = 0.0f;
@@ -108,16 +109,16 @@ namespace Framework {
                 HandleIdleState(bird, ai, birdPos, playerPos);
                 break;
             case BirdState::WAKING:
-                HandleWakingState(bird, ai, dt);
+                HandleWakingState(bird, ai);
                 break;
             case BirdState::CHASE:
-                HandleChaseState(bird, ai, birdPos, playerPos, dt);
+                HandleChaseState(bird, ai, birdPos, playerPos);
                 break;
             case BirdState::HOVER:
-                HandleHoverState(bird, ai, birdPos, playerPos, dt);
+                HandleHoverState(bird, ai, birdPos, playerPos);
                 break;
             case BirdState::ATTACK:
-                HandleAttackState(bird, ai, dt);
+                HandleAttackState(bird, ai);
                 break;
             }
         }
@@ -140,8 +141,8 @@ namespace Framework {
         }
     }
 
-    void AISystem::HandleWakingState(Entity bird, BirdAIComponent& ai, float dt) {
-        ai.stateTimer -= dt;
+    void AISystem::HandleWakingState(Entity bird, BirdAIComponent& ai) {
+        ai.stateTimer -= Framework::Time::DeltaTime();
         if (ai.stateTimer <= 0.0f) {
             Logger::Get().Info(DebugType::AISystem) << "Bird [" << bird << "] finished waking up!" << std::endl;
             ai.state = BirdState::CHASE;
@@ -149,7 +150,7 @@ namespace Framework {
         }
     }
 
-    void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos, float dt) {
+    void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
         // TODO: Trigger "Flying" animation here
 
         float dist = birdPos.Distance(playerPos);
@@ -170,7 +171,7 @@ namespace Framework {
         }
 
         // 2. Recalculate path if needed
-        ai.pathRecalculateTimer -= dt;
+        ai.pathRecalculateTimer -= Framework::Time::DeltaTime();
         if (ai.pathRecalculateTimer <= 0.0f || ai.currentPath.empty()) {
 
             Logger::Get().Info(DebugType::AISystem)
@@ -193,10 +194,10 @@ namespace Framework {
         }
 
         // Follow the path
-        FollowPath(bird, ai, birdPos, dt);
+        FollowPath(bird, ai, birdPos);
     }
 
-    void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos, float dt) {
+    void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
         // TODO: Trigger "Flying" animation here
 
         EntityManager entityMgr(*ecs_);
@@ -254,7 +255,7 @@ namespace Framework {
         }
 
         // Check for attack opportunity
-        ai.attackTimer -= dt;
+        ai.attackTimer -= Framework::Time::DeltaTime();
         if (ai.attackTimer <= 0.0f && distToPlayer < ai.attackRadius) {
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] initiating attack!" << std::endl;
@@ -264,8 +265,8 @@ namespace Framework {
         }
     }
 
-    void AISystem::HandleAttackState(Entity bird, BirdAIComponent& ai, float dt) {
-        ai.stateTimer -= dt;
+    void AISystem::HandleAttackState(Entity bird, BirdAIComponent& ai) {
+        ai.stateTimer -= Framework::Time::DeltaTime();
         EntityManager entityMgr(*ecs_);
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
 
@@ -300,7 +301,7 @@ namespace Framework {
         }
     }
 
-    void AISystem::FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos, float dt) {
+    void AISystem::FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos) {
         EntityManager entityMgr(*ecs_);
         if (ai.currentPath.empty()) {
             // No path, just move towards player (dumb move)

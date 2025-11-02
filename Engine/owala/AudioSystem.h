@@ -53,7 +53,7 @@ namespace Framework {
          *           kept for consistency with ISystem).
          * \details Internally calls FMOD::System::update(). Must be called every frame.
          */
-        void Update(float dt) override;
+        void Update() override;
 
         /**
          * \brief Shut down FMOD and release all cached sounds/channels.

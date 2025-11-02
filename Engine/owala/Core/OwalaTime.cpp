@@ -1,4 +1,5 @@
 #include "OwalaTime.h"
+#include <iostream>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -19,7 +20,6 @@ namespace Framework {
 
 		unscaledDt = std::min(frameDuration, maxDt); // cap huge delta time
 		dt = unscaledDt * timeScale;
-		accumulatedTime += static_cast<double>(dt); // Fixed-Step accumulator
 
 		prev = now;
 	}
@@ -31,10 +31,14 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// Time Capturing
 	// ---------------------------------------------------------------------------
-	int Time::ConsumeFixedSteps() {
+	int Time::ConsumeFixedSteps() noexcept {
+		if (fixedDt <= 0.0f) return 0;
+
 		int steps = 0;
-		while (accumulatedTime >= static_cast<double>(fixedDt)) {
-			accumulatedTime -= static_cast<double>(fixedDt);
+		accumulatedTime += dt;
+		
+		while (accumulatedTime >= fixedDt) {
+			accumulatedTime -= fixedDt;
 			++steps;
 		}
 

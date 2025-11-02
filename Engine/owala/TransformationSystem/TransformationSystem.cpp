@@ -4,6 +4,7 @@
 #include "Transformation.h"
 #include <cmath>
 #include <iostream>
+#include "OwalaTime.h"
 
 namespace Framework {
 
@@ -33,10 +34,10 @@ namespace Framework {
     @param      dt Delta time in seconds since last frame
     @return     void
 *//*______________________________________________________________*/
-    void TransformationSystem::Update(float dt) {
-        ProcessRotationInput(dt);
-        UpdateGlobalRotation(dt);
-        UpdateAllTransforms(dt);
+    void TransformationSystem::Update() {
+        ProcessRotationInput();
+        UpdateGlobalRotation();
+        UpdateAllTransforms();
     }
 
     /*!
@@ -44,10 +45,10 @@ namespace Framework {
     @param      dt Delta time for cooldown updates
     @return     void
 *//*______________________________________________________________*/
-    void TransformationSystem::ProcessRotationInput(float dt) {
+    void TransformationSystem::ProcessRotationInput() {
         // Update cooldown timer
         if (rotationCooldown > 0.0f) {
-            rotationCooldown -= dt;
+            rotationCooldown -= Framework::Time::DeltaTime();
             if (rotationCooldown < 0.0f) {
                 rotationCooldown = 0.0f;
             }
@@ -80,13 +81,13 @@ namespace Framework {
     @param      dt Delta time for smooth rotation speed
     @return     void
 *//*______________________________________________________________*/
-    void TransformationSystem::UpdateGlobalRotation(float dt) {
+    void TransformationSystem::UpdateGlobalRotation() {
         if (!isGlobalRotating) return;
 
         EntityManager entityMgr(*ecs_);
 
         float rotationSpeed = 270.0f; // Degrees per second
-        float rotationThisFrame = rotationSpeed * dt;
+        float rotationThisFrame = rotationSpeed * Framework::Time::DeltaTime();
 
         float rotationIncrement = 0.0f;
 
@@ -142,7 +143,7 @@ namespace Framework {
     @param      dt Delta time
     @return     void
 *//*______________________________________________________________*/
-    void TransformationSystem::UpdateAllTransforms(float dt) {
+    void TransformationSystem::UpdateAllTransforms() {
         EntityManager entityMgr(*ecs_);
 
         // Update standard entities with position and rotation

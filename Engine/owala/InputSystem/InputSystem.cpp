@@ -18,7 +18,7 @@ namespace Framework {
         prevMouseY_ = mouseY_;
     }
 
-    void InputSystem::Update(float /*dt*/) {
+    void InputSystem::Update() {
         if (!window_) return;
 
         // Ensure events are pumped (ok to call here even if another system calls it too)

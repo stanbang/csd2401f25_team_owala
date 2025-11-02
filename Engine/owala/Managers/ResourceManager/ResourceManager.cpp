@@ -26,8 +26,7 @@ void ResourceManager::Initialize() {
 	
 }
 
-void ResourceManager::Update(float dt) {
-	(void)dt; //Suppress unused variable warning
+void ResourceManager::Update() {
 	// Intentionally left empty
 }
 

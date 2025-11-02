@@ -68,7 +68,7 @@ namespace Framework {
          * \param dt Delta time in seconds (unused here).
          * \details Polls GLFW events (keyboard, mouse, OS window messages).
          */
-        void Update(float dt) override;
+        void Update() override;
 
         /**
          * \brief Shut down the window system.

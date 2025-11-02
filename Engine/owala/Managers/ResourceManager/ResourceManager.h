@@ -48,7 +48,7 @@ namespace Framework {
     public:
 
         void Initialize() override;
-        void Update(float dt);
+        void Update();
         void Shutdown();
 
 		// Constructor requires Graphics and AudioSystem instances for loading resources

@@ -44,7 +44,7 @@ namespace Framework {
         * \brief Updates transformations and handles world rotation
         * \param dt Delta time in seconds since last frame
         */
-        void Update(float dt) override;
+        void Update() override;
 
         /*!
         * \brief Shuts down the transformation system
@@ -95,7 +95,7 @@ namespace Framework {
         * Detects Q/E key presses and initiates 90-degree world rotation.
         * Respects cooldown period to prevent input spam.
         */
-        void ProcessRotationInput(float dt);
+        void ProcessRotationInput();
 
         /*!
         * \brief Updates global world rotation animation
@@ -104,7 +104,7 @@ namespace Framework {
         * Smoothly rotates the world and all entities toward target angle.
         * Pauses physics during rotation and resumes when complete.
         */
-        void UpdateGlobalRotation(float dt);
+        void UpdateGlobalRotation();
 
         /*!
         * \brief Computes transformation matrix for an entity
@@ -123,6 +123,6 @@ namespace Framework {
         * Recalculates transformation matrices for all active entities
         * with position and rotation components.
         */
-        void UpdateAllTransforms(float dt);
+        void UpdateAllTransforms();
     };
 } // namespace Framework

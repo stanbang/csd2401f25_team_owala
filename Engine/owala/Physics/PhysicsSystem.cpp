@@ -18,6 +18,7 @@
 #include "FileUtility.h"
 #include <algorithm>
 #include <vector>
+#include "OwalaTime.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -55,16 +56,16 @@ namespace Framework {
     // The main update loop, which uses a fixed timestep for stability.
     // This accumulates delta time and runs the simulation
     // ----------------------------------------------------------------------------
-    void PhysicsSystem::Update(float dt) {
+    void PhysicsSystem::Update() {
         if (isPaused_ || stepModeActive_) {
             return; // If paused or in step mode, do not automatically advance time.
         }
-        const float timeStep = 1.0f / 60.0f;
-        timeAccumulator_ += dt;
-        while (timeAccumulator_ >= timeStep) {
-            Step(timeStep);
-            timeAccumulator_ -= timeStep;
-        }
+
+		int steps = Framework::Time::ConsumeFixedSteps();
+
+        for (int i = 0; i < steps; ++i) {
+            Step(Framework::Time::FixedDeltaTime());
+		}
     }
 
     // ----------------------------------------------------------------------------
