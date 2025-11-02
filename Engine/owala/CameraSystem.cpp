@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include <cmath>
 #include <stdexcept>
+#include "OwalaTime.h"
 
 namespace Framework {
 
@@ -10,7 +11,7 @@ namespace Framework {
         // Constructor
     }
 
-    void CameraSystem::Update(float dt) {
+    void CameraSystem::Update() {
         EntityManager entityMgr(ecs_);
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
@@ -26,7 +27,7 @@ namespace Framework {
                     camera.position = targetPos;
                 }
                 else {
-                    float t = 1.0f - std::exp(-camera.followSpeed * dt);
+                    float t = 1.0f - std::exp(-camera.followSpeed * Framework::Time::DeltaTime());
                     camera.position.x += (targetPos.x - camera.position.x) * t;
                     camera.position.y += (targetPos.y - camera.position.y) * t;
                 }

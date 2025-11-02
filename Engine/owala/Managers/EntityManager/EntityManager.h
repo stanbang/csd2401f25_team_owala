@@ -34,6 +34,8 @@ namespace Framework {
 		Entity CreateEntity();
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
 		Entity CloneEntity(const Entity& entity);
+		// Destroys the specified entity, the entity and all its components are destroyed together.
+		void DestroyEntity(Entity entity);
 
 		// Gets the property data of the specified entity.
 		EntityProperties& GetProperties(Entity entity);
@@ -63,6 +65,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, TextComponent>) ecs.text[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
 			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
+			else if constexpr (std::is_same_v<T, BirdAIComponent>) ecs.birdAIComponent[entity] = component;
 
 			else {
 				// If this is a tag-only type, no storage is necessary.
@@ -103,6 +106,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
+			else if constexpr (std::is_same_v<T, BirdAIComponent>) return ecs.birdAIComponent.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}

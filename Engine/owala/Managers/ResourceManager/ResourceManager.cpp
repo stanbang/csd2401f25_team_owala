@@ -26,8 +26,7 @@ void ResourceManager::Initialize() {
 	
 }
 
-void ResourceManager::Update(float dt) {
-	(void)dt; //Suppress unused variable warning
+void ResourceManager::Update() {
 	// Intentionally left empty
 }
 
@@ -147,8 +146,7 @@ bool ResourceManager::loadFont(const std::string& fontKey, const std::string& fo
 
 // Loads animation info from file and stores it inside the resource manager
 bool ResourceManager::loadAnimationInfo(const std::string& name, const std::string& filepath) {
-	FileIOSystem fileIO;
-	AnimationInfo animState = fileIO.LoadAnimationInfo(filepath);
+	AnimationInfo animState = FileIOSystem::LoadAnimationInfo(filepath);
 
 	if (animState.frameCount == 0) {
 		Logger::Get().Error(DebugType::ResourceManager) << "Failed to load animation info from '" << filepath << "'" << std::endl;

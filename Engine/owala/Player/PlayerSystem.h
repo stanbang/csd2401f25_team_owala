@@ -26,8 +26,8 @@ namespace Framework {
 		
 		PlayerSystem(EntityStorage& entityStorage, InputSystem& input, PhysicsSystem& physics)
 			: entityStorage_(&entityStorage), input_(&input), physics_(&physics) {}
-		void Initialize() override {}
-		void Update(float dt) override;
+		void Initialize() override;
+		void Update() override;
 		void Shutdown() override;
 
 	private:
@@ -36,5 +36,9 @@ namespace Framework {
 		WindowsSystem* win_ = nullptr;
 		InputSystem* input_ = nullptr; // use our own input system
 		PhysicsSystem* physics_ = nullptr; // use physics sytems
+
+		// Private variables
+		float moveSpeed = 2.0f;
+		float jumpHeight = 0.8f;
 	};
 } // namespace Framework

@@ -27,7 +27,7 @@ namespace Framework {
 		Entity newEntity = nextEntityID++;
 		ecs.entitySignatures[newEntity] = emptySignature;
 
-		std::string entityName = "GameObject (" + std::to_string(newEntity) + ")";
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
@@ -62,6 +62,7 @@ namespace Framework {
 					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
 					case ComponentType::TextComponentType: 	AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
+					case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
 					default:
 						break;
 				}
@@ -71,6 +72,20 @@ namespace Framework {
 		ecs.entitySignatures[newEntity] = otherSignature;
 
 		return newEntity;
+	}
+
+	void EntityManager::DestroyEntity(Entity entity) {
+		// True Destruction of an entity
+		ComponentSignature signature = ecs.entitySignatures[entity];
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (signature.test(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
+		}
+
+		ecs.entitySignatures.erase(entity);
+		ecs.properties.erase(entity);
 	}
 
 	EntityProperties& EntityManager::GetProperties(Entity entity) { 
@@ -106,6 +121,7 @@ namespace Framework {
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
+		case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -113,6 +129,8 @@ namespace Framework {
 		case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(entity, SceneOwned{}); break;
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
+		case ComponentType::BirdAITagType: break; 
+
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 			return;
@@ -140,6 +158,7 @@ namespace Framework {
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case CameraType: ecs.cameras.erase(entity); break;
+			case BirdAIComponentType: ecs.birdAIComponent.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:
 			case BackgroundTagType:
@@ -147,6 +166,7 @@ namespace Framework {
 			case SceneOwnedType: ecs.sceneOwned.erase(entity); break;
 			case PersistentTagType:
 			case ActiveTagType: break;
+			case BirdAITagType: break;
 			default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 				return;
@@ -164,6 +184,7 @@ namespace Framework {
 		case ComponentType::EnemyTagType:
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType:
+		case ComponentType::BirdAITagType:
 			return true;
 		default:
 			return false;

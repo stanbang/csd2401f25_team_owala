@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "Components.h"
 #include "Transformation.h"
+#include "OwalaTime.h"
 #include <cmath>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,10 +14,10 @@ namespace Framework {
     @param      dt Delta time in seconds since last frame
     @return     void
 *//*______________________________________________________________*/
-    void PlatformBehaviorSystem::Update(float dt) {
+    void PlatformBehaviorSystem::Update() {
         TriggerAllTraps();
-        UpdateTrapPlatforms(dt);
-        UpdateScalingPlatforms(dt);
+        UpdateTrapPlatforms();
+        UpdateScalingPlatforms();
     }
 
     // ========== TRAP PLATFORM LOGIC ==========
@@ -26,7 +27,7 @@ namespace Framework {
     @param      dt Delta time in seconds since last frame
     @return     void
 *//*______________________________________________________________*/
-    void PlatformBehaviorSystem::UpdateTrapPlatforms(float dt) {
+    void PlatformBehaviorSystem::UpdateTrapPlatforms() {
         EntityManager entityMgr(*ecs_);
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
@@ -39,7 +40,7 @@ namespace Framework {
 
             // Handle trigger delay countdown
             if (trapComp.isTriggered && !trapComp.hasFallen) {
-                trapComp.currentDelay += dt;
+                trapComp.currentDelay += Framework::Time::DeltaTime();
 
                 // Check if delay period has elapsed
                 if (trapComp.currentDelay >= trapComp.triggerDelay) {
@@ -135,14 +136,14 @@ namespace Framework {
     @param      dt Delta time in seconds since last frame
     @return     void
 *//*______________________________________________________________*/
-    void PlatformBehaviorSystem::UpdateScalingPlatforms(float dt) {
+    void PlatformBehaviorSystem::UpdateScalingPlatforms() {
         EntityManager entityMgr(*ecs_);
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ScalingPlatformComponentType)) {
             ScalingPlatformComponent& scalingComp = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
 
             // Advance animation time
-            scalingComp.time += dt;
+            scalingComp.time += Framework::Time::DeltaTime();
 
             // Calculate scale using sine wave for smooth oscillation
             float sineValue = std::sin(scalingComp.time * scalingComp.scaleSpeed);

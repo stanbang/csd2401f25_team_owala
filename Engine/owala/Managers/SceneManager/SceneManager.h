@@ -84,7 +84,7 @@ namespace Framework {
 
 		/* Scene Management APIs */
 		// Create an empty new Scene at runtime with the given name. Returns the GUID of the created scene if successful.
-		SceneGUID CreateSceneAsset(const std::string& sceneName, const std::string& path = {});
+		SceneGUID CreateSceneAsset(const std::string& sceneName, const std::string& path = {}, const bool entitiesPopulated = false);
 		// Gets the scene by name. Returns an SceneAsset Object. If the scene does not exist, returns an invalid SceneAsset object.
 		const SceneAsset& GetSceneByName(const std::string& sceneName, bool silenceError = false) const;
 		// Gets the scene by ID. Returns an SceneAsset Object. If the scene does not exist, returns an invalid SceneAsset object.
@@ -109,8 +109,6 @@ namespace Framework {
 		// Attach the SceneOwned component to the entity, indicating which scene it belongs to. 
 		// Overloaded Function: Uses the Scene Object instead.
 		void AddEntityToScene(const SceneAsset& scene, Entity entity);
-		// Removes the SceneOwned component from the entity if attached.
-		void RemoveEntityFromScene(Entity entity);
 		// Sets or unsets the PersistentTag on the entity, indicating if it should persist across scene changes. Note that the entity must already have a SceneOwned component to be set as persistent.
 		void SetEntityAsPersistent(Entity entity, bool shouldPersist = true);
 		// Retrieves a list of all entities that belong to the specified scene, if the scene exists.
@@ -122,8 +120,6 @@ namespace Framework {
 		bool CheckDuplicateSceneName(const std::string& sceneName);
 		// Update scene asset
 		void UpdateScenePath(const SceneGUID& sceneIndex, const std::string& newPath);
-		// Scene Reset
-		void ResetScene();
 
 		/* DEBUG FUNCTIONS */
 		void PrintAllScenesInfo() const;

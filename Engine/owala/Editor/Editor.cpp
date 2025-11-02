@@ -23,6 +23,7 @@
 #include "CameraSystem.h"
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
+#include "AISystem.h" // Include AISystem for debugging purposes
 #include "rapidjson/prettywriter.h"
 
 // Debug
@@ -43,6 +44,9 @@
 
 // Serialization
 #include "EntitySerializer.h"
+
+// Time Management
+#include "OwalaTime.h"
 
 // Internal Helpers
 namespace {
@@ -136,6 +140,7 @@ namespace Editor {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
+
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
@@ -244,7 +249,7 @@ namespace Editor {
 			}
 		}
 	}
-	void Editor::Update(float dt) {
+	void Editor::Update() {
 
 		if (!palettePrepared_ && resourceManager_) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
@@ -262,7 +267,6 @@ namespace Editor {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 		input->SetCursorLocked(false);
 
-		deltatime = dt;
 		if (!isEnabled) return;
 		SanityCheck();
 
@@ -387,6 +391,7 @@ namespace Editor {
 		if (settings.showLevelEditor) ShowLevelEditor();
 		if (isTileEditorActive_) ShowTilemapEditor();
 		if (settings.showGameViewport) ShowGameViewport();
+		ShowAIDebugPanel();
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
 
 		ImGui::End();
@@ -507,53 +512,51 @@ namespace Editor {
 	}
 
 
+void Editor::HandleDragDropPlacement() {
+    if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
+        isDraggingPrefab_ = false;
+        return;
+    }
+    if (!cameraSystem_ || editorCamera_ == 0)
+        return;
 
-	void Editor::HandleDragDropPlacement() {
-		// --- SAFETY CHECKS ---
-		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
-			isDraggingPrefab_ = false;
-			return;
-		}
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return;
+    const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
-		// --- ENSURE EDITOR CAMERA IS USED FOR PLACEMENT ---
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+    // --- MOUSE POSITION (ImGui → World) ---
+    ImVec2 mousePos = ImGui::GetMousePos();
+    ImVec2 viewportPos = gameViewportPos_;     // top-left corner of game panel
+    ImVec2 viewportSize = gameViewportSize_;   // width, height of game panel
 
-		// --- CALCULATE POSITION ---
-		Vector2D worldMousePos = GetMouseWorldPosition(); // uses editor viewport
-		Vector2D snappedPos = SnapToGrid(worldMousePos);
+    // Convert from ImGui to normalized device coordinates (-1..1)
+    float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
+    float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f); 
+    // note Y is flipped here
 
-		// --- FIX Y OFFSET: Align placement Y with ImGui preview ---
-		float yOffset = baseGridCellSize_ * 2; // adjust if off by >1 cell
-		snappedPos.y -= yOffset;
+    // Convert NDC to world using editor camera
+    Vector2D worldMousePos = {
+        cam.position.x + ndcX * (cam.size.x * 0.5f),
+        cam.position.y + ndcY * (cam.size.y * 0.5f)
+    };
 
+    // --- SNAP TO GRID ---
+    Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		Framework::EntityManager entityMgr(*ecs);
-		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+    Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+    Framework::EntityManager entityMgr(*ecs);
+    Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
-		// --- DEBUG LOGGING ---
-		Framework::Logger::Get().Info(DebugType::Editor)
-			<< "HandleDragDropPlacement: Payload Name='" << dragDropPayload_.name
-			<< "', Type=" << static_cast<int>(dragDropPayload_.type)
-			<< ", Snapped=(" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-
-		// --- CHECK FOR DUPLICATES ---
-		const float placementTolerance = baseGridCellSize_ * 0.1f;
-		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				if (std::abs(pos.x - snappedPos.x) < placementTolerance &&
-					std::abs(pos.y - snappedPos.y) < placementTolerance) {
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Tile already exists at placement location." << std::endl;
-					isDraggingPrefab_ = false;
-					return;
-				}
-			}
-		}
+    // Check duplicates
+    const float tolerance = baseGridCellSize_ * 0.1f;
+    for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
+        if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
+        if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+            const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+            if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
+                isDraggingPrefab_ = false;
+                return;
+            }
+        }
+    }
 
 		// --- ENTITY CREATION ---
 		Entity newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);
@@ -580,6 +583,7 @@ namespace Editor {
 		isDraggingPrefab_ = false;
 		
 	}
+
 
 	// Draws a preview of the tile being dragged
 	void Editor::DrawDragDropPreview(ImDrawList* drawList) {
@@ -629,6 +633,8 @@ namespace Editor {
 	}
 
 
+
+
 	void Editor::HandleTileErasing() {
 		auto* input = gameManager_->GetSystems().input_;
 
@@ -659,7 +665,7 @@ namespace Editor {
 		}
 
 		if (entityToErase != 0) {
-			sceneMgr.RemoveEntityFromScene(entityToErase);
+			entityMgr.DestroyEntity(entityToErase);
 		}
 	}
 
@@ -768,10 +774,11 @@ namespace Editor {
 		// Check if an entity is selected and if the Backspace key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
 			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
 			// Tell the SceneManager to remove the entity
 			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
-				Framework::SceneManager::GetInstance().RemoveEntityFromScene(selectedEntityIndex - 1);
+				entityMgr.DestroyEntity(selectedEntityIndex - 1);
 
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;
@@ -835,7 +842,7 @@ namespace Editor {
 			ImGui::Separator();
 
 			// Update the profiler data only when the timer ends
-			profilerUpdateTimer_ += deltatime;
+			profilerUpdateTimer_ += Framework::Time::UnscaledDeltaTime();
 			if (profilerUpdateTimer_ >= updateInterval) {
 				profilerUpdateTimer_ = 0.0f;
 				profilerDisplayData_ = engine_->GetSystemTimes(); // Get system time
@@ -964,7 +971,48 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Spawn Test Bird")) {
+			// Get the systems we need
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
+			// 1. Create the entity
+			Entity bird = entityMgr.CreateEntity();
+
+			// 2. Set its properties
+			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
+
+			// 3. Add components required for the AI
+			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
+			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
+			entityMgr.AddComponent<BirdAITag>(bird, {});            // Tag for the AISystem
+			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+
+			RigidBody rb;
+			rb.SetMass(0.0f); // Give it some mass
+			rb.isAffectedByGravity = false; // Make sure it doesn't fall
+			entityMgr.AddComponent<RigidBody>(bird, rb);
+
+			// 4. Add components to make it visible and selectable
+			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
+
+			// Use the "fake player texture" as requested.
+			// This texture is loaded in TestScene.cpp
+			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
+
+			// Add a collider so you can click on it in the editor
+		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
+
+			// 5. Add it to the active scene
+			sceneMgr.AddEntityToScene(currentScene, bird);
+
+			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
+				<< bird << ")";
+		}
+		// --- END OF NEW CODE ---
+		
 		ImGui::End(); // End "Level Editor" window
 
 	}
@@ -1022,7 +1070,7 @@ namespace Editor {
 				std::string sceneName = sceneNameBuffer;
 				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
 				if (!duplicateNameError) {
-					sceneMgr.CreateSceneAsset(sceneName, "");
+					sceneMgr.CreateSceneAsset(sceneName, "", true);
 					ImGui::CloseCurrentPopup();
 					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
 				}
@@ -1247,7 +1295,7 @@ namespace Editor {
 							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
 						}
 						if (ImGui::MenuItem("Delete")) {
-							SceneManager::GetInstance().RemoveEntityFromScene(entity);
+							entityMgr.DestroyEntity(entity);
 							if ((selectedEntityIndex - 1) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 								isEntitySelected_ = false;
@@ -1716,28 +1764,30 @@ namespace Editor {
 			if (gfx) {
 
 
+				// === STEP 1: RENDER GAME TO FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
-
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
+				// Render all game sprites to the FBO
+				spriteRenderer_->Update();
 
-
-				spriteRenderer_->Update(deltatime);
+				// Unbind the FBO *before* drawing to the ImGui window
 				gfx->UnbindGameFramebuffer();
 
+
+				// 1. Draw the game texture as the background
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 
-				// --- ADD NEW OVERLAY DRAWING ---
-				// Get the draw list for the current window
+				// 2. Get the draw list to render overlays ON TOP of the image
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-				// Set a clipping rectangle so overlays don't draw outside the game panel
+				// 3. Set clipping rectangle so overlays don't "bleed"
 				ImVec2 clipMin = gameViewportPos_;
 				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// Call our new overlay functions
+				// 4. Draw all overlays
 				if (showGrid_) {
 					DrawEditorGrid(drawList);
 				}
@@ -1746,7 +1796,28 @@ namespace Editor {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Remove the clipping rectangle
+				// Now your AI System debug draw will also work
+				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
+				if (aiSystem && camSystem && aiSystem->debugVisualization) {
+					// --- THIS IS THE FIX ---
+					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
+					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
+					//aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+
+					// Get the *active game camera* that the sprite renderer is using.
+					Entity gameCamera = camSystem->GetActiveCamera();
+
+					// Fallback to editor camera if no game camera is active
+					if (gameCamera == 0) {
+						gameCamera = editorCamera_;
+					}
+
+					// Pass the correct 'gameCamera' to the debug draw function.
+					aiSystem->DrawDebug(camSystem, drawList, this, gameCamera);
+				}
+
+				// 5. Remove the clipping rectangle
 				drawList->PopClipRect();
 			}
 		}
@@ -1889,7 +1960,7 @@ namespace Editor {
 		// each world-space "square" will look rectangular on screen.
 		// Compensate by scaling the X-step by the inverse aspect ratio.
 		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		float xStep = cell / aspect;  // ✅ wider step if viewport is wide
+		float xStep = cell / aspect;  //  wider step if viewport is wide
 		float yStep = cell;
 
 		// Snap grid start to nearest cell
@@ -1920,8 +1991,6 @@ namespace Editor {
 		ImVec2 yB = WorldToImGuiScreen({ right, 0.0f });
 		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
 	}
-
-
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
 		// Compute aspect ratio once
@@ -2353,12 +2422,22 @@ namespace Editor {
 
 #pragma endregion
 #pragma endregion
-	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
-	{
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return ImVec2(0, 0);
 
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos, Entity cameraID)
+	{
+		if (!cameraSystem_ || cameraID == 0)
+			return ImVec2(0, 0);
+		
+		// Validate that the entity is a camera
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+
+		if (!entityMgr.HasComponent(cameraID, Framework::CameraType)) {
+			return ImVec2(0, 0);
+		}
+
+		const Camera& cam = cameraSystem_->GetCamera(cameraID); // USE THE PASSED CAMERA
 
 		// Compute offset from camera center
 		Vector2D offset = {
@@ -2374,5 +2453,71 @@ namespace Editor {
 	}
 
 
+	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
+	{
+		// use overloaded function, defaulting to the editor camera
+		return WorldToImGuiScreen(worldPos, editorCamera_);
+	}
 
+
+	void Editor::ShowAIDebugPanel() {
+		if (!ImGui::Begin("AI Debug Visualization")) {
+			ImGui::End();
+			return;
+		}
+
+		// Get the AI system from game manager
+		// !! IMPORTANT: This assumes you have added aiSystem_ to your GameManager systems struct
+		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+
+		if (!aiSystem) {
+			ImGui::TextDisabled("AI System not available");
+			ImGui::End();
+			return;
+		}
+
+		// Master toggle
+		ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+		ImGui::Separator();
+
+		// Individual toggles
+		ImGui::BeginDisabled(!aiSystem->debugVisualization);
+
+		ImGui::Text("Visualization Options:");
+		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);
+
+		ImGui::EndDisabled();
+
+		ImGui::Separator();
+
+		// Color legend
+		if (ImGui::CollapsingHeader("State Colors Legend")) {
+			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
+			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
+		}
+
+		if (ImGui::CollapsingHeader("Radius Legend")) {
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
+			ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
+		}
+
+		if (ImGui::CollapsingHeader("Grid Legend")) {
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
+		}
+
+		if (ImGui::CollapsingHeader("Path Legend")) {
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");
+			ImGui::Text("Squares = Waypoints");
+		}
+
+		ImGui::End();
+	}
 }

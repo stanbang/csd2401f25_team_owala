@@ -11,7 +11,7 @@
 
 namespace Framework {
 
-    void SpriteRenderSystem::Update(float /*dt*/) {
+    void SpriteRenderSystem::Update() {
         // Clear frame once per frame
         gfx_.beginFrame(clearColor_);
         RenderSprites();
