@@ -76,6 +76,11 @@ namespace Framework {
         */
         bool IsGlobalRotating() const { return isGlobalRotating; }
 
+        /*!
+        * \brief Reset global world rotation state
+        */
+        void ResetGlobalRotation();
+
     private:
         EntityStorage* ecs_;
         InputSystem* input_;

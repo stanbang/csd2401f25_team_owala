@@ -138,6 +138,14 @@ namespace Framework {
         }
     }
 
+    void TransformationSystem::ResetGlobalRotation() {
+        globalRotation = 0.0f;
+        targetGlobalRotation = 0.0f;
+        isGlobalRotating = false;
+        rotationCooldown = 0.0f;
+        rotationCooldownDuration = 0.5f;
+    }
+
     /*!
     @brief      Updates transformation matrices for all entities
     @param      dt Delta time

@@ -108,6 +108,7 @@ namespace Framework {
 		switch (componentType)
 		{
 		case ComponentType::PositionType: AddComponent<Position>(entity, Position{}); break;
+		case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(entity, SpawnPoint{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
 		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
 		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
@@ -146,6 +147,7 @@ namespace Framework {
 
 		switch (componentType) {
 			case PositionType:      ecs.position.erase(entity); break;
+			case SpawnPointType:    ecs.position.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
 			case TriangleType:      ecs.triangle.erase(entity); break;

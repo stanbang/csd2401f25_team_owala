@@ -56,6 +56,7 @@ namespace {
 		switch (componentType)
 		{
 		case ComponentType::PositionType:					return "Position";
+		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
 		case ComponentType::TriangleType:					return "Triangle";
@@ -1054,19 +1055,25 @@ void Editor::HandleDragDropPlacement() {
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(100.0f);
 			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
-			static bool duplicateNameError = false;
+			static bool duplicateNameError = false, emptySceneName = false;
 			// Prevent game input system from capturing mouse/keyboard input
 			gameManager_->GetSystems().input_->SetKeyboardLocked(true);
 
 			if (duplicateNameError) {
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
+			} 
+			if (emptySceneName) {
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Empty scene name!");
 			}
 
 			if (ImGui::Button("Confirm", ImVec2(120, 0)))
 			{
+				// Check empty scene name and duplicate scene name
 				std::string sceneName = sceneNameBuffer;
-				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
-				if (!duplicateNameError) {
+				emptySceneName = sceneName.empty();
+				duplicateNameError = sceneMgr.CheckSceneNameExists(sceneName);
+
+				if (!duplicateNameError && !emptySceneName) {
 					sceneMgr.CreateSceneAsset(sceneName, "", true);
 					ImGui::CloseCurrentPopup();
 					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
@@ -1077,6 +1084,10 @@ void Editor::HandleDragDropPlacement() {
 			{
 				ImGui::CloseCurrentPopup();
 				gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+				// Clear buffer and reset error variables
+				sceneNameBuffer[0] = '\0';
+				duplicateNameError = false;
+				emptySceneName = false;
 			}
 
 			ImGui::EndPopup();
@@ -1534,6 +1545,12 @@ void Editor::HandleDragDropPlacement() {
 			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
+			break;
+		}		
+		case ComponentType::SpawnPointType: {
+			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
+
+			ImGui::InputFloat2("Spawn Point", &spawnPt.Pos.x, "%.2f");
 			break;
 		}
 		case ComponentType::VelocityType: {

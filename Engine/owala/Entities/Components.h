@@ -57,6 +57,12 @@ namespace Framework{
 		Vector2D Pos;
 	};
 
+	/*	SpawnPoint component to store initial x and y
+	coordinates of an entity.*/
+	struct SpawnPoint {
+		Vector2D Pos;
+	};
+
 	/*	Velocity component to store x and y
 		velocity of an entity.*/
 	struct Velocity {
