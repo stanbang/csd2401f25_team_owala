@@ -485,6 +485,6 @@ namespace Framework {
         }
     }
 
-    };
+   
 
 } // namespace Framework

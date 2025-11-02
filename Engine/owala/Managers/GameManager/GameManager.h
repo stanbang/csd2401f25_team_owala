@@ -26,7 +26,6 @@
 #include "LevelResetSystem.h"
 #include "Graphics.h"
 #include "Core.h"
-#include "Editor.h"
 #include "AISystem.h"
 #include "FileUtility.h"
 #ifdef BUILD_EDITOR
