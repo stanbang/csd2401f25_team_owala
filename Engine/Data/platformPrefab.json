@@ -1,180 +1,270 @@
 {
-    "prefabs": [
+  "prefabs": [
+    {
+      "name": "BasicGround",
+      "components": [
         {
-            "name": "BasicGround",
-            "components": [
-                {
-                    "type": "Position",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "Velocity",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "RigidBody",
-                    "data": {
-                        "mass": 0.0,
-                        "forceX": 0.0,
-                        "forceY": 0.0
-                    }
-                },
-                {
-                    "type": "AABBCollider",
-                    "data": {
-                        "halfSizeX": 0.02500000037252903,
-                        "halfSizeY": 0.05000000074505806
-                    }
-                },
-                {
-                    "type": "TextureComponent",
-                    "data": {
-                        "textureID": "RonaldSprite_Platform"
-                    }
-                },
-                {
-                    "type": "RotationFlag",
-                    "data": {}
-                }
-            ],
-            "tags": [
-                "PlatformTag"
-            ],
-            "properties": {
-                "layer": "Platform"
-            }
+          "type": "Position",
+          "data": { "x": 0.0, "y": 0.0 }
         },
         {
-            "name": "FallingTrap",
-            "components": [
-                {
-                    "type": "Position",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "Velocity",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "RigidBody",
-                    "data": {
-                        "mass": 0.0,
-                        "forceX": 0.0,
-                        "forceY": 0.0
-                    }
-                },
-                {
-                    "type": "AABBCollider",
-                    "data": {
-                        "halfSizeX": 0.029999999329447746,
-                        "halfSizeY": 0.05000000074505806
-                    }
-                },
-                {
-                    "type": "TextureComponent",
-                    "data": {
-                        "textureID": "RonaldSprite_Platform"
-                    }
-                },
-                {
-                    "type": "RotationFlag",
-                    "data": {}
-                },
-                {
-                    "type": "TrapPlatformComponent",
-                    "data": {
-                        "originalPositionX": 0.0,
-                        "originalPositionY": 0.0,
-                        "isTriggered": false,
-                        "hasFallen": false,
-                        "currentDelay": 0.0,
-                        "currentFallDistance": 0.0,
-                        "fallSpeed": 2.0,
-                        "triggerDelay": 1.0
-                    }
-                }
-            ],
-            "tags": [
-                "PlatformTag"
-            ],
-            "properties": {
-                "layer": "Platform"
-            }
+          "type": "Velocity",
+          "data": { "x": 0.0, "y": 0.0 }
         },
         {
-            "name": "ScalePlatform",
-            "components": [
-                {
-                    "type": "Position",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "Velocity",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "RigidBody",
-                    "data": {
-                        "mass": 0.0,
-                        "forceX": 0.0,
-                        "forceY": 0.0
-                    }
-                },
-                {
-                    "type": "AABBCollider",
-                    "data": {
-                        "halfSizeX": 0.025,
-                        "halfSizeY": 0.05
-                    }
-                },
-                {
-                    "type": "TextureComponent",
-                    "data": {
-                        "textureID": "RonaldSprite_Platform"
-                    }
-                },
-                {
-                    "type": "RotationFlag",
-                    "data": {}
-                },
-                {
-                    "type": "ScalingPlatformComponent",
-                    "data": {
-                        "baseHalfSizeX": 0.3,
-                        "baseHalfSizeY": 0.1,
-                        "currentScaleX": 1.0,
-                        "currentScaleY": 1.0,
-                        "scaleSpeed": 2.0,
-                        "minScale": 0.2,
-                        "maxScale": 1.0,
-                        "time": 0.0
-                    }
-                }
-            ],
-            "tags": [
-                "PlatformTag"
-            ],
-            "properties": {
-                "layer": "Platform"
-            }
+          "type": "RigidBody",
+          "data": {
+            "mass": 0.0,
+            "forceX": 0.0,
+            "forceY": 0.0
+          }
+        },
+        {
+          "type": "AABBCollider",
+          "data": {
+            "halfSizeX": 1.0,
+            "halfSizeY": 0.2
+          }
+        },
+        {
+          "type": "TextureComponent",
+          "data": { "textureID": "Platform.png" }
+        },
+        {
+          "type": "RotationFlag",
+          "data": {}
         }
-    ]
+      ],
+      "tags": ["PlatformTag"],
+      "properties": {
+        "layer": "Platform"
+      }
+    },
+    {
+      "name": "TopBorder",
+      "components": [
+        {
+          "type": "Position",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "Velocity",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "RigidBody",
+          "data": {
+            "mass": 0.0,
+            "forceX": 0.0,
+            "forceY": 0.0
+          }
+        },
+        {
+          "type": "AABBCollider",
+          "data": {
+            "halfSizeX": 1.0,
+            "halfSizeY": 0.2
+          }
+        },
+        {
+          "type": "TextureComponent",
+          "data": { "textureID": "Platform.png" }
+        },
+        {
+          "type": "RotationFlag",
+          "data": {}
+        }
+      ],
+      "tags": ["PlatformTag"],
+      "properties": {
+        "layer": "Platform"
+      }
+    },
+    {
+      "name": "SideBorder",
+      "components": [
+        {
+          "type": "Position",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "Velocity",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "RigidBody",
+          "data": {
+            "mass": 0.0,
+            "forceX": 0.0,
+            "forceY": 0.0
+          }
+        },
+        {
+          "type": "AABBCollider",
+          "data": {
+            "halfSizeX": 0.2,
+            "halfSizeY": 1.0
+          }
+        },
+        {
+          "type": "TextureComponent",
+          "data": { "textureID": "Platform.png" }
+        },
+        {
+          "type": "RotationFlag",
+          "data": {}
+        }
+      ],
+      "tags": ["PlatformTag"],
+      "properties": {
+        "layer": "Platform"
+      }
+    },
+    {
+      "name": "BottomBorder",
+      "components": [
+        {
+          "type": "Position",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "Velocity",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "RigidBody",
+          "data": {
+            "mass": 0.0,
+            "forceX": 0.0,
+            "forceY": 0.0
+          }
+        },
+        {
+          "type": "AABBCollider",
+          "data": {
+            "halfSizeX": 1.0,
+            "halfSizeY": 0.2
+          }
+        },
+        {
+          "type": "TextureComponent",
+          "data": { "textureID": "Platform.png" }
+        },
+        {
+          "type": "RotationFlag",
+          "data": {}
+        }
+      ],
+      "tags": ["PlatformTag"],
+      "properties": {
+        "layer": "Platform"
+      }
+    },
+    {
+      "name": "FallingTrap",
+      "components": [
+        {
+          "type": "Position",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "Velocity",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "RigidBody",
+          "data": {
+            "mass": 0.0,
+            "forceX": 0.0,
+            "forceY": 0.0
+          }
+        },
+        {
+          "type": "AABBCollider",
+          "data": {
+            "halfSizeX": 0.5,
+            "halfSizeY": 0.1
+          }
+        },
+        {
+          "type": "TextureComponent",
+          "data": { "textureID": "Platform.png" }
+        },
+        {
+          "type": "RotationFlag",
+          "data": {}
+        },
+        {
+          "type": "TrapPlatformComponent",
+          "data": {
+            "originalPositionX": 0.0,
+            "originalPositionY": 0.0,
+            "isTriggered": false,
+            "hasFallen": false,
+            "currentDelay": 0.0,
+            "currentFallDistance": 0.0,
+            "fallSpeed": 2.0,
+            "triggerDelay": 1.0
+          }
+        }
+      ],
+      "tags": ["PlatformTag"],
+      "properties": {
+        "layer": "Platform"
+      }
+    },
+    {
+      "name": "ScalePlatform",
+      "components": [
+        {
+          "type": "Position",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "Velocity",
+          "data": { "x": 0.0, "y": 0.0 }
+        },
+        {
+          "type": "RigidBody",
+          "data": {
+            "mass": 0.0,
+            "forceX": 0.0,
+            "forceY": 0.0
+          }
+        },
+        {
+          "type": "AABBCollider",
+          "data": {
+            "halfSizeX": 0.3,
+            "halfSizeY": 0.1
+          }
+        },
+        {
+          "type": "TextureComponent",
+          "data": { "textureID": "Platform.png" }
+        },
+        {
+          "type": "RotationFlag",
+          "data": {}
+        },
+        {
+          "type": "ScalingPlatformComponent",
+          "data": {
+            "baseHalfSizeX": 0.3,
+            "baseHalfSizeY": 0.1,
+            "currentScaleX": 1.0,
+            "currentScaleY": 1.0,
+            "scaleSpeed": 2.0,
+            "minScale": 0.2,
+            "maxScale": 1.0,
+            "time": 0.0
+          }
+        }
+      ],
+      "tags": ["PlatformTag"],
+      "properties": {
+        "layer": "Platform"
+      }
+    }
+  ]
 }

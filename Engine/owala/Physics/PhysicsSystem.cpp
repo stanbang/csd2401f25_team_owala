@@ -18,6 +18,7 @@
 #include "FileUtility.h"
 #include <algorithm>
 #include <vector>
+#include <set> // Include for duplicate pair checking
 #include "OwalaTime.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -50,6 +51,11 @@ namespace Framework {
     void PhysicsSystem::Initialize() {
         InitializeCollisionMatrix();
         FileIOSystem::LoadWorldConfig(gravity_.y);
+        // --- Initialize the Implicit Grid ---
+        grid_.resize(kGridCellsX * kGridCellsY);
+        // Pre-allocate maps/vectors for performance
+        colliderEntities_.reserve(kMaxCollidableEntities);
+        entityToColliderIndex_.reserve(kMaxCollidableEntities);
     }
 
     // ----------------------------------------------------------------------------
@@ -225,114 +231,260 @@ namespace Framework {
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
 		EntityManager entityMgr(*ecs_);
-        std::vector<Entity> colliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType);
+        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType);
 
-        for (std::vector<Entity>::iterator it_a = colliders.begin(); it_a != colliders.end(); ++it_a) {
-            for (std::vector<Entity>::iterator it_b = std::next(it_a); it_b != colliders.end(); ++it_b) {
-                Entity e1 = *it_a;
-                Entity e2 = *it_b;
+        // --- Check Entity Count ---
+        if (allColliders.size() > kMaxCollidableEntities) { // preventive measure for too much entities
+            // Log an error and fall back to narrow based implementation to prevent crashing
+            static bool errorLogged = false;
+            if (!errorLogged) {
+                Logger::Get().Error(DebugType::PhysicsSystem)
+                    << "More than " << kMaxCollidableEntities << " colliders! "
+                    << "Falling back to O(n^2). Increase kMaxCollidableEntities.";
+                errorLogged = true;
+            }
 
-                // --- LAYER-BASED COLLISION CHECK ---
-                // If either entities is default layer, skip them.
-                if (entityMgr.GetProperties(e1).layer == CollisionLayer::Default|| entityMgr.GetProperties(e2).layer == CollisionLayer::Default) {
-                    continue;
+            // Fallback to narrow based implementation
+            for (std::vector<Entity>::iterator it_a = allColliders.begin(); it_a != allColliders.end(); ++it_a) {
+                for (std::vector<Entity>::iterator it_b = std::next(it_a); it_b != allColliders.end(); ++it_b) {
+                    CheckCollisionPair(*it_a, *it_b, dt);
                 }
+            }
+            return;
+        }
 
-                CollisionLayer& layer1 = entityMgr.GetProperties(e1).layer;
-                CollisionLayer& layer2 = entityMgr.GetProperties(e2).layer;
+        // ---  BUILD MAPPINGS ---
+        // Create the two-way map between Entity ID and bitset index
+        entityToColliderIndex_.clear();
+        colliderEntities_.clear(); //  reserved in Initialize
 
-                // Check the collision matrix. If they can't collide, skip to the next pair.
-                if (!collisionMatrix_[static_cast<size_t>(layer1)][static_cast<size_t>(layer2)]) {
-                    continue;
-                }
+        for (int i = 0; i < allColliders.size(); ++i) {
+            Entity entity = allColliders[i];
+            entityToColliderIndex_[entity] = i;
+            colliderEntities_.push_back(entity);
+        }
 
-                if (entityMgr.GetComponent<RigidBody>(e1).InverseMass == 0.0f && entityMgr.GetComponent<RigidBody>(e2).InverseMass == 0.0f)
-                    continue;
+        // --- BUILD PHASE (Insert all entities into grid) ---
+        // Clear all bits in the grid from the last frame
+        for (std::vector<std::bitset<kMaxCollidableEntities>>::iterator::value_type& cell : grid_) {
+            cell.reset();
+        }
 
-                // --- Get rotation for each entity ---
-                float rotation1 = 0.0f;
-                if (entityMgr.HasComponent(e1, RotationFlagType)) {
-                    rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
-                }
+        for (int i = 0; i < colliderEntities_.size(); ++i) {
+            Entity entity = colliderEntities_[i];
 
-                float rotation2 = 0.0f;
-                if (entityMgr.HasComponent(e2, RotationFlagType)) {
-                    rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
-                }
+            // Get the AABB_Bounds for insertion
+            const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+            const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+            float rotation = 0.0f;
+            if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+            }
+            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, rotation);
 
-                // --- Convert to min/max format for the collision functions ---
-                const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
-                const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
-                //AABB_Bounds bounds1 = { {pos1.x - halfSize1.x, pos1.y - halfSize1.y}, {pos1.x + halfSize1.x, pos1.y + halfSize1.y} };
-                AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+            GridInsert(i, bounds); // Insert the bitset index 'i'
+        }
 
+        // --- 3. QUERY PHASE (Check for collisions) ---
+        // This set prevents checking the same pair twice (e.g., A-B and B-A)
+        std::set<std::pair<Entity, Entity>> checkedPairs;
+        std::bitset<kMaxCollidableEntities> potentialPartners;
 
-                const Vector2D& pos2 = entityMgr.GetComponent<Position>(e2).Pos;
-                const Vector2D& halfSize2 = entityMgr.GetComponent<AABBCollider>(e2).HalfSize;
-                //AABB_Bounds bounds2 = { {pos2.x - halfSize2.x, pos2.y - halfSize2.y}, {pos2.x + halfSize2.x, pos2.y + halfSize2.y} };
-                AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
+        for (int i = 0; i < colliderEntities_.size(); ++i) {
+            Entity e1 = colliderEntities_[i];
 
-                // --- Determine Collision State ---
-                Contact contact = { e1, e2, CollisionState::NoCollision };
-                if (CollisionIntersection_RectRect_Static(bounds1, bounds2)) {
-                    contact.State = CollisionState::Overlapping;
-                }
-                else {
-                    float t;
-                    if (CollisionIntersection_RectRect_Dynamic(bounds1, entityMgr.GetComponent<Velocity>(e1).Vel, bounds2, entityMgr.GetComponent<Velocity>(e2).Vel, dt, t)) {
-                        contact.State = CollisionState::WillCollide;
+            // Get the AABB for e1 to query the grid
+            const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
+            const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
+            float rotation1 = 0.0f;
+            if (entityMgr.HasComponent(e1, RotationFlagType)) {
+                rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
+            }
+            AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+
+            // Get all potential partners from the grid (as a bitset)
+            GridQuery(bounds1, potentialPartners);
+
+            // Now, `potentialPartners` has a '1' for the index of
+            // every entity that *could* be colliding with e1.
+
+            // Iterate only over potential partners
+            // We use .test() to check if a bit is set
+            for (int j = 0; j < colliderEntities_.size(); ++j) {
+                if (i == j) continue; // Don't check against self
+
+                if (potentialPartners.test(j)) {
+                    Entity e2 = colliderEntities_[j];
+
+                    // Ensure we only check each pair once
+                    Entity first = std::min(e1, e2);
+                    Entity second = std::max(e1, e2);
+
+                    // .insert returns a pair. .second is true if insertion
+                    // was successful (i.e., the pair was new).
+                    if (checkedPairs.insert({ first, second }).second) {
+                        // This is a new pair. Perform the narrow-phase check.
+                        CheckCollisionPair(first, second, dt);
                     }
                 }
-
-                // --- Perform Resolution if overlapping ---
-                if (contact.State == CollisionState::Overlapping) {
-                    // Ensure e1 is always the dynamic object for consistent resolution
-                    Entity dynE = e1, staticE = e2;
-                    if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
-                        std::swap(dynE, staticE); // swaps if E1 is the static object IE. Mass = 0
-                    }
-
-                    Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;
-                    const auto& dynBounds = (dynE == e1) ? bounds1 : bounds2;
-                    const auto& staticBounds = (dynE == e1) ? bounds2 : bounds1;
-
-                    // Calculate overlaps on all four sides
-                    float overlapLeft = dynBounds.max.x - staticBounds.min.x;
-                    float overlapRight = staticBounds.max.x - dynBounds.min.x;
-                    float overlapTop = dynBounds.max.y - staticBounds.min.y;
-                    float overlapBottom = staticBounds.max.y - dynBounds.min.y;
-
-                    // Find the minimum overlap
-                    float minOverlapX = std::min(overlapLeft, overlapRight);
-                    float minOverlapY = std::min(overlapTop, overlapBottom);
-
-                    Vector2D& dynVel = entityMgr.GetComponent<Velocity>(dynE).Vel;
-
-                    if (minOverlapY < minOverlapX) {
-                        // Vertical collision has priority for platformers
-                        if (overlapTop < overlapBottom) {
-                            dynPos.y -= overlapTop; // Push down (hit head)
-                            if (dynVel.y > 0) dynVel.y = 0;
-                        }
-                        else {
-                            dynPos.y += overlapBottom; // Push up (landed)
-                            if (dynVel.y < 0) dynVel.y = 0;
-                            if (entityMgr.HasComponent(dynE, PlayerStateType)) entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
-                        }
-                    }
-                    else {
-                        // Horizontal collision
-                        if (overlapLeft < overlapRight) {
-                            dynPos.x -= overlapLeft; // Push left
-                        }
-                        else {
-                            dynPos.x += overlapRight; // Push right
-                        }
-                    }
-                }
-                contacts_.push_back(contact); // Log the contact regardless of resolution
             }
         }
     }
+
+
+    // ----------------------------------------------------------------------------
+    // --- NARROW-PHASE implementation ---
+    // Previous Implementation of resolve collisions
+    // ----------------------------------------------------------------------------
+    void PhysicsSystem::CheckCollisionPair(Entity e1, Entity e2, float dt) {
+        EntityManager entityMgr(*ecs_);
+
+        // --- LAYER-BASED COLLISION CHECK ---
+        // If either entities is default layer, skip them.
+        if (entityMgr.GetProperties(e1).layer == CollisionLayer::Default || entityMgr.GetProperties(e2).layer == CollisionLayer::Default) {
+            return;
+        }
+
+        CollisionLayer& layer1 = entityMgr.GetProperties(e1).layer;
+        CollisionLayer& layer2 = entityMgr.GetProperties(e2).layer;
+
+        // Check the collision matrix. If they can't collide, skip.
+        if (!collisionMatrix_[static_cast<size_t>(layer1)][static_cast<size_t>(layer2)]) {
+            return;
+        }
+
+        if (entityMgr.GetComponent<RigidBody>(e1).InverseMass == 0.0f && entityMgr.GetComponent<RigidBody>(e2).InverseMass == 0.0f) {
+            return; // Skip static-vs-static
+        }
+
+        // --- Get rotation for each entity ---
+        float rotation1 = 0.0f;
+        if (entityMgr.HasComponent(e1, RotationFlagType)) {
+            rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
+        }
+
+        float rotation2 = 0.0f;
+        if (entityMgr.HasComponent(e2, RotationFlagType)) {
+            rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
+        }
+
+        // --- Convert to min/max format for the collision functions ---
+        const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
+        const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
+        AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+
+        const Vector2D& pos2 = entityMgr.GetComponent<Position>(e2).Pos;
+        const Vector2D& halfSize2 = entityMgr.GetComponent<AABBCollider>(e2).HalfSize;
+        AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
+
+        // --- Determine Collision State ---
+        Contact contact = { e1, e2, CollisionState::NoCollision };
+        if (CollisionIntersection_RectRect_Static(bounds1, bounds2)) {
+            contact.State = CollisionState::Overlapping;
+        }
+        else {
+            float t;
+            if (CollisionIntersection_RectRect_Dynamic(bounds1, entityMgr.GetComponent<Velocity>(e1).Vel, bounds2, entityMgr.GetComponent<Velocity>(e2).Vel, dt, t)) {
+                contact.State = CollisionState::WillCollide;
+            }
+        }
+
+        // --- Perform Resolution if overlapping ---
+        if (contact.State == CollisionState::Overlapping) {
+            // Ensure e1 is always the dynamic object for consistent resolution
+            Entity dynE = e1, staticE = e2;
+            if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
+                std::swap(dynE, staticE); // swaps if E1 is the static object IE. Mass = 0
+            }
+
+            Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;
+            const auto& dynBounds = (dynE == e1) ? bounds1 : bounds2;
+            const auto& staticBounds = (dynE == e1) ? bounds2 : bounds1;
+
+            // Calculate overlaps on all four sides
+            float overlapLeft = dynBounds.max.x - staticBounds.min.x;
+            float overlapRight = staticBounds.max.x - dynBounds.min.x;
+            float overlapTop = dynBounds.max.y - staticBounds.min.y;
+            float overlapBottom = staticBounds.max.y - dynBounds.min.y;
+
+            // Find the minimum overlap
+            float minOverlapX = std::min(overlapLeft, overlapRight);
+            float minOverlapY = std::min(overlapTop, overlapBottom);
+
+            Vector2D& dynVel = entityMgr.GetComponent<Velocity>(dynE).Vel;
+
+            if (minOverlapY < minOverlapX) {
+                // Vertical collision has priority for platformers
+                if (overlapTop < overlapBottom) {
+                    dynPos.y -= overlapTop; // Push down (hit head)
+                    if (dynVel.y > 0) dynVel.y = 0;
+                }
+                else {
+                    dynPos.y += overlapBottom; // Push up (landed)
+                    if (dynVel.y < 0) dynVel.y = 0;
+                    if (entityMgr.HasComponent(dynE, PlayerStateType)) entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
+                }
+            }
+            else {
+                // Horizontal collision
+                if (overlapLeft < overlapRight) {
+                    dynPos.x -= overlapLeft; // Push left
+                }
+                else {
+                    dynPos.x += overlapRight; // Push right
+                }
+            }
+        }
+        contacts_.push_back(contact); // Log the contact regardless of resolution
+    }
+
+    // ------ GRID HELPER FUNCTIONS ------ //
+
+    int PhysicsSystem::GetCellCoordX(float worldPos) const {
+        int coord = static_cast<int>(std::floor((worldPos - kGridWorldMinX) * kInvCellSize));
+        return std::clamp(coord, 0, kGridCellsX - 1);
+    }
+
+    
+    int PhysicsSystem::GetCellCoordY(float worldPos) const {
+        int coord = static_cast<int>(std::floor((worldPos - kGridWorldMinY) * kInvCellSize));
+        return std::clamp(coord, 0, kGridCellsY - 1);
+    }
+
+   
+    int PhysicsSystem::GetCellIndex(int x, int y) const {
+        return x + y * kGridCellsX;
+    }
+
+    
+    void PhysicsSystem::GridInsert(int colliderIndex, const AABB_Bounds& bounds) {
+        int minX = GetCellCoordX(bounds.min.x);
+        int minY = GetCellCoordY(bounds.min.y);
+        int maxX = GetCellCoordX(bounds.max.x);
+        int maxY = GetCellCoordY(bounds.max.y);
+
+        for (int y = minY; y <= maxY; ++y) {
+            for (int x = minX; x <= maxX; ++x) {
+                grid_[GetCellIndex(x, y)].set(colliderIndex);
+            }
+        }
+    }
+
+    
+    void PhysicsSystem::GridQuery(const AABB_Bounds& bounds, std::bitset<kMaxCollidableEntities>& potentialColliders) const {
+        int minX = GetCellCoordX(bounds.min.x);
+        int minY = GetCellCoordY(bounds.min.y);
+        int maxX = GetCellCoordX(bounds.max.x);
+        int maxY = GetCellCoordY(bounds.max.y);
+
+        potentialColliders.reset(); // Clear the set
+        for (int y = minY; y <= maxY; ++y) {
+            for (int x = minX; x <= maxX; ++x) {
+                potentialColliders |= grid_[GetCellIndex(x, y)];
+            }
+        }
+    }
+
+   
 
 } // namespace Framework

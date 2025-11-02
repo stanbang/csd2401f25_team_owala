@@ -34,6 +34,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_internal.h>
+#include <imgui_stdlib.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -56,6 +57,7 @@ namespace {
 		switch (componentType)
 		{
 		case ComponentType::PositionType:					return "Position";
+		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
 		case ComponentType::TriangleType:					return "Triangle";
@@ -167,7 +169,7 @@ namespace Editor {
 
 		// Init Asset Browser to root Engine directory
 		fs::path exePath = fs::current_path();
-		fs::path rootPath = fs::absolute(exePath / "../../"); // Moves out of Debug, then out of build, to reach Engine root
+		fs::path rootPath = fs::absolute(exePath / ""); // Moves out of Debug/Release, then out of build, to reach Engine root
 		assetBrowser.Initialize(rootPath);
 
 		// Prepare Dropdown arrays for Entity Inspector
@@ -964,8 +966,8 @@ void Editor::HandleDragDropPlacement() {
 						(row - gridSize / 2) * spacing
 					};
 
-					// FIX: Pass the calculated position, not halfSize
-					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "playerSprite_Idle");
+					// Pass the calculated position, not halfSize
+					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
 				}
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
@@ -1000,7 +1002,7 @@ void Editor::HandleDragDropPlacement() {
 
 			// Use the "fake player texture" as requested.
 			// This texture is loaded in TestScene.cpp
-			entityMgr.AddComponent<TextureComponent>(bird, { "playerSprite_Idle", halfSize });
+			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 
 			// Add a collider so you can click on it in the editor
 		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
@@ -1057,19 +1059,25 @@ void Editor::HandleDragDropPlacement() {
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(100.0f);
 			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
-			static bool duplicateNameError = false;
+			static bool duplicateNameError = false, emptySceneName = false;
 			// Prevent game input system from capturing mouse/keyboard input
 			gameManager_->GetSystems().input_->SetKeyboardLocked(true);
 
 			if (duplicateNameError) {
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
+			} 
+			if (emptySceneName) {
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Empty scene name!");
 			}
 
 			if (ImGui::Button("Confirm", ImVec2(120, 0)))
 			{
+				// Check empty scene name and duplicate scene name
 				std::string sceneName = sceneNameBuffer;
-				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
-				if (!duplicateNameError) {
+				emptySceneName = sceneName.empty();
+				duplicateNameError = sceneMgr.CheckSceneNameExists(sceneName);
+
+				if (!duplicateNameError && !emptySceneName) {
 					sceneMgr.CreateSceneAsset(sceneName, "", true);
 					ImGui::CloseCurrentPopup();
 					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
@@ -1080,6 +1088,10 @@ void Editor::HandleDragDropPlacement() {
 			{
 				ImGui::CloseCurrentPopup();
 				gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+				// Clear buffer and reset error variables
+				sceneNameBuffer[0] = '\0';
+				duplicateNameError = false;
+				emptySceneName = false;
 			}
 
 			ImGui::EndPopup();
@@ -1541,6 +1553,12 @@ void Editor::HandleDragDropPlacement() {
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
 			break;
+		}		
+		case ComponentType::SpawnPointType: {
+			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
+
+			ImGui::InputFloat2("Spawn Point", &spawnPt.Pos.x, "%.2f");
+			break;
 		}
 		case ComponentType::VelocityType: {
 			Velocity& velocity = entityMgr.GetComponent<Velocity>(selectedEntity);
@@ -1638,9 +1656,20 @@ void Editor::HandleDragDropPlacement() {
 			break;
 		}
 		case ComponentType::TextureComponentType: {
-			//TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 
-			ImGui::TextDisabled("Properties are Hidden");
+			//Show text but make it read-only
+			ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newTextureKey = "";
+			ImGui::InputText("New Texture Key", &newTextureKey);
+
+			//Button to update texture key
+			if (ImGui::Button("Update Texture")) {
+				if (!newTextureKey.empty()) {
+					tex.textureKey = newTextureKey;
+				}
+			}
+
 			break;
 		}
 		case ComponentType::AudioComponentType:

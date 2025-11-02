@@ -18,8 +18,10 @@
 #include "Components.h"
 #include "Collision.h"
 #include <vector>
-#include <bitset>
-// bitset is for storing binary data IE. layercollider data
+#include <bitset> // bitset is for storing binary data IE. layercollider data
+#include <set> //  For duplicate pair checking
+#include <unordered_map> // For Entity -> bitset index mapping
+#include <algorithm>
 
 namespace Framework {
 
@@ -128,6 +130,15 @@ namespace Framework {
          */
         void ResolveCollisions(float dt);
 
+        /**
+         * @brief Performs the narrow-phase collision check and resolution
+         * on a single pair of entities.
+         * @param e1 The first entity.
+         * @param e2 The second entity.
+         * @param dt The fixed timestep.
+         */
+        void CheckCollisionPair(Entity e1, Entity e2, float dt);
+
 
         /**
          * @brief Detects and resolves all collisions between Player Entity and Viewport Bounds.
@@ -144,6 +155,58 @@ namespace Framework {
 
         // The collision matrix. collisionMatrix_[layer1][layer2] is true if they can collide.
         std::vector<std::bitset<static_cast<size_t>(CollisionLayer::Count)>> collisionMatrix_;
+
+
+        // ---  Broad-Phase Members using Fixed-Cell Grid ---
+
+        // --- CONSTANTS FOR GRID ---
+        static const int kMaxCollidableEntities = 1024; // Max entities for bitset
+        static constexpr float kCellSize = 0.5f;     // World-space size of one cell
+        static constexpr float kInvCellSize = 1.0f / kCellSize;
+        //  world bounds for the grid
+        static constexpr float kGridWorldMinX = -20.0f;
+        static constexpr float kGridWorldMinY = -20.0f;
+        static constexpr float kGridWorldWidth = 40.0f;
+        static constexpr float kGridWorldHeight = 40.0f;
+        // grid dimensions
+        static const int kGridCellsX = static_cast<int>(kGridWorldWidth * kInvCellSize) + 1;
+        static const int kGridCellsY = static_cast<int>(kGridWorldHeight * kInvCellSize) + 1;
+
+        // The grid itself: a vector of bitsets. One bitset per cell
+        std::vector<std::bitset<kMaxCollidableEntities>> grid_;
+
+        // Mapping from Entity ID -> bitset index (0 to kMaxCollidableEntities-1)
+        std::unordered_map<Entity, int> entityToColliderIndex_;
+        // Mapping from bitset index -> Entity ID
+        std::vector<Entity> colliderEntities_;
+
+        // --- Grid Helper Functions ---
+
+        /**
+         * @brief Converts world X-coordinate to grid X-index, clamping to bounds.
+         */
+        int GetCellCoordX(float worldPos) const; 
+
+        /**
+         * @brief Converts world Y-coordinate to grid Y-index, clamping to bounds.
+         */
+        int GetCellCoordY(float worldPos) const ;
+
+        /**
+         * @brief Converts (x, y) grid index to a 1D vector index.
+         */
+        int GetCellIndex(int x, int y) const; 
+
+        /**
+         * @brief Inserts a collider's index into all overlapped grid cells.
+         */
+        void GridInsert(int colliderIndex, const AABB_Bounds& bounds); 
+
+        /**
+         * @brief Queries all overlapped cells and combines their bitsets.
+         */
+        void GridQuery(const AABB_Bounds& bounds, std::bitset<kMaxCollidableEntities>& potentialColliders) const;
+    
     };
 
 } // namespace Framework

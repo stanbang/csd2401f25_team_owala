@@ -28,11 +28,13 @@
 #include <type_traits>
 #include "Font.h"
 #include "Animation.h"
+#include <filesystem>
 
 namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
 	using Audio = FMOD::Sound;
+    namespace fs = std::filesystem;
 
 	// Custom deleter for Texture objects
     struct TextureDeleter {
@@ -65,6 +67,10 @@ namespace Framework {
 		// Get a resource by key
         template<typename ResourceType>
         ResourceType& get(std::string key);
+
+		// Check if a resource exists
+        template<typename ResourceType>
+        bool has(const std::string& key) const;
 
         template<typename ResourceType>
         void unload(const std::string& key) {
@@ -107,8 +113,16 @@ namespace Framework {
         // Clear all resources
         void clearAll();
 
+        // Scan a directory for assets and load them
+        void ScanAssetDirectory(const fs::path& directoryPath);
+        // Load a asset by name (assuming name maps to a file path)
+        bool loadTexture(const std::string& name);
+        bool loadSound(const std::string& name);
+        bool loadFont(const std::string& name);
+        bool loadAnimationInfo(const std::string& name);
+
 		// Load assets from file and store it in their respective maps
-        bool loadTexture(const std::string& name, const std::string& filepath);
+		bool loadTexture(const std::string& name, const std::string& filepath); // Overload with filepath
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
         bool loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size = 48);
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
@@ -123,33 +137,92 @@ namespace Framework {
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>> soundMap; // Sound map with custom deleter
         std::unordered_map<std::string, std::unique_ptr<Font>> fontMap; // font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>> animationMap; // Animation map
+		std::unordered_map<std::string, fs::path> assetPathMap_; // Map of asset names to file paths
 
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
 
         AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
     };
 
-	// Template definitions must be in the header file
     template<typename ResourceType>
     ResourceType& ResourceManager::get(std::string key) {
+
+        // Texture
         if constexpr (std::is_same<ResourceType, Texture>::value) {
-            // Lookup in texture map
-            return *getTextureMap().at(key);
+            auto& map = getTextureMap();
+            auto it = map.find(key);
+            if (it == map.end()) {
+				// Load automatically if missing
+                if (loadTexture(key)) {
+                    it = map.find(key); // Try to find it again
+                    if (it != map.end()) return *it->second;
+                }
+
+                Logger::Get().Error(DebugType::ResourceManager)
+                    << "[ResourceManager] Missing Texture: \"" << key << "\"\n";
+                throw std::runtime_error("Missing Texture: " + key);
+            }
+            return *it->second;
         }
+
+        // Audio
         else if constexpr (std::is_same<ResourceType, Audio>::value) {
-            // Lookup in sound map
-            return *getSoundMap().at(key);
+            auto& map = getSoundMap();
+            auto it = map.find(key);
+            if (it == map.end()) {
+				// Load automatically if missing
+                if (loadSound(key)) {
+                    it = map.find(key);
+                    if (it != map.end()) return *it->second;
+                }
+
+                Logger::Get().Error(DebugType::ResourceManager)
+                    << "[ResourceManager] Missing Audio: \"" << key << "\"\n";
+                throw std::runtime_error("Missing Audio: " + key);
+            }
+            return *it->second;
         }
+
+        // Font
         else if constexpr (std::is_same<ResourceType, Font>::value) {
-            // Lookup in font map
-            return *getFontMap().at(key);
+            auto& map = getFontMap();
+            auto it = map.find(key);
+            if (it == map.end()) {
+				// Load automatically if missing
+                if (loadFont(key)) {
+                    it = map.find(key);
+                    if (it != map.end()) return *it->second;
+                }
+
+                Logger::Get().Error(DebugType::ResourceManager)
+                    << "[ResourceManager] Missing Font: \"" << key << "\"\n";
+                throw std::runtime_error("Missing Font: " + key);
+            }
+            return *it->second;
         }
+
+        // AnimationInfo
         else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
-			// Lookup in animation map
-			return *getAnimationMap().at(key);
+            auto& map = getAnimationMap();
+            auto it = map.find(key);
+            if (it == map.end()) {
+				// Load automatically if missing
+                if (loadAnimationInfo(key)) {
+                    it = map.find(key);
+                    if (it != map.end()) return *it->second;
+                }
+
+                Logger::Get().Error(DebugType::ResourceManager)
+                    << "[ResourceManager] Missing Animation: \"" << key << "\"\n";
+                throw std::runtime_error("Missing Animation: " + key);
+            }
+            return *it->second;
         }
+
+        // Unsupported type
         else {
-            static_assert(sizeof(ResourceType) == 0, "ResourceManager::get only supports Texture/Audio/Font at the moment.");
+            static_assert(sizeof(ResourceType) == 0,
+                "ResourceManager::get only supports Texture, Audio, Font, and AnimationInfo.");
         }
     }
 
@@ -158,10 +231,19 @@ namespace Framework {
     void ResourceManager::add(const std::string& name, ResourceType resource) {
         if constexpr (std::is_same<ResourceType, Texture>::value) {
             auto& map = getTextureMap();
-            if (map.find(name) != map.end()) return;
-            // NOTE: Must use 'new Texture(resource)' to pass a raw pointer 
-            // to unique_ptr's constructor, which uses TextureDeleter implicitly.
-            map.emplace(name, std::unique_ptr<Texture, TextureDeleter>(new Texture(resource)));
+			auto it = map.find(name);
+			// If key already exists, do not overwrite, instead replace
+            if (it != map.end()) {
+                // Replace existing texture
+                it->second.reset(new Texture(resource));
+            }
+
+			// If key does not exist, create new entry
+            else {
+                // NOTE: Must use 'new Texture(resource)' to pass a raw pointer 
+                // to unique_ptr's constructor, which uses TextureDeleter implicitly.
+                map.emplace(name, std::unique_ptr<Texture, TextureDeleter>(new Texture(resource)));
+            }
         }
 
         else {
@@ -175,23 +257,67 @@ namespace Framework {
     void ResourceManager::add(const std::string& name, std::unique_ptr<ResourceType, Deleter> resourcePtr) {
         if constexpr (std::is_same<ResourceType, Audio>::value) {
             auto& map = getSoundMap();
-            if (map.find(name) != map.end()) return;
-            map.emplace(name, std::move(resourcePtr));
+            auto it = map.find(name);
+
+            if (it != map.end()) {
+                it->second = std::move(resourcePtr);
+            }
+            else {
+                map.emplace(name, std::move(resourcePtr));
+            }
         }
         else if constexpr (std::is_same<ResourceType, Font>::value) {
             auto& map = getFontMap();
-            if (map.find(name) != map.end()) return;
-            map.emplace(name, std::move(resourcePtr));
+            auto it = map.find(name);
+
+            if (it != map.end()) {
+                it->second = std::move(resourcePtr);
+            }
+            else {
+                map.emplace(name, std::move(resourcePtr));
+            }
         }   
         else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
             auto& map = getAnimationMap();
-            if (map.find(name) != map.end()) return;
-            map.emplace(name, std::move(resourcePtr));
+            auto it = map.find(name);
+
+            if (it != map.end()) {
+                it->second = std::move(resourcePtr);
+            }
+            else {
+                map.emplace(name, std::move(resourcePtr));
+            }
         }
         else {
             static_assert(sizeof(ResourceType) == 0,
                 "add() unique_ptr version only supports Audio/Font/Animation at the moment.");
         }
+    }
+
+    template<typename ResourceType>
+    bool ResourceManager::has(const std::string& key) const {
+        // Texture
+        if constexpr (std::is_same<ResourceType, Texture>::value) {
+            return textureMap.find(key) != textureMap.end();
+        }
+        // Audio
+        else if constexpr (std::is_same<ResourceType, Audio>::value) {
+            return soundMap.find(key) != soundMap.end();
+        }
+        // Font
+        else if constexpr (std::is_same<ResourceType, Font>::value) {
+            return fontMap.find(key) != fontMap.end();
+        }
+        // AnimationInfo
+        else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
+            return animationMap.find(key) != animationMap.end();
+        }
+        // Unsupported type
+        else {
+            static_assert(sizeof(ResourceType) == 0,
+                "ResourceManager::has only supports Texture, Audio, Font, and AnimationInfo.");
+        }
+        return false;
     }
 
 } // namespace Framework

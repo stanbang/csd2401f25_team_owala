@@ -15,10 +15,11 @@
 #include "TestScene.h"
 
 // ImGui headers
+#ifdef BUILD_EDITOR
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-
+#endif
 //Core Engine headers for IMGUI
 #include "Core.h"
 
@@ -110,10 +111,12 @@ namespace Framework {
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
 	}
-
+	#ifdef BUILD_EDITOR
 	void GameManager::RegisterEditor(Editor::Editor& editor) {
 		editor_ = &editor;
 	}
+	#endif
+
 
 	// ---------------------------------------------------------------------------
 	// GameManager APIs
@@ -174,6 +177,11 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 		}
+
+		//Render sprite in engine if not using editor
+		#ifdef BUILD_ENGINE
+		systems_.spriteRenderer_->Update(dt);
+		#endif
 		//glfwSwapInterval(0); //just for testing to turn vsync off
 
 		// --- END GAME UPDATE ---

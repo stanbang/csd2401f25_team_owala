@@ -22,7 +22,7 @@ namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
 	class AnimationSystem : public ISystem {
 	public:
-		// CHANGED: Constructor now requires an InputSystem reference.
+		// Constructor taking references to EntityStorage and ResourceManager
 		AnimationSystem(EntityStorage& entityStorage, ResourceManager& resourceManager)
 			: entityStorage_(&entityStorage), resourceManager_(&resourceManager) {}
 		void Initialize() override {}

@@ -40,8 +40,10 @@
 #include "PlatformBehaviorSystem.h"
 #include "AISystem.h" 
 
+#ifdef BUILD_EDITOR
 // Imgui Editor
 #include "Editor.h"
+#endif
 
 // Global pointer to WindowsSystem for console handler
 Framework::WindowsSystem* g_win = nullptr;
@@ -60,10 +62,10 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+    SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
 
     using namespace Framework;
-    
+
     Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
     backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
 
@@ -92,12 +94,14 @@ int main() {
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
-    LevelResetSystem* levelResetter = new LevelResetSystem(*ecs);
+    LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *levelResetter); // Register all core systems to the GameManager
 
 	// Editor Registration
+    #ifdef BUILD_EDITOR
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
 	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
+    #endif
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
     engine.AddSystem(win);                 // creates GLFW window + context
@@ -112,7 +116,9 @@ int main() {
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
     engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
+    #ifdef BUILD_EDITOR
     engine.AddSystem(editor);              // Editor
+    #endif
     engine.AddSystem(gfx);                 // swaps buffers last
 
     engine.Initialize();
@@ -123,7 +129,7 @@ int main() {
     }
     catch (const GameException& e) {
         Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);
-        engine.DestroySystems(); 
+        engine.DestroySystems();
         SceneManager::DestroyInstance();
     }
     catch (const std::exception& e) {

@@ -1,3 +1,24 @@
+/*****************************************************************//**
+ * \file   Font.cpp
+ *
+ * \primary_author
+ *      Yar Xuan (80%)
+ * \secondary_author
+ *      Lur Pei Hao Stanley (20%)
+ *
+ * \brief
+ *      This file implements the Font class, which handles the loading,
+ *      storage, and unloading of font data.
+ *      This file also implements the FreeTypeManager class, a singleton which
+ *      handles the FreeType library instance and ensures only one instance
+ *      is initialized throughout.
+ *
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "Font.h"
 #include "Logger.h"
 

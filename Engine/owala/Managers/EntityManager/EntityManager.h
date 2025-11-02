@@ -50,6 +50,7 @@ namespace Framework {
 			if (HasComponent(entity, type)) return;
 
 			if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
+			else if constexpr (std::is_same_v<T, SpawnPoint>) ecs.spawnPoint[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
@@ -91,6 +92,7 @@ namespace Framework {
 
 			// Return a reference to the component in the map
 			if constexpr (std::is_same_v<T, Position>) return ecs.position.at(entity);
+			else if constexpr (std::is_same_v<T, SpawnPoint>) return ecs.spawnPoint.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
@@ -103,6 +105,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
 			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
+			else if constexpr (std::is_same_v<T, Button>) return ecs.button.at(entity);
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
@@ -153,7 +156,7 @@ namespace Framework {
 
 	template<typename... Args>
 	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {
-		// 1. Create the required signature bitset
+		// Create the required signature bitset
 		ComponentSignature requiredSignature;
 
 		// This sets a bit for each component type passed in

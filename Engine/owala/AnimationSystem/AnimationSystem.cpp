@@ -40,17 +40,18 @@ namespace Framework {
 				}
 
 				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    textureComponent.textureKey = "playerSprite_Idle"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
-				case AnimationState::RUNNING: textureComponent.textureKey = "playerSprite_Run"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
-				case AnimationState::JUMPING: textureComponent.textureKey = "playerSprite_Jump"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
-				case AnimationState::FALLING: textureComponent.textureKey = "playerSprite_Jump"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
+				case AnimationState::IDLE:    textureComponent.textureKey = "Eli_Idle_Spritesheet.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
+				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
+				case AnimationState::JUMPING: textureComponent.textureKey = "player_Jump_Anim.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
+				case AnimationState::FALLING: textureComponent.textureKey = "player_Jump_Anim.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
 				}
+
 			}
 
 			else if (entityMgr.HasComponent(entity, FakePlayerTagType)) {
 				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    textureComponent.textureKey = "playerSprite_Idle"; break; //When idle, use idle animation
-				case AnimationState::RUNNING: textureComponent.textureKey = "playerSprite_Run"; break; //When running, use running animation
+				case AnimationState::IDLE:    textureComponent.textureKey = "Eli_Idle_Spritesheet.png"; break; //When idle, use idle animation
+				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; break; //When running, use running animation
 				}
 			}
 

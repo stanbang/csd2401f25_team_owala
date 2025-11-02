@@ -32,7 +32,7 @@ namespace Framework {
         //MessageBus
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
             try {
-                FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>("jump");
+                FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>("jump.ogg");
                 this->play(jumpSound);
             }
             catch (...) {

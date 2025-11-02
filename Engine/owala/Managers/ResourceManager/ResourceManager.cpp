@@ -23,7 +23,16 @@ void Framework::FMODDeleter::operator()(FMOD::Sound* s) const noexcept {
 }
 
 void ResourceManager::Initialize() {
-	
+	// Scan asset directories to auto-map filenames to paths
+	try {
+		ScanAssetDirectory("Assets/Sprites");
+		ScanAssetDirectory("Assets/Audio");
+		ScanAssetDirectory("Assets/Fonts");
+		ScanAssetDirectory("Data/AnimationData");
+	}
+	catch (const fs::filesystem_error& e) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Failed to scan assets: " << e.what();
+	}
 }
 
 void ResourceManager::Update() {
@@ -38,7 +47,45 @@ void ResourceManager::clearAll() {
 	animationMap.clear();
 }
 
-// Loads a texture from file and stores it inside the resource manager
+// Scans a directory and maps asset filenames to their full paths
+void ResourceManager::ScanAssetDirectory(const fs::path& directoryPath) {
+	if (!fs::exists(directoryPath) || !fs::is_directory(directoryPath)) {
+		Logger::Get().Info(DebugType::ResourceManager) << "Asset directory not found: " << directoryPath.string();
+		return;
+	}
+
+	for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
+		if (entry.is_regular_file()) {
+			std::string filename = entry.path().filename().string();
+
+			// Check for duplicates. You can decide to warn or just overwrite.
+			if (assetPathMap_.count(filename)) {
+				Logger::Get().Info(DebugType::ResourceManager)
+					<< "Duplicate asset key found: " << filename
+					<< ". Overwriting with new path: " << entry.path().string();
+			}
+
+			assetPathMap_[filename] = entry.path();
+		}
+	}
+}
+
+// Loads a texture by name using the scanned asset paths
+bool ResourceManager::loadTexture(const std::string& name) {
+	// 1. Check if we scanned this asset
+	auto it = assetPathMap_.find(name);
+	if (it == assetPathMap_.end()) {
+		Logger::Get().Error(DebugType::ResourceManager)
+			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?";
+		return false;
+	}
+
+	// 2. We found it, now call the original loadTexture with the full path
+	const std::string& fullPath = it->second.string();
+	return loadTexture(name, fullPath); // Calls your existing function
+}
+
+// OVERLOAD Loads a texture from file and stores it inside the resource manager
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
 	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
 
@@ -51,6 +98,17 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;
+}
+
+bool ResourceManager::loadSound(const std::string& name) {
+	auto it = assetPathMap_.find(name);
+	if (it == assetPathMap_.end()) {
+		Logger::Get().Error(DebugType::ResourceManager)
+			<< "Cannot auto-load sound: Key '" << name << "' not found.";
+		return false;
+	}
+
+	return loadSound(name, it->second.string().c_str(), false, false);
 }
 
 // Loads a sound from file and stores it inside the resource manager
@@ -115,6 +173,19 @@ std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& ResourceManager
 	return animationMap;
 }
 
+// Loads a font by name using the scanned asset paths
+bool ResourceManager::loadFont(const std::string& name) {
+	auto it = assetPathMap_.find(name);
+	if (it == assetPathMap_.end()) {
+		Logger::Get().Error(DebugType::ResourceManager)
+			<< "Cannot auto-load font: Key '" << name << "' not found.";
+		return false;
+	}
+
+	// Calls your loadFont, which uses the default size (48)
+	return loadFont(name, it->second.string());
+}
+
 // Loads a font from file and stores it inside the resource manager
 bool ResourceManager::loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size) {
 	FT_Library library = FreeTypeManager::GetInstance().GetLibrary();
@@ -142,6 +213,19 @@ bool ResourceManager::loadFont(const std::string& fontKey, const std::string& fo
 	// Failed to load
 	Logger::Get().Error(DebugType::ResourceManager) << "Failed to load font from '" << fontPath << "'" << std::endl;
 	return false;
+}
+
+// Loads an animation info by name using the scanned asset paths
+bool ResourceManager::loadAnimationInfo(const std::string& name) {
+	auto it = assetPathMap_.find(name);
+	if (it == assetPathMap_.end()) {
+		Logger::Get().Error(DebugType::ResourceManager)
+			<< "Cannot auto-load animation: Key '" << name << "' not found.";
+		return false;
+	}
+
+	// Calls original loadAnimationInfo
+	return loadAnimationInfo(name, it->second.string());
 }
 
 // Loads animation info from file and stores it inside the resource manager

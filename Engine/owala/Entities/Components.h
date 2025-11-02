@@ -57,6 +57,12 @@ namespace Framework{
 		Vector2D Pos;
 	};
 
+	/*	SpawnPoint component to store initial x and y
+	coordinates of an entity.*/
+	struct SpawnPoint {
+		Vector2D Pos;
+	};
+
 	/*	Velocity component to store x and y
 		velocity of an entity.*/
 	struct Velocity {
@@ -187,6 +193,12 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
+	struct Button {
+		bool isHovered = false; // Mouse is over the button
+		bool isPressed = false; // Button is clicked
+		bool isReleased = false; // Button click is released
+	};
+	
 	// --- ADDED FOR AI ---
 
 	/**

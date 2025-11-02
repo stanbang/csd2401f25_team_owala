@@ -8,4 +8,8 @@ namespace Framework {
 		float damage; //just for example, currently not used yet
 	};
 
+	struct ButtonClickedEvent {
+		Entity button;
+	};
+
 } // namespace Framework

@@ -5,7 +5,8 @@
  *      Yar Xuan
  * \secondary_author
  *
- * \brief
+ * \brief Defines the LevelResetSystem class responsible for resetting the state of entities 
+ *        (like players and platforms) to their initial configuration.
  *
  * \copyright
  *   Copyright (C) 2025 DigiPen Institute of Technology.
@@ -15,23 +16,27 @@
 #pragma once
 #include "EntityStorage.h"
 #include "EntityManager.h"
+#include "TransformationSystem.h"
+#include "Logger.h"
 
 namespace Framework {
     class LevelResetSystem {
     private:
         // Reference to the EntityStorage to access entities and components
         EntityStorage& ecs_;
+        TransformationSystem& transformationSys_;
 
         // Store the signatures required for quick checking (built in the constructor)
         ComponentSignature playerSig;
 
         // Platform signatures
+        ComponentSignature basicPlatformSig;
         ComponentSignature trapPlatformSig;
         ComponentSignature scalingPlatformSig;
 
     public:
         // Constructor initializes the system with necessary references/masks
-        LevelResetSystem(EntityStorage& ecs);
+        LevelResetSystem(EntityStorage& ecs, TransformationSystem& transSys);
 
         // Reset current scene
         void RunReset();
