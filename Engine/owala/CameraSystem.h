@@ -16,7 +16,7 @@ namespace Framework {
         CameraSystem(EntityStorage& ecs);
 
         void Initialize() override {}
-        void Update(float dt) override;
+        void Update() override;
         void Shutdown() override {}
 
         Vector2D WorldToScreen(const Vector2D& worldPos, Entity cameraEntity = 0);

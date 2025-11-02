@@ -167,9 +167,7 @@ namespace Framework {
 		sceneCallbacks_[testScene].fpInitialize();
 	}
 
-	void GameManager::Update(float dt) {
-		deltaTime = dt;
-
+	void GameManager::Update() {
 		// --- GAME UPDATE HERE ---
 		// Hard Coded to load the Test Scene as we'll be doing testing there first.
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;

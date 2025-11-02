@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include <cmath>
 #include <iostream>
+#include "OwalaTime.h"
 
 namespace Framework {
     /*!
@@ -33,12 +34,12 @@ namespace Framework {
     @param      dt Delta time in seconds since last frame
     @return     void
 *//*______________________________________________________________*/
-    void RotationSystem::Update(float dt) {
+    void RotationSystem::Update() {
         EntityManager entityMgr(*ecs_);
 
         // Update cooldown timer
         if (rotationCooldown > 0.0f) {
-            rotationCooldown -= dt;
+            rotationCooldown -= Framework::Time::DeltaTime();
             if (rotationCooldown < 0.0f) {
                 rotationCooldown = 0.0f;
             }
@@ -65,7 +66,7 @@ namespace Framework {
 
         if (isGlobalRotating) {
             float rotationSpeed = 270.0f;
-            float rotationThisFrame = rotationSpeed * dt;
+            float rotationThisFrame = rotationSpeed * Framework::Time::DeltaTime();
 
             float angleDifference = targetGlobalRotation - globalRotation;
 

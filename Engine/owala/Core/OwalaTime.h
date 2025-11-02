@@ -43,6 +43,6 @@ namespace Framework {
 
 		/* Time Calculations */
 		// Consume and return the number of fixed update steps that can be performed based on the accumulated time. For computing physics.
-		static int ConsumeFixedSteps();
+		static int ConsumeFixedSteps() noexcept;
 	};
 }

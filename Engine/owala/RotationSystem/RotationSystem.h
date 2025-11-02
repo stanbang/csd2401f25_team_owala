@@ -30,7 +30,7 @@ namespace Framework {
     public:
         RotationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics);
         void Initialize() override;
-        void Update(float dt) override;
+        void Update() override;
         void Shutdown() override;
 
     private:

@@ -30,6 +30,7 @@
 #include "GameManager.h"
 #include "Graphics.h"
 #include "Editor.h"
+#include "OwalaTime.h"
 
 namespace Framework {
 
@@ -79,11 +80,13 @@ namespace Framework {
 
         using clock = std::chrono::high_resolution_clock;
         auto prev = clock::now();
+        Framework::Time::Initialize();
         systemTimes_.resize(systems_.size());
 
         while (running_) {
             // --- Time step calculation ---
             auto now = clock::now();
+            Framework::Time::BeginFrame();
             float dt = std::chrono::duration<float>(now - prev).count();
             prev = now;
             dt = std::min(dt, 0.25f); // cap huge delta time
@@ -115,7 +118,7 @@ namespace Framework {
 
                 // --- Execute ---
                 if (shouldUpdate)
-                    sys->Update(dt);
+                    sys->Update();
 
                 auto end = clock::now();
                 systemTimes_[i].name = sysName;
@@ -132,6 +135,8 @@ namespace Framework {
                     t.percentage = static_cast<float>((t.milliseconds / totalFrameTime_) * 100.0);
             }
         }
+
+		Framework::Time::EndFrame();
     }
 
     // ------------------------------------------------------------------------

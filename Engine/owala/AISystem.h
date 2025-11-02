@@ -23,7 +23,7 @@ namespace Framework {
         AISystem(EntityStorage& storage, Graphics& gfx);
 
         void Initialize() override;
-        void Update(float dt) override;
+        void Update() override;
         void Shutdown() override;
 
         // Main debug draw call (will be called by the Editor)
@@ -52,15 +52,15 @@ namespace Framework {
 
         // --- State Machine Handlers ---
         void HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
-        void HandleWakingState(Entity bird, BirdAIComponent& ai, float dt);
-        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos, float dt);
-        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos, float dt);
-        void HandleAttackState(Entity bird, BirdAIComponent& ai, float dt);
+        void HandleWakingState(Entity bird, BirdAIComponent& ai);
+        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
+        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
+        void HandleAttackState(Entity bird, BirdAIComponent& ai);
 
         /**
          * @brief Moves the bird along its calculated path.
          */
-        void FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos, float dt);
+        void FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos);
 
         // ---- Private debug drawing helpers ---
         /*void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor);

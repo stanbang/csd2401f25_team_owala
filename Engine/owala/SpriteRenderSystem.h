@@ -78,7 +78,7 @@ namespace Framework {
          * \param dt Delta time in seconds (unused in simple rendering loop).
          * \details Clears the screen, draws sprites, and optionally draws colliders.
          */
-        void Update(float dt) override;
+        void Update() override;
 
         /**
          * \brief Shut down the render system.

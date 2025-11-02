@@ -44,6 +44,9 @@
 // Serialization
 #include "EntitySerializer.h"
 
+// Time Management
+#include "OwalaTime.h"
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -245,7 +248,7 @@ namespace Editor {
 			}
 		}
 	}
-	void Editor::Update(float dt) {
+	void Editor::Update() {
 
 		if (!palettePrepared_ && resourceManager_) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
@@ -263,7 +266,6 @@ namespace Editor {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 		input->SetCursorLocked(false);
 
-		deltatime = dt;
 		if (!isEnabled) return;
 		SanityCheck();
 
@@ -836,7 +838,7 @@ void Editor::HandleDragDropPlacement() {
 			ImGui::Separator();
 
 			// Update the profiler data only when the timer ends
-			profilerUpdateTimer_ += deltatime;
+			profilerUpdateTimer_ += Framework::Time::UnscaledDeltaTime();
 			if (profilerUpdateTimer_ >= updateInterval) {
 				profilerUpdateTimer_ = 0.0f;
 				profilerDisplayData_ = engine_->GetSystemTimes(); // Get system time
@@ -1761,7 +1763,7 @@ void Editor::HandleDragDropPlacement() {
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
 				// Render all game sprites to the FBO
-				spriteRenderer_->Update(deltatime);
+				spriteRenderer_->Update();
 
 				// Unbind the FBO *before* drawing to the ImGui window
 				gfx->UnbindGameFramebuffer();
