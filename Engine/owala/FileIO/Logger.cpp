@@ -1,3 +1,22 @@
+/*****************************************************************//**
+ * \file   Logger.cpp
+ *
+ * \primary_author
+ *      Yar Xuan
+ * \secondary_author
+ *
+ *
+ * \brief
+ *      This file contains the core components for engine-wide logging and error reporting.
+ *      It provides a `GameException` struct that automatically captures a stack trace
+ *      for easier debugging, and a singleton `Logger` class. The logger can output
+ *      categorized messages to the console and create timestamped crash log files.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "Logger.h"
 
 namespace Framework {

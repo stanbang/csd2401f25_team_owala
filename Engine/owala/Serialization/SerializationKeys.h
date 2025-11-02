@@ -25,6 +25,7 @@ namespace Framework::Serialization {
 	static constexpr const char* COMPONENTS = "components";
 
 	static constexpr const char* POSITION_COMPONENT = "Position";
+	static constexpr const char* SPAWN_PT_COMPONENT = "SpawnPoint";
 	static constexpr const char* VELOCITY_COMPONENT = "Velocity";
 	static constexpr const char* ACCELERATION_COMPONENT = "Acceleration";
 

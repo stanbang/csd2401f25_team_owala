@@ -116,8 +116,8 @@ namespace Framework {
 		// scenes_ map getter
 		const std::unordered_map<SceneGUID, SceneAsset>& GetAllSceneAssets() const;
 
-		// Checker for duplicate scene names
-		bool CheckDuplicateSceneName(const std::string& sceneName);
+		// Checker for duplicate scene names. Return true if scene name exists, false otherwise.
+		bool CheckSceneNameExists(const std::string& sceneName);
 		// Update scene asset
 		void UpdateScenePath(const SceneGUID& sceneIndex, const std::string& newPath);
 

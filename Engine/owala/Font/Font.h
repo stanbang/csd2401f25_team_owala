@@ -48,7 +48,7 @@ namespace Framework {
         Font();
         ~Font();
 
-        // Loads a font from a file path and generates the texture atlas.
+        // Loads a font from a file path and generates the texture atlas. Return true if successful load, false otherwise.
         bool Load(FT_Library library, const std::string& fontPath, unsigned int size = 48);
 
         // Get a reference to the character map.

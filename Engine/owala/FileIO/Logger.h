@@ -40,7 +40,8 @@ const enum class DebugType {
     Editor,
     Font,
     EntitySeralizer,
-    AISystem
+    AISystem,
+    LevelResetSystem
 };
 
 const std::string DebugTypeLabels[] = {
@@ -59,7 +60,8 @@ const std::string DebugTypeLabels[] = {
     "Editor",
     "Font",
     "EntitySeralizer",
-    "AISystem"
+    "AISystem",
+    "LevelResetSystem"
 };
 
 namespace Framework {

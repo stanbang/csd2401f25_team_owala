@@ -43,6 +43,7 @@ namespace Framework {
 
 	enum ComponentType {
 		PositionType = 0,
+		SpawnPointType,
 		VelocityType,
 		AccelerationType,
 		TriangleType,
@@ -84,6 +85,7 @@ namespace Framework {
 
 	// Specializations for each real component
 	template <> struct ComponentTypeTrait<Position> { static constexpr ComponentType value = PositionType; };
+	template <> struct ComponentTypeTrait<SpawnPoint> { static constexpr ComponentType value = SpawnPointType; };
 	template <> struct ComponentTypeTrait<Velocity> { static constexpr ComponentType value = VelocityType; };
 	template <> struct ComponentTypeTrait<Acceleration> { static constexpr ComponentType value = AccelerationType; };
 	template <> struct ComponentTypeTrait<Triangle> { static constexpr ComponentType value = TriangleType; };
@@ -128,6 +130,7 @@ namespace Framework {
 		//Basic Components
 		std::unordered_map<Entity, EntityProperties> properties;
 		std::unordered_map<Entity, Position>     position;
+		std::unordered_map<Entity, SpawnPoint>   spawnPoint;
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;
 		std::unordered_map<Entity, Triangle>     triangle;

@@ -56,6 +56,7 @@ namespace {
 		switch (componentType)
 		{
 		case ComponentType::PositionType:					return "Position";
+		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
 		case ComponentType::TriangleType:					return "Triangle";
@@ -181,7 +182,6 @@ namespace Editor {
 		tagNames.clear();
 		tagItems.clear();
 		tagTypes.clear();
-		fontKeys.clear();
 
 		componentNames.push_back("");
 		tagNames.push_back("");
@@ -207,12 +207,6 @@ namespace Editor {
 
 		for (const std::string& tagName : tagNames) {
 			tagItems.push_back(tagName.c_str());
-		}
-
-		const auto& fontMap = resourceManager_->getFontMap();
-		fontKeys.reserve(fontMap.size());
-		for (const auto& pair : fontMap) {
-			fontKeys.push_back(pair.first.c_str());
 		}
 
 		// Load all prefabs from the data file when the editor starts
@@ -666,6 +660,8 @@ void Editor::HandleDragDropPlacement() {
 
 		if (entityToErase != 0) {
 			entityMgr.DestroyEntity(entityToErase);
+			selectedEntityIndex = 0;
+			isEntitySelected_ = false;
 		}
 	}
 
@@ -1057,19 +1053,25 @@ void Editor::HandleDragDropPlacement() {
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(100.0f);
 			ImGui::InputText("##SceneName", sceneNameBuffer, IM_ARRAYSIZE(sceneNameBuffer));
-			static bool duplicateNameError = false;
+			static bool duplicateNameError = false, emptySceneName = false;
 			// Prevent game input system from capturing mouse/keyboard input
 			gameManager_->GetSystems().input_->SetKeyboardLocked(true);
 
 			if (duplicateNameError) {
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
+			} 
+			if (emptySceneName) {
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Empty scene name!");
 			}
 
 			if (ImGui::Button("Confirm", ImVec2(120, 0)))
 			{
+				// Check empty scene name and duplicate scene name
 				std::string sceneName = sceneNameBuffer;
-				duplicateNameError = sceneMgr.CheckDuplicateSceneName(sceneName);
-				if (!duplicateNameError) {
+				emptySceneName = sceneName.empty();
+				duplicateNameError = sceneMgr.CheckSceneNameExists(sceneName);
+
+				if (!duplicateNameError && !emptySceneName) {
 					sceneMgr.CreateSceneAsset(sceneName, "", true);
 					ImGui::CloseCurrentPopup();
 					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
@@ -1080,6 +1082,10 @@ void Editor::HandleDragDropPlacement() {
 			{
 				ImGui::CloseCurrentPopup();
 				gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+				// Clear buffer and reset error variables
+				sceneNameBuffer[0] = '\0';
+				duplicateNameError = false;
+				emptySceneName = false;
 			}
 
 			ImGui::EndPopup();
@@ -1538,6 +1544,12 @@ void Editor::HandleDragDropPlacement() {
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
 			break;
+		}		
+		case ComponentType::SpawnPointType: {
+			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
+
+			ImGui::InputFloat2("Spawn Point", &spawnPt.Pos.x, "%.2f");
+			break;
 		}
 		case ComponentType::VelocityType: {
 			Velocity& velocity = entityMgr.GetComponent<Velocity>(selectedEntity);
@@ -1675,25 +1687,22 @@ void Editor::HandleDragDropPlacement() {
 			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
 				textComp.textToDraw = textBuffer;
 			}
-			// Lock game keyboard input if typing on text input
-			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
 
 			// Font Selection
+			char fontKeyBuffer[256] = "";
 
-			// Set initial font to first index for new TextComponents, and to its corresponding index if textComponent.fontKey alr exists
-			int selectedFontIndex = 0;
-			if (!textComp.fontKey.empty()) {
-				auto it = std::find(fontKeys.begin(), fontKeys.end(), textComp.fontKey);
-				if (it != fontKeys.end()) {
-					selectedFontIndex = static_cast<int>(std::distance(fontKeys.begin(), it));
-				}
+			// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
+			if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
+				std::strncpy(
+					fontKeyBuffer,
+					textComp.fontKey.c_str(),
+					IM_ARRAYSIZE(fontKeyBuffer) - 1
+				);
+				fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 			}
 
-			textComp.fontKey = fontKeys[selectedFontIndex];
-
-			// Display Dropdown for font selection
-			if (ImGui::Combo("Font", &selectedFontIndex, fontKeys.data(), static_cast<int>(fontKeys.size()))) {
-				textComp.fontKey = fontKeys[selectedFontIndex];
+			if (ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer))) {
+				textComp.fontKey = fontKeyBuffer;
 			}
 
 			// Color Input

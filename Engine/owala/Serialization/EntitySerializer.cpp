@@ -37,6 +37,15 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::POSITION), value, alloc);
 		}
 
+		// Serialize SpawnPoint Component
+		if (entityMgr.HasComponent(entity, ComponentType::SpawnPointType)) {
+			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::VEC2_X), spawnPt.Pos.x, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), spawnPt.Pos.y, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::SPAWN_PT_COMPONENT), value, alloc);
+		}
+
 		// Serialize Velocity Component
 		if (entityMgr.HasComponent(entity, ComponentType::VelocityType)) {
 			Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
@@ -366,6 +375,20 @@ namespace Framework {
 				position.Pos.y = pos[Serialization::VEC2_Y].GetFloat();
 			}
 			entityMgr.AddComponent<Position>(loadedEntity, position);
+		}
+
+		// Deserialize SpawnPoint Component
+		if (componentLists.HasMember(Serialization::SPAWN_PT_COMPONENT)) {
+			const rapidjson::Value& pos = componentLists[Serialization::SPAWN_PT_COMPONENT];
+
+			SpawnPoint spawnPt;
+			if (pos.HasMember(Serialization::VEC2_X) && pos[Serialization::VEC2_X].IsFloat()) {
+				spawnPt.Pos.x = pos[Serialization::VEC2_X].GetFloat();
+			}
+			if (pos.HasMember(Serialization::VEC2_Y) && pos[Serialization::VEC2_Y].IsFloat()) {
+				spawnPt.Pos.y = pos[Serialization::VEC2_Y].GetFloat();
+			}
+			entityMgr.AddComponent<SpawnPoint>(loadedEntity, spawnPt);
 		}
 
 		// Deserialize Velocity Component

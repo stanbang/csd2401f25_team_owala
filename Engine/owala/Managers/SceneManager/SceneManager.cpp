@@ -92,7 +92,7 @@ namespace Framework {
 	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path, const bool entitiesPopulated) {
 		CheckStorage();
 		// Check if scene with the same name already exists
-		if (CheckDuplicateSceneName(sceneName)) {
+		if (CheckSceneNameExists(sceneName)) {
 			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
 			return 0;
 		}
@@ -308,12 +308,21 @@ namespace Framework {
 		return scenes_;
 	}
 
-	bool SceneManager::CheckDuplicateSceneName(const std::string& sceneName) {
+	bool SceneManager::CheckSceneNameExists(const std::string& sceneName) {
+		std::cout << scenes_.size() << std::endl;
 		for (const auto& [id, scene] : scenes_) {
-			if (scene.name == sceneName) {
-				return true;
-			}
+			// Skip check if lengths differ
+			if (scene.name.length() != sceneName.length()) continue;
+			// Else, check if names are equal. Return true if equal, continue loop if not equal.
+			bool isEqual = std::equal(scene.name.begin(), scene.name.end(), sceneName.begin(),
+				[](char c1, char c2) {
+					return std::tolower(static_cast<unsigned char>(c1)) ==
+						std::tolower(static_cast<unsigned char>(c2));
+				});
+
+			if (isEqual) return true;
 		}
+
 		return false;
 	}
 
