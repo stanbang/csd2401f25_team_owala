@@ -6,7 +6,7 @@
 namespace Framework {
 
 
-	void GuiSystem::Update(float dt) {
+	void GuiSystem::Update() {
 
 		// Get mouse position from InputSystem
 		double mouseX, mouseY;

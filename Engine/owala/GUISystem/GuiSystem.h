@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "EntityManager.h"
 #include "InputSystem.h"
+#include "OwalaTime.h"
 
 namespace Framework{
 	class GuiSystem : public ISystem {
@@ -13,7 +14,7 @@ namespace Framework{
 			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), entityMgr(entityManager) {
 		}
 		void Initialize() override {}
-		void Update(float dt) override;
+		void Update() override;
 		void Shutdown() override;
 
 	private:
