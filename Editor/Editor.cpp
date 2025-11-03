@@ -977,7 +977,7 @@ namespace Editor {
 			}
 
 			ImGui::SameLine();
-			if (ImGui::Button("Clone Selected Entity")) {
+			if (ImGui::Button("Clone Selected Entity") && selectedEntityIndex > 0) {
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
