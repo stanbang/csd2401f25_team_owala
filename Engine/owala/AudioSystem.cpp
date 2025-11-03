@@ -1,9 +1,8 @@
 #include "AudioSystem.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
-#include "GameMessages.h"
-#include "MessageBus.h"
 #include <cstdio>   // fprintf
+#include "Logger.h"
 
 namespace Framework {
 
@@ -40,7 +39,8 @@ namespace Framework {
             }
             });
 
-
+		// Subscribe to ButtonClickedEvent
+        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event);});
     }
 
     void AudioSystem::Update() {
@@ -54,6 +54,10 @@ namespace Framework {
 
 			// Check if Entity is active in the scene. Loads if active.
 			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+            // Check if entity is tied to a button
+			if (entityMgr.HasComponent(entity, ButtonType)) {
+                continue; //Skip button entities, handle separately.
+			}
 
 			AudioComponent& comp = entityMgr.GetComponent<AudioComponent>(entity);
             if (comp.soundKey.empty()) continue;
@@ -223,6 +227,38 @@ namespace Framework {
         // optionally forget last channel too
         std::unordered_map<std::string, FMOD::Channel*>::iterator ct = channels_.find(id);
         if (ct != channels_.end()) channels_.erase(ct);
+    }
+
+    void AudioSystem::OnButtonClicked(const ButtonClickedEvent& event) {
+		Logger::Get().Info(DebugType::AudioSystem) << "AudioSystem received ButtonClickedEvent for button entity " << event.button << std::endl;
+		// If button's action is not play sound, don't process
+        if (event.action != ButtonAction::PLAYSOUND) {
+            return;
+        }
+
+        EntityManager entityMgr(*entityStorage_);
+
+        // Check if the button entity that was clicked has an AudioComponent
+        if (!entityMgr.HasComponent(event.button, AudioComponentType)) {
+            return;
+        }
+
+        // Get the component
+        const auto& audioData = entityMgr.GetComponent<AudioComponent>(event.button);
+
+        // Check for looping
+        if (audioData.loop) {
+            return;
+        }
+
+        // Play the sound
+        try {
+            FMOD::Sound& sfx = resourceManager_->get<FMOD::Sound>(audioData.soundKey);
+            this->play(sfx, audioData.volume, false);
+        }
+        catch (...) {
+			Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << audioData.soundKey << std::endl;
+        }
     }
 
 } // namespace Framework

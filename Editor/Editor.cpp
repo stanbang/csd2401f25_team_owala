@@ -1546,7 +1546,7 @@ void Editor::HandleDragDropPlacement() {
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
 			break;
-		}		
+		}
 		case ComponentType::SpawnPointType: {
 			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
 
@@ -1602,10 +1602,19 @@ void Editor::HandleDragDropPlacement() {
 			AABBCollider& col = entityMgr.GetComponent<AABBCollider>(selectedEntity);
 
 			//ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f)); // Dim background
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f)); // Dim text
-			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2); // Pop both colors
+			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f");
+			break;
+		}
+		case ComponentType::ButtonType: {
+			Button& buttonComp = entityMgr.GetComponent<Button>(selectedEntity);
+			ImGui::Checkbox("Is Pressed?", &buttonComp.isPressed);
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS" };
+			int currentItemIndex = static_cast<int>(buttonComp.action);
+
+			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
+				buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
+			}
+
 			break;
 		}
 		case ComponentType::PlayerStateType: {
@@ -1668,11 +1677,28 @@ void Editor::HandleDragDropPlacement() {
 
 			break;
 		}
-		case ComponentType::AudioComponentType:
-		case ComponentType::AnimationComponentType:
+		case ComponentType::AudioComponentType: {
+			AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(selectedEntity);
+			//Show text but make it read-only
+			ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newSoundKey = "";
+			ImGui::InputText("New Audio Key", &newSoundKey);
+			//Button to update audio key
+			if (ImGui::Button("Update Audio")) {
+				if (!newSoundKey.empty()) {
+					audioComp.soundKey = newSoundKey;
+				}
+			}
+			ImGui::Checkbox("Looping", &audioComp.loop);
+			ImGui::Checkbox("Stream", &audioComp.stream);
+			ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
+			break;
+		}
+
+		case ComponentType::AnimationComponentType: {
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
-
+		}
 		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 

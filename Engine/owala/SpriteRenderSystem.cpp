@@ -59,10 +59,16 @@ namespace Framework {
 
             try {
                 const Vector2D& worldPos = entityMgr.GetComponent<Position>(entity).Pos;
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
                 // World-space half size
                 Vector2D halfSize;
-                if (entityMgr.HasComponent(entity, AABBColliderType)) {
+                // Check for texture half size first
+                if (entityMgr.HasComponent(entity, TextureComponentType)) {
+                    halfSize = sprite.HalfSize;
+                }
+                // If no texture component, fallback and check for collider half size
+                else if (entityMgr.HasComponent(entity, AABBColliderType)) {
                     halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
                 }
                 else if (entityMgr.HasComponent(entity, BackgroundTagType)) {
@@ -73,7 +79,7 @@ namespace Framework {
                 }
 
                 // === CULLING IN WORLD SPACE ===
-                if (activeCamera != 0 && cameraSystem_) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     if (worldPos.x + halfSize.x < left || worldPos.x - halfSize.x > right ||
                         worldPos.y + halfSize.y < bottom || worldPos.y - halfSize.y > top) {
                         continue;
@@ -91,7 +97,6 @@ namespace Framework {
 
                 // === DETERMINE RENDER ORDER ===
                 int renderOrder = 0; // Default order
-                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
                 // Background gets lowest priority
                 if (entityMgr.HasComponent(entity, BackgroundTagType)) {

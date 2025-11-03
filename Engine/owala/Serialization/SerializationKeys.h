@@ -106,6 +106,7 @@ namespace Framework::Serialization {
 	static constexpr const char* IS_HOVERED = "is_hovered";
 	static constexpr const char* IS_PRESSED = "is_pressed";
 	static constexpr const char* IS_RELEASED = "is_released";
+	static constexpr const char* ACTION = "action";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";

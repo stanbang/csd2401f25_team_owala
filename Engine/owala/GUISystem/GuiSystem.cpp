@@ -2,34 +2,37 @@
 #include "CameraSystem.h" // For the camera
 #include "GameMessages.h" // For ButtonClickedEvent
 #include "MessageBus.h" // For MessageBus
+#include "FileUtility.h"
 
 namespace Framework {
 
 	void GuiSystem::Initialize() {
-
+		FileIOSystem fileIO;
+		SetViewportSizeEngine(fileIO.LoadWindowConfig());
 	}
 
 	void GuiSystem::Update() {
 		EntityManager entityMgr(*entityStorage_);
 
 		// Get mouse position in world coordinates
-		float mouseX, mouseY;
+		double mouseX, mouseY;
 		Vector2D viewPortSize;
 
 		#ifdef BUILD_EDITOR
 		// Convert to mouse position relative to the viewport's top-left corner
 		// Get ABSOLUTE mouse position from ImGui
 		ImVec2 absoluteMousePos = ImGui::GetIO().MousePos;
-		mouseX = absoluteMousePos.x - viewportPos_.x;
-		mouseY = absoluteMousePos.y - viewportPos_.y;
+		mouseX = static_cast<double>(absoluteMousePos.x - viewportPos_.x);
+		mouseY = static_cast<double>(absoluteMousePos.y - viewportPos_.y);
+		double mouseX_ndc = static_cast<double>((mouseX / viewportSize_.x) * 2.0f - 1.0f);
+		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / viewportSize_.y) * 2.0f);
 		#endif
 
 		#ifdef BUILD_ENGINE
-		inputSystem_->GetMousePos(&mouseX, &mouseY);
+		inputSystem_->GetMousePos(&mouseX, &mouseY); // Get mouse position in window coordinates
+		double mouseX_ndc = static_cast<double>((mouseX / viewportSizeEngine_.x) * 2.0f - 1.0f);
+		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / viewportSizeEngine_.y) * 2.0f);
 		#endif
-
-		float mouseX_ndc = (mouseX / viewportSize_.x) * 2.0f - 1.0f;
-		float mouseY_ndc = 1.0f - (mouseY / viewportSize_.y) * 2.0f;
 
 		bool mouseDown = inputSystem_->MouseDown(InputSystem::MouseButton::Left);
 
@@ -40,10 +43,10 @@ namespace Framework {
 			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(button);
 
 			// Calculate button bounds
-			float minX = position.Pos.x - tex.HalfSize.x;
-			float maxX = position.Pos.x + tex.HalfSize.x;
-			float minY = position.Pos.y - tex.HalfSize.y;
-			float maxY = position.Pos.y + tex.HalfSize.y;
+			double minX = static_cast<double>(position.Pos.x - tex.HalfSize.x);
+			double maxX = static_cast<double>(position.Pos.x + tex.HalfSize.x);
+			double minY = static_cast<double>(position.Pos.y - tex.HalfSize.y);
+			double maxY = static_cast<double>(position.Pos.y + tex.HalfSize.y);
 
 			//Logger::Get().Info(DebugType::GUISystem) << "Mouse At: " << mouseX_ndc << ", " << mouseY_ndc << std::endl;
 			//Logger::Get().Info(DebugType::GUISystem) << "Button At: " << minX << ", " << minY << " to " << maxX << ", " << maxY << std::endl;
@@ -65,8 +68,11 @@ namespace Framework {
 				// Reset button pressed state
 				buttonComponent.isPressed = false;
 
-				// Publish ButtonClickedEvent
-				MessageBus::Instance().Publish(ButtonClickedEvent{ button });
+				// Publish the event with the button's specific action
+				MessageBus::Instance().Publish(ButtonClickedEvent{
+					button,
+					buttonComponent.action // Pass the action from the component
+					});
 			}
 
 			else if (isHovering && mouseDown) {
@@ -84,6 +90,7 @@ namespace Framework {
 
 	}
 
+	#ifdef BUILD_EDITOR
 	void Framework::GuiSystem::SetViewportContext(ImVec2 position, ImVec2 size) {
 		viewportPos_ = position;
 		viewportSize_ = size;
@@ -92,4 +99,6 @@ namespace Framework {
 		if (viewportSize_.x == 0) viewportSize_.x = 1.0f;
 		if (viewportSize_.y == 0) viewportSize_.y = 1.0f;
 	}
+	#endif
+
 }

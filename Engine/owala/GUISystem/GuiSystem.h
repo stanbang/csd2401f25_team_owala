@@ -22,7 +22,13 @@ namespace Framework{
 		void Update() override;
 		void Shutdown() override;
 
+		#ifdef BUILD_EDITOR
 		void SetViewportContext(ImVec2 position, ImVec2 size);
+		#endif
+
+		void SetViewportSizeEngine(const Vector2D& size) {
+			viewportSizeEngine_ = size;
+		}
 
 	private:
 		// Pointer to the entity storage to access and modify entities and their components
@@ -30,9 +36,13 @@ namespace Framework{
 		ResourceManager* resourceManager_ = nullptr;
 		InputSystem* inputSystem_ = nullptr;
 
+		Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
+
 		#ifdef BUILD_EDITOR
 		ImVec2 viewportPos_ = { 0.0f, 0.0f };
 		ImVec2 viewportSize_ = { 1.0f, 1.0f };
 		#endif
+
+
 	};
 }

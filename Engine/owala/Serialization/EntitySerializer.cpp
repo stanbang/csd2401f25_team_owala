@@ -130,6 +130,7 @@ namespace Framework {
 			value.AddMember(rapidjson::StringRef(Serialization::IS_HOVERED), button.isHovered, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::IS_PRESSED), button.isPressed, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::IS_RELEASED), button.isReleased, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ACTION), static_cast<int>(button.action), alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::BUTTON_COMPONENT), value, alloc);
 		}
 
@@ -535,6 +536,9 @@ namespace Framework {
 			}
 			if (buttonData.HasMember(Serialization::IS_RELEASED) && buttonData[Serialization::IS_RELEASED].IsBool()) {
 				button.isReleased = buttonData[Serialization::IS_RELEASED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::ACTION) && buttonData[Serialization::ACTION].IsInt()) {
+				button.action = static_cast<Framework::ButtonAction>(buttonData[Serialization::ACTION].GetInt());
 			}
 			entityMgr.AddComponent<Button>(loadedEntity, button);
 		}

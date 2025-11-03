@@ -21,6 +21,7 @@
 #include "Vector2D.h"
 #include <string>
 #include "Matrix3x3.h"
+#include "GameMessages.h"
 #include <memory> // for std::shared_ptr
 #include <vector> 
 #include <map>    
@@ -198,6 +199,7 @@ namespace Framework{
 		bool isHovered = false; // Mouse is over the button
 		bool isPressed = false; // Button is clicked
 		bool isReleased = false; // Button click is released
+		ButtonAction action = ButtonAction::DEFAULT; // Action to perform on click
 	};
 	
 	// --- ADDED FOR AI ---
