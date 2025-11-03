@@ -1,5 +1,5 @@
 #include "Pathfinding.h"
-#include "EntityManager.h" // Assuming you have this from your other files
+#include "EntityManager.h" 
 #include "EntityStorage.h" // For ComponentType enums
 #include "Components.h"     
 #include <cmath>            
@@ -14,6 +14,16 @@
 #endif
 
 namespace Framework {
+
+    
+    namespace {
+       // function object that compares two pathnodes and returns true if bigger
+        struct ComparePathNode {
+            bool operator()(PathNode* a, PathNode* b) const {
+                return a->fCost() > b->fCost();
+            }
+        };
+    }
 
     // --- NavigationGrid Implementation ---
 
@@ -86,7 +96,7 @@ namespace Framework {
         };
     }
 
-    std::vector<std::unique_ptr<PathNode>> NavigationGrid::GetNeighbors(PathNode* node) {
+    std::vector<std::unique_ptr<PathNode>> NavigationGrid::GetNeighbors(PathNode* node)  {
         std::vector<std::unique_ptr<PathNode>> neighbors;
         for (int x = -1; x <= 1; ++x) {
             for (int y = -1; y <= 1; ++y) {
@@ -136,8 +146,7 @@ namespace Framework {
         }
 
         std::map<std::pair<int, int>, std::unique_ptr<PathNode>> allNodes;
-        auto compare = [](PathNode* a, PathNode* b) { return a->fCost() > b->fCost(); };
-        std::priority_queue<PathNode*, std::vector<PathNode*>, decltype(compare)> openSet(compare);
+        std::priority_queue<PathNode*, std::vector<PathNode*>, ComparePathNode> openSet;
         std::set<std::pair<int, int>> closedSet;
 
         startNode->gCost = 0;

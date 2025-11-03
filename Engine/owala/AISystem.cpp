@@ -47,7 +47,6 @@ namespace Framework {
         // Find the player
         Entity player = GetPlayer();
         if (player == 0) {
-            // NEW: Add Log
             static bool playerWarningLogged = false;
             if (!playerWarningLogged) {
                 Logger::Get().Info(DebugType::AISystem) << "No player found in scene!" << std::endl;
@@ -58,7 +57,13 @@ namespace Framework {
 
         Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
 
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
+        // Get players collision halfsize
+        Vector2D playerHalfSize = Vector2D::Zero();
+        if (entityMgr.HasComponent(player, AABBColliderType)) {
+            playerHalfSize = entityMgr.GetComponent<AABBCollider>(player).HalfSize;
+        }
+
+        //Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
@@ -70,58 +75,91 @@ namespace Framework {
         }
 
         // Loop over all entities with an EnemyTagType and BirdAIComponent
-        for (const Entity& bird : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) { 
+        for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
             // Check that the bird has all components before proceeding
-            if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
-                !entityMgr.HasComponent(bird, PositionType) ||
-                !entityMgr.HasComponent(bird, VelocityType))
+            if (entityMgr.HasComponent(enemy, BirdAIComponentType))
             {
-                continue; // Skip if bird doesn't have all required components
-            }
+                if (!entityMgr.HasComponent(enemy, PositionType) ||
+                    !entityMgr.HasComponent(enemy, VelocityType))
+                {
+                    continue; // Skip if bird doesn't have all required components
+                }
 
-            auto& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
-            auto& birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+                Framework::BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(enemy);
+                Vector2D& birdPos = entityMgr.GetComponent<Position>(enemy).Pos;
+
+                // Get birds collision halfsize
+                Vector2D birdHalfSize = Vector2D::Zero();
+                if (entityMgr.HasComponent(enemy, AABBColliderType)) {
+                    birdHalfSize = entityMgr.GetComponent<AABBCollider>(enemy).HalfSize;
+                }
 
 #ifdef BUILD_EDITOR
-            // Log state transitions - only in editor build
-            static std::map<Entity, BirdState> lastStates;
-            if (lastStates.find(bird) == lastStates.end()) {
-                lastStates[bird] = ai.state;
-            }
-
-            if (ai.state != lastStates[bird]) {
-                std::string stateName;
-                switch (ai.state) {
-                case BirdState::IDLE:   stateName = "IDLE";   break;
-                case BirdState::WAKING: stateName = "WAKING"; break;
-                case BirdState::CHASE:  stateName = "CHASE";  break;
-                case BirdState::HOVER:  stateName = "HOVER";  break;
-                case BirdState::ATTACK: stateName = "ATTACK"; break;
+                // Log state transitions - only in editor build
+                static std::map<Entity, BirdState> lastStates;
+                if (lastStates.find(enemy) == lastStates.end()) {
+                    lastStates[enemy] = ai.state;
                 }
-                Logger::Get().Info(DebugType::AISystem)
-                    << "Bird [" << bird << "] State Change: " << stateName << std::endl;
-                lastStates[bird] = ai.state;
-            }
+
+                if (ai.state != lastStates[enemy]) {
+                    std::string stateName;
+                    switch (ai.state) {
+                    case BirdState::IDLE:   stateName = "IDLE";   break;
+                    case BirdState::WAKING: stateName = "WAKING"; break;
+                    case BirdState::CHASE:  stateName = "CHASE";  break;
+                    case BirdState::HOVER:  stateName = "HOVER";  break;
+                    case BirdState::ATTACK: stateName = "ATTACK"; break;
+                    }
+                    Logger::Get().Info(DebugType::AISystem)
+                        << "Bird [" << enemy << "] State Change: " << stateName << std::endl;
+                    lastStates[enemy] = ai.state;
+                }
 #endif
-            // --- Main State Machine ---
-            switch (ai.state) {
-            case BirdState::IDLE:
-                HandleIdleState(bird, ai, birdPos, playerPos);
-                break;
-            case BirdState::WAKING:
-                HandleWakingState(bird, ai);
-                break;
-            case BirdState::CHASE:
-                HandleChaseState(bird, ai, birdPos, playerPos);
-                break;
-            case BirdState::HOVER:
-                HandleHoverState(bird, ai, birdPos, playerPos);
-                break;
-            case BirdState::ATTACK:
-                HandleAttackState(bird, ai);
-                break;
+                // --- Main State Machine ---
+                switch (ai.state) {
+                case BirdState::IDLE:
+                    HandleIdleState(enemy, ai, birdPos, playerPos);
+                    break;
+                case BirdState::WAKING:
+                    HandleWakingState(enemy, ai);
+                    break;
+                case BirdState::CHASE:
+                    HandleChaseState(enemy, ai, birdPos, birdHalfSize, playerPos, playerHalfSize);
+                    break;
+                case BirdState::HOVER:
+                    HandleHoverState(enemy, ai, birdPos, birdHalfSize, playerPos, playerHalfSize);
+                    break;
+                case BirdState::ATTACK:
+                    HandleAttackState(enemy, ai);
+                    break;
+                }
+
+            }
+            else if (entityMgr.HasComponent(enemy, SkeletonAIComponentType))
+            {
+                // Skeletons need these components to function
+                if (!entityMgr.HasComponent(enemy, PositionType) ||
+                    !entityMgr.HasComponent(enemy, VelocityType) ||
+                    !entityMgr.HasComponent(enemy, PlayerStateType)) // Used for facing and grounded
+                {
+                    continue;
+                }
+
+                auto& ai = entityMgr.GetComponent<SkeletonAIComponent>(enemy);
+                auto& skeletonPos = entityMgr.GetComponent<Position>(enemy).Pos;
+
+                // --- Skeleton State Machine ---
+                switch (ai.state) {
+                case SkeletonState::IDLE:
+                    HandleSkeletonIdleState(enemy, ai, skeletonPos, playerPos);
+                    break;
+                case SkeletonState::CHASE:
+                    HandleSkeletonChaseState(enemy, ai, skeletonPos, playerPos);
+                    break;
+                }
             }
         }
+
     }
 
     void AISystem::HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
@@ -149,13 +187,23 @@ namespace Framework {
         }
     }
 
-    void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
+    void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
         // TODO: Trigger "Flying" animation here
 
         float dist = birdPos.Distance(playerPos);
 
+        // Calculate an "effective" radius for the player and bird, using the larger of their half-width/height.
+        // This is a simple approximation of their collision bounds.
+        float playerEffectiveRadius = std::max(playerHalfSize.x, playerHalfSize.y);
+        float birdEffectiveRadius = std::max(birdHalfSize.x, birdHalfSize.y);
+
+        // The bird "arrives" when its collision edge is 'hoverRadius' away from the player's collision edge.
+        // We check this by comparing the distance between their centers.
+        
+        float arrivalDistance = ai.hoverRadius + playerEffectiveRadius + birdEffectiveRadius;
+
         // Check if reached radius
-        if (dist < ai.hoverRadius) {
+        if (dist < arrivalDistance) {
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] reached hover radius!" << std::endl;
             ai.state = BirdState::HOVER;
@@ -194,25 +242,33 @@ namespace Framework {
         FollowPath(bird, ai, birdPos);
     }
 
-    void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
+    void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
         // TODO: Trigger "Flying" animation here
 
         EntityManager entityMgr(*ecs_);
 
+        float playerEffectiveRadius = std::max(playerHalfSize.x, playerHalfSize.y);
+        float birdEffectiveRadius = std::max(birdHalfSize.x, birdHalfSize.y);
+        float arrivalDistance = ai.hoverRadius + playerEffectiveRadius + birdEffectiveRadius;
+
+        float escapeDistance = arrivalDistance * 1.5f; // escape distance 
+
         // Check if player moved too far away
         float distToPlayer = birdPos.Distance(playerPos);
-        if (distToPlayer > ai.hoverRadius * 2.0f) { // Increased escape threshold
+
+        if (distToPlayer > escapeDistance) { 
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] player escaped, resuming chase!" << std::endl;
             ai.state = BirdState::CHASE;
-            // Stagger pathfinding calls over the next 0.5 seconds
+            // Stagger pathfinding calls over 0.5 secs
             ai.pathRecalculateTimer = (static_cast<float>(rand() % 100) / 100.0f) * 0.5f;
             return;
         }
-        // 2. Define the 4 nodes of the "vertical box" above the player
-        //    We'll use hoverRadius for width and height, but you can change this
+
+
+        // Define the 4 nodes of the vertical box above the player for hovering
         float boxHalfWidth = ai.hoverRadius;
-        float boxHalfHeight = ai.hoverRadius; // Makes a square box. Increase this for a taller "vertical" box.
+        float boxHalfHeight = ai.hoverRadius; // Makes a square box
 
         Vector2D hoverNodes[4];
         // Node 0: Bottom-left
@@ -239,7 +295,7 @@ namespace Framework {
             if (ai.attackTimer <= 0.0f) {
                 Logger::Get().Info(DebugType::AISystem)
                     << "Bird [" << bird << "] reached patrol area. Starting 3-10 sec attack timer." << std::endl;
-                ai.attackTimer = 10.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f; // 3 to 10 seconds
+                ai.attackTimer = 5.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f; //  3 to 12 seconds
             }
             // Move to next node
             ai.currentHoverNode = (ai.currentHoverNode + 1) % 4;
@@ -248,13 +304,27 @@ namespace Framework {
         }
 
         // Check for attack 
-        ai.attackTimer -= Framework::Time::DeltaTime();
-        if (ai.attackTimer <= 0.0f && distToPlayer < ai.attackRadius) {
-            Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] initiating attack!" << std::endl;
-            ai.state = BirdState::ATTACK;
-            ai.attackTargetPosition = playerPos; // Lock player position
-            ai.stateTimer = ai.attackDuration;
+        if (ai.attackTimer > 0.0f) {
+            ai.attackTimer -= Framework::Time::DeltaTime();
+
+            // Check for attack after counting down
+            if (ai.attackTimer <= 0.0f) {
+                // Check if in range to attack.
+                if (distToPlayer < ai.attackRadius) {
+                    Logger::Get().Info(DebugType::AISystem)
+                        << "Bird [" << bird << "] initiating attack!" << std::endl;
+                    ai.state = BirdState::ATTACK;
+                    ai.attackTargetPosition = playerPos; // Lock player position
+                    ai.stateTimer = ai.attackDuration;
+                }
+                else {
+                    // Timer ran out, but player is not in range.
+                    // Reset the timer to a new random value to "hover longer".
+                    ai.attackTimer = 5.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f;
+                    Logger::Get().Info(DebugType::AISystem)
+                        << "Bird [" << bird << "] attack timer expired, but out of range. Resetting timer." << std::endl;
+                }
+            }
         }
     }
 
@@ -325,8 +395,68 @@ namespace Framework {
     }
 
     // ============================================================================
-   // DEBUG DRAWING - ONLY COMPILED IN EDITOR BUILD
-   // ============================================================================
+    // SKELETON AI HANDLERS
+    // ============================================================================
+
+    void AISystem::HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos) {
+        EntityManager entityMgr(*ecs_);
+
+        // Stop moving
+        entityMgr.GetComponent<Velocity>(skeleton).Vel.x = 0.0f;
+        // TODO: Trigger "Idle" animation here
+
+        // Check distance to player
+        if (skeletonPos.Distance(playerPos) < ai.detectionRadius) {
+            Logger::Get().Info(DebugType::AISystem)
+                << "Skeleton [" << skeleton << "] detected player." << std::endl;
+            ai.state = SkeletonState::CHASE;
+        }
+    }
+
+    void AISystem::HandleSkeletonChaseState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos) {
+        EntityManager entityMgr(*ecs_);
+
+        // First, check if player has gone out of range
+        if (skeletonPos.Distance(playerPos) > ai.detectionRadius) {
+            Logger::Get().Info(DebugType::AISystem)
+                << "Skeleton [" << skeleton << "] lost player." << std::endl;
+            ai.state = SkeletonState::IDLE;
+            return; // Exit, HandleSkeletonIdleState will stop movement next frame
+        }
+
+        // Player is in range, move towards them
+        // This AI only walks on platforms, so we only control X-velocity.
+
+        // We need PlayerState to check if we're grounded and to set our facing direction
+        PlayerState& state = entityMgr.GetComponent<PlayerState>(skeleton);
+
+        // Only move if on the ground
+        if (state.isGrounded) {
+            auto& vel = entityMgr.GetComponent<Velocity>(skeleton).Vel;
+
+            if (playerPos.x < skeletonPos.x - 0.01f) { // Move left (with a small buffer)
+                vel.x = -ai.moveSpeed;
+                state.isFacingRight = false;
+                // TODO: Trigger "Walk" animation
+            }
+            else if (playerPos.x > skeletonPos.x + 0.01f) { // Move right (with a small buffer)
+                vel.x = ai.moveSpeed;
+                state.isFacingRight = true;
+                // TODO: Trigger "Walk" animation
+            }
+            else {
+                // Player is roughly aligned vertically
+                vel.x = 0.0f;
+                // TODO: Trigger "Idle" animation
+            }
+        }
+        // (If not grounded, do nothing and let gravity take over)
+    }
+
+
+    // ============================================================================
+    // DEBUG DRAWING - ONLY COMPILED IN EDITOR BUILD
+    // ============================================================================
 #ifdef BUILD_EDITOR
 
     // Helper to convert our Color struct to ImGui's IM_COL32

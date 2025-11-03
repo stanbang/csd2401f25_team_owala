@@ -125,6 +125,12 @@ namespace Framework::Serialization {
 	static constexpr const char* ATTACK_TARGET_POSITION = "attack_target_position";
 	static constexpr const char* PATH_RECALCULATE_INTERVAL = "path_recalculate_interval";
 	static constexpr const char* PATH_RECALCULATE_TIMER = "path_recalculate_timer";
+
+	// Skeleton AI Keys
+	static constexpr const char* SKELETON_AI_COMPONENT = "SkeletonAIComponent";
+	// AI_STATE = "state" (re-use from Bird)
+	// MOVE_SPEED = "move_speed" (re-use from Bird)
+	static constexpr const char* DETECTION_RADIUS = "detection_radius";
 	
 	/* Tags JSON Labels */
 	static constexpr const char* TAGS = "tags";

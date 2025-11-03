@@ -95,6 +95,7 @@ namespace TestScene {
 		rcm_->loadAnimationInfo("Eli_Idle_Spritesheet.png", "Data/AnimationData/playerIdleAnimation.json"); //WE MUST PRESERVE THIS MAPPING IF WE WANT A LINK BETWEEN SPRITESHEET AND JSON!!!!!
         rcm_->loadAnimationInfo("Eli_Walk_Spritesheet.png", "Data/AnimationData/playerRunningAnimation.json");
         rcm_->loadAnimationInfo("player_Jump_Anim.png", "Data/AnimationData/playerJumpingAnimation.json");
+        rcm_->loadAnimationInfo("Bird_Enemy_SleepIdle_Spritesheet.png", "Data/AnimationData/birdIdleAnimation.json");
         //rcm_->loadTexture("Platform.png", "Assets/Sprites/Platform.png");
         //rcm_->loadTexture("Env_Level2_PH.png", "Assets/Sprites/Env_Level2_PH.png");
 		//rcm_->loadSound("bgm.wav", "Assets/Audio/bgm.wav", true, true); // Background Music

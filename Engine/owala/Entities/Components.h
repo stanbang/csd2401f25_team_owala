@@ -246,11 +246,35 @@ namespace Framework{
 		float attackDuration = 1.0f;
 
 		// --- Hover Behavior  ---
-		float hoverHeight = 0.8f;       // How far above player to hover
+		float hoverHeight = 1.2f;       // How far above player to hover
 		float hoverRadius_Circle = 0.6f; // Radius of the circle above player
 		int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)
 		float hoverNodeReachedDist = 0.1f; // How close to get before moving to next node
 		float hoverSpeed = 0.3f;         // Speed when moving between hover nodes
+	};
+
+	/**
+	 * @enum SkeletonState
+	 * @brief Defines the possible states for the Skeleton AI.
+	 */
+	enum class SkeletonState {
+		IDLE,    // Standing still, waiting for player
+		CHASE    // Player is in range, walking towards them 
+		//NOT YET DONE IN PROGRESSS
+	};
+
+	/**
+	 * @struct SkeletonAIComponent
+	 * @brief Contains all data for the Skeleton's state machine.
+	 */
+	struct SkeletonAIComponent {
+		SkeletonState state = SkeletonState::IDLE;
+
+		// How far the skeleton can see the player
+		float detectionRadius = 0.5f;
+
+		// How fast the skeleton walks
+		float moveSpeed = 0.1f;
 	};
 
 }
