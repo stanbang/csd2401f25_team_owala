@@ -590,103 +590,100 @@ namespace Editor {
 	}
 
 
-void Editor::HandleDragDropPlacement() {
-    if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
-        isDraggingPrefab_ = false;
-        return;
-    }
-    if (!cameraSystem_ || editorCamera_ == 0)
-        return;
-
-    const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-    // --- MOUSE POSITION (ImGui → World) ---
-    ImVec2 mousePos = ImGui::GetMousePos();
-    ImVec2 viewportPos = gameViewportPos_;     // top-left corner of game panel
-    ImVec2 viewportSize = gameViewportSize_;   // width, height of game panel
-
-    // Convert from ImGui to normalized device coordinates (-1..1)
-    float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
-    float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f); 
-    // note Y is flipped here
-
-    // Convert NDC to world using editor camera
-    Vector2D worldMousePos = {
-        cam.position.x + ndcX * (cam.size.x * 0.5f),
-        cam.position.y + ndcY * (cam.size.y * 0.5f)
-    };
-
-    // --- SNAP TO GRID ---
-    Vector2D snappedPos = SnapToGrid(worldMousePos);
-
-    Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-    Framework::EntityManager entityMgr(*ecs);
-    Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-
-    // Check duplicates
-    const float tolerance = baseGridCellSize_ * 0.1f;
-    for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-        if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-        if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-            const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-            if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
-                isDraggingPrefab_ = false;
-                return;
-            }
-        }
-    }
-
-    // --- ENTITY CREATION ---
-    Entity newEntity = entityMgr.CreateEntity();
-    float aspect = gameViewportSize_.x / gameViewportSize_.y;
-    Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
-
-    entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-    entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-    entityMgr.AddComponent(newEntity, Framework::Velocity{});
-    entityMgr.AddComponent(newEntity, Framework::RigidBody{});
-    entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
-    entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-    entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-    entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
-
-    std::string textureKey;
-    const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
-    if (prefab) textureKey = prefab->textureID;
-
-    if (!textureKey.empty()) {
-        entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-        sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-    }
-
-    isDraggingPrefab_ = false;
-}
-
-
-	// Draws a preview of the tile being dragged
-	void Editor::DrawDragDropPreview(ImDrawList* drawList) {
-
-		if (!isDraggingPrefab_ ||
-			dragDropPayload_.type == PrefabType::None ||
-			dragDropPayload_.type == PrefabType::Eraser) {
+	void Editor::HandleDragDropPlacement()
+	{
+		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
+			isDraggingPrefab_ = false;
 			return;
 		}
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return;
 
-		// Get current mouse position and snap it (same as before)
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+		// --- MOUSE POSITION (ImGui → World) ---
+		ImVec2 mousePos = ImGui::GetMousePos();
+		ImVec2 viewportPos = gameViewportPos_;
+		ImVec2 viewportSize = gameViewportSize_;
+
+		// Convert from ImGui → NDC → World
+		float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
+		float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f);
+
+		Vector2D worldMousePos = {
+			cam.position.x + ndcX * (cam.size.x * 0.5f),
+			cam.position.y + ndcY * (cam.size.y * 0.5f)
+		};
+
+		// --- SNAP TO GRID ---
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		// Prevent duplicates
+		const float tolerance = baseGridCellSize_ * 0.1f;
+		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
+			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
+			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
+					isDraggingPrefab_ = false;
+					return;
+				}
+			}
+		}
+
+		// --- ENTITY CREATION ---
+		Entity newEntity = entityMgr.CreateEntity();
+
+		// Maintain square tiles visually across aspect ratios
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+	Vector2D tileHalfSize = { baseGridCellSize_ * 0.5f, baseGridCellSize_ * 0.5f };
+		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
+		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
+		entityMgr.AddComponent(newEntity, Framework::Velocity{});
+		entityMgr.AddComponent(newEntity, Framework::RigidBody{});
+		entityMgr.GetComponent<Framework::RigidBody>(newEntity).SetMass(0.0f);
+		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
+		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
+		entityMgr.GetProperties(newEntity) = { "platforms", CollisionLayer::Platform };
+
+		std::string textureKey;
+		const auto* prefab = prefabSystem_.GetPlatformPrefab(dragDropPayload_.name);
+		if (prefab)
+			textureKey = prefab->textureID;
+
+		if (!textureKey.empty()) {
+			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+		}
+
+		isDraggingPrefab_ = false;
+	}
+
+
+	void Editor::DrawDragDropPreview(ImDrawList* drawList)
+	{
+		if (!isDraggingPrefab_ ||
+			dragDropPayload_.type == PrefabType::None ||
+			dragDropPayload_.type == PrefabType::Eraser)
+			return;
+
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return;
+
 		Vector2D worldMousePos = GetMouseWorldPosition();
 		dragDropPreviewPos_ = SnapToGrid(worldMousePos);
 
 		Texture previewTextureID = dragDropPayload_.textureID;
-		if (previewTextureID == 0) return;
+		if (previewTextureID == 0)
+			return;
 
-		// --- ASPECT-CORRECT SIZE ---
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		Vector2D previewHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
+		// --- FIX: Use same world size as placed tiles ---
+		Vector2D previewHalfSize = { baseGridCellSize_ * 0.5f, baseGridCellSize_ * 0.5f };
 
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
-		if (activeCamera == 0) return;
-
-		// --- WORLD CORNERS ---
 		Vector2D worldTopLeft = {
 			dragDropPreviewPos_.x - previewHalfSize.x,
 			dragDropPreviewPos_.y + previewHalfSize.y
@@ -696,19 +693,18 @@ void Editor::HandleDragDropPlacement() {
 			dragDropPreviewPos_.y - previewHalfSize.y
 		};
 
-		// --- SCREEN SPACE CONVERSION ---
 		ImVec2 screenTopLeft = WorldToImGuiScreen(worldTopLeft);
 		ImVec2 screenBottomRight = WorldToImGuiScreen(worldBottomRight);
 
-		// --- UVs & COLOR ---
 		ImVec2 uv0 = dragDropPayload_.uv0;
 		ImVec2 uv1 = dragDropPayload_.uv1;
-		ImU32 tintColor = IM_COL32(255, 255, 255, 150); // semi-transparent
+		ImU32 tintColor = IM_COL32(255, 255, 255, 150);
 
-		// --- DRAW PREVIEW ---
 		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
 		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
 	}
+
+
 
 
 
@@ -2073,83 +2069,61 @@ void Editor::HandleDragDropPlacement() {
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
 
-		// Get the camera's actual aspect ratio and zoom
-		float cameraAspect = cam.aspectRatio;
-		float zoom = cam.zoom;
+		// Match grid to viewport aspect
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		const float cellX = (baseGridCellSize_) / aspect;
+		const float cellY = baseGridCellSize_;
 
-		// Grid cell size in world units - use base size without zoom for consistent world positioning
-		const float baseCell = baseGridCellSize_;
-		const float cellX = baseCell / cameraAspect;  // Aspect adjusted
-		const float cellY = baseCell;                 // Base size
+		float halfW = cam.size.x * 0.5f;
+		float halfH = cam.size.y * 0.5f;
+		float left = camPos.x - halfW;
+		float right = camPos.x + halfW;
+		float bottom = camPos.y - halfH;
+		float top = camPos.y + halfH;
 
-		// Define the entire grid bounds (covering a large area of the world)
-		// You can adjust these values to make the grid larger or smaller
-		const float gridMinX = -100.0f;  // Minimum X world coordinate
-		const float gridMaxX = 100.0f;   // Maximum X world coordinate  
-		const float gridMinY = -100.0f;  // Minimum Y world coordinate
-		const float gridMaxY = 100.0f;   // Maximum Y world coordinate
+		const float startX = std::floor(left / cellX) * cellX;
+		const float startY = std::floor(bottom / cellY) * cellY;
 
 		const ImU32 lineColor = IM_COL32(150, 150, 150, 90);
 		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
 		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
-		// Vertical lines - draw the entire grid
-		for (float x = gridMinX; x <= gridMaxX; x += cellX) {
-			Vector2D worldA = { x, gridMinY };
-			Vector2D worldB = { x, gridMaxY };
+		for (float x = startX; x <= right; x += cellX)
+		{
+			Vector2D worldA = { x, bottom };
+			Vector2D worldB = { x, top };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// Horizontal lines - draw the entire grid
-		for (float y = gridMinY; y <= gridMaxY; y += cellY) {
-			Vector2D worldA = { gridMinX, y };
-			Vector2D worldB = { gridMaxX, y };
+		for (float y = startY; y <= top; y += cellY)
+		{
+			Vector2D worldA = { left, y };
+			Vector2D worldB = { right, y };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// World axes - draw at actual world origin (0,0)
-		Vector2D origin = { 0.0f, 0.0f };
-		// Make axes extend to the edge of the defined grid area
-		Vector2D xAxisEnd = { gridMaxX, 0.0f };
-		Vector2D yAxisEnd = { 0.0f, gridMaxY };
+		Vector2D xA = { 0.0f, bottom };
+		Vector2D xB = { 0.0f, top };
+		Vector2D yA = { left, 0.0f };
+		Vector2D yB = { right, 0.0f };
 
-		ImVec2 originScreen = WorldToImGuiScreen(origin);
-		ImVec2 xAxisScreen = WorldToImGuiScreen(xAxisEnd);
-		ImVec2 yAxisScreen = WorldToImGuiScreen(yAxisEnd);
-
-		// Always draw axes (no viewport checking)
-		drawList->AddLine(originScreen, xAxisScreen, axisXColor, 2.0f);
-		drawList->AddLine(originScreen, yAxisScreen, axisYColor, 2.0f);
+		drawList->AddLine(WorldToImGuiScreen(xA), WorldToImGuiScreen(xB), axisXColor, 2.0f);
+		drawList->AddLine(WorldToImGuiScreen(yA), WorldToImGuiScreen(yB), axisYColor, 2.0f);
 	}
 
-	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return worldPos;
 
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-		// Use the camera's aspect ratio instead of viewport aspect ratio
-		float cameraAspect = cam.aspectRatio;
-
-		// Grid cell size in world units (same as DrawEditorGrid)
-		const float baseCell = baseGridCellSize_;
-		const float cellX = baseCell / cameraAspect;
-		const float cellY = baseCell;
-
-		// Calculate index based on world coords
-		int gridX = static_cast<int>(std::floor(worldPos.x / cellX));
-		int gridY = static_cast<int>(std::floor(worldPos.y / cellY));
-
-		// Compute snapped center (tile center position)
-		float snappedX = (static_cast<float>(gridX) * cellX) + (cellX);
-		float snappedY = (static_cast<float>(gridY) * cellY) + (cellY / 2.0f);
-
+	Vector2D Editor::SnapToGrid(const Vector2D& worldPos)
+	{
+		const float cell = baseGridCellSize_; // world units
+		float snappedX = std::round(worldPos.x / cell) * cell;
+		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
 	}
+
 
 #pragma endregion
 
