@@ -33,6 +33,7 @@ namespace Framework {
         void SetFollowTarget(Entity cameraEntity, Entity targetEntity, float followSpeed = 5.0f);
         Vector2D GetCameraPosition(Entity cameraEntity) const;
         Camera& GetCamera(Entity cameraEntity);
+        void UpdateAspectRatio(float screenWidth, float screenHeight);
 
 
     private:

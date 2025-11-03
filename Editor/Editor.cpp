@@ -100,12 +100,65 @@ namespace {
 }
 
 namespace Editor {
-	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
-		cameraSystem_(gameManager_->GetSystems().camera_), // for tile editor to work with camera
-		graphicsSystem_(gameManager_->GetSystems().gfx_) { // for drag drop and placing of prefabs
+	// Add these member variable definitions at the top of your Editor class implementation
+	// (or wherever you have other member variable initializations)
 
+	// In the constructor, initialize the camera state:
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm)
+		: engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
+		cameraSystem_(gameManager_->GetSystems().camera_),
+		graphicsSystem_(gameManager_->GetSystems().gfx_),
+		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
+		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
+		editorCameraNeedsReset_(false) {
 	};
+
+	// Add these implementations to your Editor.cpp file
+
+	void Editor::ResetEditorCamera() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.position = defaultEditorCameraState_.position;
+			cam.zoom = defaultEditorCameraState_.zoom;
+			cameraSystem_->SetZoom(editorCamera_, defaultEditorCameraState_.zoom);
+
+			// Update current state
+			currentEditorCameraState_ = defaultEditorCameraState_;
+			editorCameraNeedsReset_ = false;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Editor camera reset to position ("
+				<< cam.position.x << ", " << cam.position.y
+				<< ") zoom: " << cam.zoom << std::endl;
+		}
+	}
+
+	void Editor::SaveEditorCameraState() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			currentEditorCameraState_.position = cam.position;
+			currentEditorCameraState_.zoom = cam.zoom;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Saved editor camera state: position ("
+				<< currentEditorCameraState_.position.x << ", " << currentEditorCameraState_.position.y
+				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;
+		}
+	}
+
+	void Editor::RestoreEditorCameraState() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.position = currentEditorCameraState_.position;
+			cam.zoom = currentEditorCameraState_.zoom;
+			cameraSystem_->SetZoom(editorCamera_, currentEditorCameraState_.zoom);
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Restored editor camera state: position ("
+				<< cam.position.x << ", " << cam.position.y
+				<< ") zoom: " << cam.zoom << std::endl;
+		}
+	}
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -359,6 +412,37 @@ namespace Editor {
 		//	}
 		//}
 		// === END EDITOR CAMERA CONTROLS ===
+
+		const float dt = Framework::Time::UnscaledDeltaTime();
+
+		if (editorCamera_ != 0)
+		{
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			float dt = Framework::Time::DeltaTime(); // or your time delta
+
+			// Move camera with WASD
+			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += 5.0f * dt;
+			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= 5.0f * dt;
+			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= 5.0f * dt;
+			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += 5.0f * dt;
+
+			// Zoom in/out using Up / Down arrow keys
+			if (input->KeyDown(Framework::InputSystem::Key::Up)) {
+				cam.zoom *= 0.98f; // zoom in
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+			if (input->KeyDown(Framework::InputSystem::Key::Down)) {
+				cam.zoom *= 1.02f; // zoom out
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+
+			// Optional: reset zoom with R
+			if (input->KeyPressed(Framework::InputSystem::Key::R)) {
+				cam.zoom = 1.0f;
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+		}
+
 
 		// --- Handle Editor Logic ---
 		HandleSpawning();
@@ -888,9 +972,9 @@ void Editor::HandleDragDropPlacement() {
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
-			
+
 			SaveAndLoadSection();
-			
+
 			// --- Entity Factory ---
 			ImGui::Separator();
 
@@ -908,6 +992,12 @@ void Editor::HandleDragDropPlacement() {
 
 			// --- Entity Inspector ---
 			ImGui::Separator();
+
+			// Add reset camera button
+			if (ImGui::Button("Reset Editor Camera")) {
+				ResetEditorCamera();
+			}
+			ImGui::SameLine();
 
 			// Button to activate the tile editor mode
 			if (ImGui::Button("Open Tilemap Editor")) {
@@ -1010,9 +1100,8 @@ void Editor::HandleDragDropPlacement() {
 				<< bird << ")";
 		}
 		// --- END OF NEW CODE ---
-		
-		ImGui::End(); // End "Level Editor" window
 
+		ImGui::End(); // End "Level Editor" window
 	}
 
 	void Editor::SaveAndLoadSection() {
@@ -1132,7 +1221,14 @@ void Editor::HandleDragDropPlacement() {
 				wasTileEditorOpen = true;
 
 				if (engine_ && !engine_->IsEditorMode()) {
+					// Save current state before switching
+					SaveEditorCameraState();
+
 					engine_->SetMode(Framework::EngineMode::Editor);
+
+					// Reset editor camera to known state when entering tile editor
+					ResetEditorCamera();
+
 					Framework::Logger::Get().Info(DebugType::Editor)
 						<< "[Editor] Switched to EDITOR mode (Tilemap open)" << std::endl;
 				}
@@ -1207,14 +1303,16 @@ void Editor::HandleDragDropPlacement() {
 		ImGui::End();
 
 		// --- EXIT TILE EDITOR (close event) ---
-		if (!isTileEditorActive_) {
-			if (wasTileEditorOpen) {
-				wasTileEditorOpen = false;
-				if (engine_ && engine_->IsEditorMode()) {
-					engine_->SetMode(Framework::EngineMode::Play);
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-				}
+		if (!isTileEditorActive_ && wasTileEditorOpen) {
+			wasTileEditorOpen = false;
+
+			if (engine_ && engine_->IsEditorMode()) {
+				// Save current editor camera state before switching back
+				SaveEditorCameraState();
+
+				engine_->SetMode(Framework::EngineMode::Play);
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
 			}
 
 			showGrid_ = false;
@@ -1806,7 +1904,6 @@ void Editor::HandleDragDropPlacement() {
 			gameManager_->GetSystems().guiSystem_->SetViewportContext(gameViewportPos_, gameViewportSize_);
 		}
 	}
-
 	void Editor::ShowGameViewport() {
 		using namespace Framework;
 
@@ -1814,37 +1911,62 @@ void Editor::HandleDragDropPlacement() {
 
 		ImVec2 viewportPanelSize = gameViewportSize_;
 
-
 		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
 			Graphics* gfx = gameManager_->GetSystems().gfx_;
 			SpriteRenderSystem* spriteRenderer_ = gameManager_->GetSystems().spriteRenderer_;
-			if (gfx) {
+			CameraSystem* camSystem = gameManager_->GetSystems().camera_;
 
+			if (gfx && spriteRenderer_ && camSystem) {
 
-				// === STEP 1: RENDER GAME TO FRAMEBUFFER ===
+				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
+				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+
+				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-				// Render all game sprites to the FBO
+				// === STEP 2: TEMPORARILY SWITCH TO EDITOR CAMERA ===
+				Entity prevCamera = camSystem->GetActiveCamera();
+
+				// Save current editor camera state before any rendering
+				if (editorCamera_ != 0 && engine_->IsEditorMode()) {
+					SaveEditorCameraState();
+				}
+
+				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					camSystem->SetActiveCamera(editorCamera_);
+				}
+
+				// === STEP 3: RENDER SPRITES ===
 				spriteRenderer_->Update();
 
-				// Unbind the FBO *before* drawing to the ImGui window
+				// === STEP 4: RESTORE ORIGINAL CAMERA ===
+				if (engine_->IsEditorMode()) {
+					camSystem->SetActiveCamera(prevCamera);
+
+					// Ensure editor camera state is preserved
+					if (prevCamera == editorCamera_ && editorCamera_ != 0) {
+						RestoreEditorCameraState();
+					}
+				}
+
+				// === STEP 5: UNBIND FRAMEBUFFER ===
 				gfx->UnbindGameFramebuffer();
 
+				// === STEP 6: DRAW GAME TEXTURE ===
+				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(),
+					viewportPanelSize,
+					ImVec2(0, 1), ImVec2(1, 0));
 
-				// 1. Draw the game texture as the background
-				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
-
-				// 2. Get the draw list to render overlays ON TOP of the image
+				// === STEP 7: DRAW OVERLAYS (GRID, GIZMOS, DEBUG) ===
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-				// 3. Set clipping rectangle so overlays don't "bleed"
 				ImVec2 clipMin = gameViewportPos_;
-				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
+				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x,
+					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// 4. Draw all overlays
 				if (showGrid_) {
 					DrawEditorGrid(drawList);
 				}
@@ -1853,33 +1975,23 @@ void Editor::HandleDragDropPlacement() {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Now your AI System debug draw will also work
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
-				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
 				if (aiSystem && camSystem && aiSystem->debugVisualization) {
-					// --- THIS IS THE FIX ---
-					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
-					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
-					//aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+					Entity activeCam = engine_->IsEditorMode() && editorCamera_ != 0
+						? editorCamera_
+						: camSystem->GetActiveCamera();
 
-					// Get the *active game camera* that the sprite renderer is using.
-					Entity gameCamera = camSystem->GetActiveCamera();
-
-					// Fallback to editor camera if no game camera is active
-					if (gameCamera == 0) {
-						gameCamera = editorCamera_;
-					}
-
-					// Pass the correct 'gameCamera' to the debug draw function.
-					aiSystem->DrawDebug(camSystem, drawList, this, gameCamera);
+					aiSystem->DrawDebug(camSystem, drawList, this, activeCam);
 				}
 
-				// 5. Remove the clipping rectangle
 				drawList->PopClipRect();
 			}
 		}
+
 		ImGui::End();
 	}
+
+
 
 #pragma endregion
 
@@ -1994,79 +2106,87 @@ void Editor::HandleDragDropPlacement() {
 #pragma region EDITOR GRID
 	void Editor::DrawEditorGrid(ImDrawList* drawList)
 	{
+		using namespace Framework;
 		if (!cameraSystem_ || editorCamera_ == 0)
 			return;
 
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
 
-		// Visible region in world space
-		float halfW = cam.size.x * 0.5f;
-		float halfH = cam.size.y * 0.5f;
+		// Get the camera's actual aspect ratio and zoom
+		float cameraAspect = cam.aspectRatio;
+		float zoom = cam.zoom;
 
-		float left = camPos.x - halfW;
-		float right = camPos.x + halfW;
-		float bottom = camPos.y - halfH;
-		float top = camPos.y + halfH;
+		// Grid cell size in world units - use base size without zoom for consistent world positioning
+		const float baseCell = baseGridCellSize_;
+		const float cellX = baseCell / cameraAspect;  // Aspect adjusted
+		const float cellY = baseCell;                 // Base size
 
-		// Base grid size (world units)
-		float cell = baseGridCellSize_;
+		// Define the entire grid bounds (covering a large area of the world)
+		// You can adjust these values to make the grid larger or smaller
+		const float gridMinX = -100.0f;  // Minimum X world coordinate
+		const float gridMaxX = 100.0f;   // Maximum X world coordinate  
+		const float gridMinY = -100.0f;  // Minimum Y world coordinate
+		const float gridMaxY = 100.0f;   // Maximum Y world coordinate
 
-		// --- Correct for aspect ratio ---
-		// If your camera covers a wider range horizontally (16:9),
-		// each world-space "square" will look rectangular on screen.
-		// Compensate by scaling the X-step by the inverse aspect ratio.
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		float xStep = cell / aspect;  //  wider step if viewport is wide
-		float yStep = cell;
+		const ImU32 lineColor = IM_COL32(150, 150, 150, 90);
+		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
+		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
-		// Snap grid start to nearest cell
-		float startX = std::floor(left / xStep) * xStep;
-		float startY = std::floor(bottom / yStep) * yStep;
-
-		// --- Draw grid lines ---
-		for (float x = startX; x <= right; x += xStep)
-		{
-			ImVec2 a = WorldToImGuiScreen({ x, bottom });
-			ImVec2 b = WorldToImGuiScreen({ x, top });
-			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
+		// Vertical lines - draw the entire grid
+		for (float x = gridMinX; x <= gridMaxX; x += cellX) {
+			Vector2D worldA = { x, gridMinY };
+			Vector2D worldB = { x, gridMaxY };
+			ImVec2 a = WorldToImGuiScreen(worldA);
+			ImVec2 b = WorldToImGuiScreen(worldB);
+			drawList->AddLine(a, b, lineColor);
 		}
 
-		for (float y = startY; y <= top; y += yStep)
-		{
-			ImVec2 a = WorldToImGuiScreen({ left, y });
-			ImVec2 b = WorldToImGuiScreen({ right, y });
-			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
+		// Horizontal lines - draw the entire grid
+		for (float y = gridMinY; y <= gridMaxY; y += cellY) {
+			Vector2D worldA = { gridMinX, y };
+			Vector2D worldB = { gridMaxX, y };
+			ImVec2 a = WorldToImGuiScreen(worldA);
+			ImVec2 b = WorldToImGuiScreen(worldB);
+			drawList->AddLine(a, b, lineColor);
 		}
 
-		// --- OPTIONAL: draw thicker origin lines ---
-		ImVec2 xA = WorldToImGuiScreen({ 0.0f, bottom });
-		ImVec2 xB = WorldToImGuiScreen({ 0.0f, top });
-		drawList->AddLine(xA, xB, IM_COL32(255, 0, 0, 180), 2.0f);
+		// World axes - draw at actual world origin (0,0)
+		Vector2D origin = { 0.0f, 0.0f };
+		// Make axes extend to the edge of the defined grid area
+		Vector2D xAxisEnd = { gridMaxX, 0.0f };
+		Vector2D yAxisEnd = { 0.0f, gridMaxY };
 
-		ImVec2 yA = WorldToImGuiScreen({ left, 0.0f });
-		ImVec2 yB = WorldToImGuiScreen({ right, 0.0f });
-		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
+		ImVec2 originScreen = WorldToImGuiScreen(origin);
+		ImVec2 xAxisScreen = WorldToImGuiScreen(xAxisEnd);
+		ImVec2 yAxisScreen = WorldToImGuiScreen(yAxisEnd);
+
+		// Always draw axes (no viewport checking)
+		drawList->AddLine(originScreen, xAxisScreen, axisXColor, 2.0f);
+		drawList->AddLine(originScreen, yAxisScreen, axisYColor, 2.0f);
 	}
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		// Compute aspect ratio once
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return worldPos;
 
-		// Adjust X by aspect so snapping grid matches visual grid squares
-		float adjustedX = worldPos.x * aspect;
-		float adjustedY = worldPos.y;
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
-		// Calculate index based on adjusted coords
-		int gridX = static_cast<int>(std::floor(adjustedX / baseGridCellSize_));
-		int gridY = static_cast<int>(std::floor(adjustedY / baseGridCellSize_));
+		// Use the camera's aspect ratio instead of viewport aspect ratio
+		float cameraAspect = cam.aspectRatio;
 
-		// Compute snapped center (still in adjusted space)
-		float snappedX = (static_cast<float>(gridX) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
-		float snappedY = (static_cast<float>(gridY) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
+		// Grid cell size in world units (same as DrawEditorGrid)
+		const float baseCell = baseGridCellSize_;
+		const float cellX = baseCell / cameraAspect;
+		const float cellY = baseCell;
 
-		// Convert back to original world space (undo aspect adjustment)
-		snappedX /= aspect;
+		// Calculate index based on world coords
+		int gridX = static_cast<int>(std::floor(worldPos.x / cellX));
+		int gridY = static_cast<int>(std::floor(worldPos.y / cellY));
+
+		// Compute snapped center (tile center position)
+		float snappedX = (static_cast<float>(gridX) * cellX) + (cellX);
+		float snappedY = (static_cast<float>(gridY) * cellY) + (cellY / 2.0f);
 
 		return { snappedX, snappedY };
 	}
