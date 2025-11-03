@@ -96,7 +96,7 @@ namespace Framework {
         //audio effect 2
         if (KeyPressed(Key::Y)) {
             try {
-                FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect");
+                FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect.ogg");
                 audio->play(sfx, 1.0f, false);
             }
             catch (...) {
@@ -135,6 +135,23 @@ namespace Framework {
                 sceneMgr.GetSceneAt(2) :
                 sceneMgr.GetSceneByName("Test Scene");
             sceneMgr.LoadScene(nextScene.name);
+        }
+
+        // FAKE PLAYER SWITCH ANIMATIONS
+        if (KeyPressed(Key::F)) {
+            //Get all entities with FakePlayerTag
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(FakePlayerTagType)) {
+                AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
+                if (animationComponent.currentState != AnimationState::RUNNING) {
+                    animationComponent.currentState = AnimationState::RUNNING;
+                    Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to RUNNING" << std::endl;
+                }
+
+                else {
+                    animationComponent.currentState = AnimationState::IDLE;
+                    Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to IDLE" << std::endl;
+                }
+            }
         }
 
     }

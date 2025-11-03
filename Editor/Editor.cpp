@@ -1034,15 +1034,10 @@ namespace Editor {
 				float spacing = 0.1f; // Adjust this for proper spacing
 
 				for (int i = 0; i < 1000; ++i) {
-					// Calculate grid position
-					int row = i / gridSize;
-					int col = i % gridSize;
-
-					// Spread entities in a grid formation
-					Vector2D position = {
-						(col - gridSize / 2) * spacing,  // Center the grid around (0,0)
-						(row - gridSize / 2) * spacing
-					};
+					// Calculate random position from -1.0 to 1.0
+					float x = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
+					float y = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
+					Vector2D position = { x, y };
 
 					// Pass the calculated position, not halfSize
 					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");

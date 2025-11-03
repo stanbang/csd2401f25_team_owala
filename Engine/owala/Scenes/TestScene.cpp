@@ -203,7 +203,7 @@ namespace TestScene {
   //          SceneManager::GetInstance().AddEntityToScene(SceneManager::GetInstance().GetActiveScene().name, newEntity);
   //      }
 
-		//// Change fake player animation between IDLE and RUNNING
+		// Change fake player animation between IDLE and RUNNING
 		//if (input_->KeyPressed(InputSystem::Key::F)) {
 		//	//Get all entities with FakePlayerTag
   //          for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(FakePlayerTagType)) {

@@ -22,7 +22,6 @@ The "Engine" folder contains:
 	-run.bat
 	-clean.bat
 
-
 ----------------------------------
 GENERATING THE SOLUTION(.sln) FILE
 ----------------------------------
@@ -31,12 +30,11 @@ GENERATING THE SOLUTION(.sln) FILE
 3. The "build" folder should be generated under the "Engine" folder.
 4. The solution file is located in "Engine/build/owala.sln"
 
-
 --------------------------------------------------
-PRE-REQUISITES FOR RUNNING THE SOLUTION(.sln) FILE
+RUNNING THE PROJECT IN EDITOR / ENGINE MODE
 --------------------------------------------------
-1. Right click "owala" project > Set as Startup Project
-
+1. Right click "owala_Editor" project > Set as Startup Project   // To start in Editor mode
+2. Right click "owala_Engine" project > Set as Startup Project   // To start in Engine mode
 
 --------------------------------------------------
 IMGUI
