@@ -80,7 +80,6 @@ namespace {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		case ComponentType::BirdAITagType:					return "BirdAITag";
 		
 		default:											return "Unknown";
 		}

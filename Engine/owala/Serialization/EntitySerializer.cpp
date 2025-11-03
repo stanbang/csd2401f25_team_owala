@@ -855,9 +855,6 @@ namespace Framework {
 				else if (tag == Serialization::GUI_TAG) {
 					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
 				}
-				else if (tag == Serialization::BIRD_AI_TAG) {
-					entityMgr.AddComponent<BirdAITag>(loadedEntity, BirdAITag{});
-				}
 			}
 		}
 	}
