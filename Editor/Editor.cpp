@@ -80,7 +80,7 @@ namespace {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		case ComponentType::BirdAITagType:					return "BirdAITag";
-		
+
 		default:											return "Unknown";
 		}
 	}
@@ -215,6 +215,7 @@ namespace Editor {
 			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
 		}
 
+		LoadTilesFromFile();
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
 		firstUpdate = true;
@@ -255,6 +256,14 @@ namespace Editor {
 			palettePrepared_ = true;
 			Framework::Logger::Get().Info(DebugType::Editor) << "PreparePaletteItems finished. paletteItems_ size: " << paletteItems_.size() << std::endl;
 		}
+
+		if (!tilePalettePrepared_ && resourceManager_) {
+			Framework::Logger::Get().Info(DebugType::Editor)<< "Running PrepareTilePaletteItems..." << std::endl;
+			PrepareTilePaletteItems();
+			tilePalettePrepared_ = true;
+			Framework::Logger::Get().Info(DebugType::Editor)<< "PrepareTilePaletteItems finished. tilePaletteItems_ size: "<< tilePaletteItems_.size() << std::endl;
+		}
+
 		//for IMGUI INPUT
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -311,8 +320,9 @@ namespace Editor {
 			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
+			ImGui::DockBuilderDockWindow("Prefab Palette", dock_right);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
+			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
@@ -418,7 +428,13 @@ namespace Editor {
 		if (settings.showAssetBrowser) ShowAssetBrowser(droppedFilePaths_);
 		if (settings.showHierarchy) ShowHierarchy();
 		if (settings.showLevelEditor) ShowLevelEditor();
-		if (isTileEditorActive_) ShowTilemapEditor();
+		if (isTileEditorActive_) {
+			ShowTilemapEditor();  // Prefab palette
+			if (isTilePaletteOpen_) {
+				ShowTilePalette(); // Tile palette
+			}
+		}
+
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowAIDebugPanel();
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
@@ -541,76 +557,109 @@ namespace Editor {
 	}
 
 
-void Editor::HandleDragDropPlacement() {
-    if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
-        isDraggingPrefab_ = false;
-        return;
-    }
-    if (!cameraSystem_ || editorCamera_ == 0)
-        return;
-
-    const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-    // --- MOUSE POSITION (ImGui → World) ---
-    ImVec2 mousePos = ImGui::GetMousePos();
-    ImVec2 viewportPos = gameViewportPos_;     // top-left corner of game panel
-    ImVec2 viewportSize = gameViewportSize_;   // width, height of game panel
-
-    // Convert from ImGui to normalized device coordinates (-1..1)
-    float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
-    float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f); 
-    // note Y is flipped here
-
-    // Convert NDC to world using editor camera
-    Vector2D worldMousePos = {
-        cam.position.x + ndcX * (cam.size.x * 0.5f),
-        cam.position.y + ndcY * (cam.size.y * 0.5f)
-    };
-
-    // --- SNAP TO GRID ---
-    Vector2D snappedPos = SnapToGrid(worldMousePos);
-
-    Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-    Framework::EntityManager entityMgr(*ecs);
-    Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-
-    // Check duplicates
-    const float tolerance = baseGridCellSize_ * 0.1f;
-    for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-        if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-        if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-            const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-            if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
-                isDraggingPrefab_ = false;
-                return;
-            }
-        }
-    }
-
-		// --- ENTITY CREATION ---
-		Entity newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);
-
-		if (newEntity == 0) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to create entity from prefab: " << dragDropPayload_.name << std::endl;
+	void Editor::HandleDragDropPlacement() {
+		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
 			isDraggingPrefab_ = false;
 			return;
 		}
-		
-		Vector2D texSize = entityMgr.GetComponent<Framework::AABBCollider>(newEntity).HalfSize;
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return;
 
-		std::string textureKey = dragDropPayload_.name;
-		if (!textureKey.empty()) {
-			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, texSize });
-			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+		// --- MOUSE POSITION (ImGui → World) ---
+		ImVec2 mousePos = ImGui::GetMousePos();
+		ImVec2 viewportPos = gameViewportPos_;     // top-left corner of game panel
+		ImVec2 viewportSize = gameViewportSize_;   // width, height of game panel
+
+		// Convert from ImGui to normalized device coordinates (-1..1)
+		float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
+		float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f);
+		// note Y is flipped here
+
+		// Convert NDC to world using editor camera
+		Vector2D worldMousePos = {
+			cam.position.x + ndcX * (cam.size.x * 0.5f),
+			cam.position.y + ndcY * (cam.size.y * 0.5f)
+		};
+
+		// --- SNAP TO GRID ---
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		// Check duplicates
+		const float tolerance = baseGridCellSize_ * 0.1f;
+		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
+			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
+			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
+					isDraggingPrefab_ = false;
+					return;
+				}
+			}
+		}
+
+		Entity newEntity = 0;
+
+		if (dragDropPayload_.type == PrefabType::Tile) {
+			newEntity = entityMgr.CreateEntity(); //for tile pallette
+
+			float aspect = gameViewportSize_.x / gameViewportSize_.y;
+			Vector2D tileHalfSize = { baseGridCellSize_ , baseGridCellSize_ };
+
+			if (newEntity != 0) {
+				entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;
+				entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
+
+				// Add basic components for tiles
+				entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
+				entityMgr.AddComponent(newEntity, Framework::Velocity{ {0.0f, 0.0f} });
+				entityMgr.AddComponent(newEntity, Framework::RigidBody{ {0.0f, 0.0f}, false, 0.0f, 0.0f });
+				entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
+				std::string textureKey = dragDropPayload_.name;
+				for (const auto& tile : tileDataList_) {
+					if (tile.name == dragDropPayload_.name) {
+						textureKey = tile.textureID;
+						break;
+					}
+				}
+				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
+				entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
+				entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
+
+				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+
+				Framework::Logger::Get().Info(DebugType::Editor) << "Placed tile: " << dragDropPayload_.name << " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
+			}
 		}
 		else {
-			Framework::Logger::Get().Error(DebugType::Editor)
-				<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
+			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);//for prefab pallette
+
+			if (newEntity == 0) {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Failed to create entity from prefab: " << dragDropPayload_.name << std::endl;
+				isDraggingPrefab_ = false;
+				return;	
+			}
+
+			Vector2D texSize = entityMgr.GetComponent<Framework::AABBCollider>(newEntity).HalfSize;
+
+			std::string textureKey = dragDropPayload_.name;
+			if (!textureKey.empty()) {
+				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, texSize });
+				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+			}
+			else {
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
+			}
 		}
 
-		// Cleanup
 		isDraggingPrefab_ = false;
-		
+
 	}
 
 
@@ -945,6 +994,7 @@ void Editor::HandleDragDropPlacement() {
 			// Button to activate the tile editor mode
 			if (ImGui::Button("Open Tilemap Editor")) {
 				isTileEditorActive_ = true;
+				isTilePaletteOpen_ = true;
 			}
 		}
 
@@ -1043,7 +1093,7 @@ void Editor::HandleDragDropPlacement() {
 				<< bird << ")";
 		}
 		// --- END OF NEW CODE ---
-		
+
 		ImGui::End(); // End "Level Editor" window
 
 	}
@@ -1094,7 +1144,7 @@ void Editor::HandleDragDropPlacement() {
 
 			if (duplicateNameError) {
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Scene name already in use!");
-			} 
+			}
 			if (emptySceneName) {
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Empty scene name!");
 			}
@@ -1157,12 +1207,190 @@ void Editor::HandleDragDropPlacement() {
 #pragma endregion
 
 #pragma region TILEMAP EDITOR PANEL
+	void Editor::ShowTilePalette() {
+		static bool wasTilePaletteOpen = false;
+		if (ImGui::Begin("Tile Palette", &isTileEditorActive_)) {
+			if (!wasTilePaletteOpen) {
+				wasTilePaletteOpen = true;
+			}
+
+			showGrid_ = true;
+
+			ImVec2 buttonSize(64, 64);
+			ImVec4 bgCol(0, 0, 0, 0);
+			ImVec4 tintCol(1, 1, 1, 1);
+
+			// --- Eraser Tool ---
+			if (ImGui::Selectable("Eraser", dragDropPayload_.type == PrefabType::Eraser && isDraggingPrefab_)) {
+				isDraggingPrefab_ = true;
+				dragDropPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+			}
+			ImGui::Separator();
+
+			// --- Tile Items ---
+			int itemsPerRow = 0;
+			const int maxItemsPerRow = 4;
+
+			if (tilePaletteItems_.empty() && tilePalettePrepared_) {
+				ImGui::TextDisabled("No tiles loaded. Check texture keys and tiles.json.");
+			}
+
+			for (const auto& item : tilePaletteItems_) {
+				ImGui::PushID(item.name.c_str());
+				ImTextureID textureID = item.textureID;
+
+				if (ImGui::ImageButton(item.name.c_str(),
+					textureID,
+					buttonSize,
+					item.uv0,
+					item.uv1,
+					bgCol,
+					tintCol))
+				{
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Clicked tile: " << item.name << std::endl;
+				}
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", item.name.c_str());
+
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					ImGui::SetDragDropPayload("TILE_DND", &item, sizeof(DraggablePrefabInfo));
+					ImGui::Text("Placing: %s", item.name.c_str());
+					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
+
+					isDraggingPrefab_ = true;
+					dragDropPayload_ = item;
+
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Begin Dragging Tile: " << item.name << std::endl;
+
+					ImGui::EndDragDropSource();
+				}
+
+				ImGui::PopID();
+
+				itemsPerRow++;
+				if (itemsPerRow < maxItemsPerRow)
+					ImGui::SameLine();
+				else
+					itemsPerRow = 0;
+			}
+
+			if (itemsPerRow != 0)
+				ImGui::NewLine();
+		}
+		ImGui::End();
+
+		if (!isTileEditorActive_) {
+			if (wasTilePaletteOpen) {
+				wasTilePaletteOpen = false;
+			}
+			showGrid_ = false;
+			isDraggingPrefab_ = false;
+		}
+	}
+
+	void Editor::LoadTilesFromFile() {
+		using namespace Framework;
+
+		std::ifstream fileIn("Data/tiles.json");
+		if (!fileIn.is_open()) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Failed to open Data/tiles.json" << std::endl;
+			return;
+		}
+
+		rapidjson::IStreamWrapper isw(fileIn);
+		rapidjson::Document doc;
+		doc.ParseStream(isw);
+		fileIn.close();
+
+		if (!doc.IsObject() || !doc.HasMember("tiles") || !doc["tiles"].IsArray()) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Invalid tiles.json format" << std::endl;
+			return;
+		}
+
+		tileDataList_.clear();
+		const rapidjson::Value& tilesArray = doc["tiles"];
+
+		for (rapidjson::SizeType i = 0; i < tilesArray.Size(); ++i) {
+			const rapidjson::Value& tileObj = tilesArray[i];
+
+			if (!tileObj.HasMember("name") || !tileObj.HasMember("textureID")) {
+				Logger::Get().Error(DebugType::Editor)
+					<< "Skipping invalid tile entry at index " << i << std::endl;
+				continue;
+			}
+
+			TileData tile;
+			tile.name = tileObj["name"].GetString();
+			tile.textureID = tileObj["textureID"].GetString();
+
+			tileDataList_.push_back(tile);
+		}
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Loaded " << tileDataList_.size() << " tiles from tiles.json" << std::endl;
+	}
+
+
+	void Editor::PrepareTilePaletteItems() {
+		tilePaletteItems_.clear();
+
+		for (const auto& tile : tileDataList_) {
+			if (tile.textureID.empty()) {
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< "Skipping tile '" << tile.name << "' due to empty texture key." << std::endl;
+				continue;
+			}
+
+			try {
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "Attempting to get texture for tile: '" << tile.name	<< "' with key: '" << tile.textureID << "'" << std::endl;
+
+				if (!resourceManager_) {
+					Framework::Logger::Get().Error(DebugType::Editor)<< "ResourceManager pointer is null in PrepareTilePaletteItems!" << std::endl;
+					return;
+				}
+
+				Texture texID = resourceManager_->get<Texture>(tile.textureID);
+
+				if (texID != 0) {
+					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID });
+					Framework::Logger::Get().Info(DebugType::Editor)<< " -> Success! Added tile: '" << tile.name
+						<< "' (ID: " << texID << ")" << std::endl;
+				}
+				else {
+					Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Texture ID is 0 for tile: '" << tile.name
+						<< "' (Key: '" << tile.textureID << "')" << std::endl;
+				}
+			}
+			catch (const std::out_of_range&) {
+				Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Texture key '" << tile.textureID
+					<< "' not found in ResourceManager for tile: '" << tile.name << "'" << std::endl;
+			}
+			catch (const std::exception& e) {
+				Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Exception getting texture for tile '" << tile.name
+					<< "' (Key: '" << tile.textureID << "'): " << e.what() << std::endl;
+			}
+			catch (...) {
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< " -> Failed! Unknown error getting texture for tile: '" << tile.name<< "' (Key: '" << tile.textureID << "')" << std::endl;
+			}
+		}
+
+		Framework::Logger::Get().Info(DebugType::Editor)
+			<< "Prepared " << tilePaletteItems_.size() << " tile palette items." << std::endl;
+	}
+
 
 	void Editor::ShowTilemapEditor()
 	{
 		static bool wasTileEditorOpen = false; // Tracks open/close transition
 
-		if (ImGui::Begin("Tile Palette", &isTileEditorActive_)) {
+		if (ImGui::Begin("Prefab Palette", &isTileEditorActive_)) {
 			// --- ENTER TILE EDITOR (open event) ---
 			if (!wasTileEditorOpen) {
 				wasTileEditorOpen = true;
@@ -1582,7 +1810,7 @@ void Editor::HandleDragDropPlacement() {
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
 			break;
-		}		
+		}
 		case ComponentType::SpawnPointType: {
 			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
 
@@ -2311,9 +2539,9 @@ void Editor::HandleDragDropPlacement() {
 
 			ImGui::SameLine();
 			if (ImGui::Button("Reload from File")) {
-				prefabSystem_ = Framework::PrefabSystem(); 
+				prefabSystem_ = Framework::PrefabSystem();
 				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-					Framework::Logger::Get().Error(DebugType::Editor)<< "Failed to reload prefabs from file!" << std::endl;
+					Framework::Logger::Get().Error(DebugType::Editor) << "Failed to reload prefabs from file!" << std::endl;
 				}
 				else {
 					Framework::Logger::Get().Info(DebugType::Editor) << "Successfully reloaded prefabs from file" << std::endl;
@@ -2488,7 +2716,7 @@ void Editor::HandleDragDropPlacement() {
 
 		palettePrepared_ = false;
 
-		Logger::Get().Info(DebugType::Editor)<< "Prefab changes applied to existing entities: " << prefabName << std::endl;
+		Logger::Get().Info(DebugType::Editor) << "Prefab changes applied to existing entities: " << prefabName << std::endl;
 	}
 
 
@@ -2500,7 +2728,7 @@ void Editor::HandleDragDropPlacement() {
 	{
 		if (!cameraSystem_ || cameraID == 0)
 			return ImVec2(0, 0);
-		
+
 		// Validate that the entity is a camera
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		Framework::EntityManager entityMgr(*ecs);

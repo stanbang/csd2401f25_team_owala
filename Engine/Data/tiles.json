@@ -1,0 +1,80 @@
+{
+  "tiles": [
+    {
+      "name": "StagePlatform_01",
+       "textureID": "SB_StagePlatform_01.png"
+    },
+    {
+      "name": "StagePlatform_02",
+       "textureID": "SB_StagePlatform_02.png"
+    },
+    {
+      "name": "StagePlatform_03",
+       "textureID": "SB_StagePlatform_03.png"
+    },
+    {
+      "name": "StagePlatform_04",
+       "textureID": "SB_StagePlatform_04.png"
+    },
+    {
+      "name": "StagePlatform_05",
+       "textureID": "SB_StagePlatform_05.png"
+    },
+    {
+      "name": "StagePlatform_06",
+       "textureID": "SB_StagePlatform_06.png"
+    },
+    {
+      "name": "StagePlatform_07",
+       "textureID": "SB_StagePlatform_07.png"
+    },
+    {
+      "name": "StagePlatform_08",
+       "textureID": "SB_StagePlatform_08.png"
+    },
+    {
+      "name": "StagePlatform_09",
+       "textureID": "SB_StagePlatform_09.png"
+    },
+    {
+      "name": "StaticPlatform_01",
+       "textureID": "SB_StaticPlatform_01.png"
+    },
+    {
+      "name": "StaticPlatform_02",
+       "textureID": "SB_StaticPlatform_02.png"
+    },
+    {
+      "name": "StaticPlatform_03",
+       "textureID": "SB_StaticPlatform_03.png"
+    },
+    {
+      "name": "StaticPlatform_04",
+       "textureID": "SB_StaticPlatform_04.png"
+    },
+    {
+      "name": "StaticPlatform_05",
+       "textureID": "SB_StaticPlatform_05.png"
+    },
+    {
+      "name": "StaticPlatform_06",
+       "textureID": "SB_StaticPlatform_06.png"
+    },
+    {
+      "name": "StaticPlatform_07",
+       "textureID": "SB_StaticPlatform_07.png"
+    },
+    {
+      "name": "StaticPlatform_08",
+       "textureID": "SB_StaticPlatform_08.png"
+    },
+    {
+      "name": "StaticPlatform_09",
+       "textureID": "SB_StaticPlatform_09.png"
+    },
+    {
+      "name": "StaticPlatform_10",
+       "textureID": "SB_StaticPlatform_10.png"
+    }
+  ]
+}

@@ -7,7 +7,7 @@
 *	   Lur Pei Hao Stanley (50%)
 *
 *
-* \brief	Declares the Editor system for in-game level editing and 
+* \brief	Declares the Editor system for in-game level editing and
 			debugging using ImGUI.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
@@ -41,7 +41,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
-	
+
 }
 
 namespace Editor {
@@ -63,7 +63,8 @@ namespace Editor {
 		Eraser,
 		Platform,
 		TrapPlatform,
-		ScalingPlatform
+		ScalingPlatform,
+		Tile
 	};
 
 	// NEW: Structure to hold info about a draggable prefab for the palette
@@ -72,8 +73,13 @@ namespace Editor {
 		PrefabType type = PrefabType::None;
 		Framework::Texture textureID = 0; // OpenGL Texture ID
 		// tex coords(uses dearimgui vec struct)
-		ImVec2 uv0{ 0.0f, 0.0f }; 
-		ImVec2 uv1{ 1.0f, 1.0f }; 
+		ImVec2 uv0{ 0.0f, 0.0f };
+		ImVec2 uv1{ 1.0f, 1.0f };
+	};
+
+	struct TileData {
+		std::string name;
+		std::string textureID;
 	};
 
 	class Editor : public Framework::ISystem {
@@ -115,16 +121,22 @@ namespace Editor {
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
 		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
-		
+
 
 		//Drag and Drop State
 		bool isDraggingPrefab_ = false;
 		DraggablePrefabInfo dragDropPayload_; // Holds info about the prefab being dragged
 		Vector2D dragDropPreviewPos_; // World position for preview rendering
 
-		//Palette Info storage
+		//Palette Info storage (prefabs)
 		bool palettePrepared_ = false; // flag for storing palette items
 		std::vector<DraggablePrefabInfo> paletteItems_;
+
+		//tiles
+		bool tilePalettePrepared_ = false;
+		bool isTilePaletteOpen_ = false;
+		std::vector<DraggablePrefabInfo> tilePaletteItems_;
+		std::vector<TileData> tileDataList_;
 
 		// Game viewport tracking for proper mouse coordinate transformation
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
@@ -146,7 +158,7 @@ namespace Editor {
 		static void DropCallback(GLFWwindow* window, int count, const char* paths[]);
 
 		// --- Private Helper Functions ---
-		
+
 		// Internal Checkers
 		void SanityCheck();
 
@@ -194,8 +206,10 @@ namespace Editor {
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
 		void ShowToolbar();
-		void ShowAIDebugPanel(); 
+		void ShowAIDebugPanel();
 		void ShowPrefabEditor();
+		void ShowTilePalette();
+
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
 		Vector2D SnapToGrid(const Vector2D& worldPos);
@@ -206,7 +220,7 @@ namespace Editor {
 		bool isPrefabEditorOpen_ = false;
 
 		// Helper functions
-		
+
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
 
@@ -218,12 +232,13 @@ namespace Editor {
 		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
 
 		/**
-	    * @brief Loads textures and prepares palette items.
+		* @brief Loads textures and prepares palette items.
 		*/
 		void PreparePaletteItems();
 
-		
-		
+		void LoadTilesFromFile();
+		void PrepareTilePaletteItems();
+
 		//ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
 		// Caches the game viewport's position and size
