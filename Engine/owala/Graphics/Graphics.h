@@ -38,7 +38,7 @@ namespace Framework {
     struct BatchedSprite {
         Vector2D topLeft;   //!< Top-left position in screen-space
         Vector2D size;      //!< Width/height in screen-space
-        float rotation;     //!< Rotation in radians
+        float rotation = 0;     //!< Rotation in radians
         Vector2D minUV;     //!< Usually (0,0)
         Vector2D maxUV;     //!< Usually (1,1)
     };

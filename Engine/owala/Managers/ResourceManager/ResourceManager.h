@@ -317,7 +317,6 @@ namespace Framework {
             static_assert(sizeof(ResourceType) == 0,
                 "ResourceManager::has only supports Texture, Audio, Font, and AnimationInfo.");
         }
-        return false;
     }
 
 } // namespace Framework

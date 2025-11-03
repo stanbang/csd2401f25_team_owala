@@ -26,6 +26,7 @@
 #include "InputSystem.h"
 #include "PlayerSystem.h"
 #include "PhysicsSystem.h"
+#include "GuiSystem.h"
 #include "FileUtility.h"
 #include "SceneManager.h"
 #include "TransformationSystem.h"
@@ -92,10 +93,11 @@ int main() {
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
+	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input);
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *levelResetter); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter); // Register all core systems to the GameManager
 
 	// Editor Registration
     #ifdef BUILD_EDITOR
@@ -116,6 +118,7 @@ int main() {
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
     engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
+    engine.AddSystem(gui);
     #ifdef BUILD_EDITOR
     engine.AddSystem(editor);              // Editor
     #endif

@@ -29,6 +29,8 @@ namespace Framework {
 
 			// Default facing direction
 			bool isFacingRight = true;
+			// The last texture key used
+			std::string previousTextureKey = textureComponent.textureKey;
 
 			// Handle Player Animation State to Texture Key mapping
 			if (entityMgr.HasComponent(entity, PlayerTagType)) {
@@ -42,8 +44,8 @@ namespace Framework {
 				switch (animationComponent.currentState) {
 				case AnimationState::IDLE:    textureComponent.textureKey = "Eli_Idle_Spritesheet.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
 				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
-				case AnimationState::JUMPING: textureComponent.textureKey = "player_Jump_Anim.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
-				case AnimationState::FALLING: textureComponent.textureKey = "player_Jump_Anim.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
+				case AnimationState::JUMPING: textureComponent.textureKey = "Eli_Jump_Spritesheet.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
+				case AnimationState::FALLING: textureComponent.textureKey = "Eli_Falling_Spritesheet.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
 				}
 
 			}
@@ -55,6 +57,10 @@ namespace Framework {
 				}
 			}
 
+			// Check if the texture key has changed
+			bool animationStateChanged = (previousTextureKey != textureComponent.textureKey);
+
+			// Get AnimationInfo from ResourceManager
 			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(textureComponent.textureKey); // Retrieve the respective AnimationInfo
 
 			// Update animation component properties based on the retrieved AnimationInfo
@@ -62,6 +68,13 @@ namespace Framework {
 			animationComponent.frameDuration = animationInfo.frameDuration;
 			animationComponent.isLooping = animationInfo.isLooping;
 			animationComponent.startFrame = animationInfo.startFrame;
+
+			// If the animation state changed, reset the animation playback
+			if (animationStateChanged) {
+				animationComponent.isPlaying = true;
+				animationComponent.currentFrame = animationComponent.startFrame;
+				animationComponent.elapsedTime = 0.0f;
+			}
 
 			//	Check if animation is playing
 			if (!animationComponent.isPlaying) continue;

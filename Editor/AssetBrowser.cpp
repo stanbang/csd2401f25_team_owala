@@ -276,7 +276,7 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 
                     catch (const std::exception& e)
                     {
-                        Logger::Get().Info(DebugType::Editor) << "Failed to load file" << std::endl;
+                        Logger::Get().Info(DebugType::Editor) << "Failed to load file " << asset.name << ": " << e.what() << std::endl;
                     }
                 }
 
@@ -505,7 +505,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 
                 catch (const std::exception& e)
                 {
-                    Logger::Get().Info(DebugType::Editor) << "Failed to load file" << std::endl;
+                    Logger::Get().Info(DebugType::Editor) << "Failed to load file " << ": " << e.what() << std::endl;
                 }
             }
             else {

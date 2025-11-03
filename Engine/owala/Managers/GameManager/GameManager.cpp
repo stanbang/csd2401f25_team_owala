@@ -96,7 +96,7 @@ namespace Framework {
 	// GameManager Config
 	// ---------------------------------------------------------------------------
 	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio,
-		SpriteRenderSystem& renderer, CameraSystem& camera, AISystem& ai, LevelResetSystem& levelResetter) {
+		SpriteRenderSystem& renderer, CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter) {
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -107,6 +107,7 @@ namespace Framework {
 		systems_.spriteRenderer_ = &renderer;
 		systems_.camera_ = &camera; 
 		systems_.aiSystem_ = &ai;
+		systems_.guiSystem_ = &gui;
 		systems_.levelResetter_ = &levelResetter;
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;

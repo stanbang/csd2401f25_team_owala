@@ -70,6 +70,7 @@ namespace {
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
+		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::BirdAIComponentType:			return "BirdAI";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
@@ -78,7 +79,7 @@ namespace {
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
-		case ComponentType::BirdAITagType:					return "BirdAITag";
+		case ComponentType::GUITagType:						return "GUITag";
 		
 		default:											return "Unknown";
 		}
@@ -1060,16 +1061,16 @@ namespace Editor {
 			SceneManager& sceneMgr = SceneManager::GetInstance();
 			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
-			// 1. Create the entity
+			//  Create entity
 			Entity bird = entityMgr.CreateEntity();
 
-			// 2. Set its properties
+			//  Set properties
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
-			// 3. Add components required for the AI
+			// Add components required for the AI
 			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-			entityMgr.AddComponent<BirdAITag>(bird, {});            // Tag for the AISystem
+			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
 
 			RigidBody rb;
@@ -1077,23 +1078,23 @@ namespace Editor {
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
-			// 4. Add components to make it visible and selectable
+			//  Add components to make it visible and selectable
 			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
 
-			// Use the "fake player texture" as requested.
-			// This texture is loaded in TestScene.cpp
+
+			// texture is loaded in TestScene.cpp
 			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 
-			// Add a collider so you can click on it in the editor
-		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
+			
+		    /*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
 
-			// 5. Add it to the active scene
+			// Add it to the active scene
 			sceneMgr.AddEntityToScene(currentScene, bird);
 
 			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
 				<< bird << ")";
 		}
-		// --- END OF NEW CODE ---
+		
 
 		ImGui::End(); // End "Level Editor" window
 	}
@@ -1638,7 +1639,7 @@ namespace Editor {
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
 			break;
-		}		
+		}
 		case ComponentType::SpawnPointType: {
 			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
 
@@ -1694,10 +1695,19 @@ namespace Editor {
 			AABBCollider& col = entityMgr.GetComponent<AABBCollider>(selectedEntity);
 
 			//ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f)); // Dim background
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f)); // Dim text
-			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2); // Pop both colors
+			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f");
+			break;
+		}
+		case ComponentType::ButtonType: {
+			Button& buttonComp = entityMgr.GetComponent<Button>(selectedEntity);
+			ImGui::Checkbox("Is Pressed?", &buttonComp.isPressed);
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS" };
+			int currentItemIndex = static_cast<int>(buttonComp.action);
+
+			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
+				buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
+			}
+
 			break;
 		}
 		case ComponentType::PlayerStateType: {
@@ -1755,13 +1765,33 @@ namespace Editor {
 				}
 			}
 
+			// Vector2D HalfSize Input
+			ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f");
+
 			break;
 		}
-		case ComponentType::AudioComponentType:
-		case ComponentType::AnimationComponentType:
+		case ComponentType::AudioComponentType: {
+			AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(selectedEntity);
+			//Show text but make it read-only
+			ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newSoundKey = "";
+			ImGui::InputText("New Audio Key", &newSoundKey);
+			//Button to update audio key
+			if (ImGui::Button("Update Audio")) {
+				if (!newSoundKey.empty()) {
+					audioComp.soundKey = newSoundKey;
+				}
+			}
+			ImGui::Checkbox("Looping", &audioComp.loop);
+			ImGui::Checkbox("Stream", &audioComp.stream);
+			ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
+			break;
+		}
+
+		case ComponentType::AnimationComponentType: {
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
-
+		}
 		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
@@ -1843,6 +1873,11 @@ namespace Editor {
 		ImGuiWindow* gameWindow = ImGui::FindWindowByName("Game");
 		if (!gameWindow || gameWindow->Collapsed) {
 			isMouseOverGameViewport_ = false;
+
+			if (gameManager_->GetSystems().guiSystem_) { // Check if gui system exists
+				gameManager_->GetSystems().guiSystem_->SetViewportContext({ 0,0 }, { 1,1 });
+			}
+
 			return; // Window not visible or found
 		}
 
@@ -1859,6 +1894,10 @@ namespace Editor {
 			mousePos.x <= gameViewportPos_.x + gameViewportSize_.x &&
 			mousePos.y >= gameViewportPos_.y &&
 			mousePos.y <= gameViewportPos_.y + gameViewportSize_.y;
+
+		if (gameManager_->GetSystems().guiSystem_) {
+			gameManager_->GetSystems().guiSystem_->SetViewportContext(gameViewportPos_, gameViewportSize_);
+		}
 	}
 	void Editor::ShowGameViewport() {
 		using namespace Framework;

@@ -123,6 +123,17 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::ROTATIONFLAG_COMPONENT), value, alloc);
 		}
 
+		// Serialize Button Component
+		if (entityMgr.HasComponent(entity, ComponentType::ButtonType)) {
+			Button& button = entityMgr.GetComponent<Button>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_HOVERED), button.isHovered, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_PRESSED), button.isPressed, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_RELEASED), button.isReleased, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ACTION), static_cast<int>(button.action), alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::BUTTON_COMPONENT), value, alloc);
+		}
+
 		// Serialize TrapPlatform Component
 		if (entityMgr.HasComponent(entity, ComponentType::TrapPlatformComponentType)) {
 			TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
@@ -306,9 +317,8 @@ namespace Framework {
 			rapidjson::Value tagVal(Serialization::ACTIVE_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
-
-		if (entityMgr.HasComponent(entity, ComponentType::BirdAITagType)) {
-			rapidjson::Value tagVal(Serialization::BIRD_AI_TAG, alloc);
+		if (entityMgr.HasComponent(entity, ComponentType::GUITagType)) {
+			rapidjson::Value tagVal(Serialization::GUI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
 
@@ -507,6 +517,25 @@ namespace Framework {
 				rotationFlag.targetRotation = rFlagData[Serialization::TARGET_ROTATION].GetFloat();
 			}
 			entityMgr.AddComponent<RotationFlag>(loadedEntity, rotationFlag);
+		}
+
+		// Deserialize Button Component
+		if (componentLists.HasMember(Serialization::BUTTON_COMPONENT)) {
+			const rapidjson::Value& buttonData = componentLists[Serialization::BUTTON_COMPONENT];
+			Button button;
+			if (buttonData.HasMember(Serialization::IS_HOVERED) && buttonData[Serialization::IS_HOVERED].IsBool()) {
+				button.isHovered = buttonData[Serialization::IS_HOVERED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::IS_PRESSED) && buttonData[Serialization::IS_PRESSED].IsBool()) {
+				button.isPressed = buttonData[Serialization::IS_PRESSED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::IS_RELEASED) && buttonData[Serialization::IS_RELEASED].IsBool()) {
+				button.isReleased = buttonData[Serialization::IS_RELEASED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::ACTION) && buttonData[Serialization::ACTION].IsInt()) {
+				button.action = static_cast<Framework::ButtonAction>(buttonData[Serialization::ACTION].GetInt());
+			}
+			entityMgr.AddComponent<Button>(loadedEntity, button);
 		}
 
 		// Deserialize TrapPlatform Component
@@ -823,8 +852,8 @@ namespace Framework {
 				else if (tag == Serialization::ACTIVE_TAG) {
 					entityMgr.AddComponent<ActiveTag>(loadedEntity, ActiveTag{});
 				}
-				else if (tag == Serialization::BIRD_AI_TAG) {
-					entityMgr.AddComponent<BirdAITag>(loadedEntity, BirdAITag{});
+				else if (tag == Serialization::GUI_TAG) {
+					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
 				}
 			}
 		}
