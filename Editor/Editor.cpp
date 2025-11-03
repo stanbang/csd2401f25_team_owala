@@ -572,12 +572,12 @@ namespace Editor {
 		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
 			AddPaletteItem(pair.first, PrefabType::Platform, pair.second.textureID);
 		}
-		//for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
-		//	AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
-		//}
-		//for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-		//	AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
-		//}
+		for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
+			AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
+		}
+		for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
+			AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
+		}
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
@@ -669,6 +669,7 @@ namespace Editor {
 
 				// Add basic components for tiles
 				entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
+				entityMgr.AddComponent(newEntity, Framework::SpawnPoint{ snappedPos });
 				entityMgr.AddComponent(newEntity, Framework::Velocity{ {0.0f, 0.0f} });
 				entityMgr.AddComponent(newEntity, Framework::RigidBody{ {0.0f, 0.0f}, false, 0.0f, 0.0f });
 				entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
@@ -1460,7 +1461,7 @@ namespace Editor {
 					ResetEditorCamera();
 
 					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "[Editor] Switched to EDITOR mode (Tilemap open)" << std::endl;
+						<< "Switched to EDITOR mode (Tilemap open)" << std::endl;
 				}
 			}
 
@@ -1542,7 +1543,7 @@ namespace Editor {
 
 				engine_->SetMode(Framework::EngineMode::Play);
 				Framework::Logger::Get().Info(DebugType::Editor)
-					<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
+					<< "Switched back to PLAY mode (Tilemap closed)" << std::endl;
 			}
 
 			showGrid_ = false;

@@ -106,7 +106,7 @@ namespace TestScene {
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs
-        prefabSystem.LoadPrefabsFromFile("../../Data/platformPrefab.json");
+        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.json");
 
         // --- Create Background Entity ---
         //std::string backgroundID = "Background";

@@ -10,14 +10,13 @@
                         "y": 0.0
                     }
                 },
-		{
-			"type": "SpawnPoint",
-			"data": {
-			"x": 0.0,
-			"y": 0.0
-			}
-		},
-	
+                {
+                    "type": "SpawnPoint",
+                    "data": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
                 {
                     "type": "Velocity",
                     "data": {
@@ -43,7 +42,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "Platform.png"
+                        "textureID": "Platform.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -69,6 +70,13 @@
                     }
                 },
                 {
+                    "type": "SpawnPoint",
+                    "data": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                {
                     "type": "Velocity",
                     "data": {
                         "x": 0.0,
@@ -93,7 +101,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "Platform.png"
+                        "textureID": "Platform.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -113,6 +123,13 @@
             "components": [
                 {
                     "type": "Position",
+                    "data": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "SpawnPoint",
                     "data": {
                         "x": 0.0,
                         "y": 0.0
@@ -143,7 +160,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "Platform.png"
+                        "textureID": "Platform.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -163,6 +182,13 @@
             "components": [
                 {
                     "type": "Position",
+                    "data": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "SpawnPoint",
                     "data": {
                         "x": 0.0,
                         "y": 0.0
@@ -193,7 +219,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "Platform.png"
+                        "textureID": "Platform.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -243,7 +271,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "SB_TrapPlatform_MultiAxis.png"
+                        "textureID": "SB_TrapPlatform_MultiAxis.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -306,7 +336,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "SB_TrapPlatform_Horizontal.png"
+                        "textureID": "SB_TrapPlatform_Horizontal.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -369,7 +401,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "SB_TrapPlatform_Vertical.png"
+                        "textureID": "SB_TrapPlatform_Vertical.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -432,7 +466,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "SB_PlatformRope.png"
+                        "textureID": "SB_PlatformRope.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
@@ -495,7 +531,9 @@
                 {
                     "type": "TextureComponent",
                     "data": {
-                        "textureID": "Platform.png"
+                        "textureID": "Platform.png",
+                        "halfSizeX": 1.0,
+                        "halfSizeY": 0.2
                     }
                 },
                 {
