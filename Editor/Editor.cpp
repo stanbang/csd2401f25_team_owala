@@ -550,12 +550,12 @@ namespace Editor {
 		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
 			AddPaletteItem(pair.first, PrefabType::Platform, pair.second.textureID);
 		}
-		for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
-			AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
-		}
-		for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-			AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
-		}
+		//for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
+		//	AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
+		//}
+		//for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
+		//	AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
+		//}
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
