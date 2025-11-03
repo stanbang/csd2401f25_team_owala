@@ -126,7 +126,7 @@ namespace Framework{
 		std::string soundKey;
 		bool loop = false;
 		bool stream = false;
-		float volume = 1.0f;
+		float volume = 0.5f;
 	};
 
 	struct AnimationComponent {
@@ -236,8 +236,6 @@ namespace Framework{
 		float moveSpeed = 1.0f;
 		float attackSpeed = 1.0f;
 		float wakeUpTime = 1.0f;     // Duration of WAKING state
-		//float hoverAmplitude = 0.5f; // Erratic up/down motion
-		//float hoverFrequency = 3.0f;
 
 		// Pathfinding
 		std::vector<Vector2D> currentPath{};
@@ -248,7 +246,7 @@ namespace Framework{
 		Vector2D attackTargetPosition; // Where the bird is diving towards
 		float attackDuration = 1.0f;
 
-		// --- Hover Behavior (NEW SYSTEM) ---
+		// --- Hover Behavior  ---
 		float hoverHeight = 0.8f;       // How far above player to hover
 		float hoverRadius_Circle = 0.6f; // Radius of the circle above player
 		int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)

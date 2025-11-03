@@ -1,7 +1,18 @@
 #include "InputSystem.h"
 #include "WindowsSystem.h"
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cctype>      // std::toupper
+#include "GameManager.h"
+#include "PhysicsSystem.h"
+#include "CameraSystem.h"
+#include "AudioSystem.h"
+#include "ResourceManager.h"
+#include "SceneManager.h"
+#include "SpriteRenderSystem.h"
+#include "EntityManager.h"
+
+
 
 namespace Framework {
 
@@ -44,6 +55,88 @@ namespace Framework {
         prevMouseX_ = mouseX_;
         prevMouseY_ = mouseY_;
         glfwGetCursorPos(window_, &mouseX_, &mouseY_);
+
+
+        // =========================
+// --- GLOBAL SHORTCUT KEYS ---
+// =========================
+        GameManager& gm = GameManager::GetInstance();
+        EntityStorage* ecs = gm.GetSystems().ecs_;
+        PhysicsSystem* physics = gm.GetSystems().physics_;
+        CameraSystem* cameraSystem = gm.GetSystems().camera_;
+        AudioSystem* audio = gm.GetSystems().audio_;
+        ResourceManager* resources = gm.GetSystems().resourceManager_;
+        SpriteRenderSystem* renderer = gm.GetSystems().spriteRenderer_;
+
+        EntityManager entityMgr(*ecs);
+
+        // --- PHYSICS TOGGLES ---
+        if (KeyPressed(Key::P)) {
+            physics->SetPaused(!physics->IsPaused());
+        }
+
+        if (KeyPressed(Key::O)) {
+            physics->ToggleStepMode();
+        }
+
+        if (KeyPressed(Key::I)) {
+            physics->ExecuteNextStep();
+        }
+
+        //audio effect 1
+        if (KeyPressed(Key::T)) {
+            try {
+                FMOD::Sound& sfx = resources->get<FMOD::Sound>("jingle.ogg");
+                audio->play(sfx, 1.0f, false);
+            }
+            catch (...) {
+                // ignore if missing
+            }
+        }
+        //audio effect 2
+        if (KeyPressed(Key::Y)) {
+            try {
+                FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect");
+                audio->play(sfx, 1.0f, false);
+            }
+            catch (...) {
+                // ignore if missing
+            }
+        }
+
+        if (KeyPressed(Key::L)) {
+            audio->setMasterVolume(0.0f);
+        }
+        if (KeyPressed(Key::K)) {
+            audio->setMasterVolume(0.35f);
+        }
+
+        // --- RENDERER DEBUG TOGGLE ---
+        if (KeyPressed(Key::C)) {
+            if (renderer) renderer->ToggleColliders();
+        }
+
+        // --- CAMERA ZOOM CONTROLS ---
+        if (cameraSystem) {
+            Entity activeCam = cameraSystem->GetActiveCamera();
+            if (activeCam != 0 && entityMgr.HasComponent(activeCam, CameraType)) {
+                Camera& cam = entityMgr.GetComponent<Camera>(activeCam);
+
+                if (KeyPressed(Key::Z)) cameraSystem->SetZoom(activeCam, cam.zoom * 0.8f);
+                if (KeyPressed(Key::X)) cameraSystem->SetZoom(activeCam, cam.zoom * 1.2f);
+                if (KeyPressed(Key::R)) cameraSystem->SetZoom(activeCam, 1.0f);
+            }
+        }
+
+        // --- SCENE SWITCH ---
+        if (KeyPressed(Key::N)) {
+            SceneManager& sceneMgr = SceneManager::GetInstance();
+            auto nextScene = sceneMgr.GetActiveScene().sceneIndex == 1 ?
+                sceneMgr.GetSceneAt(2) :
+                sceneMgr.GetSceneByName("Test Scene");
+            sceneMgr.LoadScene(nextScene.name);
+        }
+
     }
 
     // ---------------------- integer queries ----------------------
