@@ -58,7 +58,7 @@ namespace Framework {
 
         Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
 
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
+        //Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
