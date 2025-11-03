@@ -197,10 +197,18 @@ namespace Framework {
                 Vector2D current_pos = screenTextPos;
                 const float line_height_ndc = 0.08f;
 
-                for (const auto& line : lines) {
-                    gfx_.drawText(font, line, current_pos, component.scale, component.color);
-                    current_pos.y -= line_height_ndc;
+                float zoom = 1.0f;
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+                    zoom = cam.zoom;
                 }
+
+                for (const auto& line : lines) {
+                    // Divide by zoom so it matches sprite scaling direction
+                    gfx_.drawText(font, line, current_pos, component.scale / zoom, component.color);
+                    current_pos.y -= line_height_ndc / zoom;
+                }
+
             }
 
 			catch (const std::exception& e) {
