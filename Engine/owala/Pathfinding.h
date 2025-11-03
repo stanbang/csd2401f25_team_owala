@@ -47,7 +47,7 @@ namespace Framework {
         /**
          * @brief Gets all valid, walkable neighbors of a given node.
          */
-        std::vector<std::unique_ptr<PathNode>> GetNeighbors(PathNode* node);
+        std::vector<std::unique_ptr<PathNode>> GetNeighbors(PathNode* node) ;
 
 
 

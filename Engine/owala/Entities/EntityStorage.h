@@ -68,6 +68,7 @@ namespace Framework {
 		PersistentTagType,
 		ActiveTagType,     
 		BirdAIComponentType, 
+		SkeletonAIComponentType, 
 		GUITagType,
 		MAX_COMPONENTS
 	};
@@ -111,6 +112,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };     
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
+	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; 
 
 #pragma endregion
 
@@ -148,6 +150,7 @@ namespace Framework {
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
 
 		std::unordered_map<Entity, BirdAIComponent> birdAIComponent;
+		std::unordered_map<Entity, SkeletonAIComponent> skeletonAIComponent; 
 
 		std::unordered_map<Entity, Camera> cameras;//Camera
 

@@ -64,6 +64,7 @@ namespace Framework {
 					case ComponentType::TextComponentType: 	AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
 					case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
+					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
 					default:
 						break;
 				}
@@ -125,6 +126,7 @@ namespace Framework {
 		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
+		case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(entity, SkeletonAIComponent{}); break; 
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -164,6 +166,7 @@ namespace Framework {
 			case CameraType: ecs.cameras.erase(entity); break;
 			case ButtonType: ecs.button.erase(entity); break;
 			case BirdAIComponentType: ecs.birdAIComponent.erase(entity); break;
+			case SkeletonAIComponentType: ecs.skeletonAIComponent.erase(entity); break; 
 			case PlayerTagType:
 			case PlatformTagType:
 			case BackgroundTagType:

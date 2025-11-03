@@ -2,7 +2,7 @@
 #include "ISystem.h"
 #include "EntityStorage.h"
 #include "Pathfinding.h"
-#include "Components.h" // Includes the BirdAIComponent and BirdState
+#include "Components.h" // Includes the BirdAIComponent and Skeleton Component
 #include "Graphics.h" 
 #include <vector>     
 #include <map> // For tracking state changes
@@ -20,6 +20,8 @@ namespace Framework {
 #endif
 
 namespace Framework {
+
+    struct SkeletonAIComponent;
 
     class AISystem : public ISystem {
     public:
@@ -55,12 +57,16 @@ namespace Framework {
          */
         Entity GetPlayer();
 
-        // --- State Machine Handlers ---
+        // --- State Machine Handlers for bird AI ---
         void HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
         void HandleWakingState(Entity bird, BirdAIComponent& ai);
-        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
-        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
+        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize);
+        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize);
         void HandleAttackState(Entity bird, BirdAIComponent& ai);
+
+        // --- Skeleton State Machine Handlers ---
+        void HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);
+        void HandleSkeletonChaseState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);
 
         /**
          * @brief Moves the bird along its calculated path.
