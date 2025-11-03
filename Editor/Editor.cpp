@@ -73,6 +73,7 @@ namespace {
 		case ComponentType::TextComponentType:				return "Text";
 		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::BirdAIComponentType:			return "BirdAI";
+		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI"; 
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -1091,15 +1092,10 @@ namespace Editor {
 				float spacing = 0.1f; // Adjust this for proper spacing
 
 				for (int i = 0; i < 1000; ++i) {
-					// Calculate grid position
-					int row = i / gridSize;
-					int col = i % gridSize;
-
-					// Spread entities in a grid formation
-					Vector2D position = {
-						(col - gridSize / 2) * spacing,  // Center the grid around (0,0)
-						(row - gridSize / 2) * spacing
-					};
+					// Calculate random position from -1.0 to 1.0
+					float x = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
+					float y = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
+					Vector2D position = { x, y };
 
 					// Pass the calculated position, not halfSize
 					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
@@ -1125,6 +1121,7 @@ namespace Editor {
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+			entityMgr.AddComponent<AnimationComponent>(bird, {});
 
 			RigidBody rb;
 			rb.SetMass(0.0f); // Give it some mass
@@ -1132,20 +1129,59 @@ namespace Editor {
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
 			//  Add components to make it visible and selectable
-			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
-
+			Vector2D texHalfSize = { 0.1f, 0.2f }; // Set a default size
+			Vector2D aabbHalfSize = { 0.01f, 0.01f }; // Set a default size
 
 			// texture is loaded in TestScene.cpp
-			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
-
+			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
+			entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
 			
-		    /*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
+		    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
 
 			// Add it to the active scene
 			sceneMgr.AddEntityToScene(currScene, bird);
 
 			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
 				<< bird << ")";
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Spawn Test Skeleton")) {
+			// Get the systems we need
+			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+
+			// Create entity
+			Entity skeleton = entityMgr.CreateEntity();
+
+			// Set properties
+			entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
+
+			// Add components required for the AI
+			entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
+			entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
+			entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
+			entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
+			entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
+			
+
+			// Add physics, but make it affected by gravity
+			RigidBody rb;
+			rb.SetMass(1.0f); // Give it some mass
+			rb.isAffectedByGravity = true; // Make it fall
+			entityMgr.AddComponent<RigidBody>(skeleton, rb);
+
+			// Add components to make it visible and selectable
+			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
+			entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
+			entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
+
+			// Add it to the active scene
+			sceneMgr.AddEntityToScene(currentScene, skeleton);
+
+			Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
+				<< skeleton << ")";
 		}
 		
 
@@ -2080,6 +2116,70 @@ namespace Editor {
 
 			break;
 		}
+
+		case ComponentType::BirdAIComponentType: {
+			BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
+
+			// --- State (Read-only) ---
+			int state = static_cast<int>(ai.state);
+			const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK" };
+			ImGui::Text("Current State: %s", stateNames[state]);
+
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);
+			ImGui::PopStyleColor(2);
+
+			ImGui::Separator();
+
+			// --- Config ---
+			ImGui::Text("Configurable Stats");
+			ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
+
+			// --- Hover Config ---
+			ImGui::Separator();
+			ImGui::Text("Hover Behavior");
+			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");
+			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
+
+			// --- Pathfinding ---
+			ImGui::Separator();
+			ImGui::Text("Pathfinding");
+			ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
+
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+			ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::PopStyleColor(2);
+			ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
+
+			break;
+		}
+
+		case ComponentType::SkeletonAIComponentType: {
+			SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
+
+			// for now just show state
+			int state = static_cast<int>(skelAI.state);
+			ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
+
+			ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
+			ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
+			break;
+		}
+
 		case ComponentType::SceneOwnedType: {
 			SceneOwned& parentScene = entityMgr.GetComponent<SceneOwned>(selectedEntity);
 

@@ -99,7 +99,7 @@ namespace Framework {
 
 			RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
 
-            if (body.InverseMass > 0.0f) {
+            if (body.InverseMass > 0.0f && body.isAffectedByGravity) { 
                 body.Force += gravity_ * body.Mass;
             }
         }
@@ -239,8 +239,7 @@ namespace Framework {
             static bool errorLogged = false;
             if (!errorLogged) {
                 Logger::Get().Error(DebugType::PhysicsSystem)
-                    << "More than " << kMaxCollidableEntities << " colliders! "
-                    << "Falling back to O(n^2). Increase kMaxCollidableEntities.";
+                    << "More than " << kMaxCollidableEntities << " colliders! ";
                 errorLogged = true;
             }
 
@@ -305,8 +304,8 @@ namespace Framework {
             // Get all potential partners from the grid (as a bitset)
             GridQuery(bounds1, potentialPartners);
 
-            // Now, `potentialPartners` has a '1' for the index of
-            // every entity that *could* be colliding with e1.
+            // potentialPartners has a '1' for the index of
+            // every entity that could be colliding with e1.
 
             // Iterate only over potential partners
             // We use .test() to check if a bit is set

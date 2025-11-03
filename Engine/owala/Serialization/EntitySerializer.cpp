@@ -282,6 +282,17 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::BIRD_AI_COMPONENT), value, alloc);
 		}
 
+		if (entityMgr.HasComponent(entity, ComponentType::SkeletonAIComponentType)) {
+			SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+
+			value.AddMember(rapidjson::StringRef(Serialization::AI_STATE), static_cast<int>(skelAI.state), alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::DETECTION_RADIUS), skelAI.detectionRadius, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::MOVE_SPEED), skelAI.moveSpeed, alloc);
+
+			componentList.AddMember(rapidjson::StringRef(Serialization::SKELETON_AI_COMPONENT), value, alloc);
+		}
+
 		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
 			SceneOwned& sceneOwnedComp = entityMgr.GetComponent<SceneOwned>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
@@ -823,6 +834,23 @@ namespace Framework {
 			}
 
 			entityMgr.AddComponent<BirdAIComponent>(loadedEntity, birdAI);
+		}
+
+		if (componentLists.HasMember(Serialization::SKELETON_AI_COMPONENT)) {
+			const rapidjson::Value& skelAIData = componentLists[Serialization::SKELETON_AI_COMPONENT];
+			SkeletonAIComponent skelAI;
+
+			if (skelAIData.HasMember(Serialization::AI_STATE) && skelAIData[Serialization::AI_STATE].IsInt()) {
+				skelAI.state = static_cast<SkeletonState>(skelAIData[Serialization::AI_STATE].GetInt());
+			}
+			if (skelAIData.HasMember(Serialization::DETECTION_RADIUS) && skelAIData[Serialization::DETECTION_RADIUS].IsFloat()) {
+				skelAI.detectionRadius = skelAIData[Serialization::DETECTION_RADIUS].GetFloat();
+			}
+			if (skelAIData.HasMember(Serialization::MOVE_SPEED) && skelAIData[Serialization::MOVE_SPEED].IsFloat()) {
+				skelAI.moveSpeed = skelAIData[Serialization::MOVE_SPEED].GetFloat();
+			}
+
+			entityMgr.AddComponent<SkeletonAIComponent>(loadedEntity, skelAI);
 		}
 
 		// Deserialize SceneOwned Component
