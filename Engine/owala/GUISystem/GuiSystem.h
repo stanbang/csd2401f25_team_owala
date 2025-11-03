@@ -6,22 +6,43 @@
 #include "InputSystem.h"
 #include "OwalaTime.h"
 
+#ifdef BUILD_EDITOR
+// Imgui Editor
+#include "Editor.h"
+#endif
+
 namespace Framework{
 	class GuiSystem : public ISystem {
 	public:
 		// Constructor taking references to EntityStorage and ResourceManager
-		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, EntityManager& entityManager)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), entityMgr(entityManager) {
+		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem)
+			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem) {
 		}
-		void Initialize() override {}
+		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
+
+		#ifdef BUILD_EDITOR
+		void SetViewportContext(ImVec2 position, ImVec2 size);
+		#endif
+
+		void SetViewportSizeEngine(const Vector2D& size) {
+			viewportSizeEngine_ = size;
+		}
 
 	private:
 		// Pointer to the entity storage to access and modify entities and their components
 		EntityStorage* entityStorage_ = nullptr;
 		ResourceManager* resourceManager_ = nullptr;
 		InputSystem* inputSystem_ = nullptr;
-		EntityManager& entityMgr;
+
+		Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
+
+		#ifdef BUILD_EDITOR
+		ImVec2 viewportPos_ = { 0.0f, 0.0f };
+		ImVec2 viewportSize_ = { 1.0f, 1.0f };
+		#endif
+
+
 	};
 }

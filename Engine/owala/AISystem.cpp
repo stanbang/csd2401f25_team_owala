@@ -21,7 +21,7 @@ namespace Framework {
         : ecs_(&storage), gfx_(&gfx) {}
 
     void AISystem::Initialize() {
-        // Build the navigation grid for the first time
+        // Build the navigation grid 
         navGrid_.BuildGrid(*ecs_);
         Logger::Get().Info(DebugType::AISystem) << "AISystem initialized. Navigation grid built." << std::endl;
     }
@@ -58,7 +58,7 @@ namespace Framework {
 
         Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
 
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
+        //Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
@@ -69,8 +69,8 @@ namespace Framework {
             Logger::Get().Info(DebugType::AISystem) << "Navigation grid rebuilt." << std::endl;
         }
 
-        // Loop over all entities with a BirdAITag and BirdAIComponent
-        for (const Entity& bird : entityMgr.GetAllEntitiesWithComponent(BirdAITagType)) {
+        // Loop over all entities with an EnemyTagType and BirdAIComponent
+        for (const Entity& bird : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) { 
             // Check that the bird has all components before proceeding
             if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
                 !entityMgr.HasComponent(bird, PositionType) ||
@@ -132,7 +132,6 @@ namespace Framework {
 
         // Check distance to player
         if (birdPos.Distance(playerPos) < ai.wakeUpRadius) {
-            // NEW: Add Log
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] detected player at distance: " << birdPos.Distance(playerPos) << std::endl;
             ai.state = BirdState::WAKING;
@@ -155,22 +154,20 @@ namespace Framework {
 
         float dist = birdPos.Distance(playerPos);
 
-        // 1. Check if we've arrived
+        // Check if reached radius
         if (dist < ai.hoverRadius) {
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] reached hover radius!" << std::endl;
             ai.state = BirdState::HOVER;
-           
-           
-            ai.attackTimer = 0.0f; // Set timer to 0 to mean "not started"
+          
+            ai.attackTimer = 0.0f; // Set timer to 0 to mean not started
         
-
             ai.currentHoverNode = 0; // Start at the first node of the box
             ai.currentPath.clear();
             return;
         }
 
-        //  Recalculate path if needed
+        //  Recalculate path 
         ai.pathRecalculateTimer -= Framework::Time::DeltaTime();
         if (ai.pathRecalculateTimer <= 0.0f || ai.currentPath.empty()) {
 
@@ -426,18 +423,18 @@ namespace Framework {
             Logger::Get().Info(DebugType::AISystem) << "Drawing navigation grid" << std::endl;
         }
 
-        //// Draw bird debug info
-        auto birds = entityMgr.GetAllEntitiesWithComponent(BirdAITagType);
-        //Logger::Get().Info(DebugType::AISystem) << "Found " << birds.size() << " birds" << std::endl;
+        //Draw Enemies debug info
+        std::vector<Entity> Enemies = entityMgr.GetAllEntitiesWithComponent(EnemyTagType); 
+       
 
-        for (const Entity& bird : birds) {
+        for (const Entity& bird : Enemies) {
             if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
                 !entityMgr.HasComponent(bird, PositionType))
             {
                 continue;
             }
 
-            auto& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
+            Framework::BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
             Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
 
 

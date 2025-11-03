@@ -1,0 +1,7 @@
+# Format: TYPE NAME TEXTURE_ID SIZE_X SIZE_Y [ADDITIONAL_PARAMS]
+PLATFORM BasicGround RonaldSprite_Platform 1.0 0.2 0.0
+PLATFORM TopBorder RonaldSprite_Platform 1.0 0.2 0.0
+PLATFORM SideBorder RonaldSprite_Platform 0.2 1.0 0.0
+PLATFORM BottomBorder RonaldSprite_Platform 1.0 0.2 0.0
+TRAP_PLATFORM FallingTrap RonaldSprite_Platform 0.5 0.1 1.0 2.0
+SCALING_PLATFORM ScalePlatform RonaldSprite_Platform 0.3 0.1 2.0 0.2 1.0

@@ -8,12 +8,12 @@
 namespace {
 	using namespace Framework;
 
-	static void WriteVector2D(rapidjson::Value& parent, const char* name, const Vector2D& vec, rapidjson::Document::AllocatorType& alloc) {
-		rapidjson::Value obj(rapidjson::kObjectType);
-		obj.AddMember("x", vec.x, alloc);
-		obj.AddMember("y", vec.y, alloc);
-		parent.AddMember(rapidjson::StringRef(name), obj, alloc);
-	}
+	//static void WriteVector2D(rapidjson::Value& parent, const char* name, const Vector2D& vec, rapidjson::Document::AllocatorType& alloc) {
+	//	rapidjson::Value obj(rapidjson::kObjectType);
+	//	obj.AddMember("x", vec.x, alloc);
+	//	obj.AddMember("y", vec.y, alloc);
+	//	parent.AddMember(rapidjson::StringRef(name), obj, alloc);
+	//}
 }
 
 namespace Framework {
@@ -110,6 +110,8 @@ namespace Framework {
 		if (entityMgr.HasComponent(entity, ComponentType::PlayerStateType)) {
 			PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::PLAYER_IS_FACING_RIGHT), state.isFacingRight, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::PLAYER_IS_GROUNDED), state.isGrounded, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::PLAYER_STATE_COMPONENT), value, alloc);
 		}
 
@@ -121,6 +123,17 @@ namespace Framework {
 			value.AddMember(rapidjson::StringRef(Serialization::CURRENT_ROTATION), rFlag.currentRotation, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::TARGET_ROTATION), rFlag.targetRotation, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::ROTATIONFLAG_COMPONENT), value, alloc);
+		}
+
+		// Serialize Button Component
+		if (entityMgr.HasComponent(entity, ComponentType::ButtonType)) {
+			Button& button = entityMgr.GetComponent<Button>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_HOVERED), button.isHovered, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_PRESSED), button.isPressed, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::IS_RELEASED), button.isReleased, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::ACTION), static_cast<int>(button.action), alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::BUTTON_COMPONENT), value, alloc);
 		}
 
 		// Serialize TrapPlatform Component
@@ -306,9 +319,8 @@ namespace Framework {
 			rapidjson::Value tagVal(Serialization::ACTIVE_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
-
-		if (entityMgr.HasComponent(entity, ComponentType::BirdAITagType)) {
-			rapidjson::Value tagVal(Serialization::BIRD_AI_TAG, alloc);
+		if (entityMgr.HasComponent(entity, ComponentType::GUITagType)) {
+			rapidjson::Value tagVal(Serialization::GUI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
 
@@ -488,7 +500,15 @@ namespace Framework {
 
 		// Deserialize PlayerState Component
 		if (componentLists.HasMember(Serialization::PLAYER_STATE_COMPONENT)) {
+			const rapidjson::Value& playerStateData = componentLists[Serialization::PLAYER_STATE_COMPONENT];
+
 			PlayerState playerState;
+			if (playerStateData.HasMember(Serialization::PLAYER_IS_FACING_RIGHT) && playerStateData[Serialization::PLAYER_IS_FACING_RIGHT].IsBool()) {
+				playerState.isFacingRight = playerStateData[Serialization::PLAYER_IS_FACING_RIGHT].GetBool();
+			}
+			if (playerStateData.HasMember(Serialization::PLAYER_IS_GROUNDED) && playerStateData[Serialization::PLAYER_IS_GROUNDED].IsBool()) {
+				playerState.isGrounded = playerStateData[Serialization::PLAYER_IS_GROUNDED].GetBool();
+			}
 			entityMgr.AddComponent<PlayerState>(loadedEntity, playerState);
 		}
 
@@ -507,6 +527,25 @@ namespace Framework {
 				rotationFlag.targetRotation = rFlagData[Serialization::TARGET_ROTATION].GetFloat();
 			}
 			entityMgr.AddComponent<RotationFlag>(loadedEntity, rotationFlag);
+		}
+
+		// Deserialize Button Component
+		if (componentLists.HasMember(Serialization::BUTTON_COMPONENT)) {
+			const rapidjson::Value& buttonData = componentLists[Serialization::BUTTON_COMPONENT];
+			Button button;
+			if (buttonData.HasMember(Serialization::IS_HOVERED) && buttonData[Serialization::IS_HOVERED].IsBool()) {
+				button.isHovered = buttonData[Serialization::IS_HOVERED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::IS_PRESSED) && buttonData[Serialization::IS_PRESSED].IsBool()) {
+				button.isPressed = buttonData[Serialization::IS_PRESSED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::IS_RELEASED) && buttonData[Serialization::IS_RELEASED].IsBool()) {
+				button.isReleased = buttonData[Serialization::IS_RELEASED].GetBool();
+			}
+			if (buttonData.HasMember(Serialization::ACTION) && buttonData[Serialization::ACTION].IsInt()) {
+				button.action = static_cast<Framework::ButtonAction>(buttonData[Serialization::ACTION].GetInt());
+			}
+			entityMgr.AddComponent<Button>(loadedEntity, button);
 		}
 
 		// Deserialize TrapPlatform Component
@@ -823,8 +862,8 @@ namespace Framework {
 				else if (tag == Serialization::ACTIVE_TAG) {
 					entityMgr.AddComponent<ActiveTag>(loadedEntity, ActiveTag{});
 				}
-				else if (tag == Serialization::BIRD_AI_TAG) {
-					entityMgr.AddComponent<BirdAITag>(loadedEntity, BirdAITag{});
+				else if (tag == Serialization::GUI_TAG) {
+					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
 				}
 			}
 		}
@@ -897,5 +936,6 @@ namespace Framework {
 		catch (...) {
 			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize scene data from " << filePath << std::endl;
 		}
+		return false;
 	}
 }

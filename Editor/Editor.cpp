@@ -71,6 +71,7 @@ namespace {
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
+		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::BirdAIComponentType:			return "BirdAI";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
@@ -79,8 +80,8 @@ namespace {
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
-		case ComponentType::BirdAITagType:					return "BirdAITag";
-
+		case ComponentType::GUITagType:						return "GUITag";
+		
 		default:											return "Unknown";
 		}
 	}
@@ -99,12 +100,65 @@ namespace {
 }
 
 namespace Editor {
-	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
-		cameraSystem_(gameManager_->GetSystems().camera_), // for tile editor to work with camera
-		graphicsSystem_(gameManager_->GetSystems().gfx_) { // for drag drop and placing of prefabs
+	// Add these member variable definitions at the top of your Editor class implementation
+	// (or wherever you have other member variable initializations)
 
+	// In the constructor, initialize the camera state:
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm)
+		: engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
+		cameraSystem_(gameManager_->GetSystems().camera_),
+		graphicsSystem_(gameManager_->GetSystems().gfx_),
+		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
+		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
+		editorCameraNeedsReset_(false) {
 	};
+
+	// Add these implementations to your Editor.cpp file
+
+	void Editor::ResetEditorCamera() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.position = defaultEditorCameraState_.position;
+			cam.zoom = defaultEditorCameraState_.zoom;
+			cameraSystem_->SetZoom(editorCamera_, defaultEditorCameraState_.zoom);
+
+			// Update current state
+			currentEditorCameraState_ = defaultEditorCameraState_;
+			editorCameraNeedsReset_ = false;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Editor camera reset to position ("
+				<< cam.position.x << ", " << cam.position.y
+				<< ") zoom: " << cam.zoom << std::endl;
+		}
+	}
+
+	void Editor::SaveEditorCameraState() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			currentEditorCameraState_.position = cam.position;
+			currentEditorCameraState_.zoom = cam.zoom;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Saved editor camera state: position ("
+				<< currentEditorCameraState_.position.x << ", " << currentEditorCameraState_.position.y
+				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;
+		}
+	}
+
+	void Editor::RestoreEditorCameraState() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.position = currentEditorCameraState_.position;
+			cam.zoom = currentEditorCameraState_.zoom;
+			cameraSystem_->SetZoom(editorCamera_, currentEditorCameraState_.zoom);
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Restored editor camera state: position ("
+				<< cam.position.x << ", " << cam.position.y
+				<< ") zoom: " << cam.zoom << std::endl;
+		}
+	}
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -268,7 +322,7 @@ namespace Editor {
 		ImGuiIO& io = ImGui::GetIO();
 
 		// Determine if ImGui currently "owns" the input
-		bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
+		//bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
 
 		// Tell the InputSystem whether to lock gameplay input
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
@@ -375,7 +429,6 @@ namespace Editor {
 		if (editorCamera_ != 0)
 		{
 			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-			float dt = Framework::Time::DeltaTime(); // or your time delta
 
 			// Move camera with WASD
 			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += 5.0f * dt;
@@ -519,12 +572,12 @@ namespace Editor {
 		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
 			AddPaletteItem(pair.first, PrefabType::Platform, pair.second.textureID);
 		}
-		for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
-			AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
-		}
-		for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-			AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
-		}
+		//for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
+		//	AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
+		//}
+		//for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
+		//	AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
+		//}
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
@@ -557,7 +610,8 @@ namespace Editor {
 	}
 
 
-	void Editor::HandleDragDropPlacement() {
+	void Editor::HandleDragDropPlacement()
+	{
 		if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
 			isDraggingPrefab_ = false;
 			return;
@@ -569,15 +623,13 @@ namespace Editor {
 
 		// --- MOUSE POSITION (ImGui → World) ---
 		ImVec2 mousePos = ImGui::GetMousePos();
-		ImVec2 viewportPos = gameViewportPos_;     // top-left corner of game panel
-		ImVec2 viewportSize = gameViewportSize_;   // width, height of game panel
+		ImVec2 viewportPos = gameViewportPos_;
+		ImVec2 viewportSize = gameViewportSize_;
 
-		// Convert from ImGui to normalized device coordinates (-1..1)
+		// Convert from ImGui → NDC → World
 		float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
 		float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f);
-		// note Y is flipped here
 
-		// Convert NDC to world using editor camera
 		Vector2D worldMousePos = {
 			cam.position.x + ndcX * (cam.size.x * 0.5f),
 			cam.position.y + ndcY * (cam.size.y * 0.5f)
@@ -590,7 +642,7 @@ namespace Editor {
 		Framework::EntityManager entityMgr(*ecs);
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
-		// Check duplicates
+		// Prevent duplicates
 		const float tolerance = baseGridCellSize_ * 0.1f;
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
@@ -659,34 +711,29 @@ namespace Editor {
 		}
 
 		isDraggingPrefab_ = false;
-
 	}
 
 
-	// Draws a preview of the tile being dragged
-	void Editor::DrawDragDropPreview(ImDrawList* drawList) {
-
+	void Editor::DrawDragDropPreview(ImDrawList* drawList)
+	{
 		if (!isDraggingPrefab_ ||
 			dragDropPayload_.type == PrefabType::None ||
-			dragDropPayload_.type == PrefabType::Eraser) {
+			dragDropPayload_.type == PrefabType::Eraser)
 			return;
-		}
 
-		// Get current mouse position and snap it (same as before)
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return;
+
 		Vector2D worldMousePos = GetMouseWorldPosition();
 		dragDropPreviewPos_ = SnapToGrid(worldMousePos);
 
 		Texture previewTextureID = dragDropPayload_.textureID;
-		if (previewTextureID == 0) return;
+		if (previewTextureID == 0)
+			return;
 
-		// --- ASPECT-CORRECT SIZE ---
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		Vector2D previewHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
+		// --- FIX: Use same world size as placed tiles ---
+		Vector2D previewHalfSize = { baseGridCellSize_ * 0.5f, baseGridCellSize_ * 0.5f };
 
-		Entity activeCamera = cameraSystem_->GetActiveCamera();
-		if (activeCamera == 0) return;
-
-		// --- WORLD CORNERS ---
 		Vector2D worldTopLeft = {
 			dragDropPreviewPos_.x - previewHalfSize.x,
 			dragDropPreviewPos_.y + previewHalfSize.y
@@ -696,19 +743,18 @@ namespace Editor {
 			dragDropPreviewPos_.y - previewHalfSize.y
 		};
 
-		// --- SCREEN SPACE CONVERSION ---
 		ImVec2 screenTopLeft = WorldToImGuiScreen(worldTopLeft);
 		ImVec2 screenBottomRight = WorldToImGuiScreen(worldBottomRight);
 
-		// --- UVs & COLOR ---
 		ImVec2 uv0 = dragDropPayload_.uv0;
 		ImVec2 uv1 = dragDropPayload_.uv1;
-		ImU32 tintColor = IM_COL32(255, 255, 255, 150); // semi-transparent
+		ImU32 tintColor = IM_COL32(255, 255, 255, 150);
 
-		// --- DRAW PREVIEW ---
 		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
 		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
 	}
+
+
 
 
 
@@ -991,6 +1037,12 @@ namespace Editor {
 			// --- Entity Inspector ---
 			ImGui::Separator();
 
+			// Add reset camera button
+			if (ImGui::Button("Reset Editor Camera")) {
+				ResetEditorCamera();
+			}
+			ImGui::SameLine();
+
 			// Button to activate the tile editor mode
 			if (ImGui::Button("Open Tilemap Editor")) {
 				isTileEditorActive_ = true;
@@ -1055,20 +1107,19 @@ namespace Editor {
 		ImGui::SameLine();
 		if (ImGui::Button("Spawn Test Bird")) {
 			// Get the systems we need
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 			SceneManager& sceneMgr = SceneManager::GetInstance();
-			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+			const SceneAsset& currScene = sceneMgr.GetActiveScene();
 
-			// 1. Create the entity
+			//  Create entity
 			Entity bird = entityMgr.CreateEntity();
 
-			// 2. Set its properties
+			//  Set properties
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
-			// 3. Add components required for the AI
+			// Add components required for the AI
 			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-			entityMgr.AddComponent<BirdAITag>(bird, {});            // Tag for the AISystem
+			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
 
 			RigidBody rb;
@@ -1076,26 +1127,25 @@ namespace Editor {
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
-			// 4. Add components to make it visible and selectable
+			//  Add components to make it visible and selectable
 			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
 
-			// Use the "fake player texture" as requested.
-			// This texture is loaded in TestScene.cpp
+
+			// texture is loaded in TestScene.cpp
 			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 
-			// Add a collider so you can click on it in the editor
-		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
+			
+		    /*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
 
-			// 5. Add it to the active scene
-			sceneMgr.AddEntityToScene(currentScene, bird);
+			// Add it to the active scene
+			sceneMgr.AddEntityToScene(currScene, bird);
 
 			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
 				<< bird << ")";
 		}
-		// --- END OF NEW CODE ---
+		
 
 		ImGui::End(); // End "Level Editor" window
-
 	}
 
 	void Editor::SaveAndLoadSection() {
@@ -1401,7 +1451,14 @@ namespace Editor {
 				wasTileEditorOpen = true;
 
 				if (engine_ && !engine_->IsEditorMode()) {
+					// Save current state before switching
+					SaveEditorCameraState();
+
 					engine_->SetMode(Framework::EngineMode::Editor);
+
+					// Reset editor camera to known state when entering tile editor
+					ResetEditorCamera();
+
 					Framework::Logger::Get().Info(DebugType::Editor)
 						<< "[Editor] Switched to EDITOR mode (Tilemap open)" << std::endl;
 				}
@@ -1476,14 +1533,16 @@ namespace Editor {
 		ImGui::End();
 
 		// --- EXIT TILE EDITOR (close event) ---
-		if (!isTileEditorActive_) {
-			if (wasTileEditorOpen) {
-				wasTileEditorOpen = false;
-				if (engine_ && engine_->IsEditorMode()) {
-					engine_->SetMode(Framework::EngineMode::Play);
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-				}
+		if (!isTileEditorActive_ && wasTileEditorOpen) {
+			wasTileEditorOpen = false;
+
+			if (engine_ && engine_->IsEditorMode()) {
+				// Save current editor camera state before switching back
+				SaveEditorCameraState();
+
+				engine_->SetMode(Framework::EngineMode::Play);
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
 			}
 
 			showGrid_ = false;
@@ -1529,7 +1588,7 @@ namespace Editor {
 
 					std::string name = entityMgr.GetProperties(entity).name;
 					ImGui::PushID(localWidgetID++);
-					bool selected = ((selectedEntityIndex - 1) == entity);
+					bool selected = (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity);
 					if (ImGui::Selectable(name.c_str(), &selected)) {
 						selectedTagIndex = selectedComponentIndex = 0;
 						selectedEntityIndex = entity + 1;
@@ -1570,7 +1629,7 @@ namespace Editor {
 						}
 						if (ImGui::MenuItem("Delete")) {
 							entityMgr.DestroyEntity(entity);
-							if ((selectedEntityIndex - 1) == entity) {
+							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 								isEntitySelected_ = false;
 							}
@@ -1871,10 +1930,19 @@ namespace Editor {
 			AABBCollider& col = entityMgr.GetComponent<AABBCollider>(selectedEntity);
 
 			//ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f)); // Dim background
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f)); // Dim text
-			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2); // Pop both colors
+			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f");
+			break;
+		}
+		case ComponentType::ButtonType: {
+			Button& buttonComp = entityMgr.GetComponent<Button>(selectedEntity);
+			ImGui::Checkbox("Is Pressed?", &buttonComp.isPressed);
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS" };
+			int currentItemIndex = static_cast<int>(buttonComp.action);
+
+			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
+				buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
+			}
+
 			break;
 		}
 		case ComponentType::PlayerStateType: {
@@ -1932,13 +2000,33 @@ namespace Editor {
 				}
 			}
 
+			// Vector2D HalfSize Input
+			ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f");
+
 			break;
 		}
-		case ComponentType::AudioComponentType:
-		case ComponentType::AnimationComponentType:
+		case ComponentType::AudioComponentType: {
+			AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(selectedEntity);
+			//Show text but make it read-only
+			ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newSoundKey = "";
+			ImGui::InputText("New Audio Key", &newSoundKey);
+			//Button to update audio key
+			if (ImGui::Button("Update Audio")) {
+				if (!newSoundKey.empty()) {
+					audioComp.soundKey = newSoundKey;
+				}
+			}
+			ImGui::Checkbox("Looping", &audioComp.loop);
+			ImGui::Checkbox("Stream", &audioComp.stream);
+			ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
+			break;
+		}
+
+		case ComponentType::AnimationComponentType: {
 			ImGui::TextDisabled("Properties are Hidden");
 			break;
-
+		}
 		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
@@ -2020,6 +2108,11 @@ namespace Editor {
 		ImGuiWindow* gameWindow = ImGui::FindWindowByName("Game");
 		if (!gameWindow || gameWindow->Collapsed) {
 			isMouseOverGameViewport_ = false;
+
+			if (gameManager_->GetSystems().guiSystem_) { // Check if gui system exists
+				gameManager_->GetSystems().guiSystem_->SetViewportContext({ 0,0 }, { 1,1 });
+			}
+
 			return; // Window not visible or found
 		}
 
@@ -2036,8 +2129,11 @@ namespace Editor {
 			mousePos.x <= gameViewportPos_.x + gameViewportSize_.x &&
 			mousePos.y >= gameViewportPos_.y &&
 			mousePos.y <= gameViewportPos_.y + gameViewportSize_.y;
-	}
 
+		if (gameManager_->GetSystems().guiSystem_) {
+			gameManager_->GetSystems().guiSystem_->SetViewportContext(gameViewportPos_, gameViewportSize_);
+		}
+	}
 	void Editor::ShowGameViewport() {
 		using namespace Framework;
 
@@ -2052,31 +2148,43 @@ namespace Editor {
 
 			if (gfx && spriteRenderer_ && camSystem) {
 
+				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
+				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+
 				// === STEP 1: PREPARE FRAMEBUFFER ===
-				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
+				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
 				gfx->BindGameFramebuffer();
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
 				// === STEP 2: TEMPORARILY SWITCH TO EDITOR CAMERA ===
 				Entity prevCamera = camSystem->GetActiveCamera();
 
-				// If in Editor mode and editor camera is valid, use it
+				// Save current editor camera state before any rendering
+				if (editorCamera_ != 0 && engine_->IsEditorMode()) {
+					SaveEditorCameraState();
+				}
+
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// === STEP 3: RENDER SPRITES WITH CURRENT ACTIVE CAMERA ===
+				// === STEP 3: RENDER SPRITES ===
 				spriteRenderer_->Update();
 
 				// === STEP 4: RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
 					camSystem->SetActiveCamera(prevCamera);
+
+					// Ensure editor camera state is preserved
+					if (prevCamera == editorCamera_ && editorCamera_ != 0) {
+						RestoreEditorCameraState();
+					}
 				}
 
 				// === STEP 5: UNBIND FRAMEBUFFER ===
 				gfx->UnbindGameFramebuffer();
 
-				// === STEP 6: DRAW GAME TEXTURE INTO IMGUI WINDOW ===
+				// === STEP 6: DRAW GAME TEXTURE ===
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(),
 					viewportPanelSize,
 					ImVec2(0, 1), ImVec2(1, 0));
@@ -2089,20 +2197,16 @@ namespace Editor {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// --- Draw Grid ---
-				if (showGrid_) {
+			/*	if (showGrid_) {
 					DrawEditorGrid(drawList);
-				}
+				}*/
 
-				// --- Draw Prefab Preview (when dragging) ---
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
 				}
 
-				// --- Draw AI Debug Gizmos ---
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 				if (aiSystem && camSystem && aiSystem->debugVisualization) {
-					// Use whichever camera is active (editor camera during edit mode)
 					Entity activeCam = engine_->IsEditorMode() && editorCamera_ != 0
 						? editorCamera_
 						: camSystem->GetActiveCamera();
@@ -2116,6 +2220,7 @@ namespace Editor {
 
 		ImGui::End();
 	}
+
 
 
 #pragma endregion
@@ -2237,13 +2342,12 @@ namespace Editor {
 
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
-		const float zoom = cam.zoom;
 
-		// Grid cell size in world units
-		const float baseCell = baseGridCellSize_; // e.g. 1.0f or whatever your tile unit is
-		const float cell = baseCell; // keep grid world-locked; not multiplied by zoom
+		// Match grid to viewport aspect
+		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		const float cellX = (baseGridCellSize_) / aspect;
+		const float cellY = baseGridCellSize_;
 
-		// Compute visible region in world space
 		float halfW = cam.size.x * 0.5f;
 		float halfH = cam.size.y * 0.5f;
 		float left = camPos.x - halfW;
@@ -2251,71 +2355,48 @@ namespace Editor {
 		float bottom = camPos.y - halfH;
 		float top = camPos.y + halfH;
 
-		// Offset so grid scrolls smoothly when panning
-		float offsetX = std::fmod(camPos.x, cell);
-		float offsetY = std::fmod(camPos.y, cell);
+		const float startX = std::floor(left / cellX) * cellX;
+		const float startY = std::floor(bottom / cellY) * cellY;
 
 		const ImU32 lineColor = IM_COL32(150, 150, 150, 90);
 		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
 		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
-		// Vertical lines
-		for (float x = left - offsetX - cell; x <= right + cell; x += cell)
+		for (float x = startX; x <= right; x += cellX)
 		{
-			Vector2D worldA = { x, bottom - cell };
-			Vector2D worldB = { x, top + cell };
+			Vector2D worldA = { x, bottom };
+			Vector2D worldB = { x, top };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// Horizontal lines
-		for (float y = bottom - offsetY - cell; y <= top + cell; y += cell)
+		for (float y = startY; y <= top; y += cellY)
 		{
-			Vector2D worldA = { left - cell, y };
-			Vector2D worldB = { right + cell, y };
+			Vector2D worldA = { left, y };
+			Vector2D worldB = { right, y };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
 		// World axes
-		Vector2D axA = { 0.0f, bottom - cell };
-		Vector2D axB = { 0.0f, top + cell };
-		Vector2D ayA = { left - cell, 0.0f };
-		Vector2D ayB = { right + cell, 0.0f };
+		Vector2D xA = { 0.0f, bottom };
+		Vector2D xB = { 0.0f, top };
+		Vector2D yA = { left, 0.0f };
+		Vector2D yB = { right, 0.0f };
 
-		ImVec2 xA = WorldToImGuiScreen(axA);
-		ImVec2 xB = WorldToImGuiScreen(axB);
-		ImVec2 yA = WorldToImGuiScreen(ayA);
-		ImVec2 yB = WorldToImGuiScreen(ayB);
-
-		drawList->AddLine(xA, xB, axisXColor, 2.0f);
-		drawList->AddLine(yA, yB, axisYColor, 2.0f);
+		drawList->AddLine(WorldToImGuiScreen(xA), WorldToImGuiScreen(xB), axisXColor, 2.0f);
+		drawList->AddLine(WorldToImGuiScreen(yA), WorldToImGuiScreen(yB), axisYColor, 2.0f);
 	}
 
 
 
-
-	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		// Compute aspect ratio once
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-
-		// Adjust X by aspect so snapping grid matches visual grid squares
-		float adjustedX = worldPos.x * aspect;
-		float adjustedY = worldPos.y;
-
-		// Calculate index based on adjusted coords
-		int gridX = static_cast<int>(std::floor(adjustedX / baseGridCellSize_));
-		int gridY = static_cast<int>(std::floor(adjustedY / baseGridCellSize_));
-
-		// Compute snapped center (still in adjusted space)
-		float snappedX = (static_cast<float>(gridX) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
-		float snappedY = (static_cast<float>(gridY) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
-
-		// Convert back to original world space (undo aspect adjustment)
-		snappedX /= aspect;
-
+	Vector2D Editor::SnapToGrid(const Vector2D& worldPos)
+	{
+		const float cell = baseGridCellSize_; // world units
+		float snappedX = std::round(worldPos.x / cell) * cell;
+		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
 	}
 
@@ -2326,6 +2407,7 @@ namespace Editor {
 	void Editor::ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles) {
 		assetBrowser.RenderUI(droppedFiles);
 	}
+
 
 #pragma endregion
 
@@ -2724,10 +2806,7 @@ namespace Editor {
 		Logger::Get().Info(DebugType::Editor) << "Prefab changes applied to existing entities: " << prefabName << std::endl;
 	}
 
-
 #pragma endregion
-#pragma endregion
-
 
 	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos, Entity cameraID)
 	{

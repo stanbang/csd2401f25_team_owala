@@ -132,7 +132,7 @@ namespace Framework {
 		case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(entity, SceneOwned{}); break;
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
-		case ComponentType::BirdAITagType: break; 
+		case ComponentType::GUITagType: break;
 
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
@@ -171,7 +171,7 @@ namespace Framework {
 			case SceneOwnedType: ecs.sceneOwned.erase(entity); break;
 			case PersistentTagType:
 			case ActiveTagType: break;
-			case BirdAITagType: break;
+			case GUITagType: break;
 			default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 				return;
@@ -189,7 +189,7 @@ namespace Framework {
 		case ComponentType::EnemyTagType:
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType:
-		case ComponentType::BirdAITagType:
+		case ComponentType::GUITagType:
 			return true;
 		default:
 			return false;

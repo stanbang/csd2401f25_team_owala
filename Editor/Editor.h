@@ -157,6 +157,20 @@ namespace Editor {
 		std::vector<std::filesystem::path> droppedFilePaths_;
 		static void DropCallback(GLFWwindow* window, int count, const char* paths[]);
 
+		// --- Camera State Management ---
+		struct CameraState {
+			Vector2D position{ 0.0f, 0.0f };
+			float zoom = 1.0f;
+		};
+
+		CameraState defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f };
+		CameraState currentEditorCameraState_;
+		bool editorCameraNeedsReset_ = false;
+
+		void ResetEditorCamera();
+		void SaveEditorCameraState();
+		void RestoreEditorCameraState();
+
 		// --- Private Helper Functions ---
 
 		// Internal Checkers

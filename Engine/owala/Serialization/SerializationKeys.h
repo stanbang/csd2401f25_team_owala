@@ -44,6 +44,8 @@ namespace Framework::Serialization {
 	static constexpr const char* HALF_HEIGHT = "half_height";
 
 	static constexpr const char* PLAYER_STATE_COMPONENT = "PlayerState";
+	static constexpr const char* PLAYER_IS_FACING_RIGHT = "is_facing_right";
+	static constexpr const char* PLAYER_IS_GROUNDED = "is_grounded";
 
 	static constexpr const char* ROTATIONFLAG_COMPONENT = "RotationFlag";
 	static constexpr const char* IS_ROTATING = "is_rotating";
@@ -102,6 +104,12 @@ namespace Framework::Serialization {
 	static constexpr const char* FOLLOW_SPEED = "follow_speed";
 	static constexpr const char* IS_ACTIVE = "is_active";
 
+	static constexpr const char* BUTTON_COMPONENT = "ButtonComponent";
+	static constexpr const char* IS_HOVERED = "is_hovered";
+	static constexpr const char* IS_PRESSED = "is_pressed";
+	static constexpr const char* IS_RELEASED = "is_released";
+	static constexpr const char* ACTION = "action";
+
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";
 
@@ -132,7 +140,7 @@ namespace Framework::Serialization {
 	static constexpr const char* PLATFORM_TAG = "PlatformTag";
 	static constexpr const char* BACKGROUND_TAG = "BackgroundTag";
 	static constexpr const char* ENEMY_TAG = "EnemyTag";
+	static constexpr const char* GUI_TAG = "GUITag";
 	static constexpr const char* PERSISTENT_TAG = "PersistentTag";
 	static constexpr const char* ACTIVE_TAG = "ActiveTag";
-	static constexpr const char* BIRD_AI_TAG = "BirdAITag"; 
 }
