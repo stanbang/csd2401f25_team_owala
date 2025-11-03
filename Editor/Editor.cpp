@@ -1962,9 +1962,9 @@ namespace Editor {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				if (showGrid_) {
+			/*	if (showGrid_) {
 					DrawEditorGrid(drawList);
-				}
+				}*/
 
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
