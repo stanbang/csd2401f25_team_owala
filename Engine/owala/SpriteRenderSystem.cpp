@@ -1,5 +1,6 @@
 #include "SpriteRenderSystem.h"
 #include "EntityManager.h"
+#include "SceneManager.h"
 #include "Matrix3x3.h"
 #include <cmath>
 #include <random>
@@ -230,6 +231,11 @@ namespace Framework {
         }
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
+            if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
+			const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
+
+			if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;
+
             const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
             if (!entityMgr.HasComponent(e, PositionType)) continue;
 
