@@ -7,7 +7,7 @@
 *	   Lur Pei Hao Stanley (50%)
 *
 *
-* \brief	Declares the Editor system for in-game level editing and 
+* \brief	Declares the Editor system for in-game level editing and
 			debugging using ImGUI.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
@@ -41,7 +41,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
-	
+
 }
 
 namespace Editor {
@@ -71,8 +71,8 @@ namespace Editor {
 		PrefabType type = PrefabType::None;
 		Framework::Texture textureID = 0; // OpenGL Texture ID
 		// tex coords(uses dearimgui vec struct)
-		ImVec2 uv0{ 0.0f, 0.0f }; 
-		ImVec2 uv1{ 1.0f, 1.0f }; 
+		ImVec2 uv0{ 0.0f, 0.0f };
+		ImVec2 uv1{ 1.0f, 1.0f };
 	};
 
 	class Editor : public Framework::ISystem {
@@ -114,7 +114,7 @@ namespace Editor {
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
 		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
-		
+
 
 		//Drag and Drop State
 		bool isDraggingPrefab_ = false;
@@ -144,8 +144,22 @@ namespace Editor {
 		std::vector<std::filesystem::path> droppedFilePaths_;
 		static void DropCallback(GLFWwindow* window, int count, const char* paths[]);
 
+		// --- Camera State Management ---
+		struct CameraState {
+			Vector2D position{ 0.0f, 0.0f };
+			float zoom = 1.0f;
+		};
+
+		CameraState defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f };
+		CameraState currentEditorCameraState_;
+		bool editorCameraNeedsReset_ = false;
+
+		void ResetEditorCamera();
+		void SaveEditorCameraState();
+		void RestoreEditorCameraState();
+
 		// --- Private Helper Functions ---
-		
+
 		// Internal Checkers
 		void SanityCheck();
 
@@ -193,7 +207,7 @@ namespace Editor {
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
 		void ShowToolbar();
-		void ShowAIDebugPanel(); 
+		void ShowAIDebugPanel();
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
 		Vector2D SnapToGrid(const Vector2D& worldPos);
@@ -208,12 +222,12 @@ namespace Editor {
 		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
 
 		/**
-	    * @brief Loads textures and prepares palette items.
+		* @brief Loads textures and prepares palette items.
 		*/
 		void PreparePaletteItems();
 
-		
-		
+
+
 		//ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
 		// Caches the game viewport's position and size

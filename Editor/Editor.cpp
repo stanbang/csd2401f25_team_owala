@@ -98,12 +98,65 @@ namespace {
 }
 
 namespace Editor {
-	// --- Constructor ---
-	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm) : engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
-		cameraSystem_(gameManager_->GetSystems().camera_), // for tile editor to work with camera
-		graphicsSystem_(gameManager_->GetSystems().gfx_) { // for drag drop and placing of prefabs
+	// Add these member variable definitions at the top of your Editor class implementation
+	// (or wherever you have other member variable initializations)
 
+	// In the constructor, initialize the camera state:
+	Editor::Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm)
+		: engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
+		cameraSystem_(gameManager_->GetSystems().camera_),
+		graphicsSystem_(gameManager_->GetSystems().gfx_),
+		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
+		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
+		editorCameraNeedsReset_(false) {
 	};
+
+	// Add these implementations to your Editor.cpp file
+
+	void Editor::ResetEditorCamera() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.position = defaultEditorCameraState_.position;
+			cam.zoom = defaultEditorCameraState_.zoom;
+			cameraSystem_->SetZoom(editorCamera_, defaultEditorCameraState_.zoom);
+
+			// Update current state
+			currentEditorCameraState_ = defaultEditorCameraState_;
+			editorCameraNeedsReset_ = false;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Editor camera reset to position ("
+				<< cam.position.x << ", " << cam.position.y
+				<< ") zoom: " << cam.zoom << std::endl;
+		}
+	}
+
+	void Editor::SaveEditorCameraState() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			currentEditorCameraState_.position = cam.position;
+			currentEditorCameraState_.zoom = cam.zoom;
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Saved editor camera state: position ("
+				<< currentEditorCameraState_.position.x << ", " << currentEditorCameraState_.position.y
+				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;
+		}
+	}
+
+	void Editor::RestoreEditorCameraState() {
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.position = currentEditorCameraState_.position;
+			cam.zoom = currentEditorCameraState_.zoom;
+			cameraSystem_->SetZoom(editorCamera_, currentEditorCameraState_.zoom);
+
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Restored editor camera state: position ("
+				<< cam.position.x << ", " << cam.position.y
+				<< ") zoom: " << cam.zoom << std::endl;
+		}
+	}
 
 	void Editor::SanityCheck() {
 		using namespace Framework;
@@ -917,9 +970,9 @@ void Editor::HandleDragDropPlacement() {
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
-			
+
 			SaveAndLoadSection();
-			
+
 			// --- Entity Factory ---
 			ImGui::Separator();
 
@@ -937,6 +990,12 @@ void Editor::HandleDragDropPlacement() {
 
 			// --- Entity Inspector ---
 			ImGui::Separator();
+
+			// Add reset camera button
+			if (ImGui::Button("Reset Editor Camera")) {
+				ResetEditorCamera();
+			}
+			ImGui::SameLine();
 
 			// Button to activate the tile editor mode
 			if (ImGui::Button("Open Tilemap Editor")) {
@@ -1039,9 +1098,8 @@ void Editor::HandleDragDropPlacement() {
 				<< bird << ")";
 		}
 		// --- END OF NEW CODE ---
-		
-		ImGui::End(); // End "Level Editor" window
 
+		ImGui::End(); // End "Level Editor" window
 	}
 
 	void Editor::SaveAndLoadSection() {
@@ -1161,7 +1219,14 @@ void Editor::HandleDragDropPlacement() {
 				wasTileEditorOpen = true;
 
 				if (engine_ && !engine_->IsEditorMode()) {
+					// Save current state before switching
+					SaveEditorCameraState();
+
 					engine_->SetMode(Framework::EngineMode::Editor);
+
+					// Reset editor camera to known state when entering tile editor
+					ResetEditorCamera();
+
 					Framework::Logger::Get().Info(DebugType::Editor)
 						<< "[Editor] Switched to EDITOR mode (Tilemap open)" << std::endl;
 				}
@@ -1236,14 +1301,16 @@ void Editor::HandleDragDropPlacement() {
 		ImGui::End();
 
 		// --- EXIT TILE EDITOR (close event) ---
-		if (!isTileEditorActive_) {
-			if (wasTileEditorOpen) {
-				wasTileEditorOpen = false;
-				if (engine_ && engine_->IsEditorMode()) {
-					engine_->SetMode(Framework::EngineMode::Play);
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-				}
+		if (!isTileEditorActive_ && wasTileEditorOpen) {
+			wasTileEditorOpen = false;
+
+			if (engine_ && engine_->IsEditorMode()) {
+				// Save current editor camera state before switching back
+				SaveEditorCameraState();
+
+				engine_->SetMode(Framework::EngineMode::Play);
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
 			}
 
 			showGrid_ = false;
@@ -1797,7 +1864,6 @@ void Editor::HandleDragDropPlacement() {
 			mousePos.y >= gameViewportPos_.y &&
 			mousePos.y <= gameViewportPos_.y + gameViewportSize_.y;
 	}
-
 	void Editor::ShowGameViewport() {
 		using namespace Framework;
 
@@ -1812,6 +1878,9 @@ void Editor::HandleDragDropPlacement() {
 
 			if (gfx && spriteRenderer_ && camSystem) {
 
+				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
+				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+
 				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
@@ -1820,23 +1889,32 @@ void Editor::HandleDragDropPlacement() {
 				// === STEP 2: TEMPORARILY SWITCH TO EDITOR CAMERA ===
 				Entity prevCamera = camSystem->GetActiveCamera();
 
-				// If in Editor mode and editor camera is valid, use it
+				// Save current editor camera state before any rendering
+				if (editorCamera_ != 0 && engine_->IsEditorMode()) {
+					SaveEditorCameraState();
+				}
+
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// === STEP 3: RENDER SPRITES WITH CURRENT ACTIVE CAMERA ===
+				// === STEP 3: RENDER SPRITES ===
 				spriteRenderer_->Update();
 
 				// === STEP 4: RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
 					camSystem->SetActiveCamera(prevCamera);
+
+					// Ensure editor camera state is preserved
+					if (prevCamera == editorCamera_ && editorCamera_ != 0) {
+						RestoreEditorCameraState();
+					}
 				}
 
 				// === STEP 5: UNBIND FRAMEBUFFER ===
 				gfx->UnbindGameFramebuffer();
 
-				// === STEP 6: DRAW GAME TEXTURE INTO IMGUI WINDOW ===
+				// === STEP 6: DRAW GAME TEXTURE ===
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(),
 					viewportPanelSize,
 					ImVec2(0, 1), ImVec2(1, 0));
@@ -1849,20 +1927,16 @@ void Editor::HandleDragDropPlacement() {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// --- Draw Grid ---
 				if (showGrid_) {
 					DrawEditorGrid(drawList);
 				}
 
-				// --- Draw Prefab Preview (when dragging) ---
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
 				}
 
-				// --- Draw AI Debug Gizmos ---
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 				if (aiSystem && camSystem && aiSystem->debugVisualization) {
-					// Use whichever camera is active (editor camera during edit mode)
 					Entity activeCam = engine_->IsEditorMode() && editorCamera_ != 0
 						? editorCamera_
 						: camSystem->GetActiveCamera();
@@ -1876,6 +1950,7 @@ void Editor::HandleDragDropPlacement() {
 
 		ImGui::End();
 	}
+
 
 
 #pragma endregion
