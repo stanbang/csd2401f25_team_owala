@@ -35,15 +35,15 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.4,
-                        "halfSizeY": 0.2
+                        "halfSizeX": 0.10000000149011612,
+                        "halfSizeY": 0.0949999988079071
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.1,
+                        "halfSizeX": 0.10000000149011612,
                         "halfSizeY": 0.1
                     }
                 },
@@ -94,15 +94,15 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.4,
-                        "halfSizeY": 0.2
+                        "halfSizeX": 0.09000000357627869,
+                        "halfSizeY": 0.10000000149011612
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.1,
+                        "halfSizeX": 0.09000000357627869,
                         "halfSizeY": 0.1
                     }
                 },
@@ -153,15 +153,15 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.2,
-                        "halfSizeY": 0.4
+                        "halfSizeX": 0.10999999940395357,
+                        "halfSizeY": 0.10000000149011612
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.1,
+                        "halfSizeX": 0.10999999940395357,
                         "halfSizeY": 0.1
                     }
                 },
@@ -212,8 +212,8 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.4,
-                        "halfSizeY": 0.2
+                        "halfSizeX": 0.10000000149011612,
+                        "halfSizeY": 0.10000000149011612
                     }
                 },
                 {
@@ -329,16 +329,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.20000000298023224,
-                        "halfSizeY": 0.05000000074505806
+                        "halfSizeX": 0.03999999910593033,
+                        "halfSizeY": 0.2199999988079071
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "SB_TrapPlatform_Horizontal.png",
-                        "halfSizeX": 0.1,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 0.07999999821186066,
+                        "halfSizeY": 0.2300000041723251
                     }
                 },
                 {
@@ -394,7 +394,7 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.14000000059604645,
+                        "halfSizeX": 0.10000000149011612,
                         "halfSizeY": 0.1
                     }
                 },
@@ -402,7 +402,7 @@
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "SB_TrapPlatform_Vertical.png",
-                        "halfSizeX": 0.1,
+                        "halfSizeX": 0.119999997317791,
                         "halfSizeY": 0.1
                     }
                 },

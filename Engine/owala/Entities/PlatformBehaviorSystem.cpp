@@ -160,6 +160,12 @@ namespace Framework {
                 newHalfSize.x *= scalingComp.currentScaleX;
                 entityMgr.GetComponent<AABBCollider>(entity).HalfSize = newHalfSize;
             }
+            // Update texture size to match current scale
+            if (entityMgr.HasComponent(entity, TextureComponentType)) {
+                TextureComponent& texComp = entityMgr.GetComponent<TextureComponent>(entity);
+                texComp.HalfSize.x = scalingComp.baseHalfSize.x * scalingComp.currentScaleX;
+                texComp.HalfSize.y = scalingComp.baseHalfSize.y * scalingComp.currentScaleY;
+            }
 
             // Update transformation matrix for rendering
             if (entityMgr.HasComponent(entity, PositionType)) {
