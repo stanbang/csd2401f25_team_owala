@@ -28,6 +28,19 @@
 namespace Framework {
     void PlayerSystem::Initialize() {
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight);
+		// Subscribe to ButtonClickedEvent for resetting player position
+		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
+            if (event.action == ButtonAction::RESETPLAYERPOS) {
+                EntityManager entityMgr(*entityStorage_);
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+                    if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, SpawnPointType)) {
+                        Position& pos = entityMgr.GetComponent<Position>(entity);
+                        SpawnPoint& spawn = entityMgr.GetComponent<SpawnPoint>(entity);
+                        pos.Pos = spawn.Pos; // Reset player position to spawn point
+                    }
+                }
+            }
+			});
     }
 
 	void PlayerSystem::Update() {
