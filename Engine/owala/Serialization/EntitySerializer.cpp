@@ -8,12 +8,12 @@
 namespace {
 	using namespace Framework;
 
-	static void WriteVector2D(rapidjson::Value& parent, const char* name, const Vector2D& vec, rapidjson::Document::AllocatorType& alloc) {
-		rapidjson::Value obj(rapidjson::kObjectType);
-		obj.AddMember("x", vec.x, alloc);
-		obj.AddMember("y", vec.y, alloc);
-		parent.AddMember(rapidjson::StringRef(name), obj, alloc);
-	}
+	//static void WriteVector2D(rapidjson::Value& parent, const char* name, const Vector2D& vec, rapidjson::Document::AllocatorType& alloc) {
+	//	rapidjson::Value obj(rapidjson::kObjectType);
+	//	obj.AddMember("x", vec.x, alloc);
+	//	obj.AddMember("y", vec.y, alloc);
+	//	parent.AddMember(rapidjson::StringRef(name), obj, alloc);
+	//}
 }
 
 namespace Framework {
@@ -110,6 +110,8 @@ namespace Framework {
 		if (entityMgr.HasComponent(entity, ComponentType::PlayerStateType)) {
 			PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
+			value.AddMember(rapidjson::StringRef(Serialization::PLAYER_IS_FACING_RIGHT), state.isFacingRight, alloc);
+			value.AddMember(rapidjson::StringRef(Serialization::PLAYER_IS_GROUNDED), state.isGrounded, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::PLAYER_STATE_COMPONENT), value, alloc);
 		}
 
@@ -498,7 +500,15 @@ namespace Framework {
 
 		// Deserialize PlayerState Component
 		if (componentLists.HasMember(Serialization::PLAYER_STATE_COMPONENT)) {
+			const rapidjson::Value& playerStateData = componentLists[Serialization::PLAYER_STATE_COMPONENT];
+
 			PlayerState playerState;
+			if (playerStateData.HasMember(Serialization::PLAYER_IS_FACING_RIGHT) && playerStateData[Serialization::PLAYER_IS_FACING_RIGHT].IsBool()) {
+				playerState.isFacingRight = playerStateData[Serialization::PLAYER_IS_FACING_RIGHT].GetBool();
+			}
+			if (playerStateData.HasMember(Serialization::PLAYER_IS_GROUNDED) && playerStateData[Serialization::PLAYER_IS_GROUNDED].IsBool()) {
+				playerState.isGrounded = playerStateData[Serialization::PLAYER_IS_GROUNDED].GetBool();
+			}
 			entityMgr.AddComponent<PlayerState>(loadedEntity, playerState);
 		}
 
@@ -926,5 +936,6 @@ namespace Framework {
 		catch (...) {
 			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to deserialize scene data from " << filePath << std::endl;
 		}
+		return false;
 	}
 }

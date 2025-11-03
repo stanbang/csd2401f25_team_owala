@@ -44,6 +44,8 @@ namespace Framework::Serialization {
 	static constexpr const char* HALF_HEIGHT = "half_height";
 
 	static constexpr const char* PLAYER_STATE_COMPONENT = "PlayerState";
+	static constexpr const char* PLAYER_IS_FACING_RIGHT = "is_facing_right";
+	static constexpr const char* PLAYER_IS_GROUNDED = "is_grounded";
 
 	static constexpr const char* ROTATIONFLAG_COMPONENT = "RotationFlag";
 	static constexpr const char* IS_ROTATING = "is_rotating";

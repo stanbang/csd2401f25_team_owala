@@ -308,11 +308,9 @@ namespace Editor {
 			palettePrepared_ = true;
 			Framework::Logger::Get().Info(DebugType::Editor) << "PreparePaletteItems finished. paletteItems_ size: " << paletteItems_.size() << std::endl;
 		}
-		//for IMGUI INPUT
-		ImGuiIO& io = ImGui::GetIO();
 
 		// Determine if ImGui currently "owns" the input
-		bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
+		//bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
 
 		// Tell the InputSystem whether to lock gameplay input
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
@@ -417,7 +415,6 @@ namespace Editor {
 		if (editorCamera_ != 0)
 		{
 			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-			float dt = Framework::Time::DeltaTime(); // or your time delta
 
 			// Move camera with WASD
 			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += 5.0f * dt;
@@ -1061,9 +1058,8 @@ void Editor::HandleDragDropPlacement() {
 		ImGui::SameLine();
 		if (ImGui::Button("Spawn Test Bird")) {
 			// Get the systems we need
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 			SceneManager& sceneMgr = SceneManager::GetInstance();
-			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+			const SceneAsset& currScene = sceneMgr.GetActiveScene();
 
 			//  Create entity
 			Entity bird = entityMgr.CreateEntity();
@@ -1093,7 +1089,7 @@ void Editor::HandleDragDropPlacement() {
 		    /*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
 
 			// Add it to the active scene
-			sceneMgr.AddEntityToScene(currentScene, bird);
+			sceneMgr.AddEntityToScene(currScene, bird);
 
 			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
 				<< bird << ")";
@@ -1357,7 +1353,7 @@ void Editor::HandleDragDropPlacement() {
 
 					std::string name = entityMgr.GetProperties(entity).name;
 					ImGui::PushID(localWidgetID++);
-					bool selected = ((selectedEntityIndex - 1) == entity);
+					bool selected = (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity);
 					if (ImGui::Selectable(name.c_str(), &selected)) {
 						selectedTagIndex = selectedComponentIndex = 0;
 						selectedEntityIndex = entity + 1;
@@ -1398,7 +1394,7 @@ void Editor::HandleDragDropPlacement() {
 						}
 						if (ImGui::MenuItem("Delete")) {
 							entityMgr.DestroyEntity(entity);
-							if ((selectedEntityIndex - 1) == entity) {
+							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 								isEntitySelected_ = false;
 							}
@@ -1921,7 +1917,7 @@ void Editor::HandleDragDropPlacement() {
 				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
 
 				// === STEP 1: PREPARE FRAMEBUFFER ===
-				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
+				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
 				gfx->BindGameFramebuffer();
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
@@ -2114,7 +2110,7 @@ void Editor::HandleDragDropPlacement() {
 
 		// Get the camera's actual aspect ratio and zoom
 		float cameraAspect = cam.aspectRatio;
-		float zoom = cam.zoom;
+		//float zoom = cam.zoom;
 
 		// Grid cell size in world units - use base size without zoom for consistent world positioning
 		const float baseCell = baseGridCellSize_;
