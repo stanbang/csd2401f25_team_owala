@@ -66,8 +66,7 @@ namespace Framework {
 		EnemyTagType,
 		SceneOwnedType,
 		PersistentTagType,
-		ActiveTagType,
-		BirdAITagType,      
+		ActiveTagType,     
 		BirdAIComponentType, 
 		GUITagType,
 		MAX_COMPONENTS

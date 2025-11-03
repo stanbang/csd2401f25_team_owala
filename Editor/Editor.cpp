@@ -1066,16 +1066,16 @@ void Editor::HandleDragDropPlacement() {
 			SceneManager& sceneMgr = SceneManager::GetInstance();
 			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
-			// 1. Create the entity
+			//  Create entity
 			Entity bird = entityMgr.CreateEntity();
 
-			// 2. Set its properties
+			//  Set properties
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
-			// 3. Add components required for the AI
+			// Add components required for the AI
 			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-			entityMgr.AddComponent<BirdAITag>(bird, {});            // Tag for the AISystem
+			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
 
 			RigidBody rb;
@@ -1083,23 +1083,23 @@ void Editor::HandleDragDropPlacement() {
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
-			// 4. Add components to make it visible and selectable
+			//  Add components to make it visible and selectable
 			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
 
-			// Use the "fake player texture" as requested.
-			// This texture is loaded in TestScene.cpp
+
+			// texture is loaded in TestScene.cpp
 			entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 
-			// Add a collider so you can click on it in the editor
-		/*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
+			
+		    /*	entityMgr.AddComponent<AABBCollider>(bird, { halfSize });*/
 
-			// 5. Add it to the active scene
+			// Add it to the active scene
 			sceneMgr.AddEntityToScene(currentScene, bird);
 
 			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
 				<< bird << ")";
 		}
-		// --- END OF NEW CODE ---
+		
 
 		ImGui::End(); // End "Level Editor" window
 	}

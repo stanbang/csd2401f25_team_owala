@@ -322,11 +322,6 @@ namespace Framework {
 			tagsList.PushBack(tagVal, alloc);
 		}
 
-		if (entityMgr.HasComponent(entity, ComponentType::BirdAITagType)) {
-			rapidjson::Value tagVal(Serialization::BIRD_AI_TAG, alloc);
-			tagsList.PushBack(tagVal, alloc);
-		}
-
 		outData.AddMember(rapidjson::StringRef(Serialization::TAGS), tagsList, alloc);
 	}
 
