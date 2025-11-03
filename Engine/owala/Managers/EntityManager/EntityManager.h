@@ -64,6 +64,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, AudioComponent>) ecs.audio[entity] = component;
 			else if constexpr (std::is_same_v<T, AnimationComponent>) ecs.animatedTex[entity] = component;
 			else if constexpr (std::is_same_v<T, TextComponent>) ecs.text[entity] = component;
+			else if constexpr (std::is_same_v<T, Button>) ecs.button[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
 			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
 			else if constexpr (std::is_same_v<T, BirdAIComponent>) ecs.birdAIComponent[entity] = component;

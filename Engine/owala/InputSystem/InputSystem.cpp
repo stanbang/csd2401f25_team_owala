@@ -96,7 +96,7 @@ namespace Framework {
         //audio effect 2
         if (KeyPressed(Key::Y)) {
             try {
-                FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect");
+                FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect.ogg");
                 audio->play(sfx, 1.0f, false);
             }
             catch (...) {

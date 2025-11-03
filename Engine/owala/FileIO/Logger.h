@@ -29,6 +29,7 @@ const enum class DebugType {
     WindowsSystem,
     InputSystem,
     PhysicsSystem,
+    AudioSystem,
     SceneManager,
     TransformationSystem,
     PlayerSystem,
@@ -41,7 +42,8 @@ const enum class DebugType {
     Font,
     EntitySeralizer,
     AISystem,
-    LevelResetSystem
+    LevelResetSystem,
+    GUISystem
 };
 
 const std::string DebugTypeLabels[] = {
@@ -49,6 +51,7 @@ const std::string DebugTypeLabels[] = {
     "WindowsSystem",
     "InputSystem",
     "PhysicsSystem",
+	"AudioSystem",
     "SceneManager",
     "TransformationSystem",
     "PlayerSystem",
@@ -61,7 +64,8 @@ const std::string DebugTypeLabels[] = {
     "Font",
     "EntitySeralizer",
     "AISystem",
-    "LevelResetSystem"
+    "LevelResetSystem",
+    "GUISystem"
 };
 
 namespace Framework {

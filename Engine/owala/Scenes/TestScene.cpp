@@ -96,11 +96,13 @@ namespace TestScene {
         rcm_->loadAnimationInfo("Eli_Walk_Spritesheet.png", "Data/AnimationData/playerRunningAnimation.json");
         rcm_->loadAnimationInfo("player_Jump_Anim.png", "Data/AnimationData/playerJumpingAnimation.json");
         rcm_->loadAnimationInfo("Bird_Enemy_SleepIdle_Spritesheet.png", "Data/AnimationData/birdIdleAnimation.json");
+        rcm_->loadAnimationInfo("Eli_Jump_Spritesheet.png", "Data/AnimationData/playerJumpingAnimation.json");
+        rcm_->loadAnimationInfo("Eli_Falling_Spritesheet.png", "Data/AnimationData/playerFallingAnimation.json");
         //rcm_->loadTexture("Platform.png", "Assets/Sprites/Platform.png");
         //rcm_->loadTexture("Env_Level2_PH.png", "Assets/Sprites/Env_Level2_PH.png");
 		//rcm_->loadSound("bgm.wav", "Assets/Audio/bgm.wav", true, true); // Background Music
-        //rcm_->loadFont("Amethysta-Regular.ttf", "Assets/Fonts/Amethysta-Regular.ttf");
-        //rcm_->loadFont("KirangHaerang-Regular.ttf", "Assets/Fonts/KirangHaerang-Regular.ttf");
+        rcm_->loadFont("Amethysta-Regular.ttf", "Assets/Fonts/Amethysta-Regular.ttf");
+        rcm_->loadFont("KirangHaerang-Regular.ttf", "Assets/Fonts/KirangHaerang-Regular.ttf");
         //rcm_->loadSound("jingle.ogg", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
         //rcm_->loadSound("jump.ogg", "Assets/Audio/jump.ogg", false, false);
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs

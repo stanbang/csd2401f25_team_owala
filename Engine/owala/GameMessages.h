@@ -3,6 +3,12 @@
 
 namespace Framework {
 
+	enum class ButtonAction{
+	DEFAULT,
+	PLAYSOUND,
+	RESETPLAYERPOS
+	};
+
 	struct PlayerJumpedEvent{
 		Entity player;
 		float damage; //just for example, currently not used yet
@@ -11,6 +17,7 @@ namespace Framework {
 
 	struct ButtonClickedEvent {
 		Entity button;
+		ButtonAction action;
 	};
 
 

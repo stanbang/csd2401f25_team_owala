@@ -19,6 +19,8 @@
 #include "ISystem.h"
 #include "ResourceManager.h"
 #include "EntityStorage.h"
+#include "GameMessages.h"
+#include "MessageBus.h"
 
 #include <fmod.hpp>
 #include <fmod_errors.h>
@@ -143,6 +145,13 @@ namespace Framework {
          * \throws std::runtime_error if \p r indicates failure.
          */
         static void check(FMOD_RESULT r, const char* where);
+
+        /**
+         * \brief Handle button click events
+         * 
+         * \param event
+         */
+        void OnButtonClicked(const ButtonClickedEvent& event);
 
     private:
         /// \name FMOD Core Pointers

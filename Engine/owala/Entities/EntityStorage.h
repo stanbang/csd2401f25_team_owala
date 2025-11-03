@@ -69,6 +69,7 @@ namespace Framework {
 		ActiveTagType,     
 		BirdAIComponentType, 
 		SkeletonAIComponentType, 
+		GUITagType,
 		MAX_COMPONENTS
 	};
 
@@ -108,7 +109,8 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<EnemyTag> { static constexpr ComponentType value = EnemyTagType; };
 	template <> struct ComponentTypeTrait<SceneOwned> { static constexpr ComponentType value = SceneOwnedType; };
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
-	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };           
+	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };     
+	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
 	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; 
 

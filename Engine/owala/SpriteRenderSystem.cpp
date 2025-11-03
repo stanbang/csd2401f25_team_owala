@@ -59,10 +59,16 @@ namespace Framework {
 
             try {
                 const Vector2D& worldPos = entityMgr.GetComponent<Position>(entity).Pos;
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
                 // World-space half size
                 Vector2D halfSize;
-                if (entityMgr.HasComponent(entity, AABBColliderType)) {
+                // Check for texture half size first
+                if (entityMgr.HasComponent(entity, TextureComponentType)) {
+                    halfSize = sprite.HalfSize;
+                }
+                // If no texture component, fallback and check for collider half size
+                else if (entityMgr.HasComponent(entity, AABBColliderType)) {
                     halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
                 }
                 else if (entityMgr.HasComponent(entity, BackgroundTagType)) {
@@ -73,7 +79,7 @@ namespace Framework {
                 }
 
                 // === CULLING IN WORLD SPACE ===
-                if (activeCamera != 0 && cameraSystem_) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     if (worldPos.x + halfSize.x < left || worldPos.x - halfSize.x > right ||
                         worldPos.y + halfSize.y < bottom || worldPos.y - halfSize.y > top) {
                         continue;
@@ -96,6 +102,9 @@ namespace Framework {
                 if (entityMgr.HasComponent(entity, BackgroundTagType)) {
                     renderOrder = -100;
                 }
+				else if (isUIElement) {
+					renderOrder = 200; // UI elements render on top
+				}
                 // Players and important objects get higher priority
                 else if (entityMgr.HasComponent(entity, PlayerTagType)) {
                     renderOrder = 100;
@@ -113,7 +122,7 @@ namespace Framework {
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
-                if (activeCamera != 0 && cameraSystem_) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     // Position to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
@@ -174,9 +183,10 @@ namespace Framework {
             try {
                 Font& font = resources_.get<Font>(component.fontKey);
                 const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
                 Vector2D screenTextPos = worldTextPos;
-                if (activeCamera != 0 && cameraSystem_) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
                 }
 
@@ -187,10 +197,18 @@ namespace Framework {
                 Vector2D current_pos = screenTextPos;
                 const float line_height_ndc = 0.08f;
 
-                for (const auto& line : lines) {
-                    gfx_.drawText(font, line, current_pos, component.scale, component.color);
-                    current_pos.y -= line_height_ndc;
+                float zoom = 1.0f;
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+                    zoom = cam.zoom;
                 }
+
+                for (const auto& line : lines) {
+                    // Divide by zoom so it matches sprite scaling direction
+                    gfx_.drawText(font, line, current_pos, component.scale / zoom, component.color);
+                    current_pos.y -= line_height_ndc / zoom;
+                }
+
             }
 
 			catch (const std::exception& e) {
