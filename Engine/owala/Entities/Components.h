@@ -158,7 +158,7 @@ namespace Framework{
 	struct PlatformTag {};
 	struct BackgroundTag {};
 	struct EnemyTag {};
-	struct BirdAITag {}; 
+	
 
 	struct RotationFlag {
 		

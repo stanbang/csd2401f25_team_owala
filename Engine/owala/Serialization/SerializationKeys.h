@@ -134,5 +134,4 @@ namespace Framework::Serialization {
 	static constexpr const char* ENEMY_TAG = "EnemyTag";
 	static constexpr const char* PERSISTENT_TAG = "PersistentTag";
 	static constexpr const char* ACTIVE_TAG = "ActiveTag";
-	static constexpr const char* BIRD_AI_TAG = "BirdAITag"; 
 }
