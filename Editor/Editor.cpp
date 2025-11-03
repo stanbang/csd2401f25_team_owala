@@ -2072,63 +2072,77 @@ void Editor::HandleDragDropPlacement() {
 
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
-		const float zoom = cam.zoom;
+
+		// Get the camera's actual aspect ratio and zoom
+		float cameraAspect = cam.aspectRatio;
+		float zoom = cam.zoom;
 
 		// Grid cell size in world units
-		const float baseCell = baseGridCellSize_; // e.g. 1.0f or whatever your tile unit is
-		const float cell = baseCell; // keep grid world-locked; not multiplied by zoom
+		const float baseCell = baseGridCellSize_;
+		const float cellX = baseCell / cameraAspect;
+		const float cellY = baseCell;
 
 		// Compute visible region in world space
-		float halfW = cam.size.x * 0.5f;
-		float halfH = cam.size.y * 0.5f;
+		float halfW = (cam.size.x * 0.5f) / zoom;
+		float halfH = (cam.size.y * 0.5f) / zoom;
 		float left = camPos.x - halfW;
 		float right = camPos.x + halfW;
 		float bottom = camPos.y - halfH;
 		float top = camPos.y + halfH;
 
-		// Offset so grid scrolls smoothly when panning
-		float offsetX = std::fmod(camPos.x, cell);
-		float offsetY = std::fmod(camPos.y, cell);
+		// Calculate grid-aligned starting positions
+		const float baseCellX = baseCell / cameraAspect;
+		const float baseCellY = baseCell;
+
+		// Find the nearest grid line to the left/bottom of the visible area
+		float startX = std::floor(left / baseCellX) * baseCellX;
+		float startY = std::floor(bottom / baseCellY) * baseCellY;
+
+		// Calculate how many grid lines we need to draw
+		int numVerticalLines = static_cast<int>((right - startX) / baseCellX) + 2;
+		int numHorizontalLines = static_cast<int>((top - startY) / baseCellY) + 2;
 
 		const ImU32 lineColor = IM_COL32(150, 150, 150, 90);
 		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
 		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
-		// Vertical lines
-		for (float x = left - offsetX - cell; x <= right + cell; x += cell)
-		{
-			Vector2D worldA = { x, bottom - cell };
-			Vector2D worldB = { x, top + cell };
+		// Vertical lines - draw from calculated start position
+		for (int i = 0; i < numVerticalLines; ++i) {
+			float x = startX + (i * baseCellX);
+			Vector2D worldA = { x, bottom };
+			Vector2D worldB = { x, top };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// Horizontal lines
-		for (float y = bottom - offsetY - cell; y <= top + cell; y += cell)
-		{
-			Vector2D worldA = { left - cell, y };
-			Vector2D worldB = { right + cell, y };
+		// Horizontal lines - draw from calculated start position
+		for (int i = 0; i < numHorizontalLines; ++i) {
+			float y = startY + (i * baseCellY);
+			Vector2D worldA = { left, y };
+			Vector2D worldB = { right, y };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// World axes
-		Vector2D axA = { 0.0f, bottom - cell };
-		Vector2D axB = { 0.0f, top + cell };
-		Vector2D ayA = { left - cell, 0.0f };
-		Vector2D ayB = { right + cell, 0.0f };
+		// World axes - draw at actual world origin (0,0)
+		Vector2D origin = { 0.0f, 0.0f };
+		Vector2D xAxisEnd = { std::min(halfW, 5.0f), 0.0f }; // Limit axis length
+		Vector2D yAxisEnd = { 0.0f, std::min(halfH, 5.0f) }; // Limit axis length
 
-		ImVec2 xA = WorldToImGuiScreen(axA);
-		ImVec2 xB = WorldToImGuiScreen(axB);
-		ImVec2 yA = WorldToImGuiScreen(ayA);
-		ImVec2 yB = WorldToImGuiScreen(ayB);
+		ImVec2 originScreen = WorldToImGuiScreen(origin);
+		ImVec2 xAxisScreen = WorldToImGuiScreen(xAxisEnd);
+		ImVec2 yAxisScreen = WorldToImGuiScreen(yAxisEnd);
 
-		drawList->AddLine(xA, xB, axisXColor, 2.0f);
-		drawList->AddLine(yA, yB, axisYColor, 2.0f);
+		// Only draw axes if they're within the visible area
+		if (originScreen.x >= gameViewportPos_.x && originScreen.x <= gameViewportPos_.x + gameViewportSize_.x) {
+			drawList->AddLine(originScreen, xAxisScreen, axisXColor, 2.0f);
+		}
+		if (originScreen.y >= gameViewportPos_.y && originScreen.y <= gameViewportPos_.y + gameViewportSize_.y) {
+			drawList->AddLine(originScreen, yAxisScreen, axisYColor, 2.0f);
+		}
 	}
-
 
 
 
