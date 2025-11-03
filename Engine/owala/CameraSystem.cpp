@@ -18,7 +18,7 @@ namespace Framework {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
 
             // Keep square coordinates — no aspect ratio scaling
-            camera.size.x = 2.0f * camera.zoom;
+            camera.size.x = 2.0f * camera.zoom * camera.aspectRatio;
             camera.size.y = 2.0f * camera.zoom;
 
             if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, PositionType)) {
@@ -36,28 +36,37 @@ namespace Framework {
         }
     }
 
-    Vector2D CameraSystem::WorldToScreen(const Vector2D& worldPos, Entity cameraEntity) {
+    Vector2D CameraSystem::WorldToScreen(const Vector2D& worldPos, Entity cameraEntity)
+    {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D screenPos;
 
-        // Only transform position, don't affect size
-        /*screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f * camera.zoom);
-        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f * camera.zoom);*/
+        // normalize using both zoom and aspect ratio properly
+        float halfW = camera.zoom * camera.aspectRatio;
+        float halfH = camera.zoom;
 
-        screenPos.x = (worldPos.x - camera.position.x) / (camera.size.x * 0.5f);
-        screenPos.y = (worldPos.y - camera.position.y) / (camera.size.y * 0.5f);
+        screenPos.x = (worldPos.x - camera.position.x) / halfW;
+        screenPos.y = (worldPos.y - camera.position.y) / halfH;
 
         return screenPos;
     }
 
 
-    Vector2D CameraSystem::ScreenToWorld(const Vector2D& screenPos, Entity cameraEntity) {
+
+    Vector2D CameraSystem::ScreenToWorld(const Vector2D& screenPos, Entity cameraEntity)
+    {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D worldPos;
-        worldPos.x = camera.position.x + (screenPos.x * camera.size.x * 0.5f);
-        worldPos.y = camera.position.y + (screenPos.y * camera.size.y * 0.5f);
+
+        float halfW = camera.zoom * camera.aspectRatio;
+        float halfH = camera.zoom;
+
+        worldPos.x = camera.position.x + screenPos.x * halfW;
+        worldPos.y = camera.position.y + screenPos.y * halfH;
+
         return worldPos;
     }
+
 
     Entity CameraSystem::GetActiveCamera() const {
         return activeCamera_;
