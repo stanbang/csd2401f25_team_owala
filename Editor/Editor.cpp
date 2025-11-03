@@ -698,16 +698,19 @@ namespace Editor {
 				return;	
 			}
 
-			Vector2D texSize = entityMgr.GetComponent<Framework::AABBCollider>(newEntity).HalfSize;
-
-			std::string textureKey = dragDropPayload_.name;
-			if (!textureKey.empty()) {
-				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, texSize });
-				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+			if (entityMgr.HasComponent(newEntity, TextureComponentType)) {
+				TextureComponent textComp = entityMgr.GetComponent<TextureComponent>(newEntity);
+				if (textComp.textureKey.empty()) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Empty texture key assigned for placed prefab: " << dragDropPayload_.name << std::endl;
+				}
+				else {
+					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+				}
 			}
 			else {
 				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "No texture assigned for placed prefab: " << dragDropPayload_.name << std::endl;
+					<< "No texture component added for placed prefab: " << dragDropPayload_.name << std::endl;
 			}
 		}
 
@@ -1976,7 +1979,7 @@ namespace Editor {
 			ImGui::InputFloat("Fall Speed", &trapComp.fallSpeed, 0.1f, 1.f, "%.2f");
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat2("Original Position", &trapComp.originalPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputFloat2("Original Position", &trapComp.originalPosition.x, "%.2f");
 			ImGui::InputFloat("Current Fall Distance", &trapComp.currentFallDistance, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
 			break;

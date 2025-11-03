@@ -195,8 +195,11 @@ namespace Framework {
         }
         else if (compData.type == "TextureComponent") {
             std::string texID = "";
+            Vector2D halfSize{};
             if (data.HasMember("textureID")) texID = data["textureID"].GetString();
-            entityMgr.AddComponent(entity, TextureComponent{ texID });
+            if (data.HasMember("halfSizeX")) halfSize.x = data["halfSizeX"].GetFloat();
+            if (data.HasMember("halfSizeY")) halfSize.y = data["halfSizeY"].GetFloat();
+            entityMgr.AddComponent(entity, TextureComponent{ texID, halfSize } );
         }
         else if (compData.type == "RotationFlag") {
             entityMgr.AddComponent(entity, RotationFlag{});
