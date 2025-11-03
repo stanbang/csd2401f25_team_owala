@@ -2077,50 +2077,35 @@ void Editor::HandleDragDropPlacement() {
 		float cameraAspect = cam.aspectRatio;
 		float zoom = cam.zoom;
 
-		// Grid cell size in world units
+		// Grid cell size in world units - use base size without zoom for consistent world positioning
 		const float baseCell = baseGridCellSize_;
-		const float cellX = baseCell / cameraAspect;
-		const float cellY = baseCell;
+		const float cellX = baseCell / cameraAspect;  // Aspect adjusted
+		const float cellY = baseCell;                 // Base size
 
-		// Compute visible region in world space
-		float halfW = (cam.size.x * 0.5f) / zoom;
-		float halfH = (cam.size.y * 0.5f) / zoom;
-		float left = camPos.x - halfW;
-		float right = camPos.x + halfW;
-		float bottom = camPos.y - halfH;
-		float top = camPos.y + halfH;
-
-		// Calculate grid-aligned starting positions
-		const float baseCellX = baseCell / cameraAspect;
-		const float baseCellY = baseCell;
-
-		// Find the nearest grid line to the left/bottom of the visible area
-		float startX = std::floor(left / baseCellX) * baseCellX;
-		float startY = std::floor(bottom / baseCellY) * baseCellY;
-
-		// Calculate how many grid lines we need to draw
-		int numVerticalLines = static_cast<int>((right - startX) / baseCellX) + 2;
-		int numHorizontalLines = static_cast<int>((top - startY) / baseCellY) + 2;
+		// Define the entire grid bounds (covering a large area of the world)
+		// You can adjust these values to make the grid larger or smaller
+		const float gridMinX = -100.0f;  // Minimum X world coordinate
+		const float gridMaxX = 100.0f;   // Maximum X world coordinate  
+		const float gridMinY = -100.0f;  // Minimum Y world coordinate
+		const float gridMaxY = 100.0f;   // Maximum Y world coordinate
 
 		const ImU32 lineColor = IM_COL32(150, 150, 150, 90);
 		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
 		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
-		// Vertical lines - draw from calculated start position
-		for (int i = 0; i < numVerticalLines; ++i) {
-			float x = startX + (i * baseCellX);
-			Vector2D worldA = { x, bottom };
-			Vector2D worldB = { x, top };
+		// Vertical lines - draw the entire grid
+		for (float x = gridMinX; x <= gridMaxX; x += cellX) {
+			Vector2D worldA = { x, gridMinY };
+			Vector2D worldB = { x, gridMaxY };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// Horizontal lines - draw from calculated start position
-		for (int i = 0; i < numHorizontalLines; ++i) {
-			float y = startY + (i * baseCellY);
-			Vector2D worldA = { left, y };
-			Vector2D worldB = { right, y };
+		// Horizontal lines - draw the entire grid
+		for (float y = gridMinY; y <= gridMaxY; y += cellY) {
+			Vector2D worldA = { gridMinX, y };
+			Vector2D worldB = { gridMaxX, y };
 			ImVec2 a = WorldToImGuiScreen(worldA);
 			ImVec2 b = WorldToImGuiScreen(worldB);
 			drawList->AddLine(a, b, lineColor);
@@ -2128,42 +2113,40 @@ void Editor::HandleDragDropPlacement() {
 
 		// World axes - draw at actual world origin (0,0)
 		Vector2D origin = { 0.0f, 0.0f };
-		Vector2D xAxisEnd = { std::min(halfW, 5.0f), 0.0f }; // Limit axis length
-		Vector2D yAxisEnd = { 0.0f, std::min(halfH, 5.0f) }; // Limit axis length
+		// Make axes extend to the edge of the defined grid area
+		Vector2D xAxisEnd = { gridMaxX, 0.0f };
+		Vector2D yAxisEnd = { 0.0f, gridMaxY };
 
 		ImVec2 originScreen = WorldToImGuiScreen(origin);
 		ImVec2 xAxisScreen = WorldToImGuiScreen(xAxisEnd);
 		ImVec2 yAxisScreen = WorldToImGuiScreen(yAxisEnd);
 
-		// Only draw axes if they're within the visible area
-		if (originScreen.x >= gameViewportPos_.x && originScreen.x <= gameViewportPos_.x + gameViewportSize_.x) {
-			drawList->AddLine(originScreen, xAxisScreen, axisXColor, 2.0f);
-		}
-		if (originScreen.y >= gameViewportPos_.y && originScreen.y <= gameViewportPos_.y + gameViewportSize_.y) {
-			drawList->AddLine(originScreen, yAxisScreen, axisYColor, 2.0f);
-		}
+		// Always draw axes (no viewport checking)
+		drawList->AddLine(originScreen, xAxisScreen, axisXColor, 2.0f);
+		drawList->AddLine(originScreen, yAxisScreen, axisYColor, 2.0f);
 	}
 
-
-
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
-		// Compute aspect ratio once
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
+		if (!cameraSystem_ || editorCamera_ == 0)
+			return worldPos;
 
-		// Adjust X by aspect so snapping grid matches visual grid squares
-		float adjustedX = worldPos.x * aspect;
-		float adjustedY = worldPos.y;
+		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
-		// Calculate index based on adjusted coords
-		int gridX = static_cast<int>(std::floor(adjustedX / baseGridCellSize_));
-		int gridY = static_cast<int>(std::floor(adjustedY / baseGridCellSize_));
+		// Use the camera's aspect ratio instead of viewport aspect ratio
+		float cameraAspect = cam.aspectRatio;
 
-		// Compute snapped center (still in adjusted space)
-		float snappedX = (static_cast<float>(gridX) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
-		float snappedY = (static_cast<float>(gridY) * baseGridCellSize_) + (baseGridCellSize_ / 2.0f);
+		// Grid cell size in world units (same as DrawEditorGrid)
+		const float baseCell = baseGridCellSize_;
+		const float cellX = baseCell / cameraAspect;
+		const float cellY = baseCell;
 
-		// Convert back to original world space (undo aspect adjustment)
-		snappedX /= aspect;
+		// Calculate index based on world coords
+		int gridX = static_cast<int>(std::floor(worldPos.x / cellX));
+		int gridY = static_cast<int>(std::floor(worldPos.y / cellY));
+
+		// Compute snapped center (tile center position)
+		float snappedX = (static_cast<float>(gridX) * cellX) + (cellX);
+		float snappedY = (static_cast<float>(gridY) * cellY) + (cellY / 2.0f);
 
 		return { snappedX, snappedY };
 	}
