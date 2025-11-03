@@ -58,8 +58,9 @@ namespace Framework {
                 if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
                     vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
 
+                    float jumpVolume = 0.3f;
                     //messageBus
-                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity }); //empty cause currently theres nothign to pass and just for testing
+                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume}); //empty cause currently theres nothign to pass and just for testing
                 }
 
 				// Sets the direction the player is facing based on movement

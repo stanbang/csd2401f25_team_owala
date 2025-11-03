@@ -28,8 +28,8 @@ namespace Framework {
             if (entityMgr.HasComponent(entity, AABBColliderType) &&
                 entityMgr.HasComponent(entity, PositionType)) {
 
-                const auto& pos = entityMgr.GetComponent<Position>(entity).Pos;
-                const auto& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+                const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+                const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
                 float rotation = 0.0f;
                 if (entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -128,8 +128,8 @@ namespace Framework {
         Vector2D startGrid = navGrid.WorldToGrid(startWorld);
         Vector2D endGrid = navGrid.WorldToGrid(endWorld);
 
-        auto startNode = std::make_unique<PathNode>(static_cast<int>(startGrid.x), static_cast<int>(startGrid.y));
-        auto endNode = std::make_unique<PathNode>(static_cast<int>(endGrid.x), static_cast<int>(endGrid.y));
+        std::unique_ptr<Framework::PathNode> startNode = std::make_unique<PathNode>(static_cast<int>(startGrid.x), static_cast<int>(startGrid.y));
+        std::unique_ptr<Framework::PathNode> endNode = std::make_unique<PathNode>(static_cast<int>(endGrid.x), static_cast<int>(endGrid.y));
 
         if (!navGrid.IsWalkable(endNode->x, endNode->y)) {
             return {}; // Can't path to a wall
@@ -156,7 +156,7 @@ namespace Framework {
 
             closedSet.insert({ currentNode->x, currentNode->y });
 
-            for (auto& neighborNodePtr : navGrid.GetNeighbors(currentNode)) {
+            for ( std::vector<std::unique_ptr<Framework::PathNode>>::iterator::value_type& neighborNodePtr : navGrid.GetNeighbors(currentNode)) {
                 if (closedSet.count({ neighborNodePtr->x, neighborNodePtr->y })) {
                     continue;
                 }
@@ -188,7 +188,7 @@ namespace Framework {
                             temp.push_back(openSet.top());
                             openSet.pop();
                         }
-                        for (auto* node : temp) {
+                        for (Framework::PathNode* node : temp) {
                             if (node != neighbor) openSet.push(node);
                         }
                         openSet.push(neighbor);

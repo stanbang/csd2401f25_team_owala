@@ -7,6 +7,8 @@
 #include <vector>     
 #include <map> // For tracking state changes
 
+// Forward declarations - only needed in editor build
+#ifdef BUILD_EDITOR
 struct ImDrawList;
 namespace Editor { 
     class Editor; // forward declaration for editor
@@ -15,6 +17,7 @@ namespace Editor {
 namespace Framework {
     class CameraSystem; // forward declare camera system
 }
+#endif
 
 namespace Framework {
 
@@ -26,15 +29,17 @@ namespace Framework {
         void Update() override;
         void Shutdown() override;
 
-        // Main debug draw call (will be called by the Editor)
+        #ifdef BUILD_EDITOR
+        // Debug drawing - ONLY available in editor build
         void DrawDebug(CameraSystem* cameraSystem, ImDrawList* drawList, Editor::Editor* editor, Entity cameraToUse);
 
-        // Public Toggles for the Editor to access
+        // Public Toggles for the Editor
         bool debugVisualization = true;
         bool showNavigationGrid = false;
         bool showBirdDebug = true;
         bool showPaths = true;
         bool showColliders = true;
+        #endif
 
     private:
         EntityStorage* ecs_;
@@ -62,20 +67,23 @@ namespace Framework {
          */
         void FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos);
 
+       
+         #ifdef BUILD_EDITOR
         // ---- Private debug drawing helpers ---
-        /*void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor);
-        void DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos, ImDrawList* drawList, Editor::Editor* editor);
-        void DrawPath(const std::vector<Vector2D>& path, const Color& color, ImDrawList* drawList, Editor::Editor* editor);
-        void DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color, ImDrawList* drawList, Editor::Editor* editor);
-        void DrawCircle(const Vector2D& center, float radius, const Color& color, ImDrawList* drawList, Editor::Editor* editor, int segments = 32);
-        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor);*/
-
-        void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
-        void DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
-        void DrawPath(const std::vector<Vector2D>& path, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
-        void DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
-        void DrawCircle(const Vector2D& center, float radius, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID, int segments = 32);
-        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+         // Debug drawing helpers - ONLY compiled in editor build
+        void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop,
+            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos,
+            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawPath(const std::vector<Vector2D>& path, const Color& color,
+            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawAABB(const Vector2D& center, const Vector2D& halfSize, const Color& color,
+            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawCircle(const Vector2D& center, float radius, const Color& color,
+            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID, int segments = 32);
+        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color,
+            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        #endif
     };
 
 } // namespace Framework

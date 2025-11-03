@@ -33,7 +33,7 @@ namespace Framework {
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
             try {
                 FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>("jump.ogg");
-                this->play(jumpSound);
+                this->play(jumpSound, e.volume, false);
             }
             catch (...) {
                 std::fprintf(stderr, "[AudioSystem] Missing sound: jump.ogg\n");
@@ -156,24 +156,24 @@ namespace Framework {
     }
 
     bool AudioSystem::play(FMOD::Sound& sound, float volume, bool paused) {
-		(void)volume; //Suppress unused variable warning
         if (!system_) return false;
-
-        /*std::unordered_map<std::string, FMOD::Sound*>::iterator it = sounds_.find(id);
-        if (it == sounds_.end() || !it->second) {
-            std::fprintf(stderr, "[Audio] sound id '%s' not loaded.\n", id.c_str());
-            return false;
-        }*/
 
         FMOD::Channel* ch = nullptr;
         FMOD_RESULT r = system_->playSound(&sound, nullptr, paused, &ch);
         check(r, "System::playSound");
-        /*if (r != FMOD_OK || !ch) return false;
 
+        if (r != FMOD_OK || !ch)
+            return false;
+
+        // ? actually apply the volume now
         ch->setVolume(volume);
-        channels_[id] = ch; // remember last channel for that id (optional)*/
+
+        // Optionally remember the channel (if you need to stop or modify later)
+        // channels_[<some-id>] = ch;
+
         return true;
     }
+
 
     bool AudioSystem::playOneShot(const char* path, float volume) {
         if (!system_ || !path) return false;

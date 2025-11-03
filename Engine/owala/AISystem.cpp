@@ -1,14 +1,19 @@
 #include "AISystem.h"
-#include "EntityManager.h" // Assuming you have this from your other files
+#include "EntityManager.h" 
 #include "EntityStorage.h" // For ComponentType enums
 #include <cmath>           // For std::abs and std::sin
 #include <cstdlib>         // For rand()
 #include <algorithm>       // For std::clamp
-#include "Logger.h"         // NEW: Include Logger
-#include "CameraSystem.h"   // NEW: Include CameraSystem
-#include "Editor.h"         // --- NEW: Include Editor.h for conversion
-#include "imgui.h"          // --- NEW: Include imgui.h for ImDrawList
+#include "Logger.h"         // Includes Logger
+#include "CameraSystem.h"   // Includes CameraSystem
 #include "OwalaTime.h"
+
+// Only include editor/ImGui headers in editor build
+#ifdef BUILD_EDITOR
+#include "Editor.h"
+#include "imgui.h"
+#endif
+
 
 namespace Framework {
 
@@ -55,10 +60,6 @@ namespace Framework {
 
         Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
 
-       /* cameraSystem->SetActiveCamera(mainCamera);
-        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
-        spriteRenderer->SetCameraSystem(cameraSystem);*/
-
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
         if (gridRebuildTimer_ >= gridRebuildInterval_) {
@@ -81,8 +82,8 @@ namespace Framework {
             auto& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
             auto& birdPos = entityMgr.GetComponent<Position>(bird).Pos;
 
-            // --- NEW: Log state transitions ---
-            // We use a map to track each bird's last state
+#ifdef BUILD_EDITOR
+            // Log state transitions - only in editor build
             static std::map<Entity, BirdState> lastStates;
             if (lastStates.find(bird) == lastStates.end()) {
                 lastStates[bird] = ai.state;
@@ -101,8 +102,7 @@ namespace Framework {
                     << "Bird [" << bird << "] State Change: " << stateName << std::endl;
                 lastStates[bird] = ai.state;
             }
-            // --- End new log block ---
-
+#endif
             // --- Main State Machine ---
             switch (ai.state) {
             case BirdState::IDLE:
@@ -170,7 +170,7 @@ namespace Framework {
             return;
         }
 
-        // 2. Recalculate path if needed
+        //  Recalculate path if needed
         ai.pathRecalculateTimer -= Framework::Time::DeltaTime();
         if (ai.pathRecalculateTimer <= 0.0f || ai.currentPath.empty()) {
 
@@ -213,7 +213,7 @@ namespace Framework {
             return;
         }
         // 2. Define the 4 nodes of the "vertical box" above the player
-            //    We'll use hoverRadius for width and height, but you can change this
+        //    We'll use hoverRadius for width and height, but you can change this
         float boxHalfWidth = ai.hoverRadius;
         float boxHalfHeight = ai.hoverRadius; // Makes a square box. Increase this for a taller "vertical" box.
 
@@ -237,7 +237,6 @@ namespace Framework {
         // Check if we've reached the current node
         if (birdPos.Distance(targetNode) < ai.hoverNodeReachedDist) {
 
-            // --- NEW TIMER LOGIC ---
             // If the timer hasn't been set yet, start it.
             // This means the bird has successfully reached its patrol area.
             if (ai.attackTimer <= 0.0f) {
@@ -245,16 +244,13 @@ namespace Framework {
                     << "Bird [" << bird << "] reached patrol area. Starting 3-10 sec attack timer." << std::endl;
                 ai.attackTimer = 10.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f; // 3 to 10 seconds
             }
-
-
-            // --- END NEW LOGIC ---
             // Move to next node
             ai.currentHoverNode = (ai.currentHoverNode + 1) % 4;
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] reached hover node, moving to node " << ai.currentHoverNode << std::endl;
         }
 
-        // Check for attack opportunity
+        // Check for attack 
         ai.attackTimer -= Framework::Time::DeltaTime();
         if (ai.attackTimer <= 0.0f && distToPlayer < ai.attackRadius) {
             Logger::Get().Info(DebugType::AISystem)
@@ -277,7 +273,6 @@ namespace Framework {
         // 2. Check if attack finished (timer up OR close to target)
         if (ai.stateTimer <= 0.0f || birdPos.Distance(ai.attackTargetPosition) < 0.5f) {
 
-            // NEW: Add Log
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] attack finished!" << std::endl;
 
@@ -323,7 +318,6 @@ namespace Framework {
         // Check if we reached the waypoint
         if (birdPos.Distance(targetPoint) < navGrid_.cellSize) {
 
-            // NEW: Add Log
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] reached waypoint. "
                 << (ai.currentPath.size() - 1) << " remaining" << std::endl;
@@ -333,7 +327,10 @@ namespace Framework {
         }
     }
 
-    // --- NEW: IMPLEMENT ALL DEBUG DRAW FUNCTIONS ---
+    // ============================================================================
+   // DEBUG DRAWING - ONLY COMPILED IN EDITOR BUILD
+   // ============================================================================
+#ifdef BUILD_EDITOR
 
     // Helper to convert our Color struct to ImGui's IM_COL32
     inline ImU32 ToImColor(const Color& color) {
@@ -611,6 +608,8 @@ namespace Framework {
         drawList->AddLine(screenEnd, editor->WorldToImGuiScreen(p1_world, cameraID), imColor);
         drawList->AddLine(screenEnd, editor->WorldToImGuiScreen(p2_world, cameraID), imColor);
     }
+
+#endif // BUILD_EDITOR
 
 } // namespace Framework
 

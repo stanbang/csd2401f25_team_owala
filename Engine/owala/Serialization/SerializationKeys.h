@@ -104,6 +104,27 @@ namespace Framework::Serialization {
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";
+
+	// bird AI Keys
+	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
+	static constexpr const char* AI_STATE = "state";
+	static constexpr const char* STATE_TIMER = "state_timer";
+	static constexpr const char* WAKEUP_RADIUS = "wakeup_radius";
+	static constexpr const char* WAKEUP_TIME = "wakeup_time";
+	static constexpr const char* MOVE_SPEED = "move_speed";
+	static constexpr const char* HOVER_RADIUS = "hover_radius";
+	static constexpr const char* HOVER_HEIGHT = "hover_height";
+	static constexpr const char* HOVER_SPEED = "hover_speed";
+	static constexpr const char* HOVER_NODE_REACHED_DIST = "hover_node_reached_dist";
+	static constexpr const char* CURRENT_HOVER_NODE = "current_hover_node";
+	static constexpr const char* ATTACK_RADIUS = "attack_radius";
+	static constexpr const char* ATTACK_SPEED = "attack_speed";
+	static constexpr const char* ATTACK_DURATION = "attack_duration";
+	static constexpr const char* ATTACK_COOLDOWN = "attack_cooldown";
+	static constexpr const char* ATTACK_TIMER = "attack_timer";
+	static constexpr const char* ATTACK_TARGET_POSITION = "attack_target_position";
+	static constexpr const char* PATH_RECALCULATE_INTERVAL = "path_recalculate_interval";
+	static constexpr const char* PATH_RECALCULATE_TIMER = "path_recalculate_timer";
 	
 	/* Tags JSON Labels */
 	static constexpr const char* TAGS = "tags";
@@ -113,4 +134,5 @@ namespace Framework::Serialization {
 	static constexpr const char* ENEMY_TAG = "EnemyTag";
 	static constexpr const char* PERSISTENT_TAG = "PersistentTag";
 	static constexpr const char* ACTIVE_TAG = "ActiveTag";
+	static constexpr const char* BIRD_AI_TAG = "BirdAITag"; 
 }

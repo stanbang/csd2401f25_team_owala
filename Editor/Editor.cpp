@@ -71,6 +71,7 @@ namespace {
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
+		case ComponentType::BirdAIComponentType:			return "BirdAI";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -78,6 +79,8 @@ namespace {
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::BirdAITagType:					return "BirdAITag";
+		
 		default:											return "Unknown";
 		}
 	}
@@ -180,7 +183,6 @@ namespace Editor {
 		tagNames.clear();
 		tagItems.clear();
 		tagTypes.clear();
-		fontKeys.clear();
 
 		componentNames.push_back("");
 		tagNames.push_back("");
@@ -206,12 +208,6 @@ namespace Editor {
 
 		for (const std::string& tagName : tagNames) {
 			tagItems.push_back(tagName.c_str());
-		}
-
-		const auto& fontMap = resourceManager_->getFontMap();
-		fontKeys.reserve(fontMap.size());
-		for (const auto& pair : fontMap) {
-			fontKeys.push_back(pair.first.c_str());
 		}
 
 		// Load all prefabs from the data file when the editor starts
@@ -363,6 +359,37 @@ namespace Editor {
 		//	}
 		//}
 		// === END EDITOR CAMERA CONTROLS ===
+
+		const float dt = Framework::Time::UnscaledDeltaTime();
+
+		if (editorCamera_ != 0)
+		{
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			float dt = Framework::Time::DeltaTime(); // or your time delta
+
+			// Move camera with WASD
+			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += 5.0f * dt;
+			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= 5.0f * dt;
+			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= 5.0f * dt;
+			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += 5.0f * dt;
+
+			// Zoom in/out using Up / Down arrow keys
+			if (input->KeyDown(Framework::InputSystem::Key::Up)) {
+				cam.zoom *= 0.98f; // zoom in
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+			if (input->KeyDown(Framework::InputSystem::Key::Down)) {
+				cam.zoom *= 1.02f; // zoom out
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+
+			// Optional: reset zoom with R
+			if (input->KeyPressed(Framework::InputSystem::Key::R)) {
+				cam.zoom = 1.0f;
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+		}
+
 
 		// --- Handle Editor Logic ---
 		HandleSpawning();
@@ -668,6 +695,8 @@ void Editor::HandleDragDropPlacement() {
 
 		if (entityToErase != 0) {
 			entityMgr.DestroyEntity(entityToErase);
+			selectedEntityIndex = 0;
+			isEntitySelected_ = false;
 		}
 	}
 
@@ -1696,25 +1725,22 @@ void Editor::HandleDragDropPlacement() {
 			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
 				textComp.textToDraw = textBuffer;
 			}
-			// Lock game keyboard input if typing on text input
-			gameManager_->GetSystems().input_->SetKeyboardLocked(ImGui::IsItemActive());
 
 			// Font Selection
+			char fontKeyBuffer[256] = "";
 
-			// Set initial font to first index for new TextComponents, and to its corresponding index if textComponent.fontKey alr exists
-			int selectedFontIndex = 0;
-			if (!textComp.fontKey.empty()) {
-				auto it = std::find(fontKeys.begin(), fontKeys.end(), textComp.fontKey);
-				if (it != fontKeys.end()) {
-					selectedFontIndex = static_cast<int>(std::distance(fontKeys.begin(), it));
-				}
+			// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
+			if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
+				std::strncpy(
+					fontKeyBuffer,
+					textComp.fontKey.c_str(),
+					IM_ARRAYSIZE(fontKeyBuffer) - 1
+				);
+				fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 			}
 
-			textComp.fontKey = fontKeys[selectedFontIndex];
-
-			// Display Dropdown for font selection
-			if (ImGui::Combo("Font", &selectedFontIndex, fontKeys.data(), static_cast<int>(fontKeys.size()))) {
-				textComp.fontKey = fontKeys[selectedFontIndex];
+			if (ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer))) {
+				textComp.fontKey = fontKeyBuffer;
 			}
 
 			// Color Input
@@ -1786,72 +1812,78 @@ void Editor::HandleDragDropPlacement() {
 
 		ImVec2 viewportPanelSize = gameViewportSize_;
 
-
 		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
 			Graphics* gfx = gameManager_->GetSystems().gfx_;
 			SpriteRenderSystem* spriteRenderer_ = gameManager_->GetSystems().spriteRenderer_;
-			if (gfx) {
+			CameraSystem* camSystem = gameManager_->GetSystems().camera_;
 
+			if (gfx && spriteRenderer_ && camSystem) {
 
-				// === STEP 1: RENDER GAME TO FRAMEBUFFER ===
+				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(viewportPanelSize.x, viewportPanelSize.y);
 				gfx->BindGameFramebuffer();
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-				// Render all game sprites to the FBO
+				// === STEP 2: TEMPORARILY SWITCH TO EDITOR CAMERA ===
+				Entity prevCamera = camSystem->GetActiveCamera();
+
+				// If in Editor mode and editor camera is valid, use it
+				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					camSystem->SetActiveCamera(editorCamera_);
+				}
+
+				// === STEP 3: RENDER SPRITES WITH CURRENT ACTIVE CAMERA ===
 				spriteRenderer_->Update();
 
-				// Unbind the FBO *before* drawing to the ImGui window
+				// === STEP 4: RESTORE ORIGINAL CAMERA ===
+				if (engine_->IsEditorMode()) {
+					camSystem->SetActiveCamera(prevCamera);
+				}
+
+				// === STEP 5: UNBIND FRAMEBUFFER ===
 				gfx->UnbindGameFramebuffer();
 
+				// === STEP 6: DRAW GAME TEXTURE INTO IMGUI WINDOW ===
+				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(),
+					viewportPanelSize,
+					ImVec2(0, 1), ImVec2(1, 0));
 
-				// 1. Draw the game texture as the background
-				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(), viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
-
-				// 2. Get the draw list to render overlays ON TOP of the image
+				// === STEP 7: DRAW OVERLAYS (GRID, GIZMOS, DEBUG) ===
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-				// 3. Set clipping rectangle so overlays don't "bleed"
 				ImVec2 clipMin = gameViewportPos_;
-				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
+				ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x,
+					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-				// 4. Draw all overlays
+				// --- Draw Grid ---
 				if (showGrid_) {
 					DrawEditorGrid(drawList);
 				}
 
+				// --- Draw Prefab Preview (when dragging) ---
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Now your AI System debug draw will also work
+				// --- Draw AI Debug Gizmos ---
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
-				CameraSystem* camSystem = gameManager_->GetSystems().camera_;
 				if (aiSystem && camSystem && aiSystem->debugVisualization) {
-					// --- THIS IS THE FIX ---
-					// Pass 'this' (the Editor instance) AND the 'editorCamera_'
-					// aiSystem->DrawDebug(camSystem, drawList, this); // <--- OLD
-					//aiSystem->DrawDebug(camSystem, drawList, this, editorCamera_); // <--- NEW
+					// Use whichever camera is active (editor camera during edit mode)
+					Entity activeCam = engine_->IsEditorMode() && editorCamera_ != 0
+						? editorCamera_
+						: camSystem->GetActiveCamera();
 
-					// Get the *active game camera* that the sprite renderer is using.
-					Entity gameCamera = camSystem->GetActiveCamera();
-
-					// Fallback to editor camera if no game camera is active
-					if (gameCamera == 0) {
-						gameCamera = editorCamera_;
-					}
-
-					// Pass the correct 'gameCamera' to the debug draw function.
-					aiSystem->DrawDebug(camSystem, drawList, this, gameCamera);
+					aiSystem->DrawDebug(camSystem, drawList, this, activeCam);
 				}
 
-				// 5. Remove the clipping rectangle
 				drawList->PopClipRect();
 			}
 		}
+
 		ImGui::End();
 	}
+
 
 #pragma endregion
 
@@ -1966,60 +1998,71 @@ void Editor::HandleDragDropPlacement() {
 #pragma region EDITOR GRID
 	void Editor::DrawEditorGrid(ImDrawList* drawList)
 	{
+		using namespace Framework;
 		if (!cameraSystem_ || editorCamera_ == 0)
 			return;
 
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
+		const float zoom = cam.zoom;
 
-		// Visible region in world space
+		// Grid cell size in world units
+		const float baseCell = baseGridCellSize_; // e.g. 1.0f or whatever your tile unit is
+		const float cell = baseCell; // keep grid world-locked; not multiplied by zoom
+
+		// Compute visible region in world space
 		float halfW = cam.size.x * 0.5f;
 		float halfH = cam.size.y * 0.5f;
-
 		float left = camPos.x - halfW;
 		float right = camPos.x + halfW;
 		float bottom = camPos.y - halfH;
 		float top = camPos.y + halfH;
 
-		// Base grid size (world units)
-		float cell = baseGridCellSize_;
+		// Offset so grid scrolls smoothly when panning
+		float offsetX = std::fmod(camPos.x, cell);
+		float offsetY = std::fmod(camPos.y, cell);
 
-		// --- Correct for aspect ratio ---
-		// If your camera covers a wider range horizontally (16:9),
-		// each world-space "square" will look rectangular on screen.
-		// Compensate by scaling the X-step by the inverse aspect ratio.
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		float xStep = cell / aspect;  //  wider step if viewport is wide
-		float yStep = cell;
+		const ImU32 lineColor = IM_COL32(150, 150, 150, 90);
+		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
+		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
-		// Snap grid start to nearest cell
-		float startX = std::floor(left / xStep) * xStep;
-		float startY = std::floor(bottom / yStep) * yStep;
-
-		// --- Draw grid lines ---
-		for (float x = startX; x <= right; x += xStep)
+		// Vertical lines
+		for (float x = left - offsetX - cell; x <= right + cell; x += cell)
 		{
-			ImVec2 a = WorldToImGuiScreen({ x, bottom });
-			ImVec2 b = WorldToImGuiScreen({ x, top });
-			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
+			Vector2D worldA = { x, bottom - cell };
+			Vector2D worldB = { x, top + cell };
+			ImVec2 a = WorldToImGuiScreen(worldA);
+			ImVec2 b = WorldToImGuiScreen(worldB);
+			drawList->AddLine(a, b, lineColor);
 		}
 
-		for (float y = startY; y <= top; y += yStep)
+		// Horizontal lines
+		for (float y = bottom - offsetY - cell; y <= top + cell; y += cell)
 		{
-			ImVec2 a = WorldToImGuiScreen({ left, y });
-			ImVec2 b = WorldToImGuiScreen({ right, y });
-			drawList->AddLine(a, b, IM_COL32(150, 150, 150, 100));
+			Vector2D worldA = { left - cell, y };
+			Vector2D worldB = { right + cell, y };
+			ImVec2 a = WorldToImGuiScreen(worldA);
+			ImVec2 b = WorldToImGuiScreen(worldB);
+			drawList->AddLine(a, b, lineColor);
 		}
 
-		// --- OPTIONAL: draw thicker origin lines ---
-		ImVec2 xA = WorldToImGuiScreen({ 0.0f, bottom });
-		ImVec2 xB = WorldToImGuiScreen({ 0.0f, top });
-		drawList->AddLine(xA, xB, IM_COL32(255, 0, 0, 180), 2.0f);
+		// World axes
+		Vector2D axA = { 0.0f, bottom - cell };
+		Vector2D axB = { 0.0f, top + cell };
+		Vector2D ayA = { left - cell, 0.0f };
+		Vector2D ayB = { right + cell, 0.0f };
 
-		ImVec2 yA = WorldToImGuiScreen({ left, 0.0f });
-		ImVec2 yB = WorldToImGuiScreen({ right, 0.0f });
-		drawList->AddLine(yA, yB, IM_COL32(0, 255, 0, 180), 2.0f);
+		ImVec2 xA = WorldToImGuiScreen(axA);
+		ImVec2 xB = WorldToImGuiScreen(axB);
+		ImVec2 yA = WorldToImGuiScreen(ayA);
+		ImVec2 yB = WorldToImGuiScreen(ayB);
+
+		drawList->AddLine(xA, xB, axisXColor, 2.0f);
+		drawList->AddLine(yA, yB, axisYColor, 2.0f);
 	}
+
+
+
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos) {
 		// Compute aspect ratio once

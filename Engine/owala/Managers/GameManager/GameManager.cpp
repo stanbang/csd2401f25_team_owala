@@ -180,7 +180,7 @@ namespace Framework {
 
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
-		systems_.spriteRenderer_->Update(dt);
+		systems_.spriteRenderer_->Update();
 		#endif
 		//glfwSwapInterval(0); //just for testing to turn vsync off
 
