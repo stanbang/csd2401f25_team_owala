@@ -126,7 +126,7 @@ namespace Framework{
 		std::string soundKey;
 		bool loop = false;
 		bool stream = false;
-		float volume = 1.0f;
+		float volume = 0.5f;
 	};
 
 	struct AnimationComponent {
