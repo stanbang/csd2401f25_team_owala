@@ -609,7 +609,7 @@ namespace Editor {
 			newEntity = entityMgr.CreateEntity(); //for tile pallette
 
 			float aspect = gameViewportSize_.x / gameViewportSize_.y;
-			Vector2D tileHalfSize = { baseGridCellSize_ , baseGridCellSize_ };
+			Vector2D tileHalfSize = { (baseGridCellSize_ / 2.0f) / aspect, baseGridCellSize_ / 2.0f };
 
 			if (newEntity != 0) {
 				entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;
@@ -1288,6 +1288,11 @@ namespace Editor {
 			}
 			showGrid_ = false;
 			isDraggingPrefab_ = false;
+			if (engine_ && engine_->IsEditorMode()) {
+				engine_->SetMode(Framework::EngineMode::Play);
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
+			}
 		}
 	}
 
