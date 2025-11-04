@@ -130,9 +130,6 @@ namespace Framework {
 
         if (entityMgr.HasComponent(entity, PositionType)) {
             entityMgr.GetComponent<Position>(entity).Pos = position;
-        }        
-        if (entityMgr.HasComponent(entity, SpawnPointType)) {
-            entityMgr.GetComponent<SpawnPoint>(entity).Pos = position;
         }
 
         if (entityMgr.HasComponent(entity, ScalingPlatformComponentType) &&
@@ -159,12 +156,6 @@ namespace Framework {
             if (data.HasMember("x")) pos.Pos.x = data["x"].GetFloat();
             if (data.HasMember("y")) pos.Pos.y = data["y"].GetFloat();
             entityMgr.AddComponent(entity, pos);
-        }
-        else if (compData.type == "SpawnPoint") {
-            SpawnPoint spawnPt;
-            if (data.HasMember("x")) spawnPt.Pos.x = data["x"].GetFloat();
-            if (data.HasMember("y")) spawnPt.Pos.y = data["y"].GetFloat();
-            entityMgr.AddComponent(entity, spawnPt);
         }
         else if (compData.type == "Velocity") {
             Velocity vel;
