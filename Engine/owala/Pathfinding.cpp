@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   Pathfinding.cpp
+*
+* \primary_author
+*      Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+*
+* \brief
+* Implements the A* pathfinding algorithm, navigation grid generation 
+* from colliders, and path-retracing logic.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "Pathfinding.h"
 #include "EntityManager.h" 
 #include "EntityStorage.h" // For ComponentType enums

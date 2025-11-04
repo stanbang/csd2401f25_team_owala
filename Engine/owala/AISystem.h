@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   AISystem.h
+*
+* \primary_author
+*      Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+*
+* \brief
+* Declares the AISystem class, which orchestrates all enemy AI behaviors 
+* and manages their state machines.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
@@ -35,12 +52,12 @@ namespace Framework {
         // Debug drawing - ONLY available in editor build
         void DrawDebug(CameraSystem* cameraSystem, ImDrawList* drawList, Editor::Editor* editor, Entity cameraToUse);
 
-        // Public Toggles for the Editor
-        bool debugVisualization = true;
+        // Public Toggles for the Editor for debug visualization
+        bool debugVisualization = false;
         bool showNavigationGrid = false;
-        bool showBirdDebug = true;
-        bool showPaths = true;
-        bool showColliders = true;
+        bool showBirdDebug = false;
+        bool showPaths = false;
+        bool showColliders = false;
         #endif
 
     private:

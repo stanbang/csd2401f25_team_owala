@@ -1,3 +1,21 @@
+/*********************************************************************//**
+* \file   AISystem.cpp
+*
+* \primary_author
+*      Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+*
+* \brief
+* Implements the AISystem, containing the main update loop and logic for
+* all AI state machines, like the Bird and Skeleton.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+
 #include "AISystem.h"
 #include "EntityManager.h" 
 #include "EntityStorage.h" // For ComponentType enums
@@ -166,9 +184,8 @@ namespace Framework {
     void AISystem::HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
         EntityManager entityMgr(*ecs_);
         entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
-        // TODO: Trigger "Sleeping" animation here
-        // (e.g., if (entityMgr.HasComponent(bird, AnimationComponentType)) { ... } )
-
+        // TODO: Trigger Sleeping animation here
+        
         // Check distance to player
         if (birdPos.Distance(playerPos) < ai.wakeUpRadius) {
             Logger::Get().Info(DebugType::AISystem)
@@ -189,7 +206,7 @@ namespace Framework {
     }
 
     void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
-        // TODO: Trigger "Flying" animation here
+        // TODO: Trigger Flying animation here
 
         float dist = birdPos.Distance(playerPos);
 
@@ -198,9 +215,7 @@ namespace Framework {
         float playerEffectiveRadius = std::max(playerHalfSize.x, playerHalfSize.y);
         float birdEffectiveRadius = std::max(birdHalfSize.x, birdHalfSize.y);
 
-        // The bird "arrives" when its collision edge is 'hoverRadius' away from the player's collision edge.
-        // We check this by comparing the distance between their centers.
-        
+        // The bird rchs when its collision edge is hoverRadius away from the player's collision edge.
         float arrivalDistance = ai.hoverRadius + playerEffectiveRadius + birdEffectiveRadius;
 
         // Check if reached radius
@@ -228,7 +243,7 @@ namespace Framework {
             ai.currentPath = pather_.FindPath(navGrid_, birdPos, playerPos);
             ai.pathRecalculateTimer = ai.pathRecalculateInterval;
 
-            // NEW: Add Log
+            //  Add Log
             if (ai.currentPath.empty()) {
                 Logger::Get().Info(DebugType::AISystem)
                     << "Bird [" << bird << "] failed to find path!" << std::endl;
@@ -244,7 +259,7 @@ namespace Framework {
     }
 
     void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
-        // TODO: Trigger "Flying" animation here
+        // TODO: Trigger Flying animation here
 
         EntityManager entityMgr(*ecs_);
 
@@ -267,9 +282,10 @@ namespace Framework {
         }
 
 
-        // Define the 4 nodes of the vertical box above the player for hovering
+        // hover mechanic (IN PROGRESS)
+        // 4 nodes of the vertical box above the player for hovering
         float boxHalfWidth = ai.hoverRadius;
-        float boxHalfHeight = ai.hoverRadius; // Makes a square box
+        float boxHalfHeight = ai.hoverRadius; // Make a square box
 
         Vector2D hoverNodes[4];
         // Node 0: Bottom-left
@@ -281,18 +297,18 @@ namespace Framework {
         // Node 3: Top-left
         hoverNodes[3] = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
 
-        // Get the current target node
+       
         Vector2D targetNode = hoverNodes[ai.currentHoverNode];
 
         // Move towards the current node
         Vector2D direction = (targetNode - birdPos).Normalized();
         entityMgr.GetComponent<Velocity>(bird).Vel = direction * ai.hoverSpeed;
 
-        // Check if we've reached the current node
+        // Check if reached the current node
         if (birdPos.Distance(targetNode) < ai.hoverNodeReachedDist) {
 
-            // If the timer hasn't been set yet, start it.
-            // This means the bird has successfully reached its patrol area.
+           
+            // bird has successfully reached patrol area
             if (ai.attackTimer <= 0.0f) {
                 Logger::Get().Info(DebugType::AISystem)
                     << "Bird [" << bird << "] reached patrol area. Starting 3-10 sec attack timer." << std::endl;
@@ -310,7 +326,7 @@ namespace Framework {
 
             // Check for attack after counting down
             if (ai.attackTimer <= 0.0f) {
-                // Check if in range to attack.
+                // Check if in range to attack
                 if (distToPlayer < ai.attackRadius) {
                     Logger::Get().Info(DebugType::AISystem)
                         << "Bird [" << bird << "] initiating attack!" << std::endl;
@@ -320,7 +336,7 @@ namespace Framework {
                 }
                 else {
                     // Timer ran out, but player is not in range.
-                    // Reset the timer to a new random value to "hover longer".
+                    // Reset the timer to a new random value 
                     ai.attackTimer = 5.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f;
                     Logger::Get().Info(DebugType::AISystem)
                         << "Bird [" << bird << "] attack timer expired, but out of range. Resetting timer." << std::endl;
@@ -334,20 +350,20 @@ namespace Framework {
         EntityManager entityMgr(*ecs_);
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
 
-        // 1. Dive at target
+        //  Dive at target
         Vector2D direction = (ai.attackTargetPosition - birdPos).Normalized();
         entityMgr.GetComponent<Velocity>(bird).Vel = direction * ai.attackSpeed;
 
-        // 2. Check if attack finished (timer up OR close to target)
+        // Check if attack finished (timer up OR close to target)
         if (ai.stateTimer <= 0.0f || birdPos.Distance(ai.attackTargetPosition) < 0.5f) {
 
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] attack finished!" << std::endl;
 
-            // Finished attack, reset attack cooldown for the *next* hover
+            // Finished attack means reset attack cooldown 
             ai.attackTimer = 0.0f;
 
-            // Go back to HOVER (not CHASE) to resume patrolling
+            // Go back to HOVER (or chase)?
             Entity player = GetPlayer();
             if (player == 0) {
                 ai.state = BirdState::IDLE; // Player is gone?
@@ -404,7 +420,7 @@ namespace Framework {
 
         // Stop moving
         entityMgr.GetComponent<Velocity>(skeleton).Vel.x = 0.0f;
-        // TODO: Trigger "Idle" animation here
+        // TODO: Trigger Idle animation here
 
         // Check distance to player
         if (skeletonPos.Distance(playerPos) < ai.detectionRadius) {
@@ -426,29 +442,29 @@ namespace Framework {
         }
 
         // Player is in range, move towards them
-        // This AI only walks on platforms, so we only control X-velocity.
+        // This AI only walks on platforms, so only control X-vel
 
-        // We need PlayerState to check if we're grounded and to set our facing direction
+        // PlayerState to check if grounded and to set our facing direction
         PlayerState& state = entityMgr.GetComponent<PlayerState>(skeleton);
 
         // Only move if on the ground
         if (state.isGrounded) {
             auto& vel = entityMgr.GetComponent<Velocity>(skeleton).Vel;
 
-            if (playerPos.x < skeletonPos.x - 0.01f) { // Move left (with a small buffer)
+            if (playerPos.x < skeletonPos.x - 0.01f) { // Move left 
                 vel.x = -ai.moveSpeed;
                 state.isFacingRight = false;
                 // TODO: Trigger "Walk" animation
             }
-            else if (playerPos.x > skeletonPos.x + 0.01f) { // Move right (with a small buffer)
+            else if (playerPos.x > skeletonPos.x + 0.01f) { // Move right 
                 vel.x = ai.moveSpeed;
                 state.isFacingRight = true;
-                // TODO: Trigger "Walk" animation
+                // TODO: Trigger Walk animation
             }
             else {
                 // Player is roughly aligned vertically
                 vel.x = 0.0f;
-                // TODO: Trigger "Idle" animation
+                // TODO: Trigger Idle animation
             }
         }
         // (If not grounded, do nothing and let gravity take over)
@@ -528,7 +544,7 @@ namespace Framework {
             ImVec2 screenMax = editor->WorldToImGuiScreen({ halfCell,  halfCell });
 
             // Calculate the width and height in PIXELS
-            // Note: screenMin.y will be > screenMax.y because screen-space Y is inverted
+            // screenMin.y will be > screenMax.y because screen-space Y is inverted
             float screenWidth = std::abs(screenMax.x - screenMin.x);
             float screenHeight = std::abs(screenMax.y - screenMin.y);
 

@@ -6,7 +6,8 @@
 * \secondary_author
 *
 *
-* \brief
+* \brief Implements the PhysicsSystem's fixed Step loop, force-based 
+* integration, broad-phase grid logic, and narrow-phase AABB collision resolution.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior

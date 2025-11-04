@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   Pathfinding.h
+*
+* \primary_author
+*      Lur Pei Hao Stanley 
+* \secondary_author
+*	   
+*
+*
+* \brief	
+* Declares the interfaces for the A* pathfinding system, including PathNode, 
+* NavigationGrid, and AStarPather.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "Vector2D.h"
 #include <vector>
