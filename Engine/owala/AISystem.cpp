@@ -83,8 +83,12 @@ namespace Framework {
 
         // Get players collision halfsize
         Vector2D playerHalfSize = Vector2D::Zero();
-        if (entityMgr.HasComponent(player, AABBColliderType)) {
+       /* if (entityMgr.HasComponent(player, AABBColliderType)) {
             playerHalfSize = entityMgr.GetComponent<AABBCollider>(player).HalfSize;
+        }*/
+
+        if (entityMgr.HasComponent(player, TextureComponentType)) { // Get visual size
+            playerHalfSize = entityMgr.GetComponent<TextureComponent>(player).HalfSize;
         }
 
         //Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
@@ -114,8 +118,12 @@ namespace Framework {
 
                 // Get birds collision halfsize
                 Vector2D birdHalfSize = Vector2D::Zero();
-                if (entityMgr.HasComponent(enemy, AABBColliderType)) {
+                /*if (entityMgr.HasComponent(enemy, AABBColliderType)) {
                     birdHalfSize = entityMgr.GetComponent<AABBCollider>(enemy).HalfSize;
+                }*/
+
+                if (entityMgr.HasComponent(enemy, TextureComponentType)) { // Get visual size
+                    birdHalfSize = entityMgr.GetComponent<TextureComponent>(enemy).HalfSize;
                 }
 
 #ifdef BUILD_EDITOR
