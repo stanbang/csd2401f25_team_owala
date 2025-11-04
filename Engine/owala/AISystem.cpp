@@ -55,6 +55,11 @@ namespace Framework {
             return;
         }
 
+        if (!entityMgr.HasComponent(player, PositionType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Player doesn't have Position component!" << std::endl;
+            return;
+        }
+
         Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
 
         // Get players collision halfsize
@@ -164,6 +169,11 @@ namespace Framework {
 
     void AISystem::HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
         EntityManager entityMgr(*ecs_);
+        if (!entityMgr.HasComponent(bird, VelocityType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
+            return;
+        }
+
         entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
         // TODO: Trigger "Sleeping" animation here
         // (e.g., if (entityMgr.HasComponent(bird, AnimationComponentType)) { ... } )
@@ -246,6 +256,11 @@ namespace Framework {
         // TODO: Trigger "Flying" animation here
 
         EntityManager entityMgr(*ecs_);
+
+        if (!entityMgr.HasComponent(bird, VelocityType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
+            return;
+        }
 
         float playerEffectiveRadius = std::max(playerHalfSize.x, playerHalfSize.y);
         float birdEffectiveRadius = std::max(birdHalfSize.x, birdHalfSize.y);
@@ -331,6 +346,16 @@ namespace Framework {
     void AISystem::HandleAttackState(Entity bird, BirdAIComponent& ai) {
         ai.stateTimer -= Framework::Time::DeltaTime();
         EntityManager entityMgr(*ecs_);
+
+        if (!entityMgr.HasComponent(bird, PositionType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Position component!" << std::endl;
+            return;
+        }
+        if (!entityMgr.HasComponent(bird, VelocityType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
+            return;
+        }
+
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
 
         // 1. Dive at target
@@ -353,6 +378,11 @@ namespace Framework {
                 return;
             }
 
+            if (!entityMgr.HasComponent(player, PositionType)) {
+                Logger::Get().Error(DebugType::AISystem) << "Player is missing Position component!" << std::endl;
+                return;
+            }
+
             float dist = birdPos.Distance(entityMgr.GetComponent<Position>(player).Pos);
             if (dist > ai.hoverRadius) {
                 ai.state = BirdState::CHASE;
@@ -369,6 +399,15 @@ namespace Framework {
             // No path, just move towards player (dumb move)
             Entity player = GetPlayer();
             if (player == 0) return;
+
+            if (!entityMgr.HasComponent(player, PositionType)) {
+                Logger::Get().Error(DebugType::AISystem) << "Player is missing Position component!" << std::endl;
+                return;
+            }
+            if (!entityMgr.HasComponent(bird, VelocityType)) {
+                Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
+                return;
+            }
 
             Vector2D dir = (entityMgr.GetComponent<Position>(player).Pos - birdPos).Normalized();
             entityMgr.GetComponent<Velocity>(bird).Vel = dir * ai.moveSpeed;
@@ -401,6 +440,11 @@ namespace Framework {
     void AISystem::HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos) {
         EntityManager entityMgr(*ecs_);
 
+        if (!entityMgr.HasComponent(skeleton, VelocityType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Skeleton Enemy is missing Velocity component!" << std::endl;
+            return;
+        }
+
         // Stop moving
         entityMgr.GetComponent<Velocity>(skeleton).Vel.x = 0.0f;
         // TODO: Trigger "Idle" animation here
@@ -415,6 +459,15 @@ namespace Framework {
 
     void AISystem::HandleSkeletonChaseState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos) {
         EntityManager entityMgr(*ecs_);
+
+        if (!entityMgr.HasComponent(skeleton, PlayerStateType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Skeleton Enemy is missing PlayerState component!" << std::endl;
+            return;
+        }
+        if (!entityMgr.HasComponent(skeleton, VelocityType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Skeleton Enemy is missing Velocity component!" << std::endl;
+            return;
+        }
 
         // First, check if player has gone out of range
         if (skeletonPos.Distance(playerPos) > ai.detectionRadius) {
@@ -503,7 +556,11 @@ namespace Framework {
         Entity player = GetPlayer();
 
         if (player == 0) {
-            Logger::Get().Info(DebugType::AISystem) << "No player found for debug drawing" << std::endl;
+            Logger::Get().Error(DebugType::AISystem) << "No player found for debug drawing" << std::endl;
+            return;
+        }
+        if (!entityMgr.HasComponent(player, PositionType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Player is missing Position component for debug drawing" << std::endl;
             return;
         }
 
@@ -561,6 +618,7 @@ namespace Framework {
             if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
                 !entityMgr.HasComponent(bird, PositionType))
             {
+                Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing BirdAIComponent/Position components!" << std::endl;
                 continue;
             }
 

@@ -149,7 +149,7 @@ namespace Framework {
 
 		switch (componentType) {
 			case PositionType:      ecs.position.erase(entity); break;
-			case SpawnPointType:    ecs.position.erase(entity); break;
+			case SpawnPointType:    ecs.spawnPoint.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
 			case TriangleType:      ecs.triangle.erase(entity); break;
