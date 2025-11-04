@@ -390,6 +390,7 @@ namespace Editor {
 			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
 			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
+			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left); 
 
 			ImGui::DockBuilderDockWindow("Game", dock_main_id);
 			ImGui::DockBuilderFinish(dockspaceID);
@@ -490,7 +491,7 @@ namespace Editor {
 		}
 
 		if (settings.showGameViewport) ShowGameViewport();
-		ShowAIDebugPanel();
+		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
 
 		ImGui::End();
@@ -661,7 +662,7 @@ namespace Editor {
 		if (dragDropPayload_.type == PrefabType::Tile) {
 			newEntity = entityMgr.CreateEntity(); //for tile pallette
 
-			float aspect = gameViewportSize_.x / gameViewportSize_.y;
+			//float aspect = gameViewportSize_.x / gameViewportSize_.y;
 			Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
 
 			if (newEntity != 0) {
@@ -967,6 +968,18 @@ namespace Editor {
 
 		ImGui::Begin("Performance Profiler");
 		{
+			/*Framework::PhysicsSystem* physics = gameManager_->GetSystems().physics_;
+			if (physics) {
+				bool isForced = physics->IsForcingNarrowPhase();
+				if (ImGui::Checkbox("Force Narrow-Phase (O(n^2))", &isForced)) {
+					physics->SetNarrowPhase(isForced);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Disables broad-phase grid to show performance difference.");
+				}
+				ImGui::Separator();
+			}*/
+
 			// Add a slider to control how often the profiler updates
 			static float updateInterval = 1.0f; // Default to updating once per second
 			ImGui::SliderFloat("Update Interval (s)", &updateInterval, 0.1f, 5.0f);
@@ -1100,6 +1113,8 @@ namespace Editor {
 					// Pass the calculated position, not halfSize
 					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
 					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
+
+
 				}
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
@@ -1147,8 +1162,7 @@ namespace Editor {
 
 		ImGui::SameLine();
 		if (ImGui::Button("Spawn Test Skeleton")) {
-			// Get the systems we need
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			
 			SceneManager& sceneMgr = SceneManager::GetInstance();
 			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
@@ -2318,6 +2332,36 @@ namespace Editor {
 					aiSystem->DrawDebug(camSystem, drawList, this, activeCam);
 				}
 
+
+				Framework::PhysicsSystem* physicsSystem = gameManager_->GetSystems().physics_;
+				// Check the flag here
+				if (physicsSystem && camSystem && physicsSystem->drawDebugGrid) {
+					Entity activeCam = engine_->IsEditorMode() && editorCamera_ != 0
+						? editorCamera_
+						: camSystem->GetActiveCamera();
+
+					// Colors for the grid
+					const ImU32 inactiveColor = IM_COL32(100, 100, 100, 40); // Dim gray
+					const ImU32 activeColor = IM_COL32(0, 255, 0, 90);     // Bright green
+
+					// Get the debug data from the physics system
+					std::vector<PhysicsDebugCell> cells = physicsSystem->GetDebugDrawData(camSystem, activeCam);
+
+					// Loop and draw
+					for (const auto& cell : cells) {
+						// Convert world corners to screen coordinates
+						ImVec2 screenMin = WorldToImGuiScreen(cell.worldMin, activeCam);
+						ImVec2 screenMax = WorldToImGuiScreen(cell.worldMax, activeCam);
+
+						if (cell.isActive) {
+							drawList->AddRectFilled(screenMin, screenMax, activeColor);
+						}
+						else {
+							drawList->AddRect(screenMin, screenMax, inactiveColor);
+						}
+					}
+				}
+
 				drawList->PopClipRect();
 			}
 		}
@@ -3013,14 +3057,13 @@ namespace Editor {
 	}
 
 
-	void Editor::ShowAIDebugPanel() {
-		if (!ImGui::Begin("AI Debug Visualization")) {
+	void Editor::ShowDebugVisualizationPanel() {
+		if (!ImGui::Begin("Debug Visualization")) {
 			ImGui::End();
 			return;
 		}
 
 		// Get the AI system from game manager
-		// !! IMPORTANT: This assumes you have added aiSystem_ to your GameManager systems struct
 		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 
 		if (!aiSystem) {
@@ -3046,6 +3089,21 @@ namespace Editor {
 
 		ImGui::Separator();
 
+		ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add some spacing
+		ImGui::Text("Physics Visualization");
+		ImGui::Separator();
+
+		Framework::PhysicsSystem* physicsSystem = gameManager_->GetSystems().physics_;
+		if (physicsSystem) {
+			ImGui::Checkbox("Draw Physics Grid", &physicsSystem->drawDebugGrid);
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Shows the broad-phase spatial grid.");
+			}
+		}
+		else {
+			ImGui::TextDisabled("Physics System not available");
+		}
+
 		// Color legend
 		if (ImGui::CollapsingHeader("State Colors Legend")) {
 			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
@@ -3066,10 +3124,10 @@ namespace Editor {
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
 		}
 
-		if (ImGui::CollapsingHeader("Path Legend")) {
+		/*if (ImGui::CollapsingHeader("Path Legend")) {
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");
 			ImGui::Text("Squares = Waypoints");
-		}
+		}*/
 
 		ImGui::End();
 	}

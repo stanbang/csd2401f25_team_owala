@@ -56,6 +56,7 @@ namespace Framework {
         }
 
         Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
+        
 
         // Get players collision halfsize
         Vector2D playerHalfSize = Vector2D::Zero();

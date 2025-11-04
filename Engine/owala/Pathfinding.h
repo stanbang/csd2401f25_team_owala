@@ -8,7 +8,7 @@
 
 namespace Framework {
 
-    // Internal node representation for A*
+    // node representation for A-star pathfinding
     struct PathNode {
         int x, y; // Grid coordinates
         int gCost = 0; // Cost from start

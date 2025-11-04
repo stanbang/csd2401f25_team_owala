@@ -79,7 +79,7 @@ namespace Framework {
     }
 
     bool NavigationGrid::IsWalkable(int x, int y) const {
-        return wallNodes_.find({ x, y }) == wallNodes_.end();
+        return wallNodes_.find({ x, y }) == wallNodes_.end(); 
     }
 
     Vector2D NavigationGrid::WorldToGrid(const Vector2D& worldPos) const {
