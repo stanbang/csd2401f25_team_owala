@@ -81,6 +81,13 @@ namespace Framework {
         */
         void ResetGlobalRotation();
 
+        /*!
+        * \brief Gets the original position of the entity
+        * \return Original position of entity
+        */
+        static Vector2D GetOriginalPos(EntityManager& entityMgr, Entity entity);
+
+
     private:
         EntityStorage* ecs_;
         InputSystem* input_;

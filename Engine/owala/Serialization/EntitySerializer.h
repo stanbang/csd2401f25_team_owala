@@ -1,3 +1,20 @@
+/*****************************************************************//**
+* \file   EntitySerializer.h
+*
+* \primary_author
+*       Jason Lou (70%)
+*
+* \secondary_author
+*       Yar Xuan (30%)
+*
+* \brief    This file defines the EntitySerializer class, which provides a static interface for 
+            serializing (saving) and deserializing (loading) game entities, their components, 
+            and entire scenes using the RapidJSON library
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "Entity.h"
 #include "EntityStorage.h"

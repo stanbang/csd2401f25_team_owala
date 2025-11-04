@@ -1,18 +1,30 @@
+/*****************************************************************//**
+ * \file   FileUtility.cpp
+ *
+ * \primary_author
+ *      Yar Xuan
+ * \secondary_author
+ *
+ *
+ * \brief
+ *		Defines the FileIOSystem class, a utility for reading and writing game
+ *		configuration files (e.g., player stats, window settings) using the
+ *		RapidJSON library.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "FileUtility.h"
 
 namespace Framework {
 	std::string FileIOSystem::SanitizeFileName(const std::string& name) {
 		std::string sanitized_name = name;
-		// 1. Convert to lowercase
 		std::transform(sanitized_name.begin(), sanitized_name.end(), sanitized_name.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-		// 2. Replace spaces with underscores
 		std::replace(sanitized_name.begin(), sanitized_name.end(), ' ', '_');
-
-		// 3. Remove other forbidden characters (optional, but recommended)
-		// sanitized_name.erase(std::remove_if(sanitized_name.begin(), sanitized_name.end(), 
-		//     [](char c) { return !std::isalnum(c) && c != '_'; }), sanitized_name.end());
 
 		return sanitized_name;
 	}

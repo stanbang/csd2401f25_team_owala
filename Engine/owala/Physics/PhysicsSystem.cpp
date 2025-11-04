@@ -156,7 +156,7 @@ namespace Framework {
         // Iterate through all entities with a player tag
 		EntityManager entityMgr(*ecs_);
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, AABBColliderType)) {
+            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
 				Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
 				Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
 
@@ -231,8 +231,8 @@ namespace Framework {
     // Detects and resolves collisions using direct positional correction.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
-        EntityManager entityMgr(*ecs_);
-        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType);
+		EntityManager entityMgr(*ecs_);
+        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, PositionType);
 
         // --- Check Entity Count OR DEBUG TOGGLE ---
         if (forceNarrowPhase_ || allColliders.size() > maxCollidableEntities) {
@@ -341,6 +341,23 @@ namespace Framework {
     void PhysicsSystem::CheckCollisionPair(Entity e1, Entity e2, float dt) {
         EntityManager entityMgr(*ecs_);
 
+        // Check entities have RigidBody component
+        if (!entityMgr.HasComponent(e1, RigidBodyType) || !entityMgr.HasComponent(e2, RigidBodyType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing RigidBody component. Unable to CheckCollisionPair" << std::endl;
+            return;
+        }
+        // Check entities have Position component
+        if (!entityMgr.HasComponent(e1, PositionType) || !entityMgr.HasComponent(e2, PositionType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing Position component. Unable to CheckCollisionPair" << std::endl;
+            return;
+        }
+        // Check entities have AABBCollider component
+        if (!entityMgr.HasComponent(e1, AABBColliderType) || !entityMgr.HasComponent(e2, AABBColliderType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing AABBCollider component. Unable to CheckCollisionPair" << std::endl;
+            return;
+        }
+
+
         // --- LAYER-BASED COLLISION CHECK ---
         // If either entities is default layer, skip them.
         if (entityMgr.GetProperties(e1).layer == CollisionLayer::Default || entityMgr.GetProperties(e2).layer == CollisionLayer::Default) {
@@ -397,6 +414,11 @@ namespace Framework {
             Entity dynE = e1, staticE = e2;
             if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
                 std::swap(dynE, staticE); // swaps if E1 is the static object IE. Mass = 0
+            }
+            // Check dynE has Velocity component
+            if (!entityMgr.HasComponent(dynE, VelocityType)) {
+                Logger::Get().Error(DebugType::PhysicsSystem) << "dynE entity missing Velocity component. Unable to CheckCollisionPair" << std::endl;
+                return;
             }
 
             Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;

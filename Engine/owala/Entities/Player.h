@@ -71,7 +71,12 @@ namespace Framework {
 	inline void updatePlayerSize(EntityStorage& entityStorage, Entity entity, float scale) {
 		//Create an EntityManager to access entity creation APIs
 		EntityManager entityMgr(entityStorage);
-		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.x *= scale;
-		entityMgr.GetComponent<AABBCollider>(entity).HalfSize.y *= scale;
+		if (!entityMgr.HasComponent(entity, AABBColliderType)) {
+			Logger::Get().Error(DebugType::PlayerSystem) << "Unable to update player size. Player is missing AABBCollider!" << std::endl;
+			return;
+		}
+		AABBCollider& aabb = entityMgr.GetComponent<AABBCollider>(entity);
+		aabb.HalfSize.x *= scale;
+		aabb.HalfSize.y *= scale;
 	}
 }
