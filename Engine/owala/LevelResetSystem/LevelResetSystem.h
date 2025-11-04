@@ -28,6 +28,7 @@ namespace Framework {
 
         // Store the signatures required for quick checking (built in the constructor)
         ComponentSignature playerSig;
+        ComponentSignature playerSpawnPtSig;
 
         // Platform signatures
         ComponentSignature basicPlatformSig;
@@ -41,16 +42,21 @@ namespace Framework {
         // Reset current scene
         void RunReset();
         
-        // Helper function to compare signatures
-        bool CmpSignatures(ComponentSignature sigToTest, ComponentSignature sigToMatch);
-
+        // Reset Player
+        void ResetPlayer(EntityManager& entityMgr, Entity entity);
+        
         // --- Reset Helpers ---
         // Reset Position to given position, defaults to 0,0 if no Position provided
-        void ResetPosition(EntityManager& entityMgr, Entity entity, Position pos = Position(Vector2D{}) );
+        void ResetPosition(EntityManager& entityMgr, Entity entity, Position pos = Position(Vector2D{}));
         // Reset Velocity to given velocity, default to 0,0 if no Velocity provided
         void ResetVelocity(EntityManager& entityMgr, Entity entity, Velocity vel = Velocity());
         // Reset RotationFlag component
         void ResetRotation(EntityManager& entityMgr, Entity entity);
+        
+        // Helper function to compare signatures
+        bool CmpSignatures(ComponentSignature sigToTest, ComponentSignature sigToMatch);
+
+        Position GetPlayerSpawnPt(EntityManager& entityMgr) const;
     };
 
 } // namespace Framework

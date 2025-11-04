@@ -146,6 +146,28 @@ namespace Framework {
         rotationCooldownDuration = 0.5f;
     }
 
+    Vector2D TransformationSystem::GetOriginalPos(EntityManager& entityMgr, Entity entity) {
+
+        // Check if the entity has the necessary components
+        if (!entityMgr.HasComponent(entity, RotationFlagType) ||
+            !entityMgr.HasComponent(entity, PositionType))
+        {
+            return Vector2D(0.0f, 0.0f);
+        }
+
+        Vector2D currentPos = entityMgr.GetComponent<Position>(entity).Pos;
+        
+        const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+        float totalRotationAngle = rotationFlag.currentRotation;
+
+        float inverseAngle = -totalRotationAngle;
+        Matrix3x3 inverseRotationMat = Transformation::CreateRotationMatrix(inverseAngle);
+
+        Vector2D originalPos = inverseRotationMat * currentPos;
+
+        return originalPos;
+    }
+
     /*!
     @brief      Updates transformation matrices for all entities
     @param      dt Delta time
