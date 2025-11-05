@@ -145,10 +145,10 @@ namespace Editor {
 			currentEditorCameraState_.position = cam.position;
 			currentEditorCameraState_.zoom = cam.zoom;
 
-			Framework::Logger::Get().Info(DebugType::Editor)
+			/*Framework::Logger::Get().Info(DebugType::Editor)
 				<< "Saved editor camera state: position ("
 				<< currentEditorCameraState_.position.x << ", " << currentEditorCameraState_.position.y
-				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;
+				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;*/
 		}
 	}
 

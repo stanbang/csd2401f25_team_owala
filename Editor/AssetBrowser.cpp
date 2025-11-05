@@ -376,21 +376,21 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 			// Reimport Button(Reloads the asset from disk)
             if (ImGui::Button("Reimport Asset", ImVec2(150, 30)))
             {
-                Logger::Get().Info(DebugType::Editor) << "Reimporting asset: " << selectedAsset_.string() << std::endl;
+                Logger::Get().Info(DebugType::Editor) << "Reimporting asset: " << selectedAsset_.filename().string() << std::endl;
 
                 try
                 {
                     // Unload old texture if needed
-                    resourceManager_->unload<Texture>(selectedAsset_.string());
+                    resourceManager_->unload<Texture>(selectedAsset_.filename().string());
 
                     // Reload texture
-                    if (resourceManager_->loadTexture(selectedAsset_.string(), selectedAsset_.string()))
+                    if (resourceManager_->loadTexture(selectedAsset_.filename().string(), selectedAsset_.string()))
                     {
-                        Logger::Get().Info(DebugType::Editor) << "Reimport successful for: " << selectedAsset_.string() << std::endl;
+                        Logger::Get().Info(DebugType::Editor) << "Reimport successful for: " << selectedAsset_.filename().string() << std::endl;
                     }
                     else
                     {
-                        Logger::Get().Error(DebugType::Editor) << "Reimport failed for: " << selectedAsset_.string() << std::endl;
+                        Logger::Get().Error(DebugType::Editor) << "Reimport failed for: " << selectedAsset_.filename().string() << std::endl;
                     }
                 }
                 catch (const std::exception& e)
