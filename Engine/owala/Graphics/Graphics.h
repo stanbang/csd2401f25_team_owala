@@ -1,20 +1,39 @@
-/*****************************************************************//**
+/*********************************************************************//**
  * \file   Graphics.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (100%)
  *
  * \brief
- *   Graphics subsystem wrapping OpenGL calls for basic 2D rendering.
- *   Provides colored primitives, textured sprites, and text drawing
- *   with batching and font/layout helpers.
+ *      Declaration of the Graphics subsystem that wraps OpenGL calls
+ *      to provide basic 2D rendering features such as colored shapes,
+ *      textured sprites, text drawing, and framebuffer management.
+ *
+ * \details
+ *      The Graphics system abstracts raw OpenGL rendering into higher-level
+ *      APIs for 2D games and editors. It provides:
+ *        - Primitive rendering (lines, rectangles, triangles)
+ *        - Sprite rendering (single and batched)
+ *        - Font and text layout utilities
+ *        - Framebuffer management for offscreen rendering
+ *
+ *      Internally, the system manages its own OpenGL pipelines and buffers,
+ *      handling batching for sprites and efficient texture usage.
+ *
+ *      Example Usage:
+ *      \code
+ *      Graphics gfx(windowSystem);
+ *      gfx.beginFrame({0.1f, 0.1f, 0.12f, 1.0f});
+ *      gfx.drawSprite(tex, {0,0}, {0.5f,0.5f});
+ *      gfx.drawText(font, "Hello World", { -0.9f, 0.8f }, 0.5f, {1,1,1,1});
+ *      gfx.endFrame();
+ *      \endcode
  *
  * \copyright
- *   Copyright (C) 2025 DigiPen Institute of Technology.
- *   Reproduction or disclosure of this file or its contents without
- *   the prior written consent of DigiPen Institute of Technology is prohibited.
+ *      Copyright (C) 2025 DigiPen Institute of Technology.
+ *      Reproduction or disclosure of this file or its contents without
+ *      the prior written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
 #pragma once
 #include "ISystem.h"
 #include "Vector2D.h"
