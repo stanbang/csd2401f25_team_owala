@@ -127,6 +127,7 @@ namespace Editor {
 		bool isDraggingPrefab_ = false;
 		DraggablePrefabInfo dragDropPayload_; // Holds info about the prefab being dragged
 		Vector2D dragDropPreviewPos_; // World position for preview rendering
+		bool isDraggingGameObj_ = false;
 
 		//Palette Info storage (prefabs)
 		bool palettePrepared_ = false; // flag for storing palette items
@@ -142,7 +143,7 @@ namespace Editor {
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
 		bool isMouseOverGameViewport_ = false;
-		void DrawEditorGridGfx();
+		//void DrawEditorGridGfx();
 
 		// Entity factory System members
 		Framework::PrefabSystem prefabSystem_; // Each editor instance has its own prefab system
@@ -203,6 +204,7 @@ namespace Editor {
 		 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
 		 */
 		void HandleSelection();
+		Entity GetObjAtMousePos();
 		void HandleDeletion();
 
 		/* Entity Copy & Pasting APIs */
@@ -227,7 +229,7 @@ namespace Editor {
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
 		Vector2D SnapToGrid(const Vector2D& worldPos);
-		void ResetPlayerToDefaultPosition();
+		//void ResetPlayerToDefaultPosition();
 
 		std::string selectedPrefabForEditing_;
 		PrefabType selectedPrefabTypeForEditing_ = PrefabType::None;

@@ -320,7 +320,7 @@ namespace Editor {
 		}
 
 		//for IMGUI INPUT
-		ImGuiIO& io = ImGui::GetIO();
+		//ImGuiIO& io = ImGui::GetIO();
 
 		// Determine if ImGui currently "owns" the input
 		//bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
@@ -460,7 +460,7 @@ namespace Editor {
 		HandleSpawning();
 		HandleSelection();
 		HandleDeletion();
-
+		
 		if (isTileEditorActive_ && isDraggingPrefab_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			HandleDragDropPlacement();
 		}
@@ -858,10 +858,29 @@ namespace Editor {
 
 		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 		Vector2D mouseWorldPos = GetMouseWorldPosition();
+		Entity bestCandidate = GetObjAtMousePos();
+
+		// Update the editor's selection state
+		if (bestCandidate > 0) {
+			selectedEntityIndex = bestCandidate;
+			isEntitySelected_ = true;
+			selectedComponentIndex = 0;
+			selectedTagIndex = 0;
+		}
+		else {
+			selectedEntityIndex = 0;
+			isEntitySelected_ = false;
+			selectedComponentIndex = 0;
+			selectedTagIndex = 0;
+		}
+	}
+
+	Entity Editor::GetObjAtMousePos() {
+		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		Vector2D mouseWorldPos = GetMouseWorldPosition();
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
 		Entity bestCandidate = 0;
-		bool found = false;
 
 		// Get the list of entities from the active scene 
 		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
@@ -881,25 +900,12 @@ namespace Editor {
 					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
 				{
 					bestCandidate = entity;
-					found = true;
 					break; // Stop after finding the top-most one
 				}
 			}
 		}
-		// Update the editor's selection state
-		if (found) {
-			selectedEntityIndex = bestCandidate + 1;
-			isEntitySelected_ = true;
-			selectedComponentIndex = 0;
-			selectedTagIndex = 0;
 
-		}
-		else {
-			selectedEntityIndex = 0;
-			isEntitySelected_ = false;
-			selectedComponentIndex = 0;
-			selectedTagIndex = 0;
-		}
+		return bestCandidate;
 	}
 
 	void Editor::HandleDeletion() {
@@ -1101,8 +1107,8 @@ namespace Editor {
 
 			if (ecs) {
 				// Create a grid of 2500 entities spread out
-				int gridSize = 50; // 50x50 grid = 2500 entities
-				float spacing = 0.1f; // Adjust this for proper spacing
+				//int gridSize = 50; // 50x50 grid = 2500 entities
+				//float spacing = 0.1f; // Adjust this for proper spacing
 
 				for (int i = 0; i < 1000; ++i) {
 					// Calculate random position from -1.0 to 1.0
@@ -1164,7 +1170,7 @@ namespace Editor {
 		if (ImGui::Button("Spawn Test Skeleton")) {
 			
 			SceneManager& sceneMgr = SceneManager::GetInstance();
-			const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+			//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
 			// Create entity
 			Entity skeleton = entityMgr.CreateEntity();
@@ -2323,6 +2329,32 @@ namespace Editor {
 					DrawDragDropPreview(drawList);
 				}
 
+				if (isDraggingGameObj_ && isMouseOverGameViewport_) {
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+						Entity bestCandidate = GetObjAtMousePos();
+						if (bestCandidate > 0) {
+							selectedEntityIndex = bestCandidate;
+							isEntitySelected_ = true;
+						}
+					}
+
+					EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && selectedEntityIndex > 0 && isEntitySelected_) {
+						if (entityMgr.HasComponent(selectedEntityIndex, PositionType)) {
+							Vector2D currentWorldMousePos = GetMouseWorldPosition();
+							Vector2D snappedPos = SnapToGrid(currentWorldMousePos);
+
+							Position& pos = entityMgr.GetComponent<Position>(selectedEntityIndex);
+							pos = Position(snappedPos);
+
+							if (entityMgr.HasComponent(selectedEntityIndex, TrapPlatformComponentType)) {
+								TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(selectedEntityIndex);
+								trap.originalPosition = snappedPos;
+							}
+						}
+					}
+				}
+
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 				if (aiSystem && camSystem && aiSystem->debugVisualization) {
 					Entity activeCam = engine_->IsEditorMode() && editorCamera_ != 0
@@ -2406,6 +2438,27 @@ namespace Editor {
 				ImGui::SetCursorPosX(offsetX);
 			}
 
+			// Move game object button
+			bool was_moving = isDraggingGameObj_;
+			if (was_moving)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+			}
+			if (ImGui::Button("Move Game Obj"))
+			{
+				isDraggingGameObj_ = !isDraggingGameObj_;
+				
+				if (isDraggingGameObj_) {
+					engine_->SetMode(Framework::EngineMode::Editor);
+				}
+			}
+			if (was_moving)
+			{
+				ImGui::PopStyleColor();
+			}
+			
+			ImGui::SameLine(0, spacing * 2);
+
 			// Play Button
 			ImGui::PushStyleColor(ImGuiCol_Button, isGamePlaying ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
 
@@ -2424,6 +2477,10 @@ namespace Editor {
 			{
 				if (isGamePlaying) {
 					gameManager_->GetSystems().levelResetter_->RunReset();
+					ResetEditorCamera();
+				}
+				else {
+					engine_->SetMode(Framework::EngineMode::Play);
 				}
 
 				isGamePlaying = !isGamePlaying;
