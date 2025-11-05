@@ -287,6 +287,7 @@ namespace Editor {
 		}
 
 		initialized = true;
+		engine_->SetMode(EngineMode::Editor);
 	}
 
 
@@ -671,7 +672,6 @@ namespace Editor {
 
 				// Add basic components for tiles
 				entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-				entityMgr.AddComponent(newEntity, Framework::SpawnPoint{ snappedPos });
 				entityMgr.AddComponent(newEntity, Framework::Velocity{ {0.0f, 0.0f} });
 				entityMgr.AddComponent(newEntity, Framework::RigidBody{ {0.0f, 0.0f}, false, 0.0f, 0.0f });
 				entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
@@ -862,7 +862,7 @@ namespace Editor {
 
 		// Update the editor's selection state
 		if (bestCandidate > 0) {
-			selectedEntityIndex = bestCandidate;
+			selectedEntityIndex = bestCandidate + 1;
 			isEntitySelected_ = true;
 			selectedComponentIndex = 0;
 			selectedTagIndex = 0;
@@ -873,39 +873,6 @@ namespace Editor {
 			selectedComponentIndex = 0;
 			selectedTagIndex = 0;
 		}
-	}
-
-	Entity Editor::GetObjAtMousePos() {
-		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Vector2D mouseWorldPos = GetMouseWorldPosition();
-		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-
-		Entity bestCandidate = 0;
-
-		// Get the list of entities from the active scene 
-		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
-
-		// Iterate through entities to find which one was clicked.
-		// iterate in reverse to correctly select the entity that is rendered on top.
-		for (std::vector<Entity>::const_reverse_iterator it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
-			const Entity& entity = *it;
-			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
-				entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType))
-			{
-				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				Vector2D& halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
-
-				// check using AABB.
-				if (mouseWorldPos.x >= pos.x - halfSize.x && mouseWorldPos.x <= pos.x + halfSize.x &&
-					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
-				{
-					bestCandidate = entity;
-					break; // Stop after finding the top-most one
-				}
-			}
-		}
-
-		return bestCandidate;
 	}
 
 	void Editor::HandleDeletion() {
@@ -921,6 +888,68 @@ namespace Editor {
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;
 			}
+		}
+	}
+
+	void Editor::HandleInWorldDragDrop() {
+		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		static bool gizmoClicked = false;
+		
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			// check if clicked on gizmo
+			ImVec2 mouseScreenPos = ImGui::GetMousePos();
+			std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
+			for (Entity en : spawnPts)
+			{
+				SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
+				ImVec2 gizmoScreenPos = WorldToImGuiScreen(spawnPt.Pos);
+
+				float dx = mouseScreenPos.x - gizmoScreenPos.x;
+				float dy = mouseScreenPos.y - gizmoScreenPos.y;
+				float distSq = dx * dx + dy * dy;
+
+				if (distSq <= (gizmoCircleRad * gizmoCircleRad))
+				{
+					selectedEntityIndex = en + 1;
+					isEntitySelected_ = true;
+					gizmoClicked = true;
+					break;
+				}
+			}
+
+			// else check entity clicked
+			if (!gizmoClicked) {
+				Entity bestCandidate = GetObjAtMousePos();
+				if (bestCandidate > 0) {
+					selectedEntityIndex = bestCandidate + 1;
+					isEntitySelected_ = true;
+				}
+			}
+		}
+
+		// Handle dragging. Updates respective components with snapped position
+		if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && selectedEntityIndex > 1 && isEntitySelected_) {
+			Vector2D currentWorldMousePos = GetMouseWorldPosition();
+			Vector2D snappedPos = SnapToGrid(currentWorldMousePos);
+			Entity index = selectedEntityIndex - 1;
+		
+			if (entityMgr.HasComponent(index, PositionType)) {
+				Position& pos = entityMgr.GetComponent<Position>(index);
+				pos.Pos = snappedPos;
+			}
+			if (entityMgr.HasComponent(index, TrapPlatformComponentType)) {
+				TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(index);
+				trap.originalPosition = snappedPos;
+			}
+			if (entityMgr.HasComponent(index, SpawnPointType)) {
+				SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(index);
+				spawnPt.Pos = snappedPos;
+			}
+		}
+
+		// Reset gizmoClicked bool on mouse release
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			gizmoClicked = false;
 		}
 	}
 
@@ -2329,30 +2358,20 @@ namespace Editor {
 					DrawDragDropPreview(drawList);
 				}
 
-				if (isDraggingGameObj_ && isMouseOverGameViewport_) {
-					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-						Entity bestCandidate = GetObjAtMousePos();
-						if (bestCandidate > 0) {
-							selectedEntityIndex = bestCandidate;
-							isEntitySelected_ = true;
-						}
-					}
-
+				// Draw gizmos for SpawnPoint
+				if (engine_->IsEditorMode()) {
 					EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && selectedEntityIndex > 0 && isEntitySelected_) {
-						if (entityMgr.HasComponent(selectedEntityIndex, PositionType)) {
-							Vector2D currentWorldMousePos = GetMouseWorldPosition();
-							Vector2D snappedPos = SnapToGrid(currentWorldMousePos);
-
-							Position& pos = entityMgr.GetComponent<Position>(selectedEntityIndex);
-							pos = Position(snappedPos);
-
-							if (entityMgr.HasComponent(selectedEntityIndex, TrapPlatformComponentType)) {
-								TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(selectedEntityIndex);
-								trap.originalPosition = snappedPos;
-							}
-						}
+					std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
+					for (Entity en : spawnPts) {
+						SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
+						ImVec2 gizmoScreenPos = WorldToImGuiScreen(spawnPt.Pos);
+						drawList->AddCircleFilled(gizmoScreenPos, gizmoCircleRad, IM_COL32(0, 255, 0, 255), 12);
 					}
+				}
+
+				// In world dragging and dropping of game objects
+				if (isDraggingGameObj_ && isMouseOverGameViewport_) {
+					HandleInWorldDragDrop();
 				}
 
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
@@ -2400,8 +2419,6 @@ namespace Editor {
 
 		ImGui::End();
 	}
-
-
 
 #pragma endregion
 
@@ -3188,4 +3205,38 @@ namespace Editor {
 
 		ImGui::End();
 	}
+
+	Entity Editor::GetObjAtMousePos() {
+		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		Vector2D mouseWorldPos = GetMouseWorldPosition();
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		Entity bestCandidate = 0;
+
+		// Get the list of entities from the active scene 
+		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+		// Iterate through entities to find which one was clicked.
+		// iterate in reverse to correctly select the entity that is rendered on top.
+		for (std::vector<Entity>::const_reverse_iterator it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
+			const Entity& entity = *it;
+			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
+				entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType))
+			{
+				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				Vector2D& halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
+
+				// check using AABB.
+				if (mouseWorldPos.x >= pos.x - halfSize.x && mouseWorldPos.x <= pos.x + halfSize.x &&
+					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
+				{
+					bestCandidate = entity;
+					break; // Stop after finding the top-most one
+				}
+			}
+		}
+
+		return bestCandidate;
+	}
+
 }

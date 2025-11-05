@@ -143,6 +143,7 @@ namespace Editor {
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
 		bool isMouseOverGameViewport_ = false;
+		const float gizmoCircleRad = 8.0f;
 		//void DrawEditorGridGfx();
 
 		// Entity factory System members
@@ -204,8 +205,10 @@ namespace Editor {
 		 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
 		 */
 		void HandleSelection();
-		Entity GetObjAtMousePos();
 		void HandleDeletion();
+
+		// Handles In World dragging and dropping of game objects
+		void HandleInWorldDragDrop();
 
 		/* Entity Copy & Pasting APIs */
 		void CopyEntityToClipboard(const Entity& entity);
@@ -239,6 +242,9 @@ namespace Editor {
 
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
+
+		// Returns entity at current mouse position in the game world, 0 if not found.
+		Entity GetObjAtMousePos();
 
 		// --- NEW Helper ---
 
