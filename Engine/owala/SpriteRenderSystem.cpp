@@ -1,10 +1,40 @@
+﻿/*********************************************************************//**
+ * \file   SpriteRenderSystem.cpp
+ *
+ * \primary_author
+ *      Ng Jordain Ying Zhe (100%)
+ *
+ * \brief
+ *      Implements the SpriteRenderSystem responsible for rendering sprites,
+ *      text, and optional collider outlines within the ECS framework.
+ *
+ * \details
+ *      The SpriteRenderSystem handles:
+ *        - Sprite batching and sorting by render order and texture.
+ *        - World-to-screen coordinate transformation using CameraSystem.
+ *        - Layered rendering for background, objects, enemies, players, and UI.
+ *        - Text rendering with automatic line wrapping and zoom correction.
+ *        - Optional collider visualization for debugging purposes.
+ *
+ *      Rendering flow per frame:
+ *        1. Begin frame clearing the color buffer.
+ *        2. Render sprites in sorted order.
+ *        3. Render text components.
+ *        4. Optionally draw collider outlines.
+ *
+ * \copyright
+ *      Copyright (C) 2025 DigiPen Institute of Technology.
+ *      Reproduction or disclosure of this file or its contents without the prior
+ *      written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "SpriteRenderSystem.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
 #include "Matrix3x3.h"
 #include <cmath>
 #include <random>
-#include <algorithm> // Add this for std::sort
+#include <algorithm>
 #include <tuple>
 
 #ifndef M_PI
@@ -13,8 +43,13 @@
 
 namespace Framework {
 
+    /**
+     * \brief Main per-frame update function for sprite rendering.
+     *
+     * Clears the screen, renders all sprite batches, and optionally
+     * draws collider outlines if enabled.
+     */
     void SpriteRenderSystem::Update() {
-        // Clear frame once per frame
         gfx_.beginFrame(clearColor_);
         RenderSprites();
         if (drawColliders_) {
@@ -22,38 +57,40 @@ namespace Framework {
         }
     }
 
+    /**
+     * \brief Renders all visible sprites and text components.
+     *
+     * Collects all entities with active `TextureComponent`, applies
+     * world-to-screen transformations, performs frustum culling,
+     * sorts by render order and texture, and draws batched sprites.
+     * Then renders text components on top of all layers.
+     */
     void SpriteRenderSystem::RenderSprites() {
         EntityManager entityMgr(ecs_);
 
-        // === GET ACTIVE CAMERA ===
+        // Retrieve active camera
         Entity activeCamera = 0;
         if (cameraSystem_) {
             activeCamera = cameraSystem_->GetActiveCamera();
         }
 
-        // Default view bounds if no camera
         float left = -1.0f, right = 1.0f, bottom = -1.0f, top = 1.0f;
-
-        // If we have an active camera, get its view bounds
         if (activeCamera != 0 && cameraSystem_) {
             cameraSystem_->GetViewBounds(activeCamera, left, right, bottom, top);
         }
 
-        // === BATCH COLLECTION ===
-        // Use a struct to group by texture AND render order
+        // --- Sprite Batching ---
         struct BatchKey {
             Texture texture;
             int renderOrder;
-
             bool operator<(const BatchKey& other) const {
-                // Sort by renderOrder first, THEN by texture
                 return std::tie(renderOrder, texture) < std::tie(other.renderOrder, other.texture);
             }
         };
 
         std::map<BatchKey, std::vector<BatchedSprite>> batches;
 
-        // Iterate all entities that have a sprite component
+        // --- Collect Sprite Entities ---
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, PositionType, ActiveTagType)) {
             TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(entity);
             if (sprite.textureKey.empty()) continue;
@@ -62,24 +99,16 @@ namespace Framework {
                 const Vector2D& worldPos = entityMgr.GetComponent<Position>(entity).Pos;
                 bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
-                // World-space half size
+                // Determine half size based on available components
                 Vector2D halfSize;
-                // Check for texture half size first
-                if (entityMgr.HasComponent(entity, TextureComponentType)) {
+                if (entityMgr.HasComponent(entity, TextureComponentType))
                     halfSize = sprite.HalfSize;
-                }
-                // If no texture component, fallback and check for collider half size
-                else if (entityMgr.HasComponent(entity, AABBColliderType)) {
+                else if (entityMgr.HasComponent(entity, AABBColliderType))
                     halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
-                }
-                else if (entityMgr.HasComponent(entity, BackgroundTagType)) {
+                else
                     halfSize = sprite.HalfSize;
-                }
-                else {
-                    halfSize = sprite.HalfSize;
-                }
 
-                // === CULLING IN WORLD SPACE ===
+                // --- Frustum Culling ---
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     if (worldPos.x + halfSize.x < left || worldPos.x - halfSize.x > right ||
                         worldPos.y + halfSize.y < bottom || worldPos.y - halfSize.y > top) {
@@ -87,47 +116,35 @@ namespace Framework {
                     }
                 }
 
-                // Optional rotation (degrees -> radians)
+                // --- Rotation (degrees → radians) ---
                 float rotationRad = 0.0f;
                 if (entityMgr.HasComponent(entity, RotationFlagType)) {
                     rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(entity).currentRotation * (M_PI / 180.0));
                 }
 
-                // Fetch the texture by key from ResourceManager
+                // --- Fetch Texture Resource ---
                 Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
-                // === DETERMINE RENDER ORDER ===
-                int renderOrder = 0; // Default order
-
-                // Background gets lowest priority
-                if (entityMgr.HasComponent(entity, BackgroundTagType)) {
+                // --- Determine Render Order ---
+                int renderOrder = 0;
+                if (entityMgr.HasComponent(entity, BackgroundTagType))
                     renderOrder = -100;
-                }
-				else if (isUIElement) {
-					renderOrder = 200; // UI elements render on top
-				}
-                // Players and important objects get higher priority
-                else if (entityMgr.HasComponent(entity, PlayerTagType)) {
+                else if (isUIElement)
+                    renderOrder = 200;
+                else if (entityMgr.HasComponent(entity, PlayerTagType))
                     renderOrder = 100;
-                }
-                // Platforms and normal objects get medium priority
-                else if (entityMgr.HasComponent(entity, PlatformTagType)) {
-                    renderOrder = 50;
-                }
-                // Enemies get higher priority than platforms but lower than players
-                else if (entityMgr.HasComponent(entity, EnemyTagType)) {
+                else if (entityMgr.HasComponent(entity, EnemyTagType))
                     renderOrder = 75;
-                }
+                else if (entityMgr.HasComponent(entity, PlatformTagType))
+                    renderOrder = 50;
 
-                // === WORLD -> SCREEN TRANSFORM ===
+                // --- World → Screen Conversion ---
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
-                    // Position to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
-                    // Derive per-axis screen scale
                     const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
                     const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
 
@@ -135,17 +152,17 @@ namespace Framework {
                     screenHalfSize.y = std::abs(sy.y) * halfSize.y;
                 }
 
-                // Convert center + half to topLeft + full in SCREEN SPACE
+                // --- Convert to Top-Left & Full Size ---
                 Vector2D topLeft = { screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y };
-                Vector2D fullSize = { screenHalfSize.x * 2.0f,       screenHalfSize.y * 2.0f };
+                Vector2D fullSize = { screenHalfSize.x * 2.0f, screenHalfSize.y * 2.0f };
 
-                // Create batched sprite
+                // --- Create Batched Sprite ---
                 BatchedSprite batchedSprite;
                 batchedSprite.topLeft = topLeft;
                 batchedSprite.size = fullSize;
                 batchedSprite.rotation = rotationRad;
 
-                // Get UV coordinates for animation
+                // --- UV Animation ---
                 if (entityMgr.HasComponent(entity, AnimationComponentType)) {
                     const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(entity);
                     batchedSprite.minUV = animComp.minUV;
@@ -156,7 +173,7 @@ namespace Framework {
                     batchedSprite.maxUV = { 1.0f, 1.0f };
                 }
 
-                // Add to batch with render order
+                // --- Add to Batch ---
                 BatchKey key{ tex, renderOrder };
                 batches[key].push_back(batchedSprite);
             }
@@ -168,15 +185,14 @@ namespace Framework {
             }
         }
 
-        // === RENDER BATCHES IN ORDER ===
-        // std::map automatically sorts by key (which includes renderOrder)
+        // --- Render Sprite Batches ---
         for (auto& [key, sprites] : batches) {
             if (!sprites.empty()) {
                 gfx_.drawSpriteBatch(key.texture, sprites);
             }
         }
 
-        // --- Render Text (always on top) ---
+        // --- Render Text ---
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, PositionType, ActiveTagType)) {
             const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
             if (component.fontKey.empty()) continue;
@@ -205,26 +221,28 @@ namespace Framework {
                 }
 
                 for (const auto& line : lines) {
-                    // Divide by zoom so it matches sprite scaling direction
                     gfx_.drawText(font, line, current_pos, component.scale / zoom, component.color);
                     current_pos.y -= line_height_ndc / zoom;
                 }
-
             }
-
-			catch (const std::exception& e) {
-				Logger::Get().Error(DebugType::GraphicsSystem)
-					<< "Failed to render text for entity " << entity
-					<< " (Bad font key: " << component.fontKey << "): " << e.what();
-				continue;
-			}
+            catch (const std::exception& e) {
+                Logger::Get().Error(DebugType::GraphicsSystem)
+                    << "Failed to render text for entity " << entity
+                    << " (Bad font key: " << component.fontKey << "): " << e.what();
+                continue;
+            }
         }
     }
 
+    /**
+     * \brief Renders collider outlines for debugging.
+     *
+     * Draws green outlines for all active AABB colliders
+     * in the currently active scene. Uses camera transformations
+     * to maintain visual alignment with world coordinates.
+     */
     void SpriteRenderSystem::RenderColliderOutlines() {
-        // This remains unchanged from your original implementation
         EntityManager entityMgr(ecs_);
-
         Entity activeCamera = 0;
         if (cameraSystem_) {
             activeCamera = cameraSystem_->GetActiveCamera();
@@ -232,9 +250,8 @@ namespace Framework {
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
             if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
-			const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
-
-			if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;
+            const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
+            if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;
 
             const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
             if (!entityMgr.HasComponent(e, PositionType)) continue;
@@ -247,7 +264,6 @@ namespace Framework {
 
             if (activeCamera != 0 && cameraSystem_) {
                 screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
-
                 const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
                 const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
 

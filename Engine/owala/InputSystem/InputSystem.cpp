@@ -1,3 +1,20 @@
+/*****************************************************************//**
+ * \file   InputSystem.h
+ *
+ * \primary_author
+ *      Ng Jordain Ying Zhe
+ * \secondary_author
+ *
+ * \brief
+ *   Engine input subsystem that wraps GLFW keyboard/mouse state into a
+ *   frame-based API (Down/Pressed/Released), with integer and enum
+ *   query overloads, cursor locking, and mouse delta tracking.
+ *
+ * \copyright
+ *   Copyright (C) 2025 DigiPen Institute of Technology.
+ *   Reproduction or disclosure of this file or its contents without the prior
+ *   written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "InputSystem.h"
 #include "WindowsSystem.h"
 #include <GL/glew.h>
