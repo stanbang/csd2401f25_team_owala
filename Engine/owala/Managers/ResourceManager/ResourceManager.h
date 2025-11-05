@@ -144,12 +144,12 @@ namespace Framework {
         AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
     };
 
+	// Getter for resources, with automatic loading if missing
     template<typename ResourceType>
     ResourceType& ResourceManager::get(std::string key) {
-
         // Texture
         if constexpr (std::is_same<ResourceType, Texture>::value) {
-            auto& map = getTextureMap();
+			std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& map = getTextureMap();
             auto it = map.find(key);
             if (it == map.end()) {
 				// Load automatically if missing
@@ -167,7 +167,7 @@ namespace Framework {
 
         // Audio
         else if constexpr (std::is_same<ResourceType, Audio>::value) {
-            auto& map = getSoundMap();
+			std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& map = getSoundMap();
             auto it = map.find(key);
             if (it == map.end()) {
 				// Load automatically if missing
@@ -185,7 +185,7 @@ namespace Framework {
 
         // Font
         else if constexpr (std::is_same<ResourceType, Font>::value) {
-            auto& map = getFontMap();
+			std::unordered_map<std::string, std::unique_ptr<Font>>& map = getFontMap();
             auto it = map.find(key);
             if (it == map.end()) {
 				// Load automatically if missing
@@ -203,7 +203,7 @@ namespace Framework {
 
         // AnimationInfo
         else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
-            auto& map = getAnimationMap();
+			std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& map = getAnimationMap();
             auto it = map.find(key);
             if (it == map.end()) {
 				// Load automatically if missing

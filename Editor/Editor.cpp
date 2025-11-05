@@ -2,9 +2,14 @@
 * \file   Editor.cpp
 *
 * \primary_author
-*      Jason Lou (50%)
+*		Jason Lou (19%)
 * \secondary_author
-*	   Lur Pei Hao Stanley (50%)
+*		Lur Pei Hao Stanley (19%)
+*		Sitara Anil (19%)
+*		Ng Jordain Ying Zhe (19%)
+*		Yar Xuan (19%)
+*		Ng Jing Wen (5%)
+*		
 *
 *
 * \brief	Implementation of the Editor system for in-game level editing and

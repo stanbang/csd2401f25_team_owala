@@ -1,9 +1,27 @@
+/*****************************************************************//**
+* \file   AssetBrowser.cpp
+*
+* \primary_author
+*       Ng Jing Wen
+* \secondary_author
+*
+*
+* \brief    Contains the implementation of an AssetBrowser that allows the user
+*           to navigate, view, and manage assets within a specified directory.
+*           Comes with a folder tree view, asset viewer, and asset editor panel
+*           that support drag-and-drop file importing and asset replacement.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "AssetBrowser.h"
 #include "Logger.h"
 
 using namespace Framework;
 
+// Initialize the AssetBrowser with a specified root path
 void AssetBrowser::Initialize(const fs::path& rootPath)
 {
     // Validate input path
@@ -12,43 +30,50 @@ void AssetBrowser::Initialize(const fs::path& rootPath)
         return;
     }
 
+	// If input path is valid, get the absolute path
     rootPath_ = fs::absolute(rootPath);
     currentPath_ = rootPath_;
 
     Logger::Get().Info(DebugType::Editor) << "AssetBrowser initializing with root: '" << rootPath_.string() << "'" << std::endl;
 
+	// Check if the root path exists and is a directory
     if (fs::exists(rootPath_) && fs::is_directory(rootPath_))
         ScanDirectory(rootPath_);
     else
         Logger::Get().Error(DebugType::Editor) << "AssetBrowser: Root path invalid: " << rootPath_.string() << std::endl;
 }
 
+// Scan a directory and populate the asset list
 void AssetBrowser::ScanDirectory(const fs::path& directoryPath)
 {
-    // LOG THE INCOMING PATH FIRST
+	// Log incoming directory path
     Logger::Get().Info(DebugType::Editor) << "ScanDirectory called with: '" << directoryPath.string() << "'" << std::endl;
 
     // Validate the path before scanning
+	// Check for empty path
     if (directoryPath.empty()) {
         Logger::Get().Error(DebugType::Editor) << "ScanDirectory: Empty path provided!" << std::endl;
         return;
     }
 
+	// If path does not exist or is not a directory, log error and return
     if (!fs::exists(directoryPath)) {
         Logger::Get().Error(DebugType::Editor) << "ScanDirectory: Path does not exist: '" << directoryPath.string() << "'" << std::endl;
         return;
     }
 
+	// If path is not a directory, log error and return
     if (!fs::is_directory(directoryPath)) {
         Logger::Get().Error(DebugType::Editor) << "ScanDirectory: Path is not a directory: '" << directoryPath.string() << "'" << std::endl;
         return;
     }
 
+	// Clear current assets in the list
     currentAssets_.clear();
     currentPath_ = directoryPath;
     Logger::Get().Info(DebugType::Editor) << "Assigned currentPath_: '" << currentPath_.string() << "'" << std::endl;
 
-    // Parent folder entry
+    // Parent folder entry, if not at root, generates a ".." button to go up one level in the Asset Viewer
     if (currentPath_ != rootPath_)
     {
         fs::path parentPath = fs::absolute(currentPath_.parent_path());
@@ -62,13 +87,16 @@ void AssetBrowser::ScanDirectory(const fs::path& directoryPath)
             });
     }
 
+	// After generation of parent entry(or not if at root already), scan the directory for files and folders and create AssetEntry for each
     try
     {
         int fileCount = 0;
         int dirCount = 0;
 
-        for (const auto& entry : fs::directory_iterator(currentPath_))
+		// Iterate through directory entries
+        for (const fs::directory_entry& entry : fs::directory_iterator(currentPath_))
         {
+			// Create an AssetEntry for each file/folder and store it in currentAssets_
             AssetEntry asset;
             asset.path = fs::absolute(entry.path());
             asset.name = entry.path().filename().string();
@@ -105,20 +133,25 @@ void AssetBrowser::ScanDirectory(const fs::path& directoryPath)
     Logger::Get().Info(DebugType::Editor) << "Total assets after sort: " << currentAssets_.size() << std::endl;
 }
 
+// Navigate to a specific path
 void AssetBrowser::NavigateTo(const fs::path& target)
 {
     Logger::Get().Info(DebugType::Editor) << "NavigateTo called with: '" << target.string() << "'" << std::endl;
 
+	// Validate the target path
+	// Check for empty path
     if (target.empty()) {
         Logger::Get().Error(DebugType::Editor) << "NavigateTo: Empty path provided!" << std::endl;
         return;
     }
 
+	// Check if path exists
     if (!fs::exists(target)) {
         Logger::Get().Error(DebugType::Editor) << "NavigateTo: Path does not exist: '" << target.string() << "'" << std::endl;
         return;
     }
 
+	// If target is a directory, scan it to prepare the Asset Viewer for display
     if (fs::is_directory(target)) {
         // Make a copy to avoid reference issues
         fs::path targetCopy = target;
@@ -130,10 +163,12 @@ void AssetBrowser::NavigateTo(const fs::path& target)
     }
 }
 
+// Navigate up one level
 void AssetBrowser::NavigateUp()
 {
     Logger::Get().Info(DebugType::Editor) << "NavigateUp called. Current: '" << currentPath_.string() << "', Root: '" << rootPath_.string() << "'" << std::endl;
 
+	// If already at root, don't let the user go up further
     if (currentPath_ == rootPath_) {
         Logger::Get().Info(DebugType::Editor) << "Already at root, cannot navigate up" << std::endl;
         return;
@@ -146,44 +181,53 @@ void AssetBrowser::NavigateUp()
     std::string parentStr = parent.string();
     std::string rootStr = rootPath_.string();
 
+	// If parent is outside root, navigate to root instead
     if (parentStr.find(rootStr) != 0) {
         Logger::Get().Info(DebugType::Editor) << "Parent outside root, navigating to root instead" << std::endl;
         parent = rootPath_;
     }
 
+	// Scan the parent directory to update the Asset Viewer
     ScanDirectory(parent);
 }
 
+// Display folder tree recursively
 void AssetBrowser::ShowFolderTree(const fs::path& path)
 {
+	// Validate the path
     if (!fs::exists(path) || !fs::is_directory(path)) {
         return;
     }
 
     try {
-        for (const auto& entry : fs::directory_iterator(path))
+        for (const fs::directory_entry& entry : fs::directory_iterator(path))
         {
-            const std::string name = entry.path().filename().string();
-            bool isDir = entry.is_directory();
-            ImGuiTreeNodeFlags flags = isDir ? ImGuiTreeNodeFlags_OpenOnArrow : ImGuiTreeNodeFlags_Leaf;
+            const std::string name = entry.path().filename().string(); // Get the name of the file/folder
+			bool isDir = entry.is_directory(); // Get whether it's a directory or not
+			ImGuiTreeNodeFlags flags = isDir ? ImGuiTreeNodeFlags_OpenOnArrow : ImGuiTreeNodeFlags_Leaf; // Set openable flags based on type
 
+			// Render the tree node
             bool opened = ImGui::TreeNodeEx(name.c_str(), flags);
 
+            // Log clicks for debug
             if (ImGui::IsItemClicked() && !isDir)
             {
                 Logger::Get().Info(DebugType::Editor) << "File clicked: " << entry.path().string() << std::endl;
             }
+			// Handle double-clicks on directories to navigate into them
             else if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(0) && isDir)
             {
                 Logger::Get().Info(DebugType::Editor) << "Folder double-clicked: " << entry.path().string() << std::endl;
                 NavigateTo(entry.path());
             }
 
+			// If it's a directory and opened, recurse into it to show its contents
             if (opened && isDir)
             {
                 ShowFolderTree(entry.path());
                 ImGui::TreePop();
             }
+			// Else, if it's not a directory but opened (leaf node), just pop the tree
             else if (opened)
             {
                 ImGui::TreePop();
@@ -195,9 +239,10 @@ void AssetBrowser::ShowFolderTree(const fs::path& path)
     }
 }
 
+// Render the Asset Browser UI
 void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 {
-    // --- Left: Folder Tree ---
+    // Folder Tree Panel
     if (ImGui::Begin("Project Explorer"))
     {
         if (ImGui::Button("Go to Root"))
@@ -208,15 +253,16 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
     }
     ImGui::End();
 
-    // --- Right: File Contents ---
+    // Asset Viewer Panel
     if (ImGui::Begin("Asset Viewer"))
     {
-        ImGui::TextWrapped("Directory: %s", currentPath_.string().c_str());
+		ImGui::TextWrapped("Directory: %s", currentPath_.string().c_str()); // List the current directory path for easy reference
         ImGui::Text("Assets: %zu", currentAssets_.size());
         ImGui::Separator();
 
-        ImGui::BeginChild("AssetList", ImVec2(0, 0), true);
+		ImGui::BeginChild("AssetList", ImVec2(0, 0), true); // The actual area that lists the assets in a grid
         
+		// Handle file drops onto the Asset Viewer area from the OS's file explorer
         if (!droppedFiles.empty() && !isReplaceModeActive_ &&
             (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow) ||
                 ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow)))
@@ -225,11 +271,13 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
             droppedFiles.clear();
         }
 
+		// Calculate number of columns based on available width
         float availableWidth = ImGui::GetContentRegionAvail().x;
         float itemWidth = 120.0f;
         int columns = std::max(1, (int)(availableWidth / itemWidth));
         ImGui::Columns(columns, "assetColumns", false);
 
+		// Loop through assets and render them
         for (size_t i = 0; i < currentAssets_.size(); ++i)
         {
             const auto& asset = currentAssets_[i];
@@ -237,54 +285,60 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 
             ImVec2 itemSize(100, 100);
 
+			// Render directory entries as buttons
             if (asset.isDirectory)
             {
                 std::string displayName = "[DIR] " + asset.name;
                 if (ImGui::Button(displayName.c_str(), itemSize))
                 {
-                    if (asset.name == "..")
+					if (asset.name == "..") // Go up one level button
                         NavigateUp();
                     else
-                        NavigateTo(asset.path);
+						NavigateTo(asset.path); // Navigate into the clicked directory
                 }
             }
+			// Render file entries
             else
             {
+				// Determine file extension
                 std::string ext = asset.path.extension().string();
+				// Convert extension to lowercase for comparison
                 std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
                 bool clicked = false;
 
+                // Supported image extensions 
                 if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
                 {
                     std::string texName = asset.path.filename().string();
 
-                    // 1. Check if the resource exists
+                    // Check if the resource exists for display
                     if (!resourceManager_->has<Texture>(texName))
                     {
-                        // 2. If not, try to load it
+                        // If not, try to load it
                         resourceManager_->loadTexture(texName, asset.path.string());
                     }
 
-                    // 3. Now, try to get it.
-                    //    (Still use try/catch in case loading failed and it's *still* not there)
+					// Get and display the texture after loading from resource manager
                     try
                     {
                         Texture& tex = resourceManager_->get<Texture>(texName);
                         clicked = ImGui::ImageButton(("asset_" + asset.name).c_str(), tex, itemSize, ImVec2(0, 1), ImVec2(1, 0));
                     }
-
+					// Catch any exceptions during texture retrieval
                     catch (const std::exception& e)
                     {
                         Logger::Get().Info(DebugType::Editor) << "Failed to load file " << asset.name << ": " << e.what() << std::endl;
                     }
                 }
 
+				// If file image button was clicked, select the asset
                 if (clicked)
                 {
                     selectedAsset_ = asset.path;
                     Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                 }
+				// Non-image files are rendered as regular buttons
                 else if (!(ext == ".png" || ext == ".jpg" || ext == ".jpeg"))
                 {
                     if (ImGui::Button(asset.display.c_str(), itemSize))
@@ -304,9 +358,11 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
     }
     ImGui::End();
 
+	// Render Asset Editor Panel after updating backend
     RenderAssetEditor(droppedFiles);
 }
 
+// Render the Asset Editor panel
 void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 {
     if (ImGui::Begin("Asset Editor")) {
@@ -317,6 +373,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
             std::string ext = selectedAsset_.extension().string();
             std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
+			// Reimport Button(Reloads the asset from disk)
             if (ImGui::Button("Reimport Asset", ImVec2(150, 30)))
             {
                 Logger::Get().Info(DebugType::Editor) << "Reimporting asset: " << selectedAsset_.string() << std::endl;
@@ -342,7 +399,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 }
             }
 
-            // Replace Button
+            // Replace Button (Toggles replace mode that allows drag and drop into a drop zone)
             ImGui::SameLine();
             if (ImGui::Button("Replace Asset", ImVec2(150, 30)))
             {
@@ -473,6 +530,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 
                 ImGui::SameLine();
 
+				// Cancel button for replacement
                 if (ImGui::Button("Cancel", ImVec2(120, 0)))
                 {
                     showReplaceConfirmation_ = false;
@@ -520,8 +578,10 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
     ImGui::End();
 }
 
+// Handle files dropped into the asset browser
 void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
 {
+	// If no files were dropped, return early
     if (droppedFiles.empty()) return;
 
     Logger::Get().Info(DebugType::Editor) << "Processing " << droppedFiles.size() << " dropped files." << std::endl;
@@ -534,6 +594,7 @@ void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
             // Only copy if it's a regular file
             if (fs::is_regular_file(sourcePath))
             {
+				// Determine destination path in current directory
                 fs::path destinationPath = currentPath_ / sourcePath.filename();
 
                 // Check if file already exists and handle accordingly
@@ -543,12 +604,14 @@ void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
                         << "File already exists, overwriting: " << destinationPath.string() << std::endl;
                 }
 
+				// Copy the file to the current directory
                 fs::copy(sourcePath, destinationPath, fs::copy_options::overwrite_existing);
 
                 Logger::Get().Info(DebugType::Editor)
                     << "Copied '" << sourcePath.string() << "' to '" << destinationPath.string() << "'" << std::endl;
                 filesCopied = true;
             }
+			// If not a regular file, log and skip
             else
             {
                 Logger::Get().Info(DebugType::Editor)
@@ -562,13 +625,14 @@ void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
         }
     }
 
-    // If we successfully copied anything, refresh the asset list
+    // If successfully copied anything, refresh the asset list
     if (filesCopied)
     {
         ScanDirectory(currentPath_);
     }
 }
 
+// Handle file replacement
 void AssetBrowser::HandleReplaceFile(const std::vector<fs::path>& droppedFiles)
 {
     if (droppedFiles.empty() || !isReplaceModeActive_) return;
@@ -590,6 +654,7 @@ void AssetBrowser::HandleReplaceFile(const std::vector<fs::path>& droppedFiles)
     std::transform(selectedExt.begin(), selectedExt.end(), selectedExt.begin(), ::tolower);
     std::transform(droppedExt.begin(), droppedExt.end(), droppedExt.begin(), ::tolower);
 
+	// If extensions do not match, log error and return
     if (selectedExt != droppedExt)
     {
         Logger::Get().Error(DebugType::Editor)

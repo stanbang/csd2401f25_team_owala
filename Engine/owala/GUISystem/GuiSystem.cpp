@@ -1,3 +1,20 @@
+/*****************************************************************//**
+ * \file  GuiSystem.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Implementation of the GuiSystem that handles GUI interactions.
+ *			Uses mouse input to detect button hovering and clicks.
+ *			Uses a subscription-publishing model to notify other systems of 
+ *			button clicks.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "GuiSystem.h"
 #include "CameraSystem.h" // For the camera
 #include "GameMessages.h" // For ButtonClickedEvent
@@ -28,6 +45,7 @@ namespace Framework {
 		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / viewportSize_.y) * 2.0f);
 		#endif
 
+		// Engine build uses full window size
 		#ifdef BUILD_ENGINE
 		inputSystem_->GetMousePos(&mouseX, &mouseY); // Get mouse position in window coordinates
 		double mouseX_ndc = static_cast<double>((mouseX / viewportSizeEngine_.x) * 2.0f - 1.0f);
@@ -90,6 +108,7 @@ namespace Framework {
 
 	}
 
+	// Sets the viewport context for the editor (position and size)
 	#ifdef BUILD_EDITOR
 	void Framework::GuiSystem::SetViewportContext(ImVec2 position, ImVec2 size) {
 		viewportPos_ = position;
