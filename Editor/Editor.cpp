@@ -552,7 +552,7 @@ namespace Editor {
 				Texture texID = resourceManager_->get<Texture>(textureKey);
 
 				if (texID != 0) {
-					paletteItems_.push_back({ name, type, texID });
+					paletteItems_.push_back({ name, type, texID , ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
 					Framework::Logger::Get().Info(DebugType::Editor) << " -> Success! Added palette item: '" << name << "' (ID: " << texID << ")" << std::endl;
 				}
 				else {
@@ -1472,7 +1472,7 @@ namespace Editor {
 				Texture texID = resourceManager_->get<Texture>(tile.textureID);
 
 				if (texID != 0) {
-					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID });
+					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID ,ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
 					Framework::Logger::Get().Info(DebugType::Editor)<< " -> Success! Added tile: '" << tile.name
 						<< "' (ID: " << texID << ")" << std::endl;
 				}
