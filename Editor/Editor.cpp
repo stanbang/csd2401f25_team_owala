@@ -495,6 +495,14 @@ namespace Editor {
 		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
 
+		// Set editor play/edit mode
+		if (isTileEditorActive_ || isDraggingGameObj_ || !isGamePlaying) {
+			engine_->SetMode(EngineMode::Editor);
+		}
+		else if (isGamePlaying) {
+			engine_->SetMode(EngineMode::Play);
+		}
+
 		ImGui::End();
 
 		// --- END IMGUI FRAME ---
@@ -894,7 +902,8 @@ namespace Editor {
 	void Editor::HandleInWorldDragDrop() {
 		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 		static bool gizmoClicked = false;
-		
+		if (isDraggingPrefab_) return;
+
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 			// check if clicked on gizmo
 			ImVec2 mouseScreenPos = ImGui::GetMousePos();
@@ -1429,12 +1438,12 @@ namespace Editor {
 			}
 			showGrid_ = false;
 			isDraggingPrefab_ = false;
-			if (engine_ && engine_->IsEditorMode()) {
-				engine_->SetMode(Framework::EngineMode::Play);
-				Framework::Logger::Get().Info(DebugType::Editor)
-					<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-			}
 		}
+		//if (engine_ && engine_->IsEditorMode()) {
+		//	engine_->SetMode(Framework::EngineMode::Play);
+		//	Framework::Logger::Get().Info(DebugType::Editor)
+		//		<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
+		//}
 	}
 
 	void Editor::LoadTilesFromFile() {
@@ -1545,13 +1554,13 @@ namespace Editor {
 					// Save current state before switching
 					SaveEditorCameraState();
 
-					engine_->SetMode(Framework::EngineMode::Editor);
+					//engine_->SetMode(Framework::EngineMode::Editor);
 
 					// Reset editor camera to known state when entering tile editor
 					ResetEditorCamera();
 
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Switched to EDITOR mode (Tilemap open)" << std::endl;
+					//Framework::Logger::Get().Info(DebugType::Editor)
+					//	<< "Switched to EDITOR mode (Tilemap open)" << std::endl;
 				}
 			}
 
@@ -1631,9 +1640,9 @@ namespace Editor {
 				// Save current editor camera state before switching back
 				SaveEditorCameraState();
 
-				engine_->SetMode(Framework::EngineMode::Play);
-				Framework::Logger::Get().Info(DebugType::Editor)
-					<< "Switched back to PLAY mode (Tilemap closed)" << std::endl;
+				//engine_->SetMode(Framework::EngineMode::Play);
+				//Framework::Logger::Get().Info(DebugType::Editor)
+				//	<< "Switched back to PLAY mode (Tilemap closed)" << std::endl;
 			}
 
 			showGrid_ = false;
@@ -2445,14 +2454,15 @@ namespace Editor {
 		{
 			PhysicsSystem* physics_ = gameManager_->GetSystems().physics_;
 
-			// Align Center the Toolbar buttons
+			// Calculations for button center alignment
 			float regionWidth = ImGui::GetContentRegionAvail().x; // Gets available width inside the docked window
 			const float buttonWidth = 40.0f;
 			const float buttonHeight = 20.0f;
 			const float spacing = 10.0f;
 			const float totalWidth = (buttonWidth * 3) + (spacing * 2);
 
-			float offsetX = (regionWidth - totalWidth) * 0.5f;
+			// Align to left of center
+			float offsetX = (regionWidth - totalWidth - 300.0f) * 0.5f;
 			if (offsetX > 0.0f) {
 				ImGui::SetCursorPosX(offsetX);
 			}
@@ -2463,20 +2473,26 @@ namespace Editor {
 			{
 				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
 			}
-			if (ImGui::Button("Move Game Obj"))
+			if (ImGui::Button("Toggle Move"))
 			{
 				isDraggingGameObj_ = !isDraggingGameObj_;
-				
+
 				if (isDraggingGameObj_) {
-					engine_->SetMode(Framework::EngineMode::Editor);
+					isGamePlaying = false;
 				}
 			}
 			if (was_moving)
 			{
 				ImGui::PopStyleColor();
 			}
-			
+
 			ImGui::SameLine(0, spacing * 2);
+
+			// Align Center the Toolbar buttons
+			offsetX = (regionWidth - totalWidth) * 0.5f;
+			if (offsetX > 0.0f) {
+				ImGui::SetCursorPosX(offsetX);
+			}
 
 			// Play Button
 			ImGui::PushStyleColor(ImGuiCol_Button, isGamePlaying ? ImVec4(0.1f, 0.6f, 1.0f, 1.0f) : ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
@@ -2497,9 +2513,6 @@ namespace Editor {
 				if (isGamePlaying) {
 					gameManager_->GetSystems().levelResetter_->RunReset();
 					ResetEditorCamera();
-				}
-				else {
-					engine_->SetMode(Framework::EngineMode::Play);
 				}
 
 				isGamePlaying = !isGamePlaying;
