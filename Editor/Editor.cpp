@@ -2483,6 +2483,7 @@ namespace Editor {
 				isDraggingGameObj_ = !isDraggingGameObj_;
 
 				if (isDraggingGameObj_) {
+					ResetEditorCamera();
 					isGamePlaying = false;
 				}
 			}
