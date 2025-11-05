@@ -101,8 +101,8 @@ namespace TestScene {
         //rcm_->loadTexture("Platform.png", "Assets/Sprites/Platform.png");
         //rcm_->loadTexture("Env_Level2_PH.png", "Assets/Sprites/Env_Level2_PH.png");
 		//rcm_->loadSound("bgm.wav", "Assets/Audio/bgm.wav", true, true); // Background Music
-        rcm_->loadFont("Amethysta-Regular.ttf", "Assets/Fonts/Amethysta-Regular.ttf");
-        rcm_->loadFont("KirangHaerang-Regular.ttf", "Assets/Fonts/KirangHaerang-Regular.ttf");
+        //rcm_->loadFont("Amethysta-Regular.ttf", "Assets/Fonts/Amethysta-Regular.ttf");
+        //rcm_->loadFont("KirangHaerang-Regular.ttf", "Assets/Fonts/KirangHaerang-Regular.ttf");
         //rcm_->loadSound("jingle.ogg", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
         //rcm_->loadSound("jump.ogg", "Assets/Audio/jump.ogg", false, false);
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
