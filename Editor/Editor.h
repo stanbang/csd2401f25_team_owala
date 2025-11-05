@@ -71,7 +71,7 @@ namespace Editor {
 		Tile
 	};
 
-	// NEW: Structure to hold info about a draggable prefab for the palette
+	// Structure to hold info about a draggable prefab for the palette
 	struct DraggablePrefabInfo {
 		std::string name;
 		PrefabType type = PrefabType::None;
@@ -197,6 +197,11 @@ namespace Editor {
 
 
 		/**
+		* @brief Renders a preview of the tile being dragged.
+		*/
+		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
+
+		/**
 		 * @brief Handles logic for erasing a tile from the grid.
 		 */
 		void HandleTileErasing();
@@ -252,12 +257,7 @@ namespace Editor {
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
 
-		// --- NEW Helper ---
-
-		 /**
-		 * @brief Renders a preview of the tile being dragged.
-		 */
-		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
+		
 
 		/**
 		* @brief Loads textures and prepares palette items.
