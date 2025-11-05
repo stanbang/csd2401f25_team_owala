@@ -1,3 +1,22 @@
+/*****************************************************************//**
+* \file   PrefabSystem.cpp
+*
+* \primary_author
+*      Sitara Anil
+* \secondary_author
+*
+*
+* \brief
+*      Implementation of the PrefabSystem. Handles JSON parsing of prefab
+*      definitions, component deserialization for all component types,
+*      and entity instantiation with proper initialization. Includes
+*      helper functions to extract and filter platform-specific prefab
+*      data based on component composition.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "PrefabSystem.h"
 #include "EntityManager.h"
 #include "Components.h"

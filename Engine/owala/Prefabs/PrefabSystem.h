@@ -4,9 +4,12 @@
 * \primary_author
 *      Sitara Anil
 * \secondary_author
-*
-*
+*     
 * \brief
+*      System for loading and managing entity prefabs from JSON files.
+*      Supports creating entities from prefab templates with specialized
+*      platform types (basic, trap, and scaling platforms). Provides
+*      querying and filtering of prefabs by component type.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior

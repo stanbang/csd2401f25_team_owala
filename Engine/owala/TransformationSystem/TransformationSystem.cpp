@@ -1,3 +1,23 @@
+/*******************************************************************
+* \file   TransformationSystem.cpp
+*
+* \primary_author
+*       Sitara Anil
+*
+* \secondary_author
+*
+*
+* \brief   
+*       Implementation of the TransformationSystem. Handles global world
+*       rotation triggered by Q/E keys with smooth interpolation and cooldown.
+*       Computes and updates transformation matrices (T*R*S) for all entities.
+*       Rotates entity positions around world origin and manages physics
+*       pausing during rotation animations.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "TransformationSystem.h"
 #include "EntityManager.h"
 #include "Components.h"

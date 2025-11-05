@@ -1,3 +1,21 @@
+/*******************************************************************
+* \file   PlatformBehaviorSystem.cpp
+*
+* \primary_author
+*      Sitara Anil
+* \secondary_author
+*      
+* \brief
+*      Implementation of the PlatformBehaviorSystem. Handles trap platform
+*      trigger delays, falling mechanics, and state resets. Manages scaling
+*      platform animations and updates collision boxes and textures
+*      to match current scale values.
+* 
+* 
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "PlatformBehaviorSystem.h"
 #include "EntityManager.h"
 #include "Components.h"
