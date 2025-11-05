@@ -131,7 +131,9 @@ namespace Editor {
 		bool isDraggingPrefab_ = false;
 		DraggablePrefabInfo dragDropPayload_; // Holds info about the prefab being dragged
 		Vector2D dragDropPreviewPos_; // World position for preview rendering
-		bool isDraggingGameObj_ = false;
+
+		// Tracks whether move game object mode is activated. Toggled by Toggle Move button on the toolbar, for in world game obj drag and drop
+		bool isDraggingGameObj_ = false; 
 
 		//Palette Info storage (prefabs)
 		bool palettePrepared_ = false; // flag for storing palette items
