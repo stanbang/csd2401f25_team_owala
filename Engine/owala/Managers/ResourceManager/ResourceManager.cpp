@@ -1,3 +1,19 @@
+/*****************************************************************//**
+* \file   ResourceManager.cpp
+*
+* \primary_author
+*      Ng Jing Wen
+* \secondary_author
+*
+* \brief    Contains declarations and definitions of a ResourceManager utilising templates
+*           that can load and store various resource types like textures, audio and fonts.
+*           It maintains ownership of resources using smart pointers with custom deleters.
+*           Ensuring that resources are properly released when no longer needed or out of scope.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "ResourceManager.h"
 #include "AudioSystem.h"
 #include "Graphics.h"
@@ -23,7 +39,7 @@ void Framework::FMODDeleter::operator()(FMOD::Sound* s) const noexcept {
 }
 
 void ResourceManager::Initialize() {
-	// Scan asset directories to auto-map filenames to paths
+	// Scan asset directories recursively to auto-map filenames to paths
 	try {
 		ScanAssetDirectory("Assets/Sprites");
 		ScanAssetDirectory("Assets/Audio");

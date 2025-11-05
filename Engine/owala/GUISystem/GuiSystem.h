@@ -1,3 +1,17 @@
+/*****************************************************************//**
+ * \file  GuiSystem.h
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Contains the declaration of the GuiSystem that handles GUI interactions.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
@@ -22,10 +36,12 @@ namespace Framework{
 		void Update() override;
 		void Shutdown() override;
 
+		// Sets the viewport context for the editor (position and size)
 		#ifdef BUILD_EDITOR
 		void SetViewportContext(ImVec2 position, ImVec2 size);
 		#endif
 
+		// Sets the viewport size for the engine (used outside of editor)
 		void SetViewportSizeEngine(const Vector2D& size) {
 			viewportSizeEngine_ = size;
 		}

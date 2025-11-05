@@ -1,10 +1,17 @@
 /*****************************************************************//**
  * \file   AnimationSystem.cpp
- * \brief
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
  *
  *
- * \author Ng Jing Wen
- * \date   10 September 2025
+ * \brief	Changes U and V coordinates of Texture components based on specs
+ *			from textureInfoComponents to create frame-by-frame animation.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "EntityStorage.h"
 #include "EntityManager.h"
@@ -41,6 +48,7 @@ namespace Framework {
 					isFacingRight = state.isFacingRight;
 				}
 
+				// Map AnimationState to Texture Key
 				switch (animationComponent.currentState) {
 				case AnimationState::IDLE:    textureComponent.textureKey = "Eli_Idle_Spritesheet.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
 				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation

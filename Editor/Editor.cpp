@@ -2,9 +2,14 @@
 * \file   Editor.cpp
 *
 * \primary_author
-*      Jason Lou (50%)
+*		Jason Lou (19%)
 * \secondary_author
-*	   Lur Pei Hao Stanley (50%)
+*		Lur Pei Hao Stanley (19%)
+*		Sitara Anil (19%)
+*		Ng Jordain Ying Zhe (19%)
+*		Yar Xuan (19%)
+*		Ng Jing Wen (5%)
+*		
 *
 *
 * \brief	Implementation of the Editor system for in-game level editing and
@@ -556,7 +561,7 @@ namespace Editor {
 				Texture texID = resourceManager_->get<Texture>(textureKey);
 
 				if (texID != 0) {
-					paletteItems_.push_back({ name, type, texID });
+					paletteItems_.push_back({ name, type, texID , ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
 					Framework::Logger::Get().Info(DebugType::Editor) << " -> Success! Added palette item: '" << name << "' (ID: " << texID << ")" << std::endl;
 				}
 				else {
@@ -746,7 +751,7 @@ namespace Editor {
 			return;
 
 		// --- FIX: Use same world size as placed tiles ---
-		Vector2D previewHalfSize = { baseGridCellSize_ * 0.5f, baseGridCellSize_ * 0.5f };
+		Vector2D previewHalfSize = { baseGridCellSize_ , baseGridCellSize_ };
 
 		Vector2D worldTopLeft = {
 			dragDropPreviewPos_.x - previewHalfSize.x,
@@ -1513,7 +1518,7 @@ namespace Editor {
 				Texture texID = resourceManager_->get<Texture>(tile.textureID);
 
 				if (texID != 0) {
-					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID });
+					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID ,ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
 					Framework::Logger::Get().Info(DebugType::Editor)<< " -> Success! Added tile: '" << tile.name
 						<< "' (ID: " << texID << ")" << std::endl;
 				}

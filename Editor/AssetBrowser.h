@@ -1,3 +1,18 @@
+/*****************************************************************//**
+* \file   AssetBrowser.h
+*
+* \primary_author
+*       Ng Jing Wen
+* \secondary_author
+*      
+*
+* \brief    Contains declarations and definitions of an AssetBrowser that are
+*           used to navigate, view, and manage assets within a specified directory.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "ISystem.h"
 #include <vector>
@@ -13,9 +28,9 @@ using ResourceManager = Framework::ResourceManager;
 
 struct AssetEntry
 {
-    fs::path path;
-    std::string name;      // file/folder name
-    std::string display;   // what is shown in UI
+	fs::path path;		   // Full path to the asset
+    std::string name;      // File/folder name
+    std::string display;   // What is shown in UI
     bool isDirectory;
     Texture iconTextureID = 0;
 };
@@ -28,21 +43,30 @@ public:
             ScanDirectory(currentPath_);
     }
 
+	// Initializes the browser at a specified root path
     void Initialize(const fs::path& rootPath);
 
     // Core navigation functions
     void ScanDirectory(const fs::path& directoryPath);
+	// Navigate to a specific path
     void NavigateTo(const fs::path& target);
+	// Navigate up one level
     void NavigateUp();
+	// Display folder tree recursively
     void ShowFolderTree(const fs::path& path);
     // UI rendering function (takes ImGui's current state/context)
     void RenderUI(std::vector<fs::path>& droppedFiles);
+	// Renders the asset editor panel
     void RenderAssetEditor(std::vector<fs::path>& droppedFiles);
 
+	// Handle files dropped into the asset browser
     void HandleDroppedFiles(const std::vector<fs::path>& droppedFiles);
+	// Handle file replacement
     void HandleReplaceFile(const std::vector<fs::path>& droppedFiles);
 
+	// Getters
     const std::vector<AssetEntry>& GetCurrentAssets() const { return currentAssets_; }
+	// Get current path
     const fs::path& GetCurrentPath() const { return currentPath_; }
 
 private:
