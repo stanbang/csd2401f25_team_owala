@@ -230,7 +230,7 @@ namespace Framework{
 
 		// Radii
 		float wakeUpRadius = 0.3f;   // Distance to spot the player
-		float hoverRadius = 0.15f;    // "Close enough" distance to stop chasing
+		float hoverRadius = 0.05f;    // "Close enough" distance to stop chasing
 		float attackRadius = 0.1f;   // Max distance from which to launch an attack
 
 		// Config

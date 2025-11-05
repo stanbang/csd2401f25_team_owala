@@ -220,7 +220,7 @@ namespace Editor {
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
 		void ShowToolbar();
-		void ShowAIDebugPanel();
+		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
 

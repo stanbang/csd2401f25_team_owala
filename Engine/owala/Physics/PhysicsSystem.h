@@ -6,7 +6,9 @@
 *
 *
 * \brief
-* Declares the physics system, which manages forces, movement, and collisions.
+* Declares the PhysicsSystem class, managing forces, integration, 
+* and collisions. Defines the broad-phase grid constants and public 
+* API for debug toggles and layer management.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -24,6 +26,17 @@
 #include <algorithm>
 
 namespace Framework {
+
+
+    /**
+     * @struct PhysicsDebugCell
+     * @brief Holds data for rendering one cell of the physics grid.
+     */
+    struct PhysicsDebugCell {
+        Vector2D worldMin;
+        Vector2D worldMax;
+        bool isActive;
+    };
 
     /**
      * @class PhysicsSystem
@@ -102,6 +115,24 @@ namespace Framework {
          */
         bool IsInStepMode() const { return stepModeActive_; }
 
+        /**
+         * @brief Forces the system to use the narrow-phase check.
+         * @details For debugging and performance comparison.
+         */
+        void SetNarrowPhase(bool force) { forceNarrowPhase_ = force; }
+        bool IsForcingNarrowPhase() const { return forceNarrowPhase_; }
+
+
+        bool drawDebugGrid = false;
+
+        /**
+         * @brief Gathers all visible debug grid cells for the editor to draw.
+         * @return A vector of cells with their world positions and active state.
+         */
+        std::vector<PhysicsDebugCell> GetDebugDrawData(Framework::CameraSystem* cameraSystem, Entity cameraID);
+
+
+
     private:
         /**
         * @brief Initializes the collision matrix with default values (all layers collide).
@@ -160,22 +191,22 @@ namespace Framework {
         // ---  Broad-Phase Members using Fixed-Cell Grid ---
 
         // --- CONSTANTS FOR GRID ---
-        static const int kMaxCollidableEntities = 1024; // Max entities for bitset
-        static constexpr float kCellSize = 0.5f;     // World-space size of one cell
-        static constexpr float kInvCellSize = 1.0f / kCellSize;
+        static const int maxCollidableEntities = 1024; // Max entities for bitset (can add more)
+        static constexpr float cellSize = 0.5f;     // World-space size of one cell
+        static constexpr float invCellSize = 1.0f / cellSize;
         //  world bounds for the grid
-        static constexpr float kGridWorldMinX = -20.0f;
-        static constexpr float kGridWorldMinY = -20.0f;
-        static constexpr float kGridWorldWidth = 40.0f;
-        static constexpr float kGridWorldHeight = 40.0f;
-        // grid dimensions
-        static const int kGridCellsX = static_cast<int>(kGridWorldWidth * kInvCellSize) + 1;
-        static const int kGridCellsY = static_cast<int>(kGridWorldHeight * kInvCellSize) + 1;
+        static constexpr float gridWorldMinX = -20.0f;
+        static constexpr float gridWorldMinY = -20.0f;
+        static constexpr float gridWorldWidth = 40.0f;
+        static constexpr float gridWorldHeight = 40.0f;
+        // grid dimensions (make sure grid isnt too big else no point doing broad phased implementation)
+        static const int GridCellsX = static_cast<int>(gridWorldWidth * invCellSize) + 1;
+        static const int GridCellsY = static_cast<int>(gridWorldHeight * invCellSize) + 1;
 
-        // The grid itself: a vector of bitsets. One bitset per cell
-        std::vector<std::bitset<kMaxCollidableEntities>> grid_;
+        // The grid using vector of bitsets. One bitset per cell
+        std::vector<std::bitset<maxCollidableEntities>> grid_;
 
-        // Mapping from Entity ID -> bitset index (0 to kMaxCollidableEntities-1)
+        // Mapping from Entity ID -> bitset index (0 to MaxCollidableEntities-1)
         std::unordered_map<Entity, int> entityToColliderIndex_;
         // Mapping from bitset index -> Entity ID
         std::vector<Entity> colliderEntities_;
@@ -205,7 +236,9 @@ namespace Framework {
         /**
          * @brief Queries all overlapped cells and combines their bitsets.
          */
-        void GridQuery(const AABB_Bounds& bounds, std::bitset<kMaxCollidableEntities>& potentialColliders) const;
+        void GridQuery(const AABB_Bounds& bounds, std::bitset<maxCollidableEntities>& potentialColliders) const;
+
+        bool forceNarrowPhase_ = false; // Debug toggle for narrow or broad phased implementation
     
     };
 

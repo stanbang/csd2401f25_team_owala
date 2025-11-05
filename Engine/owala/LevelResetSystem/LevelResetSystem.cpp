@@ -15,6 +15,7 @@
  *********************************************************************/
 
 #include "LevelResetSystem.h"
+#include "MessageBus.h"
 
 namespace Framework {
 
@@ -27,7 +28,10 @@ namespace Framework {
         playerSig.set(PositionType);
         playerSig.set(VelocityType);
         playerSig.set(RotationFlagType);
-        playerSig.set(SpawnPointType);
+
+        playerSpawnPtSig.set(ActiveTagType);
+        playerSpawnPtSig.set(SpawnPointType);
+        playerSpawnPtSig.set(SceneOwnedType);
 
         // Platform signatures
         trapPlatformSig.set(ActiveTagType);
@@ -43,7 +47,18 @@ namespace Framework {
         basicPlatformSig.set(ActiveTagType);
         basicPlatformSig.set(PlatformTagType);
         basicPlatformSig.set(PositionType);
-        basicPlatformSig.set(SpawnPointType);
+
+        // Subscribe to ButtonClickedEvent for resetting player position
+        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
+            if (event.action == ButtonAction::RESETPLAYERPOS) {
+                EntityManager entityMgr(ecs_);
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+                    if (entityMgr.HasComponent(entity, PositionType)) {
+                        ResetPosition(entityMgr, entity, GetPlayerSpawnPt(entityMgr));
+                    }
+                }
+            }
+        });
     }
 
     void LevelResetSystem::RunReset() {
@@ -51,16 +66,13 @@ namespace Framework {
         Logger::Get().Info(DebugType::LevelResetSystem) << "Reset global rotation variables" << std::endl;
         transformationSys_.ResetGlobalRotation();
 
-        // Reset entities
         EntityManager entityMgr(ecs_);
+        
+        // Reset entities
         for (const auto& [entity, signature] : entityMgr.GetEntitySignatures()) {
             // --- Player Reset ---
             if (CmpSignatures(signature, playerSig)) {
-                Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Player, Entity: " << entity << std::endl;
-                SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(entity);
-                ResetPosition(entityMgr, entity, Position(spawnPt.Pos));
-                ResetVelocity(entityMgr, entity);
-                ResetRotation(entityMgr, entity);
+                ResetPlayer(entityMgr, entity);
                 continue;
             }
 
@@ -89,9 +101,8 @@ namespace Framework {
             // --- Basic Platform Reset ---
             if (CmpSignatures(signature, basicPlatformSig)) {
                 Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Basic Platform, Entity: " << entity << std::endl;
-                // basic ground needs spawn point to store initial position bc rotation changes its position
-                SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(entity);
-                ResetPosition(entityMgr, entity, Position(spawnPt.Pos));
+                Position originalPos{ TransformationSystem::GetOriginalPos(entityMgr, entity) };
+                ResetPosition(entityMgr, entity, originalPos);
                 ResetRotation(entityMgr, entity);
                 continue;
             }
@@ -99,6 +110,13 @@ namespace Framework {
     }
 
     // --- Reset Helpers ---
+    // Reset Player
+    void LevelResetSystem::ResetPlayer(EntityManager& entityMgr, Entity entity) {
+        Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Player, Entity: " << entity << std::endl;
+        ResetPosition(entityMgr, entity, GetPlayerSpawnPt(entityMgr));
+        ResetVelocity(entityMgr, entity);
+        ResetRotation(entityMgr, entity);
+    }
     
     // Reset Position to given position, defaults to 0,0 if no Position provided
     void LevelResetSystem::ResetPosition(EntityManager& entityMgr, Entity entity, Position pos) {
@@ -122,6 +140,27 @@ namespace Framework {
     // --- Helper Functions --- 
     bool LevelResetSystem::CmpSignatures(ComponentSignature sigToTest, ComponentSignature sigToMatch) {
         return ((sigToTest & sigToMatch) == sigToMatch);
+    }
+
+    Position LevelResetSystem::GetPlayerSpawnPt(EntityManager& entityMgr) const {
+        // Get player spawn point entity (should only have one in the scene)
+        Entity spawnPtEntity = 0;
+        for (const auto& [entity, signature] : entityMgr.GetEntitySignatures()) {
+            if (signature == playerSpawnPtSig) { // == for strict matching. should ONLY have these components
+                spawnPtEntity = entity;
+                break;
+            }
+        }
+
+        if (spawnPtEntity > 0) {
+            SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(spawnPtEntity);
+            return Position(spawnPt.Pos);
+        }
+        else {
+            Logger::Get().Error(DebugType::LevelResetSystem) << "Player spawn point not found!" << std::endl;
+        }
+
+        return Position(Vector2D{});
     }
 
 } // namespace Framework

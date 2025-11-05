@@ -6,7 +6,8 @@
 * \secondary_author
 *
 *
-* \brief
+* \brief Implements the PhysicsSystem's fixed Step loop, force-based 
+* integration, broad-phase grid logic, and narrow-phase AABB collision resolution.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -52,10 +53,10 @@ namespace Framework {
         InitializeCollisionMatrix();
         FileIOSystem::LoadWorldConfig(gravity_.y);
         // --- Initialize the Implicit Grid ---
-        grid_.resize(kGridCellsX * kGridCellsY);
-        // Pre-allocate maps/vectors for performance
-        colliderEntities_.reserve(kMaxCollidableEntities);
-        entityToColliderIndex_.reserve(kMaxCollidableEntities);
+        grid_.resize(GridCellsX * GridCellsY);
+        // reserve space for performance
+        colliderEntities_.reserve(maxCollidableEntities);
+        entityToColliderIndex_.reserve(maxCollidableEntities);
     }
 
     // ----------------------------------------------------------------------------
@@ -155,7 +156,7 @@ namespace Framework {
         // Iterate through all entities with a player tag
 		EntityManager entityMgr(*ecs_);
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, AABBColliderType)) {
+            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
 				Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
 				Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
 
@@ -231,16 +232,18 @@ namespace Framework {
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
 		EntityManager entityMgr(*ecs_);
-        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType);
+        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, PositionType);
 
-        // --- Check Entity Count ---
-        if (allColliders.size() > kMaxCollidableEntities) { // preventive measure for too much entities
-            // Log an error and fall back to narrow based implementation to prevent crashing
-            static bool errorLogged = false;
-            if (!errorLogged) {
-                Logger::Get().Error(DebugType::PhysicsSystem)
-                    << "More than " << kMaxCollidableEntities << " colliders! ";
-                errorLogged = true;
+        // --- Check Entity Count OR DEBUG TOGGLE ---
+        if (forceNarrowPhase_ || allColliders.size() > maxCollidableEntities) {
+            if (!forceNarrowPhase_ && allColliders.size() > maxCollidableEntities) { // preventive measure for too much entities
+                // Log an error and fall back to narrow based implementation to prevent crashing
+                static bool errorLogged = false;
+                if (!errorLogged) {
+                    Logger::Get().Error(DebugType::PhysicsSystem)
+                        << "More than " << maxCollidableEntities << " colliders! ";
+                    errorLogged = true;
+                }
             }
 
             // Fallback to narrow based implementation
@@ -251,6 +254,7 @@ namespace Framework {
             }
             return;
         }
+    
 
         // ---  BUILD MAPPINGS ---
         // Create the two-way map between Entity ID and bitset index
@@ -263,9 +267,9 @@ namespace Framework {
             colliderEntities_.push_back(entity);
         }
 
-        // --- BUILD PHASE (Insert all entities into grid) ---
+        // --- Insert all entities into grid ---
         // Clear all bits in the grid from the last frame
-        for (std::vector<std::bitset<kMaxCollidableEntities>>::iterator::value_type& cell : grid_) {
+        for (std::vector<std::bitset<maxCollidableEntities>>::iterator::value_type& cell : grid_) {
             cell.reset();
         }
 
@@ -284,10 +288,10 @@ namespace Framework {
             GridInsert(i, bounds); // Insert the bitset index 'i'
         }
 
-        // --- 3. QUERY PHASE (Check for collisions) ---
-        // This set prevents checking the same pair twice (e.g., A-B and B-A)
+        // ---  QUERY PHASE (Check for collisions) ---
+        // prevents checking the same pair twice (e.g., A-B and B-A)
         std::set<std::pair<Entity, Entity>> checkedPairs;
-        std::bitset<kMaxCollidableEntities> potentialPartners;
+        std::bitset<maxCollidableEntities> potentialPartners;
 
         for (int i = 0; i < colliderEntities_.size(); ++i) {
             Entity e1 = colliderEntities_[i];
@@ -301,21 +305,20 @@ namespace Framework {
             }
             AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
 
-            // Get all potential partners from the grid (as a bitset)
+            // Get all partners from the grid as bitset
             GridQuery(bounds1, potentialPartners);
 
             // potentialPartners has a '1' for the index of
             // every entity that could be colliding with e1.
 
             // Iterate only over potential partners
-            // We use .test() to check if a bit is set
             for (int j = 0; j < colliderEntities_.size(); ++j) {
                 if (i == j) continue; // Don't check against self
 
                 if (potentialPartners.test(j)) {
                     Entity e2 = colliderEntities_[j];
 
-                    // Ensure we only check each pair once
+                    // check only each pair once
                     Entity first = std::min(e1, e2);
                     Entity second = std::max(e1, e2);
 
@@ -337,6 +340,23 @@ namespace Framework {
     // ----------------------------------------------------------------------------
     void PhysicsSystem::CheckCollisionPair(Entity e1, Entity e2, float dt) {
         EntityManager entityMgr(*ecs_);
+
+        // Check entities have RigidBody component
+        if (!entityMgr.HasComponent(e1, RigidBodyType) || !entityMgr.HasComponent(e2, RigidBodyType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing RigidBody component. Unable to CheckCollisionPair" << std::endl;
+            return;
+        }
+        // Check entities have Position component
+        if (!entityMgr.HasComponent(e1, PositionType) || !entityMgr.HasComponent(e2, PositionType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing Position component. Unable to CheckCollisionPair" << std::endl;
+            return;
+        }
+        // Check entities have AABBCollider component
+        if (!entityMgr.HasComponent(e1, AABBColliderType) || !entityMgr.HasComponent(e2, AABBColliderType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing AABBCollider component. Unable to CheckCollisionPair" << std::endl;
+            return;
+        }
+
 
         // --- LAYER-BASED COLLISION CHECK ---
         // If either entities is default layer, skip them.
@@ -395,6 +415,11 @@ namespace Framework {
             if (entityMgr.GetComponent<RigidBody>(dynE).InverseMass == 0.0f) {
                 std::swap(dynE, staticE); // swaps if E1 is the static object IE. Mass = 0
             }
+            // Check dynE has Velocity component
+            if (!entityMgr.HasComponent(dynE, VelocityType)) {
+                Logger::Get().Error(DebugType::PhysicsSystem) << "dynE entity missing Velocity component. Unable to CheckCollisionPair" << std::endl;
+                return;
+            }
 
             Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;
             const auto& dynBounds = (dynE == e1) ? bounds1 : bounds2;
@@ -440,19 +465,19 @@ namespace Framework {
     // ------ GRID HELPER FUNCTIONS ------ //
 
     int PhysicsSystem::GetCellCoordX(float worldPos) const {
-        int coord = static_cast<int>(std::floor((worldPos - kGridWorldMinX) * kInvCellSize));
-        return std::clamp(coord, 0, kGridCellsX - 1);
+        int coord = static_cast<int>(std::floor((worldPos - gridWorldMinX) * invCellSize));
+        return std::clamp(coord, 0, GridCellsX - 1);
     }
 
     
     int PhysicsSystem::GetCellCoordY(float worldPos) const {
-        int coord = static_cast<int>(std::floor((worldPos - kGridWorldMinY) * kInvCellSize));
-        return std::clamp(coord, 0, kGridCellsY - 1);
+        int coord = static_cast<int>(std::floor((worldPos - gridWorldMinY) * invCellSize));
+        return std::clamp(coord, 0, GridCellsY - 1);
     }
 
    
     int PhysicsSystem::GetCellIndex(int x, int y) const {
-        return x + y * kGridCellsX;
+        return x + y * GridCellsX;
     }
 
     
@@ -470,7 +495,7 @@ namespace Framework {
     }
 
     
-    void PhysicsSystem::GridQuery(const AABB_Bounds& bounds, std::bitset<kMaxCollidableEntities>& potentialColliders) const {
+    void PhysicsSystem::GridQuery(const AABB_Bounds& bounds, std::bitset<maxCollidableEntities>& potentialColliders) const {
         int minX = GetCellCoordX(bounds.min.x);
         int minY = GetCellCoordY(bounds.min.y);
         int maxX = GetCellCoordX(bounds.max.x);
@@ -484,6 +509,51 @@ namespace Framework {
         }
     }
 
+    //--------- DEBUG DRAW FUNCTIONS ---------//
+    std::vector<PhysicsDebugCell> PhysicsSystem::GetDebugDrawData(Framework::CameraSystem* cameraSystem, Entity cameraID) {
+        std::vector<PhysicsDebugCell> data;
+        if (!drawDebugGrid || !cameraSystem || cameraID == 0) {
+            return data;
+        }
+
+        // Get view bounds from the camera
+        float viewLeft, viewRight, viewBottom, viewTop;
+        cameraSystem->GetViewBounds(cameraID, viewLeft, viewRight, viewBottom, viewTop);
+
+        // Find the grid cell range that is visible
+        int minX = GetCellCoordX(viewLeft) - 1;
+        int maxX = GetCellCoordX(viewRight) + 1;
+        int minY = GetCellCoordY(viewBottom) - 1;
+        int maxY = GetCellCoordY(viewTop) + 1;
+
+        // Clamp to the grid's actual boundaries
+        minX = std::max(0, minX);
+        maxX = std::min(GridCellsX - 1, maxX);
+        minY = std::max(0, minY);
+        maxY = std::min(GridCellsY - 1, maxY);
+
+        // Reserve space for efficiency
+        data.reserve(static_cast<size_t>(maxX - minX + 1) * (maxY - minY + 1));
+
+        for (int y = minY; y <= maxY; ++y) {
+            for (int x = minX; x <= maxX; ++x) {
+                PhysicsDebugCell cell;
+                // Get the world-space corners of this cell
+                cell.worldMin = {
+                    gridWorldMinX + x * cellSize,
+                    gridWorldMinY + y * cellSize
+                };
+                cell.worldMax = {
+                    cell.worldMin.x + cellSize,
+                    cell.worldMin.y + cellSize
+                };
+                // Check if this cell has any objects in it
+                cell.isActive = grid_[GetCellIndex(x, y)].any();
+                data.push_back(cell);
+            }
+        }
+        return data;
+    }
    
 
 } // namespace Framework

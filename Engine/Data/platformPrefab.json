@@ -11,13 +11,6 @@
                     }
                 },
                 {
-                    "type": "SpawnPoint",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
                     "type": "Velocity",
                     "data": {
                         "x": 0.0,
@@ -64,13 +57,6 @@
             "components": [
                 {
                     "type": "Position",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "SpawnPoint",
                     "data": {
                         "x": 0.0,
                         "y": 0.0
@@ -129,13 +115,6 @@
                     }
                 },
                 {
-                    "type": "SpawnPoint",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
                     "type": "Velocity",
                     "data": {
                         "x": 0.0,
@@ -182,13 +161,6 @@
             "components": [
                 {
                     "type": "Position",
-                    "data": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                {
-                    "type": "SpawnPoint",
                     "data": {
                         "x": 0.0,
                         "y": 0.0
