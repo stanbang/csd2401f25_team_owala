@@ -738,7 +738,7 @@ namespace Editor {
 			return;
 
 		// --- FIX: Use same world size as placed tiles ---
-		Vector2D previewHalfSize = { baseGridCellSize_ * 0.5f, baseGridCellSize_ * 0.5f };
+		Vector2D previewHalfSize = { baseGridCellSize_ , baseGridCellSize_ };
 
 		Vector2D worldTopLeft = {
 			dragDropPreviewPos_.x - previewHalfSize.x,
