@@ -1073,7 +1073,7 @@ namespace Editor {
 			SaveAndLoadSection();
 
 			// --- Entity Factory ---
-			ImGui::Separator();
+			ImGui::SeparatorText("Entity Factory");
 
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
@@ -1088,18 +1088,21 @@ namespace Editor {
 			}
 
 			// --- Entity Inspector ---
-			ImGui::Separator();
-
 			// Add reset camera button
+			ImGui::SeparatorText("Reset Editor Camera");
 			if (ImGui::Button("Reset Editor Camera")) {
 				ResetEditorCamera();
 			}
-			ImGui::SameLine();
 
+			ImGui::SeparatorText("Prefab/Tile Editors");
 			// Button to activate the tile editor mode
 			if (ImGui::Button("Open Tilemap Editor")) {
 				isTileEditorActive_ = true;
 				isTilePaletteOpen_ = true;
+			}
+
+			if (ImGui::Button("Open Prefab Editor")) {
+				isPrefabEditorOpen_ = true;
 			}
 		}
 
@@ -1128,9 +1131,9 @@ namespace Editor {
 
 
 		// --- Section for Spawning 1000 objects -----//
-		ImGui::SeparatorText("Spawn 1000 Objects");
+		ImGui::SeparatorText("Spawn Game Objects");
 		// In your Editor.cpp spawning section:
-		if (ImGui::Button("Create 1000 Objects")) {
+		if (ImGui::Button("Spawn 1000 Objects")) {
 			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
 
@@ -1154,7 +1157,7 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
-		ImGui::SameLine();
+		//ImGui::SameLine();
 		if (ImGui::Button("Spawn Test Bird")) {
 			// Get the systems we need
 			SceneManager& sceneMgr = SceneManager::GetInstance();
@@ -1195,7 +1198,7 @@ namespace Editor {
 				<< bird << ")";
 		}
 
-		ImGui::SameLine();
+		//ImGui::SameLine();
 		if (ImGui::Button("Spawn Test Skeleton")) {
 			
 			SceneManager& sceneMgr = SceneManager::GetInstance();
@@ -1241,6 +1244,8 @@ namespace Editor {
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
 		if (ImGui::Button("Save")) {
@@ -1337,9 +1342,6 @@ namespace Editor {
 					ImGui::EndDisabled();
 				}
 			}
-		}
-		if (ImGui::Button("Open Prefab Editor")) {
-			isPrefabEditorOpen_ = true;
 		}
 	}
 
