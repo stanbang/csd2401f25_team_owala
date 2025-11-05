@@ -677,7 +677,7 @@ namespace Editor {
 			newEntity = entityMgr.CreateEntity(); //for tile pallette
 
 			//float aspect = gameViewportSize_.x / gameViewportSize_.y;
-			Vector2D tileHalfSize = { baseGridCellSize_ / 2.0f, baseGridCellSize_ / 2.0f };
+			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
 
 			if (newEntity != 0) {
 				entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;
