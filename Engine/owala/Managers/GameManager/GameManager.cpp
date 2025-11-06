@@ -92,6 +92,33 @@ namespace Framework {
 		}
 	}
 
+	void GameManager::UpdateNativeScripts() {
+		EntityManager entityMgr(*systems_.ecs_);
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
+			if (entityMgr.GetComponent<SceneOwned>(scriptableEntity).sceneName != sceneMgr.GetActiveScene().name) continue;
+
+			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
+			if (nativeScripts.empty()) continue;
+			
+			for (NativeScriptsComponent::NativeScript& script : nativeScripts) {
+				if (!script.enabled) continue;
+
+				if (!script.Instance) {
+					// Create and Bind Entity
+					script.Instance = script.InstantiateScript();
+					script.Instance->SetEntity(scriptableEntity);
+
+					// Call Script's OnCreate
+					script.Instance->OnCreate();
+				}
+
+				// Call Script's OnUpdate
+				script.Instance->OnUpdate();
+			}
+		}
+	}
+
 	// ---------------------------------------------------------------------------
 	// GameManager Config
 	// ---------------------------------------------------------------------------
@@ -177,6 +204,8 @@ namespace Framework {
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
+
+			UpdateNativeScripts();
 		}
 
 		//Render sprite in engine if not using editor
@@ -228,6 +257,9 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpFree) {
 			sceneCallbacks_[currentSceneIndex].fpFree();
 		}
+
+		// Free all ScriptableEntities
+		EntityManager entityMgr(*systems_.ecs_);
 
 		// Renderer Cleanup
 		systems_.spriteRenderer_->Shutdown();

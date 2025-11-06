@@ -10,6 +10,7 @@
  *********************************************************************/
 #include "EntityManager.h"
 #include "Logger.h"
+#include "ScriptRegistry.h"
 
 namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
@@ -125,6 +126,7 @@ namespace Framework {
 		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
 		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
+		case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{}); break;
 		case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
 		case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(entity, SkeletonAIComponent{}); break; 
 		case ComponentType::PlayerTagType:
@@ -164,6 +166,18 @@ namespace Framework {
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case CameraType: ecs.cameras.erase(entity); break;
+			case NativeScriptsComponentType: {
+				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
+				if (it != ecs.nativeScripts.end()) {
+					NativeScriptsComponent& nativeScripts = it->second;
+					for (NativeScriptsComponent::NativeScript& script : nativeScripts.scripts) {
+						script.Reset();
+					}
+
+					ecs.nativeScripts.erase(entity);
+				}
+				break;
+			}
 			case ButtonType: ecs.button.erase(entity); break;
 			case BirdAIComponentType: ecs.birdAIComponent.erase(entity); break;
 			case SkeletonAIComponentType: ecs.skeletonAIComponent.erase(entity); break; 
@@ -197,6 +211,60 @@ namespace Framework {
 		default:
 			return false;
 		}
+	}
+
+	std::size_t EntityManager::AttachScriptByName(Entity entity, std::string typeName, bool enabled) {
+		if (!HasComponent(entity, NativeScriptsComponentType)) {
+			AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{});
+		}
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+		nativeScripts.scripts.emplace_back();
+		NativeScriptsComponent::NativeScript& scriptToAdd = nativeScripts.scripts.back();
+		scriptToAdd.enabled = enabled;
+
+		if (!ScriptRegistry::Get().BindScriptByName(scriptToAdd, typeName)) {
+			nativeScripts.scripts.pop_back();
+			Logger::Get().Error(DebugType::GameManager)	<< "AttachScriptByName: Unknown Script '" << typeName << "'" << std::endl;
+			return static_cast<std::size_t>(-1);
+		}
+
+		return nativeScripts.scripts.size() - 1;
+	}
+
+	void EntityManager::RemoveScriptAt(Entity entity, std::size_t index, bool removeComponentIfEmpty) {
+		if (!HasComponent(entity, NativeScriptsComponentType)) return;
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+
+		if (index >= nativeScripts.scripts.size()) {
+			Logger::Get().Info(DebugType::GameManager) << "RemoveScriptAt: Provided index is greater than the number of scripts this entity has." << std::endl;
+			return;
+		}
+
+		NativeScriptsComponent::NativeScript& targetScript = nativeScripts.scripts[index];
+
+		targetScript.Reset();
+
+		nativeScripts.scripts.erase(nativeScripts.scripts.begin() + index);
+
+		if (removeComponentIfEmpty && nativeScripts.scripts.empty()) RemoveComponent(entity, NativeScriptsComponentType);
+	}
+
+	void EntityManager::SwapScripts(Entity entity, std::size_t a, std::size_t b) {
+		if (!HasComponent(entity, NativeScriptsComponentType)) {
+			Logger::Get().Info(DebugType::GameManager) << "SwapScripts: Entity does not have any scripts!" << std::endl;
+			return;
+		}
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+
+		if (a >= nativeScripts.scripts.size() || b >= nativeScripts.scripts.size() || a < 0 || b < 0) {
+			Logger::Get().Info(DebugType::GameManager) << "SwapScripts: Invalid Index used for swapping!" << std::endl;
+			return;
+		}
+
+		std::swap(nativeScripts.scripts[a], nativeScripts.scripts[b]);
 	}
 
 	std::vector<Entity> EntityManager::GetAllEntities() const {

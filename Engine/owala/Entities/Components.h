@@ -24,7 +24,8 @@
 #include "GameMessages.h"
 #include <memory> // for std::shared_ptr
 #include <vector> 
-#include <map>    
+#include <map>
+#include "ScriptableEntity.h"
 
 namespace Framework{
 
@@ -199,6 +200,119 @@ namespace Framework{
 		bool isPressed = false; // Button is clicked
 		bool isReleased = false; // Button click is released
 		ButtonAction action = ButtonAction::DEFAULT; // Action to perform on click
+	};
+
+	struct NativeScriptsComponent {
+		struct NativeScript {
+			ScriptableEntity* Instance = nullptr;
+
+			// Function Pointers
+			ScriptableEntity* (*InstantiateScript)() = nullptr;
+			void (*DestroyScript)(NativeScript*) = nullptr;
+
+			// Metadata
+			const char* scriptName = nullptr;
+			std::string serializedTypeName;
+			bool missing = false;
+			bool enabled = true;
+			bool executeInEditMode = false;
+
+			template<typename T>
+			void Bind(const char* name) {
+				static_assert(std::is_base_of<ScriptableEntity, T>::value, "T must derive from ScriptableEntity");
+
+				InstantiateScript = +[]() -> ScriptableEntity* { return new T(); };
+				DestroyScript = +[](NativeScript* script) { delete script->Instance; script->Instance = nullptr; };
+
+				scriptName = name;
+				serializedTypeName = name;
+				missing = false;
+			}
+
+			void Reset() noexcept {
+				if (!Instance) return;
+				if (DestroyScript) DestroyScript(this);
+				else { delete Instance; Instance = nullptr; }
+				Instance = nullptr;
+			}
+
+			void FlagMissing(const std::string& jsonTypeName) {
+				Reset();
+				InstantiateScript = nullptr;
+				DestroyScript = +[](NativeScript* script) { delete script->Instance; script->Instance = nullptr; };
+				scriptName = nullptr;
+				serializedTypeName = jsonTypeName;
+				missing = true;
+				enabled = executeInEditMode = false;
+			}
+
+			// BELOW IS USING RULE OF 3. WILL CONVERT TO RAII IN THE FUTURE. - Jason
+			/* Constructors */
+			NativeScript() noexcept = default;
+			~NativeScript() { Reset(); }
+			
+			// Copy Ctor
+			NativeScript(const NativeScript& other) : Instance(nullptr), InstantiateScript(other.InstantiateScript), DestroyScript(other.DestroyScript), 
+				scriptName(other.scriptName), serializedTypeName(other.serializedTypeName), missing(other.missing), enabled(other.enabled),
+				executeInEditMode(other.executeInEditMode) {}
+
+			// Copy Assignment
+			NativeScript& operator=(const NativeScript& other) {
+				if (this == &other) return *this;
+
+				Reset();
+				InstantiateScript = other.InstantiateScript;
+				DestroyScript = other.DestroyScript;
+				scriptName = other.scriptName;
+				serializedTypeName = other.serializedTypeName;
+				missing = other.missing;
+				enabled = other.enabled;
+				executeInEditMode = other.executeInEditMode;
+				Instance = nullptr; // Should not be copied
+				return *this;
+			}
+
+			// Move Ctor
+			NativeScript(NativeScript&& other) noexcept	: Instance(other.Instance), InstantiateScript(other.InstantiateScript), DestroyScript(other.DestroyScript), 
+				scriptName(other.scriptName), serializedTypeName(std::move(other.serializedTypeName)), missing(other.missing), enabled(other.enabled),
+				executeInEditMode(other.executeInEditMode) 
+			{
+				other.Instance = nullptr;
+				other.InstantiateScript = nullptr;
+				other.DestroyScript = nullptr;
+				other.scriptName = nullptr;
+				other.missing = false;
+				other.enabled = true;
+				other.executeInEditMode = false;
+			}
+
+			// Move Assignment
+			NativeScript& operator=(NativeScript&& other) noexcept {
+				if (this != &other) {
+					Reset();
+					Instance = other.Instance;
+					InstantiateScript = other.InstantiateScript;
+					DestroyScript = other.DestroyScript;
+					scriptName = other.scriptName;
+					serializedTypeName = std::move(other.serializedTypeName);
+					missing = other.missing;
+					enabled = other.enabled;
+					executeInEditMode = other.executeInEditMode;
+
+					other.Instance = nullptr;
+					other.InstantiateScript = nullptr;
+					other.DestroyScript = nullptr;
+					other.scriptName = nullptr;
+					other.serializedTypeName.clear();
+					other.missing = false;
+					other.enabled = true;
+					other.executeInEditMode = false;
+				}
+				return *this;
+			}
+		};
+
+		std::vector<NativeScript> scripts;
 	};
 	
 	// --- ADDED FOR AI ---
