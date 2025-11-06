@@ -30,8 +30,8 @@ namespace Framework {
 		oss << "class " << className << " : public ScriptableEntity {\n";
 		oss << "protected:\n";
 		oss << "\tvoid OnCreate() override;\n";
-		oss << "\tvoid OnUpdate() override\n";
-		oss << "\tvoid OnDestroy() override\n";
+		oss << "\tvoid OnUpdate() override;\n";
+		oss << "\tvoid OnDestroy() override;\n";
 		oss << "};\n";
 
 		return oss.str();
