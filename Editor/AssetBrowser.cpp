@@ -34,6 +34,39 @@ void AssetBrowser::Initialize(const fs::path& rootPath)
     rootPath_ = fs::absolute(rootPath);
     currentPath_ = rootPath_;
 
+    localAssetsPath_ = rootPath_ / "Assets";
+    localDataPath_ = rootPath_ / "Data";
+
+    // Get the path to the project root (two levels up from Debug)
+    fs::path projectRoot = fs::absolute(rootPath_ / "../../");
+    repoAssetsPath_ = projectRoot / "Assets";
+    repoDataPath_ = projectRoot / "Data";
+
+    // Check if all 4 directories exist to enable sync
+    bool localAssetsExists = fs::exists(localAssetsPath_) && fs::is_directory(localAssetsPath_);
+    bool localDataExists = fs::exists(localDataPath_) && fs::is_directory(localDataPath_);
+    bool repoAssetsExists = fs::exists(repoAssetsPath_) && fs::is_directory(repoAssetsPath_);
+    bool repoDataExists = fs::exists(repoDataPath_) && fs::is_directory(repoDataPath_);
+
+    if (localAssetsExists && localDataExists && repoAssetsExists && repoDataExists)
+    {
+        syncToRepo_ = true;
+        Logger::Get().Info(DebugType::Editor) << "Repo sync enabled." << std::endl;
+        Logger::Get().Info(DebugType::Editor) << "  Local Assets: " << localAssetsPath_.string() << std::endl;
+        Logger::Get().Info(DebugType::Editor) << "  Local Data: " << localDataPath_.string() << std::endl;
+        Logger::Get().Info(DebugType::Editor) << "  Repo Assets: " << repoAssetsPath_.string() << std::endl;
+        Logger::Get().Info(DebugType::Editor) << "  Repo Data: " << repoDataPath_.string() << std::endl;
+    }
+    else
+    {
+        syncToRepo_ = false;
+        Logger::Get().Info(DebugType::Editor) << "Repo sync disabled. Missing one or more required directories." << std::endl;
+        if (!localAssetsExists) Logger::Get().Error(DebugType::Editor) << "Could not find local 'Assets' folder at: " << localAssetsPath_.string();
+        if (!localDataExists) Logger::Get().Error(DebugType::Editor) << "Could not find local 'Data' folder at: " << localDataPath_.string();
+        if (!repoAssetsExists) Logger::Get().Error(DebugType::Editor) << "Could not find repo 'Assets' folder at: " << repoAssetsPath_.string();
+        if (!repoDataExists) Logger::Get().Error(DebugType::Editor) << "Could not find repo 'Data' folder at: " << repoDataPath_.string();
+    }
+
     Logger::Get().Info(DebugType::Editor) << "AssetBrowser initializing with root: '" << rootPath_.string() << "'" << std::endl;
 
 	// Check if the root path exists and is a directory
@@ -492,10 +525,60 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                             resourceManager_->unload<Texture>(selectedAsset_.string());
                         }
 
+						else if (ext == ".ttf")
+						{
+							resourceManager_->unload<Font>(selectedAsset_.filename().string());
+						}
+
 						// Copy the replacement file over the original in the selected asset path
                         fs::copy(replacementFilePath_, selectedAsset_, fs::copy_options::overwrite_existing);
                         
+                        // Copy to root
+                        if (syncToRepo_)
+                        {
+                            fs::path repoDestinationPath;
+                            // Get absolute path of the file we are replacing
+                            std::string selectedAssetStr = fs::absolute(selectedAsset_).string();
+                            std::string localAssetsStr = localAssetsPath_.string();
+                            std::string localDataStr = localDataPath_.string();
 
+                            // Check if the selected file is in the local 'Assets' folder tree
+                            if (selectedAssetStr.find(localAssetsStr) == 0)
+                            {
+                                fs::path relativePath = fs::relative(selectedAsset_, localAssetsPath_);
+                                repoDestinationPath = repoAssetsPath_ / relativePath;
+                            }
+                            // Check if the selected file is in the local 'Data' folder tree
+                            else if (selectedAssetStr.find(localDataStr) == 0)
+                            {
+                                fs::path relativePath = fs::relative(selectedAsset_, localDataPath_);
+                                repoDestinationPath = repoDataPath_ / relativePath;
+                            }
+                            else
+                            {
+                                Logger::Get().Info(DebugType::Editor)
+                                    << "Selected asset is outside local 'Assets' or 'Data'. Skipping repo sync for " << selectedAsset_.filename().string() << std::endl;
+                            }
+
+                            // If we have a valid repo destination, copy the replacement file there
+                            if (!repoDestinationPath.empty())
+                            {
+                                try
+                                {
+                                    // Ensure the destination directory exists
+                                    fs::create_directories(repoDestinationPath.parent_path());
+                                    // Copy the *replacement file* over the *repo file*
+                                    fs::copy(replacementFilePath_, repoDestinationPath, fs::copy_options::overwrite_existing);
+                                    Logger::Get().Info(DebugType::Editor)
+                                        << "Synced (Repo) replacement to '" << repoDestinationPath.string() << "'" << std::endl;
+                                }
+                                catch (const fs::filesystem_error& e)
+                                {
+                                    Logger::Get().Error(DebugType::Editor)
+                                        << "Failed to sync replacement file to repo: " << e.what() << std::endl;
+                                }
+                            }
+                        }
 
                         Logger::Get().Info(DebugType::Editor)
                             << "Successfully replaced: " << selectedAsset_.string()
@@ -591,44 +674,98 @@ void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
     {
         try
         {
-            // Only copy if it's a regular file
-            if (fs::is_regular_file(sourcePath))
-            {
-				// Determine destination path in current directory
-                fs::path destinationPath = currentPath_ / sourcePath.filename();
+            if (!fs::is_regular_file(sourcePath)) {
+                Logger::Get().Info(DebugType::Editor) << "Skipping non-file drop: " << sourcePath.string() << std::endl;
+                continue; // Skip to the next file
+            }
 
-                // Check if file already exists and handle accordingly
-                if (fs::exists(destinationPath))
+            fs::path filename = sourcePath.filename();
+
+            // Copy to local path
+            fs::path localDestinationPath = currentPath_ / filename;
+            if (fs::exists(localDestinationPath)) {
+                Logger::Get().Info(DebugType::Editor) << "File already exists, overwriting: " << localDestinationPath.string() << std::endl;
+            }
+            fs::copy(sourcePath, localDestinationPath, fs::copy_options::overwrite_existing);
+            Logger::Get().Info(DebugType::Editor) << "Copied (Local) '" << filename.string() << "' to '" << localDestinationPath.string() << "'" << std::endl;
+            filesCopied = true;
+
+            std::string ext = sourcePath.extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+            if (ext == ".ttf")
+            {
+                // We assume resourceManager_ is valid, as it's used elsewhere
+                if (resourceManager_)
+                {
+                    std::string fontKey = filename.string();
+                    std::string fontPath = localDestinationPath.string();
+
+                    // Load Font
+                    if (resourceManager_->loadFont(fontKey, fontPath))
+                    {
+                        Logger::Get().Info(DebugType::Editor) << "Successfully loaded new font: " << fontKey << std::endl;
+                    }
+                    else
+                    {
+                        Logger::Get().Error(DebugType::Editor) << "Failed to load new font: " << fontKey << std::endl;
+                    }
+                }
+            }
+
+            if (syncToRepo_)
+            {
+                fs::path repoDestinationPath;
+                std::string currentPathStr = fs::absolute(currentPath_).string();
+                std::string localAssetsStr = localAssetsPath_.string();
+                std::string localDataStr = localDataPath_.string();
+
+                // Check if the drop location is within the local 'Assets' folder tree
+                if (currentPathStr.find(localAssetsStr) == 0)
+                {
+                    fs::path relativePath = fs::relative(currentPath_, localAssetsPath_);
+                    repoDestinationPath = repoAssetsPath_ / relativePath / filename;
+                }
+                // Check if the drop location is within the local 'Data' folder tree
+                else if (currentPathStr.find(localDataStr) == 0)
+                {
+                    fs::path relativePath = fs::relative(currentPath_, localDataPath_);
+                    repoDestinationPath = repoDataPath_ / relativePath / filename;
+                }
+                else
                 {
                     Logger::Get().Info(DebugType::Editor)
-                        << "File already exists, overwriting: " << destinationPath.string() << std::endl;
+                        << "Drop location is outside local 'Assets' or 'Data'. Skipping repo sync for " << filename.string() << std::endl;
                 }
 
-				// Copy the file to the current directory
-                fs::copy(sourcePath, destinationPath, fs::copy_options::overwrite_existing);
-
-                Logger::Get().Info(DebugType::Editor)
-                    << "Copied '" << sourcePath.string() << "' to '" << destinationPath.string() << "'" << std::endl;
-                filesCopied = true;
-            }
-			// If not a regular file, log and skip
-            else
-            {
-                Logger::Get().Info(DebugType::Editor)
-                    << "Skipping non-file drop: " << sourcePath.string() << std::endl;
+                // If we have a valid repo destination, create dirs and copy the file
+                if (!repoDestinationPath.empty())
+                {
+                    try
+                    {
+                        fs::create_directories(repoDestinationPath.parent_path());
+                        fs::copy(sourcePath, repoDestinationPath, fs::copy_options::overwrite_existing);
+                        Logger::Get().Info(DebugType::Editor)
+                            << "Copied (Repo) '" << filename.string() << "' to '" << repoDestinationPath.string() << "'" << std::endl;
+                    }
+                    catch (const fs::filesystem_error& e)
+                    {
+                        Logger::Get().Error(DebugType::Editor)
+                            << "Failed to sync file to repo: " << e.what() << std::endl;
+                    }
+                }
             }
         }
+
         catch (const fs::filesystem_error& e)
         {
-            Logger::Get().Error(DebugType::Editor)
-                << "Failed to copy file: " << e.what() << std::endl;
+            Logger::Get().Error(DebugType::Editor) << "Failed to copy file locally: " << e.what() << std::endl;
         }
     }
 
-    // If successfully copied anything, refresh the asset list
     if (filesCopied)
     {
-        ScanDirectory(currentPath_);
+        ScanDirectory(currentPath_); // Refresh editor view
     }
 }
 

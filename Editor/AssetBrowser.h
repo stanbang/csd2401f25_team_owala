@@ -31,7 +31,7 @@ struct AssetEntry
 	fs::path path;		   // Full path to the asset
     std::string name;      // File/folder name
     std::string display;   // What is shown in UI
-    bool isDirectory;
+    bool isDirectory = false;
     Texture iconTextureID = 0;
 };
 
@@ -80,4 +80,10 @@ private:
     bool isReplaceModeActive_ = false;
     fs::path replacementFilePath_;
     bool showReplaceConfirmation_ = false;
+
+    fs::path localAssetsPath_;
+    fs::path localDataPath_;
+    fs::path repoAssetsPath_;
+    fs::path repoDataPath_;
+    bool syncToRepo_ = false;
 };
