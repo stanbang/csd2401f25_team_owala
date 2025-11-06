@@ -69,12 +69,18 @@ namespace Framework {
 
 	namespace FileIOKeys {
 		// Filepath constants
+		static constexpr const char* ROOT_FOLDER_PREFIX = "../../";
+		static constexpr const char* ROOT_DATA_FOLDER = "../../Data";
+		static constexpr const char* ROOT_ASSETS_FOLDER = "../../Assets";
+
 		static constexpr const char* WIN_CONFIG_FILEPATH = "Data/config.json";
 		static constexpr const char* PLAYER_CONFIG_FILEPATH = "Data/player.json";
 		static constexpr const char* WORLD_CONFIG_FILEPATH = "Data/world.json";
 
 		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
 		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";
+
+		static constexpr const char* PLATFORM_PREFABS_FILEPATH = "Data/platformPrefab.json";
 
 		// Window config Json keys
 		static constexpr const char* WINDOW_W = "window_width";

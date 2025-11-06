@@ -1266,17 +1266,23 @@ namespace Editor {
 			// Reset entity states & stop game on save 
 			isGamePlaying = false;
 			gameManager_->GetSystems().levelResetter_->RunReset();
-			std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX; filePath += FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+			std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+			std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
 
 			// If its a newly created scene, create new filepath for it based on scene name.
 			if (currentScene.path.empty()) {
 				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
 			}
 
-			Logger::Get().Info(DebugType::Editor) << "Saving scene: " << currentScene.name << " to: " << filePath << std::endl;
-
-			// Serialize Scene name and entities to its own json file
+			// Serialize Scene name and entities to its own json file in local Data folder
 			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+
+			// Check if root Data folder exists and serialize scene data to root folder
+			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+				std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
+				EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
+			}
+
 			// Save scene asset to json file that stores all scene assets
 			FileIOSystem::SaveSceneAsset(currentScene);
 		}
@@ -3103,9 +3109,14 @@ namespace Editor {
 			return true;
 			};
 
-		// Save to both locations
-		writeToFile("Data/platformPrefab.json");
-		writeToFile("../../Data/platformPrefab.json");
+		// Save to local data folder
+		writeToFile(FileIOKeys::PLATFORM_PREFABS_FILEPATH);
+
+		// Check if root Data folder exists and write to it as well
+		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+			std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::PLATFORM_PREFABS_FILEPATH;
+			writeToFile(rootFilePath);
+		}
 
 		ApplyPrefabChangesToEntities(prefabName);
 

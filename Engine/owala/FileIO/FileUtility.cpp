@@ -17,6 +17,7 @@
  *********************************************************************/
 
 #include "FileUtility.h"
+#include <filesystem>
 
 namespace Framework {
 	std::string FileIOSystem::SanitizeFileName(const std::string& name) {
@@ -217,8 +218,17 @@ namespace Framework {
 				d.PushBack(asset, alloc);
 			}
 
+			// Write to local Data folder
 			WriteFileJson(FileIOKeys::SCENE_ASSETS_FILEPATH, d);
 			Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved scene asset <" << sceneAsset.name << "> to: " << FileIOKeys::SCENE_ASSETS_FILEPATH << std::endl;
+			
+			// Check if root Data folder exists and write to it as well
+			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+				std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::SCENE_ASSETS_FILEPATH;
+				WriteFileJson(rootFilePath, d);
+				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved scene asset <" << sceneAsset.name << "> to: " << rootFilePath << std::endl;
+			}
+			
 			return true;
 		}
 		catch (...) {
@@ -244,9 +254,17 @@ namespace Framework {
 				d.PushBack(asset, alloc);
 			}
 
+			// Write to local Data folder
 			WriteFileJson(FileIOKeys::SCENE_ASSETS_FILEPATH, d);
+			Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved all scene assets to: " << FileIOKeys::SCENE_ASSETS_FILEPATH << std::endl;
+			
+			// Check if root Data folder exists and write to it as well
+			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+				std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::SCENE_ASSETS_FILEPATH;
+				WriteFileJson(rootFilePath, d);
+				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved all scene assets to: " << rootFilePath << std::endl;
+			}
 
-			Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved all scene assets." << std::endl;
 			return true;
 		}
 		catch (...) {
