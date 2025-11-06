@@ -243,6 +243,9 @@ namespace Editor {
 		void ShowPrefabEditor();
 		void ShowTilePalette();
 
+		// Popup Related
+		std::string popupMsg;
+
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
 		Vector2D SnapToGrid(const Vector2D& worldPos);
@@ -259,8 +262,6 @@ namespace Editor {
 
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
-
-		
 
 		/**
 		* @brief Loads textures and prepares palette items.
@@ -293,6 +294,9 @@ namespace Editor {
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
+
+		/* Helper Functions */
+		const bool IsGamePlaying() const { return isGamePlaying; };
 
 		// Converts world - space coordinates to ImGui screen - space
 		// function that accepts a specific camera ID for movement

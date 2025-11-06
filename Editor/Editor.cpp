@@ -2211,11 +2211,27 @@ namespace Editor {
 
 			// Create New Script Button
 			ImGui::SetNextItemWidth(160.f);
-			char newScriptName[256] = "NewScript";
-			ImGui::InputText("New Script Name", newScriptName, IM_ARRAYSIZE(newScriptName));
+			static char newScriptName[256] = "NewScript";
+			ImGui::InputText("##New Script Name", newScriptName, IM_ARRAYSIZE(newScriptName));
 			ImGui::SameLine();
 			if (ImGui::Button("Create New Script")) {
-				NativeScriptMaker::CreateScriptPair(newScriptName, "../../owala/Native/");
+				NativeScriptMaker::CreateScriptPair(newScriptName, "../../owala/Native/", popupMsg);
+				gameManager_->GetSystems().input_->SetKeyboardLocked(true);
+				ImGui::OpenPopup("Script Result");
+				ImGui::SetNextWindowSize(ImVec2(300, 150), ImGuiCond_Appearing);
+			}
+
+			// Popup after attempting to create script.
+			if (ImGui::BeginPopupModal("Script Result", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::TextWrapped("%s", popupMsg.c_str());
+				ImGui::Spacing();
+
+				if (ImGui::Button("OK")) {
+					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
 			}
 
 			// Add Script Button

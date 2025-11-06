@@ -10,6 +10,6 @@ namespace Framework {
 		static std::string CppContent(const std::string& className, const std::string& header);
 		static bool WriteFile(const std::string& path, const std::string& contents);
 	public:
-		static const bool CreateScriptPair(const std::string& className, const std::string& dirAbs);
+		static const bool CreateScriptPair(const std::string& className, const std::string& dirAbs, std::string& outMsg);
 	};
 }
