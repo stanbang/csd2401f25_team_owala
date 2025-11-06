@@ -1361,6 +1361,7 @@ namespace Editor {
 					if (!isCurrentScene) {
 						isGamePlaying = false;
 						gameManager_->GetSystems().levelResetter_->RunReset();
+						ResetEditorCamera();
 						sceneMgr.LoadScene(id);
 					}
 				}
