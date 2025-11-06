@@ -1,3 +1,18 @@
+/*****************************************************************//**
+* \file   SerializationKeys.h
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file is a centralized list of static strings that serves
+*			as JSON keys.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 
 namespace Framework::Serialization {

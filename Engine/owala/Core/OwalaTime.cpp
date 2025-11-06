@@ -1,3 +1,18 @@
+/*****************************************************************//**
+* \file   OwalaTime.cpp
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file defines the Time class, which provides an
+*			static interface to get time information.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "OwalaTime.h"
 #include <iostream>
 
@@ -10,7 +25,6 @@ namespace Framework {
 		dt = 0.0f;
 		unscaledDt = 0.0f;
 		accumulatedTime = 0.0;
-		interpAlpha = 0.0f;
 	}
 
 	void Time::BeginFrame() noexcept {
@@ -25,7 +39,7 @@ namespace Framework {
 	}
 
 	void Time::EndFrame() noexcept {
-		// No-op for now
+		// Empty by design
 	}
 
 	// ---------------------------------------------------------------------------

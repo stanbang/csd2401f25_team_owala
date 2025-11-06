@@ -104,7 +104,9 @@ namespace Framework {
 			for (NativeScriptsComponent::NativeScript& script : nativeScripts) {
 				if (!script.enabled) continue;
 
+#ifdef BUILD_EDITOR
 				if (!script.executeInEditMode && !editor_->IsGamePlaying()) continue;
+#endif
 
 				if (!script.Instance) {
 					// Create and Bind Entity

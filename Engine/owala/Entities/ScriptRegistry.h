@@ -1,3 +1,18 @@
+/*****************************************************************//**
+* \file   ScriptRegistry.h
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file defines the Runtime directory of native 
+*			C++ script types.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include <string>
 #include <unordered_map>

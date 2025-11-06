@@ -1,3 +1,18 @@
+/*****************************************************************//**
+* \file   OwalaTime.h
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file declares the Time class, which provides an
+*			static interface to get time information.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include <chrono>
 
@@ -8,23 +23,25 @@ namespace Framework {
 		using clock = std::chrono::high_resolution_clock;
 	private:
 		/* Clocks */
-		static inline clock::time_point prev;
-		static inline clock::time_point now;
-		static inline float dt;
-		static inline float unscaledDt;
+		static inline clock::time_point prev; // Internal time recorded at the previous frame.
+		static inline clock::time_point now; // Internal time recorded at the current frame.
+		static inline float dt; // Delta time, or time elapsed since the previous frame. With respect to timeScale.
+		static inline float unscaledDt; // Delta time, unaffected by the timeScale.
 
 		/* Time Config */
-		static inline float fixedDt = 1.0f / 60.0f;
+		static inline float fixedDt = 1.0f / 60.0f; // Fixed DeltaTime
 		static inline float maxDt = 0.25f; // Maximum delta time
 		static inline float timeScale = 1.0f; // Global time scale factor. Aka Time Dilation.
 
 		/* Accumulated Time */
-		static inline double accumulatedTime = 0.0;
-		static inline float interpAlpha = 0.0f;
+		static inline double accumulatedTime = 0.0; // Internal Time
 	public:
 		/* Time Capturing - Only CoreEngine should be calling these functions */
+		// Let Engine call this
 		static void Initialize() noexcept;
+		// Let Engine call this
 		static void BeginFrame() noexcept;
+		// Let Engine call this
 		static void EndFrame() noexcept;
 
 		/* Getters */
