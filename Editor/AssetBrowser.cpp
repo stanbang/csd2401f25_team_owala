@@ -520,9 +520,9 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                     try
                     {
                         // Unload the texture from resource manager first
-                        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+                        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tex")
                         {
-                            resourceManager_->unload<Texture>(selectedAsset_.string());
+                            resourceManager_->unload<Texture>(selectedAsset_.filename().string());
                         }
 
 						else if (ext == ".ttf")
