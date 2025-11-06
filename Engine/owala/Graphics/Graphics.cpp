@@ -110,17 +110,17 @@ namespace Framework {
     // Shader File Loading Helpers
     // =========================
 
-    static std::string LoadShaderFromFile(const char* path) {
-        std::ifstream file(path);
-        if (!file) {
-            std::fprintf(stderr, "Failed to open shader file: %s\n", path);
-            return "";
-        }
+    //static std::string LoadShaderFromFile(const char* path) {
+    //    std::ifstream file(path);
+    //    if (!file) {
+    //        std::fprintf(stderr, "Failed to open shader file: %s\n", path);
+    //        return "";
+    //    }
 
-        std::string content((std::istreambuf_iterator<char>(file)),
-            std::istreambuf_iterator<char>());
-        return content;
-    }
+    //    std::string content((std::istreambuf_iterator<char>(file)),
+    //        std::istreambuf_iterator<char>());
+    //    return content;
+    //}
 
     static GLuint compile(GLenum type, const char* src) {
         GLuint s = glCreateShader(type);
@@ -151,17 +151,17 @@ namespace Framework {
         return p;
     }
 
-    static GLuint linkProgramFromFiles(const char* vsPath, const char* fsPath) {
-        std::string vsSrc = LoadShaderFromFile(vsPath);
-        std::string fsSrc = LoadShaderFromFile(fsPath);
+    //static GLuint linkProgramFromFiles(const char* vsPath, const char* fsPath) {
+    //    std::string vsSrc = LoadShaderFromFile(vsPath);
+    //    std::string fsSrc = LoadShaderFromFile(fsPath);
 
-        if (vsSrc.empty() || fsSrc.empty()) {
-            std::fprintf(stderr, "Failed to load shader files: %s, %s\n", vsPath, fsPath);
-            return 0;
-        }
+    //    if (vsSrc.empty() || fsSrc.empty()) {
+    //        std::fprintf(stderr, "Failed to load shader files: %s, %s\n", vsPath, fsPath);
+    //        return 0;
+    //    }
 
-        return linkProgram(vsSrc.c_str(), fsSrc.c_str());
-    }
+    //    return linkProgram(vsSrc.c_str(), fsSrc.c_str());
+    //}
     // =========================
     // Internal state / helpers
     // =========================
