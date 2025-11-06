@@ -75,10 +75,11 @@ namespace Framework {
 		}
 	}
 
-	const bool NativeScriptMaker::CreateScriptPair(const std::string& className, const std::string& dirAbs) {
+	const bool NativeScriptMaker::CreateScriptPair(const std::string& className, const std::string& dirAbs, std::string& outMsg) {
 		std::string sanitized_name = SanitizeClassName(className);
 		if (sanitized_name.empty()) {
 			Logger::Get().Info(DebugType::FileIOSystem) << "CreateScriptPair: Invalid class name";
+			outMsg = "Invalid class name.";
 			return false;
 		}
 
@@ -88,10 +89,12 @@ namespace Framework {
 		if (!std::filesystem::exists(dir)) {
 			if (!std::filesystem::create_directories(dir, ec)) {
 				Logger::Get().Info(DebugType::FileIOSystem) << "CreateScriptPair: Failed to create directory: " << ec.message();
+				outMsg = "Failed to create directory.";
 				return false;
 			}
 		} else if (!std::filesystem::is_directory(dir)) {
 			Logger::Get().Info(DebugType::FileIOSystem) << "CreateScriptPair: Destination path is not a directory.";
+			outMsg = "Destination path is not a directory.";
 			return false;
 		}
 
@@ -100,6 +103,7 @@ namespace Framework {
 
 		if (std::filesystem::exists(hpp) || std::filesystem::exists(cpp)) {
 			Logger::Get().Info(DebugType::FileIOSystem) << "CreateScriptPair: File(s) already exist: " + hpp.string() + " / " + cpp.string();
+			outMsg = "Script with the same name already exist!";
 			return false;
 		}
 
@@ -107,6 +111,7 @@ namespace Framework {
 		std::ofstream headerFile(hpp);
 		if (!headerFile) {
 			Logger::Get().Info(DebugType::FileIOSystem) << "CreateScriptPair: Failed to create header file: " + hpp.string();
+			outMsg = "Header file creation failed!";
 			return false;
 		}
 		headerFile << HeaderContent(sanitized_name);
@@ -118,12 +123,14 @@ namespace Framework {
 			std::error_code remEc;
 			std::filesystem::remove(hpp, remEc);
 			Logger::Get().Info(DebugType::FileIOSystem) << "CreateScriptPair: Failed to create source file: " + cpp.string();
+			outMsg = "Source file creation failed!";
 			return false;
 		}
 		std::string headerInclude = sanitized_name;
 		headerInclude += ".h";
 		sourceFile << CppContent(sanitized_name, headerInclude);
 		sourceFile.close();
+		outMsg = "Script created successfully!\nIt can be found in the Native folder.\nYou will need to run cmake again.";
 
 		return true;
 	}
