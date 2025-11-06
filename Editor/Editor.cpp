@@ -52,6 +52,7 @@
 // Native Scripting
 #include "ScriptableEntity.h"
 #include "ScriptRegistry.h"
+#include "NativeScriptMaker.h"
 
 // Internal Helpers
 namespace {
@@ -2143,16 +2144,22 @@ namespace Editor {
 			ImGui::TextDisabled("Native Scripts");
 			ImGui::Separator();
 
-			// --- Build the registry name list with owned storage (prevents '??') ---
 			std::vector<std::string> names;
 			names.emplace_back("- Select script -");
 
-			// Use whatever iterator your registry exposes:
-			// ScriptRegistry::Get().ForEachSlotName([&](const char* n){ names.emplace_back(n); });
 			Framework::ScriptRegistry::Get().ForEachScriptName([&](const char* n) { names.emplace_back(n); });
 
 			std::vector<const char*> labels;
 			for (std::string& s : names) labels.push_back(s.c_str());
+
+			// Create New Script Button
+			ImGui::SetNextItemWidth(160.f);
+			char newScriptName[256] = "NewScript";
+			ImGui::InputText("New Script Name", newScriptName, IM_ARRAYSIZE(newScriptName));
+			ImGui::SameLine();
+			if (ImGui::Button("Create New Script")) {
+				NativeScriptMaker::CreateScriptPair(newScriptName, "../../owala/Native/");
+			}
 
 			// Add Script Button
 			ImGui::SetNextItemWidth(240.f);
@@ -2160,7 +2167,7 @@ namespace Editor {
 			ImGui::SameLine();
 			if (ImGui::Button("Add Script") && selectedScriptIndex > 0) {
 				const std::string& pick = names[selectedScriptIndex];
-				std::size_t idx = entityMgr.AttachScriptByName(selectedEntity, pick, /*enabled=*/true);
+				std::size_t idx = entityMgr.AttachScriptByName(selectedEntity, pick, true);
 				if (idx == (std::size_t)-1) {
 					Logger::Get().Error(DebugType::Editor) << "AttachScriptByName failed for '" << pick << "'";
 				}
