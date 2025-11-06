@@ -104,6 +104,12 @@ namespace Framework::Serialization {
 	static constexpr const char* FOLLOW_SPEED = "follow_speed";
 	static constexpr const char* IS_ACTIVE = "is_active";
 
+	static constexpr const char* NATIVE_SCRIPTS_COMPONENT = "NativeScripts";
+	static constexpr const char* SCRIPTS = "scripts";
+	static constexpr const char* SCRIPT_TYPE = "type";
+	static constexpr const char* SCRIPT_ENABLED = "enabled";
+	static constexpr const char* SCRIPT_EXEC_IN_EDIT = "execute_in_edit";
+
 	static constexpr const char* BUTTON_COMPONENT = "ButtonComponent";
 	static constexpr const char* IS_HOVERED = "is_hovered";
 	static constexpr const char* IS_PRESSED = "is_pressed";

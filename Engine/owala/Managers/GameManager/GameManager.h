@@ -96,6 +96,9 @@ namespace Framework {
 		float profilerUpdateTimer_ = 0.0f;
 		std::vector<SystemTime> profilerDisplayData_;
 
+		// Internal Helpers
+		void UpdateNativeScripts();
+
 	public:
 		// GLOBAL STATES
 		int testState = 0;

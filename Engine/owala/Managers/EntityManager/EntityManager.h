@@ -67,6 +67,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Button>) ecs.button[entity] = component;
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
 			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
+			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) ecs.nativeScripts[entity] = component;
 			else if constexpr (std::is_same_v<T, BirdAIComponent>) ecs.birdAIComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) ecs.skeletonAIComponent[entity] = component; 
 
@@ -111,6 +112,7 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
+			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) return ecs.nativeScripts.at(entity);
 			else if constexpr (std::is_same_v<T, BirdAIComponent>) return ecs.birdAIComponent.at(entity);
 			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) return ecs.skeletonAIComponent.at(entity); 
 			else {
@@ -119,6 +121,15 @@ namespace Framework {
 		}
 		// Checks if given component is a Tag Component. Returns false if it is a regular component.
 		bool IsTagComponent(ComponentType componentType);
+		// Attaches a custom C++ script to an entity.
+		template<class T> 
+		std::size_t AttachScript(Entity entity, const char* displayName = nullptr, bool enabled = true);
+		// Attaches a custom C++ script to an entity.
+		std::size_t AttachScriptByName(Entity entity, std::string typeName, bool enabled = true);
+		// Removes a custom C++ script at the provided script index from an entity.
+		void RemoveScriptAt(Entity entity, std::size_t index, bool removeComponentIfEmpty = true);
+		// Swaps the index of an existing script with another bounded script.
+		void SwapScripts(Entity entity, std::size_t a, std::size_t b);
 		// Gets all entities that have been created. Note that this includes entities that have no components.
 		std::vector<Entity> GetAllEntities() const;
 		// Gets all entities that have the specified component type attached to them.
@@ -156,6 +167,23 @@ namespace Framework {
 		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
 		//void RemoveComponent(Entity entity, ComponentType componentType);
 	};
+
+	template<class T>
+	std::size_t EntityManager::AttachScript(Entity entity, const char* displayName, bool enabled)
+	{
+		if (!HasComponent(entity, NativeScriptsComponentType)) {
+			AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{});
+		}
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+
+		nativeScripts.scripts.emplace_back();
+		NativeScriptsComponent::NativeScript& scriptToAdd = nativeScripts.scripts.back();
+		scriptToAdd.enabled = enabled;
+		scriptToAdd.Bind<T>(displayName ? displayName : typeid(T).name());
+
+		return nativeScripts.scripts.size() - 1;
+	}
 
 	template<typename... Args>
 	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {

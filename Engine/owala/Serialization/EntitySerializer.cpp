@@ -19,6 +19,7 @@
 #include "EntitySerializer.h"
 #include "SerializationKeys.h"
 #include "EntityManager.h"
+#include "ScriptRegistry.h"
 #include "FileUtility.h"
 #include "Logger.h"
 
@@ -264,6 +265,28 @@ namespace Framework {
 			value.AddMember(rapidjson::StringRef(Serialization::FOLLOW_SPEED), cameraComp.followSpeed, alloc);
 			value.AddMember(rapidjson::StringRef(Serialization::IS_ACTIVE), cameraComp.isActive, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::CAMERA_COMPONENT), value, alloc);
+		}
+
+		// Serialize Native Scripts that is attached to this entity.
+		if (entityMgr.HasComponent(entity, ComponentType::NativeScriptsComponentType)) {
+			NativeScriptsComponent& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			rapidjson::Value scriptList(rapidjson::kArrayType);
+			for (const NativeScriptsComponent::NativeScript& script : nativeScripts.scripts) {
+				rapidjson::Value scriptObj(rapidjson::kObjectType);
+
+				const char* typeCStr = script.scriptName ? script.scriptName : script.serializedTypeName.c_str();
+				rapidjson::Value typeVal;
+				typeVal.SetString(typeCStr,	static_cast<rapidjson::SizeType>(std::char_traits<char>::length(typeCStr)), alloc);
+
+				scriptObj.AddMember(rapidjson::StringRef(Serialization::SCRIPT_TYPE), typeVal, alloc);
+				scriptObj.AddMember(rapidjson::StringRef(Serialization::SCRIPT_ENABLED), script.enabled, alloc);
+				scriptObj.AddMember(rapidjson::StringRef(Serialization::SCRIPT_EXEC_IN_EDIT), script.executeInEditMode, alloc);
+
+				scriptList.PushBack(scriptObj, alloc);
+			}
+			value.AddMember(rapidjson::StringRef(Serialization::SCRIPTS), scriptList, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::NATIVE_SCRIPTS_COMPONENT), value, alloc);
 		}
 
 		if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
@@ -780,6 +803,48 @@ namespace Framework {
 				cameraComp.isActive = cameraData[Serialization::IS_ACTIVE].GetBool();
 			}
 			entityMgr.AddComponent<Camera>(loadedEntity, cameraComp);
+		}
+
+		// Deserialize NativeScripts
+		if (componentLists.HasMember(Serialization::NATIVE_SCRIPTS_COMPONENT)) {
+			const rapidjson::Value& savedNativeScripts = componentLists[Serialization::NATIVE_SCRIPTS_COMPONENT];
+
+			NativeScriptsComponent nativeScripts;
+
+			if (savedNativeScripts.HasMember(Serialization::SCRIPTS) && savedNativeScripts[Serialization::SCRIPTS].IsArray()) {
+				const rapidjson::Value& scriptsArr = savedNativeScripts[Serialization::SCRIPTS];
+
+				for (const rapidjson::Value& scriptObj : scriptsArr.GetArray()) {
+					if (!scriptObj.IsObject()) continue;
+					std::string typeName;
+					bool enabled = true;
+					bool executeInEdit = false;
+
+					if (scriptObj.HasMember(Serialization::SCRIPT_TYPE) && scriptObj[Serialization::SCRIPT_TYPE].IsString()) {
+						typeName = scriptObj[Serialization::SCRIPT_TYPE].GetString();
+					}
+					if (scriptObj.HasMember(Serialization::SCRIPT_ENABLED) && scriptObj[Serialization::SCRIPT_ENABLED].IsBool()) {
+						enabled = scriptObj[Serialization::SCRIPT_ENABLED].GetBool();
+					}
+					if (scriptObj.HasMember(Serialization::SCRIPT_EXEC_IN_EDIT) && scriptObj[Serialization::SCRIPT_EXEC_IN_EDIT].IsBool()) {
+						executeInEdit = scriptObj[Serialization::SCRIPT_EXEC_IN_EDIT].GetBool();
+					}
+
+					nativeScripts.scripts.emplace_back();
+					NativeScriptsComponent::NativeScript& script = nativeScripts.scripts.back();
+					script.enabled = enabled;
+					script.executeInEditMode = executeInEdit;
+
+					if (!typeName.empty()) {
+						const bool isGood = Framework::ScriptRegistry::Get().BindScriptByName(script, typeName);
+						if (!isGood) {
+							script.FlagMissing(typeName);
+							Logger::Error(DebugType::EntitySeralizer) << "Unknown Script Type or Missing Script" << std::endl;
+						}
+					}
+				}
+			}
+			entityMgr.AddComponent<NativeScriptsComponent>(loadedEntity, std::move(nativeScripts));
 		}
 
 		if (componentLists.HasMember(Serialization::BIRD_AI_COMPONENT)) {

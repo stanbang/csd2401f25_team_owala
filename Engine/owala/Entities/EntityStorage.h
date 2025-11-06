@@ -58,6 +58,7 @@ namespace Framework {
 		AnimationComponentType,
 		TextComponentType,
 		CameraType,
+		NativeScriptsComponentType,
 		PlayerTagType,
 		FakePlayerTagType,
 		ButtonType,
@@ -101,6 +102,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<AnimationComponent> { static constexpr ComponentType value = AnimationComponentType; };
 	template <> struct ComponentTypeTrait<TextComponent> { static constexpr ComponentType value = TextComponentType; };
 	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
+	template <> struct ComponentTypeTrait<NativeScriptsComponent> { static constexpr ComponentType value = NativeScriptsComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
 	template <> struct ComponentTypeTrait<FakePlayerTag> { static constexpr ComponentType value = FakePlayerTagType; };
 	template <> struct ComponentTypeTrait<Button> { static constexpr ComponentType value = ButtonType; };
@@ -153,6 +155,8 @@ namespace Framework {
 		std::unordered_map<Entity, SkeletonAIComponent> skeletonAIComponent; 
 
 		std::unordered_map<Entity, Camera> cameras;//Camera
+
+		std::unordered_map<Entity, NativeScriptsComponent> nativeScripts; // Native Scripts
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to

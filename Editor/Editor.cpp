@@ -54,6 +54,11 @@
 // Time Management
 #include "OwalaTime.h"
 
+// Native Scripting
+#include "ScriptableEntity.h"
+#include "ScriptRegistry.h"
+#include "NativeScriptMaker.h"
+
 // Internal Helpers
 namespace {
 	using namespace Framework;
@@ -76,6 +81,8 @@ namespace {
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
 		case ComponentType::TextComponentType:				return "Text";
+		case ComponentType::CameraType:						return "Camera";
+		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::BirdAIComponentType:			return "BirdAI";
 		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI"; 
@@ -394,9 +401,9 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
 			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left);
 			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
 			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
-			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left); 
 
 			ImGui::DockBuilderDockWindow("Game", dock_main_id);
 			ImGui::DockBuilderFinish(dockspaceID);
@@ -2184,6 +2191,135 @@ namespace Editor {
 
 			// Font Size Input
 			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
+
+			break;
+		}
+
+		case ComponentType::NativeScriptsComponentType: {
+			NativeScriptsComponent& comp = entityMgr.GetComponent<NativeScriptsComponent>(selectedEntity);
+
+			ImGui::TextDisabled("Native Scripts");
+			ImGui::Separator();
+
+			std::vector<std::string> names;
+			names.emplace_back("- Select script -");
+
+			Framework::ScriptRegistry::Get().ForEachScriptName([&](const char* n) { names.emplace_back(n); });
+
+			std::vector<const char*> labels;
+			for (std::string& s : names) labels.push_back(s.c_str());
+
+			// Create New Script Button
+			ImGui::SetNextItemWidth(160.f);
+			char newScriptName[256] = "NewScript";
+			ImGui::InputText("New Script Name", newScriptName, IM_ARRAYSIZE(newScriptName));
+			ImGui::SameLine();
+			if (ImGui::Button("Create New Script")) {
+				NativeScriptMaker::CreateScriptPair(newScriptName, "../../owala/Native/");
+			}
+
+			// Add Script Button
+			ImGui::SetNextItemWidth(240.f);
+			ImGui::Combo("##addScriptChoice", &selectedScriptIndex, labels.data(), static_cast<int>(labels.size()));
+			ImGui::SameLine();
+			if (ImGui::Button("Add Script") && selectedScriptIndex > 0) {
+				const std::string& pick = names[selectedScriptIndex];
+				std::size_t idx = entityMgr.AttachScriptByName(selectedEntity, pick, true);
+				if (idx == (std::size_t)-1) {
+					Logger::Get().Error(DebugType::Editor) << "AttachScriptByName failed for '" << pick << "'";
+				}
+				selectedScriptIndex = 0;
+			}
+
+			ImGui::Separator();
+
+			// Per Script Section
+			for (std::size_t i = 0; i < comp.scripts.size(); ++i) {
+				NativeScriptsComponent::NativeScript& script = comp.scripts[i];
+				ImGui::PushID(static_cast<int>(i));
+
+				const bool isMissing = script.missing || (script.InstantiateScript == nullptr);
+				const char* scriptName = script.scriptName ? script.scriptName : nullptr;
+				const char* fallbackName = script.serializedTypeName.empty() ? "(Unknown)" : script.serializedTypeName.c_str();
+				const char* headerLabel = isMissing ? fallbackName : (scriptName ? scriptName : fallbackName);
+
+				if (ImGui::CollapsingHeader(headerLabel, ImGuiTreeNodeFlags_DefaultOpen)) {
+
+					// Warning Text if Script is missing.
+					if (isMissing) {
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.35f, 0.35f, 1.f));
+						ImGui::Text("Missing: %s", fallbackName);
+						ImGui::PopStyleColor();
+					}
+
+					// Enable Checkbox
+					bool enabled = script.enabled;
+					if (isMissing) {
+						ImGui::BeginDisabled();
+						ImGui::Checkbox("Enabled", &enabled);
+						ImGui::EndDisabled();
+					}
+					else {
+						if (ImGui::Checkbox("Enabled", &enabled)) script.enabled = enabled;
+					}
+
+					ImGui::SameLine();
+
+					// Execute In Edit Checkbox
+					bool executeInEditMode = script.executeInEditMode;
+					if (isMissing) {
+						ImGui::BeginDisabled();
+						ImGui::Checkbox("Execute In Edit?", &executeInEditMode);
+						ImGui::EndDisabled();
+					}
+					else {
+						if (ImGui::Checkbox("Execute In Edit?", &executeInEditMode)) script.executeInEditMode = executeInEditMode;
+					}
+
+					// Replace Script Button
+					ImGui::SetNextItemWidth(240.f);
+					ImGui::Combo("##replaceChoice", &selectedReplaceScriptIndex, labels.data(), static_cast<int>(labels.size()));
+					ImGui::SameLine();
+					if (ImGui::Button("Replace") && selectedReplaceScriptIndex > 0) {
+						const std::string& newType = names[selectedReplaceScriptIndex];
+
+						std::size_t newIndex = entityMgr.AttachScriptByName(selectedEntity, newType, script.enabled);
+						if (newIndex == (std::size_t)-1) {
+							Logger::Get().Error(DebugType::Editor) << "Replace failed for '" << newType << "'";
+						}
+						else {
+							if (newIndex != i) entityMgr.SwapScripts(selectedEntity, newIndex, i);
+							entityMgr.RemoveScriptAt(selectedEntity, newIndex, true);
+						}
+						selectedReplaceScriptIndex = 0;
+					}
+
+					// Reordering Buttons
+					if (ImGui::SmallButton("Up") && i > 0) {
+						entityMgr.SwapScripts(selectedEntity, i, i - 1);
+					}
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Down") && i + 1 < comp.scripts.size()) {
+						entityMgr.SwapScripts(selectedEntity, i, i + 1);
+					}
+
+					// Remove Script Button
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Remove")) {
+						entityMgr.RemoveScriptAt(selectedEntity, i, true);
+						ImGui::PopID();
+						break;
+					}
+
+					// Debug Info
+					ImGui::Separator();
+					ImGui::TextDisabled("Runtime:");
+					ImGui::BulletText("Instance: %s", script.Instance ? "Created" : "Not created");
+				}
+
+				ImGui::PopID();
+				ImGui::Separator();
+			}
 
 			break;
 		}
