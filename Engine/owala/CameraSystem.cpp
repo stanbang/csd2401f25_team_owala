@@ -84,11 +84,10 @@ namespace Framework {
     {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D screenPos;
-
-        float halfW = camera.zoom * camera.aspectRatio;
+        float halfW = camera.zoom;
         float halfH = camera.zoom;
 
-        screenPos.x = (worldPos.x - camera.position.x) / halfW;
+        screenPos.x = ((worldPos.x - camera.position.x) / halfW) / camera.aspectRatio;
         screenPos.y = (worldPos.y - camera.position.y) / halfH;
 
         return screenPos;
@@ -105,11 +104,12 @@ namespace Framework {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D worldPos;
 
-        float halfW = camera.zoom * camera.aspectRatio;
+        float halfW = camera.zoom;
         float halfH = camera.zoom;
 
-        worldPos.x = camera.position.x + screenPos.x * halfW;
+        worldPos.x = camera.position.x + (screenPos.x * camera.aspectRatio) * halfW;
         worldPos.y = camera.position.y + screenPos.y * halfH;
+
 
         return worldPos;
     }
