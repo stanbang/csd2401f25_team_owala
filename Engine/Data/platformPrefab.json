@@ -262,7 +262,7 @@
                         "currentDelay": 0.0,
                         "currentFallDistance": 0.0,
                         "fallSpeed": 2.0,
-                        "triggerDelay": 0.30000001192092896
+                        "triggerDelay": 0.10000000149011612
                     }
                 }
             ],
@@ -327,7 +327,7 @@
                         "currentDelay": 0.0,
                         "currentFallDistance": 0.0,
                         "fallSpeed": 2.0,
-                        "triggerDelay": 0.30000001192092896
+                        "triggerDelay": 0.10000000149011612
                     }
                 }
             ],
@@ -392,7 +392,7 @@
                         "currentDelay": 0.0,
                         "currentFallDistance": 0.0,
                         "fallSpeed": 2.0,
-                        "triggerDelay": 0.30000001192092896
+                        "triggerDelay": 0.10000000149011612
                     }
                 }
             ],
