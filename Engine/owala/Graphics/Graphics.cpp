@@ -638,67 +638,67 @@ namespace Framework {
         }
     }
 
-    void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glUseProgram(progText_);
+    //void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
+    //    glEnable(GL_BLEND);
+    //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //    glUseProgram(progText_);
 
-        glUniform4f(g_uColorLoc_Text, color.r, color.g, color.b, color.a);
+    //    glUniform4f(g_uColorLoc_Text, color.r, color.g, color.b, color.a);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
-        glUniform1i(g_uTexLoc_Text, 0);
+    //    glActiveTexture(GL_TEXTURE0);
+    //    glBindTexture(GL_TEXTURE_2D, font.GetAtlasID());
+    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+    //    glUniform1i(g_uTexLoc_Text, 0);
 
-        glBindVertexArray(vaoText_);
-        glBindBuffer(GL_ARRAY_BUFFER, vboText_);
+    //    glBindVertexArray(vaoText_);
+    //    glBindBuffer(GL_ARRAY_BUFFER, vboText_);
 
-        std::vector<float> vertices;
-        vertices.reserve(textToDraw.length() * 6 * 4);
+    //    std::vector<float> vertices;
+    //    vertices.reserve(textToDraw.length() * 6 * 4);
 
-        float x = (pos.x + 1.0f) * 0.5f * screenWidth;
-        float y = (pos.y + 1.0f) * 0.5f * screenHeight;
+    //    float x = (pos.x + 1.0f) * 0.5f * screenWidth;
+    //    float y = (pos.y + 1.0f) * 0.5f * screenHeight;
 
-        for (char c_signed : textToDraw) {
-            unsigned char c = static_cast<unsigned char>(c_signed);
-            const auto& ch = font.GetCharacters().at(c);
+    //    for (char c_signed : textToDraw) {
+    //        unsigned char c = static_cast<unsigned char>(c_signed);
+    //        const auto& ch = font.GetCharacters().at(c);
 
-            float xpos = x + ch.Bearing.x * scale;
-            float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-            float w = ch.Size.x * scale;
-            float h = ch.Size.y * scale;
+    //        float xpos = x + ch.Bearing.x * scale;
+    //        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+    //        float w = ch.Size.x * scale;
+    //        float h = ch.Size.y * scale;
 
-            float ndc_xpos = (xpos / screenWidth) * 2.0f - 1.0f;
-            float ndc_ypos = (ypos / screenHeight) * 2.0f - 1.0f;
-            float ndc_w = (w / screenWidth) * 2.0f;
-            float ndc_h = (h / screenHeight) * 2.0f;
+    //        float ndc_xpos = (xpos / screenWidth) * 2.0f - 1.0f;
+    //        float ndc_ypos = (ypos / screenHeight) * 2.0f - 1.0f;
+    //        float ndc_w = (w / screenWidth) * 2.0f;
+    //        float ndc_h = (h / screenHeight) * 2.0f;
 
-            float u = ch.TexCoords.x;
-            float v = ch.TexCoords.y;
-            float uvw = ch.TexCoords.z;
-            float uvh = ch.TexCoords.w;
+    //        float u = ch.TexCoords.x;
+    //        float v = ch.TexCoords.y;
+    //        float uvw = ch.TexCoords.z;
+    //        float uvh = ch.TexCoords.w;
 
-            vertices.insert(vertices.end(), {
-                ndc_xpos,         ndc_ypos + ndc_h,   u,       v,
-                ndc_xpos,         ndc_ypos,           u,       v + uvh,
-                ndc_xpos + ndc_w, ndc_ypos,           u + uvw, v + uvh,
+    //        vertices.insert(vertices.end(), {
+    //            ndc_xpos,         ndc_ypos + ndc_h,   u,       v,
+    //            ndc_xpos,         ndc_ypos,           u,       v + uvh,
+    //            ndc_xpos + ndc_w, ndc_ypos,           u + uvw, v + uvh,
 
-                ndc_xpos,         ndc_ypos + ndc_h,   u,       v,
-                ndc_xpos + ndc_w, ndc_ypos,           u + uvw, v + uvh,
-                ndc_xpos + ndc_w, ndc_ypos + ndc_h,   u + uvw, v
-                });
+    //            ndc_xpos,         ndc_ypos + ndc_h,   u,       v,
+    //            ndc_xpos + ndc_w, ndc_ypos,           u + uvw, v + uvh,
+    //            ndc_xpos + ndc_w, ndc_ypos + ndc_h,   u + uvw, v
+    //            });
 
-            x += (ch.Advance >> 6) * scale;
-        }
+    //        x += (ch.Advance >> 6) * scale;
+    //    }
 
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
-        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(vertices.size() / 4));
+    //    glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
+    //    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(vertices.size() / 4));
 
-        glBindVertexArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_BLEND);
-    }
+    //    glBindVertexArray(0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //    glBindTexture(GL_TEXTURE_2D, 0);
+    //    glDisable(GL_BLEND);
+    //}
 
     std::vector<std::string> Graphics::WrapText(Font& font, const std::string& text, float scale, float maxWidth) {
         std::vector<std::string> lines;

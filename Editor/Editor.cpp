@@ -291,11 +291,23 @@ namespace Editor {
 		cameraSystem_ = gameManager_->GetSystems().camera_;
 		graphicsSystem_ = gameManager_->GetSystems().gfx_;
 
+		// In your Initialize() function, update camera setup:
 		if (cameraSystem_ && editorCamera_ == 0) {
-			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false); // not active for game
-			cameraSystem_->SetZoom(editorCamera_, editorZoom_);
+			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false);
+
+			// Set appropriate world space size for the camera
+			Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.size = { 20.0f, 20.0f }; // Adjust based on your world scale
+			cam.zoom = 1.0f;
+
+			cameraSystem_->SetZoom(editorCamera_, 1.0f);
 			float aspect = gameViewportSize_.x / gameViewportSize_.y;
 			cameraSystem_->SetAspectRatio(editorCamera_, aspect);
+
+			// Update default state
+			defaultEditorCameraState_.position = { 0.0f, 0.0f };
+			defaultEditorCameraState_.zoom = 1.0f;
+			currentEditorCameraState_ = defaultEditorCameraState_;
 		}
 
 		initialized = true;
@@ -604,13 +616,15 @@ namespace Editor {
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
-	Vector2D Editor::GetMouseWorldPosition() {
+	Vector2D Editor::GetMouseWorldPosition()
+	{
 		if (!cameraSystem_ || editorCamera_ == 0)
 			return { 0.0f, 0.0f };
 
+		// Get mouse pos in ImGui screen space
 		ImVec2 mouse = ImGui::GetMousePos();
 
-		// convert to relative viewport coords
+		// Convert to viewport-relative coords
 		float relX = mouse.x - gameViewportPos_.x;
 		float relY = mouse.y - gameViewportPos_.y;
 
@@ -618,19 +632,16 @@ namespace Editor {
 			relX > gameViewportSize_.x || relY > gameViewportSize_.y)
 			return { 0.0f, 0.0f };
 
-		// NDC conversion (Y flipped)
-		float ndcX = (relX / gameViewportSize_.x) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (relY / gameViewportSize_.y) * 2.0f; // this flips Y!
-
+		// Get camera properties
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-		Vector2D camPos = cam.position;
-		Vector2D camSize = cam.size;
 
-		// Map NDC → world
-		float worldX = camPos.x + ndcX * (camSize.x * 0.5f);
-		float worldY = camPos.y + ndcY * (camSize.y * 0.5f);
+		// Convert screen coordinates to world coordinates
+		float worldX = cam.position.x + ((relX / gameViewportSize_.x) - 0.5f) * cam.size.x;
+		float worldY = cam.position.y + ((1.0f - (relY / gameViewportSize_.y)) - 0.5f) * cam.size.y;
+
 		return { worldX, worldY };
 	}
+
 
 
 	void Editor::HandleDragDropPlacement()
@@ -649,14 +660,13 @@ namespace Editor {
 		ImVec2 viewportPos = gameViewportPos_;
 		ImVec2 viewportSize = gameViewportSize_;
 
-		// Convert from ImGui → NDC → World
-		float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
-		float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f);
 
-		Vector2D worldMousePos = {
-			cam.position.x + ndcX * (cam.size.x * 0.5f),
-			cam.position.y + ndcY * (cam.size.y * 0.5f)
-		};
+		float screenX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
+		float screenY = 1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f;
+
+		Vector2D screenPos = { screenX, screenY };
+		Vector2D worldMousePos = cameraSystem_->ScreenToWorld(screenPos, editorCamera_);
+
 
 		// --- SNAP TO GRID ---
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
@@ -757,27 +767,23 @@ namespace Editor {
 		if (previewTextureID == 0)
 			return;
 
-		// --- FIX: Use same world size as placed tiles ---
-		Vector2D previewHalfSize = { baseGridCellSize_ , baseGridCellSize_ };
+		// Use consistent world space sizing
+		Vector2D previewHalfSize = { baseGridCellSize_, baseGridCellSize_ };
 
-		Vector2D worldTopLeft = {
-			dragDropPreviewPos_.x - previewHalfSize.x,
-			dragDropPreviewPos_.y + previewHalfSize.y
-		};
-		Vector2D worldBottomRight = {
-			dragDropPreviewPos_.x + previewHalfSize.x,
-			dragDropPreviewPos_.y - previewHalfSize.y
-		};
+		// Calculate world space corners
+		Vector2D worldMin = { dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y };
+		Vector2D worldMax = { dragDropPreviewPos_.x + previewHalfSize.x, dragDropPreviewPos_.y + previewHalfSize.y };
 
-		ImVec2 screenTopLeft = WorldToImGuiScreen(worldTopLeft);
-		ImVec2 screenBottomRight = WorldToImGuiScreen(worldBottomRight);
+		// Convert to screen space
+		ImVec2 screenMin = WorldToImGuiScreen(worldMin);
+		ImVec2 screenMax = WorldToImGuiScreen(worldMax);
 
 		ImVec2 uv0 = dragDropPayload_.uv0;
 		ImVec2 uv1 = dragDropPayload_.uv1;
 		ImU32 tintColor = IM_COL32(255, 255, 255, 150);
 
 		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
-		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
+		drawList->AddImage(texID, screenMin, screenMax, uv0, uv1, tintColor);
 	}
 
 
@@ -2745,9 +2751,8 @@ namespace Editor {
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
 
-		// Match grid to viewport aspect
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		const float cellX = (baseGridCellSize_) / aspect;
+		// Use world space grid size
+		const float cellX = baseGridCellSize_;
 		const float cellY = baseGridCellSize_;
 
 		float halfW = cam.size.x * 0.5f;
@@ -2764,6 +2769,7 @@ namespace Editor {
 		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
 		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
+		// Draw vertical lines
 		for (float x = startX; x <= right; x += cellX)
 		{
 			Vector2D worldA = { x, bottom };
@@ -2773,6 +2779,7 @@ namespace Editor {
 			drawList->AddLine(a, b, lineColor);
 		}
 
+		// Draw horizontal lines
 		for (float y = startY; y <= top; y += cellY)
 		{
 			Vector2D worldA = { left, y };
@@ -2782,7 +2789,7 @@ namespace Editor {
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// World axes
+		// Draw world axes
 		Vector2D xA = { 0.0f, bottom };
 		Vector2D xB = { 0.0f, top };
 		Vector2D yA = { left, 0.0f };
@@ -3285,29 +3292,14 @@ namespace Editor {
 		if (!cameraSystem_ || cameraID == 0)
 			return ImVec2(0, 0);
 
-		// Validate that the entity is a camera
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		Framework::EntityManager entityMgr(*ecs);
+		const Camera& cam = cameraSystem_->GetCamera(cameraID);
 
-		if (!entityMgr.HasComponent(cameraID, Framework::CameraType)) {
-			return ImVec2(0, 0);
-		}
-
-		const Camera& cam = cameraSystem_->GetCamera(cameraID); // USE THE PASSED CAMERA
-
-		// Compute offset from camera center
-		Vector2D offset = {
-			(worldPos.x - cam.position.x) / (cam.size.x * 0.5f),
-			(worldPos.y - cam.position.y) / (cam.size.y * 0.5f)
-		};
-
-		// Convert from world normalized (-1..1) to ImGui pixel coordinates
-		float screenX = gameViewportPos_.x + ((offset.x + 1.0f) * 0.5f * gameViewportSize_.x);
-		float screenY = gameViewportPos_.y + ((1.0f - (offset.y + 1.0f) * 0.5f) * gameViewportSize_.y);
+		// Convert world coordinates to screen coordinates
+		float screenX = ((worldPos.x - cam.position.x) / cam.size.x + 0.5f) * gameViewportSize_.x + gameViewportPos_.x;
+		float screenY = (0.5f - (worldPos.y - cam.position.y) / cam.size.y) * gameViewportSize_.y + gameViewportPos_.y;
 
 		return ImVec2(screenX, screenY);
 	}
-
 
 	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
 	{

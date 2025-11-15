@@ -139,22 +139,8 @@ namespace Framework {
                     renderOrder = 50;
 
                 // --- World → Screen Conversion ---
-                Vector2D screenPos = worldPos;
-                Vector2D screenHalfSize = halfSize;
-
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
-                    screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
-
-                    const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
-                    const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
-
-                    screenHalfSize.x = std::abs(sx.x) * halfSize.x;
-                    screenHalfSize.y = std::abs(sy.y) * halfSize.y;
-                }
-
-                // --- Convert to Top-Left & Full Size ---
-                Vector2D topLeft = { screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y };
-                Vector2D fullSize = { screenHalfSize.x * 2.0f, screenHalfSize.y * 2.0f };
+                Vector2D topLeft = { worldPos.x - halfSize.x, worldPos.y - halfSize.y };
+                Vector2D fullSize = { halfSize.x * 2.0f, halfSize.y * 2.0f };
 
                 // --- Create Batched Sprite ---
                 BatchedSprite batchedSprite;
@@ -192,46 +178,46 @@ namespace Framework {
             }
         }
 
-        // --- Render Text ---
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, PositionType, ActiveTagType)) {
-            const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
-            if (component.fontKey.empty()) continue;
+        //// --- Render Text ---
+        //for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, PositionType, ActiveTagType)) {
+        //    const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
+        //    if (component.fontKey.empty()) continue;
 
-            try {
-                Font& font = resources_.get<Font>(component.fontKey);
-                const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
-                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
+        //    try {
+        //        Font& font = resources_.get<Font>(component.fontKey);
+        //        const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
+        //        bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
 
-                Vector2D screenTextPos = worldTextPos;
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
-                    screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
-                }
+        //        Vector2D screenTextPos = worldTextPos;
+        //        if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+        //            screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
+        //        }
 
-                const float max_width_ndc = 1.8f;
-                const float max_width_pixels = max_width_ndc * 0.5f * gfx_.getScreenWidth();
-                std::vector<std::string> lines = gfx_.WrapText(font, component.textToDraw, component.scale, max_width_pixels);
+        //        const float max_width_ndc = 1.8f;
+        //        const float max_width_pixels = max_width_ndc * 0.5f * gfx_.getScreenWidth();
+        //        std::vector<std::string> lines = gfx_.WrapText(font, component.textToDraw, component.scale, max_width_pixels);
 
-                Vector2D current_pos = screenTextPos;
-                const float line_height_ndc = 0.08f;
+        //        Vector2D current_pos = screenTextPos;
+        //        const float line_height_ndc = 0.08f;
 
-                float zoom = 1.0f;
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
-                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
-                    zoom = cam.zoom;
-                }
+        //        float zoom = 1.0f;
+        //        if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+        //            const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+        //            zoom = cam.zoom;
+        //        }
 
-                for (const auto& line : lines) {
-                    gfx_.drawText(font, line, current_pos, component.scale / zoom, component.color);
-                    current_pos.y -= line_height_ndc / zoom;
-                }
-            }
-            catch (const std::exception& e) {
-                Logger::Get().Error(DebugType::GraphicsSystem)
-                    << "Failed to render text for entity " << entity
-                    << " (Bad font key: " << component.fontKey << "): " << e.what();
-                continue;
-            }
-        }
+        //        for (const auto& line : lines) {
+        //            gfx_.drawText(font, line, current_pos, component.scale / zoom, component.color);
+        //            current_pos.y -= line_height_ndc / zoom;
+        //        }
+        //    }
+        //    catch (const std::exception& e) {
+        //        Logger::Get().Error(DebugType::GraphicsSystem)
+        //            << "Failed to render text for entity " << entity
+        //            << " (Bad font key: " << component.fontKey << "): " << e.what();
+        //        continue;
+        //    }
+        //}
     }
 
     /**
