@@ -72,7 +72,7 @@ namespace Framework {
         void Shutdown() override {}
 
         // --- Public Properties ---
-        Vector2D gravity_ = { 0.0f, -9.81f }; // Public for easy access/modification (e.g., world rotation)
+        Vector2D gravity_ = { 0.0f, -981.0f }; // Public for easy access/modification (e.g., world rotation)
         static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
 
         // --- Layer-Based Collision API ---

@@ -301,16 +301,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.03999999910593033,
-                        "halfSizeY": 0.2199999988079071
+                        "halfSizeX": 50.0,
+                        "halfSizeY": 170.0
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "SB_TrapPlatform_Horizontal.png",
-                        "halfSizeX": 0.07999999821186066,
-                        "halfSizeY": 0.2300000041723251
+                        "halfSizeX": 100.0,
+                        "halfSizeY": 200.0
                     }
                 },
                 {
