@@ -192,13 +192,13 @@ namespace Framework {
 
         // --- CONSTANTS FOR GRID ---
         static const int maxCollidableEntities = 1024; // Max entities for bitset (can add more)
-        static constexpr float cellSize = 0.5f;     // World-space size of one cell
+        static constexpr float cellSize = 200.0f;     // World-space size of one cell
         static constexpr float invCellSize = 1.0f / cellSize;
         //  world bounds for the grid
-        static constexpr float gridWorldMinX = -20.0f;
-        static constexpr float gridWorldMinY = -20.0f;
-        static constexpr float gridWorldWidth = 40.0f;
-        static constexpr float gridWorldHeight = 40.0f;
+        static constexpr float gridWorldMinX = -1920.0f;
+        static constexpr float gridWorldMinY = -1920.0f;
+        static constexpr float gridWorldWidth = 3840.0f;
+        static constexpr float gridWorldHeight = 3840.0f;
         // grid dimensions (make sure grid isnt too big else no point doing broad phased implementation)
         static const int GridCellsX = static_cast<int>(gridWorldWidth * invCellSize) + 1;
         static const int GridCellsY = static_cast<int>(gridWorldHeight * invCellSize) + 1;
