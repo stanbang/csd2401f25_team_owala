@@ -47,6 +47,12 @@ namespace Framework{
 		FALLING
 	};
 
+	enum class EffectType {
+		NONE,
+		RANDOM,
+		RANDOM_UP
+	};
+
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
@@ -391,6 +397,27 @@ namespace Framework{
 
 		// How fast the skeleton walks
 		float moveSpeed = 0.1f;
+	};
+
+	// Particle Component
+	struct ParticleComponent {
+		EffectType effectType = EffectType::NONE; // Type of effect the particle will have
+		float lifetime = 1.0f;      // Total lifetime of the particle
+		float age = 0.0f;           // Current age of the particle
+	};
+
+	struct ParticleEmitterComponent {
+		bool isEmitting = true;
+
+		std::string particleTextureKey; // Key to identify the texture resource for particles
+		float particleLifetime = 1.0f;	// Total lifetime of the particle
+		float emissionRate = 3.0f;		// Particles emitted per second
+		float emissionInterval = 0.0f;	// Time between emissions (calculated from emissionRate)
+		float timeSinceLastEmission = 0.0f; // Time since the last particle was emitted
+
+		Vector2D particleStartVelocity = { 0.0f, 0.0f };// Initial velocity of emitted particles
+		Vector2D particleAcceleration = { 0.0f, 0.0f }; // For moving particles
+		bool isAffectedByGravity = false;				// Should particles be affected by gravity
 	};
 
 }

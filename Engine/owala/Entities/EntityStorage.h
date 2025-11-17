@@ -71,6 +71,8 @@ namespace Framework {
 		BirdAIComponentType, 
 		SkeletonAIComponentType, 
 		GUITagType,
+		ParticleComponentType,
+		ParticleEmitterComponentType,
 		MAX_COMPONENTS
 	};
 
@@ -115,6 +117,8 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
 	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; 
+	template <> struct ComponentTypeTrait<ParticleComponent> { static constexpr ComponentType value = ParticleComponentType; };
+	template <> struct ComponentTypeTrait<ParticleEmitterComponent> { static constexpr ComponentType value = ParticleEmitterComponentType; };
 
 #pragma endregion
 
@@ -153,6 +157,8 @@ namespace Framework {
 
 		std::unordered_map<Entity, BirdAIComponent> birdAIComponent;
 		std::unordered_map<Entity, SkeletonAIComponent> skeletonAIComponent; 
+		std::unordered_map<Entity, ParticleComponent> particleComponent;
+		std::unordered_map<Entity, ParticleEmitterComponent> particleEmitterComponent;
 
 		std::unordered_map<Entity, Camera> cameras;//Camera
 

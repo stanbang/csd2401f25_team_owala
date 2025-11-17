@@ -66,6 +66,8 @@ namespace Framework {
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
 					case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
+					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
+					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
 					default:
 						break;
 				}
@@ -129,6 +131,8 @@ namespace Framework {
 		case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{}); break;
 		case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
 		case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(entity, SkeletonAIComponent{}); break; 
+		case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(entity, ParticleComponent{}); break;
+		case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(entity, ParticleEmitterComponent{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -166,6 +170,8 @@ namespace Framework {
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case CameraType: ecs.cameras.erase(entity); break;
+			case ParticleComponentType: ecs.particleComponent.erase(entity); break;
+			case ParticleEmitterComponentType: ecs.particleEmitterComponent.erase(entity); break;
 			case NativeScriptsComponentType: {
 				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
 				if (it != ecs.nativeScripts.end()) {
