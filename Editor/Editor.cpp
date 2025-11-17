@@ -133,7 +133,7 @@ namespace Editor {
 			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 			cam.position = defaultEditorCameraState_.position;
 			cam.zoom = defaultEditorCameraState_.zoom;
-			cameraSystem_->SetZoom(editorCamera_, defaultEditorCameraState_.zoom);
+			cameraSystem_->SetZoom(editorCamera_, 540.0f); //540 for 1080p
 
 			// Update current state
 			currentEditorCameraState_ = defaultEditorCameraState_;
@@ -300,7 +300,7 @@ namespace Editor {
 			cam.size = { 20.0f, 20.0f }; // Adjust based on your world scale
 			cam.zoom = 1.0f;
 
-			cameraSystem_->SetZoom(editorCamera_, 1.0f);
+			cameraSystem_->SetZoom(editorCamera_, 540.0f); //540 for 1080p
 			float aspect = gameViewportSize_.x / gameViewportSize_.y;
 			cameraSystem_->SetAspectRatio(editorCamera_, aspect);
 
