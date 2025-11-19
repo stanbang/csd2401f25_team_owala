@@ -117,22 +117,34 @@ namespace Framework {
                 }
                 Vector2D finalScale = { 1.0f, 1.0f };
                 float finalRotation = 0.0f;
-
                 // --- Apply Scale ---
                 if (entityMgr.HasComponent(entity, ScaleType)) {
                     const Scale& scale = entityMgr.GetComponent<Scale>(entity);
                     finalScale = scale.axes;
+                    halfSize.x *= finalScale.x;
+                    halfSize.y *= finalScale.y;
+
                 }
-                // --- Apply Rotation ---
+                // --- Rotation (degrees → radians) ---
                 float rotationRad = 0.0f;
-                if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                    rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(entity).currentRotation * (M_PI / 180.0));
-                }
-                if (entityMgr.HasComponent(entity, RotationType)) {
+                bool hasRotationFlag = entityMgr.HasComponent(entity, RotationFlagType);
+                bool hasRotationType = entityMgr.HasComponent(entity, RotationType);
+
+                if (hasRotationFlag && hasRotationType) {
+                    const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
-                    finalRotation = rotation.angle;
+                    float worldRotationRad = rotation.angle;
+                    float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
+                    rotationRad = worldRotationRad + localRotationRad;
                 }
-                rotationRad = finalRotation;
+                else if (hasRotationFlag) {
+                    const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+                    rotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
+                }
+                else if (hasRotationType) {
+                    const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
+                    rotationRad = rotation.angle;
+                }
 
                 // --- Fetch Texture Resource ---
                 Texture& tex = resources_.get<Texture>(sprite.textureKey);
@@ -154,18 +166,14 @@ namespace Framework {
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
-                // Apply scale to the halfSize before any other transformations
-                screenHalfSize.x *= finalScale.x;
-                screenHalfSize.y *= finalScale.y;
-
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
                     const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
                     const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
 
-                    screenHalfSize.x = std::abs(sx.x) * screenHalfSize.x;
-                    screenHalfSize.y = std::abs(sy.y) * screenHalfSize.y;
+                    screenHalfSize.x = std::abs(sx.x) * halfSize.x;
+                    screenHalfSize.y = std::abs(sy.y) * halfSize.y;
                 }
 
                 // --- Convert to Top-Left & Full Size ---
