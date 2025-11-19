@@ -115,12 +115,24 @@ namespace Framework {
                         continue;
                     }
                 }
+                Vector2D finalScale = { 1.0f, 1.0f };
+                float finalRotation = 0.0f;
 
-                // --- Rotation (degrees → radians) ---
+                // --- Apply Scale ---
+                if (entityMgr.HasComponent(entity, ScaleType)) {
+                    const Scale& scale = entityMgr.GetComponent<Scale>(entity);
+                    finalScale = scale.axes;
+                }
+                // --- Apply Rotation ---
                 float rotationRad = 0.0f;
                 if (entityMgr.HasComponent(entity, RotationFlagType)) {
                     rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(entity).currentRotation * (M_PI / 180.0));
                 }
+                if (entityMgr.HasComponent(entity, RotationType)) {
+                    const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
+                    finalRotation = rotation.angle;
+                }
+                rotationRad = finalRotation;
 
                 // --- Fetch Texture Resource ---
                 Texture& tex = resources_.get<Texture>(sprite.textureKey);
@@ -142,14 +154,18 @@ namespace Framework {
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
+                // Apply scale to the halfSize before any other transformations
+                screenHalfSize.x *= finalScale.x;
+                screenHalfSize.y *= finalScale.y;
+
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
                     const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
                     const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
 
-                    screenHalfSize.x = std::abs(sx.x) * halfSize.x;
-                    screenHalfSize.y = std::abs(sy.y) * halfSize.y;
+                    screenHalfSize.x = std::abs(sx.x) * screenHalfSize.x;
+                    screenHalfSize.y = std::abs(sy.y) * screenHalfSize.y;
                 }
 
                 // --- Convert to Top-Left & Full Size ---
