@@ -29,6 +29,9 @@ namespace Framework {
 		void Update() override;
 		void Shutdown() override;
 
+		void EmitParticles(EntityManager& entityMgr);
+		void UpdateParticles(EntityManager& entityMgr);
+
 	private:
 		// Pointer to the entity storage to access and modify entities and their components
 		EntityStorage* entityStorage_ = nullptr;

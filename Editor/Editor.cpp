@@ -85,7 +85,9 @@ namespace {
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI"; 
+		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";
+		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
+		case ComponentType::ParticleComponentType:			return "Particle";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -2417,6 +2419,42 @@ namespace Editor {
 			buffer[i] = '\0';
 			ImGui::InputText("Parent Scene", buffer, 64, ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+			break;
+		}
+
+		case ComponentType::ParticleEmitterComponentType:{
+			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
+			ImGui::Checkbox("Is Emitting?", &emitter.isEmitting);
+			ImGui::Checkbox("Is Particle Animated?", &emitter.isParticleAnimated);
+
+			//Show text but make it read-only
+			ImGui::InputText("Texture Key", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
+			static std::string newParticleTextureKey = "";
+			ImGui::InputText("New Texture Key", &newParticleTextureKey);
+
+			//Button to update texture key
+			if (ImGui::Button("Update Texture")) {
+				if (!newParticleTextureKey.empty()) {
+					emitter.particleTextureKey = newParticleTextureKey;
+				}
+			}
+
+			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
+			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
+			ImGui::InputFloat("Emission Interval", &emitter.emissionInterval);
+			ImGui::InputFloat("Time Since Last Emission", &emitter.timeSinceLastEmission);
+
+			const char* items[] = { "NONE", "RANDOM"};
+			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
+
+			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, items, IM_ARRAYSIZE(items))) {
+				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+			}
+
+			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
+			ImGui::InputFloat2("Particle Size", &emitter.particleSize.x);
+
+			ImGui::Checkbox("Is Affected by Gravity?", &emitter.isAffectedByGravity);
 			break;
 		}
 		default:

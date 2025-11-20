@@ -137,8 +137,18 @@ namespace Framework {
 				Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
 
                 vel.Vel += (body.Force * body.InverseMass) * dt;
-                pos.Pos += vel.Vel * dt;
             }
+        }
+
+        //Update positions of everything
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(PositionType, VelocityType)) {
+            // Check if Entity is active in the scene. Handle Physics if active.
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
+			Position& pos = entityMgr.GetComponent<Position>(entity);
+			Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
+
+			pos.Pos += vel.Vel *  dt;
         }
     }
 
