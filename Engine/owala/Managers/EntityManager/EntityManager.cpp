@@ -66,6 +66,8 @@ namespace Framework {
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
 					case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
+					case ComponentType::RotationType: AddComponent<Rotation>(newEntity, GetComponent<Rotation>(entity)); break;
+					case ComponentType::ScaleType: AddComponent<Scale>(newEntity, GetComponent<Scale>(entity)); break;
 					default:
 						break;
 				}
@@ -137,6 +139,8 @@ namespace Framework {
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
 		case ComponentType::GUITagType: break;
+		case ComponentType::RotationType: AddComponent<Rotation>(entity, Rotation{}); break;
+		case ComponentType::ScaleType: AddComponent<Scale>(entity, Scale{}); break;
 
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
@@ -189,6 +193,8 @@ namespace Framework {
 			case PersistentTagType:
 			case ActiveTagType: break;
 			case GUITagType: break;
+			case RotationType: ecs.rotation.erase(entity); break;
+			case ScaleType: ecs.scale.erase(entity); break;
 			default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 				return;
