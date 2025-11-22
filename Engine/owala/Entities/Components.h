@@ -182,7 +182,13 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
-	
+	struct Rotation { //for selected entities
+		float angle = 0.0f; // Rotation angle in degrees
+	};
+
+	struct Scale {
+		Vector2D axes{ 1.0f, 1.0f }; // Scale factors for X and Y axes
+	};
 
 
 	// Component to track trap platform state

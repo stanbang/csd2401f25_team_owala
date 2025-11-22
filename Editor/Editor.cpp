@@ -94,6 +94,8 @@ namespace {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		case ComponentType::GUITagType:						return "GUITag";
+		case ComponentType::RotationType:                   return "Rotation";
+		case ComponentType::ScaleType:                      return "Scale";
 		
 		default:											return "Unknown";
 		}
@@ -121,6 +123,7 @@ namespace Editor {
 		: engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
 		cameraSystem_(gameManager_->GetSystems().camera_),
 		graphicsSystem_(gameManager_->GetSystems().gfx_),
+		transformationSystem_(gameManager_->GetSystems().transformation_),
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		editorCameraNeedsReset_(false) {
@@ -290,7 +293,10 @@ namespace Editor {
 
 		cameraSystem_ = gameManager_->GetSystems().camera_;
 		graphicsSystem_ = gameManager_->GetSystems().gfx_;
-
+		transformationSystem_ = gameManager_->GetSystems().transformation_;
+		if (!transformationSystem_) {
+			Framework::Logger::Get().Error(DebugType::Editor)<< "Transformation system not available" << std::endl;
+		}
 		if (cameraSystem_ && editorCamera_ == 0) {
 			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false); // not active for game
 			cameraSystem_->SetZoom(editorCamera_, editorZoom_);
@@ -1995,6 +2001,77 @@ namespace Editor {
 			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
+			break;
+		}
+		case ComponentType::RotationType: {
+			Rotation& rotation = entityMgr.GetComponent<Rotation>(selectedEntity);
+			float degrees = rotation.angle * (180.0f / 3.14159265359f);
+			if (transformationSystem_) {
+				if (ImGui::SliderFloat("Rotation (Degrees)", &degrees, -180.0f, 180.0f, "%.1f")) {
+					rotation.angle = degrees * (3.14159265359f / 180.0f);
+					if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
+						RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
+						rotationFlag.currentRotation = degrees; 
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				//checking
+				/*if (ImGui::TreeNode("Transformation Matrix")) {
+					Matrix3x3 transform = transformationSystem_->GetTransformMatrix(selectedEntity);
+					ImGui::Text("Matrix:");
+					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[0], transform.m[1], transform.m[2]);
+					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[3], transform.m[4], transform.m[5]);
+					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[6], transform.m[7], transform.m[8]);
+					ImGui::TreePop();
+				}*/
+			}
+			else {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
+			}
+
+			if (ImGui::Button("Reset Rotation")) {
+				rotation.angle = 0.0f;
+				if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
+					RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
+					rotationFlag.currentRotation = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+			}
+			break;
+		}
+
+		case ComponentType::ScaleType: {
+			Scale& scale = entityMgr.GetComponent<Scale>(selectedEntity);
+			if (transformationSystem_) {
+				Vector2D originalScale = scale.axes;
+
+				if (ImGui::InputFloat2("Scale Factors (X, Y)", &scale.axes.x, "%.2f")) {
+					scale.axes.x = std::max(0.01f, scale.axes.x);
+					scale.axes.y = std::max(0.01f, scale.axes.y);
+					transformationSystem_->UpdateEntityTransform(selectedEntity);
+				}
+
+				static bool uniformScaling = false;
+				ImGui::Checkbox("Uniform Scaling", &uniformScaling);
+
+				if (uniformScaling) {
+					float uniformScale = (scale.axes.x + scale.axes.y) * 0.5f;
+					if (ImGui::SliderFloat("Uniform Scale", &uniformScale, 0.1f, 5.0f, "%.2f")) {
+						scale.axes.x = uniformScale;
+						scale.axes.y = uniformScale;
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				if (ImGui::Button("Reset Scale (1,1)")) {
+					scale.axes = { 1.0f, 1.0f };
+					transformationSystem_->UpdateEntityTransform(selectedEntity);
+				}
+			}
+			else {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
+			}
 			break;
 		}
 		case ComponentType::SpawnPointType: {
