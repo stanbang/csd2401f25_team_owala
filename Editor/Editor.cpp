@@ -394,15 +394,16 @@ namespace Editor {
 			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Prefab Palette", dock_right);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
 
 			ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
+			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
+			ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
+
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
