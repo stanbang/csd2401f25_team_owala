@@ -16,10 +16,22 @@
 #include "Logger.h"
 #include "Components.h"
 #include "EntityManager.h"
+#include "GameManager.h"
 #include "OwalaTime.h"
 
 namespace Framework {
 	void VFXSystem::Update() {
+		GameManager& gm = GameManager::GetInstance();
+
+#ifdef BUILD_EDITOR
+		Editor::Editor* editor = gm.GetEditor();
+		if (editor) {
+			if (!editor->IsGamePlaying() || editor->IsGamePaused()) {
+				return;
+			}
+		}
+#endif
+
 		//Get Entity Manager
 		EntityManager entityMgr(*entityStorage_);
 		EmitParticles(entityMgr);

@@ -1844,6 +1844,19 @@ namespace Editor {
 			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
+			// Check if entity still exists
+			const auto& signatures = entityMgr.GetEntitySignatures();
+			if (signatures.find(selectedEntity) == signatures.end()) {
+				// Entity was deleted, clear selection
+				isEntitySelected_ = false;
+				selectedEntityIndex = 0;
+				selectedComponentIndex = 0;
+				selectedTagIndex = 0;
+				ImGui::TextDisabled("Selected entity no longer exists.");
+				ImGui::End();
+				return;
+			}
+
 			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
 			char nameBuffer[128];
@@ -2539,6 +2552,41 @@ namespace Editor {
 
 			//Show text but make it read-only
 			ImGui::InputText("Texture Key", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
+
+			// Drag and Drop Target for Texture Key
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// Process the dropped file path
+					const char* dropped_path_c_str = (const char*)payload->Data;
+					fs::path dropped_path(dropped_path_c_str);
+
+					// Validate the file extension
+					std::string ext = dropped_path.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+					{
+						// Update the texture key with the new file's filename
+						std::string newKey = dropped_path.filename().string();
+						emitter.particleTextureKey = newKey;
+
+						// Reload the texture resource
+						resourceManager_->unload<Texture>(newKey);
+						resourceManager_->loadTexture(newKey, dropped_path.string());
+
+						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
+					}
+					else
+					{
+						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			static std::string newParticleTextureKey = "";
 			ImGui::InputText("New Texture Key", &newParticleTextureKey);
 

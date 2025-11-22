@@ -130,6 +130,9 @@ namespace Framework {
 				
 #ifdef BUILD_EDITOR
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
+
+		// Getter for the ImGui Editor instance
+		Editor::Editor* GetEditor() const { return editor_; }
 #endif
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.
