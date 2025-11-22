@@ -35,6 +35,8 @@ namespace Framework::Serialization {
 	/* Entity Properties JSON Labels */
 	inline constexpr const char* ENTITY_NAME = "name";
 	static constexpr const char* ENTITY_LAYER = "layer";
+	static constexpr const char* ENTITY_RENDER_LAYER = "render_layer";          
+	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
 
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";

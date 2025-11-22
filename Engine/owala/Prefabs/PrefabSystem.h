@@ -40,8 +40,10 @@ namespace Framework {
         std::vector<ComponentData> components;
         std::vector<std::string> tags;
         std::string layer;
+        int renderLayer = 0;          
+        int customRenderOrder = 0;    
 
-        EntityPrefab() : name(""), layer("Default") {}
+        EntityPrefab() : name(""), layer("Default"), renderLayer(0), customRenderOrder(0) {}
     };
 
     struct PlatformPrefab {

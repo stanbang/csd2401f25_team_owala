@@ -115,28 +115,61 @@ namespace Framework {
                         continue;
                     }
                 }
+                Vector2D finalScale = { 1.0f, 1.0f };
+                float finalRotation = 0.0f;
+                // --- Apply Scale ---
+                if (entityMgr.HasComponent(entity, ScaleType)) {
+                    const Scale& scale = entityMgr.GetComponent<Scale>(entity);
+                    finalScale = scale.axes;
+                    halfSize.x *= finalScale.x;
+                    halfSize.y *= finalScale.y;
 
+                }
                 // --- Rotation (degrees → radians) ---
                 float rotationRad = 0.0f;
-                if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                    rotationRad = static_cast<float>(entityMgr.GetComponent<RotationFlag>(entity).currentRotation * (M_PI / 180.0));
+                bool hasRotationFlag = entityMgr.HasComponent(entity, RotationFlagType);
+                bool hasRotationType = entityMgr.HasComponent(entity, RotationType);
+
+                if (hasRotationFlag && hasRotationType) {
+                    const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+                    const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
+                    float worldRotationRad = rotation.angle;
+                    float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
+                    rotationRad = worldRotationRad + localRotationRad;
+                }
+                else if (hasRotationFlag) {
+                    const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+                    rotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
+                }
+                else if (hasRotationType) {
+                    const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
+                    rotationRad = rotation.angle;
                 }
 
                 // --- Fetch Texture Resource ---
                 Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
-                // --- Determine Render Order ---
-                int renderOrder = 0;
-                if (entityMgr.HasComponent(entity, BackgroundTagType))
-                    renderOrder = -100;
-                else if (isUIElement)
-                    renderOrder = 200;
-                else if (entityMgr.HasComponent(entity, PlayerTagType))
-                    renderOrder = 100;
-                else if (entityMgr.HasComponent(entity, EnemyTagType))
-                    renderOrder = 75;
-                else if (entityMgr.HasComponent(entity, PlatformTagType))
-                    renderOrder = 50;
+                //// --- Determine Render Order ---
+                //int renderOrder = 0;
+                //if (entityMgr.HasComponent(entity, BackgroundTagType))
+                //    renderOrder = -100;
+                //else if (isUIElement)
+                //    renderOrder = 200;
+                //else if (entityMgr.HasComponent(entity, PlayerTagType))
+                //    renderOrder = 100;
+                //else if (entityMgr.HasComponent(entity, EnemyTagType))
+                //    renderOrder = 75;
+                //else if (entityMgr.HasComponent(entity, PlatformTagType))
+                //    renderOrder = 50;
+
+                 // --- Determine Render Order using EntityProperties ---
+                const EntityProperties& props = entityMgr.GetProperties(entity);
+                int renderOrder = props.customRenderOrder;
+
+                // Use predefined render layer if not custom
+                if (props.renderLayer != RenderLayer::Custom) {
+                    renderOrder = static_cast<int>(props.renderLayer);
+                }
 
                 // --- World → Screen Conversion ---
                 Vector2D screenPos = worldPos;

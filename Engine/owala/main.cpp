@@ -84,7 +84,7 @@ int main() {
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
     SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     TransformationSystem* transformation = new TransformationSystem(*ecs, *input, *phx);
-    PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs);
+    PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs, *transformation);
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
@@ -99,7 +99,7 @@ int main() {
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
 
 	// Editor Registration
     #ifdef BUILD_EDITOR

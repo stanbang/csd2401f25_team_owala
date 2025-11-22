@@ -16,8 +16,8 @@ namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
 
 	// ---------------------------------------------------------------------------
-// Constructors
-// ---------------------------------------------------------------------------
+	// Constructors
+	// ---------------------------------------------------------------------------
 	EntityManager::EntityManager(EntityStorage& entityStorage) : ecs(entityStorage) {};
 
 	// ---------------------------------------------------------------------------
@@ -32,6 +32,20 @@ namespace Framework {
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
+	}
+
+	Entity EntityManager::CreateEntityWithID(Entity entityID) {
+		ComponentSignature emptySignature; // New entity starts with no components
+		ecs.entitySignatures[entityID] = emptySignature;
+
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(entityID), 0U, UINT_MAX)) + ")";
+		ecs.properties[entityID] = EntityProperties{ entityName, CollisionLayer::Default };
+
+		if (entityID >= nextEntityID) {
+			nextEntityID = entityID + 1;
+		}
+
+		return entityID;
 	}
 
 	Entity EntityManager::CloneEntity(const Entity& entity) {
@@ -68,6 +82,8 @@ namespace Framework {
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
 					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
 					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
+					case ComponentType::RotationType: AddComponent<Rotation>(newEntity, GetComponent<Rotation>(entity)); break;
+					case ComponentType::ScaleType: AddComponent<Scale>(newEntity, GetComponent<Scale>(entity)); break;
 					default:
 						break;
 				}
@@ -100,6 +116,14 @@ namespace Framework {
 		else {
 			throw GameException(DebugType::Editor, "Corrupted Object! Properties are invalid. Please use EntityManager's CreateEntity API to instantiate objects!");
 		}
+	}
+
+	bool EntityManager::ValidateEntity(Entity entity) {
+		if (ecs.properties.find(entity) == ecs.properties.end()) {
+			return false;
+		}
+		
+		return true;
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
@@ -141,6 +165,8 @@ namespace Framework {
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
 		case ComponentType::GUITagType: break;
+		case ComponentType::RotationType: AddComponent<Rotation>(entity, Rotation{}); break;
+		case ComponentType::ScaleType: AddComponent<Scale>(entity, Scale{}); break;
 
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
@@ -195,6 +221,8 @@ namespace Framework {
 			case PersistentTagType:
 			case ActiveTagType: break;
 			case GUITagType: break;
+			case RotationType: ecs.rotation.erase(entity); break;
+			case ScaleType: ecs.scale.erase(entity); break;
 			default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 				return;
@@ -216,6 +244,15 @@ namespace Framework {
 			return true;
 		default:
 			return false;
+		}
+	}
+
+	void EntityManager::ClearTags(Entity entity) {
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (IsTagComponent(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
 		}
 	}
 

@@ -82,6 +82,13 @@ namespace Framework {
                 TrapPlatformComponent& platform = entityMgr.GetComponent<TrapPlatformComponent>(entity);
                 ResetPosition(entityMgr, entity, Position(platform.originalPosition));
                 ResetRotation(entityMgr, entity);
+                if (entityMgr.HasComponent(entity, RigidBodyType)) {
+                    entityMgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
+                }
+
+                if (entityMgr.HasComponent(entity, VelocityType)) {
+                    entityMgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
+                }
                 platform.isTriggered = false;
                 platform.hasFallen = false;
                 continue;

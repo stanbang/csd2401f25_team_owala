@@ -29,6 +29,11 @@
 #include "Graphics.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
+#include "PhysicsSystem.h"
+#include "TransformationSystem.h"
+
+// Editor Modules
+#include "History.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -45,6 +50,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
+	//class PhysicsSystem; // forward Declaration
 
 }
 
@@ -59,6 +65,7 @@ namespace Editor {
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
 		bool showPrefabEditor = false;
+		bool showLayerManager = true; 
 	};
 
 	// enum to represent the different types of objects we can create
@@ -94,6 +101,12 @@ namespace Editor {
 		Framework::CameraSystem* cameraSystem_ = nullptr; // Pointer to camera systems for level editor
 		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
 		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
+		Framework::TransformationSystem* transformationSystem_ = nullptr;
+
+		// --- Codependent Systems ---
+		HistoryManager historyManager_; // HistoryManager for Undo/Redo System.
+
+		// --- Internal Properties ---
 		Entity editorCamera_ = 0;
 		float editorZoom_ = 1.0f;
 		Vector2D editorCamPos_ = { 0.0f, 0.0f };
@@ -225,8 +238,9 @@ namespace Editor {
 		void HandleInWorldDragDrop();
 
 		/* Entity Copy & Pasting APIs */
-		void CopyEntityToClipboard(const Entity& entity);
+		void CopyEntityToClipboard(const Entity entity);
 		void PasteEntityFromClipboard();
+		std::string SerializeEntityToString(const Entity entity);
 
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
@@ -242,6 +256,7 @@ namespace Editor {
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
+		void ShowLayerManager();
 
 		// Popup Related
 		std::string popupMsg;
@@ -275,6 +290,13 @@ namespace Editor {
 
 		// Caches the game viewport's position and size
 		void UpdateViewportData();
+
+
+		// Layer viewport data for IMGUI
+		void ShowCollisionMatrix(Framework::PhysicsSystem* physics);
+
+		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
+		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 
 	public:
 		bool isEnabled = true;

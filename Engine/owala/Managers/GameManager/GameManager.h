@@ -75,6 +75,7 @@ namespace Framework {
 			GuiSystem* guiSystem_ = nullptr;
 			CameraSystem* camera_ = nullptr;  
 			LevelResetSystem* levelResetter_ = nullptr;
+			TransformationSystem* transformation_ = nullptr;
 		};
 
 		RegisteredSystems systems_;
@@ -126,7 +127,7 @@ namespace Framework {
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter);		
+			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation);
 				
 #ifdef BUILD_EDITOR
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager

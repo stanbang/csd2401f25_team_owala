@@ -96,20 +96,22 @@ namespace {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		case ComponentType::GUITagType:						return "GUITag";
+		case ComponentType::RotationType:                   return "Rotation";
+		case ComponentType::ScaleType:                      return "Scale";
 		
 		default:											return "Unknown";
 		}
 	}
 
 	// Helper to convert a CollisionLayer enum to its string representation.
-	const char* LayerToString(CollisionLayer layer) {
+	char const* LayerToString(CollisionLayer layer) {
 		switch (layer) {
 		case CollisionLayer::Default:   return "Default";
 		case CollisionLayer::Player:    return "Player";
 		case CollisionLayer::Platform:  return "Platform";
 		case CollisionLayer::Enemy:     return "Enemy";
 		case CollisionLayer::Trigger:   return "Trigger";
-		default:                        return "Invalid";
+		default:                        return "Layer  Unknown";
 		}
 	}
 }
@@ -123,9 +125,11 @@ namespace Editor {
 		: engine_(&engine), gameManager_(&gameManager), resourceManager_(&rcm), assetBrowser(rcm),
 		cameraSystem_(gameManager_->GetSystems().camera_),
 		graphicsSystem_(gameManager_->GetSystems().gfx_),
+		transformationSystem_(gameManager_->GetSystems().transformation_),
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
-		editorCameraNeedsReset_(false) {
+		editorCameraNeedsReset_(false),
+		historyManager_(*gameManager_->GetSystems().ecs_) {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -292,7 +296,10 @@ namespace Editor {
 
 		cameraSystem_ = gameManager_->GetSystems().camera_;
 		graphicsSystem_ = gameManager_->GetSystems().gfx_;
-
+		transformationSystem_ = gameManager_->GetSystems().transformation_;
+		if (!transformationSystem_) {
+			Framework::Logger::Get().Error(DebugType::Editor)<< "Transformation system not available" << std::endl;
+		}
 		if (cameraSystem_ && editorCamera_ == 0) {
 			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false); // not active for game
 			cameraSystem_->SetZoom(editorCamera_, editorZoom_);
@@ -393,6 +400,7 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Palette", dock_right);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
+			ImGui::DockBuilderDockWindow("Layer", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
@@ -402,10 +410,11 @@ namespace Editor {
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
-			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left);
 			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
 			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
+			
 
 			ImGui::DockBuilderDockWindow("Game", dock_main_id);
 			ImGui::DockBuilderFinish(dockspaceID);
@@ -498,6 +507,7 @@ namespace Editor {
 		if (settings.showAssetBrowser) ShowAssetBrowser(droppedFilePaths_);
 		if (settings.showHierarchy) ShowHierarchy();
 		if (settings.showLevelEditor) ShowLevelEditor();
+		if (settings.showLayerManager) ShowLayerManager();
 		if (isTileEditorActive_) {
 			ShowTilemapEditor();  // Prefab palette
 			if (isTilePaletteOpen_) {
@@ -978,7 +988,7 @@ namespace Editor {
 
 #pragma region COPY AND PASTING APIs
 
-	void Editor::CopyEntityToClipboard(const Entity& entity) {
+	void Editor::CopyEntityToClipboard(const Entity entity) {
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		rapidjson::Document doc;
 		doc.SetObject();
@@ -1011,7 +1021,26 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
+		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
+	}
+
+	std::string Editor::SerializeEntityToString(const Entity entity) {
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value entityData(rapidjson::kObjectType);
+		EntitySerializer::SerializeEntity(entity, *ecs, entityData, alloc);
+		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
 	}
 
 #pragma endregion
@@ -1747,8 +1776,10 @@ namespace Editor {
 						if (ImGui::MenuItem("Duplicate")) {
 							Entity clonedEntity = entityMgr.CloneEntity(entity);
 							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
 						}
 						if (ImGui::MenuItem("Delete")) {
+							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
 							entityMgr.DestroyEntity(entity);
 							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
@@ -1844,29 +1875,36 @@ namespace Editor {
 			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
-			// Check if entity still exists
-			const auto& signatures = entityMgr.GetEntitySignatures();
-			if (signatures.find(selectedEntity) == signatures.end()) {
-				// Entity was deleted, clear selection
+			// Check if Entity is alive before accessing properties.
+			if (!entityMgr.ValidateEntity(selectedEntity)) {
 				isEntitySelected_ = false;
-				selectedEntityIndex = 0;
-				selectedComponentIndex = 0;
-				selectedTagIndex = 0;
-				ImGui::TextDisabled("Selected entity no longer exists.");
+				selectedEntityIndex = selectedComponentIndex = selectedTagIndex = selectedScriptIndex = 0;
 				ImGui::End();
 				return;
 			}
 
+			// --- Name Field ---
 			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
-			char nameBuffer[128];
-			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
-			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
-
-			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
-				entityName = nameBuffer; // update ECS data when user edits
+			static Entity lastSelectedEntity = 0;
+			static char nameBuffer[128] = "";
+			if (selectedEntity != lastSelectedEntity) {
+				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+				nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
+				lastSelectedEntity = selectedEntity;
 			}
 
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string newName = nameBuffer;
+
+				if (newName != entityName) {
+					entityName = newName;
+				}
+			}
+			// --- End Name Field ---
+
+			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
 			// Create a list of layer names for the dropdown
@@ -1888,6 +1926,7 @@ namespace Editor {
 				// with the new value.
 				entityLayer = static_cast<CollisionLayer>(currentLayer);
 			}
+			// -- End Layer Dropdown ---
 
 			// --- Component Section ---
 			if (ImGui::CollapsingHeader("Components")) {
@@ -2007,6 +2046,77 @@ namespace Editor {
 			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
+			break;
+		}
+		case ComponentType::RotationType: {
+			Rotation& rotation = entityMgr.GetComponent<Rotation>(selectedEntity);
+			float degrees = rotation.angle * (180.0f / 3.14159265359f);
+			if (transformationSystem_) {
+				if (ImGui::SliderFloat("Rotation (Degrees)", &degrees, -180.0f, 180.0f, "%.1f")) {
+					rotation.angle = degrees * (3.14159265359f / 180.0f);
+					if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
+						RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
+						rotationFlag.currentRotation = degrees; 
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				//checking
+				/*if (ImGui::TreeNode("Transformation Matrix")) {
+					Matrix3x3 transform = transformationSystem_->GetTransformMatrix(selectedEntity);
+					ImGui::Text("Matrix:");
+					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[0], transform.m[1], transform.m[2]);
+					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[3], transform.m[4], transform.m[5]);
+					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[6], transform.m[7], transform.m[8]);
+					ImGui::TreePop();
+				}*/
+			}
+			else {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
+			}
+
+			if (ImGui::Button("Reset Rotation")) {
+				rotation.angle = 0.0f;
+				if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
+					RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
+					rotationFlag.currentRotation = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+			}
+			break;
+		}
+
+		case ComponentType::ScaleType: {
+			Scale& scale = entityMgr.GetComponent<Scale>(selectedEntity);
+			if (transformationSystem_) {
+				Vector2D originalScale = scale.axes;
+
+				if (ImGui::InputFloat2("Scale Factors (X, Y)", &scale.axes.x, "%.2f")) {
+					scale.axes.x = std::max(0.01f, scale.axes.x);
+					scale.axes.y = std::max(0.01f, scale.axes.y);
+					transformationSystem_->UpdateEntityTransform(selectedEntity);
+				}
+
+				static bool uniformScaling = false;
+				ImGui::Checkbox("Uniform Scaling", &uniformScaling);
+
+				if (uniformScaling) {
+					float uniformScale = (scale.axes.x + scale.axes.y) * 0.5f;
+					if (ImGui::SliderFloat("Uniform Scale", &uniformScale, 0.1f, 5.0f, "%.2f")) {
+						scale.axes.x = uniformScale;
+						scale.axes.y = uniformScale;
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				if (ImGui::Button("Reset Scale (1,1)")) {
+					scale.axes = { 1.0f, 1.0f };
+					transformationSystem_->UpdateEntityTransform(selectedEntity);
+				}
+			}
+			else {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
+			}
 			break;
 		}
 		case ComponentType::SpawnPointType: {
@@ -2673,7 +2783,7 @@ namespace Editor {
 			if (gfx && spriteRenderer_ && camSystem) {
 
 				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
-				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+				//camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
 
 				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
@@ -2793,6 +2903,280 @@ namespace Editor {
 
 #pragma endregion
 
+#pragma region LAYER
+	void Editor::ShowLayerManager() {
+
+		
+	ImGui::Begin("Layer", &settings.showLayerManager);
+
+	auto* physics = gameManager_->GetSystems().physics_;
+	if (!physics) {
+		ImGui::TextDisabled("Physics system not available");
+		ImGui::End();
+		return;
+	}
+
+	//collision matrix section
+	if (ImGui::CollapsingHeader("Collision Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::TextWrapped("Configure which collision layers can interact:");
+		ImGui::Spacing();
+
+		ShowCollisionMatrix(physics);
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	//entity layer section
+	if (ImGui::CollapsingHeader("Entity Layer Configuration", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!isEntitySelected_ || selectedEntityIndex == 0) {
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+			ImGui::TextWrapped("Select an entity in the Hierarchy panel to configure its layers.");
+			ImGui::PopStyleColor();
+		}
+		else {
+			Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+
+			// Display entity name
+			std::string entityName = entityMgr.GetProperties(selectedEntity).name;
+			ImGui::Text("Entity: %s", entityName.c_str());
+			ImGui::Spacing();
+			ImGui::Separator();
+
+			// COLLISION LAYER SECTION 
+			if (ImGui::TreeNodeEx("Collision Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ShowEntityCollisionLayer(entityMgr, selectedEntity);
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			//  RENDER LAYER SECTION
+			if (ImGui::TreeNodeEx("Render Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ShowEntityRenderLayer(entityMgr, selectedEntity);
+				ImGui::TreePop();
+			}
+		}
+	}
+
+	ImGui::End();
+	
+	}
+
+	// Helper function to show collision matrix
+	void Editor::ShowCollisionMatrix(PhysicsSystem* physics) {
+		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		const float ROW_HEADER_WIDTH = 100.0f;
+		const float CELL_SIZE = 30.0f;
+
+		// Calculate column header height
+		float maxLabelWidth = 0.0f;
+		for (int i = 0; i < layerCount; i++) {
+			std::string name = LayerToString(static_cast<Framework::CollisionLayer>(i));
+			maxLabelWidth = std::max(maxLabelWidth, ImGui::CalcTextSize(name.c_str()).x);
+		}
+
+		const float COLUMN_HEADER_HEIGHT = maxLabelWidth + ImGui::GetStyle().ItemSpacing.y * 2;
+
+		// --- Draw Column Headers (Vertical Text) ---
+		ImGui::Dummy(ImVec2(ROW_HEADER_WIDTH, COLUMN_HEADER_HEIGHT));
+		ImGui::SameLine();
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
+
+		for (int col = 0; col < layerCount; col++) {
+			Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+			std::string colName = LayerToString(colLayer);
+
+			float colCenterX = headerStartPos.x + (col * CELL_SIZE) + (CELL_SIZE * 0.5f);
+			float textBottom = headerStartPos.y + COLUMN_HEADER_HEIGHT - ImGui::GetStyle().ItemSpacing.y - 0.5f;
+
+			// Draw vertical text
+			for (size_t i = 0; i < colName.length(); i++) {
+				char c[2] = { colName[i], '\0' };
+				ImVec2 charSize = ImGui::CalcTextSize(c);
+				ImVec2 charPos(colCenterX - charSize.x * 0.5f, textBottom - (i + 1) * charSize.y);
+				drawList->AddText(charPos, ImGui::GetColorU32(ImGuiCol_Text), c);
+			}
+
+			ImGui::SetCursorScreenPos(ImVec2(colCenterX - CELL_SIZE * 0.5f, headerStartPos.y));
+			ImGui::InvisibleButton(("##colheader" + std::to_string(col)).c_str(),
+				ImVec2(CELL_SIZE, COLUMN_HEADER_HEIGHT));
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("%s", colName.c_str());
+			}
+		}
+
+		ImGui::SetCursorScreenPos(ImVec2(headerStartPos.x, headerStartPos.y + COLUMN_HEADER_HEIGHT));
+		ImGui::NewLine();
+
+		// Draw Matrix Grid 
+		for (int row = 0; row < layerCount; row++) {
+			Framework::CollisionLayer rowLayer = static_cast<Framework::CollisionLayer>(row);
+			std::string rowName = LayerToString(rowLayer);
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("%s", rowName.c_str());
+			ImGui::SameLine(ROW_HEADER_WIDTH);
+
+			for (int col = 0; col < layerCount; col++) {
+				Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+
+				ImGui::PushID(row * layerCount + col);
+				bool canCollide = physics->GetLayerCollision(rowLayer, colLayer);
+
+				ImGui::SetCursorPosX(ROW_HEADER_WIDTH + (col * CELL_SIZE) +
+					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
+
+				if (ImGui::Checkbox("##cb", &canCollide)) {
+					physics->SetLayerCollision(rowLayer, colLayer, canCollide);
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("%s vs %s", rowName.c_str(), LayerToString(colLayer));
+				}
+
+				ImGui::SameLine();
+				ImGui::PopID();
+			}
+			ImGui::NewLine();
+		}
+	}
+
+	// Helper function to show entity collision layer
+	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
+		int currentLayerIndex = static_cast<int>(entityLayer);
+		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		// Create layer dropdown
+		std::vector<std::string> layerLabels;
+		std::vector<const char*> layerItems;
+
+		for (int i = 0; i < layerCount; i++) {
+			Framework::CollisionLayer layer = static_cast<Framework::CollisionLayer>(i);
+			layerLabels.push_back(LayerToString(layer));
+		}
+
+		for (const auto& label : layerLabels) {
+			layerItems.push_back(label.c_str());
+		}
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Collision Layer:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(200.0f);
+
+		if (ImGui::Combo("##CollisionLayer", &currentLayerIndex, layerItems.data(),
+			static_cast<int>(layerItems.size()))) {
+			entityLayer = static_cast<Framework::CollisionLayer>(currentLayerIndex);
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("This determines which objects can collide with this entity");
+
+		// Show collision info
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Collision Interactions")) {
+			ImGui::Text("Can collide with:");
+			ImGui::Indent();
+
+			bool hasCollisions = false;
+			auto* physics = gameManager_->GetSystems().physics_;
+			for (int i = 0; i < layerCount; i++) {
+				Framework::CollisionLayer otherLayer = static_cast<Framework::CollisionLayer>(i);
+				if (physics->GetLayerCollision(entityLayer, otherLayer)) {
+					ImGui::BulletText("%s", LayerToString(otherLayer));
+					hasCollisions = true;
+				}
+			}
+
+			if (!hasCollisions) {
+				ImGui::TextDisabled("(No collisions enabled)");
+			}
+
+			ImGui::Unindent();
+			ImGui::TreePop();
+		}
+	}
+
+	// Helper function to show entity render layer
+	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
+
+		// Render Layer Dropdown
+		const char* renderLayerNames[] = {
+			"Background (-100)",
+			"Platform (50)",
+			"Enemy (75)",
+			"Player (100)",
+			"UI (200)",
+			"Custom"
+		};
+
+		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Render Layer:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(200.0f);
+
+		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
+			IM_ARRAYSIZE(renderLayerNames))) {
+			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("This controls when this entity is drawn relative to others");
+
+		// Custom Render Order (only shown if Custom is selected)
+		if (props.renderLayer == Framework::RenderLayer::Custom) {
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			ImGui::Text("Custom Render Order:");
+			ImGui::SetNextItemWidth(150.0f);
+			ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset to 0")) {
+				props.customRenderOrder = 0;
+			}
+
+			ImGui::Spacing();
+			ImGui::TextWrapped("Lower values render first (behind). Higher values render last (in front).");
+		}
+
+		// Show render order info
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Render Order Info")) {
+			int effectiveRenderOrder = props.renderLayer == Framework::RenderLayer::Custom
+				? props.customRenderOrder
+				: static_cast<int>(props.renderLayer);
+
+			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
+			ImGui::Spacing();
+
+			ImGui::TextWrapped("Standard render order:");
+			ImGui::Indent();
+			ImGui::BulletText("Background: -100 (renders first)");
+			ImGui::BulletText("Platform: 50");
+			ImGui::BulletText("Enemy: 75");
+			ImGui::BulletText("Player: 100");
+			ImGui::BulletText("UI: 200 (renders last)");
+			ImGui::Unindent();
+
+			ImGui::Unindent();
+			ImGui::TreePop();
+		}
+	}
+
+#pragma endregion
+
 #pragma region TOOLBAR
 
 	void Editor::ShowToolbar() {
@@ -2868,7 +3252,6 @@ namespace Editor {
 			// Lock game keyboard if !isGamePlaying
 			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
 
-
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
 				if (isGamePlaying) {
@@ -2921,6 +3304,47 @@ namespace Editor {
 			}
 			if (!isGamePlaying) ImGui::EndDisabled();
 			ImGui::PopStyleColor();
+
+			ImGui::SameLine();
+
+			// History Buttons
+			ImVec2 historyControlBtnSize{ 40.f, 20.f };
+			float historySpacing = ImGui::GetStyle().ItemSpacing.x;
+			float historyTotalWidth = historyControlBtnSize.x * 2.f + historySpacing;
+
+			float historyStartX = regionWidth * 0.75f - (historyTotalWidth * 0.5f);
+
+			if (historyStartX < 0.f) {
+				historyStartX = 0.f;
+			}
+
+			ImGui::SetCursorPosX(historyStartX);
+
+			// Undo Button
+			if (historyManager_.CanUndo()) {
+				if (ImGui::Button("Undo", historyControlBtnSize)) {
+					historyManager_.Undo();
+				}
+			}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::Button("Undo", historyControlBtnSize);
+				ImGui::EndDisabled();
+			}
+
+			ImGui::SameLine(0.f, historySpacing);
+
+			// Redo Button
+			if (historyManager_.CanRedo()) {
+				if (ImGui::Button("Redo", historyControlBtnSize)) {
+					historyManager_.Redo();
+				}
+			}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::Button("Redo", historyControlBtnSize);
+				ImGui::EndDisabled();
+			}
 
 			ImGui::End();
 		}

@@ -91,7 +91,26 @@ namespace Framework {
                 if (props.HasMember("layer") && props["layer"].IsString()) {
                     prefab.layer = props["layer"].GetString();
                 }
+
+                if (props.HasMember("render_layer") && props["render_layer"].IsInt()) {
+                    prefab.renderLayer = props["render_layer"].GetInt();
+                }
+                else {
+                    // Default based on collision layer
+                    if (prefab.layer == "Platform") prefab.renderLayer = 50;
+                    else if (prefab.layer == "Player") prefab.renderLayer = 100;
+                    else prefab.renderLayer = 0;
+                }
+
+                if (props.HasMember("custom_render_order") && props["custom_render_order"].IsInt()) {
+                    prefab.customRenderOrder = props["custom_render_order"].GetInt();
+                }
+                else {
+                    prefab.customRenderOrder = prefab.renderLayer;
+                }
+            
             }
+
             Logger::Get().Info(DebugType::FileIOSystem) << "Loaded prefab: " << prefabName << std::endl;
             prefabs_[prefab.name] = std::move(prefab);
             
@@ -136,11 +155,17 @@ namespace Framework {
             entityMgr.GetProperties(entity).layer = CollisionLayer::Default;
         }
 
+        // render order
+        entityMgr.GetProperties(entity).renderLayer = static_cast<RenderLayer>(prefab.renderLayer);
+        entityMgr.GetProperties(entity).customRenderOrder = prefab.customRenderOrder;
+
         for (const std::string& tag : prefab.tags) {
             if (tag == "PlatformTag") {
                 entityMgr.AddComponent(entity, PlatformTagType);
             }
         }
+
+        
 
         // Add all components from prefab definition
         for (const ComponentData& compData : prefab.components) {
@@ -257,6 +282,12 @@ namespace Framework {
         else {
             std::cout<< "Unknown component type: " << compData.type << std::endl;
         }
+
+        Logger::Get().Info(DebugType::FileIOSystem)
+     
+            << "' with render layer: " << static_cast<int>(entityMgr.GetProperties(entity).renderLayer)
+            << ", custom order: " << entityMgr.GetProperties(entity).customRenderOrder
+            << std::endl;
     }
 
     bool PrefabSystem::HasPrefab(const std::string& name) const {
