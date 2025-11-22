@@ -272,18 +272,22 @@ namespace Framework {
         for (std::vector<std::bitset<maxCollidableEntities>>::iterator::value_type& cell : grid_) {
             cell.reset();
         }
-
         for (int i = 0; i < colliderEntities_.size(); ++i) {
             Entity entity = colliderEntities_[i];
 
             // Get the AABB_Bounds for insertion
             const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
             const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
-            float rotation = 0.0f;
+
+            float colliderRotation = 0.0f;
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+                colliderRotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
-            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, rotation);
+            if (entityMgr.HasComponent(entity, RotationType)) {
+                colliderRotation += entityMgr.GetComponent<Rotation>(entity).colliderAngle * (180.0f / M_PI);
+            }
+
+            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, colliderRotation);
 
             GridInsert(i, bounds); // Insert the bitset index 'i'
         }
@@ -376,16 +380,24 @@ namespace Framework {
             return; // Skip static-vs-static
         }
 
-        // --- Get rotation for each entity ---
+        // --- Get rotation for e1 ---
         float rotation1 = 0.0f;
         if (entityMgr.HasComponent(e1, RotationFlagType)) {
             rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
         }
+        if (entityMgr.HasComponent(e1, RotationType)) {
+            rotation1 += entityMgr.GetComponent<Rotation>(e1).colliderAngle * (180.0f / M_PI);
+        }
 
+        // --- Get rotation for e2 ---
         float rotation2 = 0.0f;
         if (entityMgr.HasComponent(e2, RotationFlagType)) {
             rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
         }
+        if (entityMgr.HasComponent(e2, RotationType)) {
+            rotation2 += entityMgr.GetComponent<Rotation>(e2).colliderAngle * (180.0f / M_PI);
+        }
+
 
         // --- Convert to min/max format for the collision functions ---
         const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;

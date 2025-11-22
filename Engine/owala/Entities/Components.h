@@ -86,9 +86,13 @@ namespace Framework{
 
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
-		Vector2D HalfSize; // Half-width and half-height of the box
-	};
+		Vector2D HalfSize;
+		float rotation = 0.0f;
+		Matrix3x3 transformMatrix;
 
+		AABBCollider() : HalfSize(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size) : HalfSize(size), rotation(0.0f), transformMatrix() {}
+	};
 	
 
 	/*	Acceleration component to store x and y 
@@ -170,8 +174,15 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
-	struct Rotation { //for selected entities
-		float angle = 0.0f; // Rotation angle in degrees
+	struct Rotation {
+		float angle = 0.0f;
+		float textureAngle = 0.0f; // Texture rotation angle
+		float colliderAngle = 0.0f; // Collider rotation angle
+		Matrix3x3 textureTransformMatrix; // For texture
+		Matrix3x3 colliderTransformMatrix; // For collider
+
+		Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
+		Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
 	};
 
 	struct Scale {

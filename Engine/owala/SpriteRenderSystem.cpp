@@ -133,7 +133,7 @@ namespace Framework {
                 if (hasRotationFlag && hasRotationType) {
                     const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
-                    float worldRotationRad = rotation.angle;
+                    float worldRotationRad = rotation.textureAngle;
                     float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
                     rotationRad = worldRotationRad + localRotationRad;
                 }
@@ -143,7 +143,7 @@ namespace Framework {
                 }
                 else if (hasRotationType) {
                     const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
-                    rotationRad = rotation.angle;
+                    rotationRad = rotation.textureAngle;
                 }
 
                 // --- Fetch Texture Resource ---
@@ -295,9 +295,20 @@ namespace Framework {
                 screenHalfSize.y = std::abs(sy.y) * halfSize.y;
             }
 
+            Vector2D scaledHalfSize = halfSize;
+
+            // Apply Scale component if present
+            if (entityMgr.HasComponent(e, ScaleType)) {
+                const Scale& scale = entityMgr.GetComponent<Scale>(e);
+                scaledHalfSize.x *= scale.axes.x;
+                scaledHalfSize.y *= scale.axes.y;
+            }
             float deg = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
                 deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
+            }
+            if (entityMgr.HasComponent(e, RotationType)) {
+                deg += entityMgr.GetComponent<Rotation>(e).colliderAngle * (180.0f / 3.14159265359f);
             }
 
             if (std::abs(deg) < 0.001f) {

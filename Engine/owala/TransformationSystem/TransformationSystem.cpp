@@ -240,22 +240,47 @@ namespace Framework {
             return;
         }
 
-        // Get transform components
         Vector2D position = entityMgr.GetComponent<Position>(entity).Pos;
-        float rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
 
-        Vector2D scale = Vector2D(1.0f, 1.0f);
+        // Handle Texture Rotation
+        if (entityMgr.HasComponent(entity, RotationType)) {
+            Rotation& rotComp = entityMgr.GetComponent<Rotation>(entity);
 
-        if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-            ScalingPlatformComponent& scalingComp =entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-            scale = Vector2D(scalingComp.currentScaleX, scalingComp.currentScaleY);
+            float textureRotationDegrees = rotComp.textureAngle * (180.0f / 3.14159265359f);
+            float colliderRotationDegrees = rotComp.colliderAngle * (180.0f / 3.14159265359f);
+
+            Vector2D textureScale = Vector2D(1.0f, 1.0f);
+            if (entityMgr.HasComponent(entity, TextureComponentType)) {
+                TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
+                textureScale = tex.HalfSize;
+            }
+            rotComp.textureTransformMatrix = Transformation::CreateTransformationMatrix( position, textureRotationDegrees, textureScale );
+
+            if (entityMgr.HasComponent(entity, AABBColliderType))
+            {
+                AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+                Vector2D colliderScale = Vector2D(1.0f, 1.0f);
+                float colliderRotationDegrees = 0.0f;
+                if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                    colliderRotationDegrees = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+                }
+                else {
+                    colliderRotationDegrees = rotComp.colliderAngle * (180.0f / 3.14159265359f);
+                }
+                rotComp.colliderTransformMatrix = Transformation::CreateTransformationMatrix( position, colliderRotationDegrees,colliderScale);
+            }
         }
+        if (entityMgr.HasComponent(entity, RotationFlagType)) {
+            RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+            float worldRotation = rotationFlag.currentRotation;
 
-        // Create transformation matrix: T * R * S
-        Matrix3x3 transformMatrix = Transformation::CreateTransformationMatrix( position, rotation, scale );
-
-        // Store the transformation matrix in the RotationFlag component
-        entityMgr.GetComponent<RotationFlag>(entity).transformMatrix = transformMatrix;
+            Vector2D scale = Vector2D(1.0f, 1.0f);
+            if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
+            ScalingPlatformComponent& scalingComp =entityMgr.GetComponent<ScalingPlatformComponent>(entity);
+                scale = Vector2D(scalingComp.currentScaleX, scalingComp.currentScaleY);
+            }
+            rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix( position, worldRotation, scale);
+        }
     }
 
     /*!
