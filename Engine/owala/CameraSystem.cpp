@@ -74,8 +74,8 @@ namespace Framework {
             }
 
             // Print camera position
-			Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
-				<< " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
+			//Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
+			//	<< " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
         }
     }
 
