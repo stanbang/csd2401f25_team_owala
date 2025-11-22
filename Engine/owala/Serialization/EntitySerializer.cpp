@@ -43,6 +43,8 @@ namespace Framework {
 		EntityProperties& properties = entityMgr.GetProperties(entity);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
 
 		rapidjson::Value componentList(rapidjson::kObjectType);
 
@@ -993,6 +995,22 @@ namespace Framework {
 		if (entityData.HasMember(Serialization::ENTITY_LAYER) && entityData[Serialization::ENTITY_LAYER].IsInt()) {
 			properties.layer = static_cast<CollisionLayer>(entityData[Serialization::ENTITY_LAYER].GetInt());
 		}
+
+		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER) && entityData[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
+			properties.renderLayer = static_cast<RenderLayer>(entityData[Serialization::ENTITY_RENDER_LAYER].GetInt());
+		}
+		else {
+			// need this or might break old saves
+			properties.renderLayer = RenderLayer::Custom;
+		}
+		
+		if (entityData.HasMember(Serialization::ENTITY_CUSTOM_RENDER_ORDER) && entityData[Serialization::ENTITY_CUSTOM_RENDER_ORDER].IsInt()) {
+			properties.customRenderOrder = entityData[Serialization::ENTITY_CUSTOM_RENDER_ORDER].GetInt();
+		}
+		else {
+			properties.customRenderOrder = 0;
+		}
+		
 
 		/* Components Deserialization */
 		if (entityData.HasMember(Serialization::COMPONENTS)) {

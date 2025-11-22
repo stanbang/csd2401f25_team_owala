@@ -38,6 +38,18 @@ namespace Framework {
         }
     }
 
+    // ----- Layer Collision Functions ------- //
+
+    bool PhysicsSystem::GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const {
+        size_t l1 = static_cast<size_t>(layer1);
+        size_t l2 = static_cast<size_t>(layer2);
+
+        if (l1 < collisionMatrix_.size() && l2 < collisionMatrix_.size()) {
+            return collisionMatrix_[l1][l2];
+        }
+        return false;
+    }
+
     void PhysicsSystem::SetLayerCollision(CollisionLayer layer1, CollisionLayer layer2, bool canCollide) {
         size_t l1 = static_cast<size_t>(layer1);
         size_t l2 = static_cast<size_t>(layer2);
@@ -109,7 +121,7 @@ namespace Framework {
         Integrate(dt);
 
         // Ensure Player is not able to move out of viewport bounds
-        EnforceViewportBounds();
+       EnforceViewportBounds();
 
         // Detect and resolve collisions
         ResolveCollisions(dt);

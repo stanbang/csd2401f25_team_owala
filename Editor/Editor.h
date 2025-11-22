@@ -29,6 +29,7 @@
 #include "Graphics.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
+#include "PhysicsSystem.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -45,6 +46,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
+	//class PhysicsSystem; // forward Declaration
 
 }
 
@@ -59,6 +61,7 @@ namespace Editor {
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
 		bool showPrefabEditor = false;
+		bool showLayerManager = true; 
 	};
 
 	// enum to represent the different types of objects we can create
@@ -242,6 +245,7 @@ namespace Editor {
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
+		void ShowLayerManager();
 
 		// Popup Related
 		std::string popupMsg;
@@ -275,6 +279,13 @@ namespace Editor {
 
 		// Caches the game viewport's position and size
 		void UpdateViewportData();
+
+
+		// Layer viewport data for IMGUI
+		void ShowCollisionMatrix(Framework::PhysicsSystem* physics);
+
+		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
+		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 
 	public:
 		bool isEnabled = true;

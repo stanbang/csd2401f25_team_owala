@@ -100,14 +100,14 @@ namespace {
 	}
 
 	// Helper to convert a CollisionLayer enum to its string representation.
-	const char* LayerToString(CollisionLayer layer) {
+	char const* LayerToString(CollisionLayer layer) {
 		switch (layer) {
 		case CollisionLayer::Default:   return "Default";
 		case CollisionLayer::Player:    return "Player";
 		case CollisionLayer::Platform:  return "Platform";
 		case CollisionLayer::Enemy:     return "Enemy";
 		case CollisionLayer::Trigger:   return "Trigger";
-		default:                        return "Invalid";
+		default:                        return "Layer  Unknown";
 		}
 	}
 }
@@ -391,6 +391,7 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Palette", dock_right);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
+			ImGui::DockBuilderDockWindow("Layer", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
@@ -400,10 +401,11 @@ namespace Editor {
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
-			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left);
 			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
 			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
+			
 
 			ImGui::DockBuilderDockWindow("Game", dock_main_id);
 			ImGui::DockBuilderFinish(dockspaceID);
@@ -496,6 +498,7 @@ namespace Editor {
 		if (settings.showAssetBrowser) ShowAssetBrowser(droppedFilePaths_);
 		if (settings.showHierarchy) ShowHierarchy();
 		if (settings.showLevelEditor) ShowLevelEditor();
+		if (settings.showLayerManager) ShowLayerManager();
 		if (isTileEditorActive_) {
 			ShowTilemapEditor();  // Prefab palette
 			if (isTilePaletteOpen_) {
@@ -2477,7 +2480,7 @@ namespace Editor {
 			if (gfx && spriteRenderer_ && camSystem) {
 
 				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
-				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+				//camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
 
 				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
@@ -2593,6 +2596,280 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+#pragma endregion
+
+#pragma region LAYER
+	void Editor::ShowLayerManager() {
+
+		
+	ImGui::Begin("Layer", &settings.showLayerManager);
+
+	auto* physics = gameManager_->GetSystems().physics_;
+	if (!physics) {
+		ImGui::TextDisabled("Physics system not available");
+		ImGui::End();
+		return;
+	}
+
+	//collision matrix section
+	if (ImGui::CollapsingHeader("Collision Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::TextWrapped("Configure which collision layers can interact:");
+		ImGui::Spacing();
+
+		ShowCollisionMatrix(physics);
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	//entity layer section
+	if (ImGui::CollapsingHeader("Entity Layer Configuration", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!isEntitySelected_ || selectedEntityIndex == 0) {
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+			ImGui::TextWrapped("Select an entity in the Hierarchy panel to configure its layers.");
+			ImGui::PopStyleColor();
+		}
+		else {
+			Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+
+			// Display entity name
+			std::string entityName = entityMgr.GetProperties(selectedEntity).name;
+			ImGui::Text("Entity: %s", entityName.c_str());
+			ImGui::Spacing();
+			ImGui::Separator();
+
+			// COLLISION LAYER SECTION 
+			if (ImGui::TreeNodeEx("Collision Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ShowEntityCollisionLayer(entityMgr, selectedEntity);
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			//  RENDER LAYER SECTION
+			if (ImGui::TreeNodeEx("Render Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ShowEntityRenderLayer(entityMgr, selectedEntity);
+				ImGui::TreePop();
+			}
+		}
+	}
+
+	ImGui::End();
+	
+	}
+
+	// Helper function to show collision matrix
+	void Editor::ShowCollisionMatrix(PhysicsSystem* physics) {
+		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		const float ROW_HEADER_WIDTH = 100.0f;
+		const float CELL_SIZE = 30.0f;
+
+		// Calculate column header height
+		float maxLabelWidth = 0.0f;
+		for (int i = 0; i < layerCount; i++) {
+			std::string name = LayerToString(static_cast<Framework::CollisionLayer>(i));
+			maxLabelWidth = std::max(maxLabelWidth, ImGui::CalcTextSize(name.c_str()).x);
+		}
+
+		const float COLUMN_HEADER_HEIGHT = maxLabelWidth + ImGui::GetStyle().ItemSpacing.y * 2;
+
+		// --- Draw Column Headers (Vertical Text) ---
+		ImGui::Dummy(ImVec2(ROW_HEADER_WIDTH, COLUMN_HEADER_HEIGHT));
+		ImGui::SameLine();
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
+
+		for (int col = 0; col < layerCount; col++) {
+			Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+			std::string colName = LayerToString(colLayer);
+
+			float colCenterX = headerStartPos.x + (col * CELL_SIZE) + (CELL_SIZE * 0.5f);
+			float textBottom = headerStartPos.y + COLUMN_HEADER_HEIGHT - ImGui::GetStyle().ItemSpacing.y - 0.5f;
+
+			// Draw vertical text
+			for (size_t i = 0; i < colName.length(); i++) {
+				char c[2] = { colName[i], '\0' };
+				ImVec2 charSize = ImGui::CalcTextSize(c);
+				ImVec2 charPos(colCenterX - charSize.x * 0.5f, textBottom - (i + 1) * charSize.y);
+				drawList->AddText(charPos, ImGui::GetColorU32(ImGuiCol_Text), c);
+			}
+
+			ImGui::SetCursorScreenPos(ImVec2(colCenterX - CELL_SIZE * 0.5f, headerStartPos.y));
+			ImGui::InvisibleButton(("##colheader" + std::to_string(col)).c_str(),
+				ImVec2(CELL_SIZE, COLUMN_HEADER_HEIGHT));
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("%s", colName.c_str());
+			}
+		}
+
+		ImGui::SetCursorScreenPos(ImVec2(headerStartPos.x, headerStartPos.y + COLUMN_HEADER_HEIGHT));
+		ImGui::NewLine();
+
+		// Draw Matrix Grid 
+		for (int row = 0; row < layerCount; row++) {
+			Framework::CollisionLayer rowLayer = static_cast<Framework::CollisionLayer>(row);
+			std::string rowName = LayerToString(rowLayer);
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("%s", rowName.c_str());
+			ImGui::SameLine(ROW_HEADER_WIDTH);
+
+			for (int col = 0; col < layerCount; col++) {
+				Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+
+				ImGui::PushID(row * layerCount + col);
+				bool canCollide = physics->GetLayerCollision(rowLayer, colLayer);
+
+				ImGui::SetCursorPosX(ROW_HEADER_WIDTH + (col * CELL_SIZE) +
+					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
+
+				if (ImGui::Checkbox("##cb", &canCollide)) {
+					physics->SetLayerCollision(rowLayer, colLayer, canCollide);
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("%s vs %s", rowName.c_str(), LayerToString(colLayer));
+				}
+
+				ImGui::SameLine();
+				ImGui::PopID();
+			}
+			ImGui::NewLine();
+		}
+	}
+
+	// Helper function to show entity collision layer
+	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
+		int currentLayerIndex = static_cast<int>(entityLayer);
+		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		// Create layer dropdown
+		std::vector<std::string> layerLabels;
+		std::vector<const char*> layerItems;
+
+		for (int i = 0; i < layerCount; i++) {
+			Framework::CollisionLayer layer = static_cast<Framework::CollisionLayer>(i);
+			layerLabels.push_back(LayerToString(layer));
+		}
+
+		for (const auto& label : layerLabels) {
+			layerItems.push_back(label.c_str());
+		}
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Collision Layer:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(200.0f);
+
+		if (ImGui::Combo("##CollisionLayer", &currentLayerIndex, layerItems.data(),
+			static_cast<int>(layerItems.size()))) {
+			entityLayer = static_cast<Framework::CollisionLayer>(currentLayerIndex);
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("This determines which objects can collide with this entity");
+
+		// Show collision info
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Collision Interactions")) {
+			ImGui::Text("Can collide with:");
+			ImGui::Indent();
+
+			bool hasCollisions = false;
+			auto* physics = gameManager_->GetSystems().physics_;
+			for (int i = 0; i < layerCount; i++) {
+				Framework::CollisionLayer otherLayer = static_cast<Framework::CollisionLayer>(i);
+				if (physics->GetLayerCollision(entityLayer, otherLayer)) {
+					ImGui::BulletText("%s", LayerToString(otherLayer));
+					hasCollisions = true;
+				}
+			}
+
+			if (!hasCollisions) {
+				ImGui::TextDisabled("(No collisions enabled)");
+			}
+
+			ImGui::Unindent();
+			ImGui::TreePop();
+		}
+	}
+
+	// Helper function to show entity render layer
+	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
+
+		// Render Layer Dropdown
+		const char* renderLayerNames[] = {
+			"Background (-100)",
+			"Platform (50)",
+			"Enemy (75)",
+			"Player (100)",
+			"UI (200)",
+			"Custom"
+		};
+
+		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Render Layer:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(200.0f);
+
+		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
+			IM_ARRAYSIZE(renderLayerNames))) {
+			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("This controls when this entity is drawn relative to others");
+
+		// Custom Render Order (only shown if Custom is selected)
+		if (props.renderLayer == Framework::RenderLayer::Custom) {
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			ImGui::Text("Custom Render Order:");
+			ImGui::SetNextItemWidth(150.0f);
+			ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset to 0")) {
+				props.customRenderOrder = 0;
+			}
+
+			ImGui::Spacing();
+			ImGui::TextWrapped("Lower values render first (behind). Higher values render last (in front).");
+		}
+
+		// Show render order info
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Render Order Info")) {
+			int effectiveRenderOrder = props.renderLayer == Framework::RenderLayer::Custom
+				? props.customRenderOrder
+				: static_cast<int>(props.renderLayer);
+
+			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
+			ImGui::Spacing();
+
+			ImGui::TextWrapped("Standard render order:");
+			ImGui::Indent();
+			ImGui::BulletText("Background: -100 (renders first)");
+			ImGui::BulletText("Platform: 50");
+			ImGui::BulletText("Enemy: 75");
+			ImGui::BulletText("Player: 100");
+			ImGui::BulletText("UI: 200 (renders last)");
+			ImGui::Unindent();
+
+			ImGui::Unindent();
+			ImGui::TreePop();
+		}
 	}
 
 #pragma endregion

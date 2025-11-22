@@ -125,18 +125,27 @@ namespace Framework {
                 // --- Fetch Texture Resource ---
                 Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
-                // --- Determine Render Order ---
-                int renderOrder = 0;
-                if (entityMgr.HasComponent(entity, BackgroundTagType))
-                    renderOrder = -100;
-                else if (isUIElement)
-                    renderOrder = 200;
-                else if (entityMgr.HasComponent(entity, PlayerTagType))
-                    renderOrder = 100;
-                else if (entityMgr.HasComponent(entity, EnemyTagType))
-                    renderOrder = 75;
-                else if (entityMgr.HasComponent(entity, PlatformTagType))
-                    renderOrder = 50;
+                //// --- Determine Render Order ---
+                //int renderOrder = 0;
+                //if (entityMgr.HasComponent(entity, BackgroundTagType))
+                //    renderOrder = -100;
+                //else if (isUIElement)
+                //    renderOrder = 200;
+                //else if (entityMgr.HasComponent(entity, PlayerTagType))
+                //    renderOrder = 100;
+                //else if (entityMgr.HasComponent(entity, EnemyTagType))
+                //    renderOrder = 75;
+                //else if (entityMgr.HasComponent(entity, PlatformTagType))
+                //    renderOrder = 50;
+
+                 // --- Determine Render Order using EntityProperties ---
+                const EntityProperties& props = entityMgr.GetProperties(entity);
+                int renderOrder = props.customRenderOrder;
+
+                // Use predefined render layer if not custom
+                if (props.renderLayer != RenderLayer::Custom) {
+                    renderOrder = static_cast<int>(props.renderLayer);
+                }
 
                 // --- World → Screen Conversion ---
                 Vector2D screenPos = worldPos;
