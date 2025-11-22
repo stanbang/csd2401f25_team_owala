@@ -16,8 +16,8 @@ namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
 
 	// ---------------------------------------------------------------------------
-// Constructors
-// ---------------------------------------------------------------------------
+	// Constructors
+	// ---------------------------------------------------------------------------
 	EntityManager::EntityManager(EntityStorage& entityStorage) : ecs(entityStorage) {};
 
 	// ---------------------------------------------------------------------------
@@ -32,6 +32,20 @@ namespace Framework {
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
+	}
+
+	Entity EntityManager::CreateEntityWithID(Entity entityID) {
+		ComponentSignature emptySignature; // New entity starts with no components
+		ecs.entitySignatures[entityID] = emptySignature;
+
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(entityID), 0U, UINT_MAX)) + ")";
+		ecs.properties[entityID] = EntityProperties{ entityName, CollisionLayer::Default };
+
+		if (entityID >= nextEntityID) {
+			nextEntityID = entityID + 1;
+		}
+
+		return entityID;
 	}
 
 	Entity EntityManager::CloneEntity(const Entity& entity) {
@@ -98,6 +112,14 @@ namespace Framework {
 		else {
 			throw GameException(DebugType::Editor, "Corrupted Object! Properties are invalid. Please use EntityManager's CreateEntity API to instantiate objects!");
 		}
+	}
+
+	bool EntityManager::ValidateEntity(Entity entity) {
+		if (ecs.properties.find(entity) == ecs.properties.end()) {
+			return false;
+		}
+		
+		return true;
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
@@ -210,6 +232,15 @@ namespace Framework {
 			return true;
 		default:
 			return false;
+		}
+	}
+
+	void EntityManager::ClearTags(Entity entity) {
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (IsTagComponent(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
 		}
 	}
 

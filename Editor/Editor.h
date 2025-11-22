@@ -30,6 +30,9 @@
 #include "ResourceManager.h"
 #include "SceneManager.h"
 
+// Editor Modules
+#include "History.h"
+
 // Imgui Dependencies
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -45,7 +48,6 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
-
 }
 
 namespace Editor {
@@ -94,6 +96,11 @@ namespace Editor {
 		Framework::CameraSystem* cameraSystem_ = nullptr; // Pointer to camera systems for level editor
 		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
 		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
+
+		// --- Codependent Systems ---
+		HistoryManager historyManager_; // HistoryManager for Undo/Redo System.
+
+		// --- Internal Properties ---
 		Entity editorCamera_ = 0;
 		float editorZoom_ = 1.0f;
 		Vector2D editorCamPos_ = { 0.0f, 0.0f };
@@ -225,8 +232,9 @@ namespace Editor {
 		void HandleInWorldDragDrop();
 
 		/* Entity Copy & Pasting APIs */
-		void CopyEntityToClipboard(const Entity& entity);
+		void CopyEntityToClipboard(const Entity entity);
 		void PasteEntityFromClipboard();
+		std::string SerializeEntityToString(const Entity entity);
 
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();

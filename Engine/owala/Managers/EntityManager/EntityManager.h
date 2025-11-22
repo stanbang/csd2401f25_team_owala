@@ -32,6 +32,9 @@ namespace Framework {
 		/* EntityManager APIs */
 		// Creates a new entity and returns its ID.
 		Entity CreateEntity();
+		// Creates a new entity with the specified ID.
+		// Use with caution, this will overwrite any existing entity with conflicting ID.
+		Entity CreateEntityWithID(Entity entityID);
 		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
 		Entity CloneEntity(const Entity& entity);
 		// Destroys the specified entity, the entity and all its components are destroyed together.
@@ -39,6 +42,9 @@ namespace Framework {
 
 		// Gets the property data of the specified entity.
 		EntityProperties& GetProperties(Entity entity);
+
+		// Validate if Entity exists. Returns true if Entity is a valid entity.
+		bool ValidateEntity(Entity entity);
 
 		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
 		bool HasComponent(Entity entity, ComponentType componentType) const;
@@ -121,6 +127,8 @@ namespace Framework {
 		}
 		// Checks if given component is a Tag Component. Returns false if it is a regular component.
 		bool IsTagComponent(ComponentType componentType);
+		// Clears all tag components from the specified entity.
+		void ClearTags(Entity entity);
 		// Attaches a custom C++ script to an entity.
 		template<class T> 
 		std::size_t AttachScript(Entity entity, const char* displayName = nullptr, bool enabled = true);

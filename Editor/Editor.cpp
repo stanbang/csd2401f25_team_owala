@@ -123,7 +123,8 @@ namespace Editor {
 		graphicsSystem_(gameManager_->GetSystems().gfx_),
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
-		editorCameraNeedsReset_(false) {
+		editorCameraNeedsReset_(false),
+		historyManager_(*gameManager_->GetSystems().ecs_) {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -976,7 +977,7 @@ namespace Editor {
 
 #pragma region COPY AND PASTING APIs
 
-	void Editor::CopyEntityToClipboard(const Entity& entity) {
+	void Editor::CopyEntityToClipboard(const Entity entity) {
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		rapidjson::Document doc;
 		doc.SetObject();
@@ -1009,7 +1010,26 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
+		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
+	}
+
+	std::string Editor::SerializeEntityToString(const Entity entity) {
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value entityData(rapidjson::kObjectType);
+		EntitySerializer::SerializeEntity(entity, *ecs, entityData, alloc);
+		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
 	}
 
 #pragma endregion
@@ -1745,8 +1765,10 @@ namespace Editor {
 						if (ImGui::MenuItem("Duplicate")) {
 							Entity clonedEntity = entityMgr.CloneEntity(entity);
 							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
 						}
 						if (ImGui::MenuItem("Delete")) {
+							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
 							entityMgr.DestroyEntity(entity);
 							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
@@ -1842,16 +1864,36 @@ namespace Editor {
 			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
-			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
-
-			char nameBuffer[128];
-			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
-			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
-
-			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
-				entityName = nameBuffer; // update ECS data when user edits
+			// Check if Entity is alive before accessing properties.
+			if (!entityMgr.ValidateEntity(selectedEntity)) {
+				isEntitySelected_ = false;
+				selectedEntityIndex = selectedComponentIndex = selectedTagIndex = selectedScriptIndex = 0;
+				ImGui::End();
+				return;
 			}
 
+			// --- Name Field ---
+			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
+
+			static Entity lastSelectedEntity = 0;
+			static char nameBuffer[128] = "";
+			if (selectedEntity != lastSelectedEntity) {
+				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+				nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
+				lastSelectedEntity = selectedEntity;
+			}
+
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string newName = nameBuffer;
+
+				if (newName != entityName) {
+					entityName = newName;
+				}
+			}
+			// --- End Name Field ---
+
+			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
 			// Create a list of layer names for the dropdown
@@ -1873,6 +1915,7 @@ namespace Editor {
 				// with the new value.
 				entityLayer = static_cast<CollisionLayer>(currentLayer);
 			}
+			// -- End Layer Dropdown ---
 
 			// --- Component Section ---
 			if (ImGui::CollapsingHeader("Components")) {
@@ -2672,7 +2715,6 @@ namespace Editor {
 			// Lock game keyboard if !isGamePlaying
 			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
 
-
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
 				if (isGamePlaying) {
@@ -2725,6 +2767,47 @@ namespace Editor {
 			}
 			if (!isGamePlaying) ImGui::EndDisabled();
 			ImGui::PopStyleColor();
+
+			ImGui::SameLine();
+
+			// History Buttons
+			ImVec2 historyControlBtnSize{ 40.f, 20.f };
+			float historySpacing = ImGui::GetStyle().ItemSpacing.x;
+			float historyTotalWidth = historyControlBtnSize.x * 2.f + historySpacing;
+
+			float historyStartX = regionWidth * 0.75f - (historyTotalWidth * 0.5f);
+
+			if (historyStartX < 0.f) {
+				historyStartX = 0.f;
+			}
+
+			ImGui::SetCursorPosX(historyStartX);
+
+			// Undo Button
+			if (historyManager_.CanUndo()) {
+				if (ImGui::Button("Undo", historyControlBtnSize)) {
+					historyManager_.Undo();
+				}
+			}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::Button("Undo", historyControlBtnSize);
+				ImGui::EndDisabled();
+			}
+
+			ImGui::SameLine(0.f, historySpacing);
+
+			// Redo Button
+			if (historyManager_.CanRedo()) {
+				if (ImGui::Button("Redo", historyControlBtnSize)) {
+					historyManager_.Redo();
+				}
+			}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::Button("Redo", historyControlBtnSize);
+				ImGui::EndDisabled();
+			}
 
 			ImGui::End();
 		}
