@@ -2806,6 +2806,15 @@ namespace Editor {
 				}
 
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					// 1. Update Aspect Ratio based on the actual ImGui Window size
+					float aspect = (viewportPanelSize.y > 0) ? (viewportPanelSize.x / viewportPanelSize.y) : 1.0f;
+					camSystem->SetAspectRatio(editorCamera_, aspect);
+
+					// 2. Manually update the camera.size. 
+					Framework::Camera& cam = camSystem->GetCamera(editorCamera_);
+					cam.size.x = 2.0f * cam.zoom * cam.aspectRatio;
+					cam.size.y = 2.0f * cam.zoom;
+
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
