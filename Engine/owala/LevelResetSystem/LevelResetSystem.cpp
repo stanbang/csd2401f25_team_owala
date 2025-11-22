@@ -68,6 +68,11 @@ namespace Framework {
 
         EntityManager entityMgr(ecs_);
         
+        // Delete all particles
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {
+			entityMgr.DestroyEntity(entity);
+		}
+        
         // Reset entities
         for (const auto& [entity, signature] : entityMgr.GetEntitySignatures()) {
             // --- Player Reset ---
