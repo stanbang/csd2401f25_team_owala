@@ -121,7 +121,7 @@ namespace Framework {
         Integrate(dt);
 
         // Ensure Player is not able to move out of viewport bounds
-       EnforceViewportBounds();
+        //EnforceViewportBounds();
 
         // Detect and resolve collisions
         ResolveCollisions(dt);

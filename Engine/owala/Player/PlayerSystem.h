@@ -38,7 +38,7 @@ namespace Framework {
 		PhysicsSystem* physics_ = nullptr; // use physics sytems
 
 		// Private variables
-		float moveSpeed = 2.0f;
-		float jumpHeight = 0.8f;
+		float moveSpeed = 0.0f;
+		float jumpHeight = 0.0f;
 	};
 } // namespace Framework

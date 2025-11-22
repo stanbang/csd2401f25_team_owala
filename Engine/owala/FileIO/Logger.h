@@ -44,7 +44,8 @@ const enum class DebugType {
     AISystem,
     LevelResetSystem,
     GUISystem,
-    VFXSystem
+    VFXSystem,
+	CameraSystem
 };
 
 const std::string DebugTypeLabels[] = {
@@ -67,7 +68,8 @@ const std::string DebugTypeLabels[] = {
     "AISystem",
     "LevelResetSystem",
     "GUISystem",
-    "VFXSystem"
+    "VFXSystem",
+	"CameraSystem"
 };
 
 namespace Framework {
