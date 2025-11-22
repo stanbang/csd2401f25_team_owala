@@ -2111,6 +2111,42 @@ namespace Editor {
 
 			//Show text but make it read-only
 			ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
+
+			// Drag and Drop Target for Texture Key
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// Process the dropped file path
+					const char* dropped_path_c_str = (const char*)payload->Data;
+					fs::path dropped_path(dropped_path_c_str);
+
+					// Validate the file extension
+					std::string ext = dropped_path.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+					{
+						// Update the texture key with the new file's filename
+						std::string newKey = dropped_path.filename().string();
+						tex.textureKey = newKey;
+
+						// Reload the texture resource
+						resourceManager_->unload<Texture>(newKey);
+						resourceManager_->loadTexture(newKey, dropped_path.string());
+
+						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
+					}
+					else
+					{
+						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			// Manual input field for new texture key
 			static std::string newTextureKey = "";
 			ImGui::InputText("New Texture Key", &newTextureKey);
 
@@ -2130,6 +2166,41 @@ namespace Editor {
 			AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(selectedEntity);
 			//Show text but make it read-only
 			ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// CORRECT way to extract the string from payload
+					// payload->Data is the raw bytes, payload->DataSize is the size in bytes
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
+
+					fs::path dropped_file(dropped_path);
+
+					// Validate the file extension
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					// Check for common audio formats
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+					{
+						// Update the sound key with the new file's filename
+						std::string newKey = dropped_file.filename().string();
+						audioComp.soundKey = newKey;
+
+						Framework::Logger::Get().Info(DebugType::Editor)
+							<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
+					}
+					else
+					{
+						Framework::Logger::Get().Error(DebugType::Editor)
+							<< "Dropped file is not a supported audio format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			static std::string newSoundKey = "";
 			ImGui::InputText("New Audio Key", &newSoundKey);
 			//Button to update audio key
@@ -2183,6 +2254,45 @@ namespace Editor {
 
 			if (ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer))) {
 				textComp.fontKey = fontKeyBuffer;
+			}
+
+			// Drag and Drop Target for Font Key
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// Extract the dropped path
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 for null terminator
+					fs::path dropped_file(dropped_path);
+
+					// Validate extension
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					if (ext == ".ttf" || ext == ".otf")
+					{
+						// Set font key to filename
+						std::string newFontKey = dropped_file.filename().string();
+						textComp.fontKey = newFontKey;
+
+						// Optionally reload font resource
+						if (resourceManager_)
+						{
+							resourceManager_->unload<Font>(newFontKey);
+							resourceManager_->loadFont(newFontKey, dropped_file.string());
+						}
+
+						Logger::Get().Info(DebugType::Editor)
+							<< "Font key updated via Drag & Drop to: " << newFontKey << std::endl;
+					}
+					else
+					{
+						Logger::Get().Error(DebugType::Editor)
+							<< "Dropped file is not a supported font format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
 			}
 
 			// Color Input

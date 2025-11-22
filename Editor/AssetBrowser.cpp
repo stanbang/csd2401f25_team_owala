@@ -363,6 +363,17 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
                     {
                         Logger::Get().Info(DebugType::Editor) << "Failed to load file " << asset.name << ": " << e.what() << std::endl;
                     }
+
+					// Handle drag-and-drop for image files
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+                    {
+                        const char* payload_type = "ASSET_PATH";
+                        currentDraggedPath_ = asset.path.string();
+                        ImGui::SetDragDropPayload(payload_type, currentDraggedPath_.c_str(),
+                            (currentDraggedPath_.size() + 1) * sizeof(char));
+                        ImGui::Text("Dragging: %s", asset.name.c_str());
+                        ImGui::EndDragDropSource();
+                    }
                 }
 
 				// If file image button was clicked, select the asset
@@ -371,6 +382,7 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
                     selectedAsset_ = asset.path;
                     Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                 }
+
 				// Non-image files are rendered as regular buttons
                 else if (!(ext == ".png" || ext == ".jpg" || ext == ".jpeg"))
                 {
@@ -379,7 +391,20 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
                         selectedAsset_ = asset.path;
                         Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
                     }
+
+					// Handle drag-and-drop for non-image files
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+                    {
+                        const char* payload_type = "ASSET_PATH";
+                        currentDraggedPath_ = asset.path.string();
+                        ImGui::SetDragDropPayload(payload_type, currentDraggedPath_.c_str(),
+                            (currentDraggedPath_.size() + 1) * sizeof(char));
+                        ImGui::Text("Dragging: %s", asset.name.c_str());
+                        ImGui::EndDragDropSource();
+                    }
                 }
+
+
             }
 
             ImGui::PopID();
