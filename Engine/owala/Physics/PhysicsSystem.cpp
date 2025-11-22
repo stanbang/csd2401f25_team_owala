@@ -38,6 +38,18 @@ namespace Framework {
         }
     }
 
+    // ----- Layer Collision Functions ------- //
+
+    bool PhysicsSystem::GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const {
+        size_t l1 = static_cast<size_t>(layer1);
+        size_t l2 = static_cast<size_t>(layer2);
+
+        if (l1 < collisionMatrix_.size() && l2 < collisionMatrix_.size()) {
+            return collisionMatrix_[l1][l2];
+        }
+        return false;
+    }
+
     void PhysicsSystem::SetLayerCollision(CollisionLayer layer1, CollisionLayer layer2, bool canCollide) {
         size_t l1 = static_cast<size_t>(layer1);
         size_t l2 = static_cast<size_t>(layer2);
@@ -109,7 +121,7 @@ namespace Framework {
         Integrate(dt);
 
         // Ensure Player is not able to move out of viewport bounds
-        EnforceViewportBounds();
+       EnforceViewportBounds();
 
         // Detect and resolve collisions
         ResolveCollisions(dt);
@@ -153,13 +165,20 @@ namespace Framework {
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        // Iterate through all entities with a player tag
-		EntityManager entityMgr(*ecs_);
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
-				Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
-				Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
+        EntityManager entityMgr(*ecs_);
+        std::vector<Entity> constrainedEntities;
 
+        auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        constrainedEntities.insert(constrainedEntities.end(), players.begin(), players.end());
+
+        auto trapPlatforms = entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType);
+        constrainedEntities.insert(constrainedEntities.end(), trapPlatforms.begin(), trapPlatforms.end());
+
+        for (const Entity& entity : constrainedEntities) {
+            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
+
+                Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+                Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
                 const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
                 // Check and correct X-axis boundaries

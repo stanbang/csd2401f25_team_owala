@@ -39,6 +39,16 @@ namespace Framework{
 		Count // track the number of layers
 	};
 
+	// Enum for defining rendering layers 
+	enum class RenderLayer : int {
+		Background = -100,
+		Platform = 50,
+		Enemy = 75,
+		Player = 100,
+		UI = 200,
+		Custom = 0  // For entities with custom render order
+	};
+
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
@@ -51,6 +61,8 @@ namespace Framework{
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
+		RenderLayer renderLayer = RenderLayer::Custom;
+		int customRenderOrder = 0; // Used when renderLayer is Custom
 	};
 
 	/*	Position component to store x and y 
@@ -170,7 +182,13 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
-	
+	struct Rotation { //for selected entities
+		float angle = 0.0f; // Rotation angle in degrees
+	};
+
+	struct Scale {
+		Vector2D axes{ 1.0f, 1.0f }; // Scale factors for X and Y axes
+	};
 
 
 	// Component to track trap platform state

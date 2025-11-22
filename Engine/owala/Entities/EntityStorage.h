@@ -71,6 +71,8 @@ namespace Framework {
 		BirdAIComponentType, 
 		SkeletonAIComponentType, 
 		GUITagType,
+		RotationType,
+		ScaleType,
 		MAX_COMPONENTS
 	};
 
@@ -113,7 +115,9 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
 	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };  
 	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
-	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; };
+	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; 
+	template <> struct ComponentTypeTrait<Scale> { static constexpr ComponentType value = ScaleType; };
+	template <> struct ComponentTypeTrait<Rotation> { static constexpr ComponentType value = RotationType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 
 #pragma endregion
@@ -162,7 +166,8 @@ namespace Framework {
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
 		//std::unordered_map<Entity, PersistentTag>	persistentTag; // Tag to indicate if the entity should persist across scene changes
 		//std::unordered_map<Entity, ActiveTag>		activeTag; // Tag to indicate if entity is to be loaded in the scene
-
+		std::unordered_map<Entity, Rotation> rotation;
+		std::unordered_map<Entity, Scale> scale;
 	//	//Sprite Components
 	//	//std::unordered_map<Entity, Sprite>       sprite;    // single sprite
 	//	//std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)

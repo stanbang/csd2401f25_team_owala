@@ -76,6 +76,13 @@ namespace Framework {
         static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
 
         // --- Layer-Based Collision API ---
+
+        //Get the collision state for the Editor
+        bool GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const;
+
+
+        static size_t GetLayerCount() { return static_cast<size_t>(CollisionLayer::Count); }
+
         /**
         * @brief Configures the collision interaction between two layers.
         * @param layer1 The first collision layer.
