@@ -213,6 +213,14 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::SCENE_OWNED_COMPONENT), value, alloc);
 		}
 
+		// Serialize ParticleEmitter Component
+		if (entityMgr.HasComponent(entity, ComponentType::ParticleEmitterComponentType)) {
+			ParticleEmitterComponent& particleEmitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(particleEmitter, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EMITTER_COMPONENT), value, alloc);
+		}
+
 		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
 
 		/* Tags Serialization */
@@ -510,6 +518,15 @@ namespace Framework {
 			SceneOwned sceneOwnedComp;
 			if (DeserializeComponent(sceneOwnedData, sceneOwnedComp)); {
 				entityMgr.AddComponent<SceneOwned>(loadedEntity, sceneOwnedComp);
+			}
+		}
+
+		// Deserialize ParticleEmitter Component
+		if (componentLists.HasMember(Serialization::PARTICLE_EMITTER_COMPONENT)) {
+			const rapidjson::Value& particleEmitterData = componentLists[Serialization::PARTICLE_EMITTER_COMPONENT];
+			ParticleEmitterComponent particleEmitter;
+			if (DeserializeComponent(particleEmitterData, particleEmitter)); {
+				entityMgr.AddComponent<ParticleEmitterComponent>(loadedEntity, particleEmitter);
 			}
 		}
 	}
@@ -868,6 +885,24 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::COMP_SCENE_NAME), rapidjson::StringRef(sceneOwnedComp.sceneName.c_str()), alloc);
 	}
 
+	// ParticleEmitter Component
+	void EntitySerializer::SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		outData.AddMember(rapidjson::StringRef(Serialization::IS_EMITTING), particleEmitter.isEmitting, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::IS_PARTICLE_ANIMATED), particleEmitter.isParticleAnimated, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_TEXTURE_KEY), rapidjson::StringRef(particleEmitter.particleTextureKey.c_str()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_LIFETIME), particleEmitter.particleLifetime, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_RATE), particleEmitter.emissionRate, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_INTERVAL), particleEmitter.emissionInterval, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EFFECT_TYPE), static_cast<int>(particleEmitter.particleEffectType), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_SPEED), particleEmitter.particleSpeed, alloc);
+
+		rapidjson::Value halfSize(rapidjson::kObjectType);
+		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.particleSize.x, alloc);
+		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.particleSize.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_SIZE), halfSize, alloc);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::IS_AFFECTED_BY_GRAVITY), particleEmitter.isAffectedByGravity, alloc);
+	}
 #pragma endregion
 
 #pragma region SPECIALIZED DESERIALIZATION
@@ -1367,6 +1402,60 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::COMP_SCENE_NAME) && componentData[Serialization::COMP_SCENE_NAME].IsString()) {
 			out.sceneName = componentData[Serialization::COMP_SCENE_NAME].GetString();
 		}
+		return true;
+	}
+
+	// ParticleEmitter Component
+	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out) {
+		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::COMP_SCENE_NAME) && componentData[Serialization::COMP_SCENE_NAME].IsString()) {
+			out.isEmitting = componentData[Serialization::IS_EMITTING].GetBool();
+		}
+
+		if (componentData.HasMember(Serialization::IS_PARTICLE_ANIMATED) && componentData[Serialization::IS_PARTICLE_ANIMATED].IsBool()) {
+			out.isParticleAnimated = componentData[Serialization::IS_PARTICLE_ANIMATED].GetBool();
+		}
+
+		if (componentData.HasMember(Serialization::PARTICLE_TEXTURE_KEY) && componentData[Serialization::PARTICLE_TEXTURE_KEY].IsString()) {
+			out.particleTextureKey = componentData[Serialization::PARTICLE_TEXTURE_KEY].GetString();
+		}
+
+		if (componentData.HasMember(Serialization::PARTICLE_LIFETIME) && componentData[Serialization::PARTICLE_LIFETIME].IsFloat()) {
+			out.particleLifetime = componentData[Serialization::PARTICLE_LIFETIME].GetFloat();
+		}
+
+		if (componentData.HasMember(Serialization::EMISSION_RATE) && componentData[Serialization::EMISSION_RATE].IsFloat()) {
+			out.emissionRate = componentData[Serialization::EMISSION_RATE].GetFloat();
+		}
+
+		if (componentData.HasMember(Serialization::EMISSION_INTERVAL) && componentData[Serialization::EMISSION_INTERVAL].IsFloat()) {
+			out.emissionInterval = componentData[Serialization::EMISSION_INTERVAL].GetFloat();
+		}
+
+		if (componentData.HasMember(Serialization::PARTICLE_EFFECT_TYPE) && componentData[Serialization::PARTICLE_EFFECT_TYPE].IsInt()) {
+			out.particleEffectType = static_cast<EffectType>(componentData[Serialization::PARTICLE_EFFECT_TYPE].GetInt());
+		}
+
+		if (componentData.HasMember(Serialization::PARTICLE_SPEED) && componentData[Serialization::PARTICLE_SPEED].IsFloat()) {
+			out.particleSpeed = componentData[Serialization::PARTICLE_SPEED].GetFloat();
+		}
+
+		if (componentData.HasMember(Serialization::PARTICLE_SIZE) && componentData[Serialization::PARTICLE_SIZE].IsObject()) {
+			const rapidjson::Value& halfSizeData = componentData[Serialization::PARTICLE_SIZE];
+			if (halfSizeData.HasMember(Serialization::VEC2_X) && halfSizeData[Serialization::VEC2_X].IsFloat()) {
+				out.particleSize.x = halfSizeData[Serialization::VEC2_X].GetFloat();
+			}
+			if (halfSizeData.HasMember(Serialization::VEC2_Y) && halfSizeData[Serialization::VEC2_Y].IsFloat()) {
+				out.particleSize.y = halfSizeData[Serialization::VEC2_Y].GetFloat();
+			}
+		}
+
+		if (componentData.HasMember(Serialization::IS_AFFECTED_BY_GRAVITY) && componentData[Serialization::IS_AFFECTED_BY_GRAVITY].IsBool()) {
+			out.isAffectedByGravity = componentData[Serialization::IS_AFFECTED_BY_GRAVITY].GetBool();
+		}
+
+
 		return true;
 	}
 
