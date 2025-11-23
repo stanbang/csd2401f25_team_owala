@@ -658,6 +658,7 @@ namespace Framework {
 
         float x = (pos.x + 1.0f) * 0.5f * screenWidth;
         float y = (pos.y + 1.0f) * 0.5f * screenHeight;
+        y -= font.GetAscent(scale);
 
         for (char c_signed : textToDraw) {
             unsigned char c = static_cast<unsigned char>(c_signed);
@@ -698,28 +699,6 @@ namespace Framework {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_BLEND);
-    }
-
-    std::vector<std::string> Graphics::WrapText(Font& font, const std::string& text, float scale, float maxWidth) {
-        std::vector<std::string> lines;
-        std::stringstream ss(text);
-        std::string word;
-
-        std::string currentLine;
-        if (ss >> word) currentLine = word;
-
-        while (ss >> word) {
-            std::string testLine = currentLine + " " + word;
-            if (font.GetStringWidth(testLine, scale) > maxWidth) {
-                lines.push_back(currentLine);
-                currentLine = word;
-            }
-            else {
-                currentLine = testLine;
-            }
-        }
-        lines.push_back(currentLine);
-        return lines;
     }
 
     // =========================

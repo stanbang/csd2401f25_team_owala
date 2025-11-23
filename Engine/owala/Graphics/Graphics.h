@@ -122,9 +122,6 @@ namespace Framework {
         void drawText(Font& font, const std::string& text,
             const Vector2D& pos, float scale, const Color& color);
 
-        std::vector<std::string> WrapText(Font& font, const std::string& text,
-            float scale, float maxWidth);
-
         // ----- Frame Buffer stuff (For Game Viewport) -----
         struct FramebufferSpecs {
             unsigned width = 800;

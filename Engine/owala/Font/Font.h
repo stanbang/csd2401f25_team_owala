@@ -49,7 +49,7 @@ namespace Framework {
         ~Font();
 
         // Loads a font from a file path and generates the texture atlas. Return true if successful load, false otherwise.
-        bool Load(FT_Library library, const std::string& fontPath, unsigned int size = 48);
+        bool Load(FT_Library library, const std::string& fontPath, unsigned int size = 64);
 
         // Get a reference to the character map.
         const std::map<char, Character>& GetCharacters() const;
@@ -60,10 +60,22 @@ namespace Framework {
         // Calculates the width of a string in pixels at a given scale.
         float GetStringWidth(const std::string& text, float scale) const;
 
+        // Calculates the line height in pixels at a given scale.
+        float GetLineHeight(float scale) const;
+
+        // Getter for pixel size set when loading the font.
+        unsigned int GetPixelSize() const;
+
+        // Getter for font ascent
+        float GetAscent(float scale) const;
+
     private:
         std::map<char, Character> m_characters;
         unsigned int m_textureAtlas;
         FT_Face m_face;
+        unsigned int m_size;
+        float m_rawLineHeight;
+        float m_rawAscent;
     };
 
     // Need this to ensure only one instance of FT_Library is used throughout

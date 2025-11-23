@@ -468,61 +468,6 @@ namespace Editor {
 
 		gameManager_->GetSystems().input_->SetCursorLocked(false);
 
-		// === EDITOR CAMERA CONTROLS ===
-		//{
-		//	Framework::InputSystem* input = gameManager_->GetSystems().input_;
-
-		//	if (editorCamera_ != 0) {
-		//		Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-		//		
-		//		// Only allow editor camera input when ImGui is focused
-		//		if (imguiHasFocus)
-		//		{
-		//			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-		//			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += dt * 2.0f;
-		//			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= dt * 2.0f;
-		//			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= dt * 2.0f;
-		//			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += dt * 2.0f;
-
-		//			if (input->KeyPressed(Framework::InputSystem::Key::Z)) cam.zoom *= 0.8f;
-		//			if (input->KeyPressed(Framework::InputSystem::Key::X)) cam.zoom *= 1.25f;
-		//		}
-
-		//	}
-		//}
-		// === END EDITOR CAMERA CONTROLS ===
-
-		const float dt = Framework::Time::UnscaledDeltaTime();
-
-		if (editorCamera_ != 0)
-		{
-			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-			// Move camera with WASD
-			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += 5.0f * dt;
-			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= 5.0f * dt;
-			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= 5.0f * dt;
-			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += 5.0f * dt;
-
-			// Zoom in/out using Up / Down arrow keys
-			if (input->KeyDown(Framework::InputSystem::Key::Up)) {
-				cam.zoom *= 0.98f; // zoom in
-				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-			}
-			if (input->KeyDown(Framework::InputSystem::Key::Down)) {
-				cam.zoom *= 1.02f; // zoom out
-				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-			}
-
-			// Optional: reset zoom with R
-			if (input->KeyPressed(Framework::InputSystem::Key::R)) {
-				cam.zoom = 1.0f;
-				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-			}
-		}
-
-
 		// --- Handle Editor Logic ---
 		HandleSpawning();
 		HandleSelection();
@@ -563,7 +508,7 @@ namespace Editor {
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
 
 		// Set editor play/edit mode
-		if (isTileEditorActive_ || isDraggingGameObj_ || !isGamePlaying) {
+		if (isTileEditorActive_ || !isGamePlaying || (gizmoSystem_ && gizmoSystem_->IsGizmosToggled())) {
 			engine_->SetMode(EngineMode::Editor);
 		}
 		else if (isGamePlaying) {
@@ -685,6 +630,14 @@ namespace Editor {
 		return { worldX, worldY };
 	}
 
+	Vector2D Editor::GetNormalizedMousePos() const {
+		ImVec2 absoluteMousePos = ImGui::GetIO().MousePos;
+		double mouseX = static_cast<double>(absoluteMousePos.x - gameViewportPos_.x);
+		double mouseY = static_cast<double>(absoluteMousePos.y - gameViewportPos_.y);
+		double mouseX_ndc = static_cast<double>((mouseX / gameViewportSize_.x) * 2.0f - 1.0f);
+		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / gameViewportSize_.y) * 2.0f);
+		return Vector2D(mouseX_ndc, mouseY_ndc);
+	}
 
 
 	void Editor::HandleDragDropPlacement()
@@ -957,69 +910,6 @@ namespace Editor {
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;
 			}
-		}
-	}
-
-	void Editor::HandleInWorldDragDrop() {
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		static bool gizmoClicked = false;
-		if (isDraggingPrefab_) return;
-
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			// check if clicked on gizmo
-			ImVec2 mouseScreenPos = ImGui::GetMousePos();
-			std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
-			for (Entity en : spawnPts)
-			{
-				SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
-				ImVec2 gizmoScreenPos = WorldToImGuiScreen(spawnPt.Pos);
-
-				float dx = mouseScreenPos.x - gizmoScreenPos.x;
-				float dy = mouseScreenPos.y - gizmoScreenPos.y;
-				float distSq = dx * dx + dy * dy;
-
-				if (distSq <= (gizmoCircleRad * gizmoCircleRad))
-				{
-					selectedEntityIndex = en + 1;
-					isEntitySelected_ = true;
-					gizmoClicked = true;
-					break;
-				}
-			}
-
-			// else check entity clicked
-			if (!gizmoClicked) {
-				Entity bestCandidate = GetObjAtMousePos();
-				if (bestCandidate > 0) {
-					selectedEntityIndex = bestCandidate + 1;
-					isEntitySelected_ = true;
-				}
-			}
-		}
-
-		// Handle dragging. Updates respective components with snapped position
-		if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && selectedEntityIndex > 1 && isEntitySelected_) {
-			Vector2D currentWorldMousePos = GetMouseWorldPosition();
-			Vector2D snappedPos = SnapToGrid(currentWorldMousePos);
-			Entity index = selectedEntityIndex - 1;
-		
-			if (entityMgr.HasComponent(index, PositionType)) {
-				Position& pos = entityMgr.GetComponent<Position>(index);
-				pos.Pos = snappedPos;
-			}
-			if (entityMgr.HasComponent(index, TrapPlatformComponentType)) {
-				TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(index);
-				trap.originalPosition = snappedPos;
-			}
-			if (entityMgr.HasComponent(index, SpawnPointType)) {
-				SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(index);
-				spawnPt.Pos = snappedPos;
-			}
-		}
-
-		// Reset gizmoClicked bool on mouse release
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-			gizmoClicked = false;
 		}
 	}
 
@@ -2708,6 +2598,7 @@ namespace Editor {
 				if (newText != textComp.textToDraw) {
 					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					textComp.textToDraw = newText;
+					textComp.isDirty = true;
 					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
 					std::stringstream ss;
@@ -2727,6 +2618,7 @@ namespace Editor {
 				if (newText != textComp.fontKey) {
 					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					textComp.fontKey = newText;
+					textComp.isDirty = true;
 					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
 					std::stringstream ss;
@@ -2759,6 +2651,7 @@ namespace Editor {
 						std::string newFontKey = dropped_file.filename().string();
 						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						textComp.fontKey = newFontKey;
+						textComp.isDirty = true;
 						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
 						if (beforeJSON != afterJSON) {
@@ -2798,8 +2691,19 @@ namespace Editor {
 			if (ImGui::IsItemActive()) activeNow = true;
 
 			// Font Size Input
-			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
+			if (ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f")) {
+				textComp.isDirty = true;
+			}
 			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Max Width Input
+			if (ImGui::InputFloat("Max Width", &textComp.maxWidth, 0.f, 0.f, "%.3f")) {
+				textComp.isDirty = true;
+			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Read Only HalfSize
+			ImGui::InputFloat2("Half Size", &textComp.halfSize.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 
 			if (activeNow && !editSession.wasItemActive) {
 				editSession.Begin(selectedEntity, selectedComponent);
@@ -3343,6 +3247,7 @@ namespace Editor {
 		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
 			Graphics* gfx = gameManager_->GetSystems().gfx_;
 			SpriteRenderSystem* spriteRenderer_ = gameManager_->GetSystems().spriteRenderer_;
+			TextRenderSystem* textRenderer_ = gameManager_->GetSystems().textRenderer_;
 			CameraSystem* camSystem = gameManager_->GetSystems().camera_;
 
 			if (gfx && spriteRenderer_ && camSystem) {
@@ -3378,6 +3283,7 @@ namespace Editor {
 
 				// === STEP 3: RENDER SPRITES ===
 				spriteRenderer_->Update();
+				textRenderer_->Update();
 
 				// === STEP 4: RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
@@ -3397,7 +3303,7 @@ namespace Editor {
 					viewportPanelSize,
 					ImVec2(0, 1), ImVec2(1, 0));
 
-				// === STEP 7: DRAW OVERLAYS (GRID, GIZMOS, DEBUG) ===
+				// === STEP 7: DRAW OVERLAYS (GRID, DEBUG) ===
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 				ImVec2 clipMin = gameViewportPos_;
@@ -3413,20 +3319,90 @@ namespace Editor {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Draw gizmos for SpawnPoint
 				if (engine_->IsEditorMode()) {
-					EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-					std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
-					for (Entity en : spawnPts) {
-						SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
-						ImVec2 gizmoScreenPos = WorldToImGuiScreen(spawnPt.Pos);
-						drawList->AddCircleFilled(gizmoScreenPos, gizmoCircleRad, IM_COL32(0, 255, 0, 255), 12);
-					}
-				}
 
-				// In world dragging and dropping of game objects
-				if (isDraggingGameObj_ && isMouseOverGameViewport_) {
-					HandleInWorldDragDrop();
+					// Draw placeholders for invisible entities (e.g. SpawnPoint)
+					if (gizmoSystem_) {
+						gizmoSystem_->DrawInvisPlaceholders(drawList);
+					}
+
+					// If mouse over game viewport & not dragging prefab
+					// check for mouse click on gizmos / invisible entity placeholders / visible entities
+					if (isMouseOverGameViewport_ && !isDraggingPrefab_ && gizmoSystem_) {
+						if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+							// check if clicked on invisible entity
+							Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
+
+							// an invisible entity was clicked
+							if (invisEntityClicked > 0) {
+								selectedEntityIndex = invisEntityClicked + 1;
+								isEntitySelected_ = true;
+							}
+							// else check entity clicked
+							else {
+								Entity bestCandidate = GetObjAtMousePos();
+								if (bestCandidate > 0) {
+									selectedEntityIndex = bestCandidate + 1;
+									isEntitySelected_ = true;
+								}
+							}
+						}
+					}
+
+					// Handle inputs for gizmos (QTYU)
+					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused() && gizmoSystem_) {
+						// Q: Select/View Mode (No Gizmo)
+						if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+							gizmoSystem_->SetGizmoMode(GizmoMode::None);
+						}
+						// T: Translate
+						else if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+							gizmoSystem_->SetGizmoMode(GizmoMode::Translate);
+						}
+						// Y: Rotate
+						else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+							gizmoSystem_->SetGizmoMode(GizmoMode::Rotate);
+						}
+						// U: Scale
+						else if (ImGui::IsKeyPressed(ImGuiKey_U)) {
+							gizmoSystem_->SetGizmoMode(GizmoMode::Scale);
+						}
+					}
+
+					// Camera Controls (WASD, Up/Down Arrows, R)
+					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused() && editorCamera_ != 0)
+					{
+						Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+						const float dt = Framework::Time::UnscaledDeltaTime();
+						const float camSpeed = 2000.0f;
+
+						// Move camera with WASD
+						if (ImGui::IsKeyPressed(ImGuiKey_W)) cam.position.y += camSpeed * dt;
+						if (ImGui::IsKeyPressed(ImGuiKey_S)) cam.position.y -= camSpeed * dt;
+						if (ImGui::IsKeyPressed(ImGuiKey_A)) cam.position.x -= camSpeed * dt;
+						if (ImGui::IsKeyPressed(ImGuiKey_D)) cam.position.x += camSpeed * dt;
+
+						// Zoom in/out using Up / Down arrow keys
+						if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+							cam.zoom *= 0.8f; // zoom in
+							cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+						}
+						if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+							cam.zoom *= 1.2f; // zoom out
+							cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+						}
+
+						// Optional: reset zoom with R
+						if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+							ResetEditorCamera();
+						}
+					}
+
+					// draw transform gizmos on selected entity
+					if (isEntitySelected_ && selectedEntityIndex > 1) {
+						gizmoSystem_->DrawGizmos(drawList, selectedEntityIndex);
+						gizmoSystem_->Update(selectedEntityIndex, editorCamera_);
+					}
 				}
 
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
@@ -3779,36 +3755,8 @@ namespace Editor {
 			const float spacing = 10.0f;
 			const float totalWidth = (buttonWidth * 3) + (spacing * 2);
 
-			// Align to left of center
-			float offsetX = (regionWidth - totalWidth - 300.0f) * 0.5f;
-			if (offsetX > 0.0f) {
-				ImGui::SetCursorPosX(offsetX);
-			}
-
-			// Move game object button
-			bool was_moving = isDraggingGameObj_;
-			if (was_moving)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-			}
-			if (ImGui::Button("Toggle Move"))
-			{
-				isDraggingGameObj_ = !isDraggingGameObj_;
-
-				if (isDraggingGameObj_) {
-					ResetEditorCamera();
-					isGamePlaying = false;
-				}
-			}
-			if (was_moving)
-			{
-				ImGui::PopStyleColor();
-			}
-
-			ImGui::SameLine(0, spacing * 2);
-
 			// Align Center the Toolbar buttons
-			offsetX = (regionWidth - totalWidth) * 0.5f;
+			float offsetX = (regionWidth - totalWidth) * 0.5f;
 			if (offsetX > 0.0f) {
 				ImGui::SetCursorPosX(offsetX);
 			}
@@ -3829,6 +3777,7 @@ namespace Editor {
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
 				if (isGamePlaying) {
+					// on pressing Stop
 					gameManager_->GetSystems().levelResetter_->RunReset();
 					ResetEditorCamera();
 				}
@@ -3838,6 +3787,8 @@ namespace Editor {
 
 				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
 				if (physics_->IsPaused()) physics_->SetPaused(false);
+
+				if (gizmoSystem_) gizmoSystem_->SetGizmoMode(GizmoMode::None);
 			}
 			ImGui::PopStyleColor();
 
@@ -4007,9 +3958,9 @@ namespace Editor {
 
 
 
-	Vector2D Editor::SnapToGrid(const Vector2D& worldPos)
+	Vector2D Editor::SnapToGrid(const Vector2D& worldPos, bool normalized) const
 	{
-		const float cell = baseGridCellSize_; // world units
+		const float cell = normalized ? 0.1f : baseGridCellSize_; // world units
 		float snappedX = std::round(worldPos.x / cell) * cell;
 		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
@@ -4513,6 +4464,20 @@ namespace Editor {
 		return WorldToImGuiScreen(worldPos, editorCamera_);
 	}
 
+	ImVec2 Editor::NormalizedToImGuiScreen(const Vector2D& normalizedPos) const {
+		// X-Axis (Maps -1 to 1)
+		float normalizedX = (normalizedPos.x + 1.0f) / 2.0f;
+		float screenX = normalizedX * gameViewportSize_.x + gameViewportPos_.x;
+
+		// Y-Axis (Maps -1 to 1)
+		float normalizedY = (normalizedPos.y + 1.0f) / 2.0f;
+		// Invert Y for IMGUI screen
+		float invertedY = 1.0f - normalizedY;
+		float screenY = invertedY * gameViewportSize_.y + gameViewportPos_.y;
+
+		return ImVec2(screenX, screenY);
+	}
+
 
 	void Editor::ShowDebugVisualizationPanel() {
 		if (!ImGui::Begin("Debug Visualization")) {
@@ -4591,27 +4556,40 @@ namespace Editor {
 
 	Entity Editor::GetObjAtMousePos() {
 		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Vector2D mouseWorldPos = GetMouseWorldPosition();
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
+		Vector2D mouseWorldPos = GetMouseWorldPosition();
 		Entity bestCandidate = 0;
 
 		// Get the list of entities from the active scene 
 		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+		std::vector<Entity> sortedByRenderLayer = activeEntities;
+
+		// sort entities by descending render layer
+		SortEntitiesByRenderLayer(sortedByRenderLayer, entityMgr);
 
 		// Iterate through entities to find which one was clicked.
-		// iterate in reverse to correctly select the entity that is rendered on top.
-		for (std::vector<Entity>::const_reverse_iterator it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
-			const Entity& entity = *it;
-			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
-				entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType))
+		for (Entity& entity : sortedByRenderLayer) {
+			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType))
 			{
 				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				Vector2D& halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
+				bool isGUI = entityMgr.HasComponent(entity, GUITagType);
+				Vector2D checkPos = isGUI ? GetNormalizedMousePos() : mouseWorldPos;
 
-				// check using AABB.
-				if (mouseWorldPos.x >= pos.x - halfSize.x && mouseWorldPos.x <= pos.x + halfSize.x &&
-					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
+				Vector2D halfSize{};
+				if (entityMgr.HasComponent(entity, Framework::ComponentType::TextComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextComponent>(entity).halfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::TextureComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextureComponent>(entity).HalfSize;
+				}
+				else {
+					continue;
+				}
+
+				// check using halfsize.
+				if (checkPos.x >= pos.x - halfSize.x && checkPos.x <= pos.x + halfSize.x &&
+					checkPos.y >= pos.y - halfSize.y && checkPos.y <= pos.y + halfSize.y)
 				{
 					bestCandidate = entity;
 					break; // Stop after finding the top-most one
@@ -4620,6 +4598,18 @@ namespace Editor {
 		}
 
 		return bestCandidate;
+	}
+
+	void Editor::SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr) {
+		std::sort(entities.begin(), entities.end(),
+			[&](const Entity& a, const Entity& b) {
+				// Get properties for both entities
+				EntityProperties propsA = entityMgr.GetProperties(a);
+				EntityProperties propsB = entityMgr.GetProperties(b);
+				
+				return propsA.renderLayer > propsB.renderLayer;
+			}
+		);
 	}
 
 }

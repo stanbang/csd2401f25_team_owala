@@ -76,6 +76,9 @@ namespace Framework {
 		}
 		if (!systems_.spriteRenderer_) {
 			throw GameException(DebugType::GameManager, "SpriteRenderSystem not registered!");
+		}		
+		if (!systems_.textRenderer_) {
+			throw GameException(DebugType::GameManager, "TextRenderSystem not registered!");
 		}
 		if (!systems_.camera_) {
 			throw GameException(DebugType::GameManager, "CameraSystem not registered!");
@@ -127,7 +130,7 @@ namespace Framework {
 	// GameManager Config
 	// ---------------------------------------------------------------------------
 	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio,
-		SpriteRenderSystem& renderer, CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter,  TransformationSystem& transformation) {
+		SpriteRenderSystem& renderer,TextRenderSystem& textRenderer, CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter,  TransformationSystem& transformation) {
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -136,6 +139,7 @@ namespace Framework {
 		systems_.physics_ = &physics;
 		systems_.audio_ = &audio;
 		systems_.spriteRenderer_ = &renderer;
+		systems_.textRenderer_ = &textRenderer;
 		systems_.camera_ = &camera; 
 		systems_.aiSystem_ = &ai;
 		systems_.guiSystem_ = &gui;
@@ -216,6 +220,7 @@ namespace Framework {
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
 		systems_.spriteRenderer_->Update();
+		systems_.textRenderer_->Update();
 		#endif
 		//glfwSwapInterval(0); //just for testing to turn vsync off
 
@@ -270,6 +275,10 @@ namespace Framework {
 		systems_.spriteRenderer_->Shutdown();
 		delete systems_.spriteRenderer_;
 		systems_.spriteRenderer_ = nullptr;
+
+		systems_.textRenderer_->Shutdown();
+		delete systems_.textRenderer_;
+		systems_.textRenderer_ = nullptr;
 
 		// Level resetter cleanup
 		delete systems_.levelResetter_;
