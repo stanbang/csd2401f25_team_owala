@@ -1074,10 +1074,10 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::COLOR) && componentData[Serialization::COLOR].IsArray()) {
 			const rapidjson::Value& colorArr = componentData[Serialization::COLOR];
-			out.color.r = (float)colorArr[0].GetUint();
-			out.color.g = (float)colorArr[1].GetUint();
-			out.color.b = (float)colorArr[2].GetUint();
-			out.color.a = (float)colorArr[3].GetUint();
+			out.color.r = (float)colorArr[0].GetFloat();
+			out.color.g = (float)colorArr[1].GetFloat();
+			out.color.b = (float)colorArr[2].GetFloat();
+			out.color.a = (float)colorArr[3].GetFloat();
 		}
 		return true;
 	}
