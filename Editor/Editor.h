@@ -93,6 +93,17 @@ namespace Editor {
 		std::string textureID;
 	};
 
+	struct EditSession {
+		bool active = false;
+		bool wasItemActive = false;
+		Entity entityInEdit;
+		Framework::ComponentType compInEdit = Framework::ComponentType::MAX_COMPONENTS;
+		std::string beforeJSON;
+
+		void Begin(Entity entity, Framework::ComponentType compType);
+		void End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManagerRef);
+	};
+
 	class Editor : public Framework::ISystem {
 	private:
 		// --- System Pointers ---
@@ -124,6 +135,7 @@ namespace Editor {
 		std::vector<Framework::SystemTime> profilerDisplayData_;
 
 		// Entity Inspector
+		EditSession editSession;
 		int selectedEntityIndex = 0;
 		std::vector<std::string> componentNames;
 		std::vector<const char*> componentItems;
