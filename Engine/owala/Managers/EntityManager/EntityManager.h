@@ -75,7 +75,9 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
 			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) ecs.nativeScripts[entity] = component;
 			else if constexpr (std::is_same_v<T, BirdAIComponent>) ecs.birdAIComponent[entity] = component;
-			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) ecs.skeletonAIComponent[entity] = component; 
+			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) ecs.skeletonAIComponent[entity] = component;
+			else if constexpr (std::is_same_v<T, ParticleComponent>) ecs.particleComponent[entity] = component;
+			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) ecs.particleEmitterComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, Rotation>) ecs.rotation[entity] = component;
 			else if constexpr (std::is_same_v<T, Scale>) ecs.scale[entity] = component;
 			else {
@@ -121,7 +123,9 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
 			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) return ecs.nativeScripts.at(entity);
 			else if constexpr (std::is_same_v<T, BirdAIComponent>) return ecs.birdAIComponent.at(entity);
-			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) return ecs.skeletonAIComponent.at(entity); 
+			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) return ecs.skeletonAIComponent.at(entity);
+			else if constexpr (std::is_same_v<T, ParticleComponent>) return ecs.particleComponent.at(entity);
+			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) return ecs.particleEmitterComponent.at(entity);
 			else if constexpr (std::is_same_v<T, Rotation>) return ecs.rotation.at(entity);
 			else if constexpr (std::is_same_v<T, Scale>) return ecs.scale.at(entity);
 			else {

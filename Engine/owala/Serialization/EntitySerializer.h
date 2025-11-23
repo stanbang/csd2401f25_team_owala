@@ -91,6 +91,7 @@ namespace Framework {
         static void SerializeComponent(const SkeletonAIComponent& skelAI, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Button& button, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SceneOwned& sceneOwnedComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
 
         /* Specialized Deserialization APIs */
         /* Components */
@@ -116,5 +117,6 @@ namespace Framework {
         static bool DeserializeComponent(const rapidjson::Value& componentData, SkeletonAIComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Button& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, SceneOwned& out);
+		static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
     };
 }

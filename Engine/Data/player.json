@@ -1,4 +1,4 @@
 {
-    "move_speed": 0.6,
-    "jump_height": 0.8
+    "move_speed": 400,
+    "jump_height": 400
 }

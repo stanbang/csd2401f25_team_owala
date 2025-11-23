@@ -40,6 +40,7 @@
 #include "CameraSystem.h"
 #include "PlatformBehaviorSystem.h"
 #include "AISystem.h" 
+#include "VFXSystem.h"
 
 #ifdef BUILD_EDITOR
 // Imgui Editor
@@ -92,6 +93,7 @@ int main() {
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
+	VFXSystem* vfx = new VFXSystem(*ecs, *rcm);
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
 	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input);
     CameraSystem* camera = new CameraSystem(*ecs);
@@ -115,6 +117,7 @@ int main() {
 	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
     engine.AddSystem(platform);
     engine.AddSystem(aiSystem); 
+	engine.AddSystem(vfx);                // VFX System to handle particle effects
 	engine.AddSystem(gm);                  // GameManager for executing Game Logic
     engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
     engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering

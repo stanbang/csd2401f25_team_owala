@@ -331,6 +331,7 @@ namespace Editor {
 
 		/* Helper Functions */
 		const bool IsGamePlaying() const { return isGamePlaying; };
+		const bool IsGamePaused() const { return isGamePaused; };
 
 		// Converts world - space coordinates to ImGui screen - space
 		// function that accepts a specific camera ID for movement
