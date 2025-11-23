@@ -889,11 +889,13 @@ namespace Framework {
 	void EntitySerializer::SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_EMITTING), particleEmitter.isEmitting, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_PARTICLE_ANIMATED), particleEmitter.isParticleAnimated, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::IS_SCREEN_SPACE), particleEmitter.isScreenSpace, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_TEXTURE_KEY), rapidjson::StringRef(particleEmitter.particleTextureKey.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_LIFETIME), particleEmitter.particleLifetime, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_RATE), particleEmitter.emissionRate, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_INTERVAL), particleEmitter.emissionInterval, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EFFECT_TYPE), static_cast<int>(particleEmitter.particleEffectType), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_STYLE), static_cast<int>(particleEmitter.emissionStyle), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_SPEED), particleEmitter.particleSpeed, alloc);
 
 		rapidjson::Value halfSize(rapidjson::kObjectType);
@@ -902,6 +904,45 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_SIZE), halfSize, alloc);
 
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_AFFECTED_BY_GRAVITY), particleEmitter.isAffectedByGravity, alloc);
+		
+		rapidjson::Value startVel(rapidjson::kObjectType);
+		startVel.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.particleStartVelocity.x, alloc);
+		startVel.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.particleStartVelocity.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_START_VELOCITY), startVel, alloc);
+
+		rapidjson::Value accel(rapidjson::kObjectType);
+		accel.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.particleAcceleration.x, alloc);
+		accel.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.particleAcceleration.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_ACCELERATION), accel, alloc);
+
+		// Style Specific Data
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_RADIUS), particleEmitter.emissionRadius, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::CIRCLE_RADIUS), particleEmitter.circleRadius, alloc);
+
+		rapidjson::Value lineStart(rapidjson::kObjectType);
+		lineStart.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.lineStart.x, alloc);
+		lineStart.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.lineStart.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::LINE_START), lineStart, alloc);
+
+		rapidjson::Value lineEnd(rapidjson::kObjectType);
+		lineEnd.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.lineEnd.x, alloc);
+		lineEnd.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.lineEnd.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::LINE_END), lineEnd, alloc);
+
+		rapidjson::Value viewMin(rapidjson::kObjectType);
+		viewMin.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.viewportMin.x, alloc);
+		viewMin.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.viewportMin.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::VIEWPORT_MIN), viewMin, alloc);
+
+		rapidjson::Value viewMax(rapidjson::kObjectType);
+		viewMax.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.viewportMax.x, alloc);
+		viewMax.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.viewportMax.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::VIEWPORT_MAX), viewMax, alloc);
+
+		rapidjson::Value emitDir(rapidjson::kObjectType);
+		emitDir.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.emissionDirection.x, alloc);
+		emitDir.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.emissionDirection.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_DIRECTION), emitDir, alloc);
 	}
 #pragma endregion
 
@@ -1409,52 +1450,100 @@ namespace Framework {
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out) {
 		if (!componentData.IsObject()) return false;
 
-		if (componentData.HasMember(Serialization::COMP_SCENE_NAME) && componentData[Serialization::COMP_SCENE_NAME].IsString()) {
+		if (componentData.HasMember(Serialization::IS_EMITTING) && componentData[Serialization::IS_EMITTING].IsBool()) {
 			out.isEmitting = componentData[Serialization::IS_EMITTING].GetBool();
 		}
-
 		if (componentData.HasMember(Serialization::IS_PARTICLE_ANIMATED) && componentData[Serialization::IS_PARTICLE_ANIMATED].IsBool()) {
 			out.isParticleAnimated = componentData[Serialization::IS_PARTICLE_ANIMATED].GetBool();
+		}
+		if (componentData.HasMember(Serialization::IS_SCREEN_SPACE) && componentData[Serialization::IS_SCREEN_SPACE].IsBool()) {
+			out.isScreenSpace = componentData[Serialization::IS_SCREEN_SPACE].GetBool();
 		}
 
 		if (componentData.HasMember(Serialization::PARTICLE_TEXTURE_KEY) && componentData[Serialization::PARTICLE_TEXTURE_KEY].IsString()) {
 			out.particleTextureKey = componentData[Serialization::PARTICLE_TEXTURE_KEY].GetString();
 		}
-
 		if (componentData.HasMember(Serialization::PARTICLE_LIFETIME) && componentData[Serialization::PARTICLE_LIFETIME].IsFloat()) {
 			out.particleLifetime = componentData[Serialization::PARTICLE_LIFETIME].GetFloat();
 		}
-
 		if (componentData.HasMember(Serialization::EMISSION_RATE) && componentData[Serialization::EMISSION_RATE].IsFloat()) {
 			out.emissionRate = componentData[Serialization::EMISSION_RATE].GetFloat();
 		}
-
 		if (componentData.HasMember(Serialization::EMISSION_INTERVAL) && componentData[Serialization::EMISSION_INTERVAL].IsFloat()) {
 			out.emissionInterval = componentData[Serialization::EMISSION_INTERVAL].GetFloat();
 		}
 
+		// Enums
 		if (componentData.HasMember(Serialization::PARTICLE_EFFECT_TYPE) && componentData[Serialization::PARTICLE_EFFECT_TYPE].IsInt()) {
 			out.particleEffectType = static_cast<EffectType>(componentData[Serialization::PARTICLE_EFFECT_TYPE].GetInt());
+		}
+		if (componentData.HasMember(Serialization::EMISSION_STYLE) && componentData[Serialization::EMISSION_STYLE].IsInt()) {
+			out.emissionStyle = static_cast<EmissionStyle>(componentData[Serialization::EMISSION_STYLE].GetInt());
 		}
 
 		if (componentData.HasMember(Serialization::PARTICLE_SPEED) && componentData[Serialization::PARTICLE_SPEED].IsFloat()) {
 			out.particleSpeed = componentData[Serialization::PARTICLE_SPEED].GetFloat();
 		}
 
+		// Size
 		if (componentData.HasMember(Serialization::PARTICLE_SIZE) && componentData[Serialization::PARTICLE_SIZE].IsObject()) {
-			const rapidjson::Value& halfSizeData = componentData[Serialization::PARTICLE_SIZE];
-			if (halfSizeData.HasMember(Serialization::VEC2_X) && halfSizeData[Serialization::VEC2_X].IsFloat()) {
-				out.particleSize.x = halfSizeData[Serialization::VEC2_X].GetFloat();
+			const rapidjson::Value& vecData = componentData[Serialization::PARTICLE_SIZE];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) {
+				out.particleSize.x = vecData[Serialization::VEC2_X].GetFloat();
 			}
-			if (halfSizeData.HasMember(Serialization::VEC2_Y) && halfSizeData[Serialization::VEC2_Y].IsFloat()) {
-				out.particleSize.y = halfSizeData[Serialization::VEC2_Y].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) {
+				out.particleSize.y = vecData[Serialization::VEC2_Y].GetFloat();
 			}
 		}
 
+		// Physics
 		if (componentData.HasMember(Serialization::IS_AFFECTED_BY_GRAVITY) && componentData[Serialization::IS_AFFECTED_BY_GRAVITY].IsBool()) {
 			out.isAffectedByGravity = componentData[Serialization::IS_AFFECTED_BY_GRAVITY].GetBool();
 		}
 
+		if (componentData.HasMember(Serialization::PARTICLE_START_VELOCITY) && componentData[Serialization::PARTICLE_START_VELOCITY].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::PARTICLE_START_VELOCITY];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.particleStartVelocity.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.particleStartVelocity.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::PARTICLE_ACCELERATION) && componentData[Serialization::PARTICLE_ACCELERATION].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::PARTICLE_ACCELERATION];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.particleAcceleration.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.particleAcceleration.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+
+		// Style Params
+		if (componentData.HasMember(Serialization::EMISSION_RADIUS) && componentData[Serialization::EMISSION_RADIUS].IsFloat()) {
+			out.emissionRadius = componentData[Serialization::EMISSION_RADIUS].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::CIRCLE_RADIUS) && componentData[Serialization::CIRCLE_RADIUS].IsFloat()) {
+			out.circleRadius = componentData[Serialization::CIRCLE_RADIUS].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::LINE_START) && componentData[Serialization::LINE_START].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::LINE_START];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.lineStart.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.lineStart.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::LINE_END) && componentData[Serialization::LINE_END].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::LINE_END];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.lineEnd.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.lineEnd.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::VIEWPORT_MIN) && componentData[Serialization::VIEWPORT_MIN].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::VIEWPORT_MIN];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.viewportMin.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.viewportMin.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::VIEWPORT_MAX) && componentData[Serialization::VIEWPORT_MAX].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::VIEWPORT_MAX];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.viewportMax.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.viewportMax.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::EMISSION_DIRECTION) && componentData[Serialization::EMISSION_DIRECTION].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::EMISSION_DIRECTION];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.emissionDirection.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.emissionDirection.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
 
 		return true;
 	}

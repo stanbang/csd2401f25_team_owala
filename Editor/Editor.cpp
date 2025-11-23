@@ -2668,6 +2668,13 @@ namespace Editor {
 			ImGui::Checkbox("Is Emitting?", &emitter.isEmitting);
 			ImGui::Checkbox("Is Particle Animated?", &emitter.isParticleAnimated);
 
+			// Screen space toggle
+			ImGui::Checkbox("Screen Space##screenspace", &emitter.isScreenSpace);
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("If enabled, particles emit in screen/UI space (fixed to screen)\n"
+					"If disabled, particles emit in world space (moves with camera)");
+			}
+
 			// Texture Key
 			ImGui::InputText("Texture Key##particle", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
 
@@ -2705,7 +2712,19 @@ namespace Editor {
 
 			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
 			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
-			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
+			// Speed with tooltip based on space
+			ImGui::DragFloat("Particle Speed", &emitter.particleSpeed, 0.1f, 0.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemHovered()) {
+				if (emitter.isScreenSpace) {
+					ImGui::SetTooltip("Screen space speed (0-1 range recommended)\n"
+						"Typical range: 0.1 - 1.0 for screen effects");
+				}
+				else {
+					ImGui::SetTooltip("World space speed\n"
+						"Typical range: 0.5 - 5.0 for world effects");
+				}
+			}
+
 			ImGui::InputFloat2("Particle Size", &emitter.particleSize.x);
 
 			ImGui::Checkbox("Is Affected by Gravity?", &emitter.isAffectedByGravity);
@@ -2741,50 +2760,87 @@ namespace Editor {
 
 			ImGui::Spacing();
 
-			// Style-specific configuration
 			switch (emitter.emissionStyle) {
 			case EmissionStyle::FROM_POINT:
-				ImGui::TextDisabled("Emits from entity position");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("Emits from screen position");
+				}
+				else {
+					ImGui::TextDisabled("Emits from entity position");
+				}
 				break;
 
 			case EmissionStyle::FROM_RADIUS:
 				ImGui::InputFloat("Emission Radius##fromradius", &emitter.emissionRadius, 0.05f, 0.1f);
-				ImGui::TextWrapped("Particles spawn randomly within a radius around the entity position");
+				if (emitter.isScreenSpace) {
+					ImGui::TextWrapped("Particles spawn randomly within a radius (normalized screen coords 0-1)");
+				}
+				else {
+					ImGui::TextWrapped("Particles spawn randomly within a radius around the entity position");
+				}
 				break;
 
 			case EmissionStyle::FROM_TOP_VIEWPORT:
-				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
-				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
-				ImGui::TextWrapped("Particles spawn at the top of the viewport and fall down");
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
+				ImGui::TextWrapped("Particles spawn at the top and fall down");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
 				break;
 
 			case EmissionStyle::FROM_LEFT_VIEWPORT:
-				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
-				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
 				ImGui::TextWrapped("Particles spawn at the left edge and move right");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
 				break;
 
 			case EmissionStyle::FROM_RIGHT_VIEWPORT:
-				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
-				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
 				ImGui::TextWrapped("Particles spawn at the right edge and move left");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
 				break;
 
 			case EmissionStyle::FROM_BOTTOM_VIEWPORT:
-				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
-				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
-				ImGui::TextWrapped("Particles spawn at the bottom edge and move up");
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
+				ImGui::TextWrapped("Particles spawn at the bottom and move up");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
 				break;
 
 			case EmissionStyle::FROM_LINE:
 				ImGui::InputFloat2("Line Start", &emitter.lineStart.x, "%.2f");
 				ImGui::InputFloat2("Line End", &emitter.lineEnd.x, "%.2f");
 				ImGui::TextWrapped("Particles spawn randomly along a line");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
 				break;
 
 			case EmissionStyle::FROM_CIRCLE_EDGE:
 				ImGui::InputFloat("Circle Radius##circleradius", &emitter.circleRadius, 0.05f, 0.1f);
-				ImGui::TextWrapped("Particles spawn on the edge of a circle around the entity position");
+				if (emitter.isScreenSpace) {
+					ImGui::TextWrapped("Particles spawn on circle edge (normalized screen coords 0-1)");
+				}
+				else {
+					ImGui::TextWrapped("Particles spawn on the edge of a circle around the entity position");
+				}
 				break;
 
 			default:

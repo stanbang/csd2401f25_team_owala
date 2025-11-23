@@ -435,11 +435,13 @@ namespace Framework{
 		EffectType effectType = EffectType::NONE; // Type of effect the particle will have
 		float lifetime = 1.0f;      // Total lifetime of the particle
 		float age = 0.0f;           // Current age of the particle
+		bool isScreenSpace = false; // Is the particle rendered in screen space
 	};
 
 	struct ParticleEmitterComponent {
 		bool isEmitting = true;
 		bool isParticleAnimated = false; // Is the particle texture animated
+		bool isScreenSpace = false;   // Are the particles rendered in screen space
 
 		std::string particleTextureKey; // Key to identify the texture resource for particles
 		float particleLifetime = 1.0f;	// Total lifetime of the particle
@@ -466,9 +468,11 @@ namespace Framework{
 		// For FROM_CIRCLE_EDGE style
 		float circleRadius = 0.5f;              // Radius of the circle
 
-		// For viewport-based emissions
-		Vector2D viewportMin = { -1.0f, -1.0f };  // Bottom-left of viewport
-		Vector2D viewportMax = { 1.0f, 1.0f };    // Top-right of viewport
+		// For screen space: use normalized coordinates (0 to 1)
+		// For world space: use world coordinates
+		Vector2D viewportMin = { -1.0f, -1.0f };
+		Vector2D viewportMax = { 1.0f, 1.0f };
+
 
 		// Direction override
 		Vector2D emissionDirection = { 0.0f, -1.0f }; // Default downward for top emission

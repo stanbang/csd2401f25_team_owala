@@ -62,6 +62,13 @@ namespace Framework {
 				emitterPos = entityMgr.GetComponent<Position>(entity);
 			}
 
+			// Create a temporary origin for calculation. 
+			// If emitting in screen space, convert the World Position to Screen Space (0-1).
+			Position calculationOrigin = emitterPos;
+			if (emitter.isScreenSpace) {
+				calculationOrigin.Pos = WorldToScreenSpace(emitterPos.Pos);
+			}
+
 			// Emit particles based on emission rate
 			while (emitter.timeSinceLastEmission >= emissionInterval) {
 
@@ -76,20 +83,22 @@ namespace Framework {
 				particleComp.effectType = emitter.particleEffectType;
 				particleComp.lifetime = emitter.particleLifetime;
 				particleComp.age = 0.0f;
+				particleComp.isScreenSpace = emitter.isScreenSpace;
 				entityMgr.AddComponent<ParticleComponent>(particleEntity, particleComp);
 
 				// Calculate emission position based on style
 				float rand01 = static_cast<float>(rand()) / RAND_MAX;
 				float rand02 = static_cast<float>(rand()) / RAND_MAX;
-				Vector2D emissionPos = CalculateEmissionPosition(emitter, emitterPos, rand01, rand02);
 
-				// Add Position component to particle
-				if (entityMgr.HasComponent(entity, PositionType)) {
-					entityMgr.AddComponent<Position>(particleEntity, Position{ emissionPos });
-				}
+				// For screen space particles, use normalized coordinates directly (0-1)
+				// For world space particles, convert from world to screen then back to world
+				Vector2D emissionPos = CalculateEmissionPosition(emitter, calculationOrigin, rand01, rand02, emitter.isScreenSpace);
+				Position posComp;
+				posComp.Pos = emissionPos;
+				entityMgr.AddComponent<Position>(particleEntity, posComp);
 
 				// Calculate emission velocity based on style
-				Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, rand02);
+				Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, rand02, emitter.isScreenSpace);
 				Velocity velocityComp;
 				velocityComp.Vel = emissionVel;
 				entityMgr.AddComponent<Velocity>(particleEntity, velocityComp);
@@ -120,41 +129,42 @@ namespace Framework {
 	}
 
 	void VFXSystem::UpdateParticles(EntityManager& entityMgr) {
-		// Loop through all particles
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
-			if (!entityMgr.HasComponent(entity, ParticleComponentType)) continue; // Skip if entity does not have ParticleComponent
-			ParticleComponent& particle = entityMgr.GetComponent<ParticleComponent>(entity);
+			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+			if (!entityMgr.HasComponent(entity, ParticleComponentType)) continue;
 
-			// Update particle age
+			ParticleComponent& particle = entityMgr.GetComponent<ParticleComponent>(entity);
 			particle.age += Time::DeltaTime();
 
-			// Check if particle has exceeded its lifetime
 			if (particle.age >= particle.lifetime) {
-				// Remove particle entity
 				entityMgr.DestroyEntity(entity);
+				continue;
 			}
 
-			// Effect Type Handling
-			switch (particle.effectType) {
-			case EffectType::RANDOM:
-				// Every 1 second, change direction subtly
-				if (static_cast<int>(particle.age) % 1 == 0) {
-					if (entityMgr.HasComponent(entity, VelocityType)) {
-						Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
-						// Apply small random change to velocity
-						float angleChange = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 0.2f; // Small angle change
-						float speed = sqrt(vel.Vel.x * vel.Vel.x + vel.Vel.y * vel.Vel.y);
-						float currentAngle = atan2(vel.Vel.y, vel.Vel.x);
-						float newAngle = currentAngle + angleChange;
-						vel.Vel.x = speed * cos(newAngle);
-						vel.Vel.y = speed * sin(newAngle);
-						//Logger::Get().Info(DebugType::VFXSystem) << "Particle velocity: (" << vel.Vel.x << ", " << vel.Vel.y << ")\n";
+			// Screen space particles don't get affected by physics
+			if (!particle.isScreenSpace) {
+				// Handle physics for world space particles
+				switch (particle.effectType) {
+				case EffectType::RANDOM: {
+					// Apply random jitter to velocity every second
+					if (static_cast<int>(particle.age) % 1 == 0) {
+						if (entityMgr.HasComponent(entity, VelocityType)) {
+							// Apply small random angle change to velocity
+							Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
+							float angleChange = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 0.2f;
+							float speed = sqrt(vel.Vel.x * vel.Vel.x + vel.Vel.y * vel.Vel.y);
+							float currentAngle = atan2(vel.Vel.y, vel.Vel.x);
+							float newAngle = currentAngle + angleChange;
+							vel.Vel.x = speed * cos(newAngle);
+							vel.Vel.y = speed * sin(newAngle);
+						}
 					}
+					break;
 				}
-				break;
-			case EffectType::NONE:
-				break;
+				case EffectType::NONE:
+				default:
+					break;
+				}
 			}
 		}
 	}
@@ -164,145 +174,139 @@ namespace Framework {
 	}
 
 	Vector2D VFXSystem::CalculateEmissionPosition(const ParticleEmitterComponent& emitter,
-		const Position& emitterPos, float rand01, float rand02) {
+	const Position& emitterPos, float rand01, float rand02, bool isScreenSpace) {
 
-		switch (emitter.emissionStyle) {
-		case EmissionStyle::FROM_POINT:
-			// Simple point emission from entity position
-			return emitterPos.Pos;
+	Vector2D result;
 
-		case EmissionStyle::FROM_RADIUS: {
-			// Random position within a radius
-			float angle = rand01 * 2.0f * 3.14159265f;
-			float distance = rand02 * emitter.emissionRadius;
-			return Vector2D{
-				emitterPos.Pos.x + distance * cos(angle),
-				emitterPos.Pos.y + distance * sin(angle)
-			};
-		}
-
-		case EmissionStyle::FROM_TOP_VIEWPORT: {
-			// Random x position at top of viewport, y at top
-			float x = emitter.viewportMin.x + rand01 *
-				(emitter.viewportMax.x - emitter.viewportMin.x);
-			return Vector2D{ x, emitter.viewportMax.y };
-		}
-
-		case EmissionStyle::FROM_LEFT_VIEWPORT: {
-			// Random y position on left edge
-			float y = emitter.viewportMin.y + rand01 *
-				(emitter.viewportMax.y - emitter.viewportMin.y);
-			return Vector2D{ emitter.viewportMin.x, y };
-		}
-
-		case EmissionStyle::FROM_RIGHT_VIEWPORT: {
-			// Random y position on right edge
-			float y = emitter.viewportMin.y + rand01 *
-				(emitter.viewportMax.y - emitter.viewportMin.y);
-			return Vector2D{ emitter.viewportMax.x, y };
-		}
-
-		case EmissionStyle::FROM_BOTTOM_VIEWPORT: {
-			// Random x position at bottom of viewport
-			float x = emitter.viewportMin.x + rand01 *
-				(emitter.viewportMax.x - emitter.viewportMin.x);
-			return Vector2D{ x, emitter.viewportMin.y };
-		}
-
-		case EmissionStyle::FROM_LINE: {
-			// Random position along the line
-			float t = rand01;
-			return Vector2D{
-				emitter.lineStart.x + t * (emitter.lineEnd.x - emitter.lineStart.x),
-				emitter.lineStart.y + t * (emitter.lineEnd.y - emitter.lineStart.y)
-			};
-		}
-
-		case EmissionStyle::FROM_CIRCLE_EDGE: {
-			// Position on the edge of a circle around the emitter
-			float angle = rand01 * 2.0f * 3.14159265f;
-			return Vector2D{
-				emitterPos.Pos.x + emitter.circleRadius * cos(angle),
-				emitterPos.Pos.y + emitter.circleRadius * sin(angle)
-			};
-		}
-
-		default:
-			return emitterPos.Pos;
-		}
+	switch (emitter.emissionStyle) {
+	case EmissionStyle::FROM_POINT: {
+		result = emitterPos.Pos;
+		break;
 	}
 
+	case EmissionStyle::FROM_RADIUS: {
+		float angle = rand01 * 2.0f * 3.14159265f;
+		float distance = rand02 * emitter.emissionRadius;
+
+		result = Vector2D{
+			emitterPos.Pos.x + distance * cos(angle),
+			emitterPos.Pos.y + distance * sin(angle)
+		};
+		break;
+	}
+
+	case EmissionStyle::FROM_TOP_VIEWPORT: {
+		float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
+		result = Vector2D{ x, emitter.viewportMax.y };
+		break;
+	}
+
+	case EmissionStyle::FROM_LEFT_VIEWPORT: {
+		float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
+		result = Vector2D{ emitter.viewportMin.x, y };
+		break;
+	}
+
+	case EmissionStyle::FROM_RIGHT_VIEWPORT: {
+		float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
+		result = Vector2D{ emitter.viewportMax.x, y };
+		break;
+	}
+
+	case EmissionStyle::FROM_BOTTOM_VIEWPORT: {
+		float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
+		result = Vector2D{ x, emitter.viewportMin.y };
+		break;
+	}
+
+	case EmissionStyle::FROM_LINE: {
+		float t = rand01;
+		result = Vector2D{
+			emitter.lineStart.x + t * (emitter.lineEnd.x - emitter.lineStart.x),
+			emitter.lineStart.y + t * (emitter.lineEnd.y - emitter.lineStart.y)
+		};
+		break;
+	}
+
+	case EmissionStyle::FROM_CIRCLE_EDGE: {
+		float angle = rand01 * 2.0f * 3.14159265f;
+
+		result = Vector2D{
+			emitterPos.Pos.x + emitter.circleRadius * cos(angle),
+			emitterPos.Pos.y + emitter.circleRadius * sin(angle)
+		};
+		break;
+	}
+
+	default:
+		result = emitterPos.Pos;
+	}
+
+	return result;
+}
+
 	Vector2D VFXSystem::CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,
-		const Vector2D& emissionPos, float rand01, float rand02) {
+		const Vector2D& emissionPos, float rand01, float rand02, bool isScreenSpace) {
 
 		float angle, speed;
 
 		switch (emitter.emissionStyle) {
 		case EmissionStyle::FROM_POINT: {
-			// Random direction in all directions
 			angle = rand01 * 2.0f * 3.14159265f;
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_RADIUS: {
-			// Random direction (or radial outward)
 			angle = rand01 * 2.0f * 3.14159265f;
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_TOP_VIEWPORT: {
-			// Particles fall downward (direction should be set to downward)
 			angle = atan2(emitter.emissionDirection.y, emitter.emissionDirection.x);
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_LEFT_VIEWPORT: {
-			// Particles move right with slight randomness
 			angle = emitter.emissionDirection.x > 0 ?
 				atan2(emitter.emissionDirection.y, emitter.emissionDirection.x) :
-				(rand01 - 0.5f) * 0.5f; // Small random variation
+				(rand01 - 0.5f) * 0.5f;
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_RIGHT_VIEWPORT: {
-			// Particles move left
 			angle = emitter.emissionDirection.x < 0 ?
 				atan2(emitter.emissionDirection.y, emitter.emissionDirection.x) :
-				(rand01 - 0.5f) * 0.5f; // Small random variation
+				(rand01 - 0.5f) * 0.5f;
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_BOTTOM_VIEWPORT: {
-			// Particles move upward
 			angle = emitter.emissionDirection.y > 0 ?
 				atan2(emitter.emissionDirection.y, emitter.emissionDirection.x) :
-				3.14159265f / 2.0f; // Upward
+				3.14159265f / 2.0f;
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_LINE: {
-			// Direction perpendicular to line or random
 			Vector2D lineDir = Vector2D{
 				emitter.lineEnd.x - emitter.lineStart.x,
 				emitter.lineEnd.y - emitter.lineStart.y
 			};
-			// Perpendicular direction with randomness
 			angle = atan2(lineDir.x, -lineDir.y) + (rand01 - 0.5f) * 0.5f;
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_CIRCLE_EDGE: {
-			// Radial outward or inward from circle edge
 			float centerAngle = atan2(emissionPos.y - emitter.lineStart.y,
 				emissionPos.x - emitter.lineStart.x);
-			angle = centerAngle + (rand01 - 0.5f) * 0.3f; // Small spread
+			angle = centerAngle + (rand01 - 0.5f) * 0.3f;
 			speed = emitter.particleSpeed;
 			break;
 		}
@@ -312,10 +316,51 @@ namespace Framework {
 			speed = 0.0f;
 		}
 
+		// For screen space, don't scale by DeltaTime since we handle it differently
+		float dtFactor = isScreenSpace ? 1.0f : Framework::Time::DeltaTime();
+
 		return Vector2D{
-			speed * cos(angle) * Framework::Time::DeltaTime(),
-			speed * sin(angle) * Framework::Time::DeltaTime()
+			speed * cos(angle) * dtFactor,
+			speed * sin(angle) * dtFactor
 		};
+	}
+
+	Vector2D VFXSystem::WorldToScreenSpace(const Vector2D& worldPos) {
+		if (!cameraSystem_) return worldPos;
+
+		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		if (activeCamera == 0) return worldPos;
+
+		const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+
+		// Convert world to normalized device coordinates (-1 to 1)
+		float screenX = (worldPos.x - cam.position.x) / cam.size.x;
+		float screenY = (worldPos.y - cam.position.y) / cam.size.y;
+
+		// Convert NDC to screen space (0 to 1)
+		screenX = screenX * 0.5f + 0.5f;
+		screenY = screenY * 0.5f + 0.5f;
+
+		return Vector2D{ screenX, screenY };
+	}
+
+	Vector2D VFXSystem::ScreenSpaceToWorld(const Vector2D& screenPos) {
+		if (!cameraSystem_) return screenPos;
+
+		Entity activeCamera = cameraSystem_->GetActiveCamera();
+		if (activeCamera == 0) return screenPos;
+
+		const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+
+		// Convert screen space (0 to 1) to NDC (-1 to 1)
+		float ndcX = (screenPos.x - 0.5f) * 2.0f;
+		float ndcY = (screenPos.y - 0.5f) * 2.0f;
+
+		// Convert NDC to world
+		float worldX = cam.position.x + ndcX * cam.size.x;
+		float worldY = cam.position.y + ndcY * cam.size.y;
+
+		return Vector2D{ worldX, worldY };
 	}
 
 } // namespace Framework

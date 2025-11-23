@@ -16,14 +16,15 @@
 #include "ISystem.h"
 #include "EntityStorage.h"
 #include "ResourceManager.h"
+#include "CameraSystem.h"
 
 namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
 	class VFXSystem : public ISystem {
 	public:
 		// Constructor taking references to EntityStorage and ResourceManager
-		VFXSystem(EntityStorage& entityStorage, ResourceManager& resourceManager)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager) {
+		VFXSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, CameraSystem& cameraSystem)
+			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), cameraSystem_(&cameraSystem) {
 		}
 		void Initialize() override {}
 		void Update() override;
@@ -37,11 +38,20 @@ namespace Framework {
 		EntityStorage* entityStorage_ = nullptr;
 		ResourceManager* resourceManager_ = nullptr;
 		WindowsSystem* win_ = nullptr;
+		CameraSystem* cameraSystem_ = nullptr;
 
 		// Helper function to calculate emission position based on style
-		Vector2D CalculateEmissionPosition(const ParticleEmitterComponent& emitter, const Position& emitterPos, float rand01, float rand02);
+		Vector2D CalculateEmissionPosition(const ParticleEmitterComponent& emitter,
+			const Position& emitterPos, float rand01, float rand02, bool isScreenSpace);
 
 		// Helper function to calculate emission velocity based on style
-		Vector2D CalculateEmissionVelocity(const ParticleEmitterComponent& emitter, const Vector2D& emissionPos, float rand01, float rand02);
+		Vector2D CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,
+			const Vector2D& emissionPos, float rand01, float rand02, bool isScreenSpace);
+
+		// Convert world position to screen space
+		Vector2D WorldToScreenSpace(const Vector2D& worldPos);
+
+		// Convert screen space to world position
+		Vector2D ScreenSpaceToWorld(const Vector2D& screenPos);
 	};
 } // namespace Framework

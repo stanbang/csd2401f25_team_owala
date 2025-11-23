@@ -97,7 +97,14 @@ namespace Framework {
 
             try {
                 const Vector2D& worldPos = entityMgr.GetComponent<Position>(entity).Pos;
-                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
+				bool isUIElement = entityMgr.HasComponent(entity, GUITagType); // Check if entity is a UI element
+				bool isScreenSpaceParticle = false;
+
+                // Check if particle is screen space
+                if (entityMgr.HasComponent(entity, ParticleComponentType)) {
+                    const ParticleComponent& pc = entityMgr.GetComponent<ParticleComponent>(entity);
+                    isScreenSpaceParticle = pc.isScreenSpace;
+                }
 
                 // Determine half size based on available components
                 Vector2D halfSize;
@@ -176,7 +183,7 @@ namespace Framework {
                 Vector2D screenHalfSize = halfSize;
 
                 // Check if camera exists AND if this is NOT a UI element
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement && !isScreenSpaceParticle) {
                     // Convert center position from world to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
                     
@@ -190,6 +197,16 @@ namespace Framework {
 
                     screenHalfSize.x = halfSize.x / halfWidth;
                     screenHalfSize.y = halfSize.y / halfHeight;
+                }
+
+                else if (isScreenSpaceParticle) {
+                    // Convert 0..1 to -1..1
+                    screenPos.x = (worldPos.x * 2.0f) - 1.0f;
+                    screenPos.y = (worldPos.y * 2.0f) - 1.0f;
+
+                    // Do NOT apply camera zoom to size. 
+                    // This keeps the particle size constant regardless of camera zoom.
+                    screenHalfSize = halfSize;
                 }
 
                 // Calculate final screen-space top-left and size

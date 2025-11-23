@@ -93,10 +93,10 @@ int main() {
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
-	VFXSystem* vfx = new VFXSystem(*ecs, *rcm);
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
 	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input);
     CameraSystem* camera = new CameraSystem(*ecs);
+    VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager

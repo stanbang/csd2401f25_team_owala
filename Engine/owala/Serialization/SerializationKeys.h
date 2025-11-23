@@ -139,6 +139,7 @@ namespace Framework::Serialization {
 	static constexpr const char* PARTICLE_EMITTER_COMPONENT = "ParticleEmitterComponent";
 	static constexpr const char* IS_EMITTING = "is_emitting";
 	static constexpr const char* IS_PARTICLE_ANIMATED = "is_particle_animated";
+	static constexpr const char* IS_SCREEN_SPACE = "is_screen_space";
 	static constexpr const char* PARTICLE_TEXTURE_KEY = "particle_texture_key";
 	static constexpr const char* PARTICLE_LIFETIME = "particle_lifetime";
 	static constexpr const char* EMISSION_RATE = "emit_rate";
@@ -147,6 +148,16 @@ namespace Framework::Serialization {
 	static constexpr const char* PARTICLE_SPEED = "particle_speed";
 	static constexpr const char* PARTICLE_SIZE = "particle_size";
 	static constexpr const char* IS_AFFECTED_BY_GRAVITY = "is_affected_by_gravity";
+	static constexpr const char* EMISSION_STYLE = "emission_style";
+	static constexpr const char* EMISSION_RADIUS = "emission_radius";
+	static constexpr const char* PARTICLE_START_VELOCITY = "particle_start_velocity";
+	static constexpr const char* PARTICLE_ACCELERATION = "particle_acceleration";
+	static constexpr const char* LINE_START = "line_start";
+	static constexpr const char* LINE_END = "line_end";
+	static constexpr const char* CIRCLE_RADIUS = "circle_radius";
+	static constexpr const char* VIEWPORT_MIN = "viewport_min";
+	static constexpr const char* VIEWPORT_MAX = "viewport_max";
+	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
