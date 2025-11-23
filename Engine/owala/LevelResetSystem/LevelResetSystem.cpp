@@ -77,6 +77,13 @@ namespace Framework {
                 TrapPlatformComponent& platform = entityMgr.GetComponent<TrapPlatformComponent>(entity);
                 ResetPosition(entityMgr, entity, Position(platform.originalPosition));
                 ResetRotation(entityMgr, entity);
+                if (entityMgr.HasComponent(entity, RigidBodyType)) {
+                    entityMgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
+                }
+
+                if (entityMgr.HasComponent(entity, VelocityType)) {
+                    entityMgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
+                }
                 platform.isTriggered = false;
                 platform.hasFallen = false;
                 continue;
@@ -100,6 +107,26 @@ namespace Framework {
         ResetPosition(entityMgr, entity, GetPlayerSpawnPt(entityMgr));
         ResetVelocity(entityMgr, entity);
         ResetRotation(entityMgr, entity);
+
+        // Reset animation
+        if (entityMgr.HasComponent(entity, AnimationComponentType)) {
+            AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
+            anim.currentState = AnimationState::IDLE;
+            anim.currentFrame = 0;
+            anim.elapsedTime = 0.0f;
+            anim.isPlaying = true;
+        }
+        if (entityMgr.HasComponent(entity, PlayerStateType)) {
+            PlayerState& playerState = entityMgr.GetComponent<PlayerState>(entity);
+            playerState.isDead = false;
+            Logger::Get().Info(DebugType::LevelResetSystem) << "Reset player state - isDead: false" << std::endl;
+        }
+        if (entityMgr.HasComponent(entity, RigidBodyType)) {
+            RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+            rb.SetMass(1.0f);
+            rb.isAffectedByGravity = true;
+        }
+    
     }
     
     // Reset Position to given position, defaults to 0,0 if no Position provided

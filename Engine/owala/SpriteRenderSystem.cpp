@@ -303,6 +303,7 @@ namespace Framework {
                 scaledHalfSize.x *= scale.axes.x;
                 scaledHalfSize.y *= scale.axes.y;
             }
+            // Get rotation if entity has it
             float deg = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
                 deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
@@ -311,42 +312,32 @@ namespace Framework {
                 deg += entityMgr.GetComponent<Rotation>(e).colliderAngle * (180.0f / 3.14159265359f);
             }
 
-            if (std::abs(deg) < 0.001f) {
-                Vector2D corners[4] = {
-                    {screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y},
-                    {screenPos.x + screenHalfSize.x, screenPos.y - screenHalfSize.y},
-                    {screenPos.x + screenHalfSize.x, screenPos.y + screenHalfSize.y},
-                    {screenPos.x - screenHalfSize.x, screenPos.y + screenHalfSize.y}
-                };
-                for (int i = 0; i < 4; ++i) {
-                    int next = (i + 1) % 4;
-                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
-                }
+            // Use the rotated AABB calculation
+            AABB_Bounds rotatedBounds = PhysicsSystem::GetRotatedAABB(worldPos, halfSize, deg);
+
+            // Convert world bounds to screen space
+            Vector2D screenMin = rotatedBounds.min;
+            Vector2D screenMax = rotatedBounds.max;
+
+            if (activeCamera != 0 && cameraSystem_) {
+                screenMin = cameraSystem_->WorldToScreen(rotatedBounds.min, activeCamera);
+                screenMax = cameraSystem_->WorldToScreen(rotatedBounds.max, activeCamera);
             }
-            else {
-                const float r = deg * (float)M_PI / 180.0f;
-                const float c = std::cos(r);
-                const float s = std::sin(r);
 
-                Vector2D local[4] = {
-                    {-screenHalfSize.x, -screenHalfSize.y},
-                    { screenHalfSize.x, -screenHalfSize.y},
-                    { screenHalfSize.x,  screenHalfSize.y},
-                    {-screenHalfSize.x,  screenHalfSize.y}
-                };
+            // Draw the axis-aligned bounding box
+            Vector2D corners[4] = {
+                {screenMin.x, screenMin.y},  // bottom-left
+                {screenMax.x, screenMin.y},  // bottom-right
+                {screenMax.x, screenMax.y},  // top-right
+                {screenMin.x, screenMax.y}   // top-left
+            };
 
-                Vector2D corners[4];
-                for (int i = 0; i < 4; ++i) {
-                    corners[i].x = local[i].x * c - local[i].y * s + screenPos.x;
-                    corners[i].y = local[i].x * s + local[i].y * c + screenPos.y;
-                }
-
-                for (int i = 0; i < 4; ++i) {
-                    int next = (i + 1) % 4;
-                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
-                }
+            for (int i = 0; i < 4; ++i) {
+                int next = (i + 1) % 4;
+                gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
             }
         }
     }
+
 
 } // namespace Framework

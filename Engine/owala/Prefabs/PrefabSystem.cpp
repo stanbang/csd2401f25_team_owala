@@ -27,7 +27,7 @@
 #include <filesystem>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
-
+#include "FileUtility.h"
 
 namespace fs = std::filesystem;
 
@@ -421,74 +421,118 @@ namespace Framework {
         }
 
         const EntityPrefab& prefab = it->second;
-
         std::string filePath = prefab.sourceFile;
         if (filePath.empty()) {
             filePath = prefabFolderPath_ + "/" + prefabName + ".json";
         }
 
-        // Create JSON document
+        // Read existing file
+        std::ifstream fileIn(filePath);
+        if (!fileIn.is_open()) {
+            Logger::Get().Error(DebugType::FileIOSystem)
+                << "Failed to open prefab file for reading: " << filePath << std::endl;
+            return false;
+        }
+
+        rapidjson::IStreamWrapper isw(fileIn);
         rapidjson::Document doc;
-        doc.SetObject();
+        doc.ParseStream(isw);
+        fileIn.close();
+
+        if (!doc.IsObject()) {
+            Logger::Get().Error(DebugType::FileIOSystem)
+                << "Invalid JSON format in file: " << filePath << std::endl;
+            return false;
+        }
+
         rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
-        // Add name
-        rapidjson::Value nameVal;
-        nameVal.SetString(prefab.name.c_str(), alloc);
-        doc.AddMember("name", nameVal, alloc);
-
-        // Add components
-        rapidjson::Value componentsArray(rapidjson::kArrayType);
-        for (const auto& compData : prefab.components) {
-            rapidjson::Value compObj(rapidjson::kObjectType);
-
-            rapidjson::Value typeVal;
-            typeVal.SetString(compData.type.c_str(), alloc);
-            compObj.AddMember("type", typeVal, alloc);
-
-            rapidjson::Value dataVal;
-            dataVal.CopyFrom(compData.data, alloc);
-            compObj.AddMember("data", dataVal, alloc);
-
-            componentsArray.PushBack(compObj, alloc);
+        // Verify this is the correct prefab
+        if (!doc.HasMember("name") ||
+            std::string(doc["name"].GetString()) != prefabName) {
+            Logger::Get().Error(DebugType::FileIOSystem)
+                << "Prefab name mismatch in file: " << filePath << std::endl;
+            return false;
         }
-        doc.AddMember("components", componentsArray, alloc);
 
-        // Add tags
+        // Update components
+        if (doc.HasMember("components") && doc["components"].IsArray()) {
+            rapidjson::Value& compsArray = doc["components"];
+
+            // Update each component in the JSON
+            for (const auto& updatedComp : prefab.components) {
+                bool compFound = false;
+                for (rapidjson::SizeType j = 0; j < compsArray.Size(); ++j) {
+                    rapidjson::Value& compObj = compsArray[j];
+                    if (compObj.HasMember("type") &&
+                        std::string(compObj["type"].GetString()) == updatedComp.type) {
+                        compObj["data"].CopyFrom(updatedComp.data, alloc);
+                        compFound = true;
+                        break;
+                    }
+                }
+
+                // If component not found, add it
+                if (!compFound) {
+                    rapidjson::Value compObj(rapidjson::kObjectType);
+                    rapidjson::Value typeVal;
+                    typeVal.SetString(updatedComp.type.c_str(), alloc);
+                    compObj.AddMember("type", typeVal, alloc);
+                    rapidjson::Value dataVal;
+                    dataVal.CopyFrom(updatedComp.data, alloc);
+                    compObj.AddMember("data", dataVal, alloc);
+                    compsArray.PushBack(compObj, alloc);
+                }
+            }
+        }
+
+        // Update tags
         rapidjson::Value tagsArray(rapidjson::kArrayType);
         for (const auto& tag : prefab.tags) {
             rapidjson::Value tagVal;
             tagVal.SetString(tag.c_str(), alloc);
             tagsArray.PushBack(tagVal, alloc);
         }
-        doc.AddMember("tags", tagsArray, alloc);
+        doc["tags"] = tagsArray;
 
-        // Add properties
-        rapidjson::Value propsObj(rapidjson::kObjectType);
-        rapidjson::Value layerVal;
-        layerVal.SetString(prefab.layer.c_str(), alloc);
-        propsObj.AddMember("layer", layerVal, alloc);
-        doc.AddMember("properties", propsObj, alloc);
-
-        // Write to file
-        std::ofstream fileOut(filePath);
-        if (!fileOut.is_open()) {
-            Logger::Get().Error(DebugType::FileIOSystem)
-                << "Failed to open file for writing: " << filePath << std::endl;
-            return false;
+        // Update properties/layer
+        if (doc.HasMember("properties") && doc["properties"].IsObject()) {
+            rapidjson::Value layerVal;
+            layerVal.SetString(prefab.layer.c_str(), alloc);
+            doc["properties"]["layer"] = layerVal;
         }
 
+        // Write the updated JSON back to file
         rapidjson::StringBuffer buffer;
-        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-        doc.Accept(writer);
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);
+        doc.Accept(prettyWriter);
 
-        fileOut << buffer.GetString();
-        fileOut.close();
+        auto writeToFile = [&](const std::string& path) {
+            std::ofstream out(path);
+            if (!out.is_open()) {
+                Logger::Get().Error(DebugType::FileIOSystem)
+                    << "Failed to open " << path << " for writing" << std::endl;
+                return false;
+            }
+            out << buffer.GetString();
+            out.close();
+            Logger::Get().Info(DebugType::FileIOSystem)
+                << "Saved prefab to: " << path << std::endl;
+            return true;
+            };
+
+        // Save to local data folder
+        writeToFile(filePath);
+
+        // Check if root Data folder exists and write to it as well
+        if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+            std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filePath;
+            writeToFile(rootFilePath);
+        }
 
         Logger::Get().Info(DebugType::FileIOSystem)
-            << "Saved prefab to: " << filePath << std::endl;
+            << "Prefab saved successfully: " << prefabName << std::endl;
 
         return true;
     }
-
 } // namespace Framework

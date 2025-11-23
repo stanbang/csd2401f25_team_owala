@@ -289,6 +289,10 @@ namespace Editor {
 		else {
 			Framework::Logger::Get().Info(DebugType::Editor)
 				<< "Successfully loaded prefabs from folder" << std::endl;
+
+			if (Framework::SceneManager::GetInstance().GetActiveScene().IsValid()) {
+				ApplyAllPrefabChangesToCurrentScene();
+			}
 		}
 
 		LoadTilesFromFile();

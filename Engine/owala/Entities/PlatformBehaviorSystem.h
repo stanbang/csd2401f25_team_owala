@@ -9,7 +9,6 @@
 * \brief 
 *      System for managing special platform behaviors including trap
 *      platforms that fall after a trigger delay
-*
 * 
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -22,23 +21,24 @@
 #include "Matrix3x3.h"
 
 namespace Framework {
+    class TransformationSystem;
     class PlatformBehaviorSystem : public ISystem {
     private:
         EntityStorage* ecs_;
-
-        // Internal update methods for different platform types
+        TransformationSystem* transformSystem_;
+        bool ShouldTrapFall(EntityManager& entityMgr, Entity entity, float worldRotation) const;
         void UpdateTrapPlatforms();
 
     public:
-        PlatformBehaviorSystem(EntityStorage& storage) : ecs_(&storage) {}
+        PlatformBehaviorSystem(EntityStorage& storage, TransformationSystem& transformSystem) : ecs_(&storage), transformSystem_(&transformSystem) {}
 
         void Initialize() override {}
         void Update() override;
         void Shutdown() override {}
 
         // Trap platform specific methods
-        void TriggerTrap(Entity trapPlatform);
-        void TriggerAllTraps();
+        //void TriggerTrap(Entity trapPlatform);
+        //void TriggerAllTraps();
         void ResetTrap(Entity trapPlatform);
 
     };

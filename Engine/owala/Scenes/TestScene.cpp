@@ -98,6 +98,7 @@ namespace TestScene {
         rcm_->loadAnimationInfo("Bird_Enemy_SleepIdle_Spritesheet.png", "Data/AnimationData/birdIdleAnimation.json");
         rcm_->loadAnimationInfo("Eli_Jump_Spritesheet.png", "Data/AnimationData/playerJumpingAnimation.json");
         rcm_->loadAnimationInfo("Eli_Falling_Spritesheet.png", "Data/AnimationData/playerFallingAnimation.json");
+        rcm_->loadAnimationInfo("Eli_Death_Spritesheet.png", "Data/AnimationData/playerDeathAnimation.json");
         //rcm_->loadTexture("Platform.png", "Assets/Sprites/Platform.png");
         //rcm_->loadTexture("Env_Level2_PH.png", "Assets/Sprites/Env_Level2_PH.png");
 		//rcm_->loadSound("bgm.wav", "Assets/Audio/bgm.wav", true, true); // Background Music

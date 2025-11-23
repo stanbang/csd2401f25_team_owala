@@ -44,7 +44,8 @@ namespace Framework{
 		IDLE,
 		RUNNING,
 		JUMPING,
-		FALLING
+		FALLING,
+		DEATH
 	};
 
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
@@ -105,6 +106,7 @@ namespace Framework{
 	struct PlayerState {
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
+		bool isDead = false;
 	};
 
 	struct Triangle { 

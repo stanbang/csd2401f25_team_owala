@@ -153,13 +153,20 @@ namespace Framework {
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        // Iterate through all entities with a player tag
-		EntityManager entityMgr(*ecs_);
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
-				Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
-				Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
+        EntityManager entityMgr(*ecs_);
+        std::vector<Entity> constrainedEntities;
 
+        auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        constrainedEntities.insert(constrainedEntities.end(), players.begin(), players.end());
+
+        auto trapPlatforms = entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType);
+        constrainedEntities.insert(constrainedEntities.end(), trapPlatforms.begin(), trapPlatforms.end());
+
+        for (const Entity& entity : constrainedEntities) {
+            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
+
+                Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+                Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
                 const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
                 // Check and correct X-axis boundaries
@@ -186,45 +193,17 @@ namespace Framework {
     }
 
     AABB_Bounds PhysicsSystem::GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees) {
-        if (std::abs(rotationDegrees) < 0.001f) {
-            return {
-                {center.x - halfSize.x, center.y - halfSize.y},
-                {center.x + halfSize.x, center.y + halfSize.y}
-            };
+        float snappedRotation = std::round(rotationDegrees / 90.0f) * 90.0f;
+        snappedRotation = std::fmod(snappedRotation + 360.0f, 360.0f);
+        bool swapDimensions = (std::abs(snappedRotation - 90.0f) < 1.0f) || (std::abs(snappedRotation - 270.0f) < 1.0f);
+        Vector2D newHalfSize = halfSize;
+        if (swapDimensions) {
+            newHalfSize = { halfSize.y, halfSize.x };
         }
-
-        float rotationRad = static_cast<float>(rotationDegrees * M_PI / 180.0f);
-        float cos_r = std::cos(rotationRad);
-        float sin_r = std::sin(rotationRad);
-
-        Vector2D corners[4] = {
-            {-halfSize.x, -halfSize.y},  
-            { halfSize.x, -halfSize.y},  
-            { halfSize.x,  halfSize.y},  
-            {-halfSize.x,  halfSize.y}   
+        return {
+            {center.x - newHalfSize.x, center.y - newHalfSize.y},
+            {center.x + newHalfSize.x, center.y + newHalfSize.y}
         };
-
-        // Rotate each corner and find the new min/max bounds
-        float minX = INFINITY, maxX = -INFINITY;
-        float minY = INFINITY, maxY = -INFINITY;
-
-        for (int i = 0; i < 4; i++) {
-            // Rotate the corner
-            float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r;
-            float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r;
-
-            // Translate to world position
-            rotatedX += center.x;
-            rotatedY += center.y;
-
-            // Update bounds
-            minX = std::min(minX, rotatedX);
-            maxX = std::max(maxX, rotatedX);
-            minY = std::min(minY, rotatedY);
-            maxY = std::max(maxY, rotatedY);
-        }
-
-        return { {minX, minY}, {maxX, maxY} };
     }
 
     // ----------------------------------------------------------------------------

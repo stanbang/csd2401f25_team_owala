@@ -1,12 +1,47 @@
 {
     "name": "HorizontalFallingTrap",
     "components": [
-        { "type": "Position", "data": { "x": 0.0, "y": 0.0 } },
-        { "type": "Velocity", "data": { "x": 0.0, "y": 0.0 } },
-        { "type": "RigidBody", "data": { "mass": 0.0, "forceX": 0.0, "forceY": 0.0 } },
-        { "type": "AABBCollider", "data": { "halfSizeX": 0.04, "halfSizeY": 0.22 } },
-        { "type": "TextureComponent", "data": { "textureID": "SB_TrapPlatform_Horizontal.png", "halfSizeX": 0.08, "halfSizeY": 0.23 } },
-        { "type": "RotationFlag", "data": {} },
+        {
+            "type": "Position",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "Velocity",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "RigidBody",
+            "data": {
+                "mass": 0.0,
+                "forceX": 0.0,
+                "forceY": 0.0
+            }
+        },
+        {
+            "type": "AABBCollider",
+            "data": {
+                "halfSizeX": 0.20999999344348907,
+                "halfSizeY": 0.05000000074505806
+            }
+        },
+        {
+            "type": "TextureComponent",
+            "data": {
+                "textureID": "SB_TrapPlatform_Horizontal.png",
+                "halfSizeX": 0.23999999463558197,
+                "halfSizeY": 0.07999999821186066
+            }
+        },
+        {
+            "type": "RotationFlag",
+            "data": {}
+        },
         {
             "type": "TrapPlatformComponent",
             "data": {
@@ -17,10 +52,14 @@
                 "currentDelay": 0.0,
                 "currentFallDistance": 0.0,
                 "fallSpeed": 2.0,
-                "triggerDelay": 1.0
+                "triggerDelay": 0.0
             }
         }
     ],
-    "tags": ["PlatformTag"],
-    "properties": { "layer": "Platform" }
+    "tags": [
+        "PlatformTag"
+    ],
+    "properties": {
+        "layer": "Platform"
+    }
 }

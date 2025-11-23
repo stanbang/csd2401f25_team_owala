@@ -40,6 +40,7 @@
 #include "CameraSystem.h"
 #include "PlatformBehaviorSystem.h"
 #include "AISystem.h" 
+#include "RestartMenu.h"
 
 #ifdef BUILD_EDITOR
 // Imgui Editor
@@ -83,8 +84,8 @@ int main() {
     PhysicsSystem* phx = new PhysicsSystem(*ecs);
     SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     TransformationSystem* transformation = new TransformationSystem(*ecs, *input, *phx);
-    PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs);
-    PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
+    PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs, *transformation);
+    PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx,*transformation);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
     AISystem* aiSystem = new AISystem(*ecs, *gfx); // <-- ADD THIS
@@ -97,6 +98,7 @@ int main() {
     CameraSystem* camera = new CameraSystem(*ecs);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
+    RestartMenu* restartMenu = new RestartMenu(*ecs, *input, *levelResetter, *gfx, *rcm,*gui);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
 
 	// Editor Registration
@@ -119,6 +121,7 @@ int main() {
     engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
     engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
     engine.AddSystem(gui);
+    engine.AddSystem(restartMenu);
     #ifdef BUILD_EDITOR
     engine.AddSystem(editor);              // Editor
     #endif

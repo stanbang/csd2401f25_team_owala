@@ -382,6 +382,11 @@ namespace Framework {
         }
 
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+        Entity player = GetPlayer();
+        bool playerKilled = false;
+        if (player != 0 && entityMgr.HasComponent(player, PlayerStateType)) {
+            playerKilled = entityMgr.GetComponent<PlayerState>(player).isDead;
+        }
 
         //  Dive at target
         Vector2D direction = (ai.attackTargetPosition - birdPos).Normalized();
@@ -397,8 +402,7 @@ namespace Framework {
             ai.attackTimer = 0.0f;
 
             // Go back to HOVER (or chase)?
-            Entity player = GetPlayer();
-            if (player == 0) {
+            if (player == 0 || playerKilled) {
                 ai.state = BirdState::IDLE; // Player is gone?
                 return;
             }
