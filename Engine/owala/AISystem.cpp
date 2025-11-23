@@ -703,7 +703,7 @@ namespace Framework {
         }
 
         // Draw a rectangle at the bird's feet indicating state
-        Vector2D halfSize = { 0.1f, 0.1f };
+        Vector2D halfSize = { 20.0f, 20.0f };  // Was 0.1, 0.1 - 20x20 pixels
         Vector2D min = birdPos - halfSize;
         Vector2D max = birdPos + halfSize;
         ImVec2 screenMin = editor->WorldToImGuiScreen(min, cameraID); 
@@ -751,7 +751,7 @@ namespace Framework {
 
         ImU32 imLineColor = ToImColor(color);
         ImU32 imWaypointColor = ToImColor({ color.r, color.g, color.b, 0.5f });
-        Vector2D waypointHalfSize = { 0.02f, 0.02f };
+        Vector2D waypointHalfSize = { 10.0f, 10.0f };  // Was 0.02, 0.02 - 10x10 pixels
 
         for (size_t i = 0; i < path.size() - 1; ++i) {
             drawList->AddLine(editor->WorldToImGuiScreen(path[i], cameraID), editor->WorldToImGuiScreen(path[i + 1], cameraID), imLineColor);

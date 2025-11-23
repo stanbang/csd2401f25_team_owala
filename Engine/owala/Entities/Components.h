@@ -367,13 +367,13 @@ namespace Framework{
 		float attackTimer = 3.0f;    // Countdown for next attack
 
 		// Radii
-		float wakeUpRadius = 0.3f;   // Distance to spot the player
-		float hoverRadius = 0.05f;    // "Close enough" distance to stop chasing
-		float attackRadius = 0.1f;   // Max distance from which to launch an attack
+		float wakeUpRadius = 288.0f;   // Distance to spot the player
+		float hoverRadius = 48.0f;    // "Close enough" distance to stop chasing
+		float attackRadius = 96.f;   // Max distance from which to launch an attack
 
 		// Config
-		float moveSpeed = 1.0f;
-		float attackSpeed = 1.0f;
+		float moveSpeed = 200.0f;
+		float attackSpeed = 300.0f;
 		float wakeUpTime = 1.0f;     // Duration of WAKING state
 
 		// Pathfinding
@@ -386,11 +386,11 @@ namespace Framework{
 		float attackDuration = 1.0f;
 
 		// --- Hover Behavior  ---
-		float hoverHeight = 1.2f;       // How far above player to hover
-		float hoverRadius_Circle = 0.6f; // Radius of the circle above player
+		float hoverHeight = 648.f;       // How far above player to hover
+		float hoverRadius_Circle = 324.f; // Radius of the circle above player
 		int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)
-		float hoverNodeReachedDist = 0.1f; // How close to get before moving to next node
-		float hoverSpeed = 0.3f;         // Speed when moving between hover nodes
+		float hoverNodeReachedDist = 54.f; // How close to get before moving to next node
+		float hoverSpeed = 162.f;         // Speed when moving between hover nodes
 	};
 
 	/**

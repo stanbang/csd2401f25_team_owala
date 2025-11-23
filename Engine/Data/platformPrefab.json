@@ -28,16 +28,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.10000000149011612,
-                        "halfSizeY": 0.0949999988079071
+                        "halfSizeX": 100.0, 
+                        "halfSizeY": 95.0 
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.10000000149011612,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 100.0, 
+                        "halfSizeY": 100.0 
                     }
                 },
                 {
@@ -80,16 +80,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.09000000357627869,
-                        "halfSizeY": 0.10000000149011612
+                        "halfSizeX": 90.0, 
+                        "halfSizeY": 100.0 
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.09000000357627869,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 100.0, 
+                        "halfSizeY": 100.0 
                     }
                 },
                 {
@@ -132,16 +132,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.10999999940395357,
-                        "halfSizeY": 0.10000000149011612
+                        "halfSizeX": 90.0,
+                        "halfSizeY": 100.0 
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.10999999940395357,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 100.0, 
+                        "halfSizeY": 100.0 
                     }
                 },
                 {
@@ -184,16 +184,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.10000000149011612,
-                        "halfSizeY": 0.10000000149011612
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.1,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
@@ -236,16 +236,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.14000000059604645,
-                        "halfSizeY": 0.09000000357627869
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "SB_TrapPlatform_MultiAxis.png",
-                        "halfSizeX": 0.1,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
@@ -366,16 +366,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.10000000149011612,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "SB_TrapPlatform_Vertical.png",
-                        "halfSizeX": 0.119999997317791,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
@@ -431,16 +431,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.14000000059604645,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "SB_PlatformRope.png",
-                        "halfSizeX": 0.1,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
@@ -496,16 +496,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.3,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.1,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 90.0, // Was 0.09
+                        "halfSizeY": 100.0 // Was 0.1
                     }
                 },
                 {

@@ -1229,10 +1229,10 @@ namespace Editor {
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
 			// Add components required for the AI
-			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
-			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+			entityMgr.AddComponent<Position>(bird, { {0.0f, 200.0f} }); // 200 pixels above ground
+			entityMgr.AddComponent<Velocity>(bird, {});
+			entityMgr.AddComponent<EnemyTag>(bird, {});
+			entityMgr.AddComponent<BirdAIComponent>(bird, {});
 			entityMgr.AddComponent<AnimationComponent>(bird, {});
 
 			RigidBody rb;
@@ -1240,9 +1240,9 @@ namespace Editor {
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
-			//  Add components to make it visible and selectable
-			Vector2D texHalfSize = { 0.1f, 0.2f }; // Set a default size
-			Vector2D aabbHalfSize = { 0.01f, 0.01f }; // Set a default size
+			
+			Vector2D texHalfSize = { 96.0f, 108.0f };   // Was 0.1 x 0.2 → 96 x 108 pixels
+			Vector2D aabbHalfSize = { 9.6f, 5.4f };     // Was 0.01 x 0.01 → 9.6 x 5.4 pixels
 
 			// texture is loaded in TestScene.cpp
 			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
