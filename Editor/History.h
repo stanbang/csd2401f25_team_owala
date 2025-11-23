@@ -54,8 +54,6 @@ namespace Editor{
 		void Apply(const Operation& op, bool isUndo);
 		void RestoreEntityFromSnapshot(Entity entity, const std::string& json);
 		void ApplyComponentSnapshot(Entity entity, Framework::ComponentType type, const std::string& json);
-
-		std::string SerializeEntityToString(Entity entity);
 	public:
 		explicit HistoryManager(Framework::EntityStorage& ecs);
 
@@ -64,7 +62,11 @@ namespace Editor{
 
 		/* APIs */
 		void ClearHistory();
-		void Record(OpType opType, Entity entity, std::string description);
+		// Function for recording Entity-Level operations.
+		void Record(OpType opType, Entity entity, const std::string& description);
+		// Dedicated Function for recording operations relating to Component Modifications.
+		// Add/Remove/Modify Components should use this.
+		void RecordModifyComponent(Entity entity, const std::string& description, const std::string& beforeJSON, const std::string& afterJSON, Framework::ComponentType compType = Framework::ComponentType::MAX_COMPONENTS);
 		void Push(const Operation& op);
 		bool CanUndo() const;
 		bool CanRedo() const;

@@ -42,6 +42,12 @@ namespace Framework {
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
         static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName);
+        // Serializes the current state of an entity to a JSON Object and return as a string.
+        static std::string SerializeEntityToString(Entity entity, EntityStorage& ecs);
+        // Serializes the current state of a component to a JSON Object and return as a string. Returns an empty string if component does not exist.
+        static std::string SerializeComponentToString(Entity entity, ComponentType compType, EntityStorage& ecs);
+        // Serializes the current tags of an entity to a JSON Object and return as a string. Returns an empty string if theres no tags on the entity.
+        static std::string SerializeTagsToString(Entity entity, EntityStorage& ecs);
 
 		/* Deserialization APIs */
         // Deserialize a new entity from JSON (creates a new entity and adds components).
@@ -54,9 +60,6 @@ namespace Framework {
         static void DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
         // Deserialize scene data from JSON file (modifies sceneName and entitiesList)
         static bool DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList);
-
-        /* Generic */
-        std::string JSONToString(const rapidjson::Value& jsonObject);
 
         /* Specialized Serialization APIs */
         /* Components */

@@ -1128,6 +1128,7 @@ namespace Editor {
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+				historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 			}
 
 			ImGui::SameLine();
@@ -1135,6 +1136,7 @@ namespace Editor {
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+				historyManager_.Record(OpType::Create, clonedEntity, "Clone Entity");
 			}
 
 			// --- Entity Inspector ---
@@ -1849,6 +1851,7 @@ namespace Editor {
 				if (ImGui::MenuItem("Create Empty")) {
 					Entity newEntity = entityMgr.CreateEntity();
 					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 				}
 				ImGui::EndPopup();
 			}
@@ -1870,7 +1873,8 @@ namespace Editor {
 
 		ImGui::Begin("Inspector");
 		if (isEntitySelected_) {
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			EntityStorage& ecs = *(gameManager_->GetSystems().ecs_);
+			EntityManager entityMgr(ecs);
 			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
 			// Check if Entity is alive before accessing properties.
@@ -1963,14 +1967,26 @@ namespace Editor {
 
 						if (ImGui::Button("Add Component")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+								std::string beforeJSON;
+
 								entityMgr.AddComponent(selectedEntity, selectedComponent);
+
+								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+								std::string description = "Add " + ComponentToString(selectedComponent);
+								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
 
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Component")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+								std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+
 								entityMgr.RemoveComponent(selectedEntity, selectedComponent);
+
+								std::string afterJSON;
+								std::string description = "Remove " + ComponentToString(selectedComponent);
+								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
 					}
@@ -2016,14 +2032,29 @@ namespace Editor {
 
 						if (ImGui::Button("Add Tag")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedTag)) {
+								std::string beforeJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+
 								entityMgr.AddComponent(selectedEntity, selectedTag);
+
+								std::string afterJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+								std::string description = "Add " + ComponentToString(selectedTag);
+								if (beforeJSON != afterJSON) {
+									historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedTag);
+								}
 							}
 						}
 
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Tag")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedTag)) {
+								std::string beforeJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+
 								entityMgr.RemoveComponent(selectedEntity, selectedTag);
+								std::string afterJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+								std::string description = "Remove " + ComponentToString(selectedTag);
+								if (beforeJSON != afterJSON) {
+									historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedTag);
+								}
 							}
 						}
 					}
@@ -2069,6 +2100,7 @@ namespace Editor {
 				}*/
 			}
 			else {
+				GameManager::GetInstance().GetSystems();
 				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
 			}
 

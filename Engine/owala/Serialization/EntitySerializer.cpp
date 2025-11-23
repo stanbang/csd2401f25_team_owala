@@ -300,6 +300,136 @@ namespace Framework {
 		}
 	}
 
+	std::string EntitySerializer::SerializeEntityToString(Entity entity, EntityStorage& ecs) {
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value entityData(rapidjson::kObjectType);
+		SerializeEntity(entity, ecs, entityData, alloc);
+		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
+	}
+
+	std::string EntitySerializer::SerializeComponentToString(Entity entity, ComponentType compType, EntityStorage& ecs) {
+		EntityManager entityMgr(ecs);
+		if (!entityMgr.HasComponent(entity, compType)) return {}; // Entity does not have the component!
+
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value componentData(rapidjson::kObjectType);
+		switch (compType) {
+		case PositionType:
+			SerializeComponent(entityMgr.GetComponent<Position>(entity), componentData, alloc);
+			break;
+		case SpawnPointType:
+			SerializeComponent(entityMgr.GetComponent<SpawnPoint>(entity), componentData, alloc);
+			break;
+		case VelocityType:
+			SerializeComponent(entityMgr.GetComponent<Velocity>(entity), componentData, alloc);
+			break;
+		case AccelerationType:
+			SerializeComponent(entityMgr.GetComponent<Acceleration>(entity), componentData, alloc);
+			break;
+		case TriangleType:
+			SerializeComponent(entityMgr.GetComponent<Triangle>(entity), componentData, alloc);
+			break;
+		case RigidBodyType:
+			SerializeComponent(entityMgr.GetComponent<RigidBody>(entity), componentData, alloc);
+			break;
+		case AABBColliderType:
+			SerializeComponent(entityMgr.GetComponent<AABBCollider>(entity), componentData, alloc);
+			break;
+		case PlayerStateType:
+			SerializeComponent(entityMgr.GetComponent<PlayerState>(entity), componentData, alloc);
+			break;
+		case RotationFlagType:
+			SerializeComponent(entityMgr.GetComponent<RotationFlag>(entity), componentData, alloc);
+			break;
+		case TrapPlatformComponentType:
+			SerializeComponent(entityMgr.GetComponent<TrapPlatformComponent>(entity), componentData, alloc);
+			break;
+		case ScalingPlatformComponentType:
+			SerializeComponent(entityMgr.GetComponent<ScalingPlatformComponent>(entity), componentData, alloc);
+			break;
+		case TextureComponentType:
+			SerializeComponent(entityMgr.GetComponent<TextureComponent>(entity), componentData, alloc);
+			break;
+		case AudioComponentType:
+			SerializeComponent(entityMgr.GetComponent<AudioComponent>(entity), componentData, alloc);
+			break;
+		case AnimationComponentType:
+			SerializeComponent(entityMgr.GetComponent<AnimationComponent>(entity), componentData, alloc);
+			break;
+		case TextComponentType:
+			SerializeComponent(entityMgr.GetComponent<TextComponent>(entity), componentData, alloc);
+			break;
+		case CameraType:
+			SerializeComponent(entityMgr.GetComponent<Camera>(entity), componentData, alloc);
+			break;
+		case NativeScriptsComponentType:
+			SerializeComponent(entityMgr.GetComponent<NativeScriptsComponent>(entity), componentData, alloc);
+			break;
+		case ButtonType:
+			SerializeComponent(entityMgr.GetComponent<Button>(entity), componentData, alloc);
+			break;
+		case BirdAIComponentType:
+			SerializeComponent(entityMgr.GetComponent<BirdAIComponent>(entity), componentData, alloc);
+			break;
+		case SkeletonAIComponentType:
+			SerializeComponent(entityMgr.GetComponent<SkeletonAIComponent>(entity), componentData, alloc);
+			break;
+		case SceneOwnedType:
+			SerializeComponent(entityMgr.GetComponent<SceneOwned>(entity), componentData, alloc);
+			break;
+		}
+		doc.CopyFrom(componentData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
+	}
+
+	std::string EntitySerializer::SerializeTagsToString(Entity entity, EntityStorage& ecs) {
+		EntityManager entityMgr(ecs);
+
+		bool hasAnyTags = false;
+		for (int i = 0; i < static_cast<int>(ComponentType::MAX_COMPONENTS); ++i) {
+			ComponentType type = static_cast<ComponentType>(i);
+			if (!entityMgr.IsTagComponent(type)) {
+				continue;
+			}
+			
+			if (entityMgr.HasComponent(entity, type)) {
+				hasAnyTags = true;
+				break;
+			}
+		}
+
+		if (!hasAnyTags) return {};
+
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		SerializeTags(entityMgr, entity, doc, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
+	}
+
 	void EntitySerializer::DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {
 		const rapidjson::Value& componentLists = entityData[Serialization::COMPONENTS];
 

@@ -340,22 +340,6 @@ namespace Editor {
 		}
 	}
 
-	std::string HistoryManager::SerializeEntityToString(Entity entity) {
-		rapidjson::Document doc;
-		doc.SetObject();
-		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
-
-		rapidjson::Value entityData(rapidjson::kObjectType);
-		EntitySerializer::SerializeEntity(entity, *ecs_, entityData, alloc);
-		doc.CopyFrom(entityData, alloc);
-
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		doc.Accept(writer);
-
-		return std::string(buffer.GetString());
-	}
-
 	void HistoryManager::PruneHistoryToLimit() {
 		if (maxHistorySteps <= 0) {
 			Logger::Info(DebugType::Editor) << "HistoryManager::Prune: Max steps less than 0. Setting to default." << std::endl;
@@ -392,7 +376,7 @@ namespace Editor {
 		redoStack.clear();
 	}
 
-	void HistoryManager::Record(OpType opType, Entity entity, std::string description) {
+	void HistoryManager::Record(OpType opType, Entity entity, const std::string& description) {
 		Operation op;
 
 		op.opType = opType;
@@ -403,16 +387,31 @@ namespace Editor {
 		case OpType::Create:
 			op.data.mode = PayloadMode::Entity;
 			op.data.memento.beforeJSON.clear();
-			op.data.memento.afterJSON = SerializeEntityToString(entity);
+			op.data.memento.afterJSON = EntitySerializer::SerializeEntityToString(entity, *ecs_);
 			break;
 		case OpType::Delete:
 			op.data.mode = PayloadMode::Entity;
-			op.data.memento.beforeJSON = SerializeEntityToString(entity);
+			op.data.memento.beforeJSON = EntitySerializer::SerializeEntityToString(entity, *ecs_);
 			op.data.memento.afterJSON.clear();
 			break;
 		default:
 			return;
 		}
+
+		Push(op);
+	}
+
+	void HistoryManager::RecordModifyComponent(Entity entity, const std::string& description, const std::string& beforeJSON, const std::string& afterJSON, ComponentType compType) {
+		Operation op;
+
+		op.opType = OpType::ModifyComponent;
+		op.description = description;
+		op.data.entity = entity;
+		op.data.componentType = compType;
+
+		op.data.mode = PayloadMode::Component;
+		op.data.memento.beforeJSON = std::move(beforeJSON);
+		op.data.memento.afterJSON = std::move(afterJSON);
 
 		Push(op);
 	}
