@@ -419,6 +419,9 @@ namespace Framework {
 		case SceneOwnedType:
 			SerializeComponent(entityMgr.GetComponent<SceneOwned>(entity), componentData, alloc);
 			break;
+		case ParticleEmitterComponentType:
+			SerializeComponent(entityMgr.GetComponent<ParticleEmitterComponent>(entity), componentData, alloc);
+			break;
 		}
 		doc.CopyFrom(componentData, alloc);
 

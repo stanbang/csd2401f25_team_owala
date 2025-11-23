@@ -2459,7 +2459,15 @@ namespace Editor {
 					{
 						// Update the texture key with the new file's filename
 						std::string newKey = dropped_path.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						tex.textureKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						// Reload the texture resource
 						resourceManager_->unload<Texture>(newKey);
@@ -2536,7 +2544,15 @@ namespace Editor {
 					{
 						// Update the sound key with the new file's filename
 						std::string newKey = dropped_file.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						audioComp.soundKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						Framework::Logger::Get().Info(DebugType::Editor)
 							<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
@@ -2741,7 +2757,15 @@ namespace Editor {
 					{
 						// Set font key to filename
 						std::string newFontKey = dropped_file.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						textComp.fontKey = newFontKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						// Optionally reload font resource
 						if (resourceManager_)
@@ -3118,8 +3142,34 @@ namespace Editor {
 
 		case ComponentType::ParticleEmitterComponentType:{
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
-			ImGui::Checkbox("Is Emitting?", &emitter.isEmitting);
-			ImGui::Checkbox("Is Particle Animated?", &emitter.isParticleAnimated);
+			bool isEmittingLocal = emitter.isEmitting;
+			bool isParticleAnimatedLocal = emitter.isParticleAnimated;
+
+			// Is Emitting Checkbox
+			if (ImGui::Checkbox("Is Emitting?", &isEmittingLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isEmitting = isEmittingLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Animated Particle Checkbox
+			if (ImGui::Checkbox("Is Particle Animated?", &isParticleAnimatedLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isParticleAnimated = isParticleAnimatedLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
 
 			//Show text but make it read-only
 			ImGui::InputText("Texture Key", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
@@ -3142,7 +3192,15 @@ namespace Editor {
 					{
 						// Update the texture key with the new file's filename
 						std::string newKey = dropped_path.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						emitter.particleTextureKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						// Reload the texture resource
 						resourceManager_->unload<Texture>(newKey);
@@ -3164,26 +3222,72 @@ namespace Editor {
 			//Button to update texture key
 			if (ImGui::Button("Update Texture")) {
 				if (!newParticleTextureKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					emitter.particleTextureKey = newParticleTextureKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
 				}
 			}
 
+			bool activeNow = false;
 			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Emission Interval", &emitter.emissionInterval);
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Time Since Last Emission", &emitter.timeSinceLastEmission);
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			const char* items[] = { "NONE", "RANDOM"};
 			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
 
 			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, items, IM_ARRAYSIZE(items))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat2("Particle Size", &emitter.particleSize.x);
+			if (ImGui::IsItemActive()) activeNow = true;
 
-			ImGui::Checkbox("Is Affected by Gravity?", &emitter.isAffectedByGravity);
+			bool isAffectedByGravityLocal = emitter.isAffectedByGravity;
+			if (ImGui::Checkbox("Is Affected by Gravity?", &isAffectedByGravityLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isAffectedByGravity = isAffectedByGravityLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		default:

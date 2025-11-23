@@ -328,6 +328,16 @@ namespace Editor {
 				}
 				break;
 			}
+			case ComponentType::ParticleEmitterComponentType: {
+				ParticleEmitterComponent newParticleEmitterComponent;
+				if (EntitySerializer::DeserializeComponent(doc, newParticleEmitterComponent)) {
+					if (entityMgr.HasComponent(entity, ComponentType::ParticleEmitterComponentType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::ParticleEmitterComponentType);
+					}
+					entityMgr.AddComponent<ParticleEmitterComponent>(entity, newParticleEmitterComponent);
+				}
+				break;
+			}
 			default:
 				Logger::Info(DebugType::Editor) << "HistoryManager::ApplyComponentSnapshot: Unsupported component type. No Changes applied" << std::endl;
 		}
