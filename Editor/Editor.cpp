@@ -1920,19 +1920,40 @@ namespace Editor {
 
 			static Entity lastSelectedEntity = 0;
 			static char nameBuffer[128] = "";
+			static std::string lastRecordedName;
+			static bool editingName = false;
+
 			if (selectedEntity != lastSelectedEntity) {
 				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 				nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
 				lastSelectedEntity = selectedEntity;
+				lastRecordedName = entityName;
+				editingName = false;
+			}
+
+			// Check if got mismatch between buffer and name when not editing
+			if (!editingName && lastRecordedName != entityName) {
+				lastRecordedName = entityName;
+
+				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 			}
 
 			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			if (ImGui::IsItemActivated()) editingName = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newName = nameBuffer;
 
 				if (newName != entityName) {
+					std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 					entityName = newName;
+					std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+					std::stringstream ss;
+					ss << "Modified name in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
 				}
+
+				editingName = false;
 			}
 			// --- End Name Field ---
 
@@ -1956,7 +1977,15 @@ namespace Editor {
 			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
 				// If a new item was selected, it updates the component's layer
 				// with the new value.
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 				entityLayer = static_cast<CollisionLayer>(currentLayer);
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
 			// -- End Layer Dropdown ---
 
@@ -2517,9 +2546,16 @@ namespace Editor {
 			// Font Selection
 			static char fontKeyBuffer[256] = "";
 			static Entity text_LastSelectedEntity;
+			static std::string text_lastRecordedText;
+			static std::string text_lastRecordedFontKey;
+			static bool text_editingText = false;
+			static bool text_editingFontKey = false;
 
 			if (text_LastSelectedEntity != selectedEntity) {
 				text_LastSelectedEntity = selectedEntity;
+				text_editingText = text_editingFontKey = false;
+				text_lastRecordedText = textComp.textToDraw;
+				text_lastRecordedFontKey = textComp.fontKey;
 
 				// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
 				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
@@ -2542,8 +2578,35 @@ namespace Editor {
 				}
 			}
 
+			if (!text_editingText && textComp.textToDraw != text_lastRecordedText) {
+				text_lastRecordedText = textComp.textToDraw;
+
+				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+					std::strncpy(
+						textBuffer,
+						textComp.textToDraw.c_str(),
+						IM_ARRAYSIZE(textBuffer) - 1
+					);
+					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+				}
+			}
+
+			if (!text_editingFontKey && textComp.fontKey != text_lastRecordedFontKey) {
+				text_lastRecordedFontKey = textComp.fontKey;
+
+				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
+					std::strncpy(
+						fontKeyBuffer,
+						textComp.fontKey.c_str(),
+						IM_ARRAYSIZE(fontKeyBuffer) - 1
+					);
+					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
+				}
+			}
+
 			// Text Inputfield
 			ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer));
+			if (ImGui::IsItemActivated()) text_editingText = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newText = textBuffer;
 
@@ -2556,10 +2619,13 @@ namespace Editor {
 					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
+
+				text_editingText = false;
 			}
 
 			// Fontkey Inputfield
 			ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer));
+			if (ImGui::IsItemActivated()) text_editingFontKey = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newText = fontKeyBuffer;
 
@@ -2572,6 +2638,8 @@ namespace Editor {
 					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
+
+				text_editingFontKey = false;
 			}
 
 			bool activeNow = false;

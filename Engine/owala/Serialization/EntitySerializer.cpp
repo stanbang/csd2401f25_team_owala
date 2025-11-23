@@ -33,11 +33,7 @@ namespace Framework {
 		EntityManager entityMgr(ecs);
 
 		/* Entity Properties Serialization */
-		EntityProperties& properties = entityMgr.GetProperties(entity);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
+		SerializeEntityProperties(entityMgr, entity, outData, alloc);
 
 		rapidjson::Value componentList(rapidjson::kObjectType);
 
@@ -243,6 +239,15 @@ namespace Framework {
 		}
 	}
 
+	void EntitySerializer::SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		EntityProperties& properties = entityMgr.GetProperties(entity);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
+	}
+
 	void EntitySerializer::SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		// Serialize Tags into an array
 		rapidjson::Value tagsList(rapidjson::kArrayType);
@@ -308,6 +313,23 @@ namespace Framework {
 		rapidjson::Value entityData(rapidjson::kObjectType);
 		SerializeEntity(entity, ecs, entityData, alloc);
 		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
+	}
+
+	std::string EntitySerializer::SerializeEntityPropertiesToString(Entity entity, EntityStorage& ecs) {
+		EntityManager entityMgr(ecs);
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value propertiesData(rapidjson::kObjectType);
+		SerializeEntityProperties(entityMgr, entity, propertiesData, alloc);
+		doc.CopyFrom(propertiesData, alloc);
 
 		rapidjson::StringBuffer buffer;
 		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -408,7 +430,7 @@ namespace Framework {
 			if (!entityMgr.IsTagComponent(type)) {
 				continue;
 			}
-			
+
 			if (entityMgr.HasComponent(entity, type)) {
 				hasAnyTags = true;
 				break;
@@ -612,7 +634,7 @@ namespace Framework {
 				entityMgr.AddComponent<BirdAIComponent>(loadedEntity, birdAI);
 			}
 		}
-		
+
 		// Deserialize SkeletonAI Component
 		if (componentLists.HasMember(Serialization::SKELETON_AI_COMPONENT)) {
 			const rapidjson::Value& skelAIData = componentLists[Serialization::SKELETON_AI_COMPONENT];
@@ -691,28 +713,7 @@ namespace Framework {
 
 		/* Entity Properties Deserialization */
 		EntityProperties& properties = entityMgr.GetProperties(entityToOverwrite);
-		if (entityData.HasMember(Serialization::ENTITY_NAME) && entityData[Serialization::ENTITY_NAME].IsString()) {
-			properties.name = entityData[Serialization::ENTITY_NAME].GetString();
-		}
-		if (entityData.HasMember(Serialization::ENTITY_LAYER) && entityData[Serialization::ENTITY_LAYER].IsInt()) {
-			properties.layer = static_cast<CollisionLayer>(entityData[Serialization::ENTITY_LAYER].GetInt());
-		}
-
-		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER) && entityData[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
-			properties.renderLayer = static_cast<RenderLayer>(entityData[Serialization::ENTITY_RENDER_LAYER].GetInt());
-		}
-		else {
-			// need this or might break old saves
-			properties.renderLayer = RenderLayer::Custom;
-		}
-		
-		if (entityData.HasMember(Serialization::ENTITY_CUSTOM_RENDER_ORDER) && entityData[Serialization::ENTITY_CUSTOM_RENDER_ORDER].IsInt()) {
-			properties.customRenderOrder = entityData[Serialization::ENTITY_CUSTOM_RENDER_ORDER].GetInt();
-		}
-		else {
-			properties.customRenderOrder = 0;
-		}
-		
+		DeserializeEntityProperties(entityData, properties);
 
 		/* Components Deserialization */
 		if (entityData.HasMember(Serialization::COMPONENTS)) {
@@ -732,6 +733,30 @@ namespace Framework {
 			else {
 				Logger::Get().Error(DebugType::EntitySeralizer) << "Tags data is not a list." << std::endl;
 			}
+		}
+	}
+
+	void EntitySerializer::DeserializeEntityProperties(const rapidjson::Value& entityData, EntityProperties& out) {
+		if (entityData.HasMember(Serialization::ENTITY_NAME) && entityData[Serialization::ENTITY_NAME].IsString()) {
+			out.name = entityData[Serialization::ENTITY_NAME].GetString();
+		}
+		if (entityData.HasMember(Serialization::ENTITY_LAYER) && entityData[Serialization::ENTITY_LAYER].IsInt()) {
+			out.layer = static_cast<CollisionLayer>(entityData[Serialization::ENTITY_LAYER].GetInt());
+		}
+
+		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER) && entityData[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
+			out.renderLayer = static_cast<RenderLayer>(entityData[Serialization::ENTITY_RENDER_LAYER].GetInt());
+		}
+		else {
+			// need this or might break old saves
+			out.renderLayer = RenderLayer::Custom;
+		}
+
+		if (entityData.HasMember(Serialization::ENTITY_CUSTOM_RENDER_ORDER) && entityData[Serialization::ENTITY_CUSTOM_RENDER_ORDER].IsInt()) {
+			out.customRenderOrder = entityData[Serialization::ENTITY_CUSTOM_RENDER_ORDER].GetInt();
+		}
+		else {
+			out.customRenderOrder = 0;
 		}
 	}
 

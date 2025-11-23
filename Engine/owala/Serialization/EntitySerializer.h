@@ -38,12 +38,16 @@ namespace Framework {
         static void SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath);
         // Serializes multiple entities to outArray.
         static void SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc);
+        // Serialize properties of a given entity into a JSON object.
+        static void SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serialize tags for a given entity into a JSON object.
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
         static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName);
         // Serializes the current state of an entity to a JSON Object and return as a string.
         static std::string SerializeEntityToString(Entity entity, EntityStorage& ecs);
+        // Serializes the current state of the entity properties into a JSON Object and return as a string. 
+        static std::string SerializeEntityPropertiesToString(Entity entity, EntityStorage& ecs);
         // Serializes the current state of a component to a JSON Object and return as a string. Returns an empty string if component does not exist.
         static std::string SerializeComponentToString(Entity entity, ComponentType compType, EntityStorage& ecs);
         // Serializes the current tags of an entity to a JSON Object and return as a string. Returns an empty string if theres no tags on the entity.
@@ -54,6 +58,8 @@ namespace Framework {
         static Entity DeserializeEntity(EntityStorage& ecs, const rapidjson::Value& entityData);
 		// Deserialize an entity to an existing entity (modifies the existing entity).
 		static void DeserializeEntityToExisting(EntityStorage& ecs, Entity entityToOverwrite, const rapidjson::Value& entityData);
+        // Deserializes an entity's properties from JSON data.
+        static void DeserializeEntityProperties(const rapidjson::Value& entityData, EntityProperties& out);
 		// Deserialize components for a given entity from JSON data.
         static void DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
 		// Deserialize tags for a given entity from JSON data.

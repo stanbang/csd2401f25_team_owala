@@ -100,15 +100,7 @@ namespace Editor {
 		if (type == ComponentType::MAX_COMPONENTS) { // Using MAX_COMPONENTS for Entity Properties, its intentional.
 			EntityProperties& properties = entityMgr.GetProperties(entity);
 
-			if (doc.HasMember(Serialization::ENTITY_NAME) &&
-				doc[Serialization::ENTITY_NAME].IsString()) {
-				properties.name = doc[Serialization::ENTITY_NAME].GetString();
-			}
-
-			if (doc.HasMember(Serialization::ENTITY_LAYER) &&
-				doc[Serialization::ENTITY_LAYER].IsInt()) {
-				properties.layer = static_cast<CollisionLayer>(doc[Serialization::ENTITY_LAYER].GetInt());
-			}
+			EntitySerializer::DeserializeEntityProperties(doc, properties);
 			return;
 		}
 
@@ -450,8 +442,8 @@ namespace Editor {
 		op.data.componentType = compType;
 
 		op.data.mode = PayloadMode::Component;
-		op.data.memento.beforeJSON = std::move(beforeJSON);
-		op.data.memento.afterJSON = std::move(afterJSON);
+		op.data.memento.beforeJSON = beforeJSON;
+		op.data.memento.afterJSON = afterJSON;
 
 		Push(op);
 	}
