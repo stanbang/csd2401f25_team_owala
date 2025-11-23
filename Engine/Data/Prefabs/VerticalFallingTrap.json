@@ -1,0 +1,26 @@
+{
+    "name": "VerticalFallingTrap",
+    "components": [
+        { "type": "Position", "data": { "x": 0.0, "y": 0.0 } },
+        { "type": "Velocity", "data": { "x": 0.0, "y": 0.0 } },
+        { "type": "RigidBody", "data": { "mass": 0.0, "forceX": 0.0, "forceY": 0.0 } },
+        { "type": "AABBCollider", "data": { "halfSizeX": 0.1, "halfSizeY": 0.1 } },
+        { "type": "TextureComponent", "data": { "textureID": "SB_TrapPlatform_Vertical.png", "halfSizeX": 0.12, "halfSizeY": 0.1 } },
+        { "type": "RotationFlag", "data": {} },
+        {
+            "type": "TrapPlatformComponent",
+            "data": {
+                "originalPositionX": 0.0,
+                "originalPositionY": 0.0,
+                "isTriggered": false,
+                "hasFallen": false,
+                "currentDelay": 0.0,
+                "currentFallDistance": 0.0,
+                "fallSpeed": 2.0,
+                "triggerDelay": 1.0
+            }
+        }
+    ],
+    "tags": ["PlatformTag"],
+    "properties": { "layer": "Platform" }
+}

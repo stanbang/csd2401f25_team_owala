@@ -203,27 +203,6 @@ namespace Framework {
             UpdateEntityTransform(entity);
         }
 
-        // Handle scaling platforms separately
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ScalingPlatformComponentType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
-
-            ScalingPlatformComponent& scalingComp =
-                entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-
-            if (entityMgr.HasComponent(entity, PositionType)) {
-                Vector2D position = entityMgr.GetComponent<Position>(entity).Pos;
-                float rotation = 0.0f;
-
-                if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                    rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
-                }
-
-                Vector2D renderScale = Vector2D(scalingComp.currentScaleX, scalingComp.currentScaleY);
-                scalingComp.transformMatrix = Transformation::CreateTransformationMatrix(
-                    position, rotation, renderScale
-                );
-            }
-        }
     }
 
 /*!
@@ -275,10 +254,6 @@ namespace Framework {
             float worldRotation = rotationFlag.currentRotation;
 
             Vector2D scale = Vector2D(1.0f, 1.0f);
-            if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-            ScalingPlatformComponent& scalingComp =entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-                scale = Vector2D(scalingComp.currentScaleX, scalingComp.currentScaleY);
-            }
             rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix( position, worldRotation, scale);
         }
     }
@@ -290,10 +265,6 @@ namespace Framework {
 *//*______________________________________________________________*/
     Matrix3x3 TransformationSystem::GetTransformMatrix(Entity entity) const {
         EntityManager entityMgr(*ecs_);
-
-        if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-            return entityMgr.GetComponent<ScalingPlatformComponent>(entity).transformMatrix;
-        }
 
         // Standard entity transformation
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -321,11 +292,6 @@ namespace Framework {
 
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
             rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
-        }
-
-        if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-            ScalingPlatformComponent& scalingComp =entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-            scale = Vector2D(scalingComp.currentScaleX, scalingComp.currentScaleY);
         }
 
         return Transformation::CreateTransformationMatrix(position, rotation, scale);

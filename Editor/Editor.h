@@ -68,7 +68,6 @@ namespace Editor {
 		Eraser,
 		Platform,
 		TrapPlatform,
-		ScalingPlatform,
 		Tile
 	};
 
@@ -261,6 +260,7 @@ namespace Editor {
 
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
+		void ApplyAllPrefabChangesToCurrentScene();
 
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
@@ -277,6 +277,7 @@ namespace Editor {
 
 		// Caches the game viewport's position and size
 		void UpdateViewportData();
+
 
 	public:
 		bool isEnabled = true;

@@ -8,8 +8,7 @@
 *
 * \brief 
 *      System for managing special platform behaviors including trap
-*      platforms that fall after a trigger delay and scaling platforms 
-*      that oscillate in size over time.
+*      platforms that fall after a trigger delay
 *
 * 
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
@@ -29,7 +28,6 @@ namespace Framework {
 
         // Internal update methods for different platform types
         void UpdateTrapPlatforms();
-        void UpdateScalingPlatforms();
 
     public:
         PlatformBehaviorSystem(EntityStorage& storage) : ecs_(&storage) {}
@@ -43,7 +41,5 @@ namespace Framework {
         void TriggerAllTraps();
         void ResetTrap(Entity trapPlatform);
 
-        // Scaling platform specific methods
-        Matrix3x3 GetScalingTransform(Entity scalingPlatform) const;
     };
 }

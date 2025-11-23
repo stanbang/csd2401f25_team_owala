@@ -57,7 +57,6 @@ namespace Framework {
 					case ComponentType::PlayerStateType: AddComponent<PlayerState>(newEntity, GetComponent<PlayerState>(entity)); break;
 					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
 					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
-					case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(newEntity, GetComponent<ScalingPlatformComponent>(entity)); break;
 					case ComponentType::ButtonType: AddComponent<Button>(newEntity, GetComponent<Button>(entity)); break;
 					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
 					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
@@ -121,7 +120,6 @@ namespace Framework {
 		case ComponentType::PlayerStateType: AddComponent<PlayerState>(entity, PlayerState{}); break;
 		case ComponentType::RotationFlagType: AddComponent<RotationFlag>(entity, RotationFlag{}); break;
 		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
-		case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(entity, ScalingPlatformComponent{}); break;
 		case ComponentType::TextureComponentType: AddComponent<TextureComponent>(entity, TextureComponent{}); break;
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
@@ -164,7 +162,6 @@ namespace Framework {
 			case PlayerStateType:   ecs.playerState.erase(entity); break;
 			case RotationFlagType:  ecs.rotationFlag.erase(entity); break;
 			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;
-			case ScalingPlatformComponentType: ecs.scalingPlatform.erase(entity); break;
 			case TextureComponentType: ecs.tex.erase(entity); break;
 			case AudioComponentType: ecs.audio.erase(entity); break;
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;

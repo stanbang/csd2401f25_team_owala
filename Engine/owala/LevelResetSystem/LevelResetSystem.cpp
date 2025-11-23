@@ -38,11 +38,6 @@ namespace Framework {
         trapPlatformSig.set(TrapPlatformComponentType);
         trapPlatformSig.set(PositionType);
         trapPlatformSig.set(RotationFlagType);
-
-        scalingPlatformSig.set(ActiveTagType);
-        scalingPlatformSig.set(ScalingPlatformComponentType);
-        scalingPlatformSig.set(PositionType);
-        scalingPlatformSig.set(RotationFlagType);
     
         basicPlatformSig.set(ActiveTagType);
         basicPlatformSig.set(PlatformTagType);
@@ -84,17 +79,6 @@ namespace Framework {
                 ResetRotation(entityMgr, entity);
                 platform.isTriggered = false;
                 platform.hasFallen = false;
-                continue;
-            }
-
-            // --- Scaling Platform Reset ---
-            if (CmpSignatures(signature, scalingPlatformSig)) {
-                Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Scaling Platform, Entity: " << entity << std::endl;
-                ScalingPlatformComponent& platform = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-                ResetRotation(entityMgr, entity);
-                platform.currentScaleX = {};
-                platform.currentScaleY = {};
-                platform.time = {};
                 continue;
             }
 

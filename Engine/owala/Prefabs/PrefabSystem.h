@@ -22,6 +22,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <filesystem>
 
 namespace Framework {
 
@@ -40,8 +41,8 @@ namespace Framework {
         std::vector<ComponentData> components;
         std::vector<std::string> tags;
         std::string layer;
-
-        EntityPrefab() : name(""), layer("Default") {}
+        std::string sourceFile; // Track which file this prefab came from
+        EntityPrefab() : name(""), layer("Default"), sourceFile("") {}
     };
 
     struct PlatformPrefab {
@@ -56,58 +57,51 @@ namespace Framework {
         float triggerDelay;
     };
 
-    struct ScalingPlatformPrefab {
-        std::string textureID;
-        float mass;
-        float scaleSpeed;
-        float minScale;
-        float maxScale;
-    };
-
-
     class PrefabSystem {
     private:
         std::unordered_map<std::string, EntityPrefab> prefabs_;
+        std::string prefabFolderPath_;
 
-        // Helper to parse component data from JSON
         void ParseComponentData(const rapidjson::Value& compObj, ComponentData& outData);
-
-        // Helper to deserialize specific component types
-        void DeserializeComponent(EntityStorage& storage, Entity entity,
-            const ComponentData& compData);
+        void DeserializeComponent(EntityStorage& storage, Entity entity, const ComponentData& compData);
+        bool LoadSinglePrefabFile(const std::string& filepath);
 
         PlatformPrefab ExtractPlatformData(const EntityPrefab& prefab) const;
         TrapPlatformPrefab ExtractTrapPlatformData(const EntityPrefab& prefab) const;
-        ScalingPlatformPrefab ExtractScalingPlatformData(const EntityPrefab& prefab) const;
 
     public:
-        // Load all prefabs from a JSON file
+        // Load all prefabs from a folder (scans for .json files)
+        bool LoadPrefabsFromFolder(const std::string& folderPath);
+
+        bool LoadPrefabFile(const std::string& filepath);
+
+        bool ReloadAllPrefabs();
+
         bool LoadPrefabsFromFile(const std::string& filename);
 
-        // Create an entity from any prefab
-        Entity CreateEntityFromPrefab(EntityStorage& storage,const std::string& prefabName,  const Vector2D& position);
-
-        // Check if prefab exists
+        Entity CreateEntityFromPrefab(EntityStorage& storage, const std::string& prefabName, const Vector2D& position);
         bool HasPrefab(const std::string& name) const;
-
-        // Get prefab data
         const EntityPrefab* GetPrefab(const std::string& name) const;
 
-        // Get all loaded prefabs
         const std::unordered_map<std::string, EntityPrefab>& GetAllPrefabs() const {
             return prefabs_;
         }
 
+        const std::string& GetPrefabFolderPath() const { return prefabFolderPath_; }
+
         std::unordered_map<std::string, PlatformPrefab> GetPlatformPrefabs() const;
         std::unordered_map<std::string, TrapPlatformPrefab> GetTrapPlatformPrefabs() const;
-        std::unordered_map<std::string, ScalingPlatformPrefab> GetScalingPlatformPrefabs() const;
 
         const PlatformPrefab* GetPlatformPrefab(const std::string& name) const;
         const TrapPlatformPrefab* GetTrapPlatformPrefab(const std::string& name) const;
-        const ScalingPlatformPrefab* GetScalingPlatformPrefab(const std::string& name) const;
-        bool UpdatePrefabComponentData(const std::string& prefabName,const std::string& componentType,const rapidjson::Value& newData);
 
+        bool UpdatePrefabComponentData(const std::string& prefabName, const std::string& componentType, const rapidjson::Value& newData);
         EntityPrefab* GetMutablePrefab(const std::string& name);
+
+        // Get list of all prefab files in folder
+        std::vector<std::string> GetPrefabFileList() const;
+        bool SavePrefabToFile(const std::string& prefabName);
+        void ApplyPrefabToEntity(EntityStorage& storage, Entity entity, const std::string& prefabName);
     };
 
 } // namespace Framework

@@ -201,17 +201,6 @@ namespace Framework{
 		float currentFallDistance{ 0.0f };
 	};
 
-	struct ScalingPlatformComponent {
-		Vector2D baseHalfSize;
-		float currentScaleX{ 0.0f };
-		float currentScaleY{ 0.0f };
-		float scaleSpeed{ 0.0f };
-		float minScale{ 0.0f };
-		float maxScale{ 0.0f };
-		float time{ 0.0f };
-		Matrix3x3 transformMatrix;
-	};
-
 	struct Button {
 		bool isHovered = false; // Mouse is over the button
 		bool isPressed = false; // Button is clicked

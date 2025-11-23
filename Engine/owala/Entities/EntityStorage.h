@@ -52,7 +52,6 @@ namespace Framework {
 		PlayerStateType,
 		RotationFlagType,
 		TrapPlatformComponentType,
-		ScalingPlatformComponentType,
 		TextureComponentType,
 		AudioComponentType,
 		AnimationComponentType,
@@ -98,7 +97,6 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<PlayerState> { static constexpr ComponentType value = PlayerStateType; };
 	template <> struct ComponentTypeTrait<RotationFlag> { static constexpr ComponentType value = RotationFlagType; };
 	template <> struct ComponentTypeTrait<TrapPlatformComponent> { static constexpr ComponentType value = TrapPlatformComponentType; };
-	template <> struct ComponentTypeTrait<ScalingPlatformComponent> { static constexpr ComponentType value = ScalingPlatformComponentType; };
 	template <> struct ComponentTypeTrait<TextureComponent> { static constexpr ComponentType value = TextureComponentType; };
 	template <> struct ComponentTypeTrait<AudioComponent> { static constexpr ComponentType value = AudioComponentType; };
 	template <> struct ComponentTypeTrait<AnimationComponent> { static constexpr ComponentType value = AnimationComponentType; };
@@ -147,7 +145,6 @@ namespace Framework {
 		std::unordered_map<Entity, PlayerState> playerState;
 		std::unordered_map<Entity, RotationFlag> rotationFlag;
 		std::unordered_map<Entity, TrapPlatformComponent> trapPlatform;
-		std::unordered_map<Entity, ScalingPlatformComponent> scalingPlatform;
 		std::unordered_map<Entity, Button> button;
 
 		std::unordered_map<Entity, TextureComponent>      tex; //Texture Component
