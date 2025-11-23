@@ -3174,6 +3174,15 @@ namespace Editor {
 				if (ImGui::Button("Undo", historyControlBtnSize)) {
 					historyManager_.Undo();
 				}
+
+				if (ImGui::IsItemHovered()) {
+					std::string desc = historyManager_.GetLatestUndoDescription();
+					if (!desc.empty()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(desc.c_str());
+						ImGui::EndTooltip();
+					}
+				}
 			}
 			else {
 				ImGui::BeginDisabled();
@@ -3187,6 +3196,15 @@ namespace Editor {
 			if (historyManager_.CanRedo()) {
 				if (ImGui::Button("Redo", historyControlBtnSize)) {
 					historyManager_.Redo();
+				}
+
+				if (ImGui::IsItemHovered()) {
+					std::string desc = historyManager_.GetLatestRedoDescription();
+					if (!desc.empty()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(desc.c_str());
+						ImGui::EndTooltip();
+					}
 				}
 			}
 			else {

@@ -22,6 +22,7 @@ namespace Editor {
 		std::cout << "Before Data: " << op.data.memento.beforeJSON << std::endl;
 		std::cout << "After Data: " << op.data.memento.afterJSON << std::endl;
 		std::cout << "Undo or Redo?: " << (isUndo ? "Undo" : "Redo") << std::endl;
+		std::cout << op.description << std::endl;
 
 		switch (op.opType) {
 		case OpType::Create:
@@ -366,6 +367,45 @@ namespace Editor {
 		maxHistorySteps = limit;
 
 		PruneHistoryToLimit();
+	}
+
+	// ---------------------------------------------------------------------------
+	// Accessors
+	// ---------------------------------------------------------------------------
+	std::string HistoryManager::GetLatestUndoDescription() const {
+		if (undoStack.empty()) {
+			return {};
+		}
+		return undoStack.back().description;
+	}
+
+	std::string HistoryManager::GetLatestRedoDescription() const {
+		if (redoStack.empty()) {
+			return {};
+		}
+		return redoStack.back().description;
+	}
+
+	std::vector<std::string> HistoryManager::GetUndoHistoryDescriptions() const {
+		std::vector<std::string> descriptions;
+		descriptions.reserve(undoStack.size());
+
+		for (const Operation& operation : undoStack) {
+			descriptions.push_back(operation.description);
+		}
+
+		return descriptions;
+	}
+
+	std::vector<std::string> HistoryManager::GetRedoHistoryDescriptions() const {
+		std::vector<std::string> descriptions;
+		descriptions.reserve(redoStack.size());
+
+		for (const Operation& operation : redoStack) {
+			descriptions.push_back(operation.description);
+		}
+
+		return descriptions;
 	}
 
 	// ---------------------------------------------------------------------------

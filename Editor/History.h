@@ -60,6 +60,12 @@ namespace Editor{
 		/* Config */
 		void SetUndoLimit(int limit);
 
+		/* Accessors */
+		std::string GetLatestUndoDescription() const;
+		std::string GetLatestRedoDescription() const;
+		std::vector<std::string> GetUndoHistoryDescriptions() const;
+		std::vector<std::string> GetRedoHistoryDescriptions() const;
+
 		/* APIs */
 		void ClearHistory();
 		// Function for recording Entity-Level operations.
