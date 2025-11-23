@@ -57,10 +57,23 @@ namespace Framework{
 		FALLING
 	};
 
+	// Enum for different particle movement effects
 	enum class EffectType {
 		NONE,
 		RANDOM,
 		RANDOM_UP
+	};
+
+	// Enum for different emission styles
+	enum class EmissionStyle {
+		FROM_POINT,           // Emit from the position component
+		FROM_RADIUS,          // Emit randomly within a radius around position
+		FROM_TOP_VIEWPORT,    // Emit from top of screen falling down
+		FROM_LEFT_VIEWPORT,   // Emit from left side, moving right
+		FROM_RIGHT_VIEWPORT,  // Emit from right side, moving left
+		FROM_BOTTOM_VIEWPORT, // Emit from bottom, moving up
+		FROM_LINE,            // Emit along a line
+		FROM_CIRCLE_EDGE      // Emit from the edge of a circle
 	};
 
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
@@ -440,6 +453,25 @@ namespace Framework{
 		Vector2D particleStartVelocity = { 0.0f, 0.0f };// Initial velocity of emitted particles
 		Vector2D particleAcceleration = { 0.0f, 0.0f }; // For moving particles
 		bool isAffectedByGravity = false;				// Should particles be affected by gravity
+
+		EmissionStyle emissionStyle = EmissionStyle::FROM_POINT; // Style of emission
+
+		// For FROM_RADIUS style
+		float emissionRadius = 0.5f;		// Radius around position to emit particles
+
+		// For FROM_LINE style
+		Vector2D lineStart = { -1.0f, 0.0f };   // Start point of emission line
+		Vector2D lineEnd = { 1.0f, 0.0f };     // End point of emission line
+
+		// For FROM_CIRCLE_EDGE style
+		float circleRadius = 0.5f;              // Radius of the circle
+
+		// For viewport-based emissions
+		Vector2D viewportMin = { -1.0f, -1.0f };  // Bottom-left of viewport
+		Vector2D viewportMax = { 1.0f, 1.0f };    // Top-right of viewport
+
+		// Direction override
+		Vector2D emissionDirection = { 0.0f, -1.0f }; // Default downward for top emission
 	};
 
 }

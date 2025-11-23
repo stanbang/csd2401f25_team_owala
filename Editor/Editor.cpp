@@ -2662,74 +2662,148 @@ namespace Editor {
 			break;
 		}
 
-		case ComponentType::ParticleEmitterComponentType:{
+		case ComponentType::ParticleEmitterComponentType: {
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
+
 			ImGui::Checkbox("Is Emitting?", &emitter.isEmitting);
 			ImGui::Checkbox("Is Particle Animated?", &emitter.isParticleAnimated);
 
-			//Show text but make it read-only
-			ImGui::InputText("Texture Key", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
+			// Texture Key
+			ImGui::InputText("Texture Key##particle", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
 
-			// Drag and Drop Target for Texture Key
-			if (ImGui::BeginDragDropTarget())
-			{
+			if (ImGui::BeginDragDropTarget()) {
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-				if (payload)
-				{
-					// Process the dropped file path
+				if (payload) {
 					const char* dropped_path_c_str = (const char*)payload->Data;
 					fs::path dropped_path(dropped_path_c_str);
 
-					// Validate the file extension
 					std::string ext = dropped_path.extension().string();
 					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
-					{
-						// Update the texture key with the new file's filename
+					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
 						std::string newKey = dropped_path.filename().string();
 						emitter.particleTextureKey = newKey;
-
-						// Reload the texture resource
 						resourceManager_->unload<Texture>(newKey);
 						resourceManager_->loadTexture(newKey, dropped_path.string());
-
-						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
-					}
-					else
-					{
-						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
+						Logger::Get().Info(DebugType::Editor) << "Texture key updated to: " << newKey << std::endl;
 					}
 				}
 				ImGui::EndDragDropTarget();
 			}
 
 			static std::string newParticleTextureKey = "";
-			ImGui::InputText("New Texture Key", &newParticleTextureKey);
+			ImGui::InputText("New Texture Key##particle", &newParticleTextureKey);
 
-			//Button to update texture key
-			if (ImGui::Button("Update Texture")) {
+			if (ImGui::Button("Update Texture##particle")) {
 				if (!newParticleTextureKey.empty()) {
 					emitter.particleTextureKey = newParticleTextureKey;
 				}
 			}
 
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Properties");
+
 			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
 			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
-			ImGui::InputFloat("Emission Interval", &emitter.emissionInterval);
-			ImGui::InputFloat("Time Since Last Emission", &emitter.timeSinceLastEmission);
-
-			const char* items[] = { "NONE", "RANDOM"};
-			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
-
-			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, items, IM_ARRAYSIZE(items))) {
-				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
-			}
-
 			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
 			ImGui::InputFloat2("Particle Size", &emitter.particleSize.x);
 
 			ImGui::Checkbox("Is Affected by Gravity?", &emitter.isAffectedByGravity);
+
+			// Effect Type
+			const char* effectItems[] = { "NONE", "RANDOM" };
+			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
+
+			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, effectItems, IM_ARRAYSIZE(effectItems))) {
+				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Style");
+
+			// Emission Style Combo
+			const char* styleItems[] = {
+				"From Point",
+				"From Radius",
+				"From Top Viewport",
+				"From Left Viewport",
+				"From Right Viewport",
+				"From Bottom Viewport",
+				"From Line",
+				"From Circle Edge"
+			};
+
+			int currentStyleIndex = static_cast<int>(emitter.emissionStyle);
+
+			if (ImGui::Combo("Emission Style", &currentStyleIndex, styleItems, IM_ARRAYSIZE(styleItems))) {
+				emitter.emissionStyle = static_cast<EmissionStyle>(currentStyleIndex);
+			}
+
+			ImGui::Spacing();
+
+			// Style-specific configuration
+			switch (emitter.emissionStyle) {
+			case EmissionStyle::FROM_POINT:
+				ImGui::TextDisabled("Emits from entity position");
+				break;
+
+			case EmissionStyle::FROM_RADIUS:
+				ImGui::InputFloat("Emission Radius##fromradius", &emitter.emissionRadius, 0.05f, 0.1f);
+				ImGui::TextWrapped("Particles spawn randomly within a radius around the entity position");
+				break;
+
+			case EmissionStyle::FROM_TOP_VIEWPORT:
+				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				ImGui::TextWrapped("Particles spawn at the top of the viewport and fall down");
+				break;
+
+			case EmissionStyle::FROM_LEFT_VIEWPORT:
+				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				ImGui::TextWrapped("Particles spawn at the left edge and move right");
+				break;
+
+			case EmissionStyle::FROM_RIGHT_VIEWPORT:
+				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				ImGui::TextWrapped("Particles spawn at the right edge and move left");
+				break;
+
+			case EmissionStyle::FROM_BOTTOM_VIEWPORT:
+				ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+				ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				ImGui::TextWrapped("Particles spawn at the bottom edge and move up");
+				break;
+
+			case EmissionStyle::FROM_LINE:
+				ImGui::InputFloat2("Line Start", &emitter.lineStart.x, "%.2f");
+				ImGui::InputFloat2("Line End", &emitter.lineEnd.x, "%.2f");
+				ImGui::TextWrapped("Particles spawn randomly along a line");
+				break;
+
+			case EmissionStyle::FROM_CIRCLE_EDGE:
+				ImGui::InputFloat("Circle Radius##circleradius", &emitter.circleRadius, 0.05f, 0.1f);
+				ImGui::TextWrapped("Particles spawn on the edge of a circle around the entity position");
+				break;
+
+			default:
+				break;
+			}
+
+			// Direction for viewport-based emissions
+			if (emitter.emissionStyle >= EmissionStyle::FROM_TOP_VIEWPORT &&
+				emitter.emissionStyle <= EmissionStyle::FROM_BOTTOM_VIEWPORT) {
+				ImGui::Separator();
+				ImGui::InputFloat2("Emission Direction", &emitter.emissionDirection.x, "%.2f");
+				ImGui::TextWrapped("Direction vector for particle movement (normalize for consistent speed)");
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Advanced");
+			ImGui::InputFloat2("Particle Start Velocity", &emitter.particleStartVelocity.x, "%.2f");
+			ImGui::InputFloat2("Particle Acceleration", &emitter.particleAcceleration.x, "%.2f");
+
 			break;
 		}
 		default:

@@ -30,6 +30,7 @@
 #include "Animation.h"
 #include <filesystem>
 
+
 namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
@@ -126,6 +127,8 @@ namespace Framework {
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
         bool loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size = 48);
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
+
+        bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
 
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map

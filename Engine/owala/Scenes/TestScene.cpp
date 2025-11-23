@@ -82,30 +82,10 @@ namespace TestScene {
 
         // Platforms will collide with each other
         physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
-
         physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Enemy, true); // Player can collide with Enemy
         physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Enemy, true); // Enemy can collide with Platform
         physics->SetLayerCollision(CollisionLayer::Enemy, CollisionLayer::Enemy, false);  // Enemies don't collide with each other
 
-		//Load necessary files into the resource manager
-        //rcm_->loadTexture("player_sprite_PH.png", "Assets/Sprites/player_sprite_PH.png");
-		//rcm_->loadTexture("Eli_Idle_Spritesheet.png", "Assets/Sprites/Eli/Eli_Idle_Spritesheet.png");
-		//rcm_->loadTexture("Eli_Walk_Spritesheet.png", "Assets/Sprites/Eli/Eli_Walk_Spritesheet.png");
-		//rcm_->loadTexture("player_Jump_Anim.png", "Assets/Sprites/player_Jump_Anim.png");
-		rcm_->loadAnimationInfo("Eli_Idle_Spritesheet.png", "Data/AnimationData/playerIdleAnimation.json"); //WE MUST PRESERVE THIS MAPPING IF WE WANT A LINK BETWEEN SPRITESHEET AND JSON!!!!!
-        rcm_->loadAnimationInfo("Eli_Walk_Spritesheet.png", "Data/AnimationData/playerRunningAnimation.json");
-        rcm_->loadAnimationInfo("player_Jump_Anim.png", "Data/AnimationData/playerJumpingAnimation.json");
-        rcm_->loadAnimationInfo("Bird_Enemy_SleepIdle_Spritesheet.png", "Data/AnimationData/birdIdleAnimation.json");
-        rcm_->loadAnimationInfo("Eli_Jump_Spritesheet.png", "Data/AnimationData/playerJumpingAnimation.json");
-        rcm_->loadAnimationInfo("Eli_Falling_Spritesheet.png", "Data/AnimationData/playerFallingAnimation.json");
-        rcm_->loadAnimationInfo("SB_LightOrb.png", "Data/AnimationData/lightOrbAnimation.json");
-        //rcm_->loadTexture("Platform.png", "Assets/Sprites/Platform.png");
-        //rcm_->loadTexture("Env_Level2_PH.png", "Assets/Sprites/Env_Level2_PH.png");
-		//rcm_->loadSound("bgm.wav", "Assets/Audio/bgm.wav", true, true); // Background Music
-        //rcm_->loadFont("Amethysta-Regular.ttf", "Assets/Fonts/Amethysta-Regular.ttf");
-        //rcm_->loadFont("KirangHaerang-Regular.ttf", "Assets/Fonts/KirangHaerang-Regular.ttf");
-        //rcm_->loadSound("jingle.ogg", "Assets/Audio/jingle.ogg", false, true); //Jingle SFX
-        //rcm_->loadSound("jump.ogg", "Assets/Audio/jump.ogg", false, false);
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         // Loading Platform Prefabs

@@ -37,5 +37,11 @@ namespace Framework {
 		EntityStorage* entityStorage_ = nullptr;
 		ResourceManager* resourceManager_ = nullptr;
 		WindowsSystem* win_ = nullptr;
+
+		// Helper function to calculate emission position based on style
+		Vector2D CalculateEmissionPosition(const ParticleEmitterComponent& emitter, const Position& emitterPos, float rand01, float rand02);
+
+		// Helper function to calculate emission velocity based on style
+		Vector2D CalculateEmissionVelocity(const ParticleEmitterComponent& emitter, const Vector2D& emissionPos, float rand01, float rand02);
 	};
 } // namespace Framework

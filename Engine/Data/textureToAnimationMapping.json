@@ -1,0 +1,32 @@
+{
+  "animations": [
+    {
+      "texture_key": "Eli_Idle_Spritesheet.png",
+      "animation_path": "Data/AnimationData/playerIdleAnimation.json"
+    },
+    {
+      "texture_key": "Eli_Walk_Spritesheet.png",
+      "animation_path": "Data/AnimationData/playerRunningAnimation.json"
+    },
+    {
+      "texture_key": "player_Jump_Anim.png",
+      "animation_path": "Data/AnimationData/playerJumpingAnimation.json"
+    },
+    {
+      "texture_key": "Bird_Enemy_SleepIdle_Spritesheet.png",
+      "animation_path": "Data/AnimationData/birdIdleAnimation.json"
+    },
+    {
+      "texture_key": "Eli_Jump_Spritesheet.png",
+      "animation_path": "Data/AnimationData/playerJumpingAnimation.json"
+    },
+    {
+      "texture_key": "Eli_Falling_Spritesheet.png",
+      "animation_path": "Data/AnimationData/playerFallingAnimation.json"
+    },
+    {
+      "texture_key": "SB_LightOrb.png",
+      "animation_path": "Data/AnimationData/lightOrbAnimation.json"
+    }
+  ]
+}
