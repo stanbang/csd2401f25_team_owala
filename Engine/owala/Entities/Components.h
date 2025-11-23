@@ -26,6 +26,7 @@
 #include <vector> 
 #include <map>
 #include "ScriptableEntity.h"
+#include "FSM/FSM.h"
 
 namespace Framework{
 
@@ -340,6 +341,13 @@ namespace Framework{
 	};
 	
 	// --- ADDED FOR AI ---
+
+
+	struct FSMComponent {
+		FSM stateMachine;
+		bool initialized = false;
+		std::string fsmType; // string for determining which AI is utilised
+	};
 
 	/**
 	 * @enum BirdState
