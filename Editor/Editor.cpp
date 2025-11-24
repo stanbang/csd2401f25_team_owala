@@ -636,7 +636,7 @@ namespace Editor {
 		double mouseY = static_cast<double>(absoluteMousePos.y - gameViewportPos_.y);
 		double mouseX_ndc = static_cast<double>((mouseX / gameViewportSize_.x) * 2.0f - 1.0f);
 		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / gameViewportSize_.y) * 2.0f);
-		return Vector2D(mouseX_ndc, mouseY_ndc);
+		return Vector2D(static_cast<float>(mouseX_ndc), static_cast<float>(mouseY_ndc));
 	}
 
 
@@ -649,7 +649,7 @@ namespace Editor {
 		if (!cameraSystem_ || editorCamera_ == 0)
 			return;
 
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+		//const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
 		// --- MOUSE POSITION (ImGui → World) ---
 		ImVec2 mousePos = ImGui::GetMousePos();
@@ -878,22 +878,37 @@ namespace Editor {
 			return;
 		}
 
-		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Vector2D mouseWorldPos = GetMouseWorldPosition();
-		Entity bestCandidate = GetObjAtMousePos();
+		// If mouse over game viewport & not dragging prefab & not hovering on gizmos
+		// check for mouse click on invisible entity placeholders / visible entities
+		// and update the editor's selection state
+		if (!isDraggingPrefab_ && gizmoSystem_ && !gizmoSystem_->IsGizmosHover()
+			&& ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			// check if clicked on invisible entity
+			Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
 
-		// Update the editor's selection state
-		if (bestCandidate > 0) {
-			selectedEntityIndex = bestCandidate + 1;
-			isEntitySelected_ = true;
-			selectedComponentIndex = 0;
-			selectedTagIndex = 0;
-		}
-		else {
-			selectedEntityIndex = 0;
-			isEntitySelected_ = false;
-			selectedComponentIndex = 0;
-			selectedTagIndex = 0;
+			// an invisible entity was clicked
+			if (invisEntityClicked > 0) {
+				selectedEntityIndex = invisEntityClicked + 1;
+				isEntitySelected_ = true;
+				selectedComponentIndex = 0;
+				selectedTagIndex = 0;
+			}
+			// else check entity clicked
+			else {
+				Entity bestCandidate = GetObjAtMousePos();
+				if (bestCandidate > 0) {
+					selectedEntityIndex = bestCandidate + 1;
+					isEntitySelected_ = true;
+					selectedComponentIndex = 0;
+					selectedTagIndex = 0;
+				}
+				else {
+					selectedEntityIndex = 0;
+					isEntitySelected_ = false;
+					selectedComponentIndex = 0;
+					selectedTagIndex = 0;
+				}
+			}
 		}
 	}
 
@@ -3326,29 +3341,6 @@ namespace Editor {
 						gizmoSystem_->DrawInvisPlaceholders(drawList);
 					}
 
-					// If mouse over game viewport & not dragging prefab
-					// check for mouse click on gizmos / invisible entity placeholders / visible entities
-					if (isMouseOverGameViewport_ && !isDraggingPrefab_ && gizmoSystem_) {
-						if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-							// check if clicked on invisible entity
-							Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
-
-							// an invisible entity was clicked
-							if (invisEntityClicked > 0) {
-								selectedEntityIndex = invisEntityClicked + 1;
-								isEntitySelected_ = true;
-							}
-							// else check entity clicked
-							else {
-								Entity bestCandidate = GetObjAtMousePos();
-								if (bestCandidate > 0) {
-									selectedEntityIndex = bestCandidate + 1;
-									isEntitySelected_ = true;
-								}
-							}
-						}
-					}
-
 					// Handle inputs for gizmos (QTYU)
 					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused() && gizmoSystem_) {
 						// Q: Select/View Mode (No Gizmo)
@@ -3399,6 +3391,7 @@ namespace Editor {
 					}
 
 					// draw transform gizmos on selected entity
+					// run gizmos update function to check for any gizmos dragging & apply transformations accordingly
 					if (isEntitySelected_ && selectedEntityIndex > 1) {
 						gizmoSystem_->DrawGizmos(drawList, selectedEntityIndex);
 						gizmoSystem_->Update(selectedEntityIndex, editorCamera_);

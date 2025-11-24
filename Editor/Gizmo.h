@@ -50,7 +50,7 @@ namespace Editor {
 
         // --- Gizmos Dragging (Actual transformation logic) ---
         void Update(int selectedEntityIndex, Entity activeCamera);
-        void ApplyTransformation(const ImVec2& currentMousePos, const ImVec2 mouseDelta, const Entity activeCamera);
+        void ApplyTransformation(const ImVec2 mouseDelta, const Entity activeCamera);
 
         
         // --- Helper functions ---
@@ -58,6 +58,9 @@ namespace Editor {
         bool IsGizmosToggled() const {
             return currentMode_ != GizmoMode::None;
         }
+        
+        // Helper function to check if user mouse is hovering over any gizmo axis
+        bool IsGizmosHover() const { return hoveredAxis_ != GizmoAxis::None; }
 
         // Setter for gizmo mode
         void SetGizmoMode(GizmoMode mode) {
@@ -74,8 +77,9 @@ namespace Editor {
 
         // Gizmo Dimensions
         const float axisLength_ = 80.0f; // The arrows are always 80px long
-        const float axisThickness_ = 4.0f;
+        const float axisThickness_ = 8.0f;
         const float handleSize_ = 10.0f; // Size of the square/triangle at tip
+        const float centerCubeHalfsize_ = 8.0f;
 
         // Stores which axis is currently being hovered
         GizmoAxis hoveredAxis_ = GizmoAxis::None;

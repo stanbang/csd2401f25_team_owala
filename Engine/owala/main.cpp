@@ -137,6 +137,9 @@ int main() {
     engine.GameLoop();
     engine.DestroySystems();
 	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
+    #ifdef BUILD_EDITOR
+    delete gizmo; gizmo = nullptr; // Destroy GizmoSystem instance at the end of the program
+    #endif
     return 0;
     }
     catch (const GameException& e) {

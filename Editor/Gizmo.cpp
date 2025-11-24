@@ -164,8 +164,8 @@ void GizmoSystem::DrawTranslateGizmo(ImDrawList* drawList, ImVec2 origin) {
 
     // Center Quad
     drawList->AddRectFilled(
-        ImVec2(origin.x - 6, origin.y - 6),
-        ImVec2(origin.x + 6, origin.y + 6),
+        ImVec2(origin.x - centerCubeHalfsize_, origin.y - centerCubeHalfsize_),
+        ImVec2(origin.x + centerCubeHalfsize_, origin.y + centerCubeHalfsize_),
         colCenter
     );
 }
@@ -208,13 +208,14 @@ void GizmoSystem::DrawScaleGizmo(ImDrawList* drawList, ImVec2 origin) {
     drawList->AddRectFilled(ImVec2(yTip.x - box / 2, yTip.y - box / 2), ImVec2(yTip.x + box / 2, yTip.y - box), colY); // Shift up
 
     // Center Box
-    drawList->AddRectFilled(ImVec2(origin.x - 6, origin.y - 6), ImVec2(origin.x + 6, origin.y + 6), colCenter);
+    drawList->AddRectFilled(
+        ImVec2(origin.x - centerCubeHalfsize_, origin.y - centerCubeHalfsize_),
+        ImVec2(origin.x + centerCubeHalfsize_, origin.y + centerCubeHalfsize_), colCenter);
 }
 
 void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity entity) {
     ImVec2 mousePos = ImGui::GetMousePos();
     float radius = axisLength_ * 0.8f;
-    float thickness = 5.0f;
 
     ImU32 color = IM_COL32(50, 100, 200, 255); // Blue ring
 
@@ -229,12 +230,11 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
 
     if (hoverRing) {
         color = IM_COL32(100, 150, 255, 255); // Bright Blue
-        thickness = 7.0f;
         hoveredAxis_ = GizmoAxis::RotateRing;
     }
 
     // Draw Ring
-    drawList->AddCircle(origin, radius, color, 64, thickness);
+    drawList->AddCircle(origin, radius, color, 64, axisThickness_);
 
      // Draw a line indicating current rotation
     EntityManager entityMgr(ecs_);
@@ -290,14 +290,14 @@ void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
         );
 
         // Apply the transformation based on the active mode and axis
-        ApplyTransformation(currentMousePos, mouseDelta, activeCamera);
+        ApplyTransformation(mouseDelta, activeCamera);
 
         // IMPORTANT: Update the last position for the next frame
         lastMousePos_ = currentMousePos;
     }
 }
 
-void GizmoSystem::ApplyTransformation(const ImVec2& currentMousePos, const ImVec2 mouseDelta, const Entity activeCamera) {
+void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity activeCamera) {
     // Safety check: isDragging_ must be true, and draggedEntity_ must be valid
     if (!isDragging_ || draggedEntity_ == 0) return;
 
@@ -333,6 +333,7 @@ void GizmoSystem::ApplyTransformation(const ImVec2& currentMousePos, const ImVec
             else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
                 currentPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
             }
+            else return;
 
             if (activeAxis_ == GizmoAxis::X) {
                 snappedPos.y = currentPos.y; // Preserve current Y
@@ -366,7 +367,16 @@ void GizmoSystem::ApplyTransformation(const ImVec2& currentMousePos, const ImVec
 
         if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
             Rotation& rotComp = entityMgr.GetComponent<Rotation>(draggedEntity_);
-            Vector2D entityWorldPos = entityMgr.GetComponent<Position>(draggedEntity_).Pos;
+            
+            // Get position
+            Vector2D entityWorldPos;
+            if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
+                entityWorldPos = entityMgr.GetComponent<Position>(draggedEntity_).Pos;
+            }
+            else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
+                entityWorldPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
+            }
+            else return;
 
             // 1. Get Screen Center of the Entity
             ImVec2 screenCenter = editor_->WorldToImGuiScreen(entityWorldPos, activeCamera);
@@ -376,6 +386,7 @@ void GizmoSystem::ApplyTransformation(const ImVec2& currentMousePos, const ImVec
             ImVec2 v1 = ImVec2(lastMousePos_.x - screenCenter.x, screenCenter.y - lastMousePos_.y);
 
             // 3. Vector from Center to Current Mouse Pos (v2)
+            ImVec2 currentMousePos = ImGui::GetMousePos();
             ImVec2 v2 = ImVec2(currentMousePos.x - screenCenter.x, screenCenter.y - currentMousePos.y);
 
             // 4. Calculate the angle between the two vectors (atan2(y, x) is preferred for full circle)
