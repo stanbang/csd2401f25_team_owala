@@ -440,9 +440,6 @@ namespace Editor {
 			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Prefab Palette", dock_right);
-			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
 			ImGui::DockBuilderDockWindow("Layer", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
@@ -450,6 +447,9 @@ namespace Editor {
 
 			ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
+			ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
+			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
+			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
@@ -470,6 +470,7 @@ namespace Editor {
 
 		// --- Handle Editor Logic ---
 		HandleSpawning();
+		HandleBrushInput();
 		HandleSelection();
 		HandleDeletion();
 		
@@ -479,7 +480,7 @@ namespace Editor {
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
 			HandleTileErasing();
 		}
-		if (!isDraggingPrefab_ && dragDropPayload_.type != PrefabType::Eraser) {
+		if (!isDraggingPrefab_ && dragDropPayload_.type != PrefabType::Eraser && !isBrushMode_) {
 			HandleSelection();
 		}
 		HandleDeletion();
@@ -646,8 +647,6 @@ namespace Editor {
 			isDraggingPrefab_ = false;
 			return;
 		}
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return;
 
 		//const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
@@ -667,124 +666,273 @@ namespace Editor {
 		// --- SNAP TO GRID ---
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		Framework::EntityManager entityMgr(*ecs);
-		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-
-		// Prevent duplicates
-		const float tolerance = baseGridCellSize_ * 0.1f;
-		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
-					isDraggingPrefab_ = false;
-					return;
-				}
-			}
-		}
-
-		Entity newEntity = 0;
-
-		if (dragDropPayload_.type == PrefabType::Tile) {
-			newEntity = entityMgr.CreateEntity(); //for tile pallette
-
-			//float aspect = gameViewportSize_.x / gameViewportSize_.y;
-			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
-
-			if (newEntity != 0) {
-				entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;
-				entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
-
-				// Add basic components for tiles
-				entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-				entityMgr.AddComponent(newEntity, Framework::Velocity{ {0.0f, 0.0f} });
-				entityMgr.AddComponent(newEntity, Framework::RigidBody{ {0.0f, 0.0f}, false, 0.0f, 0.0f });
-				entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-				std::string textureKey = dragDropPayload_.name;
-				for (const auto& tile : tileDataList_) {
-					if (tile.name == dragDropPayload_.name) {
-						textureKey = tile.textureID;
-						break;
-					}
-				}
-				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-				entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-				entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-
-				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-
-				Framework::Logger::Get().Info(DebugType::Editor) << "Placed tile: " << dragDropPayload_.name << " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-			}
-		}
-		else {
-			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);//for prefab pallette
-
-			if (newEntity == 0) {
-				Framework::Logger::Get().Error(DebugType::Editor) << "Failed to create entity from prefab: " << dragDropPayload_.name << std::endl;
-				isDraggingPrefab_ = false;
-				return;	
-			}
-
-			if (entityMgr.HasComponent(newEntity, TextureComponentType)) {
-				TextureComponent textComp = entityMgr.GetComponent<TextureComponent>(newEntity);
-				if (textComp.textureKey.empty()) {
-					Framework::Logger::Get().Error(DebugType::Editor)
-						<< "Empty texture key assigned for placed prefab: " << dragDropPayload_.name << std::endl;
-				}
-				else {
-					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-				}
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "No texture component added for placed prefab: " << dragDropPayload_.name << std::endl;
-			}
-		}
+		// Call the new helper
+		PlaceObjectInWorld(dragDropPayload_, snappedPos);
 
 		isDraggingPrefab_ = false;
+
 	}
 
 
 	void Editor::DrawDragDropPreview(ImDrawList* drawList)
 	{
-		if (!isDraggingPrefab_ ||
-			dragDropPayload_.type == PrefabType::None ||
-			dragDropPayload_.type == PrefabType::Eraser)
-			return;
 
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return;
+		// 1. Check Visibility
+		bool showPreview = (isDraggingPrefab_ || isBrushMode_) && isMouseOverGameViewport_;
+		if (!showPreview) return;
 
+		// 2. Get Payload
+		const DraggablePrefabInfo& currentPayload = isDraggingPrefab_ ? dragDropPayload_ : brushPayload_;
+		if (currentPayload.type == PrefabType::None || currentPayload.type == PrefabType::Eraser) return;
+
+		// DEBUG: Log what we're trying to draw
+		static int debugCounter = 0;
+		if (debugCounter++ % 60 == 0) { // Log once per second at 60fps
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "PREVIEW: " << currentPayload.name
+				<< " | TexID: " << currentPayload.textureID
+				<< " | UV0: (" << currentPayload.uv0.x << "," << currentPayload.uv0.y << ")"
+				<< " | UV1: (" << currentPayload.uv1.x << "," << currentPayload.uv1.y << ")" << std::endl;
+		}
+
+
+		
+
+		if (!cameraSystem_ || editorCamera_ == 0) return;
+
+		// 4. Calculate Position (Snapped to Grid)
 		Vector2D worldMousePos = GetMouseWorldPosition();
-		dragDropPreviewPos_ = SnapToGrid(worldMousePos);
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		Texture previewTextureID = dragDropPayload_.textureID;
-		if (previewTextureID == 0)
-			return;
+		// Update internal state vars for logic elsewhere
+		if (isDraggingPrefab_) dragDropPreviewPos_ = snappedPos;
+		else brushPreviewPos_ = snappedPos;
 
-		// Use consistent world space sizing
-		Vector2D previewHalfSize = { baseGridCellSize_, baseGridCellSize_ };
+		// 5. Calculate Screen Rect
+		Vector2D halfSize = { baseGridCellSize_, baseGridCellSize_ };
 
-		// Calculate world space corners
-		Vector2D worldMin = { dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y };
-		Vector2D worldMax = { dragDropPreviewPos_.x + previewHalfSize.x, dragDropPreviewPos_.y + previewHalfSize.y };
+		Vector2D worldMin = { snappedPos.x - halfSize.x, snappedPos.y - halfSize.y };
+		Vector2D worldMax = { snappedPos.x + halfSize.x, snappedPos.y + halfSize.y };
 
-		// Convert to screen space
-		ImVec2 screenMin = WorldToImGuiScreen(worldMin);
-		ImVec2 screenMax = WorldToImGuiScreen(worldMax);
+		ImVec2 p1 = WorldToImGuiScreen(worldMin);
+		ImVec2 p2 = WorldToImGuiScreen(worldMax);
 
-		ImVec2 uv0 = dragDropPayload_.uv0;
-		ImVec2 uv1 = dragDropPayload_.uv1;
-		ImU32 tintColor = IM_COL32(255, 255, 255, 150);
+		// FIX: Normalize Min/Max to prevent negative width/height
+		ImVec2 rectMin = ImVec2(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
+		ImVec2 rectMax = ImVec2(std::max(p1.x, p2.x), std::max(p1.y, p2.y));
 
-		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
-		drawList->AddImage(texID, screenMin, screenMax, uv0, uv1, tintColor);
+		// 6. Draw with proper clipping
+		ImVec2 clipMin = gameViewportPos_;
+		ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x,
+			gameViewportPos_.y + gameViewportSize_.y);
+
+		// Only draw if within viewport bounds
+		if (rectMin.x < clipMax.x && rectMax.x > clipMin.x &&
+			rectMin.y < clipMax.y && rectMax.y > clipMin.y) {
+
+			ImU32 tint = isBrushMode_ ? IM_COL32(255, 255, 255, 200) : IM_COL32(255, 255, 255, 128);
+
+			// Cast texture ID properly for ImGui
+			ImTextureID texID = (ImTextureID)(intptr_t)currentPayload.textureID;
+
+			//ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
+
+			// Draw the image
+			drawList->AddImage(
+				texID,
+				rectMin,
+				rectMax,
+				currentPayload.uv0,
+				currentPayload.uv1,
+				tint
+			);
+
+			// Draw border
+		/*	ImU32 borderCol = isBrushMode_ ? IM_COL32(0, 255, 0, 255) : IM_COL32(255, 255, 0, 255);
+			drawList->AddRect(rectMin, rectMax, borderCol, 0.0f, 0, 2.0f);*/
+		}
+		//if (!isDraggingPrefab_ ||
+		//	dragDropPayload_.type == PrefabType::None ||
+		//	dragDropPayload_.type == PrefabType::Eraser)
+		//	return;
+
+		//if (!cameraSystem_ || editorCamera_ == 0)
+		//	return;
+
+		//Vector2D worldMousePos = GetMouseWorldPosition();
+		//dragDropPreviewPos_ = SnapToGrid(worldMousePos);
+
+		//Texture previewTextureID = dragDropPayload_.textureID;
+		//if (previewTextureID == 0)
+		//	return;
+
+		//// Use consistent world space sizing
+		//Vector2D previewHalfSize = { baseGridCellSize_, baseGridCellSize_ };
+
+		//// Calculate world space corners
+		//Vector2D worldMin = { dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y };
+		//Vector2D worldMax = { dragDropPreviewPos_.x + previewHalfSize.x, dragDropPreviewPos_.y + previewHalfSize.y };
+
+		//// Convert to screen space
+		//ImVec2 screenMin = WorldToImGuiScreen(worldMin);
+		//ImVec2 screenMax = WorldToImGuiScreen(worldMax);
+
+		//ImVec2 uv0 = dragDropPayload_.uv0;
+		//ImVec2 uv1 = dragDropPayload_.uv1;
+		//ImU32 tintColor = IM_COL32(255, 255, 255, 150);
+
+		//ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
+		//drawList->AddImage(texID, screenMin, screenMax, uv0, uv1, tintColor);
 	}
 
+	Vector2D Editor::GetPrefabHalfSize(const std::string& name, PrefabType type)
+	{
+		// Default size if nothing is found (e.g. 1 grid cell)
+		Vector2D defaultSize = { baseGridCellSize_, baseGridCellSize_ };
 
+		if (type == PrefabType::Tile) {
+			// Tiles usually fit exactly in the grid
+			return defaultSize;
+		}
 
+		// Look up the prefab definition
+		const EntityPrefab* prefab = prefabSystem_.GetPrefab(name);
+		if (!prefab) return defaultSize;
 
+		// 1. Try to find AABBCollider data
+		for (const auto& comp : prefab->components) {
+			if (comp.type == "AABBCollider") {
+				if (comp.data.HasMember("halfSizeX") && comp.data.HasMember("halfSizeY")) {
+					return Vector2D{
+						comp.data["halfSizeX"].GetFloat(),
+						comp.data["halfSizeY"].GetFloat()
+					};
+				}
+			}
+		}
+
+		// 2. Fallback to TextureComponent data if no collider
+		for (const auto& comp : prefab->components) {
+			if (comp.type == "TextureComponent") {
+				if (comp.data.HasMember("halfSizeX") && comp.data.HasMember("halfSizeY")) {
+					return Vector2D{
+						comp.data["halfSizeX"].GetFloat(),
+						comp.data["halfSizeY"].GetFloat()
+					};
+				}
+			}
+		}
+
+		return defaultSize;
+	}
+
+	
+
+	void Editor::PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position)
+	{
+		// 1. Force Snap (Double check)
+		Vector2D snappedPos = SnapToGrid(position);
+
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		// 2. Overlap Check
+		// We check if ANY entity with a Position component exists at this exact grid point.
+		// Epsilon is small to allow floating point comparison.
+		const float epsilon = 0.05f;
+		const std::vector<Entity>& entities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+		for (const auto& entity : entities) {
+			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
+				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+
+				// Check intersection
+				if (std::abs(pos.x - snappedPos.x) < epsilon &&
+					std::abs(pos.y - snappedPos.y) < epsilon) {
+
+					// Allow replacing if in Eraser mode, otherwise BLOCK placement
+					if (info.type != PrefabType::Eraser) {
+						return; // EXIT: Object already exists here
+					}
+				}
+			}
+		}
+
+		// 3. Create Entity
+		Entity newEntity = 0;
+
+		if (info.type == PrefabType::Tile) {
+			newEntity = entityMgr.CreateEntity();
+
+			// Setup Tile Components...
+			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
+
+			// Ensure texture key is valid (Try appending .png if raw name fails)
+			std::string textureKey = info.name;
+			if (!resourceManager_->has<Texture>(textureKey) && resourceManager_->has<Texture>(textureKey + ".png")) {
+				textureKey += ".png";
+			}
+
+			entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
+			entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
+			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
+			entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
+			entityMgr.GetProperties(newEntity).name = info.name;
+		}
+		else if (info.type != PrefabType::Eraser) {
+			// Create Prefab
+			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, info.name, snappedPos);
+		}
+		if (newEntity != 0) {
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+			// Optional: Record History
+			historyManager_.Record(OpType::Create, newEntity, "Brush Place");
+		}
+	}
+
+	void Editor::HandleBrushInput()
+	{
+		// 1. Exit conditions
+		if (!isBrushMode_ || isDraggingPrefab_) return;
+
+		// 2. Cancellation (Right Click in viewport or ESC)
+		Framework::InputSystem* input = gameManager_->GetSystems().input_;
+		if (input->MousePressed(Framework::InputSystem::MouseButton::Right) ||
+			input->KeyPressed(Framework::InputSystem::Key::Escape)) {
+			isBrushMode_ = false;
+			lastPlacedPos_ = { -99999.0f, -99999.0f };
+			Framework::Logger::Get().Info(DebugType::Editor) << "Exited Brush Mode" << std::endl;
+			return;
+		}
+
+		// 3. Painting Logic (Left Mouse Held)
+		if (input->MouseDown(Framework::InputSystem::MouseButton::Left) && isMouseOverGameViewport_) {
+
+			Vector2D worldMousePos = GetMouseWorldPosition();
+			Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+			// check if we already placed at this exact grid spot this stroke
+			// (Prevents spamming the creation function 60 times a second on one tile)
+			if (snappedPos.x != lastPlacedPos_.x || snappedPos.y != lastPlacedPos_.y) {
+
+				if (brushPayload_.type == PrefabType::Eraser) {
+					// Set payload for existing eraser logic function, or call specific eraser helper
+					dragDropPayload_ = brushPayload_; // Hacky reuse of existing eraser logic
+					HandleTileErasing();
+				}
+				else {
+					PlaceObjectInWorld(brushPayload_, snappedPos);
+				}
+
+				lastPlacedPos_ = snappedPos;
+			}
+		}
+		else if (input->MouseReleased(Framework::InputSystem::MouseButton::Left)) {
+			// Reset last placed when mouse is let go, allows clicking same spot again if needed
+			lastPlacedPos_ = { -99999.0f, -99999.0f };
+		}
+	}
 
 
 	void Editor::HandleTileErasing() {
@@ -1172,15 +1320,16 @@ namespace Editor {
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
 			entityMgr.AddComponent<AnimationComponent>(bird, {});
+			//entityMgr.AddComponent<RotationFlag>(bird, {});
 
 			RigidBody rb;
-			rb.SetMass(0.0f); // Give it some mass
+			rb.SetMass(1.0f); // Give it some mass
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
 			//  Add components to make it visible and selectable
-			Vector2D texHalfSize = { 0.1f, 0.2f }; // Set a default size
-			Vector2D aabbHalfSize = { 0.01f, 0.01f }; // Set a default size
+			Vector2D texHalfSize = { 100.f, 100.f }; // Set a default size
+			Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
 
 			// texture is loaded in TestScene.cpp
 			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
@@ -1359,6 +1508,9 @@ namespace Editor {
 				wasTilePaletteOpen = true;
 			}
 
+			ImGui::Text("Left Click to drag and drop, Right click to select item for Brush Mode");
+			ImGui::Separator();
+
 			showGrid_ = true;
 
 			ImVec2 buttonSize(64, 64);
@@ -1384,6 +1536,10 @@ namespace Editor {
 				ImGui::PushID(item.name.c_str());
 				ImTextureID textureID = item.textureID;
 
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 1, 0, 0.5f)); // Green tint
+				}
+
 				if (ImGui::ImageButton(item.name.c_str(),
 					textureID,
 					buttonSize,
@@ -1396,23 +1552,41 @@ namespace Editor {
 						<< "Clicked tile: " << item.name << std::endl;
 				}
 
-				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("%s", item.name.c_str());
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PopStyleColor();
+					// Draw border around selected
+					ImVec2 p_min = ImGui::GetItemRectMin();
+					ImVec2 p_max = ImGui::GetItemRectMax();
+					ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(0, 255, 0, 255), 0, 0, 2.0f);
+				}
+
 
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					isBrushMode_ = false; // Cancel brush if we start dragging
 					ImGui::SetDragDropPayload("TILE_DND", &item, sizeof(DraggablePrefabInfo));
 					ImGui::Text("Placing: %s", item.name.c_str());
 					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
-
 					isDraggingPrefab_ = true;
 					dragDropPayload_ = item;
-
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Begin Dragging Tile: " << item.name << std::endl;
-
 					ImGui::EndDragDropSource();
 				}
 
+				// 2. Handle Right Click (New Brush Mode)
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					isBrushMode_ = true;
+					brushPayload_ = item; // Copy item info to brush
+					isDraggingPrefab_ = false; // Stop dragging if active
+
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Entered Brush Mode with: " << item.name << std::endl;
+				}
+
+				
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", item.name.c_str());
+
+				
 				ImGui::PopID();
 
 				itemsPerRow++;
@@ -1434,11 +1608,7 @@ namespace Editor {
 			showGrid_ = false;
 			isDraggingPrefab_ = false;
 		}
-		//if (engine_ && engine_->IsEditorMode()) {
-		//	engine_->SetMode(Framework::EngineMode::Play);
-		//	Framework::Logger::Get().Info(DebugType::Editor)
-		//		<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-		//}
+		
 	}
 
 	void Editor::LoadTilesFromFile() {
@@ -1559,6 +1729,9 @@ namespace Editor {
 				}
 			}
 
+			ImGui::Text("Left Click to drag and drop, Right click to select item for Brush Mode");
+			ImGui::Separator();
+
 			showGrid_ = true; // Keep grid visible
 
 			ImVec2 buttonSize(64, 64);
@@ -1566,10 +1739,14 @@ namespace Editor {
 			ImVec4 tintCol(1, 1, 1, 1);
 
 			// --- Eraser Tool ---
-			if (ImGui::Selectable("Eraser", dragDropPayload_.type == PrefabType::Eraser && isDraggingPrefab_)) {
-				isDraggingPrefab_ = true;
-				dragDropPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+			bool isEraserActive = (isBrushMode_ && brushPayload_.type == PrefabType::Eraser);
+			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1));
+			if (ImGui::Selectable("Eraser", isEraserActive)) {
+				isBrushMode_ = true;
+				brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+				isDraggingPrefab_ = false;
 			}
+			if (isEraserActive) ImGui::PopStyleColor();
 			ImGui::Separator();
 
 			// --- Prefab Tiles ---
@@ -1584,6 +1761,11 @@ namespace Editor {
 				ImGui::PushID(item.name.c_str());
 				ImTextureID textureID = item.textureID;
 
+				// Highlight if active brush
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 1, 0, 0.5f));
+				}
+
 				if (ImGui::ImageButton(item.name.c_str(),
 					textureID,
 					buttonSize,
@@ -1596,22 +1778,32 @@ namespace Editor {
 						<< "Clicked palette item: " << item.name << std::endl;
 				}
 
-				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("%s", item.name.c_str());
-
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PopStyleColor();
+					ImVec2 p_min = ImGui::GetItemRectMin();
+					ImVec2 p_max = ImGui::GetItemRectMax();
+					ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(0, 255, 0, 255), 0, 0, 2.0f);
+				}
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					isBrushMode_ = false;
 					ImGui::SetDragDropPayload("PREFAB_TILE_DND", &item, sizeof(DraggablePrefabInfo));
 					ImGui::Text("Placing: %s", item.name.c_str());
 					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
-
 					isDraggingPrefab_ = true;
 					dragDropPayload_ = item;
-
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Begin Dragging: " << item.name << std::endl;
-
 					ImGui::EndDragDropSource();
 				}
+
+				// 2. Brush Mode (Right Click)
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					isBrushMode_ = true;
+					brushPayload_ = item;
+					isDraggingPrefab_ = false;
+				}
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", item.name.c_str());
+
 
 				ImGui::PopID();
 
@@ -1943,7 +2135,25 @@ namespace Editor {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
 								std::string beforeJSON;
 
-								entityMgr.AddComponent(selectedEntity, selectedComponent);
+								// auto calculate aabb halfsize using tex halfsize
+								if (selectedComponent == ComponentType::AABBColliderType) {
+									AABBCollider newCollider;
+
+									// If we have a texture, use its size automatically
+									if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
+										const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+										newCollider.HalfSize = tex.HalfSize;
+									}
+									else {
+										newCollider.HalfSize = { 50.0f, 50.0f }; // Default fallback
+									}
+
+									entityMgr.AddComponent(selectedEntity, newCollider);
+								}
+								else {
+									// Standard addition for other components
+									entityMgr.AddComponent(selectedEntity, selectedComponent);
+								}
 
 								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
 								std::string description = "Add " + ComponentToString(selectedComponent);
@@ -2229,6 +2439,21 @@ namespace Editor {
 				ss << "Set " << ComponentToString(ComponentType::AABBColliderType) << " to (" << col.HalfSize.x << ", " << col.HalfSize.y << ") in "
 					<< entityMgr.GetProperties(selectedEntity).name << std::endl;
 				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
+				ImGui::NewLine();
+				if (ImGui::Button("Auto-Fit to Sprite")) {
+					const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					col.HalfSize = tex.HalfSize;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					historyManager_.RecordModifyComponent(selectedEntity, "Auto-Fit Collider", beforeJSON, afterJSON, selectedComponent);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Automatically sets the AABB bounds to match the Texture dimensions.");
+				}
 			}
 
 			editSession.wasItemActive = activeNow;
@@ -2952,8 +3177,8 @@ namespace Editor {
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);
+		/*	ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);*/
 			ImGui::PopStyleColor(2);
 
 			ImGui::Separator();
@@ -2973,7 +3198,7 @@ namespace Editor {
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");
+		/*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -2983,9 +3208,9 @@ namespace Editor {
 			ImGui::Text("Hover Behavior");
 			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+			/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");
+			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -3451,7 +3676,7 @@ namespace Editor {
 	void Editor::ShowLayerManager() {
 
 		
-	ImGui::Begin("Layer", &settings.showLayerManager);
+	ImGui::Begin("Layer");
 
 	auto* physics = gameManager_->GetSystems().physics_;
 	if (!physics) {
@@ -3468,7 +3693,6 @@ namespace Editor {
 		ShowCollisionMatrix(physics);
 	}
 
-	ImGui::Spacing();
 	ImGui::Separator();
 	ImGui::Spacing();
 
@@ -3516,46 +3740,9 @@ namespace Editor {
 		const float ROW_HEADER_WIDTH = 100.0f;
 		const float CELL_SIZE = 30.0f;
 
-		// Calculate column header height
-		float maxLabelWidth = 0.0f;
-		for (int i = 0; i < layerCount; i++) {
-			std::string name = LayerToString(static_cast<Framework::CollisionLayer>(i));
-			maxLabelWidth = std::max(maxLabelWidth, ImGui::CalcTextSize(name.c_str()).x);
-		}
-
-		const float COLUMN_HEADER_HEIGHT = maxLabelWidth + ImGui::GetStyle().ItemSpacing.y * 2;
-
-		// --- Draw Column Headers (Vertical Text) ---
-		ImGui::Dummy(ImVec2(ROW_HEADER_WIDTH, COLUMN_HEADER_HEIGHT));
-		ImGui::SameLine();
-
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
 
-		for (int col = 0; col < layerCount; col++) {
-			Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
-			std::string colName = LayerToString(colLayer);
-
-			float colCenterX = headerStartPos.x + (col * CELL_SIZE) + (CELL_SIZE * 0.5f);
-			float textBottom = headerStartPos.y + COLUMN_HEADER_HEIGHT - ImGui::GetStyle().ItemSpacing.y - 0.5f;
-
-			// Draw vertical text
-			for (size_t i = 0; i < colName.length(); i++) {
-				char c[2] = { colName[i], '\0' };
-				ImVec2 charSize = ImGui::CalcTextSize(c);
-				ImVec2 charPos(colCenterX - charSize.x * 0.5f, textBottom - (i + 1) * charSize.y);
-				drawList->AddText(charPos, ImGui::GetColorU32(ImGuiCol_Text), c);
-			}
-
-			ImGui::SetCursorScreenPos(ImVec2(colCenterX - CELL_SIZE * 0.5f, headerStartPos.y));
-			ImGui::InvisibleButton(("##colheader" + std::to_string(col)).c_str(),
-				ImVec2(CELL_SIZE, COLUMN_HEADER_HEIGHT));
-			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("%s", colName.c_str());
-			}
-		}
-
-		ImGui::SetCursorScreenPos(ImVec2(headerStartPos.x, headerStartPos.y + COLUMN_HEADER_HEIGHT));
 		ImGui::NewLine();
 
 		// Draw Matrix Grid 

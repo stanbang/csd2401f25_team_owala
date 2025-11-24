@@ -1016,13 +1016,13 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::HOVER_RADIUS), birdAI.hoverRadius, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HOVER_HEIGHT), birdAI.hoverHeight, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HOVER_SPEED), birdAI.hoverSpeed, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::HOVER_NODE_REACHED_DIST), birdAI.hoverNodeReachedDist, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_HOVER_NODE), birdAI.currentHoverNode, alloc);
+		/*outData.AddMember(rapidjson::StringRef(Serialization::HOVER_NODE_REACHED_DIST), birdAI.hoverNodeReachedDist, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_HOVER_NODE), birdAI.currentHoverNode, alloc);*/
 		outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_RADIUS), birdAI.attackRadius, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_SPEED), birdAI.attackSpeed, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_DURATION), birdAI.attackDuration, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_COOLDOWN), birdAI.attackCooldown, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_TIMER), birdAI.attackTimer, alloc);
+	/*	outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_COOLDOWN), birdAI.attackCooldown, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_TIMER), birdAI.attackTimer, alloc);*/
 
 		// Serialize attack target position
 		rapidjson::Value attackTargetPos(rapidjson::kObjectType);
@@ -1505,12 +1505,12 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::HOVER_SPEED) && componentData[Serialization::HOVER_SPEED].IsFloat()) {
 			out.hoverSpeed = componentData[Serialization::HOVER_SPEED].GetFloat();
 		}
-		if (componentData.HasMember(Serialization::HOVER_NODE_REACHED_DIST) && componentData[Serialization::HOVER_NODE_REACHED_DIST].IsFloat()) {
+		/*if (componentData.HasMember(Serialization::HOVER_NODE_REACHED_DIST) && componentData[Serialization::HOVER_NODE_REACHED_DIST].IsFloat()) {
 			out.hoverNodeReachedDist = componentData[Serialization::HOVER_NODE_REACHED_DIST].GetFloat();
 		}
 		if (componentData.HasMember(Serialization::CURRENT_HOVER_NODE) && componentData[Serialization::CURRENT_HOVER_NODE].IsInt()) {
 			out.currentHoverNode = componentData[Serialization::CURRENT_HOVER_NODE].GetInt();
-		}
+		}*/
 		if (componentData.HasMember(Serialization::ATTACK_RADIUS) && componentData[Serialization::ATTACK_RADIUS].IsFloat()) {
 			out.attackRadius = componentData[Serialization::ATTACK_RADIUS].GetFloat();
 		}
@@ -1520,12 +1520,12 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::ATTACK_DURATION) && componentData[Serialization::ATTACK_DURATION].IsFloat()) {
 			out.attackDuration = componentData[Serialization::ATTACK_DURATION].GetFloat();
 		}
-		if (componentData.HasMember(Serialization::ATTACK_COOLDOWN) && componentData[Serialization::ATTACK_COOLDOWN].IsFloat()) {
+	/*	if (componentData.HasMember(Serialization::ATTACK_COOLDOWN) && componentData[Serialization::ATTACK_COOLDOWN].IsFloat()) {
 			out.attackCooldown = componentData[Serialization::ATTACK_COOLDOWN].GetFloat();
 		}
 		if (componentData.HasMember(Serialization::ATTACK_TIMER) && componentData[Serialization::ATTACK_TIMER].IsFloat()) {
 			out.attackTimer = componentData[Serialization::ATTACK_TIMER].GetFloat();
-		}
+		}*/
 
 		// Deserialize attack target position
 		if (componentData.HasMember(Serialization::ATTACK_TARGET_POSITION) && componentData[Serialization::ATTACK_TARGET_POSITION].IsObject()) {
