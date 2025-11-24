@@ -37,6 +37,9 @@ namespace Framework {
 		InputSystem* input_ = nullptr; // use our own input system
 		PhysicsSystem* physics_ = nullptr; // use physics sytems
 
+		// Player landed event handler
+		void OnPlayerLanded(Entity player, const Vector2D& position, float impactSpeed);
+
 		// Private variables
 		float moveSpeed = 0.0f;
 		float jumpHeight = 0.0f;

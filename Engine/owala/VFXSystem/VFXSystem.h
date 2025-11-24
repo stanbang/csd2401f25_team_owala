@@ -17,6 +17,7 @@
 #include "EntityStorage.h"
 #include "ResourceManager.h"
 #include "CameraSystem.h"
+#include "GameMessages.h"
 
 namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
@@ -26,7 +27,7 @@ namespace Framework {
 		VFXSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, CameraSystem& cameraSystem)
 			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), cameraSystem_(&cameraSystem) {
 		}
-		void Initialize() override {}
+		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
 
@@ -39,6 +40,12 @@ namespace Framework {
 		ResourceManager* resourceManager_ = nullptr;
 		WindowsSystem* win_ = nullptr;
 		CameraSystem* cameraSystem_ = nullptr;
+
+		// Creation logic so it can be used by both EmitParticles and the Event
+		void SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& config, const Position& origin);
+
+		// Event handler for particle burst events
+		void OnParticleBurst(const ParticleBurstEvent& event);
 
 		// Helper function to calculate emission position based on style
 		Vector2D CalculateEmissionPosition(const ParticleEmitterComponent& emitter,

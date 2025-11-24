@@ -20,6 +20,14 @@
 #include "OwalaTime.h"
 
 namespace Framework {
+	void VFXSystem::Initialize() {
+		// Subscribe to the burst event
+		MessageBus::Instance().Subscribe<ParticleBurstEvent>(
+			[this](const ParticleBurstEvent& e) {
+				this->OnParticleBurst(e);
+			});
+	}
+
 	void VFXSystem::Update() {
 		GameManager& gm = GameManager::GetInstance();
 
@@ -36,6 +44,94 @@ namespace Framework {
 		EntityManager entityMgr(*entityStorage_);
 		EmitParticles(entityMgr);
 		UpdateParticles(entityMgr);
+	}
+
+	// Event Handler
+	void VFXSystem::OnParticleBurst(const ParticleBurstEvent& event) {
+		EntityManager entityMgr(*entityStorage_);
+
+		// Create a temporary config based on the event data
+		// We reuse the ParticleEmitterComponent struct to hold the settings
+		ParticleEmitterComponent config;
+		config.isEmitting = true;
+		config.particleTextureKey = event.textureKey;
+		config.particleLifetime = event.lifetime;
+		config.particleSpeed = event.speed;
+		config.particleSize = event.size;
+		config.particleEffectType = event.effect;
+		config.effectStrength = event.effectStrength;
+		config.isScreenSpace = event.isScreenSpace;
+		config.isParticleAnimated = event.isAnimated;
+
+		// Handle Style
+		config.emissionStyle = event.style;
+		config.emissionRadius = event.radius;
+		config.circleRadius = event.radius;
+
+		// Define offset
+		config.emissionOffset = event.offset;
+
+		// Define origin
+		Position origin;
+		origin.Pos = event.position;
+
+		// Handle Screen Space conversion for the origin if needed
+		if (config.isScreenSpace) {
+			origin.Pos = WorldToScreenSpace(event.position);
+		}
+
+		// Loop 'count' times to spawn the burst
+		for (int i = 0; i < event.count; ++i) {
+			SpawnSingleParticle(entityMgr, config, origin);
+		}
+	}
+
+	// Helper to spawn a single particle based on emitter config and origin
+	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Position& origin) {
+		// Create new particle entity
+		Entity particleEntity = entityMgr.CreateEntity();
+
+		// Add ParticleComponent
+		ParticleComponent particleComp;
+		particleComp.effectType = emitter.particleEffectType;
+		particleComp.lifetime = emitter.particleLifetime;
+		particleComp.age = 0.0f;
+		particleComp.isScreenSpace = emitter.isScreenSpace;
+		entityMgr.AddComponent<ParticleComponent>(particleEntity, particleComp);
+
+		// Calculate emission position based on style
+		float rand01 = static_cast<float>(rand()) / RAND_MAX;
+		float rand02 = static_cast<float>(rand()) / RAND_MAX;
+
+		// Calculate Position
+		Vector2D emissionPos = CalculateEmissionPosition(emitter, origin, rand01, rand02, emitter.isScreenSpace);
+		Position posComp;
+		posComp.Pos = emissionPos;
+		entityMgr.AddComponent<Position>(particleEntity, posComp);
+
+		// Calculate Velocity
+		Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, rand02, emitter.isScreenSpace);
+		Velocity velocityComp;
+		velocityComp.Vel = emissionVel;
+		entityMgr.AddComponent<Velocity>(particleEntity, velocityComp);
+
+		// Add Texture
+		if (!emitter.particleTextureKey.empty()) {
+			TextureComponent textureComp;
+			textureComp.textureKey = emitter.particleTextureKey;
+			textureComp.HalfSize = emitter.particleSize;
+			entityMgr.AddComponent<TextureComponent>(particleEntity, textureComp);
+		}
+
+		// Add Animation
+		if (emitter.isParticleAnimated) {
+			AnimationComponent animComp;
+			animComp.isPlaying = true;
+			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
+		}
+
+		// Add ActiveTag
+		entityMgr.AddComponent<ActiveTag>(particleEntity, ActiveTag{});
 	}
 
 
@@ -75,54 +171,8 @@ namespace Framework {
 				// Reset timer(but keep any small overflow for accuracy)
 				emitter.timeSinceLastEmission -= emissionInterval;
 
-				// Create new particle entity
-				Entity particleEntity = entityMgr.CreateEntity();
-
-				// Add ParticleComponent
-				ParticleComponent particleComp;
-				particleComp.effectType = emitter.particleEffectType;
-				particleComp.lifetime = emitter.particleLifetime;
-				particleComp.age = 0.0f;
-				particleComp.isScreenSpace = emitter.isScreenSpace;
-				entityMgr.AddComponent<ParticleComponent>(particleEntity, particleComp);
-
-				// Calculate emission position based on style
-				float rand01 = static_cast<float>(rand()) / RAND_MAX;
-				float rand02 = static_cast<float>(rand()) / RAND_MAX;
-
-				// For screen space particles, use normalized coordinates directly (0-1)
-				// For world space particles, convert from world to screen then back to world
-				Vector2D emissionPos = CalculateEmissionPosition(emitter, calculationOrigin, rand01, rand02, emitter.isScreenSpace);
-				Position posComp;
-				posComp.Pos = emissionPos;
-				entityMgr.AddComponent<Position>(particleEntity, posComp);
-
-				// Calculate emission velocity based on style
-				Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, rand02, emitter.isScreenSpace);
-				Velocity velocityComp;
-				velocityComp.Vel = emissionVel;
-				entityMgr.AddComponent<Velocity>(particleEntity, velocityComp);
-
-				// Add Texture component to the particle based on emitter's provided texture key
-				if (!emitter.particleTextureKey.empty()) {
-					TextureComponent textureComp;
-					textureComp.textureKey = emitter.particleTextureKey;
-					textureComp.HalfSize = emitter.particleSize;
-					entityMgr.AddComponent<TextureComponent>(particleEntity, textureComp);
-				}
-
-				// Add animation component if emitter requires it
-				if (emitter.isParticleAnimated) {
-					AnimationComponent animComp;
-					animComp.isPlaying = true;
-					entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
-				}
-
-				// Add ActiveTag to particle
-				entityMgr.AddComponent<ActiveTag>(particleEntity, ActiveTag{});
-
-				Logger::Get().Info(DebugType::VFXSystem) << "Created particle at ("
-					<< emissionPos.x << ", " << emissionPos.y << ")" << std::endl;
+				//  Spawn a single particle
+				SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
 			}
 		}
 
@@ -142,25 +192,32 @@ namespace Framework {
 			}
 
 			// Screen space particles don't get affected by physics
-			if (!particle.isScreenSpace) {
-				// Handle physics for world space particles
+			if (entityMgr.HasComponent(entity, VelocityType)) {
+				Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
+
 				switch (particle.effectType) {
 				case EffectType::RANDOM: {
-					// Apply random jitter to velocity every second
-					if (static_cast<int>(particle.age) % 1 == 0) {
-						if (entityMgr.HasComponent(entity, VelocityType)) {
-							// Apply small random angle change to velocity
-							Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
-							float angleChange = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 0.2f;
-							float speed = sqrt(vel.Vel.x * vel.Vel.x + vel.Vel.y * vel.Vel.y);
-							float currentAngle = atan2(vel.Vel.y, vel.Vel.x);
-							float newAngle = currentAngle + angleChange;
-							vel.Vel.x = speed * cos(newAngle);
-							vel.Vel.y = speed * sin(newAngle);
-						}
-					}
+					// Apply continuous random jitter to velocity
+					float jitterStrength = 2.0f; // Adjust this for more/less chaos
+					float randomX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * jitterStrength;
+					float randomY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * jitterStrength;
+
+					vel.Vel.x += randomX * Time::DeltaTime();
+					vel.Vel.y += randomY * Time::DeltaTime();
 					break;
 				}
+
+				case EffectType::DRIFT: {
+					// Gentle variation while maintaining general direction
+					float driftStrength = 0.5f; // Much gentler than RANDOM
+					float randomX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * driftStrength;
+					float randomY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * driftStrength;
+
+					vel.Vel.x += randomX * Time::DeltaTime();
+					vel.Vel.y += randomY * Time::DeltaTime();
+					break;
+				}
+
 				case EffectType::NONE:
 				default:
 					break;
@@ -196,26 +253,58 @@ namespace Framework {
 	}
 
 	case EmissionStyle::FROM_TOP_VIEWPORT: {
-		float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
-		result = Vector2D{ x, emitter.viewportMax.y };
+		if (isScreenSpace) {
+			// Screen space: 0 to 1, so spawn at top (y=1)
+			float x = rand01; // Random x from 0 to 1
+			result = Vector2D{ x, 1.0f }; // Top of screen
+		}
+		else {
+			// World space: use viewport bounds
+			float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
+			result = Vector2D{ x, emitter.viewportMax.y };
+		}
 		break;
 	}
 
 	case EmissionStyle::FROM_LEFT_VIEWPORT: {
-		float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
-		result = Vector2D{ emitter.viewportMin.x, y };
+		if (isScreenSpace) {
+			// Screen space: spawn at left edge (x=0)
+			float y = rand01; // Random y from 0 to 1
+			result = Vector2D{ 0.0f, y }; // Left edge
+		}
+		else {
+			// World space: use viewport bounds
+			float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
+			result = Vector2D{ emitter.viewportMin.x, y };
+		}
 		break;
 	}
 
 	case EmissionStyle::FROM_RIGHT_VIEWPORT: {
-		float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
-		result = Vector2D{ emitter.viewportMax.x, y };
+		if (isScreenSpace) {
+			// Screen space: spawn at right edge (x=1)
+			float y = rand01; // Random y from 0 to 1
+			result = Vector2D{ 1.0f, y }; // Right edge
+		}
+		else {
+			// World space: use viewport bounds
+			float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
+			result = Vector2D{ emitter.viewportMax.x, y };
+		}
 		break;
 	}
 
 	case EmissionStyle::FROM_BOTTOM_VIEWPORT: {
-		float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
-		result = Vector2D{ x, emitter.viewportMin.y };
+		if (isScreenSpace) {
+			// Screen space: spawn at bottom (y=0)
+			float x = rand01; // Random x from 0 to 1
+			result = Vector2D{ x, 0.0f }; // Bottom of screen
+		}
+		else {
+			// World space: use viewport bounds
+			float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
+			result = Vector2D{ x, emitter.viewportMin.y };
+		}
 		break;
 	}
 
@@ -241,6 +330,10 @@ namespace Framework {
 	default:
 		result = emitterPos.Pos;
 	}
+
+	// Apply emission offset after calculating base position
+	result.x += emitter.emissionOffset.x;
+	result.y += emitter.emissionOffset.y;
 
 	return result;
 }

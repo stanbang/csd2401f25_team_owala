@@ -27,6 +27,14 @@
     {
       "texture_key": "SB_LightOrb.png",
       "animation_path": "Data/AnimationData/lightOrbAnimation.json"
+    },
+    {
+      "texture_key": "SB_PlayerLand_VFX_Spritesheet.png",
+      "animation_path": "Data/AnimationData/playerLandEffect.json"
+    },
+    {
+      "texture_key": "SB_FallingDust_Spritesheet.png",
+      "animation_path": "Data/AnimationData/fallingDustAnimation.json"
     }
   ]
 }

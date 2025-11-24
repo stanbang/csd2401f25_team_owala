@@ -145,6 +145,7 @@ namespace Framework::Serialization {
 	static constexpr const char* EMISSION_RATE = "emit_rate";
 	static constexpr const char* EMISSION_INTERVAL = "emit_interval";
 	static constexpr const char* PARTICLE_EFFECT_TYPE = "particle_effect_type";
+	static constexpr const char* EFFECT_STRENGTH = "effect_strength";
 	static constexpr const char* PARTICLE_SPEED = "particle_speed";
 	static constexpr const char* PARTICLE_SIZE = "particle_size";
 	static constexpr const char* IS_AFFECTED_BY_GRAVITY = "is_affected_by_gravity";
@@ -158,6 +159,7 @@ namespace Framework::Serialization {
 	static constexpr const char* VIEWPORT_MIN = "viewport_min";
 	static constexpr const char* VIEWPORT_MAX = "viewport_max";
 	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
+	static constexpr const char* EMISSION_OFFSET = "emission_offset";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";

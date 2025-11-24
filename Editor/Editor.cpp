@@ -2730,11 +2730,19 @@ namespace Editor {
 			ImGui::Checkbox("Is Affected by Gravity?", &emitter.isAffectedByGravity);
 
 			// Effect Type
-			const char* effectItems[] = { "NONE", "RANDOM" };
+			const char* effectItems[] = { "NONE", "DRIFT", "RANDOM" };
 			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
 
 			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, effectItems, IM_ARRAYSIZE(effectItems))) {
 				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::BeginTooltip();
+				ImGui::Text("NONE: Particles move in straight lines");
+				ImGui::Text("DRIFT: Gentle variation (recommended for rain/snow)");
+				ImGui::Text("RANDOM: Chaotic erratic movement");
+				ImGui::EndTooltip();
 			}
 
 			ImGui::Separator();
@@ -2756,6 +2764,29 @@ namespace Editor {
 
 			if (ImGui::Combo("Emission Style", &currentStyleIndex, styleItems, IM_ARRAYSIZE(styleItems))) {
 				emitter.emissionStyle = static_cast<EmissionStyle>(currentStyleIndex);
+			}
+
+			// Emission Offset
+			ImGui::Spacing();
+			ImGui::Text("Emission Offset:");
+			ImGui::SetNextItemWidth(200.0f);
+			ImGui::DragFloat2("Offset (X, Y)", &emitter.emissionOffset.x, 0.01f, -10.0f, 10.0f, "%.2f");
+
+			if (ImGui::IsItemHovered()) {
+				if (emitter.isScreenSpace) {
+					ImGui::SetTooltip("Screen space offset (0-1 normalized coordinates)\n"
+						"Example: X=0, Y=-0.5 shifts down by half screen");
+				}
+				else {
+					ImGui::SetTooltip("World space offset\n"
+						"Shifts emission position by this amount in world units");
+				}
+			}
+
+			// Add quick reset button
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Reset##offset")) {
+				emitter.emissionOffset = { 0.0f, 0.0f };
 			}
 
 			ImGui::Spacing();

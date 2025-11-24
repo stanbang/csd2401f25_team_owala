@@ -57,25 +57,6 @@ namespace Framework{
 		FALLING
 	};
 
-	// Enum for different particle movement effects
-	enum class EffectType {
-		NONE,
-		RANDOM,
-		RANDOM_UP
-	};
-
-	// Enum for different emission styles
-	enum class EmissionStyle {
-		FROM_POINT,           // Emit from the position component
-		FROM_RADIUS,          // Emit randomly within a radius around position
-		FROM_TOP_VIEWPORT,    // Emit from top of screen falling down
-		FROM_LEFT_VIEWPORT,   // Emit from left side, moving right
-		FROM_RIGHT_VIEWPORT,  // Emit from right side, moving left
-		FROM_BOTTOM_VIEWPORT, // Emit from bottom, moving up
-		FROM_LINE,            // Emit along a line
-		FROM_CIRCLE_EDGE      // Emit from the edge of a circle
-	};
-
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
@@ -132,6 +113,7 @@ namespace Framework{
 	struct PlayerState {
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
+		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 	};
 
 	struct Triangle { 
@@ -449,6 +431,7 @@ namespace Framework{
 		float emissionInterval = 0.0f;	// Time between emissions (calculated from emissionRate)
 		float timeSinceLastEmission = 0.0f; // Time since the last particle was emitted
 		EffectType particleEffectType = EffectType::NONE; // Type of effect for emitted particles
+		float effectStrength = 1.0f; // Strength of the effect
 		float particleSpeed = 1.0f;	// Speed of emitted particles
 		Vector2D particleSize = { 1.0f, 1.0f }; // Size of emitted particles
 
@@ -457,6 +440,7 @@ namespace Framework{
 		bool isAffectedByGravity = false;				// Should particles be affected by gravity
 
 		EmissionStyle emissionStyle = EmissionStyle::FROM_POINT; // Style of emission
+		Vector2D emissionOffset = { 0.0f, 0.0f }; // Offset from emitter position
 
 		// For FROM_RADIUS style
 		float emissionRadius = 0.5f;		// Radius around position to emit particles
@@ -470,7 +454,7 @@ namespace Framework{
 
 		// For screen space: use normalized coordinates (0 to 1)
 		// For world space: use world coordinates
-		Vector2D viewportMin = { -1.0f, -1.0f };
+		Vector2D viewportMin = { 0.0f, 0.0f };
 		Vector2D viewportMax = { 1.0f, 1.0f };
 
 
