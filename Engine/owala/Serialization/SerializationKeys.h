@@ -110,6 +110,7 @@ namespace Framework::Serialization {
 	static constexpr const char* FONT_KEY = "font_key";
 	static constexpr const char* FONT_COLOR = "font_color";
 	static constexpr const char* FONT_SIZE = "font_size";
+	static constexpr const char* MAX_WIDTH = "max_width";
 
 	static constexpr const char* CAMERA_COMPONENT = "Camera";
 	static constexpr const char* POSITION = "position";
@@ -160,6 +161,9 @@ namespace Framework::Serialization {
 	static constexpr const char* VIEWPORT_MAX = "viewport_max";
 	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
 	static constexpr const char* EMISSION_OFFSET = "emission_offset";
+
+	static constexpr const char* ROTATION_ANGLE = "angle";
+	static constexpr const char* SCALE_AXES= "axes";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";

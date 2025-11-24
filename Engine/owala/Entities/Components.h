@@ -61,7 +61,7 @@ namespace Framework{
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
-		RenderLayer renderLayer = RenderLayer::Custom;
+		RenderLayer renderLayer = RenderLayer::Platform;
 		int customRenderOrder = 0; // Used when renderLayer is Custom
 	};
 
@@ -98,7 +98,7 @@ namespace Framework{
 
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
-		Vector2D HalfSize; // Half-width and half-height of the box
+		Vector2D HalfSize{ 50.0f, 50.0f }; // Half-width and half-height of the box
 	};
 
 	
@@ -134,7 +134,7 @@ namespace Framework{
 
 	struct TextureComponent {
 		std::string textureKey; // Key to identify the texture resource
-		Vector2D HalfSize = {};
+		Vector2D HalfSize = { 50.f, 50.f };
 	};
 
 	struct AudioComponent {
@@ -161,9 +161,15 @@ namespace Framework{
 
 	struct TextComponent {
 		std::string textToDraw{};
-		std::string fontKey;
+		std::string fontKey{};
 		Color color = { 1,1,1,1 };
 		float scale = 1.0f;
+		float maxWidth = 10.0f;
+
+		// no need to serialize, calculated by text render system 
+		Vector2D halfSize = { 0.0f, 0.0f };
+		std::vector<std::string> wrappedLines;
+		bool isDirty = true;
 	};
 
 	/* TAG SECTION */
@@ -345,6 +351,7 @@ namespace Framework{
 		WAKING,  // Alerted, playing "wake up" animation
 		CHASE,   // Using A* to navigate to the player
 		HOVER,   // Close to the player, hovering erratically
+		STUNNED,
 		ATTACK   // Diving at the player's last known position
 	};
 
@@ -353,39 +360,40 @@ namespace Framework{
 	 * @brief Contains all data for the Bird's state machine and pathfinding.
 	 */
 	struct BirdAIComponent {
-
 		BirdState state = BirdState::IDLE;
-		
-		// Timers
-		float stateTimer = 0.0f;     // General purpose timer for states
-		float attackCooldown = 3.0f; // Time between attacks
-		float attackTimer = 3.0f;    // Countdown for next attack
 
-		// Radii
-		float wakeUpRadius = 0.3f;   // Distance to spot the player
-		float hoverRadius = 0.05f;    // "Close enough" distance to stop chasing
-		float attackRadius = 0.1f;   // Max distance from which to launch an attack
+		// State
+		float stateTimer = 0.0f;
 
-		// Config
-		float moveSpeed = 1.0f;
-		float attackSpeed = 1.0f;
-		float wakeUpTime = 1.0f;     // Duration of WAKING state
+		// Wake-up
+		float wakeUpRadius = 500.0f;
+		float wakeUpTime = 1.0f;
 
-		// Pathfinding
-		std::vector<Vector2D> currentPath{};
-		float pathRecalculateTimer = 0.0f;
-		float pathRecalculateInterval = 0.5f; // How often to find a new path
+		// Chase
+		float moveSpeed = 50.0f;
+		float chaseRadius = 40000.0f; // Max distance before giving up
 
 		// Attack
-		Vector2D attackTargetPosition; // Where the bird is diving towards
-		float attackDuration = 1.0f;
+		float attackRadius = 400.f; // Distance to trigger attack
+		float attackSpeed = 100.0f;
+		float attackDuration = 5.0f; // Max time in attack state
+		Vector2D attackTargetPosition = { 0.0f, 0.0f }; // Snapshot of player pos
 
-		// --- Hover Behavior  ---
-		float hoverHeight = 1.2f;       // How far above player to hover
-		float hoverRadius_Circle = 0.6f; // Radius of the circle above player
-		int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)
-		float hoverNodeReachedDist = 0.1f; // How close to get before moving to next node
-		float hoverSpeed = 0.3f;         // Speed when moving between hover nodes
+		// Stunned
+		float stunDuration = 1.0f; // Buffer time after hitting wall
+
+		// Hover
+		float hoverRadius = 400.f; // Distance to re-engage from hover
+		float hoverSpeed = 10.f;
+		float hoverHeight = 50.f; // Height above player to orbit
+
+		// Pathfinding
+		std::vector<Vector2D> currentPath;
+		float pathRecalculateInterval = 0.5f;
+		float pathRecalculateTimer = 0.0f;
+
+		// Rotation pause
+		bool isPausedForRotation = false;
 	};
 
 	/**

@@ -38,25 +38,36 @@ namespace Framework {
         static void SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath);
         // Serializes multiple entities to outArray.
         static void SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc);
+        // Serialize properties of a given entity into a JSON object.
+        static void SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        // Serialize Components for a given entity into a JSON object.
+        static void SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serialize tags for a given entity into a JSON object.
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
         static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName);
+        // Serializes the current state of an entity to a JSON Object and return as a string.
+        static std::string SerializeEntityToString(Entity entity, EntityStorage& ecs);
+        // Serializes the current state of the entity properties into a JSON Object and return as a string. 
+        static std::string SerializeEntityPropertiesToString(Entity entity, EntityStorage& ecs);
+        // Serializes the current state of a component to a JSON Object and return as a string. Returns an empty string if component does not exist.
+        static std::string SerializeComponentToString(Entity entity, ComponentType compType, EntityStorage& ecs);
+        // Serializes the current tags of an entity to a JSON Object and return as a string. Returns an empty string if theres no tags on the entity.
+        static std::string SerializeTagsToString(Entity entity, EntityStorage& ecs);
 
 		/* Deserialization APIs */
         // Deserialize a new entity from JSON (creates a new entity and adds components).
         static Entity DeserializeEntity(EntityStorage& ecs, const rapidjson::Value& entityData);
 		// Deserialize an entity to an existing entity (modifies the existing entity).
 		static void DeserializeEntityToExisting(EntityStorage& ecs, Entity entityToOverwrite, const rapidjson::Value& entityData);
+        // Deserializes an entity's properties from JSON data.
+        static void DeserializeEntityProperties(const rapidjson::Value& entityData, EntityProperties& out);
 		// Deserialize components for a given entity from JSON data.
         static void DeserializeComponents(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
 		// Deserialize tags for a given entity from JSON data.
         static void DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
         // Deserialize scene data from JSON file (modifies sceneName and entitiesList)
         static bool DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList);
-
-        /* Generic */
-        std::string JSONToString(const rapidjson::Value& jsonObject);
 
         /* Specialized Serialization APIs */
         /* Components */
@@ -83,6 +94,8 @@ namespace Framework {
         static void SerializeComponent(const Button& button, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SceneOwned& sceneOwnedComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const Scale& scaleComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
 
         /* Specialized Deserialization APIs */
         /* Components */
@@ -108,6 +121,9 @@ namespace Framework {
         static bool DeserializeComponent(const rapidjson::Value& componentData, SkeletonAIComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Button& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, SceneOwned& out);
-		static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, Rotation& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, Scale& out);
+
     };
 }

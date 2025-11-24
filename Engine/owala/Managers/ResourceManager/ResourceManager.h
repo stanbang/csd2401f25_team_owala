@@ -161,8 +161,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Texture: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Texture: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Texture: " + key);
             }
             return *it->second;
@@ -179,8 +178,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Audio: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Audio: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Audio: " + key);
             }
             return *it->second;
@@ -197,8 +195,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Font: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Font: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Font: " + key);
             }
             return *it->second;
@@ -215,8 +212,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Animation: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Animation: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Animation: " + key);
             }
             return *it->second;

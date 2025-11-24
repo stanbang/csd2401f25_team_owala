@@ -37,6 +37,7 @@ namespace Editor{
 	struct Operation {
 		OpType opType = OpType::None;
 		std::string description;
+		int groupID = 0;
 
 		OpData data;
 	};
@@ -49,26 +50,44 @@ namespace Editor{
 		std::vector<Operation> redoStack;
 		int maxHistorySteps{ 20 };
 
+		/* Grouping States */
+		int nextGroupID = 1;
+		int activeGroupID = 0;
+		int groupDepth = 0;
+
 		/* Internal Helpers */
 		void PruneHistoryToLimit();
 		void Apply(const Operation& op, bool isUndo);
 		void RestoreEntityFromSnapshot(Entity entity, const std::string& json);
 		void ApplyComponentSnapshot(Entity entity, Framework::ComponentType type, const std::string& json);
-
-		std::string SerializeEntityToString(Entity entity);
 	public:
 		explicit HistoryManager(Framework::EntityStorage& ecs);
 
 		/* Config */
 		void SetUndoLimit(int limit);
 
+		/* Accessors */
+		std::string GetLatestUndoDescription() const;
+		std::string GetLatestRedoDescription() const;
+		std::vector<std::string> GetUndoHistoryDescriptions() const;
+		std::vector<std::string> GetRedoHistoryDescriptions() const;
+
 		/* APIs */
 		void ClearHistory();
-		void Record(OpType opType, Entity entity, std::string description);
-		void Push(const Operation& op);
+		// Function for recording Entity-Level operations.
+		void Record(OpType opType, Entity entity, const std::string& description);
+		// Dedicated Function for recording operations relating to Component Modifications.
+		// Add/Remove/Modify Components should use this.
+		void RecordModifyComponent(Entity entity, const std::string& description, const std::string& beforeJSON, const std::string& afterJSON, Framework::ComponentType compType = Framework::ComponentType::MAX_COMPONENTS);
+		void Push(Operation& op);
 		bool CanUndo() const;
 		bool CanRedo() const;
 		void Undo();
 		void Redo();
+
+		/* Grouping APIs */
+		void BeginGroup();
+		void EndGroup();
+		bool IsGroupActive() const noexcept;
 	};
 }

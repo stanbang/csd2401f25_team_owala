@@ -93,7 +93,7 @@ bool ResourceManager::loadTexture(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?";
+			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?\n";
 		return false;
 	}
 
@@ -121,7 +121,7 @@ bool ResourceManager::loadSound(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load sound: Key '" << name << "' not found.";
+			<< "Cannot auto-load sound: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -195,7 +195,7 @@ bool ResourceManager::loadFont(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load font: Key '" << name << "' not found.";
+			<< "Cannot auto-load font: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -237,7 +237,7 @@ bool ResourceManager::loadAnimationInfo(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load animation: Key '" << name << "' not found.";
+			<< "Cannot auto-load animation: Key '" << name << "' not found.\n";
 		return false;
 	}
 

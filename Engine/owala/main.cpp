@@ -35,6 +35,7 @@
 #include "Logger.h"
 #include "GameManager.h"
 #include "SpriteRenderSystem.h"
+#include "TextRenderSystem.h"
 #include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
 #include "CameraSystem.h"
@@ -45,6 +46,7 @@
 #ifdef BUILD_EDITOR
 // Imgui Editor
 #include "Editor.h"
+#include "Gizmo.h"
 #endif
 
 // Global pointer to WindowsSystem for console handler
@@ -98,13 +100,17 @@ int main() {
     CameraSystem* camera = new CameraSystem(*ecs);
     VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
+    TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
 
 	// Editor Registration
     #ifdef BUILD_EDITOR
 	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
-	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
+    Editor::GizmoSystem* gizmo = new Editor::GizmoSystem(*editor, *ecs, *camera);
+    editor->SetGizmoSystem(gizmo);
+
+    gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
     #endif
 
     //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
@@ -131,6 +137,9 @@ int main() {
     engine.GameLoop();
     engine.DestroySystems();
 	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
+    #ifdef BUILD_EDITOR
+    delete gizmo; gizmo = nullptr; // Destroy GizmoSystem instance at the end of the program
+    #endif
     return 0;
     }
     catch (const GameException& e) {
