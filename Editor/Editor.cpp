@@ -703,107 +703,6 @@ namespace Editor {
 
 		isDraggingPrefab_ = false;
 
-		//if (!isDraggingPrefab_ || !isMouseOverGameViewport_) {
-		//	isDraggingPrefab_ = false;
-		//	return;
-		//}
-		//if (!cameraSystem_ || editorCamera_ == 0)
-		//	return;
-
-		//const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-		//// --- MOUSE POSITION (ImGui → World) ---
-		//ImVec2 mousePos = ImGui::GetMousePos();
-		//ImVec2 viewportPos = gameViewportPos_;
-		//ImVec2 viewportSize = gameViewportSize_;
-
-
-		//float screenX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
-		//float screenY = 1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f;
-
-		//Vector2D screenPos = { screenX, screenY };
-		//Vector2D worldMousePos = cameraSystem_->ScreenToWorld(screenPos, editorCamera_);
-
-
-		//// --- SNAP TO GRID ---
-		//Vector2D snappedPos = SnapToGrid(worldMousePos);
-
-		//Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		//Framework::EntityManager entityMgr(*ecs);
-		//Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-
-		//// Prevent duplicates
-		//const float tolerance = baseGridCellSize_ * 0.1f;
-		//for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-		//	if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-		//	if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-		//		const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-		//		if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
-		//			isDraggingPrefab_ = false;
-		//			return;
-		//		}
-		//	}
-		//}
-
-		//Entity newEntity = 0;
-
-		//if (dragDropPayload_.type == PrefabType::Tile) {
-		//	newEntity = entityMgr.CreateEntity(); //for tile pallette
-
-		//	//float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		//	Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
-
-		//	if (newEntity != 0) {
-		//		entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;
-		//		entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
-
-		//		// Add basic components for tiles
-		//		entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-		//		entityMgr.AddComponent(newEntity, Framework::Velocity{ {0.0f, 0.0f} });
-		//		entityMgr.AddComponent(newEntity, Framework::RigidBody{ {0.0f, 0.0f}, false, 0.0f, 0.0f });
-		//		entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-		//		std::string textureKey = dragDropPayload_.name;
-		//		for (const auto& tile : tileDataList_) {
-		//			if (tile.name == dragDropPayload_.name) {
-		//				textureKey = tile.textureID;
-		//				break;
-		//			}
-		//		}
-		//		entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-		//		entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-		//		entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-
-		//		sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-
-		//		Framework::Logger::Get().Info(DebugType::Editor) << "Placed tile: " << dragDropPayload_.name << " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-		//	}
-		//}
-		//else {
-		//	newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);//for prefab pallette
-
-		//	if (newEntity == 0) {
-		//		Framework::Logger::Get().Error(DebugType::Editor) << "Failed to create entity from prefab: " << dragDropPayload_.name << std::endl;
-		//		isDraggingPrefab_ = false;
-		//		return;	
-		//	}
-
-		//	if (entityMgr.HasComponent(newEntity, TextureComponentType)) {
-		//		TextureComponent textComp = entityMgr.GetComponent<TextureComponent>(newEntity);
-		//		if (textComp.textureKey.empty()) {
-		//			Framework::Logger::Get().Error(DebugType::Editor)
-		//				<< "Empty texture key assigned for placed prefab: " << dragDropPayload_.name << std::endl;
-		//		}
-		//		else {
-		//			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-		//		}
-		//	}
-		//	else {
-		//		Framework::Logger::Get().Error(DebugType::Editor)
-		//			<< "No texture component added for placed prefab: " << dragDropPayload_.name << std::endl;
-		//	}
-		//}
-
-		//isDraggingPrefab_ = false;
 	}
 
 
@@ -829,13 +728,7 @@ namespace Editor {
 		}
 
 
-		//// 3. Check Texture Validity - REMOVE THIS CHECK, it's causing false negatives
-		//// The texture IS valid if it shows in the palette
-		//if (currentPayload.textureID == 0) {
-		//	Framework::Logger::Get().Error(DebugType::Editor)
-		//		<< "Preview texture ID is 0 for: " << currentPayload.name << std::endl;
-		//	return;
-		//}
+		
 
 		if (!cameraSystem_ || editorCamera_ == 0) return;
 
@@ -1767,31 +1660,12 @@ namespace Editor {
 						<< "Entered Brush Mode with: " << item.name << std::endl;
 				}
 
-				// 3. Visual Feedback
-				//if (isBrushMode_ && brushPayload_.name == item.name) {
-				//	// Draw a border around the selected brush item
-				//	ImVec2 min = ImGui::GetItemRectMin();
-				//	ImVec2 max = ImGui::GetItemRectMax();
-				//	ImGui::GetWindowDrawList()->AddRect(min, max, IM_COL32(0, 255, 0, 255), 0.0f, 0, 3.0f);
-				//}
+				
 
 				if (ImGui::IsItemHovered())
 					ImGui::SetTooltip("%s", item.name.c_str());
 
-				/*if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-					ImGui::SetDragDropPayload("TILE_DND", &item, sizeof(DraggablePrefabInfo));
-					ImGui::Text("Placing: %s", item.name.c_str());
-					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
-
-					isDraggingPrefab_ = true;
-					dragDropPayload_ = item;
-
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Begin Dragging Tile: " << item.name << std::endl;
-
-					ImGui::EndDragDropSource();
-				}*/
-
+				
 				ImGui::PopID();
 
 				itemsPerRow++;
@@ -1813,11 +1687,7 @@ namespace Editor {
 			showGrid_ = false;
 			isDraggingPrefab_ = false;
 		}
-		//if (engine_ && engine_->IsEditorMode()) {
-		//	engine_->SetMode(Framework::EngineMode::Play);
-		//	Framework::Logger::Get().Info(DebugType::Editor)
-		//		<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-		//}
+		
 	}
 
 	void Editor::LoadTilesFromFile() {
@@ -2013,19 +1883,6 @@ namespace Editor {
 				if (ImGui::IsItemHovered())
 					ImGui::SetTooltip("%s", item.name.c_str());
 
-				/*if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-					ImGui::SetDragDropPayload("PREFAB_TILE_DND", &item, sizeof(DraggablePrefabInfo));
-					ImGui::Text("Placing: %s", item.name.c_str());
-					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
-
-					isDraggingPrefab_ = true;
-					dragDropPayload_ = item;
-
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Begin Dragging: " << item.name << std::endl;
-
-					ImGui::EndDragDropSource();
-				}*/
 
 				ImGui::PopID();
 
@@ -2357,7 +2214,25 @@ namespace Editor {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
 								std::string beforeJSON;
 
-								entityMgr.AddComponent(selectedEntity, selectedComponent);
+								// auto calculate aabb halfsize using tex halfsize
+								if (selectedComponent == ComponentType::AABBColliderType) {
+									AABBCollider newCollider;
+
+									// If we have a texture, use its size automatically
+									if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
+										const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+										newCollider.HalfSize = tex.HalfSize;
+									}
+									else {
+										newCollider.HalfSize = { 50.0f, 50.0f }; // Default fallback
+									}
+
+									entityMgr.AddComponent(selectedEntity, newCollider);
+								}
+								else {
+									// Standard addition for other components
+									entityMgr.AddComponent(selectedEntity, selectedComponent);
+								}
 
 								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
 								std::string description = "Add " + ComponentToString(selectedComponent);
@@ -2643,6 +2518,21 @@ namespace Editor {
 				ss << "Set " << ComponentToString(ComponentType::AABBColliderType) << " to (" << col.HalfSize.x << ", " << col.HalfSize.y << ") in "
 					<< entityMgr.GetProperties(selectedEntity).name << std::endl;
 				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
+				ImGui::NewLine();
+				if (ImGui::Button("Auto-Fit to Sprite")) {
+					const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					col.HalfSize = tex.HalfSize;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					historyManager_.RecordModifyComponent(selectedEntity, "Auto-Fit Collider", beforeJSON, afterJSON, selectedComponent);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Automatically sets the AABB bounds to match the Texture dimensions.");
+				}
 			}
 
 			editSession.wasItemActive = activeNow;
