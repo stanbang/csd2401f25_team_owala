@@ -115,7 +115,7 @@ namespace Framework {
                     halfSize = sprite.HalfSize;
 
                 // --- Frustum Culling ---
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement && !isScreenSpaceParticle) {
                     if (worldPos.x + halfSize.x < left || worldPos.x - halfSize.x > right ||
                         worldPos.y + halfSize.y < bottom || worldPos.y - halfSize.y > top) {
                         continue;
