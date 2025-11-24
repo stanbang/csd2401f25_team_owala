@@ -118,6 +118,15 @@ namespace Framework {
 
         // Loop over all entities with an EnemyTagType and BirdAIComponent
         for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
+
+            // PAUSE AI during world rotation
+            if (worldIsRotating) {
+                if (entityMgr.HasComponent(enemy, VelocityType)) {
+                    entityMgr.GetComponent<Velocity>(enemy).Vel = Vector2D::Zero();
+                }
+                continue; // Skip AI updates
+            }
+
             // Check that the bird has all components before proceeding
             if (entityMgr.HasComponent(enemy, BirdAIComponentType))
             {
@@ -140,13 +149,7 @@ namespace Framework {
                     birdHalfSize = entityMgr.GetComponent<TextureComponent>(enemy).HalfSize;
                 }
 
-                // PAUSE AI during world rotation
-                if (worldIsRotating) {
-                    if (entityMgr.HasComponent(enemy, VelocityType)) {
-                        entityMgr.GetComponent<Velocity>(enemy).Vel = Vector2D::Zero();
-                    }
-                    continue; // Skip AI updates
-                }
+                
 
 #ifdef BUILD_EDITOR
                 // Log state transitions - only in editor build
@@ -596,7 +599,7 @@ namespace Framework {
         // Draw navigation grid
         if (showNavigationGrid) {
             DrawNavigationGrid(viewLeft, viewRight, viewBottom, viewTop, drawList, editor, activeCam);
-            Logger::Get().Info(DebugType::AISystem) << "Drawing navigation grid" << std::endl;
+            //Logger::Get().Info(DebugType::AISystem) << "Drawing navigation grid" << std::endl;
         }
 
         //Draw Enemies debug info

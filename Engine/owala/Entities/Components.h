@@ -67,7 +67,7 @@ namespace Framework{
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
-		RenderLayer renderLayer = RenderLayer::Custom;
+		RenderLayer renderLayer = RenderLayer::Platform;
 		int customRenderOrder = 0; // Used when renderLayer is Custom
 	};
 
@@ -365,16 +365,16 @@ namespace Framework{
 		float stateTimer = 0.0f;
 
 		// Wake-up
-		float wakeUpRadius = 350.0f;
+		float wakeUpRadius = 500.0f;
 		float wakeUpTime = 1.0f;
 
 		// Chase
-		float moveSpeed = 2.0f;
+		float moveSpeed = 50.0f;
 		float chaseRadius = 40000.0f; // Max distance before giving up
 
 		// Attack
-		float attackRadius = 150.f; // Distance to trigger attack
-		float attackSpeed = 400.0f;
+		float attackRadius = 400.f; // Distance to trigger attack
+		float attackSpeed = 100.0f;
 		float attackDuration = 5.0f; // Max time in attack state
 		Vector2D attackTargetPosition = { 0.0f, 0.0f }; // Snapshot of player pos
 
@@ -382,7 +382,7 @@ namespace Framework{
 		float stunDuration = 1.0f; // Buffer time after hitting wall
 
 		// Hover
-		float hoverRadius = 250.f; // Distance to re-engage from hover
+		float hoverRadius = 400.f; // Distance to re-engage from hover
 		float hoverSpeed = 10.f;
 		float hoverHeight = 50.f; // Height above player to orbit
 

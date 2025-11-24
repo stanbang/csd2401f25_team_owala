@@ -163,6 +163,21 @@ namespace Editor {
 		// Tracks whether move game object mode is activated. Toggled by Toggle Move button on the toolbar, for in world game obj drag and drop
 		bool isDraggingGameObj_ = false; 
 
+		// Brush mode for continous placement
+		bool isBrushMode_ = false;
+		DraggablePrefabInfo brushPayload_; // Stores the item selected for brushing
+		Vector2D brushPreviewPos_;         // World position for brush preview
+		Vector2D lastPlacedPos_ = { -99999.0f, -99999.0f }; // To prevent stacking duplicates on same frame
+
+		// Helper to consolidate placement logic
+		void PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position);
+
+		// Helper to get the HalfSize of a prefab or tile BEFORE creating it
+		Vector2D GetPrefabHalfSize(const std::string& name, PrefabType type);
+
+		// Handle the continuous clicking input
+		void HandleBrushInput();
+
 		//Palette Info storage (prefabs)
 		bool palettePrepared_ = false; // flag for storing palette items
 		std::vector<DraggablePrefabInfo> paletteItems_;
