@@ -35,6 +35,8 @@ namespace Framework::Serialization {
 	/* Entity Properties JSON Labels */
 	inline constexpr const char* ENTITY_NAME = "name";
 	static constexpr const char* ENTITY_LAYER = "layer";
+	static constexpr const char* ENTITY_RENDER_LAYER = "render_layer";          
+	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
 
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";
@@ -133,6 +135,18 @@ namespace Framework::Serialization {
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";
+
+	static constexpr const char* PARTICLE_EMITTER_COMPONENT = "ParticleEmitterComponent";
+	static constexpr const char* IS_EMITTING = "is_emitting";
+	static constexpr const char* IS_PARTICLE_ANIMATED = "is_particle_animated";
+	static constexpr const char* PARTICLE_TEXTURE_KEY = "particle_texture_key";
+	static constexpr const char* PARTICLE_LIFETIME = "particle_lifetime";
+	static constexpr const char* EMISSION_RATE = "emit_rate";
+	static constexpr const char* EMISSION_INTERVAL = "emit_interval";
+	static constexpr const char* PARTICLE_EFFECT_TYPE = "particle_effect_type";
+	static constexpr const char* PARTICLE_SPEED = "particle_speed";
+	static constexpr const char* PARTICLE_SIZE = "particle_size";
+	static constexpr const char* IS_AFFECTED_BY_GRAVITY = "is_affected_by_gravity";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";

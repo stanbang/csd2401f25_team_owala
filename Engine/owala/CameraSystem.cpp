@@ -31,6 +31,7 @@
 #include <cmath>
 #include <stdexcept>
 #include "OwalaTime.h"
+#include "Logger.h"
 
 namespace Framework {
 
@@ -71,6 +72,10 @@ namespace Framework {
                     camera.position.y += (targetPos.y - camera.position.y) * t;
                 }
             }
+
+            // Print camera position
+			//Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
+			//	<< " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
         }
     }
 
@@ -84,11 +89,14 @@ namespace Framework {
     {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D screenPos;
-        float halfW = camera.zoom;
-        float halfH = camera.zoom;
 
-        screenPos.x = ((worldPos.x - camera.position.x) / halfW) / camera.aspectRatio;
-        screenPos.y = (worldPos.y - camera.position.y) / halfH;
+        // Calculate half-widths in world space
+        float halfWidth = camera.zoom * camera.aspectRatio;
+        float halfHeight = camera.zoom;
+
+        // Convert from world to NDC [-1, 1]
+        screenPos.x = (worldPos.x - camera.position.x) / halfWidth;
+        screenPos.y = (worldPos.y - camera.position.y) / halfHeight;
 
         return screenPos;
     }
@@ -104,12 +112,13 @@ namespace Framework {
         Camera& camera = GetCamera(cameraEntity);
         Vector2D worldPos;
 
-        float halfW = camera.zoom;
-        float halfH = camera.zoom;
+        // Calculate half-widths in world space
+        float halfWidth = camera.zoom * camera.aspectRatio;
+        float halfHeight = camera.zoom;
 
-        worldPos.x = camera.position.x + (screenPos.x * camera.aspectRatio) * halfW;
-        worldPos.y = camera.position.y + screenPos.y * halfH;
-
+        // Convert from NDC [-1, 1] to world space
+        worldPos.x = camera.position.x + screenPos.x * halfWidth;
+        worldPos.y = camera.position.y + screenPos.y * halfHeight;
 
         return worldPos;
     }

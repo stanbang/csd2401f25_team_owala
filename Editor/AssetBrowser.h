@@ -86,4 +86,6 @@ private:
     fs::path repoAssetsPath_;
     fs::path repoDataPath_;
     bool syncToRepo_ = false;
+
+    std::string currentDraggedPath_;
 };

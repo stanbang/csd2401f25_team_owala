@@ -149,34 +149,50 @@ namespace Framework {
                 // --- Fetch Texture Resource ---
                 Texture& tex = resources_.get<Texture>(sprite.textureKey);
 
-                // --- Determine Render Order ---
-                int renderOrder = 0;
-                if (entityMgr.HasComponent(entity, BackgroundTagType))
-                    renderOrder = -100;
-                else if (isUIElement)
-                    renderOrder = 200;
-                else if (entityMgr.HasComponent(entity, PlayerTagType))
-                    renderOrder = 100;
-                else if (entityMgr.HasComponent(entity, EnemyTagType))
-                    renderOrder = 75;
-                else if (entityMgr.HasComponent(entity, PlatformTagType))
-                    renderOrder = 50;
+                //// --- Determine Render Order ---
+                //int renderOrder = 0;
+                //if (entityMgr.HasComponent(entity, BackgroundTagType))
+                //    renderOrder = -100;
+                //else if (isUIElement)
+                //    renderOrder = 200;
+                //else if (entityMgr.HasComponent(entity, PlayerTagType))
+                //    renderOrder = 100;
+                //else if (entityMgr.HasComponent(entity, EnemyTagType))
+                //    renderOrder = 75;
+                //else if (entityMgr.HasComponent(entity, PlatformTagType))
+                //    renderOrder = 50;
+
+                 // --- Determine Render Order using EntityProperties ---
+                const EntityProperties& props = entityMgr.GetProperties(entity);
+                int renderOrder = props.customRenderOrder;
+
+                // Use predefined render layer if not custom
+                if (props.renderLayer != RenderLayer::Custom) {
+                    renderOrder = static_cast<int>(props.renderLayer);
+                }
 
                 // --- World → Screen Conversion ---
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
+                // Check if camera exists AND if this is NOT a UI element
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
+                    // Convert center position from world to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+                    
+                    // Get camera for zoom and aspect ratio
+                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
 
-                    const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
-                    const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
+                    // Convert world-space size to screen-space size
+                    // The key is to scale by the camera's zoom and aspect ratio
+                    float halfWidth = cam.zoom * cam.aspectRatio;
+                    float halfHeight = cam.zoom;
 
-                    screenHalfSize.x = std::abs(sx.x) * halfSize.x;
-                    screenHalfSize.y = std::abs(sy.y) * halfSize.y;
+                    screenHalfSize.x = halfSize.x / halfWidth;
+                    screenHalfSize.y = halfSize.y / halfHeight;
                 }
 
-                // --- Convert to Top-Left & Full Size ---
+                // Calculate final screen-space top-left and size
                 Vector2D topLeft = { screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y };
                 Vector2D fullSize = { screenHalfSize.x * 2.0f, screenHalfSize.y * 2.0f };
 
@@ -245,8 +261,8 @@ namespace Framework {
                 }
 
                 for (const auto& line : lines) {
-                    gfx_.drawText(font, line, current_pos, component.scale / zoom, component.color);
-                    current_pos.y -= line_height_ndc / zoom;
+                    gfx_.drawText(font, line, current_pos, component.scale, component.color);
+                    current_pos.y -= line_height_ndc;
                 }
             }
             catch (const std::exception& e) {
@@ -288,11 +304,16 @@ namespace Framework {
 
             if (activeCamera != 0 && cameraSystem_) {
                 screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
-                const Vector2D sx = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 1.0f, 0.0f }, activeCamera) - screenPos;
-                const Vector2D sy = cameraSystem_->WorldToScreen(worldPos + Vector2D{ 0.0f, 1.0f }, activeCamera) - screenPos;
 
-                screenHalfSize.x = std::abs(sx.x) * halfSize.x;
-                screenHalfSize.y = std::abs(sy.y) * halfSize.y;
+                // Get camera for zoom and aspect ratio
+                const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+
+                // Convert world-space size to screen-space size
+                float halfWidth = cam.zoom * cam.aspectRatio;
+                float halfHeight = cam.zoom;
+
+                screenHalfSize.x = halfSize.x / halfWidth;
+                screenHalfSize.y = halfSize.y / halfHeight;
             }
 
             Vector2D scaledHalfSize = halfSize;

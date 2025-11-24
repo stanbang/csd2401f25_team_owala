@@ -41,8 +41,11 @@ namespace Framework {
         std::vector<ComponentData> components;
         std::vector<std::string> tags;
         std::string layer;
-        std::string sourceFile; // Track which file this prefab came from
-        EntityPrefab() : name(""), layer("Default"), sourceFile("") {}
+        std::string sourceFile;
+        int renderLayer = 0;          
+        int customRenderOrder = 0;    
+
+        EntityPrefab() : name(""), layer("Default"), renderLayer(0), customRenderOrder(0), sourceFile("") {}
     };
 
     struct PlatformPrefab {

@@ -4,8 +4,8 @@
         { "type": "Position", "data": { "x": 0.0, "y": 0.0 } },
         { "type": "Velocity", "data": { "x": 0.0, "y": 0.0 } },
         { "type": "RigidBody", "data": { "mass": 0.0, "forceX": 0.0, "forceY": 0.0 } },
-        { "type": "AABBCollider", "data": { "halfSizeX": 0.1, "halfSizeY": 0.095 } },
-        { "type": "TextureComponent", "data": { "textureID": "Platform.png", "halfSizeX": 0.1, "halfSizeY": 0.1 } },
+        { "type": "AABBCollider", "data": { "halfSizeX": 100, "halfSizeY": 100 } },
+        { "type": "TextureComponent", "data": { "textureID": "Platform.png", "halfSizeX": 100, "halfSizeY": 100 } },
         { "type": "RotationFlag", "data": {} }
     ],
     "tags": ["PlatformTag"],

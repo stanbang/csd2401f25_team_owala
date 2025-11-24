@@ -39,6 +39,16 @@ namespace Framework{
 		Count // track the number of layers
 	};
 
+	// Enum for defining rendering layers 
+	enum class RenderLayer : int {
+		Background = -100,
+		Platform = 50,
+		Enemy = 75,
+		Player = 100,
+		UI = 200,
+		Custom = 0  // For entities with custom render order
+	};
+
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
@@ -48,10 +58,18 @@ namespace Framework{
 		DEATH
 	};
 
+	enum class EffectType {
+		NONE,
+		RANDOM,
+		RANDOM_UP
+	};
+
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
+		RenderLayer renderLayer = RenderLayer::Custom;
+		int customRenderOrder = 0; // Used when renderLayer is Custom
 	};
 
 	/*	Position component to store x and y 
@@ -399,6 +417,31 @@ namespace Framework{
 
 		// How fast the skeleton walks
 		float moveSpeed = 0.1f;
+	};
+
+	// Particle Component
+	struct ParticleComponent {
+		EffectType effectType = EffectType::NONE; // Type of effect the particle will have
+		float lifetime = 1.0f;      // Total lifetime of the particle
+		float age = 0.0f;           // Current age of the particle
+	};
+
+	struct ParticleEmitterComponent {
+		bool isEmitting = true;
+		bool isParticleAnimated = false; // Is the particle texture animated
+
+		std::string particleTextureKey; // Key to identify the texture resource for particles
+		float particleLifetime = 1.0f;	// Total lifetime of the particle
+		float emissionRate = 3.0f;		// Particles emitted per second
+		float emissionInterval = 0.0f;	// Time between emissions (calculated from emissionRate)
+		float timeSinceLastEmission = 0.0f; // Time since the last particle was emitted
+		EffectType particleEffectType = EffectType::NONE; // Type of effect for emitted particles
+		float particleSpeed = 1.0f;	// Speed of emitted particles
+		Vector2D particleSize = { 1.0f, 1.0f }; // Size of emitted particles
+
+		Vector2D particleStartVelocity = { 0.0f, 0.0f };// Initial velocity of emitted particles
+		Vector2D particleAcceleration = { 0.0f, 0.0f }; // For moving particles
+		bool isAffectedByGravity = false;				// Should particles be affected by gravity
 	};
 
 }

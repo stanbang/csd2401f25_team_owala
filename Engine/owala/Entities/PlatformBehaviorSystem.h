@@ -4,9 +4,9 @@
 * \primary_author
 *      Sitara Anil
 * \secondary_author
-*     
 *
-* \brief 
+*
+* \brief
 *      System for managing special platform behaviors including trap
 *      platforms that fall after a trigger delay
 * 

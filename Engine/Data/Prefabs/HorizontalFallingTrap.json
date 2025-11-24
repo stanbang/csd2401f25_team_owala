@@ -26,16 +26,16 @@
         {
             "type": "AABBCollider",
             "data": {
-                "halfSizeX": 0.20999999344348907,
-                "halfSizeY": 0.05000000074505806
+                "halfSizeX": 170.0,
+                "halfSizeY": 50.0
             }
         },
         {
             "type": "TextureComponent",
             "data": {
                 "textureID": "SB_TrapPlatform_Horizontal.png",
-                "halfSizeX": 0.23999999463558197,
-                "halfSizeY": 0.07999999821186066
+                "halfSizeX": 200.0,
+                "halfSizeY": 100
             }
         },
         {
@@ -51,7 +51,7 @@
                 "hasFallen": false,
                 "currentDelay": 0.0,
                 "currentFallDistance": 0.0,
-                "fallSpeed": 2.0,
+                "fallSpeed": 302.0,
                 "triggerDelay": 0.0
             }
         }

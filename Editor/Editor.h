@@ -29,7 +29,11 @@
 #include "Graphics.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
+#include "PhysicsSystem.h"
 #include "TransformationSystem.h"
+
+// Editor Modules
+#include "History.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -46,6 +50,7 @@ namespace Framework {
 	class CoreEngine; // Forward Declaration
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
+	//class PhysicsSystem; // forward Declaration
 
 }
 
@@ -60,6 +65,7 @@ namespace Editor {
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
 		bool showPrefabEditor = false;
+		bool showLayerManager = true; 
 	};
 
 	// enum to represent the different types of objects we can create
@@ -86,6 +92,17 @@ namespace Editor {
 		std::string textureID;
 	};
 
+	struct EditSession {
+		bool active = false;
+		bool wasItemActive = false;
+		Entity entityInEdit;
+		Framework::ComponentType compInEdit = Framework::ComponentType::MAX_COMPONENTS;
+		std::string beforeJSON;
+
+		void Begin(Entity entity, Framework::ComponentType compType);
+		void End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManagerRef);
+	};
+
 	class Editor : public Framework::ISystem {
 	private:
 		// --- System Pointers ---
@@ -95,6 +112,11 @@ namespace Editor {
 		Framework::Graphics* graphicsSystem_ = nullptr; //  Pointer to Graphics system
 		Framework::ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for asset loading
 		Framework::TransformationSystem* transformationSystem_ = nullptr;
+
+		// --- Codependent Systems ---
+		HistoryManager historyManager_; // HistoryManager for Undo/Redo System.
+
+		// --- Internal Properties ---
 		Entity editorCamera_ = 0;
 		float editorZoom_ = 1.0f;
 		Vector2D editorCamPos_ = { 0.0f, 0.0f };
@@ -112,6 +134,7 @@ namespace Editor {
 		std::vector<Framework::SystemTime> profilerDisplayData_;
 
 		// Entity Inspector
+		EditSession editSession;
 		int selectedEntityIndex = 0;
 		std::vector<std::string> componentNames;
 		std::vector<const char*> componentItems;
@@ -226,8 +249,9 @@ namespace Editor {
 		void HandleInWorldDragDrop();
 
 		/* Entity Copy & Pasting APIs */
-		void CopyEntityToClipboard(const Entity& entity);
+		void CopyEntityToClipboard(const Entity entity);
 		void PasteEntityFromClipboard();
+		std::string SerializeEntityToString(const Entity entity);
 
 		// --- GUI Panel Functions ---
 		void ShowPerformanceProfile();
@@ -244,6 +268,8 @@ namespace Editor {
 		void ShowPrefabEditor();
 		void ShowTilePalette();
 		void ShowRestartMenu(); //when player dies
+		void ShowLayerManager();
+
 		// Popup Related
 		std::string popupMsg;
 
@@ -279,6 +305,12 @@ namespace Editor {
 		void UpdateViewportData();
 
 
+		// Layer viewport data for IMGUI
+		void ShowCollisionMatrix(Framework::PhysicsSystem* physics);
+
+		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
+		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
+
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;
@@ -300,6 +332,7 @@ namespace Editor {
 
 		/* Helper Functions */
 		const bool IsGamePlaying() const { return isGamePlaying; };
+		const bool IsGamePaused() const { return isGamePaused; };
 
 		// Converts world - space coordinates to ImGui screen - space
 		// function that accepts a specific camera ID for movement

@@ -16,8 +16,8 @@ namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
 
 	// ---------------------------------------------------------------------------
-// Constructors
-// ---------------------------------------------------------------------------
+	// Constructors
+	// ---------------------------------------------------------------------------
 	EntityManager::EntityManager(EntityStorage& entityStorage) : ecs(entityStorage) {};
 
 	// ---------------------------------------------------------------------------
@@ -32,6 +32,20 @@ namespace Framework {
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
 
 		return newEntity;
+	}
+
+	Entity EntityManager::CreateEntityWithID(Entity entityID) {
+		ComponentSignature emptySignature; // New entity starts with no components
+		ecs.entitySignatures[entityID] = emptySignature;
+
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(entityID), 0U, UINT_MAX)) + ")";
+		ecs.properties[entityID] = EntityProperties{ entityName, CollisionLayer::Default };
+
+		if (entityID >= nextEntityID) {
+			nextEntityID = entityID + 1;
+		}
+
+		return entityID;
 	}
 
 	Entity EntityManager::CloneEntity(const Entity& entity) {
@@ -65,6 +79,8 @@ namespace Framework {
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
 					case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
+					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
+					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
 					case ComponentType::RotationType: AddComponent<Rotation>(newEntity, GetComponent<Rotation>(entity)); break;
 					case ComponentType::ScaleType: AddComponent<Scale>(newEntity, GetComponent<Scale>(entity)); break;
 					default:
@@ -101,6 +117,14 @@ namespace Framework {
 		}
 	}
 
+	bool EntityManager::ValidateEntity(Entity entity) {
+		if (ecs.properties.find(entity) == ecs.properties.end()) {
+			return false;
+		}
+		
+		return true;
+	}
+
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
 		return ecs.entitySignatures[entity].test(componentType);
 	}
@@ -129,6 +153,8 @@ namespace Framework {
 		case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{}); break;
 		case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
 		case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(entity, SkeletonAIComponent{}); break; 
+		case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(entity, ParticleComponent{}); break;
+		case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(entity, ParticleEmitterComponent{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -167,6 +193,8 @@ namespace Framework {
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
 			case TextComponentType: ecs.text.erase(entity); break;
 			case CameraType: ecs.cameras.erase(entity); break;
+			case ParticleComponentType: ecs.particleComponent.erase(entity); break;
+			case ParticleEmitterComponentType: ecs.particleEmitterComponent.erase(entity); break;
 			case NativeScriptsComponentType: {
 				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
 				if (it != ecs.nativeScripts.end()) {
@@ -213,6 +241,15 @@ namespace Framework {
 			return true;
 		default:
 			return false;
+		}
+	}
+
+	void EntityManager::ClearTags(Entity entity) {
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (IsTagComponent(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
 		}
 	}
 

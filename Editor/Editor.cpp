@@ -60,6 +60,9 @@
 #include "NativeScriptMaker.h"
 
 #include <unordered_set>
+// Standard Libraries
+#include <sstream>
+#include <iomanip>
 
 // Internal Helpers
 namespace {
@@ -86,7 +89,9 @@ namespace {
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
 		case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI"; 
+		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";
+		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
+		case ComponentType::ParticleComponentType:			return "Particle";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -103,19 +108,45 @@ namespace {
 	}
 
 	// Helper to convert a CollisionLayer enum to its string representation.
-	const char* LayerToString(CollisionLayer layer) {
+	char const* LayerToString(CollisionLayer layer) {
 		switch (layer) {
 		case CollisionLayer::Default:   return "Default";
 		case CollisionLayer::Player:    return "Player";
 		case CollisionLayer::Platform:  return "Platform";
 		case CollisionLayer::Enemy:     return "Enemy";
 		case CollisionLayer::Trigger:   return "Trigger";
-		default:                        return "Invalid";
+		default:                        return "Layer  Unknown";
 		}
 	}
 }
 
 namespace Editor {
+	void EditSession::Begin(Entity entity, Framework::ComponentType compType) {
+		using namespace Framework;
+		EntityStorage* ecs = GameManager::GetInstance().GetSystems().ecs_;
+
+		active = true;
+		entityInEdit = entity;
+		compInEdit = compType;
+
+		beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+	}
+
+	void EditSession::End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManager_) {
+		if (active && entityInEdit == entity && compInEdit == compType) {
+			EntityStorage* ecs = GameManager::GetInstance().GetSystems().ecs_;
+			EntityManager entityMgr(*ecs);
+
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+			if (beforeJSON != afterJSON) {
+				historyManager_.RecordModifyComponent(entity, description, beforeJSON, afterJSON, compType);
+			}
+
+			*this = {};
+		}
+	}
+
 	// Add these member variable definitions at the top of your Editor class implementation
 	// (or wherever you have other member variable initializations)
 
@@ -127,7 +158,8 @@ namespace Editor {
 		transformationSystem_(gameManager_->GetSystems().transformation_),
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
-		editorCameraNeedsReset_(false) {
+		editorCameraNeedsReset_(false),
+		historyManager_(*gameManager_->GetSystems().ecs_) {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -137,7 +169,7 @@ namespace Editor {
 			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 			cam.position = defaultEditorCameraState_.position;
 			cam.zoom = defaultEditorCameraState_.zoom;
-			cameraSystem_->SetZoom(editorCamera_, defaultEditorCameraState_.zoom);
+			cameraSystem_->SetZoom(editorCamera_, 540.0f); //540 for 1080p
 
 			// Update current state
 			currentEditorCameraState_ = defaultEditorCameraState_;
@@ -307,11 +339,24 @@ namespace Editor {
 		if (!transformationSystem_) {
 			Framework::Logger::Get().Error(DebugType::Editor)<< "Transformation system not available" << std::endl;
 		}
+
+		// In your Initialize() function, update camera setup:
 		if (cameraSystem_ && editorCamera_ == 0) {
-			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false); // not active for game
-			cameraSystem_->SetZoom(editorCamera_, editorZoom_);
+			editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false);
+
+			// Set appropriate world space size for the camera
+			Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			cam.size = { 20.0f, 20.0f }; // Adjust based on your world scale
+			cam.zoom = 1.0f;
+
+			cameraSystem_->SetZoom(editorCamera_, 540.0f); //540 for 1080p
 			float aspect = gameViewportSize_.x / gameViewportSize_.y;
 			cameraSystem_->SetAspectRatio(editorCamera_, aspect);
+
+			// Update default state
+			defaultEditorCameraState_.position = { 0.0f, 0.0f };
+			defaultEditorCameraState_.zoom = 1.0f;
+			currentEditorCameraState_ = defaultEditorCameraState_;
 		}
 
 		initialized = true;
@@ -405,6 +450,7 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
+			ImGui::DockBuilderDockWindow("Layer", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
 			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
@@ -417,10 +463,11 @@ namespace Editor {
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
-			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left);
 			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
 			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
+			
 
 			ImGui::DockBuilderDockWindow("Game", dock_main_id);
 			ImGui::DockBuilderFinish(dockspaceID);
@@ -513,6 +560,7 @@ namespace Editor {
 		if (settings.showAssetBrowser) ShowAssetBrowser(droppedFilePaths_);
 		if (settings.showHierarchy) ShowHierarchy();
 		if (settings.showLevelEditor) ShowLevelEditor();
+		if (settings.showLayerManager) ShowLayerManager();
 		if (isTileEditorActive_) {
 			ShowTilemapEditor();  // Prefab palette
 			if (isTilePaletteOpen_) {
@@ -619,13 +667,15 @@ namespace Editor {
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
-	Vector2D Editor::GetMouseWorldPosition() {
+	Vector2D Editor::GetMouseWorldPosition()
+	{
 		if (!cameraSystem_ || editorCamera_ == 0)
 			return { 0.0f, 0.0f };
 
+		// Get mouse pos in ImGui screen space
 		ImVec2 mouse = ImGui::GetMousePos();
 
-		// convert to relative viewport coords
+		// Convert to viewport-relative coords
 		float relX = mouse.x - gameViewportPos_.x;
 		float relY = mouse.y - gameViewportPos_.y;
 
@@ -633,19 +683,16 @@ namespace Editor {
 			relX > gameViewportSize_.x || relY > gameViewportSize_.y)
 			return { 0.0f, 0.0f };
 
-		// NDC conversion (Y flipped)
-		float ndcX = (relX / gameViewportSize_.x) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (relY / gameViewportSize_.y) * 2.0f; // this flips Y!
-
+		// Get camera properties
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-		Vector2D camPos = cam.position;
-		Vector2D camSize = cam.size;
 
-		// Map NDC → world
-		float worldX = camPos.x + ndcX * (camSize.x * 0.5f);
-		float worldY = camPos.y + ndcY * (camSize.y * 0.5f);
+		// Convert screen coordinates to world coordinates
+		float worldX = cam.position.x + ((relX / gameViewportSize_.x) - 0.5f) * cam.size.x;
+		float worldY = cam.position.y + ((1.0f - (relY / gameViewportSize_.y)) - 0.5f) * cam.size.y;
+
 		return { worldX, worldY };
 	}
+
 
 
 	void Editor::HandleDragDropPlacement()
@@ -664,14 +711,13 @@ namespace Editor {
 		ImVec2 viewportPos = gameViewportPos_;
 		ImVec2 viewportSize = gameViewportSize_;
 
-		// Convert from ImGui → NDC → World
-		float ndcX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
-		float ndcY = (1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f);
 
-		Vector2D worldMousePos = {
-			cam.position.x + ndcX * (cam.size.x * 0.5f),
-			cam.position.y + ndcY * (cam.size.y * 0.5f)
-		};
+		float screenX = ((mousePos.x - viewportPos.x) / viewportSize.x) * 2.0f - 1.0f;
+		float screenY = 1.0f - ((mousePos.y - viewportPos.y) / viewportSize.y) * 2.0f;
+
+		Vector2D screenPos = { screenX, screenY };
+		Vector2D worldMousePos = cameraSystem_->ScreenToWorld(screenPos, editorCamera_);
+
 
 		// --- SNAP TO GRID ---
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
@@ -772,27 +818,23 @@ namespace Editor {
 		if (previewTextureID == 0)
 			return;
 
-		// --- FIX: Use same world size as placed tiles ---
-		Vector2D previewHalfSize = { baseGridCellSize_ , baseGridCellSize_ };
+		// Use consistent world space sizing
+		Vector2D previewHalfSize = { baseGridCellSize_, baseGridCellSize_ };
 
-		Vector2D worldTopLeft = {
-			dragDropPreviewPos_.x - previewHalfSize.x,
-			dragDropPreviewPos_.y + previewHalfSize.y
-		};
-		Vector2D worldBottomRight = {
-			dragDropPreviewPos_.x + previewHalfSize.x,
-			dragDropPreviewPos_.y - previewHalfSize.y
-		};
+		// Calculate world space corners
+		Vector2D worldMin = { dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y };
+		Vector2D worldMax = { dragDropPreviewPos_.x + previewHalfSize.x, dragDropPreviewPos_.y + previewHalfSize.y };
 
-		ImVec2 screenTopLeft = WorldToImGuiScreen(worldTopLeft);
-		ImVec2 screenBottomRight = WorldToImGuiScreen(worldBottomRight);
+		// Convert to screen space
+		ImVec2 screenMin = WorldToImGuiScreen(worldMin);
+		ImVec2 screenMax = WorldToImGuiScreen(worldMax);
 
 		ImVec2 uv0 = dragDropPayload_.uv0;
 		ImVec2 uv1 = dragDropPayload_.uv1;
 		ImU32 tintColor = IM_COL32(255, 255, 255, 150);
 
 		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
-		drawList->AddImage(texID, screenTopLeft, screenBottomRight, uv0, uv1, tintColor);
+		drawList->AddImage(texID, screenMin, screenMax, uv0, uv1, tintColor);
 	}
 
 
@@ -988,7 +1030,7 @@ namespace Editor {
 
 #pragma region COPY AND PASTING APIs
 
-	void Editor::CopyEntityToClipboard(const Entity& entity) {
+	void Editor::CopyEntityToClipboard(const Entity entity) {
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		rapidjson::Document doc;
 		doc.SetObject();
@@ -1021,7 +1063,26 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
+		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
+	}
+
+	std::string Editor::SerializeEntityToString(const Entity entity) {
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value entityData(rapidjson::kObjectType);
+		EntitySerializer::SerializeEntity(entity, *ecs, entityData, alloc);
+		doc.CopyFrom(entityData, alloc);
+
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+
+		return std::string(buffer.GetString());
 	}
 
 #pragma endregion
@@ -1111,6 +1172,7 @@ namespace Editor {
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+				historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 			}
 
 			ImGui::SameLine();
@@ -1118,6 +1180,7 @@ namespace Editor {
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+				historyManager_.Record(OpType::Create, clonedEntity, "Clone Entity");
 			}
 
 			// --- Entity Inspector ---
@@ -1769,8 +1832,10 @@ namespace Editor {
 						if (ImGui::MenuItem("Duplicate")) {
 							Entity clonedEntity = entityMgr.CloneEntity(entity);
 							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
 						}
 						if (ImGui::MenuItem("Delete")) {
+							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
 							entityMgr.DestroyEntity(entity);
 							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
 								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
@@ -1833,6 +1898,7 @@ namespace Editor {
 				if (ImGui::MenuItem("Create Empty")) {
 					Entity newEntity = entityMgr.CreateEntity();
 					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 				}
 				ImGui::EndPopup();
 			}
@@ -1854,19 +1920,61 @@ namespace Editor {
 
 		ImGui::Begin("Inspector");
 		if (isEntitySelected_) {
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			EntityStorage& ecs = *(gameManager_->GetSystems().ecs_);
+			EntityManager entityMgr(ecs);
 			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
-			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
-
-			char nameBuffer[128];
-			strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
-			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
-
-			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
-				entityName = nameBuffer; // update ECS data when user edits
+			// Check if Entity is alive before accessing properties.
+			if (!entityMgr.ValidateEntity(selectedEntity)) {
+				isEntitySelected_ = false;
+				selectedEntityIndex = selectedComponentIndex = selectedTagIndex = selectedScriptIndex = 0;
+				ImGui::End();
+				return;
 			}
 
+			// --- Name Field ---
+			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
+
+			static Entity lastSelectedEntity = 0;
+			static char nameBuffer[128] = "";
+			static std::string lastRecordedName;
+			static bool editingName = false;
+
+			if (selectedEntity != lastSelectedEntity) {
+				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+				nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
+				lastSelectedEntity = selectedEntity;
+				lastRecordedName = entityName;
+				editingName = false;
+			}
+
+			// Check if got mismatch between buffer and name when not editing
+			if (!editingName && lastRecordedName != entityName) {
+				lastRecordedName = entityName;
+
+				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+			}
+
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			if (ImGui::IsItemActivated()) editingName = true;
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string newName = nameBuffer;
+
+				if (newName != entityName) {
+					std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+					entityName = newName;
+					std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+					std::stringstream ss;
+					ss << "Modified name in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
+
+				editingName = false;
+			}
+			// --- End Name Field ---
+
+			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
 			// Create a list of layer names for the dropdown
@@ -1886,8 +1994,17 @@ namespace Editor {
 			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
 				// If a new item was selected, it updates the component's layer
 				// with the new value.
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 				entityLayer = static_cast<CollisionLayer>(currentLayer);
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
+			// -- End Layer Dropdown ---
 
 			// --- Component Section ---
 			if (ImGui::CollapsingHeader("Components")) {
@@ -1926,14 +2043,26 @@ namespace Editor {
 
 						if (ImGui::Button("Add Component")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+								std::string beforeJSON;
+
 								entityMgr.AddComponent(selectedEntity, selectedComponent);
+
+								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+								std::string description = "Add " + ComponentToString(selectedComponent);
+								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
 
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Component")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+								std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+
 								entityMgr.RemoveComponent(selectedEntity, selectedComponent);
+
+								std::string afterJSON;
+								std::string description = "Remove " + ComponentToString(selectedComponent);
+								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
 					}
@@ -1979,14 +2108,29 @@ namespace Editor {
 
 						if (ImGui::Button("Add Tag")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedTag)) {
+								std::string beforeJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+
 								entityMgr.AddComponent(selectedEntity, selectedTag);
+
+								std::string afterJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+								std::string description = "Add " + ComponentToString(selectedTag);
+								if (beforeJSON != afterJSON) {
+									historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedTag);
+								}
 							}
 						}
 
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Tag")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedTag)) {
+								std::string beforeJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+
 								entityMgr.RemoveComponent(selectedEntity, selectedTag);
+								std::string afterJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+								std::string description = "Remove " + ComponentToString(selectedTag);
+								if (beforeJSON != afterJSON) {
+									historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedTag);
+								}
 							}
 						}
 					}
@@ -2000,13 +2144,30 @@ namespace Editor {
 	void Editor::ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent) {
 		using namespace Framework;
 
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
 		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
 		switch (selectedComponent) {
 		case ComponentType::PositionType: {
 			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
 
 			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
+
+			bool nowActive = ImGui::IsItemActive();
+			if (nowActive && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!nowActive && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << std::setprecision(2) << std::fixed;
+				ss << "Set " << ComponentToString(ComponentType::PositionType) << " to (" << position.Pos.x << ", " << position.Pos.y << ") in "
+						<< entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+			
+			editSession.wasItemActive = nowActive;
 			break;
 		}
 		case ComponentType::RotationType: {
@@ -2222,10 +2383,28 @@ namespace Editor {
 		case ComponentType::TriangleType: {
 			Triangle& triangle = entityMgr.GetComponent<Triangle>(selectedEntity);
 
+			bool activeNow = false;
+
 			ImGui::InputFloat2("A", &triangle.a.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat2("B", &triangle.b.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat2("C", &triangle.c.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::ColorEdit4("RGBA", &triangle.color.r);
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(ComponentType::TriangleType) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::RigidBodyType: {
@@ -2240,27 +2419,75 @@ namespace Editor {
 			if (ImGui::InputFloat("Mass", &localMass, 0.1f, 1.0f, "%.2f")) {
 				rb.SetMass(localMass);
 			}
+
+			bool activeNow = ImGui::IsItemActive();
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified Mass in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("Inverse Mass", &rb.InverseMass, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::AABBColliderType: {
 			AABBCollider& col = entityMgr.GetComponent<AABBCollider>(selectedEntity);
 
-			//ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
 			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f");
+			bool activeNow = ImGui::IsItemActive();
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << std::setprecision(2) << std::fixed;
+				ss << "Set " << ComponentToString(ComponentType::AABBColliderType) << " to (" << col.HalfSize.x << ", " << col.HalfSize.y << ") in "
+					<< entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::ButtonType: {
 			Button& buttonComp = entityMgr.GetComponent<Button>(selectedEntity);
-			ImGui::Checkbox("Is Pressed?", &buttonComp.isPressed);
+
+			bool isPressedLocal = buttonComp.isPressed;
+			if (ImGui::Checkbox("Is Pressed?", &isPressedLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				buttonComp.isPressed = isPressedLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
 			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS" };
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			break;
@@ -2274,7 +2501,19 @@ namespace Editor {
 		case ComponentType::RotationFlagType: {
 			RotationFlag& rFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
 
-			ImGui::Checkbox("Is Rotating?", &rFlag.isRotating);
+			bool isRotatingLocal = rFlag.isRotating;
+			if (ImGui::Checkbox("Is Rotating?", &isRotatingLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				rFlag.isRotating = isRotatingLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			};
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("Current Rotation", &rFlag.currentRotation, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
@@ -2287,17 +2526,39 @@ namespace Editor {
 
 			ImGui::Checkbox("Is Triggered?", &trapComp.isTriggered);
 			ImGui::Checkbox("Has Fallen?", &trapComp.hasFallen);
+
+			bool activeNow = false;
+
 			ImGui::InputFloat("Trigger Delay", &trapComp.triggerDelay, 0.1f, 1.f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("Current Delay", &trapComp.currentDelay, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+
 			ImGui::InputFloat("Fall Speed", &trapComp.fallSpeed, 0.1f, 1.f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			ImGui::InputFloat2("Original Position", &trapComp.originalPosition.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat2("Original Position", &trapComp.originalPosition.x, "%.2f");
 			ImGui::InputFloat("Current Fall Distance", &trapComp.currentFallDistance, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2306,36 +2567,192 @@ namespace Editor {
 
 			//Show text but make it read-only
 			ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
+
+			// Drag and Drop Target for Texture Key
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// Process the dropped file path
+					const char* dropped_path_c_str = (const char*)payload->Data;
+					fs::path dropped_path(dropped_path_c_str);
+
+					// Validate the file extension
+					std::string ext = dropped_path.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+					{
+						// Update the texture key with the new file's filename
+						std::string newKey = dropped_path.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						tex.textureKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+
+						// Reload the texture resource
+						resourceManager_->unload<Texture>(newKey);
+						resourceManager_->loadTexture(newKey, dropped_path.string());
+
+						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
+					}
+					else
+					{
+						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			// Manual input field for new texture key
 			static std::string newTextureKey = "";
 			ImGui::InputText("New Texture Key", &newTextureKey);
 
 			//Button to update texture key
 			if (ImGui::Button("Update Texture")) {
 				if (!newTextureKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					tex.textureKey = newTextureKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
 				}
 			}
 
 			// Vector2D HalfSize Input
 			ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f");
+			bool activeNow = ImGui::IsItemActive();
 
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::AudioComponentType: {
 			AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(selectedEntity);
 			//Show text but make it read-only
 			ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// CORRECT way to extract the string from payload
+					// payload->Data is the raw bytes, payload->DataSize is the size in bytes
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
+
+					fs::path dropped_file(dropped_path);
+
+					// Validate the file extension
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					// Check for common audio formats
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+					{
+						// Update the sound key with the new file's filename
+						std::string newKey = dropped_file.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						audioComp.soundKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+
+						Framework::Logger::Get().Info(DebugType::Editor)
+							<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
+					}
+					else
+					{
+						Framework::Logger::Get().Error(DebugType::Editor)
+							<< "Dropped file is not a supported audio format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			static std::string newSoundKey = "";
 			ImGui::InputText("New Audio Key", &newSoundKey);
 			//Button to update audio key
 			if (ImGui::Button("Update Audio")) {
 				if (!newSoundKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					audioComp.soundKey = newSoundKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
 				}
 			}
-			ImGui::Checkbox("Looping", &audioComp.loop);
-			ImGui::Checkbox("Stream", &audioComp.stream);
+
+			// Looping Checkbox
+			bool loopLocal = audioComp.loop;
+			if (ImGui::Checkbox("Looping", &loopLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				audioComp.loop = loopLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Stream Checkbox
+			bool streamLocal = audioComp.stream;
+			if (ImGui::Checkbox("Stream", &streamLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				audioComp.stream = streamLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Volume Slider
 			ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
+			bool activeNow = ImGui::IsItemActive();
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2347,49 +2764,181 @@ namespace Editor {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
-			char textBuffer[256] = "";
-
-			// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
-			if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
-				std::strncpy(
-					textBuffer,
-					textComp.textToDraw.c_str(),
-					IM_ARRAYSIZE(textBuffer) - 1
-				);
-				textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
-			}
-
-			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
-				textComp.textToDraw = textBuffer;
-			}
-
+			static char textBuffer[256] = "";
 			// Font Selection
-			char fontKeyBuffer[256] = "";
+			static char fontKeyBuffer[256] = "";
+			static Entity text_LastSelectedEntity;
+			static std::string text_lastRecordedText;
+			static std::string text_lastRecordedFontKey;
+			static bool text_editingText = false;
+			static bool text_editingFontKey = false;
 
-			// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
-			if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
-				std::strncpy(
-					fontKeyBuffer,
-					textComp.fontKey.c_str(),
-					IM_ARRAYSIZE(fontKeyBuffer) - 1
-				);
-				fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
+			if (text_LastSelectedEntity != selectedEntity) {
+				text_LastSelectedEntity = selectedEntity;
+				text_editingText = text_editingFontKey = false;
+				text_lastRecordedText = textComp.textToDraw;
+				text_lastRecordedFontKey = textComp.fontKey;
+
+				// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
+				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+					std::strncpy(
+						textBuffer,
+						textComp.textToDraw.c_str(),
+						IM_ARRAYSIZE(textBuffer) - 1
+					);
+					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+				}
+
+				// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
+				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
+					std::strncpy(
+						fontKeyBuffer,
+						textComp.fontKey.c_str(),
+						IM_ARRAYSIZE(fontKeyBuffer) - 1
+					);
+					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
+				}
 			}
 
-			if (ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer))) {
-				textComp.fontKey = fontKeyBuffer;
+			if (!text_editingText && textComp.textToDraw != text_lastRecordedText) {
+				text_lastRecordedText = textComp.textToDraw;
+
+				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+					std::strncpy(
+						textBuffer,
+						textComp.textToDraw.c_str(),
+						IM_ARRAYSIZE(textBuffer) - 1
+					);
+					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+				}
+			}
+
+			if (!text_editingFontKey && textComp.fontKey != text_lastRecordedFontKey) {
+				text_lastRecordedFontKey = textComp.fontKey;
+
+				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
+					std::strncpy(
+						fontKeyBuffer,
+						textComp.fontKey.c_str(),
+						IM_ARRAYSIZE(fontKeyBuffer) - 1
+					);
+					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
+				}
+			}
+
+			// Text Inputfield
+			ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer));
+			if (ImGui::IsItemActivated()) text_editingText = true;
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string newText = textBuffer;
+
+				if (newText != textComp.textToDraw) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					textComp.textToDraw = newText;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+
+				text_editingText = false;
+			}
+
+			// Fontkey Inputfield
+			ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer));
+			if (ImGui::IsItemActivated()) text_editingFontKey = true;
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string newText = fontKeyBuffer;
+
+				if (newText != textComp.fontKey) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					textComp.fontKey = newText;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+
+				text_editingFontKey = false;
+			}
+
+			bool activeNow = false;
+
+			// Drag and Drop Target for Font Key
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// Extract the dropped path
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 for null terminator
+					fs::path dropped_file(dropped_path);
+
+					// Validate extension
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					if (ext == ".ttf" || ext == ".otf")
+					{
+						// Set font key to filename
+						std::string newFontKey = dropped_file.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						textComp.fontKey = newFontKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+
+						// Optionally reload font resource
+						if (resourceManager_)
+						{
+							resourceManager_->unload<Font>(newFontKey);
+							resourceManager_->loadFont(newFontKey, dropped_file.string());
+						}
+
+						Logger::Get().Info(DebugType::Editor)
+							<< "Font key updated via Drag & Drop to: " << newFontKey << std::endl;
+					}
+					else
+					{
+						Logger::Get().Error(DebugType::Editor)
+							<< "Dropped file is not a supported font format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
 			}
 
 			// Color Input
 			ImGui::Text("Color RGBA: ");
 			ImGui::InputFloat("R", &textComp.color.r, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("G", &textComp.color.g, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("B", &textComp.color.b, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("A", &textComp.color.a, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			// Font Size Input
 			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2437,10 +2986,18 @@ namespace Editor {
 			ImGui::Combo("##addScriptChoice", &selectedScriptIndex, labels.data(), static_cast<int>(labels.size()));
 			ImGui::SameLine();
 			if (ImGui::Button("Add Script") && selectedScriptIndex > 0) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				const std::string& pick = names[selectedScriptIndex];
 				std::size_t idx = entityMgr.AttachScriptByName(selectedEntity, pick, true);
-				if (idx == (std::size_t)-1) {
+				if (idx == (std::size_t) -1) {
 					Logger::Get().Error(DebugType::Editor) << "AttachScriptByName failed for '" << pick << "'";
+				}
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Added " << pick << " Native Script to " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 				selectedScriptIndex = 0;
 			}
@@ -2474,7 +3031,17 @@ namespace Editor {
 						ImGui::EndDisabled();
 					}
 					else {
-						if (ImGui::Checkbox("Enabled", &enabled)) script.enabled = enabled;
+						if (ImGui::Checkbox("Enabled", &enabled)) {
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							script.enabled = enabled;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+						}
 					}
 
 					ImGui::SameLine();
@@ -2487,7 +3054,17 @@ namespace Editor {
 						ImGui::EndDisabled();
 					}
 					else {
-						if (ImGui::Checkbox("Execute In Edit?", &executeInEditMode)) script.executeInEditMode = executeInEditMode;
+						if (ImGui::Checkbox("Execute In Edit?", &executeInEditMode)) {
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							script.executeInEditMode = executeInEditMode;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+						}
 					}
 
 					// Replace Script Button
@@ -2496,6 +3073,7 @@ namespace Editor {
 					ImGui::SameLine();
 					if (ImGui::Button("Replace") && selectedReplaceScriptIndex > 0) {
 						const std::string& newType = names[selectedReplaceScriptIndex];
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
 						std::size_t newIndex = entityMgr.AttachScriptByName(selectedEntity, newType, script.enabled);
 						if (newIndex == (std::size_t)-1) {
@@ -2505,22 +3083,54 @@ namespace Editor {
 							if (newIndex != i) entityMgr.SwapScripts(selectedEntity, newIndex, i);
 							entityMgr.RemoveScriptAt(selectedEntity, newIndex, true);
 						}
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Replaced Native Script in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 						selectedReplaceScriptIndex = 0;
 					}
 
 					// Reordering Buttons
 					if (ImGui::SmallButton("Up") && i > 0) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						entityMgr.SwapScripts(selectedEntity, i, i - 1);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 					}
 					ImGui::SameLine();
 					if (ImGui::SmallButton("Down") && i + 1 < comp.scripts.size()) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						entityMgr.SwapScripts(selectedEntity, i, i + 1);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 					}
 
 					// Remove Script Button
 					ImGui::SameLine();
 					if (ImGui::SmallButton("Remove")) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						entityMgr.RemoveScriptAt(selectedEntity, i, true);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Removed " << scriptName <<" Native Script from " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 						ImGui::PopID();
 						break;
 					}
@@ -2555,29 +3165,43 @@ namespace Editor {
 
 			ImGui::Separator();
 
+			bool activeNow = false;
 			// --- Config ---
 			ImGui::Text("Configurable Stats");
 			ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			// --- Hover Config ---
 			ImGui::Separator();
 			ImGui::Text("Hover Behavior");
 			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			// --- Pathfinding ---
 			ImGui::Separator();
 			ImGui::Text("Pathfinding");
 			ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
@@ -2586,6 +3210,17 @@ namespace Editor {
 			ImGui::PopStyleColor(2);
 			ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
 
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2596,8 +3231,23 @@ namespace Editor {
 			int state = static_cast<int>(skelAI.state);
 			ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
 
+			bool activeNow = false;
 			ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2614,6 +3264,157 @@ namespace Editor {
 			buffer[i] = '\0';
 			ImGui::InputText("Parent Scene", buffer, 64, ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+			break;
+		}
+
+		case ComponentType::ParticleEmitterComponentType:{
+			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
+			bool isEmittingLocal = emitter.isEmitting;
+			bool isParticleAnimatedLocal = emitter.isParticleAnimated;
+
+			// Is Emitting Checkbox
+			if (ImGui::Checkbox("Is Emitting?", &isEmittingLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isEmitting = isEmittingLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Animated Particle Checkbox
+			if (ImGui::Checkbox("Is Particle Animated?", &isParticleAnimatedLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isParticleAnimated = isParticleAnimatedLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			//Show text but make it read-only
+			ImGui::InputText("Texture Key", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
+
+			// Drag and Drop Target for Texture Key
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload)
+				{
+					// Process the dropped file path
+					const char* dropped_path_c_str = (const char*)payload->Data;
+					fs::path dropped_path(dropped_path_c_str);
+
+					// Validate the file extension
+					std::string ext = dropped_path.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+					{
+						// Update the texture key with the new file's filename
+						std::string newKey = dropped_path.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						emitter.particleTextureKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+
+						// Reload the texture resource
+						resourceManager_->unload<Texture>(newKey);
+						resourceManager_->loadTexture(newKey, dropped_path.string());
+
+						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
+					}
+					else
+					{
+						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			static std::string newParticleTextureKey = "";
+			ImGui::InputText("New Texture Key", &newParticleTextureKey);
+
+			//Button to update texture key
+			if (ImGui::Button("Update Texture")) {
+				if (!newParticleTextureKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					emitter.particleTextureKey = newParticleTextureKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+			}
+
+			bool activeNow = false;
+			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
+			if (ImGui::IsItemActive()) activeNow = true;
+			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
+			if (ImGui::IsItemActive()) activeNow = true;
+			ImGui::InputFloat("Emission Interval", &emitter.emissionInterval);
+			if (ImGui::IsItemActive()) activeNow = true;
+			ImGui::InputFloat("Time Since Last Emission", &emitter.timeSinceLastEmission);
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			const char* items[] = { "NONE", "RANDOM"};
+			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
+
+			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, items, IM_ARRAYSIZE(items))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
+			if (ImGui::IsItemActive()) activeNow = true;
+			ImGui::InputFloat2("Particle Size", &emitter.particleSize.x);
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			bool isAffectedByGravityLocal = emitter.isAffectedByGravity;
+			if (ImGui::Checkbox("Is Affected by Gravity?", &isAffectedByGravityLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isAffectedByGravity = isAffectedByGravityLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		default:
@@ -2674,7 +3475,7 @@ namespace Editor {
 			if (gfx && spriteRenderer_ && camSystem) {
 
 				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
-				camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+				//camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
 
 				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
@@ -2690,6 +3491,15 @@ namespace Editor {
 				}
 
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					// 1. Update Aspect Ratio based on the actual ImGui Window size
+					float aspect = (viewportPanelSize.y > 0) ? (viewportPanelSize.x / viewportPanelSize.y) : 1.0f;
+					camSystem->SetAspectRatio(editorCamera_, aspect);
+
+					// 2. Manually update the camera.size. 
+					Framework::Camera& cam = camSystem->GetCamera(editorCamera_);
+					cam.size.x = 2.0f * cam.zoom * cam.aspectRatio;
+					cam.size.y = 2.0f * cam.zoom;
+
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
@@ -2794,6 +3604,280 @@ namespace Editor {
 
 #pragma endregion
 
+#pragma region LAYER
+	void Editor::ShowLayerManager() {
+
+		
+	ImGui::Begin("Layer", &settings.showLayerManager);
+
+	auto* physics = gameManager_->GetSystems().physics_;
+	if (!physics) {
+		ImGui::TextDisabled("Physics system not available");
+		ImGui::End();
+		return;
+	}
+
+	//collision matrix section
+	if (ImGui::CollapsingHeader("Collision Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::TextWrapped("Configure which collision layers can interact:");
+		ImGui::Spacing();
+
+		ShowCollisionMatrix(physics);
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	//entity layer section
+	if (ImGui::CollapsingHeader("Entity Layer Configuration", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!isEntitySelected_ || selectedEntityIndex == 0) {
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+			ImGui::TextWrapped("Select an entity in the Hierarchy panel to configure its layers.");
+			ImGui::PopStyleColor();
+		}
+		else {
+			Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+
+			// Display entity name
+			std::string entityName = entityMgr.GetProperties(selectedEntity).name;
+			ImGui::Text("Entity: %s", entityName.c_str());
+			ImGui::Spacing();
+			ImGui::Separator();
+
+			// COLLISION LAYER SECTION 
+			if (ImGui::TreeNodeEx("Collision Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ShowEntityCollisionLayer(entityMgr, selectedEntity);
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			//  RENDER LAYER SECTION
+			if (ImGui::TreeNodeEx("Render Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ShowEntityRenderLayer(entityMgr, selectedEntity);
+				ImGui::TreePop();
+			}
+		}
+	}
+
+	ImGui::End();
+	
+	}
+
+	// Helper function to show collision matrix
+	void Editor::ShowCollisionMatrix(PhysicsSystem* physics) {
+		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		const float ROW_HEADER_WIDTH = 100.0f;
+		const float CELL_SIZE = 30.0f;
+
+		// Calculate column header height
+		float maxLabelWidth = 0.0f;
+		for (int i = 0; i < layerCount; i++) {
+			std::string name = LayerToString(static_cast<Framework::CollisionLayer>(i));
+			maxLabelWidth = std::max(maxLabelWidth, ImGui::CalcTextSize(name.c_str()).x);
+		}
+
+		const float COLUMN_HEADER_HEIGHT = maxLabelWidth + ImGui::GetStyle().ItemSpacing.y * 2;
+
+		// --- Draw Column Headers (Vertical Text) ---
+		ImGui::Dummy(ImVec2(ROW_HEADER_WIDTH, COLUMN_HEADER_HEIGHT));
+		ImGui::SameLine();
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
+
+		for (int col = 0; col < layerCount; col++) {
+			Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+			std::string colName = LayerToString(colLayer);
+
+			float colCenterX = headerStartPos.x + (col * CELL_SIZE) + (CELL_SIZE * 0.5f);
+			float textBottom = headerStartPos.y + COLUMN_HEADER_HEIGHT - ImGui::GetStyle().ItemSpacing.y - 0.5f;
+
+			// Draw vertical text
+			for (size_t i = 0; i < colName.length(); i++) {
+				char c[2] = { colName[i], '\0' };
+				ImVec2 charSize = ImGui::CalcTextSize(c);
+				ImVec2 charPos(colCenterX - charSize.x * 0.5f, textBottom - (i + 1) * charSize.y);
+				drawList->AddText(charPos, ImGui::GetColorU32(ImGuiCol_Text), c);
+			}
+
+			ImGui::SetCursorScreenPos(ImVec2(colCenterX - CELL_SIZE * 0.5f, headerStartPos.y));
+			ImGui::InvisibleButton(("##colheader" + std::to_string(col)).c_str(),
+				ImVec2(CELL_SIZE, COLUMN_HEADER_HEIGHT));
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("%s", colName.c_str());
+			}
+		}
+
+		ImGui::SetCursorScreenPos(ImVec2(headerStartPos.x, headerStartPos.y + COLUMN_HEADER_HEIGHT));
+		ImGui::NewLine();
+
+		// Draw Matrix Grid 
+		for (int row = 0; row < layerCount; row++) {
+			Framework::CollisionLayer rowLayer = static_cast<Framework::CollisionLayer>(row);
+			std::string rowName = LayerToString(rowLayer);
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("%s", rowName.c_str());
+			ImGui::SameLine(ROW_HEADER_WIDTH);
+
+			for (int col = 0; col < layerCount; col++) {
+				Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+
+				ImGui::PushID(row * layerCount + col);
+				bool canCollide = physics->GetLayerCollision(rowLayer, colLayer);
+
+				ImGui::SetCursorPosX(ROW_HEADER_WIDTH + (col * CELL_SIZE) +
+					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
+
+				if (ImGui::Checkbox("##cb", &canCollide)) {
+					physics->SetLayerCollision(rowLayer, colLayer, canCollide);
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("%s vs %s", rowName.c_str(), LayerToString(colLayer));
+				}
+
+				ImGui::SameLine();
+				ImGui::PopID();
+			}
+			ImGui::NewLine();
+		}
+	}
+
+	// Helper function to show entity collision layer
+	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
+		int currentLayerIndex = static_cast<int>(entityLayer);
+		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		// Create layer dropdown
+		std::vector<std::string> layerLabels;
+		std::vector<const char*> layerItems;
+
+		for (int i = 0; i < layerCount; i++) {
+			Framework::CollisionLayer layer = static_cast<Framework::CollisionLayer>(i);
+			layerLabels.push_back(LayerToString(layer));
+		}
+
+		for (const auto& label : layerLabels) {
+			layerItems.push_back(label.c_str());
+		}
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Collision Layer:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(200.0f);
+
+		if (ImGui::Combo("##CollisionLayer", &currentLayerIndex, layerItems.data(),
+			static_cast<int>(layerItems.size()))) {
+			entityLayer = static_cast<Framework::CollisionLayer>(currentLayerIndex);
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("This determines which objects can collide with this entity");
+
+		// Show collision info
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Collision Interactions")) {
+			ImGui::Text("Can collide with:");
+			ImGui::Indent();
+
+			bool hasCollisions = false;
+			auto* physics = gameManager_->GetSystems().physics_;
+			for (int i = 0; i < layerCount; i++) {
+				Framework::CollisionLayer otherLayer = static_cast<Framework::CollisionLayer>(i);
+				if (physics->GetLayerCollision(entityLayer, otherLayer)) {
+					ImGui::BulletText("%s", LayerToString(otherLayer));
+					hasCollisions = true;
+				}
+			}
+
+			if (!hasCollisions) {
+				ImGui::TextDisabled("(No collisions enabled)");
+			}
+
+			ImGui::Unindent();
+			ImGui::TreePop();
+		}
+	}
+
+	// Helper function to show entity render layer
+	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
+
+		// Render Layer Dropdown
+		const char* renderLayerNames[] = {
+			"Background (-100)",
+			"Platform (50)",
+			"Enemy (75)",
+			"Player (100)",
+			"UI (200)",
+			"Custom"
+		};
+
+		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Render Layer:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(200.0f);
+
+		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
+			IM_ARRAYSIZE(renderLayerNames))) {
+			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("This controls when this entity is drawn relative to others");
+
+		// Custom Render Order (only shown if Custom is selected)
+		if (props.renderLayer == Framework::RenderLayer::Custom) {
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			ImGui::Text("Custom Render Order:");
+			ImGui::SetNextItemWidth(150.0f);
+			ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset to 0")) {
+				props.customRenderOrder = 0;
+			}
+
+			ImGui::Spacing();
+			ImGui::TextWrapped("Lower values render first (behind). Higher values render last (in front).");
+		}
+
+		// Show render order info
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Render Order Info")) {
+			int effectiveRenderOrder = props.renderLayer == Framework::RenderLayer::Custom
+				? props.customRenderOrder
+				: static_cast<int>(props.renderLayer);
+
+			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
+			ImGui::Spacing();
+
+			ImGui::TextWrapped("Standard render order:");
+			ImGui::Indent();
+			ImGui::BulletText("Background: -100 (renders first)");
+			ImGui::BulletText("Platform: 50");
+			ImGui::BulletText("Enemy: 75");
+			ImGui::BulletText("Player: 100");
+			ImGui::BulletText("UI: 200 (renders last)");
+			ImGui::Unindent();
+
+			ImGui::Unindent();
+			ImGui::TreePop();
+		}
+	}
+
+#pragma endregion
+
 #pragma region TOOLBAR
 
 	void Editor::ShowToolbar() {
@@ -2869,7 +3953,6 @@ namespace Editor {
 			// Lock game keyboard if !isGamePlaying
 			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
 
-
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
 				if (isGamePlaying) {
@@ -2923,6 +4006,65 @@ namespace Editor {
 			if (!isGamePlaying) ImGui::EndDisabled();
 			ImGui::PopStyleColor();
 
+			ImGui::SameLine();
+
+			// History Buttons
+			ImVec2 historyControlBtnSize{ 40.f, 20.f };
+			float historySpacing = ImGui::GetStyle().ItemSpacing.x;
+			float historyTotalWidth = historyControlBtnSize.x * 2.f + historySpacing;
+
+			float historyStartX = regionWidth * 0.75f - (historyTotalWidth * 0.5f);
+
+			if (historyStartX < 0.f) {
+				historyStartX = 0.f;
+			}
+
+			ImGui::SetCursorPosX(historyStartX);
+
+			// Undo Button
+			if (historyManager_.CanUndo()) {
+				if (ImGui::Button("Undo", historyControlBtnSize)) {
+					historyManager_.Undo();
+				}
+
+				if (ImGui::IsItemHovered()) {
+					std::string desc = historyManager_.GetLatestUndoDescription();
+					if (!desc.empty()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(desc.c_str());
+						ImGui::EndTooltip();
+					}
+				}
+			}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::Button("Undo", historyControlBtnSize);
+				ImGui::EndDisabled();
+			}
+
+			ImGui::SameLine(0.f, historySpacing);
+
+			// Redo Button
+			if (historyManager_.CanRedo()) {
+				if (ImGui::Button("Redo", historyControlBtnSize)) {
+					historyManager_.Redo();
+				}
+
+				if (ImGui::IsItemHovered()) {
+					std::string desc = historyManager_.GetLatestRedoDescription();
+					if (!desc.empty()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(desc.c_str());
+						ImGui::EndTooltip();
+					}
+				}
+			}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::Button("Redo", historyControlBtnSize);
+				ImGui::EndDisabled();
+			}
+
 			ImGui::End();
 		}
 
@@ -2942,9 +4084,8 @@ namespace Editor {
 		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 		const Vector2D camPos = cam.position;
 
-		// Match grid to viewport aspect
-		float aspect = gameViewportSize_.x / gameViewportSize_.y;
-		const float cellX = (baseGridCellSize_) / aspect;
+		// Use world space grid size
+		const float cellX = baseGridCellSize_;
 		const float cellY = baseGridCellSize_;
 
 		float halfW = cam.size.x * 0.5f;
@@ -2961,6 +4102,7 @@ namespace Editor {
 		const ImU32 axisXColor = IM_COL32(255, 0, 0, 160);
 		const ImU32 axisYColor = IM_COL32(0, 255, 0, 160);
 
+		// Draw vertical lines
 		for (float x = startX; x <= right; x += cellX)
 		{
 			Vector2D worldA = { x, bottom };
@@ -2970,6 +4112,7 @@ namespace Editor {
 			drawList->AddLine(a, b, lineColor);
 		}
 
+		// Draw horizontal lines
 		for (float y = startY; y <= top; y += cellY)
 		{
 			Vector2D worldA = { left, y };
@@ -2979,7 +4122,7 @@ namespace Editor {
 			drawList->AddLine(a, b, lineColor);
 		}
 
-		// World axes
+		// Draw world axes
 		Vector2D xA = { 0.0f, bottom };
 		Vector2D xB = { 0.0f, top };
 		Vector2D yA = { left, 0.0f };
@@ -3082,7 +4225,7 @@ namespace Editor {
 					if (compData.type == "RigidBody") {
 						if (compData.data.HasMember("mass")) {
 							float mass = compData.data["mass"].GetFloat();
-							if (ImGui::DragFloat("Mass", &mass, 0.1f, 0.0f, 1.0f)) {
+							if (ImGui::DragFloat("Mass", &mass, 0.0f, 0.0f, 1.0f)) {
 								compData.data["mass"].SetFloat(mass);
 								prefabModified = true;
 							}
@@ -3094,11 +4237,11 @@ namespace Editor {
 							float halfX = compData.data["halfSizeX"].GetFloat();
 							float halfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(halfY);
 								prefabModified = true;
 							}
@@ -3110,11 +4253,11 @@ namespace Editor {
 							float texHalfX = compData.data["halfSizeX"].GetFloat();
 							float texHalfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(texHalfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(texHalfY);
 								prefabModified = true;
 							}
@@ -3131,14 +4274,14 @@ namespace Editor {
 					if (compData.type == "TrapPlatformComponent") {
 						if (compData.data.HasMember("fallSpeed")) {
 							float fallSpeed = compData.data["fallSpeed"].GetFloat();
-							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.1f, 0.1f, 20.0f)) {
+							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["fallSpeed"].SetFloat(fallSpeed);
 								prefabModified = true;
 							}
 						}
 						if (compData.data.HasMember("triggerDelay")) {
 							float triggerDelay = compData.data["triggerDelay"].GetFloat();
-							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.1f, 0.0f, 10.0f)) {
+							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.0f, 0.0f, 5.0f)) {
 								compData.data["triggerDelay"].SetFloat(triggerDelay);
 								prefabModified = true;
 							}
@@ -3150,11 +4293,11 @@ namespace Editor {
 							float halfX = compData.data["halfSizeX"].GetFloat();
 							float halfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(halfY);
 								prefabModified = true;
 							}
@@ -3166,11 +4309,11 @@ namespace Editor {
 							float texHalfX = compData.data["halfSizeX"].GetFloat();
 							float texHalfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(texHalfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(texHalfY);
 								prefabModified = true;
 							}
@@ -3353,29 +4496,14 @@ namespace Editor {
 		if (!cameraSystem_ || cameraID == 0)
 			return ImVec2(0, 0);
 
-		// Validate that the entity is a camera
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		Framework::EntityManager entityMgr(*ecs);
+		const Camera& cam = cameraSystem_->GetCamera(cameraID);
 
-		if (!entityMgr.HasComponent(cameraID, Framework::CameraType)) {
-			return ImVec2(0, 0);
-		}
-
-		const Camera& cam = cameraSystem_->GetCamera(cameraID); // USE THE PASSED CAMERA
-
-		// Compute offset from camera center
-		Vector2D offset = {
-			(worldPos.x - cam.position.x) / (cam.size.x * 0.5f),
-			(worldPos.y - cam.position.y) / (cam.size.y * 0.5f)
-		};
-
-		// Convert from world normalized (-1..1) to ImGui pixel coordinates
-		float screenX = gameViewportPos_.x + ((offset.x + 1.0f) * 0.5f * gameViewportSize_.x);
-		float screenY = gameViewportPos_.y + ((1.0f - (offset.y + 1.0f) * 0.5f) * gameViewportSize_.y);
+		// Convert world coordinates to screen coordinates
+		float screenX = ((worldPos.x - cam.position.x) / cam.size.x + 0.5f) * gameViewportSize_.x + gameViewportPos_.x;
+		float screenY = (0.5f - (worldPos.y - cam.position.y) / cam.size.y) * gameViewportSize_.y + gameViewportPos_.y;
 
 		return ImVec2(screenX, screenY);
 	}
-
 
 	ImVec2 Editor::WorldToImGuiScreen(const Vector2D& worldPos)
 	{

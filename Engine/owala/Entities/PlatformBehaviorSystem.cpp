@@ -115,9 +115,11 @@ namespace Framework {
                 if (entityMgr.HasComponent(entity, VelocityType)) {
                     entityMgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
                 }
+                // Make it static again
                 if (entityMgr.HasComponent(entity, RigidBodyType)) {
                     entityMgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
                 }
+                // Reset fallen state but keep it triggered
                 trapComp.hasFallen = false;
                 continue;
             }
