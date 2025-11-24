@@ -296,6 +296,9 @@ namespace Editor {
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
 
+		// Scene Management Helper functions
+		void SaveScene();
+
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
 

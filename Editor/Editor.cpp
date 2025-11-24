@@ -1385,44 +1385,94 @@ namespace Editor {
 
 		ImGui::End(); // End "Level Editor" window
 	}
+	
+	void Editor::SaveScene() {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		if (!currentScene.IsValid()) return;
+
+		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		// Reset entity states & stop game on save 
+		isGamePlaying = false;
+		gameManager_->GetSystems().levelResetter_->RunReset();
+		std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+		std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
+
+		// If its a newly created scene, create new filepath for it based on scene name.
+		if (currentScene.path.empty()) {
+			sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
+		}
+
+		// Serialize Scene name and entities to its own json file in local Data folder
+		EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+
+		// Check if root Data folder exists and serialize scene data to root folder
+		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+			std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
+			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
+		}
+
+		// Save scene asset to json file that stores all scene assets
+		FileIOSystem::SaveSceneAsset(currentScene);
+	}
 
 	void Editor::SaveAndLoadSection() {
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
-		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+		bool isCurrentSceneValid = currentScene.IsValid();
 
 		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
+		if (!isCurrentSceneValid) ImGui::BeginDisabled();
 		if (ImGui::Button("Save")) {
-			// Reset entity states & stop game on save 
-			isGamePlaying = false;
-			gameManager_->GetSystems().levelResetter_->RunReset();
-			std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
-			std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
-
-			// If its a newly created scene, create new filepath for it based on scene name.
-			if (currentScene.path.empty()) {
-				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
-			}
-
-			// Serialize Scene name and entities to its own json file in local Data folder
-			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
-
-			// Check if root Data folder exists and serialize scene data to root folder
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
-				EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
-			}
-
-			// Save scene asset to json file that stores all scene assets
-			FileIOSystem::SaveSceneAsset(currentScene);
+			SaveScene();
 		}
+		if (!isCurrentSceneValid) ImGui::EndDisabled();
 
 		// --- Create New Scene --- 
 		ImGui::SameLine();
 		if (ImGui::Button("New Scene")) {
 			ImGui::OpenPopup("Create New Scene");
+		}
+
+		// --- Unload Current Scene ---
+		ImGui::SameLine();
+		ImU32 buttonColor = IM_COL32(150, 50, 50, 255);
+		ImU32 buttonHoverColor = IM_COL32(200, 50, 50, 255);
+		ImU32 buttonActiveColor = IM_COL32(215, 50, 50, 255);
+
+		ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoverColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
+
+		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (ImGui::Button("Unload Scene")) {
+			ImGui::OpenPopup("Save");
+		}
+		ImGui::PopStyleColor(3);
+		if (!isCurrentSceneValid) ImGui::EndDisabled();
+
+		// Save Scene Modal (pop up before unloading current scene)
+		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Save the current scene before unloading?");
+
+			if (ImGui::Button("Confirm", ImVec2(120, 0)))
+			{
+				SaveScene();
+				ImGui::CloseCurrentPopup();
+				sceneMgr.UnloadScene();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+			{
+				ImGui::CloseCurrentPopup();
+				sceneMgr.UnloadScene();
+			}
+
+			ImGui::EndPopup();
 		}
 
 		// Create New Scene Modal
@@ -1477,7 +1527,7 @@ namespace Editor {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene) {
+				if (isCurrentScene || !scene.IsValid()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1491,7 +1541,7 @@ namespace Editor {
 					}
 				}
 
-				if (isCurrentScene) {
+				if (isCurrentScene || !scene.IsValid()) {
 					ImGui::EndDisabled();
 				}
 			}
