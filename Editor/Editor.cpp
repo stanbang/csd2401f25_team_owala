@@ -1268,13 +1268,13 @@ namespace Editor {
 			entityMgr.AddComponent<AnimationComponent>(bird, {});
 
 			RigidBody rb;
-			rb.SetMass(0.0f); // Give it some mass
+			rb.SetMass(1.0f); // Give it some mass
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
 			//  Add components to make it visible and selectable
-			Vector2D texHalfSize = { 0.1f, 0.2f }; // Set a default size
-			Vector2D aabbHalfSize = { 0.01f, 0.01f }; // Set a default size
+			Vector2D texHalfSize = { 100.f, 100.f }; // Set a default size
+			Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
 
 			// texture is loaded in TestScene.cpp
 			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
@@ -3032,8 +3032,8 @@ namespace Editor {
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);
+		/*	ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);*/
 			ImGui::PopStyleColor(2);
 
 			ImGui::Separator();
@@ -3053,7 +3053,7 @@ namespace Editor {
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");
+		/*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -3063,9 +3063,9 @@ namespace Editor {
 			ImGui::Text("Hover Behavior");
 			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+			/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");
+			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;

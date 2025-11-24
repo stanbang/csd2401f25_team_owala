@@ -28,16 +28,16 @@
                 {
                     "type": "AABBCollider",
                     "data": {
-                        "halfSizeX": 0.10000000149011612,
-                        "halfSizeY": 0.0949999988079071
+                        "halfSizeX": 100.0,
+                        "halfSizeY": 100.0
                     }
                 },
                 {
                     "type": "TextureComponent",
                     "data": {
                         "textureID": "Platform.png",
-                        "halfSizeX": 0.10000000149011612,
-                        "halfSizeY": 0.1
+                        "halfSizeX": 100.0,
+                        "halfSizeY": 100.0
                     }
                 },
                 {
