@@ -1154,6 +1154,7 @@ namespace Editor {
 		// --- Scene Info ---
 		if (!currentScene.IsValid()) {
 			ImGui::TextDisabled("No Scene Loaded!");
+			SaveAndLoadSection();
 		}
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());

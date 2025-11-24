@@ -200,13 +200,28 @@ namespace Framework {
 
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
 		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
-		sceneCallbacks_[testScene].fpInitialize();
 	}
 
 	void GameManager::Update() {
 		// --- GAME UPDATE HERE ---
-		// Hard Coded to load the Test Scene as we'll be doing testing there first.
+
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
+
+		// Detected Scene Change
+		if (currentSceneIndex != lastInitializedScene_) {
+			std::unordered_map<SceneGUID, SceneCallBacks>::iterator prevScene = sceneCallbacks_.find(lastInitializedScene_);
+			if (prevScene != sceneCallbacks_.end() && prevScene->second.fpFree) {
+				prevScene->second.fpFree();
+			}
+
+			std::unordered_map<SceneGUID, SceneCallBacks>::iterator newScene = sceneCallbacks_.find(currentSceneIndex);
+			if (newScene != sceneCallbacks_.end() && newScene->second.fpInitialize) {
+				newScene->second.fpInitialize();
+			}
+
+			lastInitializedScene_ = currentSceneIndex;
+		}
+
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 

@@ -61,6 +61,7 @@ namespace Framework {
 			SceneFunction fpFree = nullptr;
 		};
 		std::unordered_map<SceneGUID, SceneCallBacks> sceneCallbacks_;
+		SceneGUID lastInitializedScene_ = 0;
 
 		struct RegisteredSystems {
 			EntityStorage* ecs_ = nullptr;
