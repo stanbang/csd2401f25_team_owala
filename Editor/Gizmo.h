@@ -14,6 +14,7 @@
 *********************************************************************/
 #pragma once
 #include <imgui.h>
+#include <string>
 #include "Vector2D.h"
 #include "Entity.h"
 
@@ -50,6 +51,8 @@ namespace Editor {
 
         // --- Gizmos Dragging (Actual transformation logic) ---
         void Update(int selectedEntityIndex, Entity activeCamera);
+        void HandleStopDrag();
+        void HandleStartDrag();
         void ApplyTransformation(const ImVec2 mouseDelta, const Entity activeCamera);
 
         
@@ -91,6 +94,9 @@ namespace Editor {
         ImVec2 lastMousePos_; 
         // Stores the selected entity ID for easy access during the drag
         Entity draggedEntity_ = 0;
+
+        // For Undo/Redo system (HistoryManager)
+        std::string beforeGizmosJSON_{}, afterGizmosJSON_{};
     };
 
 }

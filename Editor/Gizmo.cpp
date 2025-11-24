@@ -17,6 +17,7 @@
 #include "Logger.h"
 #include "Editor.h"
 #include "EntityManager.h"
+#include "EntitySerializer.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -254,7 +255,7 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
 
 // --- Gizmos Dragging & Transformation --- 
 void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
-    if (selectedEntityIndex <= 1) {
+    if (selectedEntityIndex <= 1 || !IsGizmosToggled()) {
         isDragging_ = false;
         return;
     }
@@ -267,18 +268,17 @@ void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
     if (isDragging_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
         isDragging_ = false;
         activeAxis_ = GizmoAxis::None;
-        // NOTE: If you have an undo system, this is where you finalize the action.
+        HandleStopDrag();
     }
 
     // --- State: Start Drag ---
     // If NOT dragging, check if the mouse is hovering over an axis AND clicked.
-    if (!isDragging_ && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-        if (hoveredAxis_ != GizmoAxis::None) {
-            isDragging_ = true;
-            activeAxis_ = hoveredAxis_;
-            draggedEntity_ = entity;
-            lastMousePos_ = currentMousePos;
-        }
+    if (!isDragging_ && ImGui::IsMouseDragging(ImGuiMouseButton_Left) && hoveredAxis_ != GizmoAxis::None) {
+        isDragging_ = true;
+        activeAxis_ = hoveredAxis_;
+        draggedEntity_ = entity;
+        lastMousePos_ = currentMousePos;
+        HandleStartDrag();
     }
 
     // --- State: Dragging ---
@@ -297,22 +297,81 @@ void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
     }
 }
 
+void GizmoSystem::HandleStopDrag() {
+    // save the current state of the relevant components AFTER transformation
+    EntityManager entityMgr(ecs_);
+    ComponentType modifiedCompType = MAX_COMPONENTS;
+
+    if (currentMode_ == GizmoMode::Translate) {
+        if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
+            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_);
+            modifiedCompType = PositionType;
+        }
+        else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
+            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, SpawnPointType, ecs_);
+            modifiedCompType = SpawnPointType;
+        }
+        // need handle TrapPlatforms where both Position and TrapPlatformComponent.originalPosition are modified tgt
+    }
+    else if (currentMode_ == GizmoMode::Scale) {
+        if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
+            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_);
+        }
+        else afterGizmosJSON_ = ""; // should already have the component but just set to empty for safety
+        modifiedCompType = ScaleType;
+    }
+    else if (currentMode_ == GizmoMode::Rotate) {
+        if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
+            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_);
+        }
+        else afterGizmosJSON_ = ""; // should already have the component but just set to empty for safety
+        modifiedCompType = RotationType;
+    }
+
+    // Push to history stack
+    if (beforeGizmosJSON_ != afterGizmosJSON_ && modifiedCompType != MAX_COMPONENTS) {
+        std::stringstream ss;
+        ss << "Modified " << ComponentToString(modifiedCompType) << " in " << entityMgr.GetProperties(draggedEntity_).name << std::endl;
+        editor_->GetHistoryMgr()->RecordModifyComponent(draggedEntity_, ss.str(), beforeGizmosJSON_, afterGizmosJSON_, modifiedCompType);
+    }
+}
+
+void GizmoSystem::HandleStartDrag() {
+    EntityManager entityMgr(ecs_);
+    // save the current state of the relevant component before applying any transformations
+    if (currentMode_ == GizmoMode::Translate) {
+        if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
+            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_);
+        }
+        else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
+            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, SpawnPointType, ecs_);
+        }
+        // need handle TrapPlatforms where both Position and TrapPlatformComponent.originalPosition are modified tgt
+    }
+    else if (currentMode_ == GizmoMode::Scale) {
+        if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
+            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_);
+        }
+        else beforeGizmosJSON_ = ""; // if component isnt added yet, set to empty
+    }
+    else if (currentMode_ == GizmoMode::Rotate) {
+        if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
+            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_);
+        }
+        else beforeGizmosJSON_ = ""; // if component isnt added yet, set to empty
+    }
+}
+
 void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity activeCamera) {
     // Safety check: isDragging_ must be true, and draggedEntity_ must be valid
     if (!isDragging_ || draggedEntity_ == 0) return;
 
     EntityManager entityMgr(ecs_);
 
-    // Get camera zoom for screen-to-world conversion (Needed if not snapping)
-    // float cameraZoom = cameraSystem_->GetCamera(activeCamera).size.x / editor_->GetViewportSize().x; 
-
     switch (currentMode_) {
     case GizmoMode::Translate:
     {
         bool isGUI = entityMgr.HasComponent(draggedEntity_, GUITagType);
-
-        // Use the snapped position only if moving the center, 
-        // otherwise use delta for fine axis control
         Vector2D currentMousePos = editor_->GetMouseWorldPosition();
 
         // --- Determine new position based on active axis ---

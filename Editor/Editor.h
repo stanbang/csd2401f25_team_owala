@@ -56,6 +56,9 @@ namespace Framework {
 }
 
 namespace Editor {
+	// Helper function to convert component type to string
+	std::string ComponentToString(Framework::ComponentType componentType);
+
 
 	struct EditorSettings {
 		bool showDebugInfo = true;
@@ -349,5 +352,8 @@ namespace Editor {
 		void SetGizmoSystem(GizmoSystem* gizmo) {
 			gizmoSystem_ = gizmo;
 		}
+
+		// Getter for historyManager_
+		HistoryManager* GetHistoryMgr() { return &historyManager_; }
 	};
 }

@@ -149,6 +149,9 @@ namespace Framework::Serialization {
 	static constexpr const char* PARTICLE_SIZE = "particle_size";
 	static constexpr const char* IS_AFFECTED_BY_GRAVITY = "is_affected_by_gravity";
 
+	static constexpr const char* ROTATION_ANGLE = "angle";
+	static constexpr const char* SCALE_AXES= "axes";
+
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
 	static constexpr const char* AI_STATE = "state";

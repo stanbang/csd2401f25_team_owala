@@ -64,7 +64,7 @@
 #include <iomanip>
 
 // Internal Helpers
-namespace {
+namespace Editor {
 	using namespace Framework;
 
 	std::string ComponentToString(ComponentType componentType) {

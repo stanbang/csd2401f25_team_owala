@@ -422,6 +422,12 @@ namespace Framework {
 		case ParticleEmitterComponentType:
 			SerializeComponent(entityMgr.GetComponent<ParticleEmitterComponent>(entity), componentData, alloc);
 			break;
+		case RotationType:
+			SerializeComponent(entityMgr.GetComponent<Rotation>(entity), componentData, alloc);
+			break;
+		case ScaleType:
+			SerializeComponent(entityMgr.GetComponent<Scale>(entity), componentData, alloc);
+			break;
 		}
 		doc.CopyFrom(componentData, alloc);
 
@@ -1062,6 +1068,19 @@ namespace Framework {
 
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_AFFECTED_BY_GRAVITY), particleEmitter.isAffectedByGravity, alloc);
 	}
+
+	// Rotation Component
+	void EntitySerializer::SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_ANGLE), rotationComp.angle, alloc);
+	}
+
+	// Scale Component
+	void EntitySerializer::SerializeComponent(const Scale& scaleComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		rapidjson::Value scaleAxes(rapidjson::kObjectType);
+		scaleAxes.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scaleComp.axes.x, alloc);
+		scaleAxes.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scaleComp.axes.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::SCALE_AXES), scaleAxes, alloc);
+	}
 #pragma endregion
 
 #pragma region SPECIALIZED DESERIALIZATION
@@ -1618,6 +1637,32 @@ namespace Framework {
 		}
 
 
+		return true;
+	}
+
+	// Rotation Component
+	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Rotation& out) {
+		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::ROTATION_ANGLE) && componentData[Serialization::ROTATION_ANGLE].IsFloat()) {
+			out.angle = componentData[Serialization::ROTATION_ANGLE].GetFloat();
+		}
+		return true;
+	}
+
+	// Scale Component
+	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Scale& out) {
+		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::SCALE_AXES) && componentData[Serialization::SCALE_AXES].IsObject()) {
+			const rapidjson::Value& axesData = componentData[Serialization::SCALE_AXES];
+			if (axesData.HasMember(Serialization::VEC2_X) && axesData[Serialization::VEC2_X].IsFloat()) {
+				out.axes.x = axesData[Serialization::VEC2_X].GetFloat();
+			}
+			if (axesData.HasMember(Serialization::VEC2_Y) && axesData[Serialization::VEC2_Y].IsFloat()) {
+				out.axes.y = axesData[Serialization::VEC2_Y].GetFloat();
+			}
+		}
 		return true;
 	}
 
