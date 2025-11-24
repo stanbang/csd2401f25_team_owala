@@ -958,6 +958,7 @@ namespace Framework {
 		colorList.PushBack(textComp.color.b, alloc).PushBack(textComp.color.a, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::FONT_COLOR), colorList, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::FONT_SIZE), textComp.scale, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MAX_WIDTH), textComp.maxWidth, alloc);
 	}
 
 	// Camera Component
@@ -1367,6 +1368,9 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::FONT_SIZE) && componentData[Serialization::FONT_SIZE].IsFloat()) {
 			out.scale = componentData[Serialization::FONT_SIZE].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::MAX_WIDTH) && componentData[Serialization::MAX_WIDTH].IsFloat()) {
+			out.maxWidth = componentData[Serialization::MAX_WIDTH].GetFloat();
 		}
 		return true;
 	}

@@ -110,6 +110,7 @@ namespace Framework::Serialization {
 	static constexpr const char* FONT_KEY = "font_key";
 	static constexpr const char* FONT_COLOR = "font_color";
 	static constexpr const char* FONT_SIZE = "font_size";
+	static constexpr const char* MAX_WIDTH = "max_width";
 
 	static constexpr const char* CAMERA_COMPONENT = "Camera";
 	static constexpr const char* POSITION = "position";

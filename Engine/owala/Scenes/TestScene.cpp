@@ -66,6 +66,7 @@ namespace TestScene {
 		ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
         CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
         SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
+        TextRenderSystem* textRenderer = gm.GetSystems().textRenderer_; // Get text renderer
         PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
@@ -152,11 +153,12 @@ namespace TestScene {
         //sceneMgr.SetEntityAsPersistent(playerEntity);
         EntityManager entityMgr(*ecs);
         playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
+        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];   
 
         cameraSystem->SetActiveCamera(mainCamera);
         cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
         spriteRenderer->SetCameraSystem(cameraSystem);
+        textRenderer->SetCameraSystem(cameraSystem);
 
 
         // --- Create Text Entity ---
