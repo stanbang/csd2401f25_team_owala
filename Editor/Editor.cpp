@@ -59,6 +59,7 @@
 #include "ScriptRegistry.h"
 #include "NativeScriptMaker.h"
 
+#include <unordered_set>
 // Standard Libraries
 #include <sstream>
 #include <iomanip>
@@ -80,7 +81,6 @@ namespace Editor {
 		case ComponentType::PlayerStateType:				return "PlayerState";
 		case ComponentType::RotationFlagType:				return "RotationFlag";
 		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
-		case ComponentType::ScalingPlatformComponentType:	return "ScalingPlatform";
 		case ComponentType::TextureComponentType:			return "Texture";
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
@@ -314,8 +314,17 @@ namespace Editor {
 		}
 
 		// Load all prefabs from the data file when the editor starts
-		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
+		if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
+			Framework::Logger::Get().Error(DebugType::Editor)
+				<< "Failed to load prefabs from Data/prefabs/" << std::endl;
+		}
+		else {
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Successfully loaded prefabs from folder" << std::endl;
+
+			if (Framework::SceneManager::GetInstance().GetActiveScene().IsValid()) {
+				ApplyAllPrefabChangesToCurrentScene();
+			}
 		}
 
 		LoadTilesFromFile();
@@ -599,9 +608,7 @@ namespace Editor {
 		for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
 			AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
 		}
-		for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-			AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
-		}
+
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
@@ -989,9 +996,6 @@ namespace Editor {
 						break;
 					case PrefabType::TrapPlatform:
 						newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-						break;
-					case PrefabType::ScalingPlatform:
-						newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 						break;
 					case PrefabType::None: // Should not happen
 						break;
@@ -1537,7 +1541,19 @@ namespace Editor {
 						isGamePlaying = false;
 						gameManager_->GetSystems().levelResetter_->RunReset();
 						ResetEditorCamera();
+						if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
+							Framework::Logger::Get().Error(DebugType::Editor)
+								<< "Failed to reload prefabs before scene load!" << std::endl;
+						}
+						else {
+							Framework::Logger::Get().Info(DebugType::Editor)
+								<< "Successfully reloaded prefabs before scene load" << std::endl;
+						}
 						sceneMgr.LoadScene(id);
+						ApplyAllPrefabChangesToCurrentScene();
+
+						palettePrepared_ = false;
+						tilePalettePrepared_ = false;
 					}
 				}
 
@@ -2019,16 +2035,7 @@ namespace Editor {
 						}
 						ImGui::EndMenu();
 					}
-					// Scaling Platforms
-					if (ImGui::BeginMenu("Scaling Platforms")) {
-						for (const std::pair<std::string, ScalingPlatformPrefab>& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-							if (ImGui::MenuItem(pair.first.c_str())) {
-								selectedPrefabType_ = PrefabType::ScalingPlatform;
-								selectedPrefabName_ = pair.first;
-							}
-						}
-						ImGui::EndMenu();
-					}
+					
 					ImGui::EndMenu(); // End Prefabs Menu
 				}
 
@@ -2330,59 +2337,182 @@ namespace Editor {
 		}
 		case ComponentType::RotationType: {
 			Rotation& rotation = entityMgr.GetComponent<Rotation>(selectedEntity);
-			float degrees = rotation.angle * (180.0f / 3.14159265359f);
-			if (transformationSystem_) {
-				if (ImGui::SliderFloat("Rotation (Degrees)", &degrees, -180.0f, 180.0f, "%.1f")) {
-					rotation.angle = degrees * (3.14159265359f / 180.0f);
-					if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
-						RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
-						rotationFlag.currentRotation = degrees; 
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-				}
-			}
-			else {
-				GameManager::GetInstance().GetSystems();
-				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
-			}
-
-			if (ImGui::Button("Reset Rotation")) {
-				rotation.angle = 0.0f;
-				if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
-					RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
-					rotationFlag.currentRotation = 0.0f;
+			static bool unifiedRotation = true;
+			ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedRotation);
+			ImGui::Separator();
+			if (unifiedRotation) {
+				float unifiedDegrees = rotation.textureAngle * (180.0f / 3.14159265359f);
+				if (ImGui::SliderFloat("Rotation (Degrees)", &unifiedDegrees, -180.0f, 180.0f, "%.1f")) {
+					float newRadians = unifiedDegrees * (3.14159265359f / 180.0f);
+					rotation.textureAngle = newRadians;
+					rotation.colliderAngle = newRadians;
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
 				}
-			}
-			break;
-		}
-
-		case ComponentType::ScaleType: {
-			Scale& scale = entityMgr.GetComponent<Scale>(selectedEntity);
-			if (transformationSystem_) {
-				Vector2D originalScale = scale.axes;
-
-				if (ImGui::InputFloat2("Scale Factors (X, Y)", &scale.axes.x, "%.2f")) {
-					scale.axes.x = std::max(0.01f, scale.axes.x);
-					scale.axes.y = std::max(0.01f, scale.axes.y);
-					transformationSystem_->UpdateEntityTransform(selectedEntity);
-				}
-
-				static bool uniformScaling = false;
-				ImGui::Checkbox("Uniform Scaling", &uniformScaling);
-
-				if (uniformScaling) {
-					float uniformScale = (scale.axes.x + scale.axes.y) * 0.5f;
-					if (ImGui::SliderFloat("Uniform Scale", &uniformScale, 0.1f, 5.0f, "%.2f")) {
-						scale.axes.x = uniformScale;
-						scale.axes.y = uniformScale;
+				if (ImGui::Button("Reset Rotation")) {
+					rotation.textureAngle = 0.0f;
+					rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
 				}
-				if (ImGui::Button("Reset Scale (1,1)")) {
-					scale.axes = { 1.0f, 1.0f };
+				ImGui::Text("Current: %.1f°", unifiedDegrees);
+			}
+			else {
+				ImGui::Text("Texture Rotation");
+				float textureDegrees = rotation.textureAngle * (180.0f / 3.14159265359f);
+				if (ImGui::SliderFloat("Texture (Degrees)", &textureDegrees, -180.0f, 180.0f, "%.1f")) {
+					rotation.textureAngle = textureDegrees * (3.14159265359f / 180.0f);
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				ImGui::Separator();
+				ImGui::Text("Collider Rotation");
+				float colliderDegrees = rotation.colliderAngle * (180.0f / 3.14159265359f);
+				if (ImGui::SliderFloat("Collider (Degrees)", &colliderDegrees, -180.0f, 180.0f, "%.1f")) {
+					rotation.colliderAngle = colliderDegrees * (3.14159265359f / 180.0f);
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				ImGui::Separator();
+				if (ImGui::Button("Reset Texture")) {
+					rotation.textureAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Collider")) {
+					rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Both")) {
+					rotation.textureAngle = 0.0f;
+					rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				ImGui::Text("Texture: %.1f° | Collider: %.1f°", textureDegrees, colliderDegrees);
+			}
+			break;
+		}
+		case ComponentType::ScaleType: {
+			Scale& scale = entityMgr.GetComponent<Scale>(selectedEntity);
+			if (transformationSystem_) {
+				static std::unordered_map<Entity, Vector2D> originalColliderSizes;
+				static std::unordered_map<Entity, Vector2D> originalTextureSizes;
+				if (originalColliderSizes.find(selectedEntity) == originalColliderSizes.end()) {
+					if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
+						originalColliderSizes[selectedEntity] = entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize;
+					}
+				}
+				if (originalTextureSizes.find(selectedEntity) == originalTextureSizes.end()) {
+					if (entityMgr.HasComponent(selectedEntity, TextureComponentType)) {
+						originalTextureSizes[selectedEntity] = entityMgr.GetComponent<TextureComponent>(selectedEntity).HalfSize;
+					}
+				}
+
+				// ===========================================================
+				// TEXTURE SCALING
+				// ===========================================================
+				ImGui::SeparatorText("Texture Scaling");
+
+				if (entityMgr.HasComponent(selectedEntity, TextureComponentType)) {
+					TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+
+					Vector2D texScaleFactor = { 1.0f, 1.0f };
+					if (originalTextureSizes.count(selectedEntity) &&
+						originalTextureSizes[selectedEntity].x > 0 &&
+						originalTextureSizes[selectedEntity].y > 0) {
+
+						texScaleFactor.x = texture.HalfSize.x / originalTextureSizes[selectedEntity].x;
+						texScaleFactor.y = texture.HalfSize.y / originalTextureSizes[selectedEntity].y;
+					}
+
+					if (ImGui::InputFloat2("Texture Scale (X, Y)", &texScaleFactor.x, "%.2f")) {
+						texture.HalfSize.x = originalTextureSizes[selectedEntity].x * texScaleFactor.x;
+						texture.HalfSize.y = originalTextureSizes[selectedEntity].y * texScaleFactor.y;
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					static bool uniformTexture = false;
+					ImGui::Checkbox("Uniform Texture Scaling", &uniformTexture);
+
+					if (uniformTexture) {
+						float uniformValue = (texScaleFactor.x + texScaleFactor.y) * 0.5f;
+						if (ImGui::SliderFloat("Uniform Texture Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
+							texture.HalfSize.x = originalTextureSizes[selectedEntity].x * uniformValue;
+							texture.HalfSize.y = originalTextureSizes[selectedEntity].y * uniformValue;
+							transformationSystem_->UpdateEntityTransform(selectedEntity);
+						}
+					}
+
+					if (ImGui::Button("Reset Texture Scale")) {
+						texture.HalfSize = originalTextureSizes[selectedEntity];
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				else {
+					ImGui::TextDisabled("No TextureComponent attached");
+				}
+
+				// ===========================================================
+				// COLLIDER SCALING
+				// ===========================================================
+				ImGui::SeparatorText("Collider Scaling");
+
+				if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(selectedEntity);
+					Vector2D colScaleFactor = { 1.0f, 1.0f };
+					if (originalColliderSizes.count(selectedEntity) &&
+						originalColliderSizes[selectedEntity].x > 0 &&
+						originalColliderSizes[selectedEntity].y > 0) {
+
+						colScaleFactor.x = collider.HalfSize.x / originalColliderSizes[selectedEntity].x;
+						colScaleFactor.y = collider.HalfSize.y / originalColliderSizes[selectedEntity].y;
+					}
+					if (ImGui::InputFloat2("Collider Scale (X, Y)", &colScaleFactor.x, "%.2f")) {
+						collider.HalfSize.x = originalColliderSizes[selectedEntity].x * colScaleFactor.x;
+						collider.HalfSize.y = originalColliderSizes[selectedEntity].y * colScaleFactor.y;
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+					static bool uniformCollider = false;
+					ImGui::Checkbox("Uniform Collider Scaling", &uniformCollider);
+					if (uniformCollider) {
+						float uniformValue = (colScaleFactor.x + colScaleFactor.y) * 0.5f;
+						if (ImGui::SliderFloat("Uniform Collider Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
+							collider.HalfSize.x = originalColliderSizes[selectedEntity].x * uniformValue;
+							collider.HalfSize.y = originalColliderSizes[selectedEntity].y * uniformValue;
+							transformationSystem_->UpdateEntityTransform(selectedEntity);
+						}
+					}
+					if (ImGui::Button("Reset Collider Scale")) {
+						collider.HalfSize = originalColliderSizes[selectedEntity];
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				else {
+					ImGui::TextDisabled("No AABBCollider attached");
+				}
+
+				// Reset both
+				ImGui::Separator();
+				if (ImGui::Button("Reset Both")) {
+					if (originalTextureSizes.count(selectedEntity)) {
+						entityMgr.GetComponent<TextureComponent>(selectedEntity).HalfSize =
+							originalTextureSizes[selectedEntity];
+					}
+					if (originalColliderSizes.count(selectedEntity)) {
+						entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize =
+							originalColliderSizes[selectedEntity];
+					}
 					transformationSystem_->UpdateEntityTransform(selectedEntity);
 				}
 			}
@@ -2611,11 +2741,7 @@ namespace Editor {
 			editSession.wasItemActive = activeNow;
 			break;
 		}
-		case ComponentType::ScalingPlatformComponentType: {
-			// I'm lazy to do this man
-			ImGui::TextDisabled("Properties are Hidden");
-			break;
-		}
+
 		case ComponentType::TextureComponentType: {
 			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 
@@ -4375,11 +4501,9 @@ namespace Editor {
 
 					for (const auto& compData : prefab->components) {
 						if (compData.type == "TrapPlatformComponent") hasTrap = true;
-						if (compData.type == "ScalingPlatformComponent") hasScaling = true;
 					}
 
 					if (hasTrap) selectedPrefabTypeForEditing_ = PrefabType::TrapPlatform;
-					else if (hasScaling) selectedPrefabTypeForEditing_ = PrefabType::ScalingPlatform;
 					else selectedPrefabTypeForEditing_ = PrefabType::Platform;
 				}
 			}
@@ -4414,7 +4538,7 @@ namespace Editor {
 					if (compData.type == "RigidBody") {
 						if (compData.data.HasMember("mass")) {
 							float mass = compData.data["mass"].GetFloat();
-							if (ImGui::DragFloat("Mass", &mass, 0.1f, 0.0f, 1.0f)) {
+							if (ImGui::DragFloat("Mass", &mass, 0.0f, 0.0f, 1.0f)) {
 								compData.data["mass"].SetFloat(mass);
 								prefabModified = true;
 							}
@@ -4426,11 +4550,11 @@ namespace Editor {
 							float halfX = compData.data["halfSizeX"].GetFloat();
 							float halfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(halfY);
 								prefabModified = true;
 							}
@@ -4442,11 +4566,11 @@ namespace Editor {
 							float texHalfX = compData.data["halfSizeX"].GetFloat();
 							float texHalfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(texHalfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(texHalfY);
 								prefabModified = true;
 							}
@@ -4463,14 +4587,14 @@ namespace Editor {
 					if (compData.type == "TrapPlatformComponent") {
 						if (compData.data.HasMember("fallSpeed")) {
 							float fallSpeed = compData.data["fallSpeed"].GetFloat();
-							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.1f, 0.1f, 20.0f)) {
+							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["fallSpeed"].SetFloat(fallSpeed);
 								prefabModified = true;
 							}
 						}
 						if (compData.data.HasMember("triggerDelay")) {
 							float triggerDelay = compData.data["triggerDelay"].GetFloat();
-							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.1f, 0.0f, 10.0f)) {
+							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.0f, 0.0f, 5.0f)) {
 								compData.data["triggerDelay"].SetFloat(triggerDelay);
 								prefabModified = true;
 							}
@@ -4482,11 +4606,11 @@ namespace Editor {
 							float halfX = compData.data["halfSizeX"].GetFloat();
 							float halfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(halfY);
 								prefabModified = true;
 							}
@@ -4498,11 +4622,11 @@ namespace Editor {
 							float texHalfX = compData.data["halfSizeX"].GetFloat();
 							float texHalfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(texHalfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(texHalfY);
 								prefabModified = true;
 							}
@@ -4511,70 +4635,6 @@ namespace Editor {
 				}
 				break;
 			}
-
-			case PrefabType::ScalingPlatform: {
-				ImGui::SeparatorText("Scaling Platform Properties");
-
-				for (auto& compData : prefab->components) {
-					if (compData.type == "ScalingPlatformComponent") {
-						if (compData.data.HasMember("scaleSpeed")) {
-							float scaleSpeed = compData.data["scaleSpeed"].GetFloat();
-							if (ImGui::DragFloat("Scale Speed", &scaleSpeed, 0.1f, 0.1f, 10.0f)) {
-								compData.data["scaleSpeed"].SetFloat(scaleSpeed);
-								prefabModified = true;
-							}
-						}
-						if (compData.data.HasMember("minScale")) {
-							float minScale = compData.data["minScale"].GetFloat();
-							if (ImGui::DragFloat("Min Scale", &minScale, 0.01f, 0.01f, 5.0f)) {
-								compData.data["minScale"].SetFloat(minScale);
-								prefabModified = true;
-							}
-						}
-						if (compData.data.HasMember("maxScale")) {
-							float maxScale = compData.data["maxScale"].GetFloat();
-							if (ImGui::DragFloat("Max Scale", &maxScale, 0.01f, 0.1f, 10.0f)) {
-								compData.data["maxScale"].SetFloat(maxScale);
-								prefabModified = true;
-							}
-						}
-					}
-					else if (compData.type == "AABBCollider") {
-						ImGui::Text("Collider Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float halfX = compData.data["halfSizeX"].GetFloat();
-							float halfY = compData.data["halfSizeY"].GetFloat();
-
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeX"].SetFloat(halfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeY"].SetFloat(halfY);
-								prefabModified = true;
-							}
-						}
-					}
-					/*else if (compData.type == "TextureComponent") {
-						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float texHalfX = compData.data["halfSizeX"].GetFloat();
-							float texHalfY = compData.data["halfSizeY"].GetFloat();
-
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeX"].SetFloat(texHalfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeY"].SetFloat(texHalfY);
-								prefabModified = true;
-							}
-						}
-					}*/
-				}
-				break;
-			}
-
 			default:
 				break;
 			}
@@ -4604,14 +4664,18 @@ namespace Editor {
 				palettePrepared_ = false;
 			}
 
-			ImGui::SameLine();
 			if (ImGui::Button("Reload from File")) {
+				// Clear current prefabs
 				prefabSystem_ = Framework::PrefabSystem();
-				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-					Framework::Logger::Get().Error(DebugType::Editor) << "Failed to reload prefabs from file!" << std::endl;
+
+				// Reload from folder
+				if (!prefabSystem_.LoadPrefabsFromFolder("Data/prefabs/")) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Failed to reload prefabs from folder!" << std::endl;
 				}
 				else {
-					Framework::Logger::Get().Info(DebugType::Editor) << "Successfully reloaded prefabs from file" << std::endl;
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Successfully reloaded prefabs from folder" << std::endl;
 				}
 
 				if (!selectedPrefabForEditing_.empty()) {
@@ -4664,11 +4728,6 @@ namespace Editor {
 								TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
 								tex.HalfSize = col.HalfSize;
 							}
-
-							if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-								ScalingPlatformComponent& scaleComp = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-								scaleComp.baseHalfSize = col.HalfSize;
-							}
 						}
 					}
 				}
@@ -4692,20 +4751,6 @@ namespace Editor {
 						}
 					}
 				}
-				else if (compData.type == "ScalingPlatformComponent") {
-					if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-						ScalingPlatformComponent& scale = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-						if (compData.data.HasMember("scaleSpeed")) {
-							scale.scaleSpeed = compData.data["scaleSpeed"].GetFloat();
-						}
-						if (compData.data.HasMember("minScale")) {
-							scale.minScale = compData.data["minScale"].GetFloat();
-						}
-						if (compData.data.HasMember("maxScale")) {
-							scale.maxScale = compData.data["maxScale"].GetFloat();
-						}
-					}
-				}
 			}
 		}
 	}
@@ -4714,95 +4759,47 @@ namespace Editor {
 	void Editor::SavePrefabToFile(const std::string& prefabName) {
 		using namespace Framework;
 
-		EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(prefabName);
-		if (!prefab) {
-			Logger::Get().Error(DebugType::Editor) << "Prefab not found: " << prefabName << std::endl;
-			return;
+		// Use the PrefabSystem's save method instead
+		if (prefabSystem_.SavePrefabToFile(prefabName)) {
+			Logger::Get().Info(DebugType::Editor)<< "Successfully saved prefab: " << prefabName << std::endl;
+
+			// Apply changes to existing entities
+			ApplyPrefabChangesToEntities(prefabName);
+
+			// Force palette reload
+			palettePrepared_ = false;
 		}
-
-		// Read existing file
-		std::ifstream fileIn("Data/platformPrefab.json");
-		if (!fileIn.is_open()) {
-			Logger::Get().Error(DebugType::Editor) << "Failed to open prefab file for reading" << std::endl;
-			return;
+		else {
+			Logger::Get().Error(DebugType::Editor)<< "Failed to save prefab: " << prefabName << std::endl;
 		}
+	}
 
-		rapidjson::IStreamWrapper isw(fileIn);
-		rapidjson::Document doc;
-		doc.ParseStream(isw);
-		fileIn.close();
 
-		if (!doc.IsObject() || !doc.HasMember("prefabs") || !doc["prefabs"].IsArray()) {
-			Logger::Get().Error(DebugType::Editor) << "Invalid prefab file format" << std::endl;
-			return;
-		}
+	void Editor::ApplyAllPrefabChangesToCurrentScene() {
+		using namespace Framework;
 
-		// Find and update the prefab in the JSON
-		rapidjson::Value& prefabsArray = doc["prefabs"];
-		bool found = false;
+		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const std::vector<Entity>& entities =
+			sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
 
-		for (rapidjson::SizeType i = 0; i < prefabsArray.Size(); ++i) {
-			rapidjson::Value& prefabObj = prefabsArray[i];
-
-			if (prefabObj.HasMember("name") && std::string(prefabObj["name"].GetString()) == prefabName) {
-				// Update components
-				if (prefabObj.HasMember("components") && prefabObj["components"].IsArray()) {
-					rapidjson::Value& compsArray = prefabObj["components"];
-
-					// Update each component in the JSON
-					for (const auto& updatedComp : prefab->components) {
-						for (rapidjson::SizeType j = 0; j < compsArray.Size(); ++j) {
-							rapidjson::Value& compObj = compsArray[j];
-
-							if (compObj.HasMember("type") &&
-								std::string(compObj["type"].GetString()) == updatedComp.type) {
-								compObj["data"].CopyFrom(updatedComp.data, doc.GetAllocator());
-								break;
-							}
-						}
-					}
-				}
-				found = true;
-				break;
+		// Get all unique prefab names used in this scene
+		std::unordered_set<std::string> usedPrefabs;
+		for (const Entity& entity : entities) {
+			std::string prefabName = entityMgr.GetProperties(entity).name;
+			if (prefabSystem_.HasPrefab(prefabName)) {
+				usedPrefabs.insert(prefabName);
 			}
 		}
 
-		if (!found) {
-			std::cout << "Prefab not found in file: " << prefabName << std::endl;
-			return;
+		// Apply updates for each prefab
+		for (const std::string& prefabName : usedPrefabs) {
+			ApplyPrefabChangesToEntities(prefabName);
 		}
 
-		// Write the updated JSON back to file
-		rapidjson::StringBuffer buffer;
-		rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);
-		doc.Accept(prettyWriter);
-
-		auto writeToFile = [&](const std::string& path) {
-			std::ofstream out(path);
-			if (!out.is_open()) {
-				Logger::Get().Error(DebugType::Editor) << "Failed to open " << path << " for writing" << std::endl;
-				return false;
-			}
-			out << buffer.GetString();
-			out.close();
-			Logger::Get().Info(DebugType::Editor) << "Saved prefab to: " << path << std::endl;
-			return true;
-			};
-
-		// Save to local data folder
-		writeToFile(FileIOKeys::PLATFORM_PREFABS_FILEPATH);
-
-		// Check if root Data folder exists and write to it as well
-		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-			std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::PLATFORM_PREFABS_FILEPATH;
-			writeToFile(rootFilePath);
-		}
-
-		ApplyPrefabChangesToEntities(prefabName);
-
-		palettePrepared_ = false;
-
-		Logger::Get().Info(DebugType::Editor) << "Prefab changes applied to existing entities: " << prefabName << std::endl;
+		Logger::Get().Info(DebugType::Editor)
+			<< "Applied prefab updates to " << usedPrefabs.size()
+			<< " prefab types in current scene" << std::endl;
 	}
 
 #pragma endregion

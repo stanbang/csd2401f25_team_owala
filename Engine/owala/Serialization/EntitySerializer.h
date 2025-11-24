@@ -82,7 +82,6 @@ namespace Framework {
         static void SerializeComponent(const PlayerState& state, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const RotationFlag& rFlag, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const TrapPlatformComponent& trap, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const ScalingPlatformComponent& scalingPlatform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const TextureComponent& texComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const AudioComponent& audioComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const AnimationComponent& animComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
@@ -110,7 +109,6 @@ namespace Framework {
 		static bool DeserializeComponent(const rapidjson::Value& componentData, PlayerState& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, RotationFlag& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, TrapPlatformComponent& out);
-		static bool DeserializeComponent(const rapidjson::Value& componentData, ScalingPlatformComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, TextureComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, AudioComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, AnimationComponent& out);

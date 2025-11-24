@@ -65,7 +65,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
-			else if constexpr (std::is_same_v<T, ScalingPlatformComponent>) ecs.scalingPlatform[entity] = component;
 			else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
 			else if constexpr (std::is_same_v<T, AudioComponent>) ecs.audio[entity] = component;
 			else if constexpr (std::is_same_v<T, AnimationComponent>) ecs.animatedTex[entity] = component;
@@ -113,7 +112,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);
-			else if constexpr (std::is_same_v<T, ScalingPlatformComponent>) return ecs.scalingPlatform.at(entity);
 			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
 			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);

@@ -343,6 +343,11 @@ namespace Framework {
         }
 
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+        Entity player = GetPlayer();
+        bool playerKilled = false;
+        if (player != 0 && entityMgr.HasComponent(player, PlayerStateType)) {
+            playerKilled = entityMgr.GetComponent<PlayerState>(player).isDead;
+        }
 
         // Dive straight at snapshot position
         Vector2D direction = (ai.attackTargetPosition - birdPos).Normalized();

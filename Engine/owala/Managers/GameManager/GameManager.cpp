@@ -25,6 +25,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <RestartMenu.h>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -274,6 +275,7 @@ namespace Framework {
 		ImGui::End();*/
 
 		//ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_FirstUseEver);
+		RunRestartMenu();
 	}
 
 	void GameManager::Shutdown() {
@@ -299,6 +301,16 @@ namespace Framework {
 		delete systems_.levelResetter_;
 
 		instance = nullptr; // Reset instance pointer
+	}
+
+	void GameManager::RunRestartMenu()
+	{
+		if (!restartMenuInitialized)
+		{
+			restartMenu_.Initialize(systems_.ecs_,systems_.levelResetter_,systems_.resourceManager_);
+			restartMenuInitialized = true;
+		}
+		restartMenu_.Update();
 	}
 
 }

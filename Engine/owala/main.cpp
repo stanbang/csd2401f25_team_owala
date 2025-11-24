@@ -87,7 +87,7 @@ int main() {
     SceneManager::GetInstance().SetEntityStorageRef(*ecs); // Creates SceneMgr Instance and sets the entity storage reference for the SceneManager
     TransformationSystem* transformation = new TransformationSystem(*ecs, *input, *phx);
     PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs, *transformation);
-    PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx);
+    PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx,*transformation);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
     AISystem* aiSystem = new AISystem(*ecs, *gfx); // <-- ADD THIS

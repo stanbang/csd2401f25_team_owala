@@ -139,7 +139,7 @@ namespace Framework {
                 if (hasRotationFlag && hasRotationType) {
                     const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
-                    float worldRotationRad = rotation.angle;
+                    float worldRotationRad = rotation.textureAngle;
                     float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
                     rotationRad = worldRotationRad + localRotationRad;
                 }
@@ -149,7 +149,7 @@ namespace Framework {
                 }
                 else if (hasRotationType) {
                     const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
-                    rotationRad = rotation.angle;
+                    rotationRad = rotation.textureAngle;
                 }
 
                 // --- Fetch Texture Resource ---
@@ -291,47 +291,49 @@ namespace Framework {
                 screenHalfSize.y = halfSize.y / halfHeight;
             }
 
+            Vector2D scaledHalfSize = halfSize;
+
+            // Apply Scale component if present
+            if (entityMgr.HasComponent(e, ScaleType)) {
+                const Scale& scale = entityMgr.GetComponent<Scale>(e);
+                scaledHalfSize.x *= scale.axes.x;
+                scaledHalfSize.y *= scale.axes.y;
+            }
+            // Get rotation if entity has it
             float deg = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
                 deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
             }
-
-            if (std::abs(deg) < 0.001f) {
-                Vector2D corners[4] = {
-                    {screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y},
-                    {screenPos.x + screenHalfSize.x, screenPos.y - screenHalfSize.y},
-                    {screenPos.x + screenHalfSize.x, screenPos.y + screenHalfSize.y},
-                    {screenPos.x - screenHalfSize.x, screenPos.y + screenHalfSize.y}
-                };
-                for (int i = 0; i < 4; ++i) {
-                    int next = (i + 1) % 4;
-                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
-                }
+            if (entityMgr.HasComponent(e, RotationType)) {
+                deg += entityMgr.GetComponent<Rotation>(e).colliderAngle * (180.0f / 3.14159265359f);
             }
-            else {
-                const float r = deg * (float)M_PI / 180.0f;
-                const float c = std::cos(r);
-                const float s = std::sin(r);
 
-                Vector2D local[4] = {
-                    {-screenHalfSize.x, -screenHalfSize.y},
-                    { screenHalfSize.x, -screenHalfSize.y},
-                    { screenHalfSize.x,  screenHalfSize.y},
-                    {-screenHalfSize.x,  screenHalfSize.y}
-                };
+            // Use the rotated AABB calculation
+            AABB_Bounds rotatedBounds = PhysicsSystem::GetRotatedAABB(worldPos, halfSize, deg);
 
-                Vector2D corners[4];
-                for (int i = 0; i < 4; ++i) {
-                    corners[i].x = local[i].x * c - local[i].y * s + screenPos.x;
-                    corners[i].y = local[i].x * s + local[i].y * c + screenPos.y;
-                }
+            // Convert world bounds to screen space
+            Vector2D screenMin = rotatedBounds.min;
+            Vector2D screenMax = rotatedBounds.max;
 
-                for (int i = 0; i < 4; ++i) {
-                    int next = (i + 1) % 4;
-                    gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
-                }
+            if (activeCamera != 0 && cameraSystem_) {
+                screenMin = cameraSystem_->WorldToScreen(rotatedBounds.min, activeCamera);
+                screenMax = cameraSystem_->WorldToScreen(rotatedBounds.max, activeCamera);
+            }
+
+            // Draw the axis-aligned bounding box
+            Vector2D corners[4] = {
+                {screenMin.x, screenMin.y},  // bottom-left
+                {screenMax.x, screenMin.y},  // bottom-right
+                {screenMax.x, screenMax.y},  // top-right
+                {screenMin.x, screenMax.y}   // top-left
+            };
+
+            for (int i = 0; i < 4; ++i) {
+                int next = (i + 1) % 4;
+                gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
             }
         }
     }
+
 
 } // namespace Framework

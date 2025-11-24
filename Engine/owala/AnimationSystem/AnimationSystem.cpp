@@ -54,6 +54,7 @@ namespace Framework {
 				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
 				case AnimationState::JUMPING: textureComponent.textureKey = "Eli_Jump_Spritesheet.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
 				case AnimationState::FALLING: textureComponent.textureKey = "Eli_Falling_Spritesheet.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
+				case AnimationState::DEATH:   textureComponent.textureKey = "Eli_Death_Spritesheet.png";/*std::cout << "Player State : DEATH \n";*/ break; // When dying, use death animation
 				}
 
 			}

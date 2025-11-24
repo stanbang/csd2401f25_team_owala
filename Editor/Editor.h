@@ -78,7 +78,6 @@ namespace Editor {
 		Eraser,
 		Platform,
 		TrapPlatform,
-		ScalingPlatform,
 		Tile
 	};
 
@@ -278,6 +277,7 @@ namespace Editor {
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
+		void ShowRestartMenu(); //when player dies
 		void ShowLayerManager();
 
 		// Popup Related
@@ -295,6 +295,7 @@ namespace Editor {
 
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
+		void ApplyAllPrefabChangesToCurrentScene();
 
 		// Scene Management Helper functions
 		void SaveScene();

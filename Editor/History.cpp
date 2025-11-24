@@ -218,16 +218,6 @@ namespace Editor {
 				}
 				break;
 			}
-			case ComponentType::ScalingPlatformComponentType: {
-				ScalingPlatformComponent newScalingPlatform;
-				if (EntitySerializer::DeserializeComponent(doc, newScalingPlatform)) {
-					if (entityMgr.HasComponent(entity, ComponentType::ScalingPlatformComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::ScalingPlatformComponentType);
-					}
-					entityMgr.AddComponent<ScalingPlatformComponent>(entity, newScalingPlatform);
-				}
-				break;
-			}
 			case ComponentType::TextureComponentType: {
 				TextureComponent newTextureComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newTextureComponent)) {

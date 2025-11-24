@@ -54,7 +54,8 @@ namespace Framework{
 		IDLE,
 		RUNNING,
 		JUMPING,
-		FALLING
+		FALLING,
+		DEATH
 	};
 
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
@@ -99,8 +100,12 @@ namespace Framework{
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
 		Vector2D HalfSize{ 50.0f, 50.0f }; // Half-width and half-height of the box
-	};
+		float rotation = 0.0f;
+		Matrix3x3 transformMatrix;
 
+		AABBCollider() : HalfSize(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size) : HalfSize(size), rotation(0.0f), transformMatrix() {}
+	};
 	
 
 	/*	Acceleration component to store x and y 
@@ -114,6 +119,7 @@ namespace Framework{
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
+		bool isDead = false;
 	};
 
 	struct Triangle { 
@@ -189,8 +195,15 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
-	struct Rotation { //for selected entities
-		float angle = 0.0f; // Rotation angle in degrees
+	struct Rotation {
+		float angle = 0.0f;
+		float textureAngle = 0.0f; // Texture rotation angle
+		float colliderAngle = 0.0f; // Collider rotation angle
+		Matrix3x3 textureTransformMatrix; // For texture
+		Matrix3x3 colliderTransformMatrix; // For collider
+
+		Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
+		Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
 	};
 
 	struct Scale {
@@ -207,17 +220,6 @@ namespace Framework{
 		float fallSpeed{ 0.0f };
 		Vector2D originalPosition;
 		float currentFallDistance{ 0.0f };
-	};
-
-	struct ScalingPlatformComponent {
-		Vector2D baseHalfSize;
-		float currentScaleX{ 0.0f };
-		float currentScaleY{ 0.0f };
-		float scaleSpeed{ 0.0f };
-		float minScale{ 0.0f };
-		float maxScale{ 0.0f };
-		float time{ 0.0f };
-		Matrix3x3 transformMatrix;
 	};
 
 	struct Button {

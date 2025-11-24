@@ -215,45 +215,17 @@ namespace Framework {
     }
 
     AABB_Bounds PhysicsSystem::GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees) {
-        if (std::abs(rotationDegrees) < 0.001f) {
-            return {
-                {center.x - halfSize.x, center.y - halfSize.y},
-                {center.x + halfSize.x, center.y + halfSize.y}
-            };
+        float snappedRotation = std::round(rotationDegrees / 90.0f) * 90.0f;
+        snappedRotation = std::fmod(snappedRotation + 360.0f, 360.0f);
+        bool swapDimensions = (std::abs(snappedRotation - 90.0f) < 1.0f) || (std::abs(snappedRotation - 270.0f) < 1.0f);
+        Vector2D newHalfSize = halfSize;
+        if (swapDimensions) {
+            newHalfSize = { halfSize.y, halfSize.x };
         }
-
-        float rotationRad = static_cast<float>(rotationDegrees * M_PI / 180.0f);
-        float cos_r = std::cos(rotationRad);
-        float sin_r = std::sin(rotationRad);
-
-        Vector2D corners[4] = {
-            {-halfSize.x, -halfSize.y},  
-            { halfSize.x, -halfSize.y},  
-            { halfSize.x,  halfSize.y},  
-            {-halfSize.x,  halfSize.y}   
+        return {
+            {center.x - newHalfSize.x, center.y - newHalfSize.y},
+            {center.x + newHalfSize.x, center.y + newHalfSize.y}
         };
-
-        // Rotate each corner and find the new min/max bounds
-        float minX = INFINITY, maxX = -INFINITY;
-        float minY = INFINITY, maxY = -INFINITY;
-
-        for (int i = 0; i < 4; i++) {
-            // Rotate the corner
-            float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r;
-            float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r;
-
-            // Translate to world position
-            rotatedX += center.x;
-            rotatedY += center.y;
-
-            // Update bounds
-            minX = std::min(minX, rotatedX);
-            maxX = std::max(maxX, rotatedX);
-            minY = std::min(minY, rotatedY);
-            maxY = std::max(maxY, rotatedY);
-        }
-
-        return { {minX, minY}, {maxX, maxY} };
     }
 
     // ----------------------------------------------------------------------------
@@ -301,18 +273,22 @@ namespace Framework {
         for (std::vector<std::bitset<maxCollidableEntities>>::iterator::value_type& cell : grid_) {
             cell.reset();
         }
-
         for (int i = 0; i < colliderEntities_.size(); ++i) {
             Entity entity = colliderEntities_[i];
 
             // Get the AABB_Bounds for insertion
             const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
             const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
-            float rotation = 0.0f;
+
+            float colliderRotation = 0.0f;
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+                colliderRotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
-            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, rotation);
+            if (entityMgr.HasComponent(entity, RotationType)) {
+                colliderRotation += entityMgr.GetComponent<Rotation>(entity).colliderAngle * (180.0f / M_PI);
+            }
+
+            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, colliderRotation);
 
             GridInsert(i, bounds); // Insert the bitset index 'i'
         }
@@ -405,16 +381,24 @@ namespace Framework {
             return; // Skip static-vs-static
         }
 
-        // --- Get rotation for each entity ---
+        // --- Get rotation for e1 ---
         float rotation1 = 0.0f;
         if (entityMgr.HasComponent(e1, RotationFlagType)) {
             rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
         }
+        if (entityMgr.HasComponent(e1, RotationType)) {
+            rotation1 += entityMgr.GetComponent<Rotation>(e1).colliderAngle * (180.0f / M_PI);
+        }
 
+        // --- Get rotation for e2 ---
         float rotation2 = 0.0f;
         if (entityMgr.HasComponent(e2, RotationFlagType)) {
             rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
         }
+        if (entityMgr.HasComponent(e2, RotationType)) {
+            rotation2 += entityMgr.GetComponent<Rotation>(e2).colliderAngle * (180.0f / M_PI);
+        }
+
 
         // --- Convert to min/max format for the collision functions ---
         const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;

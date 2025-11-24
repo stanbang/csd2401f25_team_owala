@@ -158,14 +158,6 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::TRAP_PLATFORM_COMPONENT), value, alloc);
 		}
 
-		// Serialize ScalingPlatform Component
-		if (entityMgr.HasComponent(entity, ComponentType::ScalingPlatformComponentType)) {
-			ScalingPlatformComponent& scalingPlatform = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(scalingPlatform, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::SCALING_PLATFORM_COMPONENT), value, alloc);
-		}
-
 		// Serialize TextureComponent Component
 		if (entityMgr.HasComponent(entity, ComponentType::TextureComponentType)) {
 			TextureComponent& texComp = entityMgr.GetComponent<TextureComponent>(entity);
@@ -390,9 +382,6 @@ namespace Framework {
 		case TrapPlatformComponentType:
 			SerializeComponent(entityMgr.GetComponent<TrapPlatformComponent>(entity), componentData, alloc);
 			break;
-		case ScalingPlatformComponentType:
-			SerializeComponent(entityMgr.GetComponent<ScalingPlatformComponent>(entity), componentData, alloc);
-			break;
 		case TextureComponentType:
 			SerializeComponent(entityMgr.GetComponent<TextureComponent>(entity), componentData, alloc);
 			break;
@@ -573,16 +562,6 @@ namespace Framework {
 			TrapPlatformComponent trapPlatform;
 			if (DeserializeComponent(trapData, trapPlatform)) {
 				entityMgr.AddComponent<TrapPlatformComponent>(loadedEntity, trapPlatform);
-			}
-		}
-
-		// Deserialize ScalingPlatform Component
-		if (componentLists.HasMember(Serialization::SCALING_PLATFORM_COMPONENT)) {
-			const rapidjson::Value& scalingData = componentLists[Serialization::SCALING_PLATFORM_COMPONENT];
-
-			ScalingPlatformComponent scalingPlatform;
-			if (DeserializeComponent(scalingData, scalingPlatform)) {
-				entityMgr.AddComponent<ScalingPlatformComponent>(loadedEntity, scalingPlatform);
 			}
 		}
 
@@ -907,27 +886,6 @@ namespace Framework {
 		originalPos.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), trap.originalPosition.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ORIGINAL_POSITION), originalPos, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FALL_DISTANCE), trap.currentFallDistance, alloc);
-	}
-
-	// ScalingPlatform Component
-	void EntitySerializer::SerializeComponent(const ScalingPlatformComponent& scalingPlatform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		rapidjson::Value baseHalfSize(rapidjson::kObjectType);
-		baseHalfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scalingPlatform.baseHalfSize.x, alloc);
-		baseHalfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scalingPlatform.baseHalfSize.y, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::BASE_HALFSIZE), baseHalfSize, alloc);
-		rapidjson::Value currentScale(rapidjson::kObjectType);
-		currentScale.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scalingPlatform.currentScaleX, alloc);
-		currentScale.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scalingPlatform.currentScaleY, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_SCALE), currentScale, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::SCALE_SPEED), scalingPlatform.scaleSpeed, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::MIN_SCALE), scalingPlatform.minScale, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::MAX_SCALE), scalingPlatform.maxScale, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ELAPSED_TIME), scalingPlatform.time, alloc);
-		rapidjson::Value transformMtx(rapidjson::kArrayType);
-		for (int i = 0; i < 9; ++i) {
-			transformMtx.PushBack(scalingPlatform.transformMatrix.m[i], alloc);
-		}
-		outData.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_MATRIX), transformMtx, alloc);
 	}
 
 	// Texture Component
@@ -1311,43 +1269,6 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::CURRENT_FALL_DISTANCE) && componentData[Serialization::CURRENT_FALL_DISTANCE].IsFloat()) {
 			out.currentFallDistance = componentData[Serialization::CURRENT_FALL_DISTANCE].GetFloat();
-		}
-		return true;
-	}
-
-	// ScalingPlatform Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, ScalingPlatformComponent& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::BASE_HALFSIZE) && componentData[Serialization::BASE_HALFSIZE].IsObject()) {
-			const rapidjson::Value& baseHalfSizeData = componentData[Serialization::BASE_HALFSIZE];
-			if (baseHalfSizeData.HasMember(Serialization::VEC2_X) && baseHalfSizeData[Serialization::VEC2_X].IsFloat()) {
-				out.baseHalfSize.x = baseHalfSizeData[Serialization::VEC2_X].GetFloat();
-			}
-			if (baseHalfSizeData.HasMember(Serialization::VEC2_Y) && baseHalfSizeData[Serialization::VEC2_Y].IsFloat()) {
-				out.baseHalfSize.y = baseHalfSizeData[Serialization::VEC2_Y].GetFloat();
-			}
-		}
-		if (componentData.HasMember(Serialization::CURRENT_SCALE) && componentData[Serialization::CURRENT_SCALE].IsObject()) {
-			const rapidjson::Value& currentScaleData = componentData[Serialization::CURRENT_SCALE];
-			if (currentScaleData.HasMember(Serialization::VEC2_X) && currentScaleData[Serialization::VEC2_X].IsFloat()) {
-				out.currentScaleX = currentScaleData[Serialization::VEC2_X].GetFloat();
-			}
-			if (currentScaleData.HasMember(Serialization::VEC2_Y) && currentScaleData[Serialization::VEC2_Y].IsFloat()) {
-				out.currentScaleY = currentScaleData[Serialization::VEC2_Y].GetFloat();
-			}
-		}
-		if (componentData.HasMember(Serialization::SCALE_SPEED) && componentData[Serialization::SCALE_SPEED].IsFloat()) {
-			out.scaleSpeed = componentData[Serialization::SCALE_SPEED].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::MIN_SCALE) && componentData[Serialization::MIN_SCALE].IsFloat()) {
-			out.minScale = componentData[Serialization::MIN_SCALE].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::MAX_SCALE) && componentData[Serialization::MAX_SCALE].IsFloat()) {
-			out.maxScale = componentData[Serialization::MAX_SCALE].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::ELAPSED_TIME) && componentData[Serialization::ELAPSED_TIME].IsFloat()) {
-			out.time = componentData[Serialization::ELAPSED_TIME].GetFloat();
 		}
 		return true;
 	}
