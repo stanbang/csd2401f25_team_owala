@@ -2,21 +2,42 @@
 #include "EntityManager.h"
 #include "SceneManager.h" 
 #include <iostream>
+#include "MessageBus.h"
+#include <AssetBrowser.h>
+#include "Font.h"
 
 namespace Framework {
-    void RestartMenu::Initialize() {
-        // Load font for menu text
+
+    Framework::EntityStorage* entityStorage_ = nullptr;
+    Framework::LevelResetSystem* levelReset_ = nullptr;
+    ResourceManager* resourceManager_ = nullptr;
+    Framework::Font* menuFont_ = nullptr;
+
+    bool buttonsCreated = false;
+    bool pendingRestart = false;
+    bool pendingQuit = false;
+
+    Entity menuBackground = 0;
+    Entity deathTitle = 0;
+    Entity restartButton = 0;
+    Entity restartButtonText = 0;
+    Entity quitButton = 0;
+    Entity quitButtonText = 0;
+
+    void RestartMenu::Initialize(EntityStorage* ecs, LevelResetSystem* levelReset, ResourceManager* rcm)
+    {
+        entityStorage_ = ecs;
+        levelReset_ = levelReset;
+        resourceManager_ = rcm;
+
         try {
             menuFont_ = &resourceManager_->get<Font>("Amethysta-Regular.ttf");
         }
         catch (...) {
-            std::cerr << "Warning: Menu font not loaded." << std::endl;
-            menuFont_ = nullptr;
+            std::cerr << "Warning: Menu font not loaded\n";
         }
-        // Subscribe to button click events
-        MessageBus::Instance().Subscribe<ButtonClickedEvent>(
-            std::bind(&RestartMenu::HandleButtonClick, this, std::placeholders::_1)
-        );
+
+        MessageBus::Instance().Subscribe<ButtonClickedEvent>( std::bind(&RestartMenu::HandleButtonClick, this, std::placeholders::_1));
     }
 
     void RestartMenu::HandleButtonClick(const ButtonClickedEvent& event) {
@@ -70,13 +91,16 @@ namespace Framework {
 
         menuBackground = entityMgr.CreateEntity();
         entityMgr.GetProperties(menuBackground).name = "RestartMenuBackground";
+        //entityMgr.GetProperties(menuBackground).renderLayer = RenderLayer::UI;
+        entityMgr.GetProperties(menuBackground).customRenderOrder = 150;
         entityMgr.AddComponent(menuBackground, Position{ {0.0f, 0.0f} });
-        entityMgr.AddComponent(menuBackground, TextureComponent{ /*Background.png*/"", {1.0f, 1.0f} });
+        entityMgr.AddComponent(menuBackground, TextureComponent{ "Background.png", {1.0f, 1.0f} });
         entityMgr.AddComponent(menuBackground, GUITag{});
         sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), menuBackground);
 
         deathTitle = entityMgr.CreateEntity();
         entityMgr.GetProperties(deathTitle).name = "DeathTitle";
+        entityMgr.GetProperties(deathTitle).renderLayer = RenderLayer::UI;
         entityMgr.AddComponent(deathTitle, Position{ {-0.15f, 0.4f} });
         entityMgr.AddComponent(deathTitle, GUITag{});
         entityMgr.AddComponent(deathTitle, TextComponent{ "YOU DIED", "Amethysta-Regular.ttf", {1.0f, 0.2f, 0.2f, 1.0f}, 1.2f });
@@ -84,12 +108,14 @@ namespace Framework {
 
         restartButton = entityMgr.CreateEntity();
         entityMgr.GetProperties(restartButton).name = "RestartButton";
+        entityMgr.GetProperties(restartButton).renderLayer = RenderLayer::UI;
         entityMgr.AddComponent(restartButton, Position{ {0.0f, 0.1f} });
         entityMgr.AddComponent(restartButton, TextureComponent{ "Button.png", {0.2f, 0.2f} });
         entityMgr.AddComponent(restartButton, Button{});
         entityMgr.AddComponent(restartButton, GUITag{});
         entityMgr.AddComponent(restartButton, ActiveTag{});
         sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), restartButton);
+
         restartButtonText = entityMgr.CreateEntity();
         entityMgr.GetProperties(restartButtonText).name = "RestartButtonText";
         entityMgr.AddComponent(restartButtonText, Position{ {-0.13f, 0.1f} });
@@ -99,6 +125,7 @@ namespace Framework {
 
         quitButton = entityMgr.CreateEntity();
         entityMgr.GetProperties(quitButton).name = "QuitButton";
+        entityMgr.GetProperties(quitButton).renderLayer = RenderLayer::UI;
         entityMgr.AddComponent(quitButton, Position{ {0.0f, -0.20f} });
         entityMgr.AddComponent(quitButton, TextureComponent{ "Button.png", {0.2f, 0.2f} });
         entityMgr.AddComponent(quitButton, Button{});
@@ -108,6 +135,7 @@ namespace Framework {
 
         quitButtonText = entityMgr.CreateEntity();
         entityMgr.GetProperties(quitButtonText).name = "QuitButtonText";
+        entityMgr.GetProperties(menuBackground).renderLayer = RenderLayer::UI;
         entityMgr.AddComponent(quitButtonText, Position{ {-0.13f, -0.20f} });
         entityMgr.AddComponent(quitButtonText, GUITag{});
         entityMgr.AddComponent(quitButtonText, TextComponent{ "Quit to Menu", "Amethysta-Regular.ttf", {1.0f, 1.0f, 1.0f, 1.0f}, 0.8f });

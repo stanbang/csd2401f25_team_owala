@@ -29,6 +29,8 @@
 #include "Core.h"
 #include "AISystem.h"
 #include "FileUtility.h"
+#include "RestartMenu.h"
+
 #ifdef BUILD_EDITOR
 #include "Editor.h"
 #endif
@@ -52,6 +54,7 @@ namespace Framework {
 	public:
 		// Aliases
 		using SceneFunction = void(*)(void);
+		RestartMenu restartMenu_;
 	private:
 		static GameManager* instance;
 
@@ -100,6 +103,8 @@ namespace Framework {
 		// Internal Helpers
 		void UpdateNativeScripts();
 
+		bool restartMenuInitialized = false;
+
 	public:
 		// GLOBAL STATES
 		int testState = 0;
@@ -144,5 +149,8 @@ namespace Framework {
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
+
+		//Run restart menu once player dies
+		void RunRestartMenu();
 	};
 }

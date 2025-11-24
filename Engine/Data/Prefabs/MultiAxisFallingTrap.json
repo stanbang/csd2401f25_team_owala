@@ -60,6 +60,7 @@
         "PlatformTag"
     ],
     "properties": {
-        "layer": "Platform"
+        "layer": "Platform",
+	"render_layer": 50
     }
 }

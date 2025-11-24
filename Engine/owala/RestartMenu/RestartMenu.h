@@ -1,53 +1,40 @@
 #pragma once
-#include "ISystem.h"
 #include "EntityStorage.h"
-#include "InputSystem.h"
 #include "LevelResetSystem.h"
-#include "Graphics.h"
 #include "ResourceManager.h"
-#include "GuiSystem.h"
-#include "MessageBus.h"
-#include "GameMessages.h"
 
 namespace Framework {
-    class RestartMenu : public ISystem {
+    class RestartMenu {
     public:
-        RestartMenu(EntityStorage& entityStorage, InputSystem& input,
-            LevelResetSystem& levelReset, Graphics& graphics,
-            ResourceManager& resourceManager, GuiSystem& guiSystem)
-            : entityStorage_(&entityStorage), input_(&input),
-            levelReset_(&levelReset), graphics_(&graphics),
-            resourceManager_(&resourceManager), guiSystem_(&guiSystem) {}
+        RestartMenu() = default;
+        ~RestartMenu() = default;
 
-        void Initialize() override;
-        void Update() override;
-        void Shutdown() override;
-
-    private:
-        void RenderRestartMenuButtons();
+        void Initialize(EntityStorage* ecs, LevelResetSystem* levelReset, ResourceManager* rcm);
         void HandleButtonClick(const ButtonClickedEvent& event);
+        void Update();
+        void CleanupMenu();
         void RestartLevel();
         bool IsPlayerDead();
-        void CleanupMenu();
+        void Shutdown();
 
+    private:
         EntityStorage* entityStorage_ = nullptr;
-        InputSystem* input_ = nullptr;
         LevelResetSystem* levelReset_ = nullptr;
-        Graphics* graphics_ = nullptr;
         ResourceManager* resourceManager_ = nullptr;
-        GuiSystem* guiSystem_ = nullptr;
         Font* menuFont_ = nullptr;
 
-        // Button entities
-        Entity restartButton= 0;
+        bool buttonsCreated = false;
+        bool pendingRestart = false;
+        bool pendingQuit = false;
+
+        Entity menuBackground = 0;
+        Entity deathTitle = 0;
+        Entity restartButton = 0;
         Entity restartButtonText = 0;
         Entity quitButton = 0;
         Entity quitButtonText = 0;
-        Entity menuBackground = 0;
-        Entity deathTitle = 0;
-        bool buttonsCreated = false;
 
-        bool pendingRestart = false;
-        bool pendingQuit = false;
+        void RenderRestartMenuButtons();
     };
-}
+
+} // namespace Framework

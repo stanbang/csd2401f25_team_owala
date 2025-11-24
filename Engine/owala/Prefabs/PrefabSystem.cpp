@@ -114,6 +114,12 @@ namespace Framework {
             if (props.HasMember("layer") && props["layer"].IsString()) {
                 prefab.layer = props["layer"].GetString();
             }
+            if (props.HasMember("render_layer") && props["render_layer"].IsInt()) {
+                prefab.renderLayer = props["render_layer"].GetInt();
+            }
+            if (props.HasMember("custom_render_order") && props["custom_render_order"].IsInt()) {
+                prefab.customRenderOrder = props["custom_render_order"].GetInt();
+            }
         }
 
         Logger::Get().Info(DebugType::FileIOSystem)
