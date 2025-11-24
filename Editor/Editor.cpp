@@ -1389,44 +1389,94 @@ namespace Editor {
 
 		ImGui::End(); // End "Level Editor" window
 	}
+	
+	void Editor::SaveScene() {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		if (!currentScene.IsValid()) return;
+
+		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		// Reset entity states & stop game on save 
+		isGamePlaying = false;
+		gameManager_->GetSystems().levelResetter_->RunReset();
+		std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+		std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
+
+		// If its a newly created scene, create new filepath for it based on scene name.
+		if (currentScene.path.empty()) {
+			sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
+		}
+
+		// Serialize Scene name and entities to its own json file in local Data folder
+		EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+
+		// Check if root Data folder exists and serialize scene data to root folder
+		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+			std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
+			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
+		}
+
+		// Save scene asset to json file that stores all scene assets
+		FileIOSystem::SaveSceneAsset(currentScene);
+	}
 
 	void Editor::SaveAndLoadSection() {
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
-		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+		bool isCurrentSceneValid = currentScene.IsValid();
 
 		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
+		if (!isCurrentSceneValid) ImGui::BeginDisabled();
 		if (ImGui::Button("Save")) {
-			// Reset entity states & stop game on save 
-			isGamePlaying = false;
-			gameManager_->GetSystems().levelResetter_->RunReset();
-			std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
-			std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
-
-			// If its a newly created scene, create new filepath for it based on scene name.
-			if (currentScene.path.empty()) {
-				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
-			}
-
-			// Serialize Scene name and entities to its own json file in local Data folder
-			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
-
-			// Check if root Data folder exists and serialize scene data to root folder
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
-				EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
-			}
-
-			// Save scene asset to json file that stores all scene assets
-			FileIOSystem::SaveSceneAsset(currentScene);
+			SaveScene();
 		}
+		if (!isCurrentSceneValid) ImGui::EndDisabled();
 
 		// --- Create New Scene --- 
 		ImGui::SameLine();
 		if (ImGui::Button("New Scene")) {
 			ImGui::OpenPopup("Create New Scene");
+		}
+
+		// --- Unload Current Scene ---
+		ImGui::SameLine();
+		ImU32 buttonColor = IM_COL32(150, 50, 50, 255);
+		ImU32 buttonHoverColor = IM_COL32(200, 50, 50, 255);
+		ImU32 buttonActiveColor = IM_COL32(215, 50, 50, 255);
+
+		ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoverColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
+
+		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (ImGui::Button("Unload Scene")) {
+			ImGui::OpenPopup("Save");
+		}
+		ImGui::PopStyleColor(3);
+		if (!isCurrentSceneValid) ImGui::EndDisabled();
+
+		// Save Scene Modal (pop up before unloading current scene)
+		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Save the current scene before unloading?");
+
+			if (ImGui::Button("Confirm", ImVec2(120, 0)))
+			{
+				SaveScene();
+				ImGui::CloseCurrentPopup();
+				sceneMgr.UnloadScene();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+			{
+				ImGui::CloseCurrentPopup();
+				sceneMgr.UnloadScene();
+			}
+
+			ImGui::EndPopup();
 		}
 
 		// Create New Scene Modal
@@ -1481,7 +1531,7 @@ namespace Editor {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene) {
+				if (isCurrentScene || !scene.IsValid()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1507,7 +1557,7 @@ namespace Editor {
 					}
 				}
 
-				if (isCurrentScene) {
+				if (isCurrentScene || !scene.IsValid()) {
 					ImGui::EndDisabled();
 				}
 			}
@@ -2895,19 +2945,14 @@ namespace Editor {
 
 			// Text you want to draw
 			static char textBuffer[256] = "";
-			// Font Selection
-			static char fontKeyBuffer[256] = "";
 			static Entity text_LastSelectedEntity;
 			static std::string text_lastRecordedText;
-			static std::string text_lastRecordedFontKey;
 			static bool text_editingText = false;
-			static bool text_editingFontKey = false;
 
 			if (text_LastSelectedEntity != selectedEntity) {
 				text_LastSelectedEntity = selectedEntity;
-				text_editingText = text_editingFontKey = false;
+				text_editingText = false;
 				text_lastRecordedText = textComp.textToDraw;
-				text_lastRecordedFontKey = textComp.fontKey;
 
 				// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
 				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
@@ -2917,16 +2962,6 @@ namespace Editor {
 						IM_ARRAYSIZE(textBuffer) - 1
 					);
 					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
-				}
-
-				// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
-				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
-					std::strncpy(
-						fontKeyBuffer,
-						textComp.fontKey.c_str(),
-						IM_ARRAYSIZE(fontKeyBuffer) - 1
-					);
-					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 				}
 			}
 
@@ -2940,19 +2975,6 @@ namespace Editor {
 						IM_ARRAYSIZE(textBuffer) - 1
 					);
 					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
-				}
-			}
-
-			if (!text_editingFontKey && textComp.fontKey != text_lastRecordedFontKey) {
-				text_lastRecordedFontKey = textComp.fontKey;
-
-				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
-					std::strncpy(
-						fontKeyBuffer,
-						textComp.fontKey.c_str(),
-						IM_ARRAYSIZE(fontKeyBuffer) - 1
-					);
-					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 				}
 			}
 
@@ -2976,27 +2998,8 @@ namespace Editor {
 				text_editingText = false;
 			}
 
-			// Fontkey Inputfield
-			ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer));
-			if (ImGui::IsItemActivated()) text_editingFontKey = true;
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				std::string newText = fontKeyBuffer;
-
-				if (newText != textComp.fontKey) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					textComp.fontKey = newText;
-					textComp.isDirty = true;
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-
-				text_editingFontKey = false;
-			}
-
-			bool activeNow = false;
+			// Fontkey read-only Inputfield
+			ImGui::InputText("Font Key", &textComp.fontKey, ImGuiInputTextFlags_ReadOnly);
 
 			// Drag and Drop Target for Font Key
 			if (ImGui::BeginDragDropTarget())
@@ -3045,6 +3048,27 @@ namespace Editor {
 				}
 				ImGui::EndDragDropTarget();
 			}
+
+			static std::string newFontKey = "";
+			ImGui::InputText("New Font Key", &newFontKey);
+
+			//Button to update Font key
+			if (ImGui::Button("Update Font")) {
+				if (!newFontKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					textComp.fontKey = newFontKey;
+					textComp.isDirty = true;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+			}
+
+			bool activeNow = false;
 
 			// Color Input
 			ImGui::Text("Color RGBA: ");

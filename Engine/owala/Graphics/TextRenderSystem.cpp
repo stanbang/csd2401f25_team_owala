@@ -87,9 +87,9 @@ namespace Framework {
             }
         }
         catch (const std::exception& e) {
-            Logger::Get().Error(DebugType::GraphicsSystem)
+            Logger::Get().Error(DebugType::TextRenderSystem)
                 << "Failed to render text for entity " << en
-                << " (Bad font key: " << textComp.fontKey << "): " << e.what();
+                << " (Bad font key: " << textComp.fontKey << "): " << e.what() << std::endl;
         }
     }
 
@@ -97,29 +97,36 @@ namespace Framework {
      * \brief Calculate and update text halfsize 
      */
     void TextRenderSystem::UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp, const Entity camera) {
-        Font& font = rcm_.get<Font>(textComp.fontKey);
+        try {
+            Font& font = rcm_.get<Font>(textComp.fontKey);
 
-        // Find the actual width of text block
-        float renderedWidth = 0.0f;
-        for (const std::string& line : textComp.wrappedLines) {
-            float currentWidth = font.GetStringWidth(line, textComp.scale);
-            if (currentWidth > renderedWidth) {
-                renderedWidth = currentWidth;
+            // Find the actual width of text block
+            float renderedWidth = 0.0f;
+            for (const std::string& line : textComp.wrappedLines) {
+                float currentWidth = font.GetStringWidth(line, textComp.scale);
+                if (currentWidth > renderedWidth) {
+                    renderedWidth = currentWidth;
+                }
+            }
+
+            // Calculate total rendered height of text block
+            float totalHeight = textComp.wrappedLines.size() * font.GetLineHeight(textComp.scale);
+
+            // Total rendered size in world coords
+            Vector2D totalSize = Vector2D(renderedWidth, totalHeight);
+
+            // Set halfsize and convert to screen space if is GUI
+            if (camera != 0 && cameraSystem_ && entityMgr.HasComponent(entity, GUITagType)) {
+                textComp.halfSize = cameraSystem_->WorldToScreen(totalSize) * 0.5f;
+            }
+            else {
+                textComp.halfSize = totalSize * 0.5f;
             }
         }
-
-        // Calculate total rendered height of text block
-        float totalHeight = textComp.wrappedLines.size() * font.GetLineHeight(textComp.scale);
-
-        // Total rendered size in world coords
-        Vector2D totalSize = Vector2D(renderedWidth, totalHeight);
-
-        // Set halfsize and convert to screen space if is GUI
-        if (camera != 0 && cameraSystem_ && entityMgr.HasComponent(entity, GUITagType)) {
-            textComp.halfSize = cameraSystem_->WorldToScreen(totalSize) * 0.5f;
-        }
-        else {
-            textComp.halfSize = totalSize * 0.5f;
+        catch (const std::exception& e) {
+            Logger::Get().Error(DebugType::TextRenderSystem)
+                << "Failed to update text bounds for Entity: " << entity
+                << " (Bad key: " << textComp.fontKey<< "): " << e.what() << std::endl;
         }
     }
 
@@ -127,6 +134,7 @@ namespace Framework {
      * \brief Calculate and update text wrappedLines
      */
     void TextRenderSystem::UpdateWrappedText(TextComponent& textComp) {
+        try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
 
             std::stringstream ss(textComp.textToDraw);
@@ -152,6 +160,11 @@ namespace Framework {
             lines.push_back(currentLine);
 
             textComp.wrappedLines = lines;
+        }
+        catch (const std::exception& e) {
+            Logger::Get().Error(DebugType::TextRenderSystem)
+                << "Failed to update text wrapped lines. (Bad key: " << textComp.fontKey << "): " << e.what() << std::endl;
+        }
     }
 
 } // namespace Framework

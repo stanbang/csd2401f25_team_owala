@@ -217,9 +217,9 @@ namespace Framework {
                 batches[key].push_back(batchedSprite);
             }
             catch (const std::exception& e) {
-                Logger::Get().Error(DebugType::GraphicsSystem)
+                Logger::Get().Error(DebugType::SpriteRenderSystem)
                     << "Failed to render entity " << entity
-                    << " (Bad key: " << sprite.textureKey << "): " << e.what();
+                    << " (Bad key: " << sprite.textureKey << "): " << e.what() << std::endl;
                 continue;
             }
         }
