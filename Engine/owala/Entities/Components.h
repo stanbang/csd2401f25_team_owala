@@ -104,7 +104,7 @@ namespace Framework{
 
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
-		Vector2D HalfSize; // Half-width and half-height of the box
+		Vector2D HalfSize{ 50.0f, 50.0f }; // Half-width and half-height of the box
 	};
 
 	
@@ -139,7 +139,7 @@ namespace Framework{
 
 	struct TextureComponent {
 		std::string textureKey; // Key to identify the texture resource
-		Vector2D HalfSize = {};
+		Vector2D HalfSize = { 50.f, 50.f };
 	};
 
 	struct AudioComponent {
@@ -166,9 +166,15 @@ namespace Framework{
 
 	struct TextComponent {
 		std::string textToDraw{};
-		std::string fontKey;
+		std::string fontKey{};
 		Color color = { 1,1,1,1 };
 		float scale = 1.0f;
+		float maxWidth = 10.0f;
+
+		// no need to serialize, calculated by text render system 
+		Vector2D halfSize = { 0.0f, 0.0f };
+		std::vector<std::string> wrappedLines;
+		bool isDirty = true;
 	};
 
 	/* TAG SECTION */

@@ -338,6 +338,26 @@ namespace Editor {
 				}
 				break;
 			}
+			case ComponentType::RotationType: {
+				Rotation newRotationComp;
+				if (EntitySerializer::DeserializeComponent(doc, newRotationComp)) {
+					if (entityMgr.HasComponent(entity, ComponentType::RotationType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::RotationType);
+					}
+					entityMgr.AddComponent<Rotation>(entity, newRotationComp);
+				}
+				break;
+			}
+			case ComponentType::ScaleType: {
+				Scale newScaleComp;
+				if (EntitySerializer::DeserializeComponent(doc, newScaleComp)) {
+					if (entityMgr.HasComponent(entity, ComponentType::ScaleType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::ScaleType);
+					}
+					entityMgr.AddComponent<Scale>(entity, newScaleComp);
+				}
+				break;
+			}
 			default:
 				Logger::Info(DebugType::Editor) << "HistoryManager::ApplyComponentSnapshot: Unsupported component type. No Changes applied" << std::endl;
 		}

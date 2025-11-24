@@ -34,6 +34,7 @@
 
 // Editor Modules
 #include "History.h"
+#include "Gizmo.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -55,6 +56,9 @@ namespace Framework {
 }
 
 namespace Editor {
+	// Helper function to convert component type to string
+	std::string ComponentToString(Framework::ComponentType componentType);
+
 
 	struct EditorSettings {
 		bool showDebugInfo = true;
@@ -116,6 +120,7 @@ namespace Editor {
 
 		// --- Codependent Systems ---
 		HistoryManager historyManager_; // HistoryManager for Undo/Redo System.
+		GizmoSystem* gizmoSystem_ = nullptr;
 
 		// --- Internal Properties ---
 		Entity editorCamera_ = 0;
@@ -152,7 +157,7 @@ namespace Editor {
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
-		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
+		float baseGridCellSize_ = 50.f;   // NEW: World-space size of a cell at zoom 1.0
 
 
 		//Drag and Drop State
@@ -192,7 +197,6 @@ namespace Editor {
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
 		bool isMouseOverGameViewport_ = false;
-		const float gizmoCircleRad = 8.0f;
 		//void DrawEditorGridGfx();
 
 		// Entity factory System members
@@ -228,12 +232,6 @@ namespace Editor {
 		void SanityCheck();
 
 		/**
-		 * @brief Converts the current mouse position from screen coordinates to world coordinates.
-		 * @return A Vector2D representing the mouse's position in the game world's normalized device coordinates (-1 to 1).
-		 */
-		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
-
-		/**
 		 * @brief Handles placing the dragged prefab when the mouse is released.
 		 */
 		void HandleDragDropPlacement(); // Renamed from HandleTilePlacement	
@@ -261,9 +259,6 @@ namespace Editor {
 		void HandleSelection();
 		void HandleDeletion();
 
-		// Handles In World dragging and dropping of game objects
-		void HandleInWorldDragDrop();
-
 		/* Entity Copy & Pasting APIs */
 		void CopyEntityToClipboard(const Entity entity);
 		void PasteEntityFromClipboard();
@@ -290,7 +285,6 @@ namespace Editor {
 
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
-		Vector2D SnapToGrid(const Vector2D& worldPos);
 		//void ResetPlayerToDefaultPosition();
 
 		std::string selectedPrefabForEditing_;
@@ -304,6 +298,9 @@ namespace Editor {
 
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
+
+		// Sort a list of entities by descending render layer
+		void SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr);
 
 		/**
 		* @brief Loads textures and prepares palette items.
@@ -347,6 +344,18 @@ namespace Editor {
 		/* Helper Functions */
 		const bool IsGamePlaying() const { return isGamePlaying; };
 		const bool IsGamePaused() const { return isGamePaused; };
+		const ImVec2 GetGameViewportSize() const { return gameViewportSize_; }
+		const ImVec2 GetGameViewportPos() const { return gameViewportPos_; }
+
+		Vector2D SnapToGrid(const Vector2D& worldPos, bool normalized = false) const;
+
+		/**
+		 * @brief Converts the current mouse position from screen coordinates to world coordinates.
+		 * @return A Vector2D representing the mouse's position in the game world's normalized device coordinates (-1 to 1).
+		 */
+		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
+
+		Vector2D GetNormalizedMousePos() const;
 
 		// Converts world - space coordinates to ImGui screen - space
 		// function that accepts a specific camera ID for movement
@@ -354,5 +363,15 @@ namespace Editor {
 
 		// Converts world-space coordinates to ImGui screen-space
 		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
+		// Converts normalized coordinates to ImGui screen-space
+		ImVec2 NormalizedToImGuiScreen(const Vector2D& normalizedPos) const;
+
+		// Setter for GizmosSystem
+		void SetGizmoSystem(GizmoSystem* gizmo) {
+			gizmoSystem_ = gizmo;
+		}
+
+		// Getter for historyManager_
+		HistoryManager* GetHistoryMgr() { return &historyManager_; }
 	};
 }
