@@ -2819,19 +2819,14 @@ namespace Editor {
 
 			// Text you want to draw
 			static char textBuffer[256] = "";
-			// Font Selection
-			static char fontKeyBuffer[256] = "";
 			static Entity text_LastSelectedEntity;
 			static std::string text_lastRecordedText;
-			static std::string text_lastRecordedFontKey;
 			static bool text_editingText = false;
-			static bool text_editingFontKey = false;
 
 			if (text_LastSelectedEntity != selectedEntity) {
 				text_LastSelectedEntity = selectedEntity;
-				text_editingText = text_editingFontKey = false;
+				text_editingText = false;
 				text_lastRecordedText = textComp.textToDraw;
-				text_lastRecordedFontKey = textComp.fontKey;
 
 				// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
 				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
@@ -2841,16 +2836,6 @@ namespace Editor {
 						IM_ARRAYSIZE(textBuffer) - 1
 					);
 					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
-				}
-
-				// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
-				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
-					std::strncpy(
-						fontKeyBuffer,
-						textComp.fontKey.c_str(),
-						IM_ARRAYSIZE(fontKeyBuffer) - 1
-					);
-					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 				}
 			}
 
@@ -2864,19 +2849,6 @@ namespace Editor {
 						IM_ARRAYSIZE(textBuffer) - 1
 					);
 					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
-				}
-			}
-
-			if (!text_editingFontKey && textComp.fontKey != text_lastRecordedFontKey) {
-				text_lastRecordedFontKey = textComp.fontKey;
-
-				if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
-					std::strncpy(
-						fontKeyBuffer,
-						textComp.fontKey.c_str(),
-						IM_ARRAYSIZE(fontKeyBuffer) - 1
-					);
-					fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
 				}
 			}
 
@@ -2900,27 +2872,8 @@ namespace Editor {
 				text_editingText = false;
 			}
 
-			// Fontkey Inputfield
-			ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer));
-			if (ImGui::IsItemActivated()) text_editingFontKey = true;
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				std::string newText = fontKeyBuffer;
-
-				if (newText != textComp.fontKey) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					textComp.fontKey = newText;
-					textComp.isDirty = true;
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-
-				text_editingFontKey = false;
-			}
-
-			bool activeNow = false;
+			// Fontkey read-only Inputfield
+			ImGui::InputText("Font Key", &textComp.fontKey, ImGuiInputTextFlags_ReadOnly);
 
 			// Drag and Drop Target for Font Key
 			if (ImGui::BeginDragDropTarget())
@@ -2969,6 +2922,27 @@ namespace Editor {
 				}
 				ImGui::EndDragDropTarget();
 			}
+
+			static std::string newFontKey = "";
+			ImGui::InputText("New Font Key", &newFontKey);
+
+			//Button to update Font key
+			if (ImGui::Button("Update Font")) {
+				if (!newFontKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					textComp.fontKey = newFontKey;
+					textComp.isDirty = true;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+			}
+
+			bool activeNow = false;
 
 			// Color Input
 			ImGui::Text("Color RGBA: ");

@@ -141,7 +141,7 @@ namespace Framework {
 
                 if (KeyPressed(Key::Z)) cameraSystem->SetZoom(activeCam, cam.zoom * 0.8f);
                 if (KeyPressed(Key::X)) cameraSystem->SetZoom(activeCam, cam.zoom * 1.2f);
-                if (KeyPressed(Key::R)) cameraSystem->SetZoom(activeCam, 1.0f);
+                if (KeyPressed(Key::R)) cameraSystem->SetZoom(activeCam, 540.f);
             }
         }
 
