@@ -58,12 +58,11 @@ namespace Framework {
     }
 
     /**
-     * \brief Renders all visible sprites and text components.
+     * \brief Renders all visible sprites
      *
      * Collects all entities with active `TextureComponent`, applies
      * world-to-screen transformations, performs frustum culling,
      * sorts by render order and texture, and draws batched sprites.
-     * Then renders text components on top of all layers.
      */
     void SpriteRenderSystem::RenderSprites() {
         EntityManager entityMgr(ecs_);
@@ -116,7 +115,7 @@ namespace Framework {
                     }
                 }
                 Vector2D finalScale = { 1.0f, 1.0f };
-                float finalRotation = 0.0f;
+                //float finalRotation = 0.0f;
                 // --- Apply Scale ---
                 if (entityMgr.HasComponent(entity, ScaleType)) {
                     const Scale& scale = entityMgr.GetComponent<Scale>(entity);
@@ -229,47 +228,6 @@ namespace Framework {
         for (auto& [key, sprites] : batches) {
             if (!sprites.empty()) {
                 gfx_.drawSpriteBatch(key.texture, sprites);
-            }
-        }
-
-        // --- Render Text ---
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, PositionType, ActiveTagType)) {
-            const TextComponent& component = entityMgr.GetComponent<TextComponent>(entity);
-            if (component.fontKey.empty()) continue;
-
-            try {
-                Font& font = resources_.get<Font>(component.fontKey);
-                const Vector2D& worldTextPos = entityMgr.GetComponent<Position>(entity).Pos;
-                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
-
-                Vector2D screenTextPos = worldTextPos;
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
-                    screenTextPos = cameraSystem_->WorldToScreen(worldTextPos, activeCamera);
-                }
-
-                const float max_width_ndc = 1.8f;
-                const float max_width_pixels = max_width_ndc * 0.5f * gfx_.getScreenWidth();
-                std::vector<std::string> lines = gfx_.WrapText(font, component.textToDraw, component.scale, max_width_pixels);
-
-                Vector2D current_pos = screenTextPos;
-                const float line_height_ndc = 0.08f;
-
-                float zoom = 1.0f;
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement) {
-                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
-                    zoom = cam.zoom;
-                }
-
-                for (const auto& line : lines) {
-                    gfx_.drawText(font, line, current_pos, component.scale, component.color);
-                    current_pos.y -= line_height_ndc;
-                }
-            }
-            catch (const std::exception& e) {
-                Logger::Get().Error(DebugType::GraphicsSystem)
-                    << "Failed to render text for entity " << entity
-                    << " (Bad font key: " << component.fontKey << "): " << e.what();
-                continue;
             }
         }
     }

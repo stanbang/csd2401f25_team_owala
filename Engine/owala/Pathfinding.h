@@ -48,7 +48,7 @@ namespace Framework {
     public:
         // Size of one grid cell in world coordinates
         // (editor already has a grid built in, but we want to make sure editor and game logic is seperate)
-        const float cellSize = 200.0f;
+        const float cellSize = 100.0f;
 
         /**
          * @brief Scans all static colliders (PlatformTag) in the ECS to build a grid of "walls".

@@ -23,6 +23,7 @@
 #include "AudioSystem.h"
 #include "WindowsSystem.h"
 #include "SpriteRenderSystem.h"
+#include "TextRenderSystem.h"
 #include "LevelResetSystem.h"
 #include "GuiSystem.h"
 #include "Graphics.h"
@@ -33,6 +34,7 @@
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
+#include "Gizmo.h"
 #endif
 
 #include <vector>
@@ -64,6 +66,7 @@ namespace Framework {
 			SceneFunction fpFree = nullptr;
 		};
 		std::unordered_map<SceneGUID, SceneCallBacks> sceneCallbacks_;
+		SceneGUID lastInitializedScene_ = 0;
 
 		struct RegisteredSystems {
 			EntityStorage* ecs_ = nullptr;
@@ -74,6 +77,7 @@ namespace Framework {
 			ResourceManager* resourceManager_ = nullptr;
 			AudioSystem* audio_ = nullptr;   // <-- store it
 			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
+			TextRenderSystem* textRenderer_ = nullptr;
 			AISystem* aiSystem_ = nullptr;
 			GuiSystem* guiSystem_ = nullptr;
 			CameraSystem* camera_ = nullptr;  
@@ -131,7 +135,7 @@ namespace Framework {
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
-			AudioSystem& audio, SpriteRenderSystem& renderer,
+			AudioSystem& audio, SpriteRenderSystem& renderer, TextRenderSystem& textRenderer,
 			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation);
 				
 #ifdef BUILD_EDITOR

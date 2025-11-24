@@ -24,6 +24,7 @@
 #include <vector>     
 #include <map> // For tracking state changes
 
+
 // Forward declarations - only needed in editor build
 #ifdef BUILD_EDITOR
 struct ImDrawList;
@@ -65,6 +66,7 @@ namespace Framework {
         NavigationGrid navGrid_;
         AStarPather pather_;
         Graphics* gfx_; // Pointer to the graphics system
+       // GameManager* gameManager_;
 
         float gridRebuildTimer_ = 0.0f;
         const float gridRebuildInterval_ = 2.0f;
@@ -80,6 +82,7 @@ namespace Framework {
         void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize);
         void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize);
         void HandleAttackState(Entity bird, BirdAIComponent& ai);
+        void HandleStunnedState(Entity bird, BirdAIComponent& ai);
 
         // --- Skeleton State Machine Handlers ---
         void HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);

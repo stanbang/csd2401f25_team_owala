@@ -25,6 +25,8 @@
 #include "Logger.h"         // Includes Logger
 #include "CameraSystem.h"   // Includes CameraSystem
 #include "OwalaTime.h"
+#include "GameManager.h"
+
 
 // Only include editor/ImGui headers in editor build
 #ifdef BUILD_EDITOR
@@ -62,6 +64,22 @@ namespace Framework {
     void AISystem::Update() {
         EntityManager entityMgr(*ecs_);
 
+        // Check if world is rotating
+        bool worldIsRotating = false;
+       
+        worldIsRotating = GameManager::GetInstance().GetSystems().transformation_->IsGlobalRotating();
+  
+
+        // Rebuild grid on rotation
+        static bool wasRotating = false;
+        if (worldIsRotating && !wasRotating) {
+            navGrid_.BuildGrid(*ecs_); // Force rebuild
+            Logger::Get().Info(DebugType::AISystem)
+                << "World rotation started - grid rebuilt" << std::endl;
+        }
+        wasRotating = worldIsRotating;
+
+
         // Find the player
         Entity player = GetPlayer();
         if (player == 0) {
@@ -83,15 +101,11 @@ namespace Framework {
 
         // Get players collision halfsize
         Vector2D playerHalfSize = Vector2D::Zero();
-       /* if (entityMgr.HasComponent(player, AABBColliderType)) {
-            playerHalfSize = entityMgr.GetComponent<AABBCollider>(player).HalfSize;
-        }*/
-
         if (entityMgr.HasComponent(player, TextureComponentType)) { // Get visual size
             playerHalfSize = entityMgr.GetComponent<TextureComponent>(player).HalfSize;
         }
 
-        //Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];
+
 
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
@@ -104,6 +118,15 @@ namespace Framework {
 
         // Loop over all entities with an EnemyTagType and BirdAIComponent
         for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
+
+            // PAUSE AI during world rotation
+            if (worldIsRotating) {
+                if (entityMgr.HasComponent(enemy, VelocityType)) {
+                    entityMgr.GetComponent<Velocity>(enemy).Vel = Vector2D::Zero();
+                }
+                continue; // Skip AI updates
+            }
+
             // Check that the bird has all components before proceeding
             if (entityMgr.HasComponent(enemy, BirdAIComponentType))
             {
@@ -125,6 +148,8 @@ namespace Framework {
                 if (entityMgr.HasComponent(enemy, TextureComponentType)) { // Get visual size
                     birdHalfSize = entityMgr.GetComponent<TextureComponent>(enemy).HalfSize;
                 }
+
+                
 
 #ifdef BUILD_EDITOR
                 // Log state transitions - only in editor build
@@ -156,13 +181,16 @@ namespace Framework {
                     HandleWakingState(enemy, ai);
                     break;
                 case BirdState::CHASE:
-                    HandleChaseState(enemy, ai, birdPos, birdHalfSize, playerPos, playerHalfSize);
-                    break;
-                case BirdState::HOVER:
-                    HandleHoverState(enemy, ai, birdPos, birdHalfSize, playerPos, playerHalfSize);
+                    HandleChaseState(enemy, ai, birdPos, {}, playerPos, {});
                     break;
                 case BirdState::ATTACK:
                     HandleAttackState(enemy, ai);
+                    break;
+                case BirdState::STUNNED:
+                    HandleStunnedState(enemy, ai);
+                    break;
+                case BirdState::HOVER:
+                    HandleHoverState(enemy, ai, birdPos, {}, playerPos, {});
                     break;
                 }
 
@@ -215,61 +243,56 @@ namespace Framework {
     }
 
     void AISystem::HandleWakingState(Entity bird, BirdAIComponent& ai) {
+
+        EntityManager entityMgr(*ecs_);
+        // Stop moving during wake-up animation
+        if (entityMgr.HasComponent(bird, VelocityType)) {
+            entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
+        }
+
         ai.stateTimer -= Framework::Time::DeltaTime();
         if (ai.stateTimer <= 0.0f) {
-            Logger::Get().Info(DebugType::AISystem) << "Bird [" << bird << "] finished waking up!" << std::endl;
             ai.state = BirdState::CHASE;
-            ai.pathRecalculateTimer = 0.0f; // Force path recalculation immediately
+            ai.pathRecalculateTimer = 0.0f; // Force immediate pathfinding
         }
     }
 
     void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
         // TODO: Trigger Flying animation here
 
+        EntityManager entityMgr(*ecs_);
+
         float dist = birdPos.Distance(playerPos);
 
-        // Calculate an "effective" radius for the player and bird, using the larger of their half-width/height.
-        // This is a simple approximation of their collision bounds.
-        float playerEffectiveRadius = std::max(playerHalfSize.x, playerHalfSize.y);
-        float birdEffectiveRadius = std::max(birdHalfSize.x, birdHalfSize.y);
-
-        // The bird rchs when its collision edge is hoverRadius away from the player's collision edge.
-        float arrivalDistance = ai.hoverRadius + playerEffectiveRadius + birdEffectiveRadius;
-
-        // Check if reached radius
-        if (dist < arrivalDistance) {
+        // Check if player escaped too far
+        if (dist > ai.chaseRadius) {
             Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] reached hover radius!" << std::endl;
-            ai.state = BirdState::HOVER;
-          
-            ai.attackTimer = 0.0f; // Set timer to 0 to mean not started
-        
-            ai.currentHoverNode = 0; // Start at the first node of the box
+                << "Bird [" << bird << "] lost player, going back to IDLE" << std::endl;
+            ai.state = BirdState::IDLE;
             ai.currentPath.clear();
+            if (entityMgr.HasComponent(bird, VelocityType)) {
+                entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
+            }
             return;
         }
 
-        //  Recalculate path 
+
+        // Check if close enough to attack (CRITICAL: Use proper radius)
+        if (dist < ai.attackRadius) {
+            Logger::Get().Info(DebugType::AISystem)
+                << "Bird [" << bird << "] entering ATTACK state!" << std::endl;
+            ai.state = BirdState::ATTACK;
+            ai.attackTargetPosition = playerPos; // Snapshot position
+            ai.stateTimer = ai.attackDuration;
+            ai.currentPath.clear(); // Clear pathfinding
+            return;
+        }
+
+        // Continue chasing with A*
         ai.pathRecalculateTimer -= Framework::Time::DeltaTime();
         if (ai.pathRecalculateTimer <= 0.0f || ai.currentPath.empty()) {
-
-            Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] calculating path from ("
-                << birdPos.x << ", " << birdPos.y << ") to ("
-                << playerPos.x << ", " << playerPos.y << ")" << std::endl;
-
             ai.currentPath = pather_.FindPath(navGrid_, birdPos, playerPos);
             ai.pathRecalculateTimer = ai.pathRecalculateInterval;
-
-            //  Add Log
-            if (ai.currentPath.empty()) {
-                Logger::Get().Info(DebugType::AISystem)
-                    << "Bird [" << bird << "] failed to find path!" << std::endl;
-            }
-            else {
-                Logger::Get().Info(DebugType::AISystem)
-                    << "Bird [" << bird << "] found path with " << ai.currentPath.size() << " waypoints" << std::endl;
-            }
         }
 
         // Follow the path
@@ -281,103 +304,41 @@ namespace Framework {
 
         EntityManager entityMgr(*ecs_);
 
-        if (!entityMgr.HasComponent(bird, VelocityType)) {
-            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
-            return;
-        }
-
-        float playerEffectiveRadius = std::max(playerHalfSize.x, playerHalfSize.y);
-        float birdEffectiveRadius = std::max(birdHalfSize.x, birdHalfSize.y);
-        float arrivalDistance = ai.hoverRadius + playerEffectiveRadius + birdEffectiveRadius;
-
-        float escapeDistance = arrivalDistance * 1.5f; // escape distance 
-
-        // Check if player moved too far away
         float distToPlayer = birdPos.Distance(playerPos);
 
-        if (distToPlayer > escapeDistance) { 
+        // Check if player is in attack range again
+        if (distToPlayer < ai.attackRadius) {
             Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] player escaped, resuming chase!" << std::endl;
-            ai.state = BirdState::CHASE;
-            // Stagger pathfinding calls over 0.5 secs
-            ai.pathRecalculateTimer = (static_cast<float>(rand() % 100) / 100.0f) * 0.5f;
+                << "Bird [" << bird << "] re-engaging from hover!" << std::endl;
+            ai.state = BirdState::ATTACK;
+            ai.attackTargetPosition = playerPos;
+            ai.stateTimer = ai.attackDuration;
             return;
         }
 
-
-        // hover mechanic (IN PROGRESS)
-        // 4 nodes of the vertical box above the player for hovering
-        float boxHalfWidth = ai.hoverRadius;
-        float boxHalfHeight = ai.hoverRadius; // Make a square box
-
-        Vector2D hoverNodes[4];
-        // Node 0: Bottom-left
-        hoverNodes[0] = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight };
-        // Node 1: Bottom-right
-        hoverNodes[1] = { playerPos.x + boxHalfWidth, playerPos.y + ai.hoverHeight };
-        // Node 2: Top-right
-        hoverNodes[2] = { playerPos.x + boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
-        // Node 3: Top-left
-        hoverNodes[3] = { playerPos.x - boxHalfWidth, playerPos.y + ai.hoverHeight + boxHalfHeight };
-
-       
-        Vector2D targetNode = hoverNodes[ai.currentHoverNode];
-
-        // Move towards the current node
-        Vector2D direction = (targetNode - birdPos).Normalized();
-        entityMgr.GetComponent<Velocity>(bird).Vel = direction * ai.hoverSpeed;
-
-        // Check if reached the current node
-        if (birdPos.Distance(targetNode) < ai.hoverNodeReachedDist) {
-
-           
-            // bird has successfully reached patrol area
-            if (ai.attackTimer <= 0.0f) {
-                Logger::Get().Info(DebugType::AISystem)
-                    << "Bird [" << bird << "] reached patrol area. Starting 3-10 sec attack timer." << std::endl;
-                ai.attackTimer = 5.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f; //  3 to 12 seconds
-            }
-            // Move to next node
-            ai.currentHoverNode = (ai.currentHoverNode + 1) % 4;
+        // Check if player moved too far away
+        if (distToPlayer > ai.hoverRadius) {
             Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] reached hover node, moving to node " << ai.currentHoverNode << std::endl;
+                << "Bird [" << bird << "] resuming chase from hover" << std::endl;
+            ai.state = BirdState::CHASE;
+            ai.pathRecalculateTimer = 0.0f;
+            return;
         }
 
-        // Check for attack 
-        if (ai.attackTimer > 0.0f) {
-            ai.attackTimer -= Framework::Time::DeltaTime();
+        // Simple hover behavior: orbit above player
+        Vector2D targetPos = playerPos + Vector2D(0.0f, ai.hoverHeight);
+        Vector2D direction = (targetPos - birdPos).Normalized();
 
-            // Check for attack after counting down
-            if (ai.attackTimer <= 0.0f) {
-                // Check if in range to attack
-                if (distToPlayer < ai.attackRadius) {
-                    Logger::Get().Info(DebugType::AISystem)
-                        << "Bird [" << bird << "] initiating attack!" << std::endl;
-                    ai.state = BirdState::ATTACK;
-                    ai.attackTargetPosition = playerPos; // Lock player position
-                    ai.stateTimer = ai.attackDuration;
-                }
-                else {
-                    // Timer ran out, but player is not in range.
-                    // Reset the timer to a new random value 
-                    ai.attackTimer = 5.0f + (static_cast<float>(rand() % 100) / 100.0f) * 7.0f;
-                    Logger::Get().Info(DebugType::AISystem)
-                        << "Bird [" << bird << "] attack timer expired, but out of range. Resetting timer." << std::endl;
-                }
-            }
+        if (entityMgr.HasComponent(bird, VelocityType)) {
+            entityMgr.GetComponent<Velocity>(bird).Vel = direction * ai.hoverSpeed;
         }
     }
 
     void AISystem::HandleAttackState(Entity bird, BirdAIComponent& ai) {
-        ai.stateTimer -= Framework::Time::DeltaTime();
         EntityManager entityMgr(*ecs_);
 
-        if (!entityMgr.HasComponent(bird, PositionType)) {
-            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Position component!" << std::endl;
-            return;
-        }
-        if (!entityMgr.HasComponent(bird, VelocityType)) {
-            Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
+        if (!entityMgr.HasComponent(bird, PositionType) ||
+            !entityMgr.HasComponent(bird, VelocityType)) {
             return;
         }
 
@@ -388,37 +349,44 @@ namespace Framework {
             playerKilled = entityMgr.GetComponent<PlayerState>(player).isDead;
         }
 
-        //  Dive at target
+        // Dive straight at snapshot position
         Vector2D direction = (ai.attackTargetPosition - birdPos).Normalized();
         entityMgr.GetComponent<Velocity>(bird).Vel = direction * ai.attackSpeed;
 
-        // Check if attack finished (timer up OR close to target)
-        if (ai.stateTimer <= 0.0f || birdPos.Distance(ai.attackTargetPosition) < 0.5f) {
+        ai.stateTimer -= Framework::Time::DeltaTime();
 
+        // Check collision with platforms or timeout
+        // (Physics will handle player collision separately)
+        bool hitWall = false;
+
+        // Simple wall detection: if velocity suddenly drops to near-zero
+        Vector2D currentVel = entityMgr.GetComponent<Velocity>(bird).Vel;
+        if (currentVel.Magnitude() < ai.attackSpeed * 0.5f) {
+            hitWall = true;
+        }
+
+        if (hitWall || ai.stateTimer <= 0.0f) {
             Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] attack finished!" << std::endl;
+                << "Bird [" << bird << "] attack ended, entering STUNNED state" << std::endl;
+            ai.state = BirdState::STUNNED;
+            ai.stateTimer = ai.stunDuration;
+            entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
+        }
+    }
 
-            // Finished attack means reset attack cooldown 
-            ai.attackTimer = 0.0f;
+    void AISystem::HandleStunnedState(Entity bird, BirdAIComponent& ai) {
+        EntityManager entityMgr(*ecs_);
 
-            // Go back to HOVER (or chase)?
-            if (player == 0 || playerKilled) {
-                ai.state = BirdState::IDLE; // Player is gone?
-                return;
-            }
+        // Stay still
+        if (entityMgr.HasComponent(bird, VelocityType)) {
+            entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
+        }
 
-            if (!entityMgr.HasComponent(player, PositionType)) {
-                Logger::Get().Error(DebugType::AISystem) << "Player is missing Position component!" << std::endl;
-                return;
-            }
-
-            float dist = birdPos.Distance(entityMgr.GetComponent<Position>(player).Pos);
-            if (dist > ai.hoverRadius) {
-                ai.state = BirdState::CHASE;
-            }
-            else {
-                ai.state = BirdState::HOVER;
-            }
+        ai.stateTimer -= Framework::Time::DeltaTime();
+        if (ai.stateTimer <= 0.0f) {
+            ai.state = BirdState::HOVER;
+            Logger::Get().Info(DebugType::AISystem)
+                << "Bird [" << bird << "] recovering, entering HOVER" << std::endl;
         }
     }
 
@@ -636,7 +604,7 @@ namespace Framework {
         // Draw navigation grid
         if (showNavigationGrid) {
             DrawNavigationGrid(viewLeft, viewRight, viewBottom, viewTop, drawList, editor, activeCam);
-            Logger::Get().Info(DebugType::AISystem) << "Drawing navigation grid" << std::endl;
+            //Logger::Get().Info(DebugType::AISystem) << "Drawing navigation grid" << std::endl;
         }
 
         //Draw Enemies debug info

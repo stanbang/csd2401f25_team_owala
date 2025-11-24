@@ -40,6 +40,8 @@ namespace Framework {
         static void SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc);
         // Serialize properties of a given entity into a JSON object.
         static void SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        // Serialize Components for a given entity into a JSON object.
+        static void SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serialize tags for a given entity into a JSON object.
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
@@ -91,6 +93,8 @@ namespace Framework {
         static void SerializeComponent(const Button& button, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SceneOwned& sceneOwnedComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const Scale& scaleComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
 
         /* Specialized Deserialization APIs */
         /* Components */
@@ -115,6 +119,9 @@ namespace Framework {
         static bool DeserializeComponent(const rapidjson::Value& componentData, SkeletonAIComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Button& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, SceneOwned& out);
-		static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, Rotation& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, Scale& out);
+
     };
 }
