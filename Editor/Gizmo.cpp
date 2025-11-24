@@ -300,65 +300,96 @@ void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
 void GizmoSystem::HandleStopDrag() {
     // save the current state of the relevant components AFTER transformation
     EntityManager entityMgr(ecs_);
-    ComponentType modifiedCompType = MAX_COMPONENTS;
+    HistoryManager* historyMgr = editor_->GetHistoryMgr();
 
-    if (currentMode_ == GizmoMode::Translate) {
-        if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_);
-            modifiedCompType = PositionType;
+    if (gizmoAffectedComponents_.empty()) return;
+    
+    afterGizmosJSON_.clear();
+    afterGizmosJSON_.reserve(gizmoAffectedComponents_.size());
+
+    for (ComponentType& compType : gizmoAffectedComponents_) {
+        if (entityMgr.HasComponent(draggedEntity_, compType)) {
+            afterGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, compType, ecs_));
         }
-        else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
-            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, SpawnPointType, ecs_);
-            modifiedCompType = SpawnPointType;
+        else {
+            afterGizmosJSON_.push_back("");
         }
-        // need handle TrapPlatforms where both Position and TrapPlatformComponent.originalPosition are modified tgt
-    }
-    else if (currentMode_ == GizmoMode::Scale) {
-        if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
-            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_);
-        }
-        else afterGizmosJSON_ = ""; // should already have the component but just set to empty for safety
-        modifiedCompType = ScaleType;
-    }
-    else if (currentMode_ == GizmoMode::Rotate) {
-        if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
-            afterGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_);
-        }
-        else afterGizmosJSON_ = ""; // should already have the component but just set to empty for safety
-        modifiedCompType = RotationType;
     }
 
-    // Push to history stack
-    if (beforeGizmosJSON_ != afterGizmosJSON_ && modifiedCompType != MAX_COMPONENTS) {
-        std::stringstream ss;
-        ss << "Modified " << ComponentToString(modifiedCompType) << " in " << entityMgr.GetProperties(draggedEntity_).name << std::endl;
-        editor_->GetHistoryMgr()->RecordModifyComponent(draggedEntity_, ss.str(), beforeGizmosJSON_, afterGizmosJSON_, modifiedCompType);
+    std::size_t changedCount = 0;
+    for (std::size_t i = 0; i < gizmoAffectedComponents_.size(); ++i) {
+        if (beforeGizmosJSON_[i] != afterGizmosJSON_[i]) ++changedCount;
+    }
+    if (changedCount == 0) return; // No changes detected
+
+    if (changedCount > 1) {
+        historyMgr->BeginGroup();
+
+        for (std::size_t i = 0; i < gizmoAffectedComponents_.size(); ++i) {
+            if (beforeGizmosJSON_[i] == afterGizmosJSON_[i]) continue;
+
+            ComponentType compType = gizmoAffectedComponents_[i];
+
+            std::stringstream ss;
+            ss << "Modified " << ComponentToString(compType) << " in " << entityMgr.GetProperties(draggedEntity_).name << std::endl;
+            historyMgr->RecordModifyComponent(draggedEntity_, ss.str(), beforeGizmosJSON_[i], afterGizmosJSON_[i], compType);
+        }
+        
+        historyMgr->EndGroup();
+    }
+    else {
+        for (std::size_t i = 0; i < gizmoAffectedComponents_.size(); ++i) {
+            if (beforeGizmosJSON_[i] == afterGizmosJSON_[i]) continue;
+
+            ComponentType compType = gizmoAffectedComponents_[i];
+
+            std::stringstream ss;
+            ss << "Modified " << ComponentToString(compType) << " in " << entityMgr.GetProperties(draggedEntity_).name << std::endl;
+            historyMgr->RecordModifyComponent(draggedEntity_, ss.str(), beforeGizmosJSON_[i], afterGizmosJSON_[i], compType);
+            break;
+        }
     }
 }
 
 void GizmoSystem::HandleStartDrag() {
     EntityManager entityMgr(ecs_);
+
+    gizmoAffectedComponents_.clear();
+    beforeGizmosJSON_.clear();
+    afterGizmosJSON_.clear();
+
     // save the current state of the relevant component before applying any transformations
     if (currentMode_ == GizmoMode::Translate) {
-        if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_);
+        if (entityMgr.HasComponent(draggedEntity_, TrapPlatformComponentType)) {
+            gizmoAffectedComponents_.push_back(TrapPlatformComponentType);
+            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, TrapPlatformComponentType, ecs_));
+
+            if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
+                gizmoAffectedComponents_.push_back(PositionType);
+                beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_));
+            }
+        }
+        else if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
+            gizmoAffectedComponents_.push_back(PositionType);
+            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_));
         }
         else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
-            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, SpawnPointType, ecs_);
+            gizmoAffectedComponents_.push_back(SpawnPointType);
+            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, SpawnPointType, ecs_));
         }
-        // need handle TrapPlatforms where both Position and TrapPlatformComponent.originalPosition are modified tgt
     }
     else if (currentMode_ == GizmoMode::Scale) {
         if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
-            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_);
+            gizmoAffectedComponents_.push_back(ScaleType);
+            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_));
         }
-        else beforeGizmosJSON_ = ""; // if component isnt added yet, set to empty
     }
     else if (currentMode_ == GizmoMode::Rotate) {
         if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
-            beforeGizmosJSON_ = EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_);
+            gizmoAffectedComponents_.push_back(RotationType);
+            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_));
+            std::cout << "1!!!" << std::endl;
         }
-        else beforeGizmosJSON_ = ""; // if component isnt added yet, set to empty
     }
 }
 

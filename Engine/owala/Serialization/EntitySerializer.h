@@ -40,6 +40,8 @@ namespace Framework {
         static void SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc);
         // Serialize properties of a given entity into a JSON object.
         static void SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        // Serialize Components for a given entity into a JSON object.
+        static void SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serialize tags for a given entity into a JSON object.
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
