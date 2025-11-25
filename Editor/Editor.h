@@ -258,6 +258,9 @@ namespace Editor {
 		void HandleSelection();
 		void HandleDeletion();
 
+		// Handle input keys when game viewport is active
+		void HandleGameViewportInput();
+
 		/* Entity Copy & Pasting APIs */
 		void CopyEntityToClipboard(const Entity entity);
 		void PasteEntityFromClipboard();

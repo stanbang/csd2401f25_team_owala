@@ -3790,6 +3790,72 @@ namespace Editor {
 			gameManager_->GetSystems().guiSystem_->SetViewportContext(gameViewportPos_, gameViewportSize_);
 		}
 	}
+
+	void Editor::HandleGameViewportInput() {
+
+		// Handle inputs for gizmos (QTYU)
+		if (gizmoSystem_) {
+			// Q: Select/View Mode (No Gizmo)
+			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::None);
+			}
+			// T: Translate
+			else if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::Translate);
+			}
+			// Y: Rotate
+			else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::Rotate);
+			}
+			// U: Scale
+			else if (ImGui::IsKeyPressed(ImGuiKey_U)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::Scale);
+			}
+		}
+
+		// Camera Controls (WASD, Up/Down Arrows, R)
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+			const float dt = Framework::Time::UnscaledDeltaTime();
+			const float camSpeed = 2000.0f;
+
+			// Move camera with WASD
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) cam.position.y += camSpeed * dt;
+			if (ImGui::IsKeyPressed(ImGuiKey_S)) cam.position.y -= camSpeed * dt;
+			if (ImGui::IsKeyPressed(ImGuiKey_A)) cam.position.x -= camSpeed * dt;
+			if (ImGui::IsKeyPressed(ImGuiKey_D)) cam.position.x += camSpeed * dt;
+
+			// Zoom in/out using Up / Down arrow keys
+			if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+				cam.zoom *= 0.8f; // zoom in
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+			if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+				cam.zoom *= 1.2f; // zoom out
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+
+			// Optional: reset zoom with R
+			if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+				ResetEditorCamera();
+			}
+		}
+
+		// Delete selected entity with Delete key
+		if (isEntitySelected_ && selectedEntityIndex > 1) {
+			if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+				Entity entity = selectedEntityIndex - 1;
+				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+				historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+				entityMgr.DestroyEntity(entity);
+				if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+					selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+					isEntitySelected_ = false;
+				}
+			}
+		}
+	}
+
 	void Editor::ShowGameViewport() {
 		using namespace Framework;
 
@@ -3879,60 +3945,17 @@ namespace Editor {
 						gizmoSystem_->DrawInvisPlaceholders(drawList);
 					}
 
-					// Handle inputs for gizmos (QTYU)
-					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused() && gizmoSystem_) {
-						// Q: Select/View Mode (No Gizmo)
-						if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
-							gizmoSystem_->SetGizmoMode(GizmoMode::None);
-						}
-						// T: Translate
-						else if (ImGui::IsKeyPressed(ImGuiKey_T)) {
-							gizmoSystem_->SetGizmoMode(GizmoMode::Translate);
-						}
-						// Y: Rotate
-						else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
-							gizmoSystem_->SetGizmoMode(GizmoMode::Rotate);
-						}
-						// U: Scale
-						else if (ImGui::IsKeyPressed(ImGuiKey_U)) {
-							gizmoSystem_->SetGizmoMode(GizmoMode::Scale);
-						}
+					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused()) {
+						HandleGameViewportInput();
 					}
 
-					// Camera Controls (WASD, Up/Down Arrows, R)
-					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused() && editorCamera_ != 0)
-					{
-						Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-						const float dt = Framework::Time::UnscaledDeltaTime();
-						const float camSpeed = 2000.0f;
-
-						// Move camera with WASD
-						if (ImGui::IsKeyPressed(ImGuiKey_W)) cam.position.y += camSpeed * dt;
-						if (ImGui::IsKeyPressed(ImGuiKey_S)) cam.position.y -= camSpeed * dt;
-						if (ImGui::IsKeyPressed(ImGuiKey_A)) cam.position.x -= camSpeed * dt;
-						if (ImGui::IsKeyPressed(ImGuiKey_D)) cam.position.x += camSpeed * dt;
-
-						// Zoom in/out using Up / Down arrow keys
-						if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-							cam.zoom *= 0.8f; // zoom in
-							cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-						}
-						if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-							cam.zoom *= 1.2f; // zoom out
-							cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-						}
-
-						// Optional: reset zoom with R
-						if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-							ResetEditorCamera();
-						}
-					}
-
-					// draw transform gizmos on selected entity
-					// run gizmos update function to check for any gizmos dragging & apply transformations accordingly
 					if (isEntitySelected_ && selectedEntityIndex > 1) {
-						gizmoSystem_->DrawGizmos(drawList, selectedEntityIndex);
-						gizmoSystem_->Update(selectedEntityIndex, editorCamera_);
+						if (gizmoSystem_) {
+							// draw transform gizmos on selected entity
+							gizmoSystem_->DrawGizmos(drawList, selectedEntityIndex);
+							// run gizmos update function to check for any gizmos dragging & apply transformations accordingly
+							gizmoSystem_->Update(selectedEntityIndex, editorCamera_);
+						}
 					}
 				}
 
