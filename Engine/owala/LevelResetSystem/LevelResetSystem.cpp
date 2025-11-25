@@ -38,11 +38,6 @@ namespace Framework {
         trapPlatformSig.set(TrapPlatformComponentType);
         trapPlatformSig.set(PositionType);
         trapPlatformSig.set(RotationFlagType);
-
-        scalingPlatformSig.set(ActiveTagType);
-        scalingPlatformSig.set(ScalingPlatformComponentType);
-        scalingPlatformSig.set(PositionType);
-        scalingPlatformSig.set(RotationFlagType);
     
         basicPlatformSig.set(ActiveTagType);
         basicPlatformSig.set(PlatformTagType);
@@ -99,17 +94,6 @@ namespace Framework {
                 continue;
             }
 
-            // --- Scaling Platform Reset ---
-            if (CmpSignatures(signature, scalingPlatformSig)) {
-                Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Scaling Platform, Entity: " << entity << std::endl;
-                ScalingPlatformComponent& platform = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-                ResetRotation(entityMgr, entity);
-                platform.currentScaleX = {};
-                platform.currentScaleY = {};
-                platform.time = {};
-                continue;
-            }
-
             // --- Basic Platform Reset ---
             if (CmpSignatures(signature, basicPlatformSig)) {
                 Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Basic Platform, Entity: " << entity << std::endl;
@@ -128,6 +112,26 @@ namespace Framework {
         ResetPosition(entityMgr, entity, GetPlayerSpawnPt(entityMgr));
         ResetVelocity(entityMgr, entity);
         ResetRotation(entityMgr, entity);
+
+        // Reset animation
+        if (entityMgr.HasComponent(entity, AnimationComponentType)) {
+            AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
+            anim.currentState = AnimationState::IDLE;
+            anim.currentFrame = 0;
+            anim.elapsedTime = 0.0f;
+            anim.isPlaying = true;
+        }
+        if (entityMgr.HasComponent(entity, PlayerStateType)) {
+            PlayerState& playerState = entityMgr.GetComponent<PlayerState>(entity);
+            playerState.isDead = false;
+            Logger::Get().Info(DebugType::LevelResetSystem) << "Reset player state - isDead: false" << std::endl;
+        }
+        if (entityMgr.HasComponent(entity, RigidBodyType)) {
+            RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+            rb.SetMass(1.0f);
+            rb.isAffectedByGravity = true;
+        }
+    
     }
     
     // Reset Position to given position, defaults to 0,0 if no Position provided

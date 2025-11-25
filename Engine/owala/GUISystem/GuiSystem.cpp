@@ -19,13 +19,12 @@
 #include "CameraSystem.h" // For the camera
 #include "GameMessages.h" // For ButtonClickedEvent
 #include "MessageBus.h" // For MessageBus
-#include "FileUtility.h"
+#include "WindowsSystem.h"
 
 namespace Framework {
 
 	void GuiSystem::Initialize() {
-		FileIOSystem fileIO;
-		SetViewportSizeEngine(fileIO.LoadWindowConfig());
+		//SetViewportSizeEngine(windowsSystem_->getWindowSize());
 	}
 
 	void GuiSystem::Update() {
@@ -48,8 +47,8 @@ namespace Framework {
 		// Engine build uses full window size
 		#ifdef BUILD_ENGINE
 		inputSystem_->GetMousePos(&mouseX, &mouseY); // Get mouse position in window coordinates
-		double mouseX_ndc = static_cast<double>((mouseX / viewportSizeEngine_.x) * 2.0f - 1.0f);
-		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / viewportSizeEngine_.y) * 2.0f);
+		double mouseX_ndc = static_cast<double>((mouseX / windowsSystem_->getWidth()) * 2.0f - 1.0f);
+		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / windowsSystem_->getHeight()) * 2.0f);
 		#endif
 
 		bool mouseDown = inputSystem_->MouseDown(InputSystem::MouseButton::Left);

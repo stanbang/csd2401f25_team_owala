@@ -29,8 +29,8 @@ namespace Framework{
 	class GuiSystem : public ISystem {
 	public:
 		// Constructor taking references to EntityStorage and ResourceManager
-		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem) {
+		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, WindowsSystem& win)
+			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), windowsSystem_(&win) {
 		}
 		void Initialize() override;
 		void Update() override;
@@ -42,17 +42,18 @@ namespace Framework{
 		#endif
 
 		// Sets the viewport size for the engine (used outside of editor)
-		void SetViewportSizeEngine(const Vector2D& size) {
-			viewportSizeEngine_ = size;
-		}
+		//void SetViewportSizeEngine(const Vector2D& size) {
+		//	viewportSizeEngine_ = size;
+		//}
 
 	private:
 		// Pointer to the entity storage to access and modify entities and their components
 		EntityStorage* entityStorage_ = nullptr;
 		ResourceManager* resourceManager_ = nullptr;
 		InputSystem* inputSystem_ = nullptr;
+		WindowsSystem* windowsSystem_ = nullptr;
 
-		Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
+		//Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
 
 		#ifdef BUILD_EDITOR
 		ImVec2 viewportPos_ = { 0.0f, 0.0f };

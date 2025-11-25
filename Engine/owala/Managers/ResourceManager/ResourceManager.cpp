@@ -45,6 +45,7 @@ void ResourceManager::Initialize() {
 		ScanAssetDirectory("Assets/Audio");
 		ScanAssetDirectory("Assets/Fonts");
 		ScanAssetDirectory("Data/AnimationData");
+		LoadTextureAnimationMappings("Data/textureToAnimationMapping.json");
 	}
 	catch (const fs::filesystem_error& e) {
 		Logger::Get().Error(DebugType::ResourceManager) << "Failed to scan assets: " << e.what();
@@ -92,7 +93,7 @@ bool ResourceManager::loadTexture(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?";
+			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?\n";
 		return false;
 	}
 
@@ -120,7 +121,7 @@ bool ResourceManager::loadSound(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load sound: Key '" << name << "' not found.";
+			<< "Cannot auto-load sound: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -194,7 +195,7 @@ bool ResourceManager::loadFont(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load font: Key '" << name << "' not found.";
+			<< "Cannot auto-load font: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -236,7 +237,7 @@ bool ResourceManager::loadAnimationInfo(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load animation: Key '" << name << "' not found.";
+			<< "Cannot auto-load animation: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -264,4 +265,63 @@ void ResourceManager::Shutdown() {
 
     // Clear all maps
 	clearAll();
+}
+
+bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFilePath) {
+	try {
+		// Use FileIOSystem to read the JSON file
+		rapidjson::Document doc;
+		if (!FileIOSystem::ReadFile(mappingFilePath, doc)) {
+			Logger::Get().Error(DebugType::ResourceManager)
+				<< "Cannot open texture-animation mapping file: " << mappingFilePath;
+			return false;
+		}
+
+		// Validate the structure, must be an object with "animations" array
+		if (!doc.IsObject() || !doc.HasMember("animations") || !doc["animations"].IsArray()) {
+			Logger::Get().Error(DebugType::ResourceManager)
+				<< "Invalid mapping file structure. Expected 'animations' array in: " << mappingFilePath;
+			return false;
+		}
+
+		const rapidjson::Value& animations = doc["animations"];
+		int loadedCount = 0;
+
+		// Iterate through each animation mapping
+		for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) {
+			const rapidjson::Value& entry = animations[i];
+
+			// Validate entry has required fields
+			if (!entry.IsObject() ||
+				!entry.HasMember("texture_key") || !entry["texture_key"].IsString() ||
+				!entry.HasMember("animation_path") || !entry["animation_path"].IsString()) {
+				Logger::Get().Info(DebugType::ResourceManager)
+					<< "Skipping invalid animation entry at index " << i
+					<< ": missing or invalid 'texture_key' or 'animation_path'";
+				continue;
+			}
+
+			std::string textureKey = entry["texture_key"].GetString();
+			std::string animationPath = entry["animation_path"].GetString();
+
+			// Load the animation
+			if (loadAnimationInfo(textureKey, animationPath)) {
+				loadedCount++;
+			}
+			else {
+				Logger::Get().Info(DebugType::ResourceManager)
+					<< "Failed to load animation for texture: " << textureKey;
+			}
+		}
+
+		Logger::Get().Info(DebugType::ResourceManager)
+			<< "Loaded " << loadedCount << " texture-animation mappings from " << mappingFilePath;
+
+		return loadedCount > 0;
+	}
+	catch (const std::exception& e) {
+		Logger::Get().Error(DebugType::ResourceManager)
+			<< "Exception while loading texture-animation mappings: " << e.what();
+		return false;
+	}
 }

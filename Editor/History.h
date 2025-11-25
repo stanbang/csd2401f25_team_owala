@@ -37,6 +37,7 @@ namespace Editor{
 	struct Operation {
 		OpType opType = OpType::None;
 		std::string description;
+		int groupID = 0;
 
 		OpData data;
 	};
@@ -48,6 +49,11 @@ namespace Editor{
 		std::vector<Operation> undoStack;
 		std::vector<Operation> redoStack;
 		int maxHistorySteps{ 20 };
+
+		/* Grouping States */
+		int nextGroupID = 1;
+		int activeGroupID = 0;
+		int groupDepth = 0;
 
 		/* Internal Helpers */
 		void PruneHistoryToLimit();
@@ -73,10 +79,15 @@ namespace Editor{
 		// Dedicated Function for recording operations relating to Component Modifications.
 		// Add/Remove/Modify Components should use this.
 		void RecordModifyComponent(Entity entity, const std::string& description, const std::string& beforeJSON, const std::string& afterJSON, Framework::ComponentType compType = Framework::ComponentType::MAX_COMPONENTS);
-		void Push(const Operation& op);
+		void Push(Operation& op);
 		bool CanUndo() const;
 		bool CanRedo() const;
 		void Undo();
 		void Redo();
+
+		/* Grouping APIs */
+		void BeginGroup();
+		void EndGroup();
+		bool IsGroupActive() const noexcept;
 	};
 }

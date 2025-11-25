@@ -40,6 +40,8 @@ namespace Framework {
         static void SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc);
         // Serialize properties of a given entity into a JSON object.
         static void SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        // Serialize Components for a given entity into a JSON object.
+        static void SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serialize tags for a given entity into a JSON object.
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
@@ -80,7 +82,6 @@ namespace Framework {
         static void SerializeComponent(const PlayerState& state, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const RotationFlag& rFlag, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const TrapPlatformComponent& trap, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const ScalingPlatformComponent& scalingPlatform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const TextureComponent& texComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const AudioComponent& audioComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const AnimationComponent& animComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
@@ -108,7 +109,6 @@ namespace Framework {
 		static bool DeserializeComponent(const rapidjson::Value& componentData, PlayerState& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, RotationFlag& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, TrapPlatformComponent& out);
-		static bool DeserializeComponent(const rapidjson::Value& componentData, ScalingPlatformComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, TextureComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, AudioComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, AnimationComponent& out);

@@ -218,16 +218,6 @@ namespace Editor {
 				}
 				break;
 			}
-			case ComponentType::ScalingPlatformComponentType: {
-				ScalingPlatformComponent newScalingPlatform;
-				if (EntitySerializer::DeserializeComponent(doc, newScalingPlatform)) {
-					if (entityMgr.HasComponent(entity, ComponentType::ScalingPlatformComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::ScalingPlatformComponentType);
-					}
-					entityMgr.AddComponent<ScalingPlatformComponent>(entity, newScalingPlatform);
-				}
-				break;
-			}
 			case ComponentType::TextureComponentType: {
 				TextureComponent newTextureComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newTextureComponent)) {
@@ -369,12 +359,32 @@ namespace Editor {
 			maxHistorySteps = 20;
 		}
 
-		if (undoStack.size() > static_cast<size_t>(maxHistorySteps)) {
-			undoStack.erase(undoStack.begin(), undoStack.begin() + (undoStack.size() - maxHistorySteps));
+		if (undoStack.empty()) return;
+
+		int steps = 0;
+		std::size_t index = undoStack.size();
+
+		// Calculate Number of History Steps consumed
+		while (index > 0 && steps < maxHistorySteps) {
+			const Operation& op = undoStack[index - 1];
+
+			if (op.groupID == 0) { // Single Operation
+				++steps;
+				--index;
+			}
+			else { // Operation belongs to a group.
+				const int groupID = op.groupID;
+				++steps;
+
+				while (index > 0 && undoStack[index - 1].groupID == groupID) {
+					--index;
+				}
+			}
 		}
 
-		if (redoStack.size() > static_cast<size_t>(maxHistorySteps)) {
-			redoStack.erase(redoStack.begin(), redoStack.begin() + (redoStack.size() - maxHistorySteps));
+		// Prune everything after recorded index.
+		if (index > 0) {
+			undoStack.erase(undoStack.begin(), undoStack.begin() + index);
 		}
 	}
 
@@ -478,7 +488,7 @@ namespace Editor {
 		Push(op);
 	}
 
-	void HistoryManager::Push(const Operation& op) {
+	void HistoryManager::Push(Operation& op) {
 		if (!ecs_) {
 			Logger::Info(DebugType::Editor) << "HistoryManager::Push: ECS is null, cannot push to history." << std::endl;
 			return;
@@ -487,6 +497,11 @@ namespace Editor {
 		if (op.opType == OpType::None) {
 			Logger::Info(DebugType::Editor) << "HistoryManager::Push: Invalid operation type, cannot push to history." << std::endl;
 			return;
+		}
+
+		// If operation being pushed is currently being recorded as a grouped operation
+		if (activeGroupID != 0) {
+			op.groupID = activeGroupID;
 		}
 
 		undoStack.push_back(op);
@@ -508,10 +523,30 @@ namespace Editor {
 			return;
 		}
 
-		const Operation op = undoStack.back(); // Get the latest operation
-		Apply(op, true); // Apply the operation as an undo
-		undoStack.pop_back(); // Remove it from the undo stack
-		redoStack.push_back(op); // Push it to the redo stack
+		int groupID = undoStack.back().groupID;
+
+		// If operation does not belong to a group
+		if (groupID == 0) {
+			const Operation op = undoStack.back(); // Get the latest operation
+			Apply(op, true); // Apply the operation as an undo
+			undoStack.pop_back(); // Remove it from the undo stack
+			redoStack.push_back(op); // Push it to the redo stack
+			return;
+		}
+
+		// Grouped Operations
+		std::vector<Operation> groupOps;
+		while (!undoStack.empty() && undoStack.back().groupID == groupID) {
+			Operation op = undoStack.back();
+			undoStack.pop_back();
+
+			Apply(op, true);
+			groupOps.push_back(std::move(op));
+		}
+
+		for (std::vector<Operation>::reverse_iterator it = groupOps.rbegin(); it != groupOps.rend(); ++it) {
+			redoStack.push_back(*it);
+		}
 	}
 
 	void HistoryManager::Redo() {
@@ -519,9 +554,54 @@ namespace Editor {
 			return;
 		}
 
-		const Operation op = redoStack.back(); // Get the operation preceding the last undone operation
-		Apply(op, false); // Apply the operation as a redo
-		redoStack.pop_back(); // Remove it from the redo stack
-		undoStack.push_back(op); // Push it to the undo stack
+		int groupID = redoStack.back().groupID;
+
+		// If operation does not belong to a group
+		if (groupID == 0) {
+			const Operation op = redoStack.back(); // Get the operation preceding the last undone operation
+			Apply(op, false); // Apply the operation as a redo
+			redoStack.pop_back(); // Remove it from the redo stack
+			undoStack.push_back(op); // Push it to the undo stack
+			return;
+		}
+
+		// Grouped Operations
+		std::vector<Operation> groupOps;
+		while (!redoStack.empty() && redoStack.back().groupID == groupID) {
+			groupOps.push_back(redoStack.back());
+			redoStack.pop_back();
+		}
+
+		// Reapply in reverse order
+		for (std::vector<Operation>::reverse_iterator it = groupOps.rbegin(); it != groupOps.rend(); ++it) {
+			Apply(*it, false);
+			undoStack.push_back(*it);
+		}
+	}
+
+	// ---------------------------------------------------------------------------
+	// Grouping APIs
+	// ---------------------------------------------------------------------------
+	void HistoryManager::BeginGroup() {
+		if (groupDepth == 0) {
+			activeGroupID = nextGroupID++;
+		}
+		++groupDepth;
+	}
+
+	void HistoryManager::EndGroup() {
+		if (groupDepth == 0) {
+			Logger::Info(DebugType::Editor) << "History::EndGroup: Unmatched Endgroup! Did you forget to call BeginGroup?" << std::endl;
+			return;
+		}
+
+		--groupDepth;
+		if (groupDepth == 0) {
+			activeGroupID = 0;
+		}
+	}
+
+	bool HistoryManager::IsGroupActive() const noexcept {
+		return activeGroupID != 0;
 	}
 }

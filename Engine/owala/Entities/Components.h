@@ -54,13 +54,8 @@ namespace Framework{
 		IDLE,
 		RUNNING,
 		JUMPING,
-		FALLING
-	};
-
-	enum class EffectType {
-		NONE,
-		RANDOM,
-		RANDOM_UP
+		FALLING,
+		DEATH
 	};
 
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
@@ -105,8 +100,12 @@ namespace Framework{
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
 		Vector2D HalfSize{ 50.0f, 50.0f }; // Half-width and half-height of the box
-	};
+		float rotation = 0.0f;
+		Matrix3x3 transformMatrix;
 
+		AABBCollider() : HalfSize(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size) : HalfSize(size), rotation(0.0f), transformMatrix() {}
+	};
 	
 
 	/*	Acceleration component to store x and y 
@@ -119,6 +118,8 @@ namespace Framework{
 	struct PlayerState {
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
+		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
+		bool isDead = false;
 	};
 
 	struct Triangle { 
@@ -194,8 +195,15 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
-	struct Rotation { //for selected entities
-		float angle = 0.0f; // Rotation angle in degrees
+	struct Rotation {
+		float angle = 0.0f;
+		float textureAngle = 0.0f; // Texture rotation angle
+		float colliderAngle = 0.0f; // Collider rotation angle
+		Matrix3x3 textureTransformMatrix; // For texture
+		Matrix3x3 colliderTransformMatrix; // For collider
+
+		Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
+		Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
 	};
 
 	struct Scale {
@@ -212,17 +220,6 @@ namespace Framework{
 		float fallSpeed{ 0.0f };
 		Vector2D originalPosition;
 		float currentFallDistance{ 0.0f };
-	};
-
-	struct ScalingPlatformComponent {
-		Vector2D baseHalfSize;
-		float currentScaleX{ 0.0f };
-		float currentScaleY{ 0.0f };
-		float scaleSpeed{ 0.0f };
-		float minScale{ 0.0f };
-		float maxScale{ 0.0f };
-		float time{ 0.0f };
-		Matrix3x3 transformMatrix;
 	};
 
 	struct Button {
@@ -430,11 +427,13 @@ namespace Framework{
 		EffectType effectType = EffectType::NONE; // Type of effect the particle will have
 		float lifetime = 1.0f;      // Total lifetime of the particle
 		float age = 0.0f;           // Current age of the particle
+		bool isScreenSpace = false; // Is the particle rendered in screen space
 	};
 
 	struct ParticleEmitterComponent {
 		bool isEmitting = true;
 		bool isParticleAnimated = false; // Is the particle texture animated
+		bool isScreenSpace = false;   // Are the particles rendered in screen space
 
 		std::string particleTextureKey; // Key to identify the texture resource for particles
 		float particleLifetime = 1.0f;	// Total lifetime of the particle
@@ -442,12 +441,35 @@ namespace Framework{
 		float emissionInterval = 0.0f;	// Time between emissions (calculated from emissionRate)
 		float timeSinceLastEmission = 0.0f; // Time since the last particle was emitted
 		EffectType particleEffectType = EffectType::NONE; // Type of effect for emitted particles
+		float effectStrength = 1.0f; // Strength of the effect
 		float particleSpeed = 1.0f;	// Speed of emitted particles
 		Vector2D particleSize = { 1.0f, 1.0f }; // Size of emitted particles
 
 		Vector2D particleStartVelocity = { 0.0f, 0.0f };// Initial velocity of emitted particles
 		Vector2D particleAcceleration = { 0.0f, 0.0f }; // For moving particles
 		bool isAffectedByGravity = false;				// Should particles be affected by gravity
+
+		EmissionStyle emissionStyle = EmissionStyle::FROM_POINT; // Style of emission
+		Vector2D emissionOffset = { 0.0f, 0.0f }; // Offset from emitter position
+
+		// For FROM_RADIUS style
+		float emissionRadius = 0.5f;		// Radius around position to emit particles
+
+		// For FROM_LINE style
+		Vector2D lineStart = { -1.0f, 0.0f };   // Start point of emission line
+		Vector2D lineEnd = { 1.0f, 0.0f };     // End point of emission line
+
+		// For FROM_CIRCLE_EDGE style
+		float circleRadius = 0.5f;              // Radius of the circle
+
+		// For screen space: use normalized coordinates (0 to 1)
+		// For world space: use world coordinates
+		Vector2D viewportMin = { 0.0f, 0.0f };
+		Vector2D viewportMax = { 1.0f, 1.0f };
+
+
+		// Direction override
+		Vector2D emissionDirection = { 0.0f, -1.0f }; // Default downward for top emission
 	};
 
 }

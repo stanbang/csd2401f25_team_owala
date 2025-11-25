@@ -140,16 +140,36 @@ namespace Framework::Serialization {
 	static constexpr const char* PARTICLE_EMITTER_COMPONENT = "ParticleEmitterComponent";
 	static constexpr const char* IS_EMITTING = "is_emitting";
 	static constexpr const char* IS_PARTICLE_ANIMATED = "is_particle_animated";
+	static constexpr const char* IS_SCREEN_SPACE = "is_screen_space";
 	static constexpr const char* PARTICLE_TEXTURE_KEY = "particle_texture_key";
 	static constexpr const char* PARTICLE_LIFETIME = "particle_lifetime";
 	static constexpr const char* EMISSION_RATE = "emit_rate";
 	static constexpr const char* EMISSION_INTERVAL = "emit_interval";
 	static constexpr const char* PARTICLE_EFFECT_TYPE = "particle_effect_type";
+	static constexpr const char* EFFECT_STRENGTH = "effect_strength";
 	static constexpr const char* PARTICLE_SPEED = "particle_speed";
 	static constexpr const char* PARTICLE_SIZE = "particle_size";
 	static constexpr const char* IS_AFFECTED_BY_GRAVITY = "is_affected_by_gravity";
+	static constexpr const char* EMISSION_STYLE = "emission_style";
+	static constexpr const char* EMISSION_RADIUS = "emission_radius";
+	static constexpr const char* PARTICLE_START_VELOCITY = "particle_start_velocity";
+	static constexpr const char* PARTICLE_ACCELERATION = "particle_acceleration";
+	static constexpr const char* LINE_START = "line_start";
+	static constexpr const char* LINE_END = "line_end";
+	static constexpr const char* CIRCLE_RADIUS = "circle_radius";
+	static constexpr const char* VIEWPORT_MIN = "viewport_min";
+	static constexpr const char* VIEWPORT_MAX = "viewport_max";
+	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
+	static constexpr const char* EMISSION_OFFSET = "emission_offset";
 
+	static constexpr const char* ROTATION_COMPONENT= "Rotation";
 	static constexpr const char* ROTATION_ANGLE = "angle";
+	static constexpr const char* ROTATION_TEXTURE_ANGLE = "texture_angle";
+	static constexpr const char* ROTATION_COLLIDER_ANGLE = "collider_angle";
+	static constexpr const char* ROTATION_TEXTURE_MTX = "texture_matrix";
+	static constexpr const char* ROTATION_COLLIDER_MTX = "collider_matrix";
+	
+	static constexpr const char* SCALE_COMPONENT = "Scale";
 	static constexpr const char* SCALE_AXES= "axes";
 
 	// bird AI Keys

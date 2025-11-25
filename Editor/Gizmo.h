@@ -15,11 +15,13 @@
 #pragma once
 #include <imgui.h>
 #include <string>
+#include <vector>
 #include "Vector2D.h"
 #include "Entity.h"
 
 // forward declarations
 namespace Framework {
+    enum ComponentType;
     class EntityStorage;
     class CameraSystem;
 }
@@ -96,7 +98,9 @@ namespace Editor {
         Entity draggedEntity_ = 0;
 
         // For Undo/Redo system (HistoryManager)
-        std::string beforeGizmosJSON_{}, afterGizmosJSON_{};
+        std::vector<Framework::ComponentType> gizmoAffectedComponents_;
+        std::vector<std::string> beforeGizmosJSON_; 
+        std::vector<std::string> afterGizmosJSON_;
     };
 
 }

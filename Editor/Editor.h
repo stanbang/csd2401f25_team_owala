@@ -78,7 +78,6 @@ namespace Editor {
 		Eraser,
 		Platform,
 		TrapPlatform,
-		ScalingPlatform,
 		Tile
 	};
 
@@ -259,6 +258,9 @@ namespace Editor {
 		void HandleSelection();
 		void HandleDeletion();
 
+		// Handle input keys when game viewport is active
+		void HandleGameViewportInput();
+
 		/* Entity Copy & Pasting APIs */
 		void CopyEntityToClipboard(const Entity entity);
 		void PasteEntityFromClipboard();
@@ -278,6 +280,7 @@ namespace Editor {
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
+		void ShowRestartMenu(); //when player dies
 		void ShowLayerManager();
 
 		// Popup Related
@@ -295,6 +298,10 @@ namespace Editor {
 
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
+		void ApplyAllPrefabChangesToCurrentScene();
+
+		// Scene Management Helper functions
+		void SaveScene();
 
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();

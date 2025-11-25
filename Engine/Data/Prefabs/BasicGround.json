@@ -1,0 +1,53 @@
+{
+    "name": "BasicGround",
+    "components": [
+        {
+            "type": "Position",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "Velocity",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "RigidBody",
+            "data": {
+                "mass": 0.0,
+                "forceX": 0.0,
+                "forceY": 0.0
+            }
+        },
+        {
+            "type": "AABBCollider",
+            "data": {
+                "halfSizeX": 1100.0,
+                "halfSizeY": 100.0
+            }
+        },
+        {
+            "type": "TextureComponent",
+            "data": {
+                "textureID": "Platform.png",
+                "halfSizeX": 1100.0,
+                "halfSizeY": 100
+            }
+        },
+        {
+            "type": "RotationFlag",
+            "data": {}
+        }
+    ],
+    "tags": [
+        "PlatformTag"
+    ],
+    "properties": {
+        "layer": "Platform",
+	"render_layer": 50
+    }
+}

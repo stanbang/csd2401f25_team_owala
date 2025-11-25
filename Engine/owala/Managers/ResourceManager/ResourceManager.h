@@ -30,6 +30,7 @@
 #include "Animation.h"
 #include <filesystem>
 
+
 namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
@@ -127,6 +128,8 @@ namespace Framework {
         bool loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size = 48);
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
 
+        bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
+
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map
         std::unordered_map<std::string, std::unique_ptr<Font>>& getFontMap(); // Get the font map
@@ -158,8 +161,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Texture: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Texture: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Texture: " + key);
             }
             return *it->second;
@@ -176,8 +178,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Audio: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Audio: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Audio: " + key);
             }
             return *it->second;
@@ -194,8 +195,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Font: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Font: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Font: " + key);
             }
             return *it->second;
@@ -212,8 +212,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Animation: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Animation: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Animation: " + key);
             }
             return *it->second;

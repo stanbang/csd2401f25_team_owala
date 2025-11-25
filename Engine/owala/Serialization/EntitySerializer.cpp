@@ -35,9 +35,49 @@ namespace Framework {
 		/* Entity Properties Serialization */
 		SerializeEntityProperties(entityMgr, entity, outData, alloc);
 
+		/* Components Serialization */
+		SerializeComponents(entityMgr, entity, outData, alloc);
+
+		/* Tags Serialization */
+		SerializeTags(entityMgr, entity, outData, alloc);
+	}
+
+	void EntitySerializer::SerializeEntity(Entity entity, EntityStorage& ecs, rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator) {
+		SerializeEntityInternal(entity, ecs, outData, allocator);
+	}
+
+	void EntitySerializer::SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath) {
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Value outData;
+
+		Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing entity to " << filepath << std::endl;
+		SerializeEntityInternal(entity, ecs, doc, doc.GetAllocator());
+		FileIOSystem::WriteFileJson(filepath, doc);
+		Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved entity to " << filepath << std::endl;
+	}
+
+	void EntitySerializer::SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc) {
+		for (Entity entity : entities)
+		{
+			rapidjson::Value entityObject(rapidjson::kObjectType);
+			SerializeEntityInternal(entity, ecs, entityObject, alloc);
+			outArray.PushBack(entityObject, alloc);
+		}
+	}
+
+	void EntitySerializer::SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		EntityProperties& properties = entityMgr.GetProperties(entity);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
+	}
+
+	void EntitySerializer::SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		rapidjson::Value componentList(rapidjson::kObjectType);
 
-		/* Components Serialization */
 		// Serialize Position Component
 		if (entityMgr.HasComponent(entity, ComponentType::PositionType)) {
 			Position& pos = entityMgr.GetComponent<Position>(entity);
@@ -118,14 +158,6 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::TRAP_PLATFORM_COMPONENT), value, alloc);
 		}
 
-		// Serialize ScalingPlatform Component
-		if (entityMgr.HasComponent(entity, ComponentType::ScalingPlatformComponentType)) {
-			ScalingPlatformComponent& scalingPlatform = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(scalingPlatform, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::SCALING_PLATFORM_COMPONENT), value, alloc);
-		}
-
 		// Serialize TextureComponent Component
 		if (entityMgr.HasComponent(entity, ComponentType::TextureComponentType)) {
 			TextureComponent& texComp = entityMgr.GetComponent<TextureComponent>(entity);
@@ -202,6 +234,7 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::BUTTON_COMPONENT), value, alloc);
 		}
 
+		// Serialize SceneOwned Component
 		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
 			SceneOwned& sceneOwnedComp = entityMgr.GetComponent<SceneOwned>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
@@ -217,43 +250,22 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EMITTER_COMPONENT), value, alloc);
 		}
 
-		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
-
-		/* Tags Serialization */
-		SerializeTags(entityMgr, entity, outData, alloc);
-	}
-
-	void EntitySerializer::SerializeEntity(Entity entity, EntityStorage& ecs, rapidjson::Value& outData, rapidjson::Document::AllocatorType& allocator) {
-		SerializeEntityInternal(entity, ecs, outData, allocator);
-	}
-
-	void EntitySerializer::SerializeEntityToFile(Entity entity, EntityStorage& ecs, const std::string& filepath) {
-		rapidjson::Document doc;
-		doc.SetObject();
-		rapidjson::Value outData;
-
-		Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing entity to " << filepath << std::endl;
-		SerializeEntityInternal(entity, ecs, doc, doc.GetAllocator());
-		FileIOSystem::WriteFileJson(filepath, doc);
-		Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved entity to " << filepath << std::endl;
-	}
-
-	void EntitySerializer::SerializeEntities(const std::vector<Entity>& entities, EntityStorage& ecs, rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc) {
-		for (Entity entity : entities)
-		{
-			rapidjson::Value entityObject(rapidjson::kObjectType);
-			SerializeEntityInternal(entity, ecs, entityObject, alloc);
-			outArray.PushBack(entityObject, alloc);
+		// Serialize Rotation Component
+		if (entityMgr.HasComponent(entity, ComponentType::RotationType)) {
+			Rotation& rot = entityMgr.GetComponent<Rotation>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(rot, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::ROTATION_COMPONENT), value, alloc);
 		}
-	}
-
-	void EntitySerializer::SerializeEntityProperties(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		EntityProperties& properties = entityMgr.GetProperties(entity);
-
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
+		
+		// Serialize Scale Component
+		if (entityMgr.HasComponent(entity, ComponentType::ScaleType)) {
+			Scale& scale = entityMgr.GetComponent<Scale>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(scale, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::SCALE_COMPONENT), value, alloc);
+		}
+		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
 	}
 
 	void EntitySerializer::SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
@@ -386,9 +398,6 @@ namespace Framework {
 		case TrapPlatformComponentType:
 			SerializeComponent(entityMgr.GetComponent<TrapPlatformComponent>(entity), componentData, alloc);
 			break;
-		case ScalingPlatformComponentType:
-			SerializeComponent(entityMgr.GetComponent<ScalingPlatformComponent>(entity), componentData, alloc);
-			break;
 		case TextureComponentType:
 			SerializeComponent(entityMgr.GetComponent<TextureComponent>(entity), componentData, alloc);
 			break;
@@ -477,7 +486,7 @@ namespace Framework {
 			const rapidjson::Value& pos = componentLists[Serialization::POSITION];
 
 			Position position;
-			if (DeserializeComponent(pos, position)); {
+			if (DeserializeComponent(pos, position)) {
 				entityMgr.AddComponent<Position>(loadedEntity, position);
 			}
 		}
@@ -487,7 +496,7 @@ namespace Framework {
 			const rapidjson::Value& pos = componentLists[Serialization::SPAWN_PT_COMPONENT];
 
 			SpawnPoint spawnPt;
-			if (DeserializeComponent(pos, spawnPt)); {
+			if (DeserializeComponent(pos, spawnPt)) {
 				entityMgr.AddComponent<SpawnPoint>(loadedEntity, spawnPt);
 			}
 		}
@@ -497,7 +506,7 @@ namespace Framework {
 			const rapidjson::Value& vel = componentLists[Serialization::VELOCITY_COMPONENT];
 
 			Velocity velocity;
-			if (DeserializeComponent(vel, velocity)); {
+			if (DeserializeComponent(vel, velocity)) {
 				entityMgr.AddComponent<Velocity>(loadedEntity, velocity);
 			}
 		}
@@ -507,7 +516,7 @@ namespace Framework {
 			const rapidjson::Value& acc = componentLists[Serialization::ACCELERATION_COMPONENT];
 
 			Acceleration acceleration;
-			if (DeserializeComponent(acc, acceleration)); {
+			if (DeserializeComponent(acc, acceleration)) {
 				entityMgr.AddComponent<Acceleration>(loadedEntity, acceleration);
 			}
 		}
@@ -517,7 +526,7 @@ namespace Framework {
 			const rapidjson::Value& triangleData = componentLists[Serialization::TRIANGLE_COMPONENT];
 
 			Triangle triangle;
-			if (DeserializeComponent(triangleData, triangle)); {
+			if (DeserializeComponent(triangleData, triangle)) {
 				entityMgr.AddComponent<Triangle>(loadedEntity, triangle);
 			}
 		}
@@ -527,7 +536,7 @@ namespace Framework {
 			const rapidjson::Value& rbData = componentLists[Serialization::RIGIDBODY_COMPONENT];
 
 			RigidBody rigidBody;
-			if (DeserializeComponent(rbData, rigidBody)); {
+			if (DeserializeComponent(rbData, rigidBody)) {
 				entityMgr.AddComponent<RigidBody>(loadedEntity, rigidBody);
 			}
 		}
@@ -537,7 +546,7 @@ namespace Framework {
 			const rapidjson::Value& colData = componentLists[Serialization::AABB_COLLIDER_COMPONENT];
 
 			AABBCollider aabbCollider;
-			if (DeserializeComponent(colData, aabbCollider)); {
+			if (DeserializeComponent(colData, aabbCollider)) {
 				entityMgr.AddComponent<AABBCollider>(loadedEntity, aabbCollider);
 			}
 		}
@@ -547,7 +556,7 @@ namespace Framework {
 			const rapidjson::Value& playerStateData = componentLists[Serialization::PLAYER_STATE_COMPONENT];
 
 			PlayerState playerState;
-			if (DeserializeComponent(playerStateData, playerState)); {
+			if (DeserializeComponent(playerStateData, playerState)) {
 				entityMgr.AddComponent<PlayerState>(loadedEntity, playerState);
 			}
 		}
@@ -557,7 +566,7 @@ namespace Framework {
 			const rapidjson::Value& rFlagData = componentLists[Serialization::ROTATIONFLAG_COMPONENT];
 
 			RotationFlag rotationFlag;
-			if (DeserializeComponent(rFlagData, rotationFlag)); {
+			if (DeserializeComponent(rFlagData, rotationFlag)) {
 				entityMgr.AddComponent<RotationFlag>(loadedEntity, rotationFlag);
 			}
 		}
@@ -572,22 +581,12 @@ namespace Framework {
 			}
 		}
 
-		// Deserialize ScalingPlatform Component
-		if (componentLists.HasMember(Serialization::SCALING_PLATFORM_COMPONENT)) {
-			const rapidjson::Value& scalingData = componentLists[Serialization::SCALING_PLATFORM_COMPONENT];
-
-			ScalingPlatformComponent scalingPlatform;
-			if (DeserializeComponent(scalingData, scalingPlatform)); {
-				entityMgr.AddComponent<ScalingPlatformComponent>(loadedEntity, scalingPlatform);
-			}
-		}
-
 		// Deserialize TextureComponent Component
 		if (componentLists.HasMember(Serialization::TEXTURE_COMPONENT)) {
 			const rapidjson::Value& texData = componentLists[Serialization::TEXTURE_COMPONENT];
 
 			TextureComponent textureComp;
-			if (DeserializeComponent(texData, textureComp)); {
+			if (DeserializeComponent(texData, textureComp)) {
 				entityMgr.AddComponent<TextureComponent>(loadedEntity, textureComp);
 			}
 		}
@@ -597,7 +596,7 @@ namespace Framework {
 			const rapidjson::Value& audioData = componentLists[Serialization::AUDIO_COMPONENT];
 
 			AudioComponent audioComp;
-			if (DeserializeComponent(audioData, audioComp)); {
+			if (DeserializeComponent(audioData, audioComp)) {
 				entityMgr.AddComponent<AudioComponent>(loadedEntity, audioComp);
 			}
 		}
@@ -607,7 +606,7 @@ namespace Framework {
 			const rapidjson::Value& animData = componentLists[Serialization::ANIMATION_COMPONENT];
 
 			AnimationComponent animComp;
-			if (DeserializeComponent(animData, animComp)); {
+			if (DeserializeComponent(animData, animComp)) {
 				entityMgr.AddComponent<AnimationComponent>(loadedEntity, animComp);
 			}
 		}
@@ -617,7 +616,7 @@ namespace Framework {
 			const rapidjson::Value& textData = componentLists[Serialization::TEXT_COMPONENT];
 
 			TextComponent textComp;
-			if (DeserializeComponent(textData, textComp)); {
+			if (DeserializeComponent(textData, textComp)) {
 				entityMgr.AddComponent<TextComponent>(loadedEntity, textComp);
 			}
 		}
@@ -627,7 +626,7 @@ namespace Framework {
 			const rapidjson::Value& cameraData = componentLists[Serialization::CAMERA_COMPONENT];
 
 			Camera cameraComp;
-			if (DeserializeComponent(cameraData, cameraComp)); {
+			if (DeserializeComponent(cameraData, cameraComp)) {
 				entityMgr.AddComponent<Camera>(loadedEntity, cameraComp);
 			}
 		}
@@ -637,7 +636,7 @@ namespace Framework {
 			const rapidjson::Value& savedNativeScripts = componentLists[Serialization::NATIVE_SCRIPTS_COMPONENT];
 
 			NativeScriptsComponent nativeScripts;
-			if (DeserializeComponent(savedNativeScripts, nativeScripts)); {
+			if (DeserializeComponent(savedNativeScripts, nativeScripts)) {
 				entityMgr.AddComponent<NativeScriptsComponent>(loadedEntity, std::move(nativeScripts));
 			}
 		}
@@ -647,7 +646,7 @@ namespace Framework {
 			const rapidjson::Value& birdAIData = componentLists[Serialization::BIRD_AI_COMPONENT];
 
 			BirdAIComponent birdAI;
-			if (DeserializeComponent(birdAIData, birdAI)); {
+			if (DeserializeComponent(birdAIData, birdAI)) {
 				entityMgr.AddComponent<BirdAIComponent>(loadedEntity, birdAI);
 			}
 		}
@@ -657,7 +656,7 @@ namespace Framework {
 			const rapidjson::Value& skelAIData = componentLists[Serialization::SKELETON_AI_COMPONENT];
 
 			SkeletonAIComponent skelAI;
-			if (DeserializeComponent(skelAIData, skelAI)); {
+			if (DeserializeComponent(skelAIData, skelAI)) {
 				entityMgr.AddComponent<SkeletonAIComponent>(loadedEntity, skelAI);
 			}
 		}
@@ -667,7 +666,7 @@ namespace Framework {
 			const rapidjson::Value& buttonData = componentLists[Serialization::BUTTON_COMPONENT];
 
 			Button button;
-			if (DeserializeComponent(buttonData, button)); {
+			if (DeserializeComponent(buttonData, button)) {
 				entityMgr.AddComponent<Button>(loadedEntity, button);
 			}
 		}
@@ -677,7 +676,7 @@ namespace Framework {
 			const rapidjson::Value& sceneOwnedData = componentLists[Serialization::SCENE_OWNED_COMPONENT];
 
 			SceneOwned sceneOwnedComp;
-			if (DeserializeComponent(sceneOwnedData, sceneOwnedComp)); {
+			if (DeserializeComponent(sceneOwnedData, sceneOwnedComp)) {
 				entityMgr.AddComponent<SceneOwned>(loadedEntity, sceneOwnedComp);
 			}
 		}
@@ -686,8 +685,26 @@ namespace Framework {
 		if (componentLists.HasMember(Serialization::PARTICLE_EMITTER_COMPONENT)) {
 			const rapidjson::Value& particleEmitterData = componentLists[Serialization::PARTICLE_EMITTER_COMPONENT];
 			ParticleEmitterComponent particleEmitter;
-			if (DeserializeComponent(particleEmitterData, particleEmitter)); {
+			if (DeserializeComponent(particleEmitterData, particleEmitter)) {
 				entityMgr.AddComponent<ParticleEmitterComponent>(loadedEntity, particleEmitter);
+			}
+		}
+
+		// Deserialize Rotation Component
+		if (componentLists.HasMember(Serialization::ROTATION_COMPONENT)) {
+			const rapidjson::Value& rotationData = componentLists[Serialization::ROTATION_COMPONENT];
+			Rotation rotationComp;
+			if (DeserializeComponent(rotationData, rotationComp)) {
+				entityMgr.AddComponent<Rotation>(loadedEntity, rotationComp);
+			}
+		}
+
+		// Deserialize Scale Component
+		if (componentLists.HasMember(Serialization::SCALE_COMPONENT)) {
+			const rapidjson::Value& scaleData = componentLists[Serialization::SCALE_COMPONENT];
+			Scale scaleComp;
+			if (DeserializeComponent(scaleData, scaleComp)) {
+				entityMgr.AddComponent<Scale>(loadedEntity, scaleComp);
 			}
 		}
 	}
@@ -905,27 +922,6 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FALL_DISTANCE), trap.currentFallDistance, alloc);
 	}
 
-	// ScalingPlatform Component
-	void EntitySerializer::SerializeComponent(const ScalingPlatformComponent& scalingPlatform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		rapidjson::Value baseHalfSize(rapidjson::kObjectType);
-		baseHalfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scalingPlatform.baseHalfSize.x, alloc);
-		baseHalfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scalingPlatform.baseHalfSize.y, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::BASE_HALFSIZE), baseHalfSize, alloc);
-		rapidjson::Value currentScale(rapidjson::kObjectType);
-		currentScale.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scalingPlatform.currentScaleX, alloc);
-		currentScale.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scalingPlatform.currentScaleY, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_SCALE), currentScale, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::SCALE_SPEED), scalingPlatform.scaleSpeed, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::MIN_SCALE), scalingPlatform.minScale, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::MAX_SCALE), scalingPlatform.maxScale, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ELAPSED_TIME), scalingPlatform.time, alloc);
-		rapidjson::Value transformMtx(rapidjson::kArrayType);
-		for (int i = 0; i < 9; ++i) {
-			transformMtx.PushBack(scalingPlatform.transformMatrix.m[i], alloc);
-		}
-		outData.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_MATRIX), transformMtx, alloc);
-	}
-
 	// Texture Component
 	void EntitySerializer::SerializeComponent(const TextureComponent& texComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_KEY), rapidjson::StringRef(texComp.textureKey.c_str()), alloc);
@@ -1054,11 +1050,14 @@ namespace Framework {
 	void EntitySerializer::SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_EMITTING), particleEmitter.isEmitting, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_PARTICLE_ANIMATED), particleEmitter.isParticleAnimated, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::IS_SCREEN_SPACE), particleEmitter.isScreenSpace, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_TEXTURE_KEY), rapidjson::StringRef(particleEmitter.particleTextureKey.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_LIFETIME), particleEmitter.particleLifetime, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_RATE), particleEmitter.emissionRate, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_INTERVAL), particleEmitter.emissionInterval, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EFFECT_TYPE), static_cast<int>(particleEmitter.particleEffectType), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EFFECT_STRENGTH), particleEmitter.effectStrength, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_STYLE), static_cast<int>(particleEmitter.emissionStyle), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_SPEED), particleEmitter.particleSpeed, alloc);
 
 		rapidjson::Value halfSize(rapidjson::kObjectType);
@@ -1067,11 +1066,71 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_SIZE), halfSize, alloc);
 
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_AFFECTED_BY_GRAVITY), particleEmitter.isAffectedByGravity, alloc);
+		
+		rapidjson::Value startVel(rapidjson::kObjectType);
+		startVel.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.particleStartVelocity.x, alloc);
+		startVel.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.particleStartVelocity.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_START_VELOCITY), startVel, alloc);
+
+		rapidjson::Value accel(rapidjson::kObjectType);
+		accel.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.particleAcceleration.x, alloc);
+		accel.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.particleAcceleration.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::PARTICLE_ACCELERATION), accel, alloc);
+
+		// Style Specific Data
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_RADIUS), particleEmitter.emissionRadius, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::CIRCLE_RADIUS), particleEmitter.circleRadius, alloc);
+
+		rapidjson::Value lineStart(rapidjson::kObjectType);
+		lineStart.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.lineStart.x, alloc);
+		lineStart.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.lineStart.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::LINE_START), lineStart, alloc);
+
+		rapidjson::Value lineEnd(rapidjson::kObjectType);
+		lineEnd.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.lineEnd.x, alloc);
+		lineEnd.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.lineEnd.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::LINE_END), lineEnd, alloc);
+
+		rapidjson::Value viewMin(rapidjson::kObjectType);
+		viewMin.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.viewportMin.x, alloc);
+		viewMin.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.viewportMin.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::VIEWPORT_MIN), viewMin, alloc);
+
+		rapidjson::Value viewMax(rapidjson::kObjectType);
+		viewMax.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.viewportMax.x, alloc);
+		viewMax.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.viewportMax.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::VIEWPORT_MAX), viewMax, alloc);
+
+		rapidjson::Value emitDir(rapidjson::kObjectType);
+		emitDir.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.emissionDirection.x, alloc);
+		emitDir.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.emissionDirection.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_DIRECTION), emitDir, alloc);
+
+		rapidjson::Value emitOffset(rapidjson::kObjectType);
+		emitOffset.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.emissionOffset.x, alloc);
+		emitOffset.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.emissionOffset.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_OFFSET), emitOffset, alloc);
 	}
 
 	// Rotation Component
 	void EntitySerializer::SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_ANGLE), rotationComp.angle, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_TEXTURE_ANGLE), rotationComp.textureAngle, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_COLLIDER_ANGLE), rotationComp.colliderAngle, alloc);
+
+		rapidjson::Value textureMatrix(rapidjson::kArrayType);
+		rapidjson::Value colliderMatrix(rapidjson::kArrayType);
+
+		for (int i = 0; i < 9; ++i) {
+			rapidjson::Value textureVal(rotationComp.textureTransformMatrix.m[i]);
+			textureMatrix.PushBack(textureVal, alloc);
+
+			rapidjson::Value colliderVal(rotationComp.colliderTransformMatrix.m[i]);
+			colliderMatrix.PushBack(colliderVal, alloc);
+		}
+
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_TEXTURE_MTX), textureMatrix, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_COLLIDER_MTX), colliderMatrix, alloc);
 	}
 
 	// Scale Component
@@ -1095,6 +1154,7 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::VEC2_Y) && componentData[Serialization::VEC2_Y].IsFloat()) {
 			out.Pos.y = componentData[Serialization::VEC2_Y].GetFloat();
 		}
+		return true;
 	}
 
 	// SpawnPoint Component
@@ -1184,6 +1244,7 @@ namespace Framework {
 				out.Force.y = forceData[Serialization::VEC2_Y].GetFloat();
 			}
 		}
+		return true;
 	}
 
 	// AABBCollider Component
@@ -1258,43 +1319,6 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::CURRENT_FALL_DISTANCE) && componentData[Serialization::CURRENT_FALL_DISTANCE].IsFloat()) {
 			out.currentFallDistance = componentData[Serialization::CURRENT_FALL_DISTANCE].GetFloat();
-		}
-		return true;
-	}
-
-	// ScalingPlatform Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, ScalingPlatformComponent& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::BASE_HALFSIZE) && componentData[Serialization::BASE_HALFSIZE].IsObject()) {
-			const rapidjson::Value& baseHalfSizeData = componentData[Serialization::BASE_HALFSIZE];
-			if (baseHalfSizeData.HasMember(Serialization::VEC2_X) && baseHalfSizeData[Serialization::VEC2_X].IsFloat()) {
-				out.baseHalfSize.x = baseHalfSizeData[Serialization::VEC2_X].GetFloat();
-			}
-			if (baseHalfSizeData.HasMember(Serialization::VEC2_Y) && baseHalfSizeData[Serialization::VEC2_Y].IsFloat()) {
-				out.baseHalfSize.y = baseHalfSizeData[Serialization::VEC2_Y].GetFloat();
-			}
-		}
-		if (componentData.HasMember(Serialization::CURRENT_SCALE) && componentData[Serialization::CURRENT_SCALE].IsObject()) {
-			const rapidjson::Value& currentScaleData = componentData[Serialization::CURRENT_SCALE];
-			if (currentScaleData.HasMember(Serialization::VEC2_X) && currentScaleData[Serialization::VEC2_X].IsFloat()) {
-				out.currentScaleX = currentScaleData[Serialization::VEC2_X].GetFloat();
-			}
-			if (currentScaleData.HasMember(Serialization::VEC2_Y) && currentScaleData[Serialization::VEC2_Y].IsFloat()) {
-				out.currentScaleY = currentScaleData[Serialization::VEC2_Y].GetFloat();
-			}
-		}
-		if (componentData.HasMember(Serialization::SCALE_SPEED) && componentData[Serialization::SCALE_SPEED].IsFloat()) {
-			out.scaleSpeed = componentData[Serialization::SCALE_SPEED].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::MIN_SCALE) && componentData[Serialization::MIN_SCALE].IsFloat()) {
-			out.minScale = componentData[Serialization::MIN_SCALE].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::MAX_SCALE) && componentData[Serialization::MAX_SCALE].IsFloat()) {
-			out.maxScale = componentData[Serialization::MAX_SCALE].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::ELAPSED_TIME) && componentData[Serialization::ELAPSED_TIME].IsFloat()) {
-			out.time = componentData[Serialization::ELAPSED_TIME].GetFloat();
 		}
 		return true;
 	}
@@ -1590,52 +1614,123 @@ namespace Framework {
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out) {
 		if (!componentData.IsObject()) return false;
 
-		if (componentData.HasMember(Serialization::COMP_SCENE_NAME) && componentData[Serialization::COMP_SCENE_NAME].IsString()) {
+		if (componentData.HasMember(Serialization::IS_EMITTING) && componentData[Serialization::IS_EMITTING].IsBool()) {
 			out.isEmitting = componentData[Serialization::IS_EMITTING].GetBool();
 		}
-
 		if (componentData.HasMember(Serialization::IS_PARTICLE_ANIMATED) && componentData[Serialization::IS_PARTICLE_ANIMATED].IsBool()) {
 			out.isParticleAnimated = componentData[Serialization::IS_PARTICLE_ANIMATED].GetBool();
+		}
+		if (componentData.HasMember(Serialization::IS_SCREEN_SPACE) && componentData[Serialization::IS_SCREEN_SPACE].IsBool()) {
+			out.isScreenSpace = componentData[Serialization::IS_SCREEN_SPACE].GetBool();
 		}
 
 		if (componentData.HasMember(Serialization::PARTICLE_TEXTURE_KEY) && componentData[Serialization::PARTICLE_TEXTURE_KEY].IsString()) {
 			out.particleTextureKey = componentData[Serialization::PARTICLE_TEXTURE_KEY].GetString();
 		}
-
 		if (componentData.HasMember(Serialization::PARTICLE_LIFETIME) && componentData[Serialization::PARTICLE_LIFETIME].IsFloat()) {
 			out.particleLifetime = componentData[Serialization::PARTICLE_LIFETIME].GetFloat();
 		}
-
 		if (componentData.HasMember(Serialization::EMISSION_RATE) && componentData[Serialization::EMISSION_RATE].IsFloat()) {
 			out.emissionRate = componentData[Serialization::EMISSION_RATE].GetFloat();
 		}
-
 		if (componentData.HasMember(Serialization::EMISSION_INTERVAL) && componentData[Serialization::EMISSION_INTERVAL].IsFloat()) {
 			out.emissionInterval = componentData[Serialization::EMISSION_INTERVAL].GetFloat();
 		}
 
+		// Enums
 		if (componentData.HasMember(Serialization::PARTICLE_EFFECT_TYPE) && componentData[Serialization::PARTICLE_EFFECT_TYPE].IsInt()) {
 			out.particleEffectType = static_cast<EffectType>(componentData[Serialization::PARTICLE_EFFECT_TYPE].GetInt());
+		}
+
+		if (componentData.HasMember(Serialization::EFFECT_STRENGTH) && componentData[Serialization::EFFECT_STRENGTH].IsFloat()) {
+			out.effectStrength = componentData[Serialization::EFFECT_STRENGTH].GetFloat();
+		}
+		else {
+			out.effectStrength = 1.0f; // Default for old save files
+		}
+
+		if (componentData.HasMember(Serialization::EMISSION_STYLE) && componentData[Serialization::EMISSION_STYLE].IsInt()) {
+			out.emissionStyle = static_cast<EmissionStyle>(componentData[Serialization::EMISSION_STYLE].GetInt());
 		}
 
 		if (componentData.HasMember(Serialization::PARTICLE_SPEED) && componentData[Serialization::PARTICLE_SPEED].IsFloat()) {
 			out.particleSpeed = componentData[Serialization::PARTICLE_SPEED].GetFloat();
 		}
 
+		// Size
 		if (componentData.HasMember(Serialization::PARTICLE_SIZE) && componentData[Serialization::PARTICLE_SIZE].IsObject()) {
-			const rapidjson::Value& halfSizeData = componentData[Serialization::PARTICLE_SIZE];
-			if (halfSizeData.HasMember(Serialization::VEC2_X) && halfSizeData[Serialization::VEC2_X].IsFloat()) {
-				out.particleSize.x = halfSizeData[Serialization::VEC2_X].GetFloat();
+			const rapidjson::Value& vecData = componentData[Serialization::PARTICLE_SIZE];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) {
+				out.particleSize.x = vecData[Serialization::VEC2_X].GetFloat();
 			}
-			if (halfSizeData.HasMember(Serialization::VEC2_Y) && halfSizeData[Serialization::VEC2_Y].IsFloat()) {
-				out.particleSize.y = halfSizeData[Serialization::VEC2_Y].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) {
+				out.particleSize.y = vecData[Serialization::VEC2_Y].GetFloat();
 			}
 		}
 
+		// Physics
 		if (componentData.HasMember(Serialization::IS_AFFECTED_BY_GRAVITY) && componentData[Serialization::IS_AFFECTED_BY_GRAVITY].IsBool()) {
 			out.isAffectedByGravity = componentData[Serialization::IS_AFFECTED_BY_GRAVITY].GetBool();
 		}
 
+		if (componentData.HasMember(Serialization::PARTICLE_START_VELOCITY) && componentData[Serialization::PARTICLE_START_VELOCITY].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::PARTICLE_START_VELOCITY];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.particleStartVelocity.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.particleStartVelocity.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::PARTICLE_ACCELERATION) && componentData[Serialization::PARTICLE_ACCELERATION].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::PARTICLE_ACCELERATION];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.particleAcceleration.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.particleAcceleration.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+
+		// Style Params
+		if (componentData.HasMember(Serialization::EMISSION_RADIUS) && componentData[Serialization::EMISSION_RADIUS].IsFloat()) {
+			out.emissionRadius = componentData[Serialization::EMISSION_RADIUS].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::CIRCLE_RADIUS) && componentData[Serialization::CIRCLE_RADIUS].IsFloat()) {
+			out.circleRadius = componentData[Serialization::CIRCLE_RADIUS].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::LINE_START) && componentData[Serialization::LINE_START].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::LINE_START];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.lineStart.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.lineStart.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::LINE_END) && componentData[Serialization::LINE_END].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::LINE_END];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.lineEnd.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.lineEnd.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::VIEWPORT_MIN) && componentData[Serialization::VIEWPORT_MIN].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::VIEWPORT_MIN];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.viewportMin.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.viewportMin.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::VIEWPORT_MAX) && componentData[Serialization::VIEWPORT_MAX].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::VIEWPORT_MAX];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.viewportMax.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.viewportMax.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::EMISSION_DIRECTION) && componentData[Serialization::EMISSION_DIRECTION].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::EMISSION_DIRECTION];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) out.emissionDirection.x = vecData[Serialization::VEC2_X].GetFloat();
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) out.emissionDirection.y = vecData[Serialization::VEC2_Y].GetFloat();
+		}
+
+		// Emission Offset
+		if (componentData.HasMember(Serialization::EMISSION_OFFSET) && componentData[Serialization::EMISSION_OFFSET].IsObject()) {
+			const rapidjson::Value& vecData = componentData[Serialization::EMISSION_OFFSET];
+			if (vecData.HasMember(Serialization::VEC2_X) && vecData[Serialization::VEC2_X].IsFloat()) {
+				out.emissionOffset.x = vecData[Serialization::VEC2_X].GetFloat();
+			}
+			if (vecData.HasMember(Serialization::VEC2_Y) && vecData[Serialization::VEC2_Y].IsFloat()) {
+				out.emissionOffset.y = vecData[Serialization::VEC2_Y].GetFloat();
+			}
+		}
+		// If the field doesn't exist (old save files), default to {0, 0}
+		else {
+			out.emissionOffset = { 0.0f, 0.0f };
+		}
 
 		return true;
 	}
@@ -1647,6 +1742,31 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::ROTATION_ANGLE) && componentData[Serialization::ROTATION_ANGLE].IsFloat()) {
 			out.angle = componentData[Serialization::ROTATION_ANGLE].GetFloat();
 		}
+		if (componentData.HasMember(Serialization::ROTATION_TEXTURE_ANGLE) && componentData[Serialization::ROTATION_TEXTURE_ANGLE].IsFloat()) {
+			out.textureAngle = componentData[Serialization::ROTATION_TEXTURE_ANGLE].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::ROTATION_COLLIDER_ANGLE) && componentData[Serialization::ROTATION_COLLIDER_ANGLE].IsFloat()) {
+			out.colliderAngle = componentData[Serialization::ROTATION_COLLIDER_ANGLE].GetFloat();
+		}
+
+		Matrix3x3 matrix;
+		if (componentData.HasMember(Serialization::ROTATION_TEXTURE_MTX) && componentData[Serialization::ROTATION_TEXTURE_MTX].IsArray()) {
+			rapidjson::GenericArray textureMtxArray = componentData[Serialization::ROTATION_TEXTURE_MTX].GetArray();
+			for (int i = 0; i < 9; ++i) {
+				matrix.m[i] = textureMtxArray[i].GetFloat();
+			}
+			
+			out.textureTransformMatrix = matrix;
+		}
+		if (componentData.HasMember(Serialization::ROTATION_COLLIDER_MTX) && componentData[Serialization::ROTATION_COLLIDER_MTX].IsArray()) {
+			rapidjson::GenericArray colliderMtxArray = componentData[Serialization::ROTATION_COLLIDER_MTX].GetArray();
+			for (int i = 0; i < 9; ++i) {
+				matrix.m[i] = colliderMtxArray[i].GetFloat();
+			}
+
+			out.colliderTransformMatrix = matrix;
+		}
+
 		return true;
 	}
 

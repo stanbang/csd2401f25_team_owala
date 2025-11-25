@@ -7,9 +7,7 @@
 *      
 * \brief
 *      Implementation of the PlatformBehaviorSystem. Handles trap platform
-*      trigger delays, falling mechanics, and state resets. Manages scaling
-*      platform animations and updates collision boxes and textures
-*      to match current scale values.
+*      trigger delays, falling mechanics, and state resets. 
 * 
 * 
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
@@ -26,6 +24,7 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+#include <AABB_Collision.h>
 
 namespace Framework {
     /*!
@@ -35,7 +34,6 @@ namespace Framework {
 *//*______________________________________________________________*/
     void PlatformBehaviorSystem::Update() {
         UpdateTrapPlatforms();
-        UpdateScalingPlatforms();
     }
 
     // ========== TRAP PLATFORM LOGIC ==========
@@ -44,7 +42,7 @@ namespace Framework {
     @brief      Checks if a trap platform should fall based on its fall direction and world rotation
     @param      fallDirection The trap's fall direction vector
     @param      worldRotation Current world rotation in degrees
-    @return     true if the trap should fall (fall direction aligns with gravity)
+    @return     true if the trap should fall
 *//*______________________________________________________________*/
     bool PlatformBehaviorSystem::ShouldTrapFall(EntityManager& entityMgr, Entity entity, float worldRotation) const
     {
@@ -205,76 +203,6 @@ namespace Framework {
         if (entityMgr.HasComponent(trapPlatform, RigidBodyType)) {
             entityMgr.GetComponent<RigidBody>(trapPlatform).SetMass(0.0f);
         }
-    }
-
-    // ========== SCALING PLATFORM LOGIC ==========
-
-    /*!
-    @brief      Updates all scaling platforms, animating their scale
-    @param      dt Delta time in seconds since last frame
-    @return     void
-*//*______________________________________________________________*/
-    void PlatformBehaviorSystem::UpdateScalingPlatforms() {
-        EntityManager entityMgr(*ecs_);
-
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ScalingPlatformComponentType)) {
-            ScalingPlatformComponent& scalingComp = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-
-            // Advance animation time
-            scalingComp.time += Framework::Time::DeltaTime();
-
-            // Calculate scale using sine wave for smooth oscillation
-            float sineValue = std::sin(scalingComp.time * scalingComp.scaleSpeed);
-            float normalizedSine = (sineValue + 1.0f) * 0.5f; // Map from [-1,1] to [0,1]
-
-            // Interpolate between min and max scale
-            scalingComp.currentScaleX = scalingComp.minScale +
-                (scalingComp.maxScale - scalingComp.minScale) * normalizedSine;
-            scalingComp.currentScaleY = 1.0f; // Keep Y scale constant
-
-            // Update collision box to match current scale
-            if (entityMgr.HasComponent(entity, AABBColliderType)) {
-                Vector2D newHalfSize = scalingComp.baseHalfSize;
-                newHalfSize.x *= scalingComp.currentScaleX;
-                entityMgr.GetComponent<AABBCollider>(entity).HalfSize = newHalfSize;
-            }
-            // Update texture size to match current scale
-            if (entityMgr.HasComponent(entity, TextureComponentType)) {
-                TextureComponent& texComp = entityMgr.GetComponent<TextureComponent>(entity);
-                texComp.HalfSize.x = scalingComp.baseHalfSize.x * scalingComp.currentScaleX;
-                texComp.HalfSize.y = scalingComp.baseHalfSize.y * scalingComp.currentScaleY;
-            }
-
-            // Update transformation matrix for rendering
-            if (entityMgr.HasComponent(entity, PositionType)) {
-                Vector2D position = entityMgr.GetComponent<Position>(entity).Pos;
-                float rotation = 0.0f;
-
-                if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                    rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
-                }
-
-                Vector2D renderScale = Vector2D(scalingComp.currentScaleX, scalingComp.currentScaleY);
-                scalingComp.transformMatrix = Transformation::CreateTransformationMatrix(
-                    position, rotation, renderScale
-                );
-            }
-        }
-    }
-
-    /*!
-    @brief      Retrieves the transformation matrix for a scaling platform
-    @param      scalingPlatform Entity handle of the scaling platform
-    @return     Matrix3x3 transformation matrix (identity if invalid)
-*//*______________________________________________________________*/
-    Matrix3x3 PlatformBehaviorSystem::GetScalingTransform(Entity scalingPlatform) const {
-        EntityManager entityMgr(*ecs_);
-
-        if (entityMgr.HasComponent(scalingPlatform, ScalingPlatformComponentType)) {
-            return entityMgr.GetComponent<ScalingPlatformComponent>(scalingPlatform).transformMatrix;
-        }
-
-        return Matrix3x3(); // Return identity matrix
     }
 
 }
