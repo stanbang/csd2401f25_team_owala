@@ -4248,6 +4248,22 @@ namespace Editor {
 			const float spacing = 10.0f;
 			const float totalWidth = (buttonWidth * 3) + (spacing * 2);
 
+			// Gizmos keyboard shortcuts
+			if (gizmoSystem_) {
+				ImVec4 selectedModeClr = ImVec4(0.0f, 1.0f, 1.0f, 1.0f); // cyan
+				ImVec4 greyClr = ImVec4(0.9f, 0.9f, 0.9f, 1.0f); // grey
+
+				ImGui::TextColored(gizmoSystem_->IsGizmosToggled() ? greyClr : selectedModeClr, "Q - Select Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Translate) ? selectedModeClr : greyClr, "T - Tranlate/Move Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Rotate) ? selectedModeClr : greyClr, "Y - Rotate Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Scale) ? selectedModeClr : greyClr, "U - Scale Mode");
+			}
+
+			ImGui::SameLine();
+
 			// Align Center the Toolbar buttons
 			float offsetX = (regionWidth - totalWidth) * 0.5f;
 			if (offsetX > 0.0f) {
