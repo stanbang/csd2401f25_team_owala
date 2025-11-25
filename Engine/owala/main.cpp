@@ -78,8 +78,8 @@ int main() {
     engine.SetMode(EngineMode::Play);  // Start directly in game mode
 
     try {
-	Vector2D windowConfig = FileIOSystem::LoadWindowConfig();
-    WindowsSystem *win = new WindowsSystem(engine, "Owala Engine", (int)windowConfig.x, (int)windowConfig.y);
+    WindowConfig windowConfig = FileIOSystem::LoadWindowConfig();
+    WindowsSystem *win = new WindowsSystem(engine, "Owala Engine", (int)windowConfig.windowSize.x, (int)windowConfig.windowSize.y, windowConfig.fullScreen);
 	g_win = win; // Set global pointer for console handler
     InputSystem *input = new InputSystem(*win);
     std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();
@@ -96,7 +96,7 @@ int main() {
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
-	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input);
+	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win);
     CameraSystem* camera = new CameraSystem(*ecs);
     VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);

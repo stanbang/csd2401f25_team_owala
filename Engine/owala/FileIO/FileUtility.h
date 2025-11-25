@@ -36,6 +36,11 @@ using namespace std;
 using namespace rapidjson;
 
 namespace Framework {
+	struct WindowConfig {
+		Vector2D windowSize = { 1920.f, 1080.f };
+		bool fullScreen = true;
+	};
+
 	class FileIOSystem {
 	public:
 		// Sanitizes and concats the given string (for now just replacing spaces with underscores)
@@ -46,7 +51,7 @@ namespace Framework {
 		static const bool WriteFileJson(const string& fileName, Document& d);
 
 		// Load window width and height from json file
-		static Vector2D LoadWindowConfig();
+		static WindowConfig LoadWindowConfig();
 
 		// Load PlayerStats from player config json file
 		static void LoadPlayerStats(float& moveSpeed, float& jumpHeight);
@@ -85,6 +90,7 @@ namespace Framework {
 		// Window config Json keys
 		static constexpr const char* WINDOW_W = "window_width";
 		static constexpr const char* WINDOW_H = "window_height";
+		static constexpr const char* WINDOW_FULLSCREEN = "full_screen";
 
 		// Player config Json keys
 		static constexpr const char* PLAYER_MV_SPEED = "move_speed";

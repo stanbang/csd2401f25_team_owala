@@ -31,6 +31,7 @@
 
 #include "WindowsSystem.h"
 #include "Core.h"
+#include "Logger.h"
 #include <cstdio>
 #include <GLFW/glfw3.h>
 
@@ -45,7 +46,7 @@ namespace Framework {
 	 */
 	void WindowsSystem::Initialize() {
 		if (!glfwInit()) {
-			std::fprintf(stderr, "GLFW init failed\n");
+			Logger::Get().Error(DebugType::WindowsSystem) << "GLFW init failed\n";
 			core_->RequestQuit();
 			return;
 		}
@@ -54,15 +55,60 @@ namespace Framework {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+#ifdef BUILD_ENGINE
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // disable window resizing in game mode
+#endif
+	
 #ifdef __APPLE__
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+		
+#ifdef BUILD_ENGINE
+		// --- Monitor and Video Mode Setup for Full-Screen ---
+		// Get the primary monitor
+		GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
+		if (!primary_monitor) {
+			Logger::Get().Error(DebugType::WindowsSystem) << "Failed to get primary monitor\n";
+			core_->RequestQuit();
+			return;
+		}
 
-		win_ = glfwCreateWindow(w_, h_, title_, nullptr, nullptr);
-		glfwMaximizeWindow(win_);
+		// Get the current video mode of the monitor
+		const GLFWvidmode* mode = glfwGetVideoMode(primary_monitor);
+		if (!mode) {
+			Logger::Get().Error(DebugType::WindowsSystem) << "Failed to get video mode\n";
+			core_->RequestQuit();
+			return;
+		}
+
+		// set full screen dimensions
+		fullW_ = mode->width;
+		fullH_ = mode->height;
+		// set default window position to center
+		x_ = (fullW_ - windowedW_) / 2;
+		y_ = (fullH_ - windowedH_) / 2;
+
+		if (fullScreen_) {
+			// Pass the monitor pointer (primary_monitor) to glfwCreateWindow
+			win_ = glfwCreateWindow(fullW_, fullH_, title_, primary_monitor, nullptr);
+			currentW_ = fullW_; currentH_ = fullH_;
+		}
+		else {
+			win_ = glfwCreateWindow(windowedW_, windowedH_, title_, nullptr, nullptr);
+			//glfwMaximizeWindow(win_); 
+			currentW_ = windowedW_; currentH_ = windowedH_;
+		}
+#endif
+
+#ifdef BUILD_EDITOR
+		win_ = glfwCreateWindow(windowedW_, windowedH_, title_, nullptr, nullptr);
+		glfwMaximizeWindow(win_); 
+		currentW_ = windowedW_; currentH_ = windowedH_;
+#endif
+
 
 		if (!win_) {
-			std::fprintf(stderr, "CreateWindow failed\n");
+			Logger::Get().Error(DebugType::WindowsSystem) << "CreateWindow failed\n";
 			core_->RequestQuit();
 			return;
 		}
@@ -96,5 +142,45 @@ namespace Framework {
 		}
 		glfwTerminate();
 	}
+
+#ifdef BUILD_ENGINE
+	void WindowsSystem::ToggleFullScreen() {
+		Logger::Get().Info(DebugType::WindowsSystem) << "Toggled Full Screen Mode: " << !fullScreen_ << "\n";
+		GLFWmonitor* current_monitor = glfwGetWindowMonitor(win_);
+
+		if (current_monitor && fullScreen_) {
+			// --- Currently Full-Screen: Switch to Windowed Mode ---
+			glfwSetWindowMonitor(win_, nullptr, x_, y_, windowedW_, windowedH_, 0);
+			//glfwMaximizeWindow(win_);
+			fullScreen_ = false;
+			currentW_ = windowedW_; currentH_ = windowedH_;
+		}
+		else {
+			// --- Currently Windowed: Switch to Full-Screen Mode ---
+			// Get current windowed size and position (needed to restore later)
+			glfwGetWindowPos(win_, &x_, &y_);
+			glfwGetWindowSize(win_, &windowedW_, &windowedH_);
+
+			//  Get the primary monitor and its video mode
+			GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(primary_monitor);
+
+			//  Set the window to full-screen using the monitor's mode
+			glfwSetWindowMonitor(win_, primary_monitor,
+				0, 0, // Position is always (0, 0) for full-screen
+				mode->width, mode->height,
+				mode->refreshRate);
+
+			fullScreen_ = true;
+			fullW_ = mode->width; fullH_= mode->height;
+			currentW_ = fullW_; currentH_ = fullH_;
+		}
+
+		// Crucial: Update the OpenGL Viewport after any size change
+		int fb_w, fb_h;
+		glfwGetFramebufferSize(win_, &fb_w, &fb_h);
+		glViewport(0, 0, fb_w, fb_h);
+	}
+#endif
 
 } // namespace Framework

@@ -171,6 +171,13 @@ namespace Framework {
             }
         }
 
+#ifdef BUILD_ENGINE
+        // Toggle between full screen and windowed mode
+        if (KeyPressed(Key::F11)) {
+            winSys_->ToggleFullScreen();
+        }
+#endif
+
     }
 
     // ---------------------- integer queries ----------------------

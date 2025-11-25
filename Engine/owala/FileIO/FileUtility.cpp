@@ -66,33 +66,40 @@ namespace Framework {
 		}
 	}
 
-	Vector2D FileIOSystem::LoadWindowConfig() {
+	WindowConfig FileIOSystem::LoadWindowConfig() {
 		rapidjson::Document d;
-		
+		Vector2D windowSize = Vector2D(1920.0f, 1080.0f);
+		bool fullScreen = true;
+
 		//Read the file name passed in as a path
 		if (!ReadFile(FileIOKeys::WIN_CONFIG_FILEPATH, d)) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read config.json. Defaulting to 1920x1080" << std::endl;
-			return Vector2D(1920.0f, 1080.0f);
+			windowSize = Vector2D(1920.0f, 1080.0f);
 		}
 
 		// Check if the JSON file is an object
 		if (!d.IsObject()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;
-			return Vector2D(1920.0f, 1080.0f);
+			windowSize = Vector2D(1920.0f, 1080.0f);
 		}
 
 		// Check that extracted data has the expected properties
 		if (!d.HasMember(FileIOKeys::WINDOW_W) || !d[FileIOKeys::WINDOW_W].IsInt() ||
 			!d.HasMember(FileIOKeys::WINDOW_H) || !d[FileIOKeys::WINDOW_H].IsInt()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;
-			return Vector2D(1920.0f, 1080.0f);
+			windowSize = Vector2D(1920.0f, 1080.0f);
 		}
 
-		Vector2D windowSize = { d[FileIOKeys::WINDOW_W].GetFloat() ,d[FileIOKeys::WINDOW_H].GetFloat() };
+		windowSize = { d[FileIOKeys::WINDOW_W].GetFloat() ,d[FileIOKeys::WINDOW_H].GetFloat() };
+		Logger::Get().Info(DebugType::FileIOSystem) << "Config data read from config.json: Window Size = " << windowSize.x << " x " << windowSize.y << std::endl;
+
+		if (d.HasMember(FileIOKeys::WINDOW_FULLSCREEN) && d[FileIOKeys::WINDOW_FULLSCREEN].IsBool()) {
+			fullScreen = d[FileIOKeys::WINDOW_FULLSCREEN].GetBool();
+			Logger::Get().Info(DebugType::FileIOSystem) << "Config data read from config.json: Window fullscreen = " << fullScreen << std::endl;
+		}
 
 		// Debugging output
-		Logger::Get().Info(DebugType::FileIOSystem) << "Config data read from config.json: Window Size = " << windowSize.x << " x " << windowSize.y << std::endl;
-		return windowSize;
+		return WindowConfig(windowSize, fullScreen);
 	}
 
 	void FileIOSystem::LoadPlayerStats(float& moveSpeed, float& jumpHeight) {
