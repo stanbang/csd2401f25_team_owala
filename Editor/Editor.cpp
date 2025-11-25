@@ -879,8 +879,14 @@ namespace Editor {
 			// Setup Tile Components...
 			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
 
-			// Ensure texture key is valid (Try appending .png if raw name fails)
 			std::string textureKey = info.name;
+			for (const auto& tile : tileDataList_) {
+				if (tile.name == info.name) {
+					textureKey = tile.textureID;
+					break;
+				}
+			}
+			// Ensure texture key is valid (Try appending .png if raw name fails)
 			if (!resourceManager_->has<Texture>(textureKey) && resourceManager_->has<Texture>(textureKey + ".png")) {
 				textureKey += ".png";
 			}
