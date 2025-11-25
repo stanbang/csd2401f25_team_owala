@@ -2409,115 +2409,71 @@ namespace Editor {
 		}
 		case ComponentType::ScaleType: {
 			Scale& scale = entityMgr.GetComponent<Scale>(selectedEntity);
+
 			if (transformationSystem_) {
-				static std::unordered_map<Entity, Vector2D> originalColliderSizes;
-				static std::unordered_map<Entity, Vector2D> originalTextureSizes;
-				if (originalColliderSizes.find(selectedEntity) == originalColliderSizes.end()) {
+				static std::unordered_map<Entity, Vector2D> originalSizes;
+
+				if (originalSizes.find(selectedEntity) == originalSizes.end()) {
 					if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
-						originalColliderSizes[selectedEntity] = entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize;
-					}
-				}
-				if (originalTextureSizes.find(selectedEntity) == originalTextureSizes.end()) {
-					if (entityMgr.HasComponent(selectedEntity, TextureComponentType)) {
-						originalTextureSizes[selectedEntity] = entityMgr.GetComponent<TextureComponent>(selectedEntity).HalfSize;
+						originalSizes[selectedEntity] = entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize;
 					}
 				}
 
 				// ===========================================================
-				// TEXTURE SCALING
+				// SCALING
 				// ===========================================================
-				ImGui::SeparatorText("Texture Scaling");
-
-				if (entityMgr.HasComponent(selectedEntity, TextureComponentType)) {
-					TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(selectedEntity);
-
-					Vector2D texScaleFactor = { 1.0f, 1.0f };
-					if (originalTextureSizes.count(selectedEntity) &&
-						originalTextureSizes[selectedEntity].x > 0 &&
-						originalTextureSizes[selectedEntity].y > 0) {
-
-						texScaleFactor.x = texture.HalfSize.x / originalTextureSizes[selectedEntity].x;
-						texScaleFactor.y = texture.HalfSize.y / originalTextureSizes[selectedEntity].y;
-					}
-
-					if (ImGui::InputFloat2("Texture Scale (X, Y)", &texScaleFactor.x, "%.2f")) {
-						texture.HalfSize.x = originalTextureSizes[selectedEntity].x * texScaleFactor.x;
-						texture.HalfSize.y = originalTextureSizes[selectedEntity].y * texScaleFactor.y;
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-
-					static bool uniformTexture = false;
-					ImGui::Checkbox("Uniform Texture Scaling", &uniformTexture);
-
-					if (uniformTexture) {
-						float uniformValue = (texScaleFactor.x + texScaleFactor.y) * 0.5f;
-						if (ImGui::SliderFloat("Uniform Texture Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
-							texture.HalfSize.x = originalTextureSizes[selectedEntity].x * uniformValue;
-							texture.HalfSize.y = originalTextureSizes[selectedEntity].y * uniformValue;
-							transformationSystem_->UpdateEntityTransform(selectedEntity);
-						}
-					}
-
-					if (ImGui::Button("Reset Texture Scale")) {
-						texture.HalfSize = originalTextureSizes[selectedEntity];
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-				}
-				else {
-					ImGui::TextDisabled("No TextureComponent attached");
-				}
-
-				// ===========================================================
-				// COLLIDER SCALING
-				// ===========================================================
-				ImGui::SeparatorText("Collider Scaling");
-
 				if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
 					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(selectedEntity);
-					Vector2D colScaleFactor = { 1.0f, 1.0f };
-					if (originalColliderSizes.count(selectedEntity) &&
-						originalColliderSizes[selectedEntity].x > 0 &&
-						originalColliderSizes[selectedEntity].y > 0) {
+					Vector2D ScaleFactor = { scale.axes.x, scale.axes.y };
 
-						colScaleFactor.x = collider.HalfSize.x / originalColliderSizes[selectedEntity].x;
-						colScaleFactor.y = collider.HalfSize.y / originalColliderSizes[selectedEntity].y;
-					}
-					if (ImGui::InputFloat2("Collider Scale (X, Y)", &colScaleFactor.x, "%.2f")) {
-						collider.HalfSize.x = originalColliderSizes[selectedEntity].x * colScaleFactor.x;
-						collider.HalfSize.y = originalColliderSizes[selectedEntity].y * colScaleFactor.y;
+					bool active = false;
+					if (ImGui::InputFloat2("Scale (X, Y)", &ScaleFactor.x, "%.2f")) {
+						scale.axes.x = ScaleFactor.x;
+						scale.axes.y = ScaleFactor.y;
+
+						if (originalSizes.count(selectedEntity)) {
+							collider.HalfSize.x = originalSizes[selectedEntity].x * ScaleFactor.x;
+							collider.HalfSize.y = originalSizes[selectedEntity].y * ScaleFactor.y;
+						}
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
+						active = true;
 					}
-					static bool uniformCollider = false;
-					ImGui::Checkbox("Uniform Collider Scaling", &uniformCollider);
-					if (uniformCollider) {
-						float uniformValue = (colScaleFactor.x + colScaleFactor.y) * 0.5f;
-						if (ImGui::SliderFloat("Uniform Collider Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
-							collider.HalfSize.x = originalColliderSizes[selectedEntity].x * uniformValue;
-							collider.HalfSize.y = originalColliderSizes[selectedEntity].y * uniformValue;
+
+					static bool uniform = false;
+					ImGui::Checkbox("Uniform Scaling", &uniform);
+
+					if (uniform) {
+						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
+						if (ImGui::SliderFloat("Uniform Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
+							scale.axes.x = uniformValue;
+							scale.axes.y = uniformValue;
+
+							if (originalSizes.count(selectedEntity)) {
+								collider.HalfSize.x = originalSizes[selectedEntity].x * uniformValue;
+								collider.HalfSize.y = originalSizes[selectedEntity].y * uniformValue;
+							}
 							transformationSystem_->UpdateEntityTransform(selectedEntity);
+							active = true;
 						}
 					}
-					if (ImGui::Button("Reset Collider Scale")) {
-						collider.HalfSize = originalColliderSizes[selectedEntity];
+					if (ImGui::Button("Reset Scale")) {
+						scale.axes = { 1.0f, 1.0f };
+						if (originalSizes.count(selectedEntity)) {
+							collider.HalfSize = originalSizes[selectedEntity];
+						}
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+					if (active && !editSession.wasItemActive) {
+						editSession.Begin(selectedEntity, selectedComponent);
+					}
+					if (!active && editSession.wasItemActive) {
+						std::stringstream ss;
+						ss << "Modified Scale in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
 					}
 				}
 				else {
 					ImGui::TextDisabled("No AABBCollider attached");
-				}
-
-				// Reset both
-				ImGui::Separator();
-				if (ImGui::Button("Reset Both")) {
-					if (originalTextureSizes.count(selectedEntity)) {
-						entityMgr.GetComponent<TextureComponent>(selectedEntity).HalfSize =
-							originalTextureSizes[selectedEntity];
-					}
-					if (originalColliderSizes.count(selectedEntity)) {
-						entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize =
-							originalColliderSizes[selectedEntity];
-					}
-					transformationSystem_->UpdateEntityTransform(selectedEntity);
 				}
 			}
 			else {

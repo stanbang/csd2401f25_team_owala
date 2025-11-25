@@ -136,5 +136,7 @@ namespace Framework {
         * with position and rotation components.
         */
         void UpdateAllTransforms();
+
+        std::unordered_map<Entity, Vector2D> originalColliderSizes_;
     };
 } // namespace Framework
