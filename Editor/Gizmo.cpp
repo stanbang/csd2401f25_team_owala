@@ -240,7 +240,8 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
      // Draw a line indicating current rotation
     EntityManager entityMgr(ecs_);
     if (entityMgr.HasComponent(entity, RotationType)) {
-        float currentRot = entityMgr.GetComponent<Rotation>(entity).angle;
+        //float currentRot = entityMgr.GetComponent<Rotation>(entity).angle;
+        float currentRot = entityMgr.GetComponent<Rotation>(entity).textureAngle;
         float adjustedRot = currentRot + (float)(M_PI/2.0f);
 
         // 2. Calculate coordinates and invert the Y component sign for ImGui screen space.
@@ -487,6 +488,8 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
 
             // 5. Apply the rotation
             rotComp.angle += deltaAngle;
+            rotComp.textureAngle += deltaAngle;
+            rotComp.colliderAngle += deltaAngle;
         }
         break;
     }

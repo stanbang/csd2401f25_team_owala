@@ -64,6 +64,10 @@
 #include <sstream>
 #include <iomanip>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // Internal Helpers
 namespace Editor {
 	using namespace Framework;
@@ -2341,9 +2345,9 @@ namespace Editor {
 			ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedRotation);
 			ImGui::Separator();
 			if (unifiedRotation) {
-				float unifiedDegrees = rotation.textureAngle * (180.0f / 3.14159265359f);
+				float unifiedDegrees = rotation.textureAngle * (180.0f / M_PI);
 				if (ImGui::SliderFloat("Rotation (Degrees)", &unifiedDegrees, -180.0f, 180.0f, "%.1f")) {
-					float newRadians = unifiedDegrees * (3.14159265359f / 180.0f);
+					float newRadians = unifiedDegrees * (M_PI / 180.0f);
 					rotation.textureAngle = newRadians;
 					rotation.colliderAngle = newRadians;
 					if (transformationSystem_) {
@@ -2361,18 +2365,18 @@ namespace Editor {
 			}
 			else {
 				ImGui::Text("Texture Rotation");
-				float textureDegrees = rotation.textureAngle * (180.0f / 3.14159265359f);
+				float textureDegrees = rotation.textureAngle * (180.0f / M_PI);
 				if (ImGui::SliderFloat("Texture (Degrees)", &textureDegrees, -180.0f, 180.0f, "%.1f")) {
-					rotation.textureAngle = textureDegrees * (3.14159265359f / 180.0f);
+					rotation.textureAngle = textureDegrees * (M_PI / 180.0f);
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
 				}
 				ImGui::Separator();
 				ImGui::Text("Collider Rotation");
-				float colliderDegrees = rotation.colliderAngle * (180.0f / 3.14159265359f);
+				float colliderDegrees = rotation.colliderAngle * (180.0f / M_PI);
 				if (ImGui::SliderFloat("Collider (Degrees)", &colliderDegrees, -180.0f, 180.0f, "%.1f")) {
-					rotation.colliderAngle = colliderDegrees * (3.14159265359f / 180.0f);
+					rotation.colliderAngle = colliderDegrees * (M_PI / 180.0f);
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
