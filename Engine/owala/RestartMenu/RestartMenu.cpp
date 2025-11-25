@@ -3,7 +3,6 @@
 #include "SceneManager.h" 
 #include <iostream>
 #include "MessageBus.h"
-#include <AssetBrowser.h>
 #include "Font.h"
 
 namespace Framework {
