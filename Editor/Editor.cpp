@@ -682,7 +682,7 @@ namespace Editor {
 		if (!showPreview) return;
 
 		// 2. Get Payload
-		const DraggablePrefabInfo& currentPayload = isDraggingPrefab_ ? dragDropPayload_ : brushPayload_;
+		const DraggablePrefabInfo& currentPayload = dragDropPayload_;//isDraggingPrefab_ ? dragDropPayload_ : brushPayload_;
 		if (currentPayload.type == PrefabType::None || currentPayload.type == PrefabType::Eraser) return;
 
 		// DEBUG: Log what we're trying to draw
@@ -869,9 +869,29 @@ namespace Editor {
 			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
 
 			// Ensure texture key is valid (Try appending .png if raw name fails)
-			std::string textureKey = info.name;
+		/*	std::string textureKey = info.name;
 			if (!resourceManager_->has<Texture>(textureKey) && resourceManager_->has<Texture>(textureKey + ".png")) {
 				textureKey += ".png";
+			}*/
+
+
+			// FIX: Look up the correct textureID from the TileData
+			std::string textureKey;
+			bool foundTile = false;
+
+			for (const auto& tileData : tileDataList_) {
+				if (tileData.name == info.name) {
+					textureKey = tileData.textureID; // This contains the CORRECT key from tiles.json
+					foundTile = true;
+					break;
+				}
+			}
+
+			// Fallback if not found in tileDataList_
+			if (!foundTile) {
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< "Tile not found in tileDataList_: " << info.name << std::endl;
+				textureKey = info.name; // Use name as fallback
 			}
 
 			entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
@@ -4158,6 +4178,7 @@ namespace Editor {
 
 #pragma endregion
 
+#pragma region PREFAB EDITOR
 #pragma region PREFAB EDITOR
 	void Editor::ShowPrefabEditor() {
 		using namespace Framework;
