@@ -4,9 +4,11 @@
 namespace Framework {
 
 	enum class ButtonAction{
-	DEFAULT,
-	PLAYSOUND,
-	RESETPLAYERPOS
+		DEFAULT,
+		PLAYSOUND,
+		RESETPLAYERPOS,
+		SWITCH_SCENE,
+		QUIT_GAME
 	};
 
 	// Enum for different particle movement effects
@@ -37,6 +39,10 @@ namespace Framework {
 	struct ButtonClickedEvent {
 		Entity button;
 		ButtonAction action;
+
+		// Data payloads
+		std::string stringParam; // Scene Name, Audio Key etc
+		float floatParam;
 	};
 
 	struct ParticleBurstEvent {

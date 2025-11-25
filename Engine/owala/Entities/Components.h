@@ -227,6 +227,10 @@ namespace Framework{
 		bool isPressed = false; // Button is clicked
 		bool isReleased = false; // Button click is released
 		ButtonAction action = ButtonAction::DEFAULT; // Action to perform on click
+
+		// Data to customize the action
+		std::string targetString = ""; // Stores Scene Name or Sound File
+		float targetValue = 0.0f;      // Stores specific numbers if needed
 	};
 
 	struct NativeScriptsComponent {

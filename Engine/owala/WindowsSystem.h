@@ -94,6 +94,12 @@ namespace Framework {
         int getHeight() const { return currentH_; }
         Vector2D getWindowSize() const { return Vector2D(static_cast<float>(currentW_), static_cast<float>(currentH_)); }
 
+        /**
+         * \brief Sets the window close flag.
+         * \param shouldClose If true, the window will close on the next update.
+         */
+        void setWindowShouldClose(bool shouldClose);
+
     private:
         CoreEngine* core_ = nullptr;   //!< Owning engine (used for quit handling).
         const char* title_;            //!< Window title string.

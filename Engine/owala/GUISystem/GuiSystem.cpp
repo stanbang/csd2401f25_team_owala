@@ -86,9 +86,12 @@ namespace Framework {
 				buttonComponent.isPressed = false;
 
 				// Publish the event with the button's specific action
+				// Pass the parameters from the component to the event
 				MessageBus::Instance().Publish(ButtonClickedEvent{
-					button,
-					buttonComponent.action // Pass the action from the component
+						button,                     // Entity ID
+						buttonComponent.action,     // The Enum (SWITCH_SCENE, PLAYSOUND, etc.)
+						buttonComponent.targetString, // The payload (Scene Name or Sound Key)
+						buttonComponent.targetValue   // The payload (Volume or other float)
 					});
 			}
 

@@ -1039,6 +1039,11 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_PRESSED), button.isPressed, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_RELEASED), button.isReleased, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ACTION), static_cast<int>(button.action), alloc);
+
+		rapidjson::Value targetStrVal;
+		targetStrVal.SetString(button.targetString.c_str(), static_cast<rapidjson::SizeType>(button.targetString.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::TARGET_STRING), targetStrVal, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::TARGET_VALUE), button.targetValue, alloc);
 	}
 
 	// SceneOwned Component
@@ -1596,6 +1601,12 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::ACTION) && componentData[Serialization::ACTION].IsInt()) {
 			out.action = static_cast<Framework::ButtonAction>(componentData[Serialization::ACTION].GetInt());
+		}
+		if (componentData.HasMember(Serialization::TARGET_STRING) && componentData[Serialization::TARGET_STRING].IsString()) {
+			out.targetString = componentData[Serialization::TARGET_STRING].GetString();
+		}
+		if (componentData.HasMember(Serialization::TARGET_VALUE) && componentData[Serialization::TARGET_VALUE].IsFloat()) {
+			out.targetValue = componentData[Serialization::TARGET_VALUE].GetFloat();
 		}
 		return true;
 	}

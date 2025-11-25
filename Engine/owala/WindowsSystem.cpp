@@ -183,4 +183,10 @@ namespace Framework {
 	}
 #endif
 
+	void WindowsSystem::setWindowShouldClose(bool shouldClose) {
+		if (win_) {
+			glfwSetWindowShouldClose(win_, shouldClose ? GLFW_TRUE : GLFW_FALSE);
+		}
+	}
+
 } // namespace Framework

@@ -230,34 +230,29 @@ namespace Framework {
     }
 
     void AudioSystem::OnButtonClicked(const ButtonClickedEvent& event) {
-		Logger::Get().Info(DebugType::AudioSystem) << "AudioSystem received ButtonClickedEvent for button entity " << event.button << std::endl;
 		// If button's action is not play sound, don't process
         if (event.action != ButtonAction::PLAYSOUND) {
             return;
         }
 
-        EntityManager entityMgr(*entityStorage_);
-
-        // Check if the button entity that was clicked has an AudioComponent
-        if (!entityMgr.HasComponent(event.button, AudioComponentType)) {
+		// If no sound key provided, don't process the event
+        if (event.stringParam.empty()) {
             return;
         }
 
-        // Get the component
-        const auto& audioData = entityMgr.GetComponent<AudioComponent>(event.button);
+        float volume = (event.floatParam > 0.0f) ? event.floatParam : 1.0f;
 
-        // Check for looping
-        if (audioData.loop) {
-            return;
-        }
+        Logger::Get().Info(DebugType::AudioSystem)
+            << "Playing button sound: " << event.stringParam << std::endl;
 
-        // Play the sound
         try {
-            FMOD::Sound& sfx = resourceManager_->get<FMOD::Sound>(audioData.soundKey);
-            this->play(sfx, audioData.volume, false);
+            // Retrieve sound from ResourceManager using the string parameter from the button
+            FMOD::Sound& sfx = resourceManager_->get<FMOD::Sound>(event.stringParam);
+            this->play(sfx, volume, false);
         }
         catch (...) {
-			Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << audioData.soundKey << std::endl;
+            Logger::Get().Error(DebugType::AudioSystem)
+                << "Missing sound: " << event.stringParam << std::endl;
         }
     }
 

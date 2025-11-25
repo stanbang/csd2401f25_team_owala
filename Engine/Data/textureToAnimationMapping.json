@@ -35,6 +35,10 @@
     {
       "texture_key": "SB_FallingDust_Spritesheet.png",
       "animation_path": "Data/AnimationData/fallingDustAnimation.json"
+    },
+    {
+      "texture_key": "Eli_Death_Spritesheet.png",
+      "animation_path": "Data/AnimationData/playerDeathAnimation.json"
     }
   ]
 }

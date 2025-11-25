@@ -169,6 +169,40 @@ namespace Framework {
 
 	void GameManager::Initialize() {
 		CheckSystems();
+
+		// Subscribe to Button Events for Scene Management and Game Flow
+		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
+
+			switch (event.action) {
+
+			case ButtonAction::SWITCH_SCENE:
+				if (!event.stringParam.empty()) {
+					Logger::Get().Info(DebugType::GameManager)
+						<< "Switching Scene to: " << event.stringParam << std::endl;
+
+					// Use the SceneManager instance we already have access to
+					SceneManager::GetInstance().LoadScene(event.stringParam);
+				}
+				else {
+					Logger::Get().Error(DebugType::GameManager)
+						<< "Button requested SWITCH_SCENE but stringParam (Scene Name) was empty!" << std::endl;
+				}
+				break;
+
+			case ButtonAction::QUIT_GAME:
+				Logger::Get().Info(DebugType::GameManager) << "Button requested QUIT_GAME" << std::endl;
+				// Exit the application
+				if (systems_.win_) {
+					systems_.win_->setWindowShouldClose(true);
+				}
+				break;
+
+				// Note: We do NOT handle PLAYSOUND here. AudioSystem handles that.
+			default:
+				break;
+			}
+			});
+
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 
 		SceneGUID testScene{};

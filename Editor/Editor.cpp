@@ -2636,7 +2636,7 @@ namespace Editor {
 				}
 			}
 
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS" };
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME" };
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
@@ -2648,6 +2648,116 @@ namespace Editor {
 					std::stringstream ss;
 					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Context Sensitive Inputs for Button Actions
+			// Only show relevant fields based on the selected action
+			bool dataChanged = false;
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+			if (buttonComp.action == ButtonAction::SWITCH_SCENE) {
+				ImGui::Text("Target Scene Name:");
+				if (ImGui::InputText("##SceneName", &buttonComp.targetString)) {
+					dataChanged = true;
+				}
+				
+				// Drag & Drop Support for Scene Files
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload)
+					{
+						// CORRECT way to extract the string from payload
+						// payload->Data is the raw bytes, payload->DataSize is the size in bytes
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
+						fs::path dropped_file(dropped_path);
+						// Validate the file extension
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+						if (ext == ".json") // Assuming scene files are .json
+						{
+							// Update the target string with the new scene's filename without extension
+							std::string newSceneName = dropped_file.stem().string();
+							buttonComp.targetString = newSceneName;
+							Framework::Logger::Get().Info(DebugType::Editor)
+								<< "Scene name updated via Drag & Drop to: " << newSceneName << std::endl;
+						}
+						else
+						{
+							Framework::Logger::Get().Error(DebugType::Editor)
+								<< "Dropped file is not a valid scene file: " << ext << std::endl;
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Type the exact name of the scene to load (e.g., 'Level1')");
+			}
+			else if (buttonComp.action == ButtonAction::PLAYSOUND) {
+				ImGui::Text("Sound Key:");
+				if (ImGui::InputText("##SoundKey", &buttonComp.targetString)) {
+					dataChanged = true;
+				}
+				
+				// Drag & Drop Support for Audio Files
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload)
+					{
+						// CORRECT way to extract the string from payload
+						// payload->Data is the raw bytes, payload->DataSize is the size in bytes
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
+
+						fs::path dropped_file(dropped_path);
+
+						// Validate the file extension
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+						// Check for common audio formats
+						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+						{
+							// Update the sound key with the new file's filename
+							std::string newKey = dropped_file.filename().string();
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							buttonComp.targetString = newKey;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+
+							Framework::Logger::Get().Info(DebugType::Editor)
+								<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
+						}
+						else
+						{
+							Framework::Logger::Get().Error(DebugType::Editor)
+								<< "Dropped file is not a supported audio format: " << ext << std::endl;
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+			}
+			else if (buttonComp.action == ButtonAction::DEFAULT) {
+				// Maybe default buttons trigger generic events with a value?
+				ImGui::Text("Event Value:");
+				if (ImGui::DragFloat("##Val", &buttonComp.targetValue)) {
+					dataChanged = true;
+				}
+			}
+
+			// Save History if data changed
+			if (dataChanged) {
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				// Check equality before recording to prevent spam
+				if (beforeJSON != afterJSON) {
+					historyManager_.RecordModifyComponent(selectedEntity, "Modified Button Data", beforeJSON, afterJSON, selectedComponent);
 				}
 			}
 
