@@ -4994,6 +4994,21 @@ namespace Editor {
 				EntityProperties propsA = entityMgr.GetProperties(a);
 				EntityProperties propsB = entityMgr.GetProperties(b);
 				
+				// sort by custom render layer if both are custom
+				if (propsA.renderLayer == RenderLayer::Custom && propsB.renderLayer == RenderLayer::Custom) {
+					return propsA.customRenderOrder > propsB.customRenderOrder;
+				}
+				// compare custom render order with normal render layer if only one is custom
+				if (propsA.renderLayer == RenderLayer::Custom) {
+					return (int)propsA.customRenderOrder > (int)propsB.renderLayer;
+				}
+				if (propsB.renderLayer == RenderLayer::Custom) {
+					return (int)propsA.renderLayer > (int)propsB.customRenderOrder;
+				}
+				// if neither are custom render layer, sort by renderLayer
+				if (propsA.renderLayer != propsB.renderLayer) {
+					return propsA.renderLayer > propsB.renderLayer;
+				}
 				return propsA.renderLayer > propsB.renderLayer;
 			}
 		);
