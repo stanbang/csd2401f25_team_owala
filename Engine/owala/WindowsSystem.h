@@ -2,8 +2,10 @@
  * \file   WindowsSystem.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (40%)
  * \secondary_author
+ *		Yar Xuan (50%)
+ *		Ng Jing Wen (10%)
  *
  * \brief
  *   Window/context management system. Wraps GLFW window creation and

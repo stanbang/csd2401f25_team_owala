@@ -99,7 +99,7 @@ namespace Editor {
 	struct EditSession {
 		bool active = false;
 		bool wasItemActive = false;
-		Entity entityInEdit;
+		Entity entityInEdit = 0;
 		Framework::ComponentType compInEdit = Framework::ComponentType::MAX_COMPONENTS;
 		std::string beforeJSON;
 
@@ -280,7 +280,7 @@ namespace Editor {
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
-		void ShowRestartMenu(); //when player dies
+		//void ShowRestartMenu(); //when player dies
 		void ShowLayerManager();
 
 		// Popup Related

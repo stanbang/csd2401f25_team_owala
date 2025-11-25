@@ -254,9 +254,9 @@ namespace Framework {
 
             if (entityMgr.HasComponent(entity, AABBColliderType))
             {
-                AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+                //AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
                 Vector2D colliderScale = Vector2D(1.0f, 1.0f);
-                float colliderRotationDegrees = 0.0f;
+                colliderRotationDegrees = 0.0f;
                 if (entityMgr.HasComponent(entity, RotationFlagType)) {
                     colliderRotationDegrees = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
                 }

@@ -6,7 +6,7 @@
 * \secondary_author
 *
 *
-* \brief   
+* \brief  Implementation file for Gizmo system in the Editor module.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -244,7 +244,7 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
         float currentRot = entityMgr.GetComponent<Rotation>(entity).textureAngle;
         float adjustedRot = currentRot + (float)(M_PI/2.0f);
 
-        // 2. Calculate coordinates and invert the Y component sign for ImGui screen space.
+        // Calculate coordinates and invert the Y component sign for ImGui screen space.
         ImVec2 rotTip = ImVec2(
             origin.x + cos(adjustedRot) * radius,  // X component
             origin.y - sin(adjustedRot) * radius   // Y component (Inverted for ImGui: +Y is Down)

@@ -2,8 +2,11 @@
  * \file   WindowsSystem.cpp
  *
  * \primary_author
- *      Ng Jordain Ying Zhe (100%)
- *
+ *      Ng Jordain Ying Zhe (40%)
+ * \secondary_author
+ *		Yar Xuan (50%)
+ *		Ng Jing Wen (10%)
+ * 
  * \brief
  *      Implements the WindowsSystem class responsible for managing
  *      the application window and GLFW context lifecycle.
@@ -55,15 +58,13 @@ namespace Framework {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef BUILD_ENGINE
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // disable window resizing in game mode
-#endif
-	
 #ifdef __APPLE__
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 		
 #ifdef BUILD_ENGINE
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // disable window resizing in game mode
+
 		// --- Monitor and Video Mode Setup for Full-Screen ---
 		// Get the primary monitor
 		GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
@@ -95,7 +96,6 @@ namespace Framework {
 		}
 		else {
 			win_ = glfwCreateWindow(windowedW_, windowedH_, title_, nullptr, nullptr);
-			//glfwMaximizeWindow(win_); 
 			currentW_ = windowedW_; currentH_ = windowedH_;
 		}
 #endif
@@ -144,6 +144,9 @@ namespace Framework {
 	}
 
 #ifdef BUILD_ENGINE
+	/**
+	 * \brief Toggle between full screen and windowed mode.
+	 */
 	void WindowsSystem::ToggleFullScreen() {
 		Logger::Get().Info(DebugType::WindowsSystem) << "Toggled Full Screen Mode: " << !fullScreen_ << "\n";
 		GLFWmonitor* current_monitor = glfwGetWindowMonitor(win_);
@@ -151,7 +154,6 @@ namespace Framework {
 		if (current_monitor && fullScreen_) {
 			// --- Currently Full-Screen: Switch to Windowed Mode ---
 			glfwSetWindowMonitor(win_, nullptr, x_, y_, windowedW_, windowedH_, 0);
-			//glfwMaximizeWindow(win_);
 			fullScreen_ = false;
 			currentW_ = windowedW_; currentH_ = windowedH_;
 		}

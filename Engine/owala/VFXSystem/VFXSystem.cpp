@@ -29,9 +29,8 @@ namespace Framework {
 	}
 
 	void VFXSystem::Update() {
-		GameManager& gm = GameManager::GetInstance();
-
 #ifdef BUILD_EDITOR
+		GameManager& gm = GameManager::GetInstance();
 		Editor::Editor* editor = gm.GetEditor();
 		if (editor) {
 			if (!editor->IsGamePlaying() || editor->IsGamePaused()) {

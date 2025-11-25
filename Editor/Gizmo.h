@@ -6,7 +6,7 @@
 * \secondary_author
 *      
 *
-* \brief 
+* \brief    Header file for Gizmo system in the Editor module.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -21,7 +21,7 @@
 
 // forward declarations
 namespace Framework {
-    enum ComponentType;
+    enum ComponentType : int;
     class EntityStorage;
     class CameraSystem;
 }

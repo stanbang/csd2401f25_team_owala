@@ -41,7 +41,7 @@ namespace Framework {
 	class EntityManager;
 	class WIPEntityManager;
 
-	enum ComponentType {
+	enum ComponentType : int {
 		PositionType = 0,
 		SpawnPointType,
 		VelocityType,

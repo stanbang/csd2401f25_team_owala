@@ -2366,9 +2366,9 @@ namespace Editor {
 			ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedRotation);
 			ImGui::Separator();
 			if (unifiedRotation) {
-				float unifiedDegrees = rotation.textureAngle * (180.0f / M_PI);
+				float unifiedDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
 				if (ImGui::SliderFloat("Rotation (Degrees)", &unifiedDegrees, -180.0f, 180.0f, "%.1f")) {
-					float newRadians = unifiedDegrees * (M_PI / 180.0f);
+					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
 					rotation.textureAngle = newRadians;
 					rotation.colliderAngle = newRadians;
 					if (transformationSystem_) {
@@ -2386,18 +2386,18 @@ namespace Editor {
 			}
 			else {
 				ImGui::Text("Texture Rotation");
-				float textureDegrees = rotation.textureAngle * (180.0f / M_PI);
+				float textureDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
 				if (ImGui::SliderFloat("Texture (Degrees)", &textureDegrees, -180.0f, 180.0f, "%.1f")) {
-					rotation.textureAngle = textureDegrees * (M_PI / 180.0f);
+					rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
 				}
 				ImGui::Separator();
 				ImGui::Text("Collider Rotation");
-				float colliderDegrees = rotation.colliderAngle * (180.0f / M_PI);
+				float colliderDegrees = static_cast<float>(rotation.colliderAngle * (180.0f / M_PI));
 				if (ImGui::SliderFloat("Collider (Degrees)", &colliderDegrees, -180.0f, 180.0f, "%.1f")) {
-					rotation.colliderAngle = colliderDegrees * (M_PI / 180.0f);
+					rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
@@ -2721,7 +2721,7 @@ namespace Editor {
 						{
 							// Update the sound key with the new file's filename
 							std::string newKey = dropped_file.filename().string();
-							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 							buttonComp.targetString = newKey;
 							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
@@ -4162,7 +4162,7 @@ namespace Editor {
 		const float ROW_HEADER_WIDTH = 100.0f;
 		const float CELL_SIZE = 30.0f;
 
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		//ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
 
 		ImGui::NewLine();
@@ -4628,7 +4628,7 @@ namespace Editor {
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
 				if (prefab) {
 					bool hasTrap = false;
-					bool hasScaling = false;
+					//bool hasScaling = false;
 
 					for (const auto& compData : prefab->components) {
 						if (compData.type == "TrapPlatformComponent") hasTrap = true;

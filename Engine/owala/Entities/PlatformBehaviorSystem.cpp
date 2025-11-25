@@ -83,7 +83,7 @@ namespace Framework {
         return false;
     }
 
-    Vector2D GetFallDirection(const std::string& entityName, float worldRotation)
+    Vector2D GetFallDirection(/*const std::string& entityName, float worldRotation*/)
     {
         // All traps fall downward in world space (gravity direction)
         return Vector2D(0.0f, -1.0f);
@@ -128,7 +128,7 @@ namespace Framework {
             if (trapComp.hasFallen && shouldFall) {
                 // Continue applying falling velocity
                 if (entityMgr.HasComponent(entity, VelocityType)) {
-                    Vector2D fallDir = GetFallDirection(entityName, worldRotation);
+                    Vector2D fallDir = GetFallDirection(/*entityName, worldRotation*/);
                     entityMgr.GetComponent<Velocity>(entity).Vel = fallDir * trapComp.fallSpeed;
                 }
                 continue;
@@ -163,7 +163,7 @@ namespace Framework {
 
             // Apply falling velocity only if should be falling
             if (trapComp.hasFallen && shouldFall && entityMgr.HasComponent(entity, VelocityType)) {
-                Vector2D fallDir = GetFallDirection(entityName, worldRotation);
+                Vector2D fallDir = GetFallDirection(/*entityName, worldRotation*/);
                 entityMgr.GetComponent<Velocity>(entity).Vel = fallDir * trapComp.fallSpeed;
             }
         }

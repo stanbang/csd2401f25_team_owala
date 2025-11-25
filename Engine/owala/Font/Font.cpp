@@ -39,7 +39,7 @@ FreeTypeManager::~FreeTypeManager() {
 }
 
 // Font Class
-Font::Font() : m_textureAtlas(0), m_characters(), m_face(), m_rawLineHeight(){}
+Font::Font() : m_textureAtlas(0), m_characters(), m_face(), m_rawLineHeight(0.f), m_rawAscent(0.f), m_size(0){}
 
 Font::~Font() {
     if (m_textureAtlas) {
