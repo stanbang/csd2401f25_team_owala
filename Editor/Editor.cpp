@@ -895,6 +895,7 @@ namespace Editor {
 			entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
 			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
 			entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
+			entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
 			entityMgr.GetProperties(newEntity).name = info.name;
 		}
 		else if (info.type != PrefabType::Eraser) {
