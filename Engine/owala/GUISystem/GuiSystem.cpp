@@ -19,7 +19,6 @@
 #include "CameraSystem.h" // For the camera
 #include "GameMessages.h" // For ButtonClickedEvent
 #include "MessageBus.h" // For MessageBus
-#include "FileUtility.h"
 #include "WindowsSystem.h"
 
 namespace Framework {
