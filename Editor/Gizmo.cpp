@@ -380,16 +380,23 @@ void GizmoSystem::HandleStartDrag() {
         }
     }
     else if (currentMode_ == GizmoMode::Scale) {
+        gizmoAffectedComponents_.push_back(ScaleType);
+
         if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
-            gizmoAffectedComponents_.push_back(ScaleType);
             beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_));
+        }
+        else {
+            beforeGizmosJSON_.push_back("");
         }
     }
     else if (currentMode_ == GizmoMode::Rotate) {
+        gizmoAffectedComponents_.push_back(RotationType);
+
         if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
-            gizmoAffectedComponents_.push_back(RotationType);
             beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_));
-            std::cout << "1!!!" << std::endl;
+        }
+        else {
+            beforeGizmosJSON_.push_back("");
         }
     }
 }

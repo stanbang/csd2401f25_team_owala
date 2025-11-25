@@ -234,6 +234,7 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::BUTTON_COMPONENT), value, alloc);
 		}
 
+		// Serialize SceneOwned Component
 		if (entityMgr.HasComponent(entity, ComponentType::SceneOwnedType)) {
 			SceneOwned& sceneOwnedComp = entityMgr.GetComponent<SceneOwned>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
@@ -249,6 +250,21 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EMITTER_COMPONENT), value, alloc);
 		}
 
+		// Serialize Rotation Component
+		if (entityMgr.HasComponent(entity, ComponentType::RotationType)) {
+			Rotation& rot = entityMgr.GetComponent<Rotation>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(rot, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::ROTATION_COMPONENT), value, alloc);
+		}
+		
+		// Serialize Scale Component
+		if (entityMgr.HasComponent(entity, ComponentType::ScaleType)) {
+			Scale& scale = entityMgr.GetComponent<Scale>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(scale, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::SCALE_COMPONENT), value, alloc);
+		}
 		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
 	}
 
@@ -673,6 +689,24 @@ namespace Framework {
 				entityMgr.AddComponent<ParticleEmitterComponent>(loadedEntity, particleEmitter);
 			}
 		}
+
+		// Deserialize Rotation Component
+		if (componentLists.HasMember(Serialization::ROTATION_COMPONENT)) {
+			const rapidjson::Value& rotationData = componentLists[Serialization::ROTATION_COMPONENT];
+			Rotation rotationComp;
+			if (DeserializeComponent(rotationData, rotationComp)) {
+				entityMgr.AddComponent<Rotation>(loadedEntity, rotationComp);
+			}
+		}
+
+		// Deserialize Scale Component
+		if (componentLists.HasMember(Serialization::SCALE_COMPONENT)) {
+			const rapidjson::Value& scaleData = componentLists[Serialization::SCALE_COMPONENT];
+			Scale scaleComp;
+			if (DeserializeComponent(scaleData, scaleComp)) {
+				entityMgr.AddComponent<Scale>(loadedEntity, scaleComp);
+			}
+		}
 	}
 
 	void EntitySerializer::DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {
@@ -1081,6 +1115,22 @@ namespace Framework {
 	// Rotation Component
 	void EntitySerializer::SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_ANGLE), rotationComp.angle, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_TEXTURE_ANGLE), rotationComp.textureAngle, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_COLLIDER_ANGLE), rotationComp.colliderAngle, alloc);
+
+		rapidjson::Value textureMatrix(rapidjson::kArrayType);
+		rapidjson::Value colliderMatrix(rapidjson::kArrayType);
+
+		for (int i = 0; i < 9; ++i) {
+			rapidjson::Value textureVal(rotationComp.textureTransformMatrix.m[i]);
+			textureMatrix.PushBack(textureVal, alloc);
+
+			rapidjson::Value colliderVal(rotationComp.colliderTransformMatrix.m[i]);
+			colliderMatrix.PushBack(colliderVal, alloc);
+		}
+
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_TEXTURE_MTX), textureMatrix, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_COLLIDER_MTX), colliderMatrix, alloc);
 	}
 
 	// Scale Component
@@ -1692,6 +1742,31 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::ROTATION_ANGLE) && componentData[Serialization::ROTATION_ANGLE].IsFloat()) {
 			out.angle = componentData[Serialization::ROTATION_ANGLE].GetFloat();
 		}
+		if (componentData.HasMember(Serialization::ROTATION_TEXTURE_ANGLE) && componentData[Serialization::ROTATION_TEXTURE_ANGLE].IsFloat()) {
+			out.textureAngle = componentData[Serialization::ROTATION_TEXTURE_ANGLE].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::ROTATION_COLLIDER_ANGLE) && componentData[Serialization::ROTATION_COLLIDER_ANGLE].IsFloat()) {
+			out.colliderAngle = componentData[Serialization::ROTATION_COLLIDER_ANGLE].GetFloat();
+		}
+
+		Matrix3x3 matrix;
+		if (componentData.HasMember(Serialization::ROTATION_TEXTURE_MTX) && componentData[Serialization::ROTATION_TEXTURE_MTX].IsArray()) {
+			rapidjson::GenericArray textureMtxArray = componentData[Serialization::ROTATION_TEXTURE_MTX].GetArray();
+			for (int i = 0; i < 9; ++i) {
+				matrix.m[i] = textureMtxArray[i].GetFloat();
+			}
+			
+			out.textureTransformMatrix = matrix;
+		}
+		if (componentData.HasMember(Serialization::ROTATION_COLLIDER_MTX) && componentData[Serialization::ROTATION_COLLIDER_MTX].IsArray()) {
+			rapidjson::GenericArray colliderMtxArray = componentData[Serialization::ROTATION_COLLIDER_MTX].GetArray();
+			for (int i = 0; i < 9; ++i) {
+				matrix.m[i] = colliderMtxArray[i].GetFloat();
+			}
+
+			out.colliderTransformMatrix = matrix;
+		}
+
 		return true;
 	}
 
