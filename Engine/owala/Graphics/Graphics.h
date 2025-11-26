@@ -92,6 +92,23 @@ namespace Framework {
         void    setWrap(Texture tex, int wrapS, int wrapT);
         void    setAlphaBlend(bool on);
 
+		// Structure to hold raw image data loaded on CPU
+        struct ImageRawData {
+            unsigned char* pixels = nullptr;
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+        };
+
+        // Run this on Background Thread
+        ImageRawData LoadImageToCPU(const char* path, bool flipY = true);
+
+        // Run this on Main Thread
+        Texture CreateTextureFromRawData(const ImageRawData& data, bool srgb = false);
+
+        // Helper to free memory
+        void FreeImageRawData(ImageRawData& data);
+
         // -------- Sprite rendering (single) --------
         void drawSprite(Texture& tex, const Vector2D& center,
             const Vector2D& halfSize, float rotation = 0.0f,

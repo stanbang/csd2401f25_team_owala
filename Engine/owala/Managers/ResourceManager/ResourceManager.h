@@ -30,6 +30,12 @@
 #include "Animation.h"
 #include <filesystem>
 
+// For threading
+#include <queue>
+#include <mutex>
+#include <thread>
+#include <atomic>
+
 
 namespace Framework {
     class AudioSystem; // Forward declaration
@@ -51,8 +57,15 @@ namespace Framework {
     public:
 
         void Initialize() override;
-        void Update();
+        void Update() override;
         void Shutdown();
+
+		// Queue a texture to be loaded asynchronously
+        void LoadTextureAsync(const std::string& name, const std::string& filepath);
+
+		// Check how many items are left to load for progress tracking
+        float GetLoadingProgress() const;
+        bool IsLoadingComplete() const;
 
 		// Constructor requires Graphics and AudioSystem instances for loading resources
         ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};
@@ -143,8 +156,24 @@ namespace Framework {
 		std::unordered_map<std::string, fs::path> assetPathMap_; // Map of asset names to file paths
 
 		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
-
         AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
+
+        // Structure to transfer data between threads
+        struct AsyncTextureData {
+            std::string name;
+            Graphics::ImageRawData rawData;
+        };
+
+        std::queue<std::string> m_filesToLoad;      // Files waiting to be read
+        std::mutex m_queueMutex;                    // Lock for the queues
+        std::queue<AsyncTextureData> m_dataReadyToUpload; // Decoded data waiting for OpenGL
+
+        std::thread m_workerThread;
+        std::atomic<bool> m_isLoading{ false };
+        std::atomic<int> m_totalItemsToLoad{ 0 };
+        std::atomic<int> m_itemsProcessed{ 0 };
+
+        void WorkerThreadLoop();
     };
 
 	// Getter for resources, with automatic loading if missing

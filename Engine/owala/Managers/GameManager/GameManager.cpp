@@ -13,6 +13,7 @@
 // Scene Scripts
 #include "SplashScreen.h"
 #include "TestScene.h"
+#include "LoadingScreenController.h"
 
 // ImGui headers
 #ifdef BUILD_EDITOR
@@ -180,7 +181,10 @@ namespace Framework {
 						<< "Switching Scene to: " << event.stringParam << std::endl;
 
 					// Use the SceneManager instance we already have access to
-					SceneManager::GetInstance().LoadScene(event.stringParam);
+					//SceneManager::GetInstance().LoadScene(event.stringParam);
+
+					// Use GameManager to initiate async level load with loading screen
+					this->InitiateLevelLoad(event.stringParam);
 				}
 				else {
 					Logger::Get().Error(DebugType::GameManager)
@@ -274,8 +278,11 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 
-			UpdateNativeScripts();
+			//UpdateNativeScripts();
 		}
+
+		// Always update native scripts
+		UpdateNativeScripts();
 
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
@@ -344,6 +351,13 @@ namespace Framework {
 		delete systems_.levelResetter_;
 
 		instance = nullptr; // Reset instance pointer
+	}
+
+	// Helper to trigger the loading process
+	void GameManager::InitiateLevelLoad(const std::string& levelName) {
+		SetNextScene(levelName);
+		// Switch immediately to the loading screen
+		SceneManager::GetInstance().LoadScene("LoadingScreen");
 	}
 
 }

@@ -812,6 +812,52 @@ namespace Framework {
         }
     }
 
+	// CPU Image Loading for background thread
+    Graphics::ImageRawData Graphics::LoadImageToCPU(const char* path, bool flipY) {
+        if (flipY) stbi_set_flip_vertically_on_load(1);
+        else stbi_set_flip_vertically_on_load(0);
+
+        ImageRawData data;
+        // Force 4 channels (RGBA)
+        data.pixels = stbi_load(path, &data.width, &data.height, &data.channels, STBI_rgb_alpha);
+
+        if (!data.pixels) {
+            std::fprintf(stderr, "stbi_load failed for '%s': %s\n", path, stbi_failure_reason());
+        }
+        return data;
+    }
+
+	// Upload CPU image data to GPU as texture on main thread
+    Texture Graphics::CreateTextureFromRawData(const ImageRawData& data, bool srgb) {
+        if (!data.pixels) return 0;
+
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+
+        const GLint internal = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+
+        // Upload pixels to GPU
+        glTexImage2D(GL_TEXTURE_2D, 0, internal, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.pixels);
+
+        // Set parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        return tex;
+    }
+
+	// Free CPU image data
+    void Graphics::FreeImageRawData(ImageRawData& data) {
+        if (data.pixels) {
+            stbi_image_free(data.pixels);
+            data.pixels = nullptr;
+        }
+    }
+
     #pragma endregion
 
 

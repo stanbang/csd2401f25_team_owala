@@ -48,13 +48,31 @@ namespace TestScene {
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         EntityManager entityMgr(*ecs);
-        Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];   
+        std::vector<Entity> players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        std::vector<Entity> cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
 
-        cameraSystem->SetActiveCamera(mainCamera);
-        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
-        spriteRenderer->SetCameraSystem(cameraSystem);
-        textRenderer->SetCameraSystem(cameraSystem);
+        // Check if we actually found a player and a camera
+        if (!players.empty() && !cameras.empty()) {
+            Entity playerEntity = players[0];
+            Entity mainCamera = cameras[0];
+
+            if (cameraSystem) {
+                cameraSystem->SetActiveCamera(mainCamera);
+                cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+            }
+        }
+        else {
+            // Log warning if entities are missing so you know why the camera isn't moving
+            Framework::Logger::Get().Error(DebugType::GameManager)
+                << "[TestScene] Player or Camera missing! PlayerCount: "
+                << players.size() << ", CameraCount: " << cameras.size() << std::endl;
+        }
+
+        // Set system cameras (safe to do even if no active camera entity found yet)
+        if (cameraSystem) {
+            spriteRenderer->SetCameraSystem(cameraSystem);
+            textRenderer->SetCameraSystem(cameraSystem);
+        }
 	}
 
 	void Update() {

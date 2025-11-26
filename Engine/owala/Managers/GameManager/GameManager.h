@@ -57,6 +57,7 @@ namespace Framework {
 		using SceneFunction = void(*)(void);
 	private:
 		static GameManager* instance;
+		std::string nextSceneToLoad_ = "";
 
 		struct SceneCallBacks {
 			SceneFunction fpInitialize = nullptr;
@@ -147,6 +148,10 @@ namespace Framework {
 		void RegisterScriptToScene(SceneGUID sceneIndex, SceneFunction initFunction, SceneFunction updateFunction, SceneFunction freeFunction);
 		void UnregisterScriptFromScene(SceneGUID sceneIndex);
 
+		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
+		std::string GetNextScene() const { return nextSceneToLoad_; }
+		void InitiateLevelLoad(const std::string& levelName);
+		
 		/* Game Cycle Functions */
 		void Initialize() override;
 		void Update() override;
