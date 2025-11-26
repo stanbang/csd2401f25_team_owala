@@ -34,6 +34,10 @@ namespace Framework {
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 
+			if (textureComponent.textureKey.empty()) {
+				continue; // Don't try to load animation for empty texture
+			}
+
 			// Default facing direction
 			bool isFacingRight = true;
 			// The last texture key used
@@ -69,14 +73,32 @@ namespace Framework {
 			// Check if the texture key has changed
 			bool animationStateChanged = (previousTextureKey != textureComponent.textureKey);
 
+			// Ensure the AnimationInfo for the current texture is loaded
+			if (!resourceManager_->has<AnimationInfo>(textureComponent.textureKey)) {
+				// Try to load it. If it fails, skip this entity for this frame to prevent crash.
+				if (!resourceManager_->loadAnimationInfo(textureComponent.textureKey)) {
+					Logger::Get().Error(DebugType::ResourceManager)
+						<< "Failed to load AnimationInfo for texture key: " << textureComponent.textureKey << std::endl;
+					continue;
+				}
+			}
+
 			// Get AnimationInfo from ResourceManager
 			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(textureComponent.textureKey); // Retrieve the respective AnimationInfo
 
-			// Update animation component properties based on the retrieved AnimationInfo
-			animationComponent.frameCount = animationInfo.frameCount;
-			animationComponent.frameDuration = animationInfo.frameDuration;
-			animationComponent.isLooping = animationInfo.isLooping;
-			animationComponent.startFrame = animationInfo.startFrame;
+			try {
+				// Update animation component properties based on the retrieved AnimationInfo
+				animationComponent.frameCount = animationInfo.frameCount;
+				animationComponent.frameDuration = animationInfo.frameDuration;
+				animationComponent.isLooping = animationInfo.isLooping;
+				animationComponent.startFrame = animationInfo.startFrame;
+			}
+			catch (const std::exception& e) {
+				Logger::Get().Error(DebugType::ResourceManager)
+					<< "Error updating AnimationComponent from AnimationInfo for texture key: "
+					<< textureComponent.textureKey << ". Exception: " << e.what() << std::endl;
+				continue; // Skip this entity if there's an error
+			}
 
 			// If the animation state changed, reset the animation playback
 			if (animationStateChanged) {

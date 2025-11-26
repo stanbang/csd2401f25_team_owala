@@ -117,7 +117,7 @@ void ResourceManager::ScanAssetDirectory(const fs::path& directoryPath) {
 
 // Loads a texture by name using the scanned asset paths
 bool ResourceManager::loadTexture(const std::string& name) {
-	// 1. Check if we scanned this asset
+	// Check if we scanned this asset
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
@@ -125,7 +125,7 @@ bool ResourceManager::loadTexture(const std::string& name) {
 		return false;
 	}
 
-	// 2. We found it, now call the original loadTexture with the full path
+	// We found it, now call the original loadTexture with the full path
 	const std::string& fullPath = it->second.string();
 	return loadTexture(name, fullPath); // Calls your existing function
 }
