@@ -112,6 +112,10 @@ namespace Framework {
          */
         void Shutdown() override {}
 
+
+        // Nuke all input states (used when focus is lost)
+        void ResetInputState();
+
         // -------- Integer (GLFW-style) queries --------
         /**
          * \brief Is the key currently down?

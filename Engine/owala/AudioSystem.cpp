@@ -162,6 +162,7 @@ namespace Framework {
     bool AudioSystem::play(FMOD::Sound& sound, float volume, bool paused) {
         if (!system_) return false;
 
+
         FMOD::Channel* ch = nullptr;
         FMOD_RESULT r = system_->playSound(&sound, nullptr, paused, &ch);
         check(r, "System::playSound");
@@ -208,6 +209,7 @@ namespace Framework {
     }
 
     void AudioSystem::stopAll() {
+   
         // Stop last-played channel per id
         for (std::unordered_map<std::string, FMOD::Channel*>::iterator it = channels_.begin();
             it != channels_.end(); ++it) {
@@ -253,6 +255,20 @@ namespace Framework {
         catch (...) {
             Logger::Get().Error(DebugType::AudioSystem)
                 << "Missing sound: " << event.stringParam << std::endl;
+        }
+    }
+
+    void AudioSystem::SuspendAudio() {
+        if (masterGroup_) {
+            masterGroup_->setPaused(true);
+            if (system_) system_->update(); // Force an update so the pause applies instantly
+        }
+    }
+
+    void AudioSystem::ResumeAudio() {
+        if (masterGroup_) {
+            masterGroup_->setPaused(false);
+            if (system_) system_->update(); // Force an update to resume instantly
         }
     }
 
