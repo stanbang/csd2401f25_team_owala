@@ -142,6 +142,7 @@ namespace Framework {
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
 
         bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
+        std::string GetAssetPath(const std::string& key) const;
 
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map

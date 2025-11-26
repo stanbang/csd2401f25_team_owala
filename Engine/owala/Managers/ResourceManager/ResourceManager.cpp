@@ -72,8 +72,10 @@ void ResourceManager::Update() {
 
 		// Add to the map
 		if (tex != 0) {
+			std::stringstream ss;
+			ss << "[Main Thread   " << std::this_thread::get_id() << "] Uploaded to GPU: " << item.name;
+			Logger::Get().Info(DebugType::ResourceManager) << ss.str() << "\n";
 			add<Texture>(item.name, tex);
-			Logger::Get().Info(DebugType::ResourceManager) << "Async Loaded: " << item.name << "\n";
 		}
 
 		// Free CPU memory
@@ -386,6 +388,10 @@ void ResourceManager::WorkerThreadLoop() {
 
 		if (hasWork) {
 			// Heavy lifting (Disk I/O + Decode)
+			std::stringstream ss;
+			ss << "[Worker Thread " << std::this_thread::get_id() << "] Loading from Disk: " << filePath;
+			Logger::Get().Info(DebugType::ResourceManager) << ss.str() << "\n";
+
 			std::string name = fs::path(filePath).filename().string();
 
 			Graphics::ImageRawData raw = gfx_->LoadImageToCPU(filePath.c_str());
@@ -410,4 +416,12 @@ float ResourceManager::GetLoadingProgress() const {
 
 bool ResourceManager::IsLoadingComplete() const {
 	return m_itemsProcessed >= m_totalItemsToLoad;
+}
+
+std::string ResourceManager::GetAssetPath(const std::string& key) const {
+	auto it = assetPathMap_.find(key);
+	if (it != assetPathMap_.end()) {
+		return it->second.string();
+	}
+	return ""; // Not found
 }
