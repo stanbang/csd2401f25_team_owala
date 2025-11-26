@@ -22,6 +22,7 @@
 #include "Graphics.h"
 #include "ResourceManager.h"
 #include "PhysicsSystem.h"   // included only if collider debug helpers are needed
+#include "TransformationSystem.h"
 #include <memory>
 
 namespace Framework {
@@ -57,10 +58,10 @@ namespace Framework {
          */
         SpriteRenderSystem(EntityStorage& ecs,
             Graphics& gfx,
-            ResourceManager& resources,
+			ResourceManager& resources, TransformationSystem* transformationSystem = nullptr,
             bool drawColliders = false,
             const Color& clearColor = { 0.08f, 0.10f, 0.14f, 1.0f })
-            : ecs_(ecs), gfx_(gfx), resources_(resources),
+			: ecs_(ecs), gfx_(gfx), resources_(resources), transformationSystem_(transformationSystem),
             drawColliders_(drawColliders), clearColor_(clearColor) {
         }
 
@@ -128,6 +129,7 @@ namespace Framework {
         bool             drawColliders_ = false; //!< Flag for collider debug rendering.
         Color            clearColor_;   //!< Background clear color.
         CameraSystem* cameraSystem_ = nullptr;
+		TransformationSystem* transformationSystem_ = nullptr;
     };
 
 } // namespace Framework

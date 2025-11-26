@@ -74,6 +74,29 @@ namespace Framework {
             }
         }
 
+        bool canRotate = false; // boolean for checking for rotation (for grounded player)
+        EntityManager entityMgr(*ecs_);
+
+        // Find the player entity to check their state
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
+            // Ensure we only check active players
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
+            // Get the player state updated by PhysicsSystem
+            PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+
+            // Only allow rotation if the player is grounded
+            if (state.isGrounded) {
+                canRotate = true;
+                break; // Found the player, we can proceed
+            }
+        }
+
+        // If the player is in the air (not grounded), exit  function early
+        if (!canRotate) {
+            return;
+        }
+
         if (!isGlobalRotating && rotationCooldown <= 0.0f) {
             if (input_->KeyPressed(InputSystem::Key::Q)) {
                 // Q = anticlockwise = positive rotation

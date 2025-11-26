@@ -21,7 +21,7 @@
  *      for macOS compatibility (`GLFW_OPENGL_FORWARD_COMPAT`).
  *
  *      Workflow:
- *        1. Initialize GLFW and create an OpenGL window context.
+ *        1. Initialize GLFW and create an OpenGL window context.	
  *        2. Poll window events each frame (close, resize, etc.).
  *        3. Handle quit requests through the Core system.
  *        4. Destroy window and terminate GLFW on shutdown.
@@ -113,6 +113,9 @@ namespace Framework {
 			return;
 		}
 
+		glfwSetWindowUserPointer(win_, this); // this pointer so static callbacks can access it
+		glfwSetWindowFocusCallback(win_, WindowFocusCallback);
+
 		glfwMakeContextCurrent(win_);
 		glfwSwapInterval(1); // Enable V-Sync
 	}
@@ -126,8 +129,14 @@ namespace Framework {
 	 */
 	void WindowsSystem::Update() {
 		glfwPollEvents();
-		if (win_ && glfwWindowShouldClose(win_))
-			core_->RequestQuit();
+		if (win_) {
+			// Poll GLFW directly
+			isFocused_ = (glfwGetWindowAttrib(win_, GLFW_FOCUSED) == GLFW_TRUE); // for callback conflict with IMGUI
+
+			if (glfwWindowShouldClose(win_)) {
+				core_->RequestQuit();
+			}
+		}
 	}
 
 	/**
@@ -188,6 +197,19 @@ namespace Framework {
 	void WindowsSystem::setWindowShouldClose(bool shouldClose) {
 		if (win_) {
 			glfwSetWindowShouldClose(win_, shouldClose ? GLFW_TRUE : GLFW_FALSE);
+		}
+	}
+
+	void WindowsSystem::WindowFocusCallback(GLFWwindow* window, int focused) {
+		// Set Windows Callback Boolean 
+		// The cleanest way in GLFW is to store the "this" pointer in the window user pointer.
+
+		WindowsSystem* sys = static_cast<WindowsSystem*>(glfwGetWindowUserPointer(window));
+		if (sys) {
+			sys->isFocused_ = (focused == GLFW_TRUE);
+
+			// OPTIONAL: Log for debug
+			// Logger::Get().Info(DebugType::WindowsSystem) << "Window Focus: " << sys->isFocused_ << "\n";
 		}
 	}
 
