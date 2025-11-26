@@ -323,6 +323,7 @@ namespace Framework {
 
                     if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
                         MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
+						state.isDead = false; // Reset death state after handling
                     }
                 }
             }
