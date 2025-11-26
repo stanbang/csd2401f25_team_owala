@@ -331,7 +331,7 @@ namespace Editor {
 			}
 		}
 
-		LoadTilesFromFile();
+		//LoadTilesFromFile();
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
 		firstUpdate = true;
@@ -564,6 +564,11 @@ namespace Editor {
 
 		// Helper lambda to add an item if texture is found
 		auto AddPaletteItem = [&](const std::string& name, PrefabType type, const std::string& textureKey) {
+			// Skip tiles - they should only appear in tile palette
+			if (name.find("StagePlatform") != std::string::npos ||
+				name.find("StaticPlatform") != std::string::npos) {
+				return;
+			}
 			if (textureKey.empty()) {
 				Framework::Logger::Get().Error(DebugType::Editor) << "Skipping palette item '" << name << "' due to empty texture key." << std::endl;
 				return; // Don't try to add if key is empty
@@ -874,51 +879,15 @@ namespace Editor {
 		Entity newEntity = 0;
 
 		if (info.type == PrefabType::Tile) {
-			newEntity = entityMgr.CreateEntity();
-
-			// Setup Tile Components...
-			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
-
-			// Ensure texture key is valid (Try appending .png if raw name fails)
-		/*	std::string textureKey = info.name;
-			if (!resourceManager_->has<Texture>(textureKey) && resourceManager_->has<Texture>(textureKey + ".png")) {
-				textureKey += ".png";
-			}*/
-
-
-			// FIX: Look up the correct textureID from the TileData
-			std::string textureKey;
-			bool foundTile = false;
-
-			for (const auto& tileData : tileDataList_) {
-				if (tileData.name == info.name) {
-					textureKey = tileData.textureID; // This contains the CORRECT key from tiles.json
-					foundTile = true;
-					break;
-				}
-			}
-
-			// Fallback if not found in tileDataList_
-			if (!foundTile) {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Tile not found in tileDataList_: " << info.name << std::endl;
-				textureKey = info.name; // Use name as fallback
-			}
-
-			entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-			entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-			entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-			entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-			entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-			entityMgr.GetProperties(newEntity).name = info.name;
-		}
-		else if (info.type != PrefabType::Eraser) {
-			// Create Prefab
+			// Tiles are now created from prefabs too
 			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, info.name, snappedPos);
 		}
+		else if (info.type != PrefabType::Eraser) {
+			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, info.name, snappedPos);
+		}
+
 		if (newEntity != 0) {
 			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-			// Optional: Record History
 			historyManager_.Record(OpType::Create, newEntity, "Brush Place");
 		}
 	}
@@ -1702,7 +1671,7 @@ namespace Editor {
 		
 	}
 
-	void Editor::LoadTilesFromFile() {
+	/*void Editor::LoadTilesFromFile() {
 		using namespace Framework;
 
 		std::ifstream fileIn("Data/tiles.json");
@@ -1744,52 +1713,68 @@ namespace Editor {
 
 		Logger::Get().Info(DebugType::Editor)
 			<< "Loaded " << tileDataList_.size() << " tiles from tiles.json" << std::endl;
-	}
+	}*/
 
 
 	void Editor::PrepareTilePaletteItems() {
 		tilePaletteItems_.clear();
 
-		for (const auto& tile : tileDataList_) {
-			if (tile.textureID.empty()) {
+		auto AddTileItem = [&](const std::string& name, const std::string& textureKey) {
+			if (name.find("StagePlatform") == std::string::npos &&
+				name.find("StaticPlatform") == std::string::npos) {
+				return;
+			}
+
+			if (textureKey.empty()) {
 				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Skipping tile '" << tile.name << "' due to empty texture key." << std::endl;
-				continue;
+					<< "Skipping tile '" << name << "' due to empty texture key." << std::endl;
+				return;
 			}
 
 			try {
 				Framework::Logger::Get().Info(DebugType::Editor)
-					<< "Attempting to get texture for tile: '" << tile.name	<< "' with key: '" << tile.textureID << "'" << std::endl;
+					<< "Attempting to get texture for tile: '" << name
+					<< "' with key: '" << textureKey << "'" << std::endl;
 
 				if (!resourceManager_) {
 					Framework::Logger::Get().Error(DebugType::Editor)<< "ResourceManager pointer is null in PrepareTilePaletteItems!" << std::endl;
 					return;
 				}
 
-				Texture texID = resourceManager_->get<Texture>(tile.textureID);
+				Texture texID = resourceManager_->get<Texture>(textureKey);
 
 				if (texID != 0) {
-					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID ,ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
-					Framework::Logger::Get().Info(DebugType::Editor)<< " -> Success! Added tile: '" << tile.name
+					tilePaletteItems_.push_back({ name, PrefabType::Tile, texID, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< " -> Success! Added tile: '" << name
 						<< "' (ID: " << texID << ")" << std::endl;
 				}
 				else {
-					Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Texture ID is 0 for tile: '" << tile.name
-						<< "' (Key: '" << tile.textureID << "')" << std::endl;
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< " -> Failed! Texture ID is 0 for tile: '" << name
+						<< "' (Key: '" << textureKey << "')" << std::endl;
 				}
 			}
 			catch (const std::out_of_range&) {
-				Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Texture key '" << tile.textureID
-					<< "' not found in ResourceManager for tile: '" << tile.name << "'" << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< " -> Failed! Texture key '" << textureKey
+					<< "' not found in ResourceManager for tile: '" << name << "'" << std::endl;
 			}
 			catch (const std::exception& e) {
-				Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Exception getting texture for tile '" << tile.name
-					<< "' (Key: '" << tile.textureID << "'): " << e.what() << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< " -> Failed! Exception getting texture for tile '" << name
+					<< "' (Key: '" << textureKey << "'): " << e.what() << std::endl;
 			}
 			catch (...) {
 				Framework::Logger::Get().Error(DebugType::Editor)
-					<< " -> Failed! Unknown error getting texture for tile: '" << tile.name<< "' (Key: '" << tile.textureID << "')" << std::endl;
+					<< " -> Failed! Unknown error getting texture for tile: '" << name
+					<< "' (Key: '" << textureKey << "')" << std::endl;
 			}
+			};
+
+		// Load tiles from platform prefabs
+		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
+			AddTileItem(pair.first, pair.second.textureID);
 		}
 
 		Framework::Logger::Get().Info(DebugType::Editor)
@@ -2038,7 +2023,7 @@ namespace Editor {
 
 				ImGui::Separator();
 
-				// Prefabs
+				/* // Prefabs
 				if (ImGui::BeginMenu("Prefabs")) {
 					// Platforms
 					if (ImGui::BeginMenu("Platforms")) {
@@ -2064,7 +2049,7 @@ namespace Editor {
 					ImGui::EndMenu(); // End Prefabs Menu
 				}
 
-				ImGui::Separator();
+				ImGui::Separator();*/
 
 				// Create Empty Entity
 				if (ImGui::MenuItem("Create Empty")) {
