@@ -84,6 +84,9 @@ namespace Framework {
         void HandleAttackState(Entity bird, BirdAIComponent& ai);
         void HandleStunnedState(Entity bird, BirdAIComponent& ai);
 
+        // Helper for setting facing direction
+        void UpdateBirdFacingDirection(Entity bird, const Vector2D& targetPos);
+
         // --- Skeleton State Machine Handlers ---
         void HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);
         void HandleSkeletonChaseState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);
