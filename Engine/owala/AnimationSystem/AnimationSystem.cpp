@@ -66,6 +66,22 @@ namespace Framework {
 				}
 			}
 
+			// Handle bird animations
+			else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
+				// Get BirdAIComponent to determine state
+				BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+
+				isFacingRight = birdAI.isFacingRight; // use bird facing direction
+
+				switch (birdAI.state) {
+				case BirdState::IDLE: textureComponent.textureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
+				case BirdState::WAKING: textureComponent.textureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
+				case BirdState::CHASE: textureComponent.textureKey = "SB_BirdEnemy_Fly_Spritesheet.png"; break;
+				case BirdState::HOVER: textureComponent.textureKey = "SB_BirdEnemy_Fly_Spritesheet.png"; break;
+				case BirdState::ATTACK: textureComponent.textureKey = "SB_BirdEnemy_DiveAttack_Spritesheet.png"; break;
+				}
+			}
+
 			// Check if the texture key has changed
 			bool animationStateChanged = (previousTextureKey != textureComponent.textureKey);
 
