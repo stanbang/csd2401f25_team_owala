@@ -1548,6 +1548,10 @@ namespace Editor {
 
 						palettePrepared_ = false;
 						tilePalettePrepared_ = false;
+
+						// reset entity selection
+						selectedEntityIndex = 0;
+						isEntitySelected_ = false;
 					}
 				}
 
