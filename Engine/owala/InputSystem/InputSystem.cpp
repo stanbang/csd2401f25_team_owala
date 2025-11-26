@@ -180,6 +180,17 @@ namespace Framework {
 
     }
 
+    void InputSystem::ResetInputState() {
+        // Clear current and previous states to prevent stuck keys
+        std::memset(keyNow_, 0, sizeof(keyNow_));
+        std::memset(keyPrev_, 0, sizeof(keyPrev_));
+        std::memset(btnNow_, 0, sizeof(btnNow_));
+        std::memset(btnPrev_, 0, sizeof(btnPrev_));
+
+        // Unlock cursor so user can click other windows
+        SetCursorLocked(false);
+    }
+
     // ---------------------- integer queries ----------------------
 
     bool InputSystem::KeyDown(int key) const {

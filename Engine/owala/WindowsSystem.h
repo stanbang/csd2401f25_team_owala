@@ -79,6 +79,11 @@ namespace Framework {
          */
         void Shutdown() override;
 
+        // Callback to be called by GLFW
+        static void WindowFocusCallback(GLFWwindow* window, int focused);
+
+        bool IsFocused() const { return isFocused_; }
+
 #ifdef BUILD_ENGINE
         /**
          * \brief Toggle between full screen and windowed mode.
@@ -110,6 +115,8 @@ namespace Framework {
         // Set defaults as fallback
         int currentW_ = 1920, currentH_ = 1080;      //!< Current Window width and height in pixels.
         int windowedW_ = 1920, windowedH_ = 1080;
+
+        bool isFocused_ = true; // Windows Focus Loss Event
 #ifdef BUILD_ENGINE
         int fullW_ = 1920, fullH_ = 1080;
         int x_{}, y_{};                    //!< Window top left x and y positions (0,0 will be top left of monitor)

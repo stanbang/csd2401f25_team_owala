@@ -138,6 +138,7 @@ namespace Framework {
     private:
         bool running_ = false;      //!< Whether the game loop is active.
         bool initialized_ = false;  //!< Whether systems have been initialized.
+        bool wasPaused_ = false; // To detect state transitions for interrupt handling
 
         std::vector<ISystem*> systems_; //!< Owned list of engine systems.
 
