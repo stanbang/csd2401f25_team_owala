@@ -207,6 +207,14 @@ namespace Framework {
                     // This keeps the particle size constant regardless of camera zoom.
                     screenHalfSize = halfSize;
                 }
+                // Handle UI Elements (GUITag)
+                else if (isUIElement) {
+                    // Graphics.cpp shrinks X by (Height/Width). 
+                    // We must stretch X by (Width/Height) to counteract it, allowing 
+                    // a 1.0 half-size to actually reach the edge of the screen.
+                    float aspectRatio = (float)gfx_.getScreenWidth() / (float)gfx_.getScreenHeight();
+                    screenHalfSize.x *= aspectRatio;
+                }
 
                 // Calculate final screen-space top-left and size
                 Vector2D topLeft = { screenPos.x - screenHalfSize.x, screenPos.y - screenHalfSize.y };
