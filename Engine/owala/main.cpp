@@ -90,7 +90,7 @@ int main() {
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx,*transformation);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
-    AISystem* aiSystem = new AISystem(*ecs, *gfx); // <-- ADD THIS
+    AISystem* aiSystem = new AISystem(*ecs, *gfx);
 	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance

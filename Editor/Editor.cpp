@@ -3949,8 +3949,23 @@ namespace Editor {
 
 			if (gfx && spriteRenderer_ && camSystem) {
 
-				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
-				//camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+				// 1. Calculate the aspect ratio of the specific ImGui Window
+				float viewportAspect = viewportPanelSize.x / viewportPanelSize.y;
+
+				// 2. Determine which camera is currently being used
+				Entity cameraInUse = 0;
+				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					cameraInUse = editorCamera_;
+				}
+				else {
+					// If in Play Mode, we are using the Game's active camera
+					cameraInUse = camSystem->GetActiveCamera();
+				}
+
+				// 3. Force that camera to match the ImGui window dimensions
+				if (cameraInUse != 0) {
+					camSystem->SetAspectRatio(cameraInUse, viewportAspect);
+				}
 
 				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
