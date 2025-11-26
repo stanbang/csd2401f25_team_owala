@@ -56,7 +56,6 @@ namespace Framework {
      */
     void TextRenderSystem::RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp, const Entity camera) {
         try {
-            std::cout << "RENDER TEXT" << std::endl;
             Font& font = rcm_.get<Font>(textComp.fontKey);
             const Vector2D& textPos = entityMgr.GetComponent<Position>(en).Pos;
             bool isUIElement = entityMgr.HasComponent(en, GUITagType);
@@ -66,8 +65,6 @@ namespace Framework {
             if (camera != 0 && cameraSystem_ && !isUIElement) {
                 screenTextPos = cameraSystem_->WorldToScreen(textPos, camera);
             }
-            std::cout << "halfsize.x " << textComp.halfSize.x << std::endl;
-            std::cout << "halfsize.y " << textComp.halfSize.y << std::endl;
             // offset so that pos is the middle of the text
             screenTextPos.x -= textComp.halfSize.x;
             screenTextPos.y += textComp.halfSize.y;
@@ -101,7 +98,6 @@ namespace Framework {
     void TextRenderSystem::UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp, const Entity camera) {
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
-            std::cout << "update text bounds " << std::endl;
 
             // Find the actual width of text block
             float renderedWidth = 0.0f;
@@ -111,18 +107,15 @@ namespace Framework {
                     renderedWidth = currentWidth;
                 }
             }
-            std::cout << " rendered width " << renderedWidth << std::endl;
 
             // Calculate total rendered height of text block
             float totalHeight = textComp.wrappedLines.size() * font.GetLineHeight(textComp.scale);
 
             // Total rendered size in world coords
             Vector2D totalSize = Vector2D(renderedWidth, totalHeight);
-            std::cout << "total size : " << totalSize.x << " x " << totalSize.y << std::endl;
             // Set halfsize and convert to screen space if is GUI
             if (camera != 0 && cameraSystem_ && entityMgr.HasComponent(entity, GUITagType)) {
                 textComp.halfSize = cameraSystem_->WorldToScreen(totalSize, camera) * 0.5f;
-                std::cout << "after convert : " << textComp.halfSize.x << " x " << textComp.halfSize.y << std::endl;
             }
             else {
                 textComp.halfSize = totalSize * 0.5f;

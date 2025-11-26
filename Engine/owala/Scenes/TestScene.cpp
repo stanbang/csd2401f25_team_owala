@@ -59,18 +59,14 @@ namespace TestScene {
         std::vector<Entity>cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
         Entity mainCamera = 0;
         if (cameras.size() > 0) {
-            std::cout << "main camera = cameras [0] " << std::endl;
             mainCamera = cameras[0];
             cameraSystem->SetActiveCamera(mainCamera);
         }
         else {
             mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, false);
-            std::cout << "main camera = create camera " << std::endl;
             Camera& cam = cameraSystem->GetCamera(mainCamera);
-            cam.size = { 20.0f, 20.0f }; // Adjust based on your world scale
-
             cameraSystem->SetZoom(mainCamera, 540.0f); //540 for 1080p
-            float aspect = win_->getWidth() / win_->getHeight();
+            float aspect = static_cast<float>(win_->getWidth()) / static_cast<float>(win_->getHeight());
             cameraSystem->SetAspectRatio(mainCamera, aspect);
             cameraSystem->SetActiveCamera(mainCamera);
         }
