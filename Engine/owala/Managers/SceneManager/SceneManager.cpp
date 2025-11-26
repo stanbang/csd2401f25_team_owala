@@ -172,6 +172,7 @@ namespace Framework {
 
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneName << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
 		currentScene_ = sceneToLoad.sceneIndex;
+		scenes_.at(currentScene_).isLoaded = true;
 	}
 
 	void SceneManager::LoadScene(const SceneGUID sceneIndex) {

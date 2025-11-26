@@ -232,7 +232,7 @@ namespace Framework {
 					continue;
 				}
 				// all other scenes use TestScene.cpp for now
-				//RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 			}
 		}
 		else {

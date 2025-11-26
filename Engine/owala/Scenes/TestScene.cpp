@@ -16,6 +16,7 @@ namespace TestScene {
 	using namespace Framework;
 
 	void Initialize() {
+        std::cout << "INITIALIZEEEEEE " << std::endl;
         //FileIOSystem fileIO;
 		//SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
@@ -27,7 +28,7 @@ namespace TestScene {
         SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
         TextRenderSystem* textRenderer = gm.GetSystems().textRenderer_; // Get text renderer
         PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
-		(void)win_; // Suppress unused parameter warning if not used
+		//(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
 
         // --- CONFIGURE COLLISION MATRIX ---
@@ -48,11 +49,36 @@ namespace TestScene {
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
         EntityManager entityMgr(*ecs);
-        Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];   
+        
+        std::vector<Entity> players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        Entity playerEntity = 0;
+        if (players.size() > 0) {
+            playerEntity = players[0];
+        }
 
-        cameraSystem->SetActiveCamera(mainCamera);
-        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        std::vector<Entity>cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
+        Entity mainCamera = 0;
+        if (cameras.size() > 0) {
+            std::cout << "main camera = cameras [0] " << std::endl;
+            mainCamera = cameras[0];
+            cameraSystem->SetActiveCamera(mainCamera);
+        }
+        else {
+            mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, false);
+            std::cout << "main camera = create camera " << std::endl;
+            Camera& cam = cameraSystem->GetCamera(mainCamera);
+            cam.size = { 20.0f, 20.0f }; // Adjust based on your world scale
+
+            cameraSystem->SetZoom(mainCamera, 540.0f); //540 for 1080p
+            float aspect = win_->getWidth() / win_->getHeight();
+            cameraSystem->SetAspectRatio(mainCamera, aspect);
+            cameraSystem->SetActiveCamera(mainCamera);
+        }
+
+        if (playerEntity && mainCamera) {
+            cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        }
+
         spriteRenderer->SetCameraSystem(cameraSystem);
         textRenderer->SetCameraSystem(cameraSystem);
 	}
