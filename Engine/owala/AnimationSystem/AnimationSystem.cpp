@@ -70,6 +70,9 @@ namespace Framework {
 			else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
 				// Get BirdAIComponent to determine state
 				BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+
+				isFacingRight = birdAI.isFacingRight; // use bird facing direction
+
 				switch (birdAI.state) {
 				case BirdState::IDLE: textureComponent.textureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
 				case BirdState::WAKING: textureComponent.textureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;

@@ -368,6 +368,8 @@ namespace Framework{
 	struct BirdAIComponent {
 		BirdState state = BirdState::IDLE;
 
+		bool isFacingRight = true;  // Default facing right
+
 		// State
 		float stateTimer = 0.0f;
 

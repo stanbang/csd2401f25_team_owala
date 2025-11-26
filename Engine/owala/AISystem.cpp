@@ -35,6 +35,9 @@
 #endif
 
 
+
+
+
 namespace Framework {
 
     AISystem::AISystem(EntityStorage& storage, Graphics& gfx)
@@ -222,6 +225,9 @@ namespace Framework {
 
     }
 
+
+  
+
     void AISystem::HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
         EntityManager entityMgr(*ecs_);
         if (!entityMgr.HasComponent(bird, VelocityType)) {
@@ -230,7 +236,6 @@ namespace Framework {
         }
 
         entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
-        // TODO: Trigger Sleeping animation here
         
         // Check distance to player
         if (birdPos.Distance(playerPos) < ai.wakeUpRadius) {
@@ -238,7 +243,6 @@ namespace Framework {
                 << "Bird [" << bird << "] detected player at distance: " << birdPos.Distance(playerPos) << std::endl;
             ai.state = BirdState::WAKING;
             ai.stateTimer = ai.wakeUpTime;
-            // TODO: Trigger "Waking" animation here
         }
     }
 
@@ -258,11 +262,12 @@ namespace Framework {
     }
 
     void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
-        // TODO: Trigger Flying animation here
 
         EntityManager entityMgr(*ecs_);
 
         float dist = birdPos.Distance(playerPos);
+
+        UpdateBirdFacingDirection(bird, playerPos); // update direction first
 
         // Check if player escaped too far
         if (dist > ai.chaseRadius) {
@@ -277,7 +282,7 @@ namespace Framework {
         }
 
 
-        // Check if close enough to attack (CRITICAL: Use proper radius)
+        // Check if close enough to attack 
         if (dist < ai.attackRadius) {
             Logger::Get().Info(DebugType::AISystem)
                 << "Bird [" << bird << "] entering ATTACK state!" << std::endl;
@@ -300,11 +305,12 @@ namespace Framework {
     }
 
     void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
-        // TODO: Trigger Flying animation here
 
         EntityManager entityMgr(*ecs_);
 
         float distToPlayer = birdPos.Distance(playerPos);
+
+        UpdateBirdFacingDirection(bird, playerPos);
 
         // Check if player is in attack range again
         if (distToPlayer < ai.attackRadius) {
@@ -325,7 +331,6 @@ namespace Framework {
             return;
         }
 
-        // Simple hover behavior: orbit above player
         Vector2D targetPos = playerPos + Vector2D(0.0f, ai.hoverHeight);
         Vector2D direction = (targetPos - birdPos).Normalized();
 
@@ -343,6 +348,9 @@ namespace Framework {
         }
 
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+
+        UpdateBirdFacingDirection(bird, ai.attackTargetPosition);
+
         Entity player = GetPlayer();
         bool playerKilled = false;
         if (player != 0 && entityMgr.HasComponent(player, PlayerStateType)) {
@@ -356,7 +364,6 @@ namespace Framework {
         ai.stateTimer -= Framework::Time::DeltaTime();
 
         // Check collision with platforms or timeout
-        // (Physics will handle player collision separately)
         bool hitWall = false;
 
         // Simple wall detection: if velocity suddenly drops to near-zero
@@ -501,6 +508,27 @@ namespace Framework {
             }
         }
         // (If not grounded, do nothing and let gravity take over)
+    }
+
+
+    // HELPER FUNCTIONS FOR AI
+    void AISystem::UpdateBirdFacingDirection(Entity bird, const Vector2D& targetPos) {
+        EntityManager entityMgr(*ecs_);
+
+        if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
+            !entityMgr.HasComponent(bird, PositionType)) {
+            return;
+        }
+
+        BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
+        Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+
+        // Determine facing direction based on target
+        float deltaX = targetPos.x - birdPos.x;
+
+        if (std::abs(deltaX) > 0.01f) { // Threshold to avoid jittering
+            ai.isFacingRight = (deltaX > 0);
+        }
     }
 
 

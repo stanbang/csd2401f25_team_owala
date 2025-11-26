@@ -177,6 +177,7 @@ namespace Framework::Serialization {
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
 	static constexpr const char* AI_STATE = "state";
+	static constexpr const char* IS_FACING_RIGHT = "is_facing_right";  
 	static constexpr const char* STATE_TIMER = "state_timer";
 	static constexpr const char* WAKEUP_RADIUS = "wakeup_radius";
 	static constexpr const char* WAKEUP_TIME = "wakeup_time";
@@ -194,6 +195,8 @@ namespace Framework::Serialization {
 	static constexpr const char* ATTACK_TARGET_POSITION = "attack_target_position";
 	static constexpr const char* PATH_RECALCULATE_INTERVAL = "path_recalculate_interval";
 	static constexpr const char* PATH_RECALCULATE_TIMER = "path_recalculate_timer";
+	static constexpr const char* CHASE_RADIUS = "chase_radius";
+	static constexpr const char* STUN_DURATION = "stun_duration";
 
 	// Skeleton AI Keys
 	static constexpr const char* SKELETON_AI_COMPONENT = "SkeletonAIComponent";

@@ -3408,11 +3408,17 @@ namespace Editor {
 		}
 
 		case ComponentType::BirdAIComponentType: {
+
+			if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
+				break;
+			}
+
 			BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
 
 			// --- State (Read-only) ---
 			int state = static_cast<int>(ai.state);
-			const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK" };
+			const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
 			ImGui::Text("Current State: %s", stateNames[state]);
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
