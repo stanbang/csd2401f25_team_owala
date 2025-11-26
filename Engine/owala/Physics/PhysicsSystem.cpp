@@ -145,7 +145,7 @@ namespace Framework {
 
             if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType)) {
 				RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
-				Position& pos = entityMgr.GetComponent<Position>(entity);
+				//Position& pos = entityMgr.GetComponent<Position>(entity);
 				Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
 
                 vel.Vel += (body.Force * body.InverseMass) * dt;
@@ -285,7 +285,7 @@ namespace Framework {
                 colliderRotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
             if (entityMgr.HasComponent(entity, RotationType)) {
-                colliderRotation += entityMgr.GetComponent<Rotation>(entity).colliderAngle * (180.0f / M_PI);
+                colliderRotation += entityMgr.GetComponent<Rotation>(entity).colliderAngle * (180.0f / static_cast<float>(M_PI));
             }
 
             AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, colliderRotation);
@@ -387,7 +387,7 @@ namespace Framework {
             rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
         }
         if (entityMgr.HasComponent(e1, RotationType)) {
-            rotation1 += entityMgr.GetComponent<Rotation>(e1).colliderAngle * (180.0f / M_PI);
+            rotation1 += entityMgr.GetComponent<Rotation>(e1).colliderAngle * (180.0f / static_cast<float>(M_PI));
         }
 
         // --- Get rotation for e2 ---
@@ -396,7 +396,7 @@ namespace Framework {
             rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
         }
         if (entityMgr.HasComponent(e2, RotationType)) {
-            rotation2 += entityMgr.GetComponent<Rotation>(e2).colliderAngle * (180.0f / M_PI);
+            rotation2 += entityMgr.GetComponent<Rotation>(e2).colliderAngle * (180.0f / static_cast<float>(M_PI));
         }
 
 

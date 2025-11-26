@@ -262,6 +262,8 @@ namespace Framework {
     }
 
     void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
+        (void)playerHalfSize; 
+        (void)birdHalfSize;
 
         EntityManager entityMgr(*ecs_);
 
@@ -305,6 +307,8 @@ namespace Framework {
     }
 
     void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
+        (void)playerHalfSize;
+        (void)birdHalfSize;
 
         EntityManager entityMgr(*ecs_);
 
