@@ -13,10 +13,6 @@
       "animation_path": "Data/AnimationData/playerJumpingAnimation.json"
     },
     {
-      "texture_key": "Bird_Enemy_SleepIdle_Spritesheet.png",
-      "animation_path": "Data/AnimationData/birdIdleAnimation.json"
-    },
-    {
       "texture_key": "Eli_Jump_Spritesheet.png",
       "animation_path": "Data/AnimationData/playerJumpingAnimation.json"
     },
@@ -39,6 +35,20 @@
     {
       "texture_key": "Eli_Death_Spritesheet.png",
       "animation_path": "Data/AnimationData/playerDeathAnimation.json"
+    },
+    {
+      "texture_key": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
+      "animation_path": "Data/AnimationData/birdIdleAnimation.json"
+    },
+	{
+      "texture_key": "SB_BirdEnemy_Fly_Spritesheet.png",
+      "animation_path": "Data/AnimationData/birdFlyingAnimation.json"
+    },
+	{
+      "texture_key": "SB_BirdEnemy_DiveAttack_Spritesheet.png",
+      "animation_path": "Data/AnimationData/birdDivingAnimation.json"
     }
+	
+
   ]
 }
