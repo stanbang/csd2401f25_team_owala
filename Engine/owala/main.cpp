@@ -66,7 +66,13 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+    #ifdef BUILD_EDITOR
+        SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+    #endif
+
+    #ifdef BUILD_ENGINE
+        SetConsoleCtrlHandler(ConsoleHandler, FALSE); // Set the console control handler
+    #endif
 
     using namespace Framework;
 

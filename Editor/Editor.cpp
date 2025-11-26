@@ -2116,7 +2116,9 @@ namespace Editor {
 				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 			}
 
-			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
+
+			}
 			if (ImGui::IsItemActivated()) editingName = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newName = nameBuffer;

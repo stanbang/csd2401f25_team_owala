@@ -74,7 +74,7 @@ namespace Framework {
                     state.isGrounded)
                 {
                     // Pass the impact speed (absolute value of previous fall speed)
-                    OnPlayerLanded(entity, currentPos, std::abs(prevVelY));
+                    OnPlayerLanded(entity, currentPos);
                 }
 
                 // Update the component for the next frame
@@ -285,7 +285,7 @@ namespace Framework {
     }
 
 	// Publish particle burst event when player lands
-    void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position, float impactSpeed) {
+    void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
 
         EntityManager entityMgr(*entityStorage_);
         Vector2D playerHalfSize = { 0.1f, 0.1f };

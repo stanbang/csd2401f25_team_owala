@@ -405,7 +405,7 @@ namespace Framework {
 					std::string path = rcm.GetAssetPath(key);
 
 					if (!path.empty() && !rcm.has<Texture>(key)) {
-						rcm.LoadTextureAsync(key, path);
+						rcm.LoadTextureAsync(path);
 					}
 				}
 			}
@@ -418,7 +418,7 @@ namespace Framework {
 					std::string path = rcm.GetAssetPath(key);
 
 					if (!path.empty() && !rcm.has<Texture>(key)) {
-						rcm.LoadTextureAsync(key, path);
+						rcm.LoadTextureAsync(path);
 					}
 				}
 			}

@@ -363,7 +363,7 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 }
 
 // Adds a texture file to the async loading queue eg. when loading big assets
-void ResourceManager::LoadTextureAsync(const std::string& name, const std::string& filepath) {
+void ResourceManager::LoadTextureAsync(const std::string& filepath) {
 	std::lock_guard<std::mutex> lock(m_queueMutex);
 	m_filesToLoad.push(filepath);
 

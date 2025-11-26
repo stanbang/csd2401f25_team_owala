@@ -61,7 +61,7 @@ namespace Framework {
         void Shutdown();
 
 		// Queue a texture to be loaded asynchronously
-        void LoadTextureAsync(const std::string& name, const std::string& filepath);
+        void LoadTextureAsync(const std::string& filepath);
 
 		// Check how many items are left to load for progress tracking
         float GetLoadingProgress() const;

@@ -54,7 +54,7 @@ namespace Framework {
 
 		// Helper function to calculate emission velocity based on style
 		Vector2D CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,
-			const Vector2D& emissionPos, float rand01, float rand02, bool isScreenSpace);
+			const Vector2D& emissionPos, float rand01, bool isScreenSpace);
 
 		// Convert world position to screen space
 		Vector2D WorldToScreenSpace(const Vector2D& worldPos);

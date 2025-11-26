@@ -41,7 +41,7 @@ namespace Framework {
 		TransformationSystem* transformationSystem_ = nullptr;
 
 		// Player landed event handler
-		void OnPlayerLanded(Entity player, const Vector2D& position, float impactSpeed);
+		void OnPlayerLanded(Entity player, const Vector2D& position);
 
 		// Private variables
 		//player death
