@@ -6,7 +6,8 @@
  * \secondary_author
  *
  *
- * \brief	
+ * \brief	Contains the declaration of VFXSystem to handle particle effects 
+ *			in the game.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior

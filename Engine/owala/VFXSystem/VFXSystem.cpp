@@ -6,7 +6,10 @@
  * \secondary_author
  *
  *
- * \brief
+ * \brief	Implements the VFXSystem to handle particle effects in the game.
+ *			Uses event-driven approach and emitter pattern to manage particles.
+ *			Contains logic for spawning, updating, and destroying particles as
+ *			well as handling different emission styles and effects.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior

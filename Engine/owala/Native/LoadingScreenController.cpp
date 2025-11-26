@@ -1,8 +1,24 @@
+/*****************************************************************//**
+ * \file   LoadingScreenController.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Implements the LoadingScreenController script to manage loading
+ *          and transitioning between scenes with a loading screen.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "LoadingScreenController.h"
 #include "ScriptRegistry.h"
 #include "GameManager.h"
 #include "Components.h"
-#include "EntityManager.h" // <--- ADD THIS to use EntityManager
+#include "EntityManager.h"
 #include <string>
 #include <iomanip>
 #include <sstream>
@@ -11,33 +27,29 @@ namespace Framework {
 
     REGISTER_SCRIPT(LoadingScreenController, "LoadingScreenController")
 
-        void LoadingScreenController::OnCreate() {
-        // Optional: Trigger async loads here if needed
+    void LoadingScreenController::OnCreate() {
+	// Empty by design
     }
 
     void LoadingScreenController::OnUpdate() {
-        // 1. Get Systems (Fix: Removed '&' because GetSystems() returns by value)
-        auto systems = GameManager::GetInstance().GetSystems();
+        // Get Systems
+        ResourceManager& rsm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+        EntityStorage& ecs_ = *GameManager::GetInstance().GetSystems().ecs_;
 
-        // Safety checks
-        if (!systems.resourceManager_ || !systems.ecs_) return;
-
-        // 2. Create wrappers
-        ResourceManager& resourceManager = *systems.resourceManager_;
         // Use EntityManager wrapper to access private storage data safely
-        EntityManager entityMgr(*systems.ecs_);
+        EntityManager entityMgr(ecs_);
 
-        // 3. Get Loading Progress
-        float progress = resourceManager.GetLoadingProgress();
+        // Get Loading Progress
+        float progress = rsm_.GetLoadingProgress();
 
-        // 4. Update Text Component
+        // Update Text Component
         Entity myEntity = GetEntity();
 
-        // Use EntityManager API instead of accessing ecs.entitySignatures directy
+		// Check if entity has TextComponent
         if (entityMgr.HasComponent(myEntity, TextComponentType)) {
 
-            // Use EntityManager API to get the component reference
-            auto& textComp = entityMgr.GetComponent<TextComponent>(myEntity);
+            // Use EntityManager to get the component reference
+            TextComponent& textComp = entityMgr.GetComponent<TextComponent>(myEntity);
 
             std::stringstream ss;
             ss << "Loading... " << std::fixed << std::setprecision(0) << (progress * 100.0f) << "%";
@@ -45,8 +57,8 @@ namespace Framework {
             textComp.isDirty = true;
         }
 
-        // 5. Transition when done
-        if (resourceManager.IsLoadingComplete()) {
+        // Transition when done
+        if (rsm_.IsLoadingComplete()) {
             std::string nextScene = GameManager::GetInstance().GetNextScene();
 			//Log when loading is complete
 			Logger::Get().Info(DebugType::GameManager) << "Loading complete. Transitioning to next scene: " << nextScene << std::endl;

@@ -4,8 +4,8 @@
  * \primary_author
  *      Ng Jing Wen (50%)
  * \secondary_author
- *		Lur Pei Hao Stanley (50%)
- *      Sitara Anil
+ *		Lur Pei Hao Stanley (45%)
+ *      Sitara Anil (5%)
  * \brief	Contains Implementations of a Player System that
  *			updates the player entity's components.
  *
