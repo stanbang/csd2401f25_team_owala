@@ -36,6 +36,7 @@ namespace Framework {
 	void PlayerSystem::Update() {
         CheckPlayerDeathFromTraps();
         CheckPlayerDeathFromEnemies();
+        HandlePlayerDeath();
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_->gravity_.y);
         const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
@@ -306,6 +307,26 @@ namespace Framework {
         burst.size = { 100, 100 };
 
         MessageBus::Instance().Publish(burst);
+    }
+
+    void PlayerSystem::HandlePlayerDeath() {
+        EntityManager entityMgr(*entityStorage_);
+
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
+            if (entityMgr.HasComponent(entity, PlayerStateType)) {
+                PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+
+                if (state.isDead && entityMgr.HasComponent(entity, AnimationComponentType)) {
+                    AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
+
+                    if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
+                        MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
+                    }
+                }
+            }
+        }
     }
 
 } // namespace Framework

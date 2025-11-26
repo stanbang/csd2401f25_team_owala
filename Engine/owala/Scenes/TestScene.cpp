@@ -29,7 +29,6 @@ namespace TestScene {
         PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
-        PrefabSystem prefabSystem;
 
         // --- CONFIGURE COLLISION MATRIX ---
         // Player should collide with Platforms, but not with other Players 
@@ -48,9 +47,6 @@ namespace TestScene {
 
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
-        // Loading Platform Prefabs
-        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.json");
-
         EntityManager entityMgr(*ecs);
         Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
         Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];   

@@ -4783,15 +4783,6 @@ namespace Editor {
 			// Save button
 			if (ImGui::Button("Save Prefab to File")) {
 				SavePrefabToFile(selectedPrefabForEditing_);
-
-				// Reload to ensure everything is synchronized
-				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-					std::cout << "Failed to reload prefabs after save!" << std::endl;
-				}
-				else {
-					std::cout << "Reloaded prefabs after save" << std::endl;
-				}
-
 				palettePrepared_ = false;
 			}
 

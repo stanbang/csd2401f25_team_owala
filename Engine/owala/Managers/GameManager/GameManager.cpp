@@ -25,7 +25,6 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <RestartMenu.h>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -203,6 +202,16 @@ namespace Framework {
 			}
 			});
 
+		MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
+			// Change to RestartMenu when death animation finishes
+			if (event.deathAnimationFinished) {
+				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
+					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
+					SceneManager::GetInstance().LoadScene("RestartMenu");
+				}
+			}
+		});
+
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 
 		SceneGUID testScene{};
@@ -309,7 +318,6 @@ namespace Framework {
 		ImGui::End();*/
 
 		//ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_FirstUseEver);
-		RunRestartMenu();
 	}
 
 	void GameManager::Shutdown() {
@@ -335,16 +343,6 @@ namespace Framework {
 		delete systems_.levelResetter_;
 
 		instance = nullptr; // Reset instance pointer
-	}
-
-	void GameManager::RunRestartMenu()
-	{
-		if (!restartMenuInitialized)
-		{
-			restartMenu_.Initialize(systems_.ecs_,systems_.levelResetter_,systems_.resourceManager_);
-			restartMenuInitialized = true;
-		}
-		restartMenu_.Update();
 	}
 
 }
