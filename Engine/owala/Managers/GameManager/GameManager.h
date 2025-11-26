@@ -30,6 +30,7 @@
 #include "Core.h"
 #include "AISystem.h"
 #include "FileUtility.h"
+#include "AnimationSystem.h"
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
@@ -57,6 +58,7 @@ namespace Framework {
 		using SceneFunction = void(*)(void);
 	private:
 		static GameManager* instance;
+		std::string nextSceneToLoad_ = "";
 
 		struct SceneCallBacks {
 			SceneFunction fpInitialize = nullptr;
@@ -81,6 +83,7 @@ namespace Framework {
 			CameraSystem* camera_ = nullptr;  
 			LevelResetSystem* levelResetter_ = nullptr;
 			TransformationSystem* transformation_ = nullptr;
+			AnimationSystem* animationSystem_ = nullptr;
 		};
 
 		RegisteredSystems systems_;
@@ -104,6 +107,9 @@ namespace Framework {
 
 		// Internal Helpers
 		void UpdateNativeScripts();
+
+		// Preload all assets for a scene
+		void PreloadSceneAssets(const std::string& sceneName);
 
 		bool restartMenuInitialized = false;
 
@@ -134,7 +140,8 @@ namespace Framework {
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer, TextRenderSystem& textRenderer,
-			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation);
+			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation,
+			AnimationSystem& animSys);
 				
 #ifdef BUILD_EDITOR
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
@@ -147,6 +154,10 @@ namespace Framework {
 		void RegisterScriptToScene(SceneGUID sceneIndex, SceneFunction initFunction, SceneFunction updateFunction, SceneFunction freeFunction);
 		void UnregisterScriptFromScene(SceneGUID sceneIndex);
 
+		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
+		std::string GetNextScene() const { return nextSceneToLoad_; }
+		void InitiateLevelLoad(const std::string& levelName);
+		
 		/* Game Cycle Functions */
 		void Initialize() override;
 		void Update() override;

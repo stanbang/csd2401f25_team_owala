@@ -102,7 +102,7 @@ int main() {
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation, *animation); // Register all core systems to the GameManager
 
 	// Editor Registration
     #ifdef BUILD_EDITOR

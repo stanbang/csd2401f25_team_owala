@@ -55,6 +55,11 @@ namespace TestScene {
         if (players.size() > 0) {
             playerEntity = players[0];
         }
+		else {
+			Framework::Logger::Get().Error(DebugType::GameManager)
+                << "[TestScene] Player missing! PlayerCount: "
+                << players.size() << std::endl;
+		}
 
         std::vector<Entity>cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
         Entity mainCamera = 0;
@@ -63,6 +68,9 @@ namespace TestScene {
             cameraSystem->SetActiveCamera(mainCamera);
         }
         else {
+			Framework::Logger::Get().Error(DebugType::GameManager)
+                << "[TestScene] Camera missing! CameraCount: "
+                << cameras.size() << " Adding Camera Manually!" << std::endl;
             mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, false);
             Camera& cam = cameraSystem->GetCamera(mainCamera);
             cameraSystem->SetZoom(mainCamera, 540.0f); //540 for 1080p
