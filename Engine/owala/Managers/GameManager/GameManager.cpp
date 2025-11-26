@@ -232,7 +232,7 @@ namespace Framework {
 					continue;
 				}
 				// all other scenes use TestScene.cpp for now
-				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				//RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 			}
 		}
 		else {
@@ -247,7 +247,8 @@ namespace Framework {
 		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
-		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		//sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		sceneMgr.LoadScene("MainMenu");
 	}
 
 	void GameManager::Update() {

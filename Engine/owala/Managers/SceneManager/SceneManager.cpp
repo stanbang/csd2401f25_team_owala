@@ -145,15 +145,28 @@ namespace Framework {
 		UnloadScene(); // Unload current active scene first if any
 
 		EntityManager entityMgr(*entityStorageRef_);
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
-			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
-			if (sceneOwned.sceneName == sceneName) {
-				entityMgr.AddComponent(entity, ActiveTag{});
-				//entityStorageRef_->activeTag[entity] = ActiveTag{};
+		// Deserialize and populate the scene's entities if not populated yet
+		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
+			std::vector<Entity> entitiesList;
+			EntitySerializer::DeserializeSceneData(*entityStorageRef_, sceneToLoad.path, sceneToLoad.name, entitiesList);
+
+			for (Entity en : entitiesList) {
+				AddEntityToScene(sceneToLoad, en);
+				entityMgr.AddComponent(en, ActiveTag{});
 			}
-			else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
-				entityMgr.AddComponent(entity, ActiveTag{});
-				//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
+		}
+		else {
+			for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+				SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
+				if (sceneOwned.sceneName == sceneName) {
+					entityMgr.AddComponent(entity, ActiveTag{});
+					//entityStorageRef_->activeTag[entity] = ActiveTag{};
+				}
+				else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
+					entityMgr.AddComponent(entity, ActiveTag{});
+					//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
+				}
 			}
 		}
 

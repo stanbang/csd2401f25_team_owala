@@ -64,6 +64,9 @@ namespace Framework {
     void AISystem::Update() {
         EntityManager entityMgr(*ecs_);
 
+        std::vector<Entity> enemies = entityMgr.GetAllEntitiesWithComponent(EnemyTagType);
+        if (enemies.empty()) return;
+
         // Check if world is rotating
         bool worldIsRotating = false;
        
@@ -117,7 +120,7 @@ namespace Framework {
         }
 
         // Loop over all entities with an EnemyTagType and BirdAIComponent
-        for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
+        for (const Entity& enemy : enemies) {
 
             // PAUSE AI during world rotation
             if (worldIsRotating) {
