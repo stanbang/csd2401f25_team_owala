@@ -229,6 +229,13 @@ namespace Framework {
                     batchedSprite.maxUV = { 1.0f, 1.0f };
                 }
 
+				// UV Inset to prevent texture bleeding
+                /*float uvInset = 0.005f;
+                batchedSprite.minUV.x += uvInset;
+                batchedSprite.minUV.y += uvInset;
+                batchedSprite.maxUV.x -= uvInset;
+                batchedSprite.maxUV.y -= uvInset;*/
+
                 // --- Add to Batch ---
                 BatchKey key{ tex, renderOrder };
                 batches[key].push_back(batchedSprite);
