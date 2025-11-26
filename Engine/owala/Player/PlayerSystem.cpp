@@ -81,26 +81,28 @@ namespace Framework {
                 state.previousVelocityY = currentVelY;
 
                 // Horizontal Movement 
-                float targetVelX = 0.0f;
-                if (input_->KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
-                if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
-                vel.Vel.x = targetVelX;
+                if (!state.isDead) {
+                    float targetVelX = 0.0f;
+                    if (input_->KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
+                    if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
+                    vel.Vel.x = targetVelX;
 
-				// Apply Jumping
-                if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
-                    vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
+				    // Apply Jumping
+                    if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
+                        vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
 
-                    float jumpVolume = 0.3f;
-                    //messageBus
-                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume}); //empty cause currently theres nothign to pass and just for testing
-                }
+                        float jumpVolume = 0.3f;
+                        //messageBus
+                        MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume}); //empty cause currently theres nothign to pass and just for testing
+                    }
 
-				// Sets the direction the player is facing based on movement
-                if (targetVelX > 0.01f) {
-                    state.isFacingRight = true;
-                }
-                else if (targetVelX < -0.01f) {
-                    state.isFacingRight = false;
+				    // Sets the direction the player is facing based on movement
+                    if (targetVelX > 0.01f) {
+                        state.isFacingRight = true;
+                    }
+                    else if (targetVelX < -0.01f) {
+                        state.isFacingRight = false;
+                    }
                 }
 
                 // Animation State Handling

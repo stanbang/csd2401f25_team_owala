@@ -16,7 +16,6 @@ namespace TestScene {
 	using namespace Framework;
 
 	void Initialize() {
-        std::cout << "INITIALIZEEEEEE " << std::endl;
         //FileIOSystem fileIO;
 		//SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
@@ -72,7 +71,6 @@ namespace TestScene {
                 << "[TestScene] Camera missing! CameraCount: "
                 << cameras.size() << " Adding Camera Manually!" << std::endl;
             mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, false);
-            Camera& cam = cameraSystem->GetCamera(mainCamera);
             cameraSystem->SetZoom(mainCamera, 540.0f); //540 for 1080p
             float aspect = static_cast<float>(win_->getWidth()) / static_cast<float>(win_->getHeight());
             cameraSystem->SetAspectRatio(mainCamera, aspect);

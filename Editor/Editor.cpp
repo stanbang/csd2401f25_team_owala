@@ -1313,6 +1313,7 @@ namespace Editor {
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
 			// Add components required for the AI
+			entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
