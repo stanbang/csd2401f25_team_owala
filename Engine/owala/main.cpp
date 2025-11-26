@@ -99,7 +99,7 @@ int main() {
 	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win);
     CameraSystem* camera = new CameraSystem(*ecs);
     VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
-    SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
+    SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, transformation, /*drawColliders*/false);
     TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager

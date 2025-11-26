@@ -191,7 +191,7 @@ namespace Framework {
 
                     // Convert world-space size to screen-space size
                     // The key is to scale by the camera's zoom and aspect ratio
-                    float halfWidth = cam.zoom * cam.aspectRatio;
+                    float halfWidth = cam.zoom;
                     float halfHeight = cam.zoom;
 
                     screenHalfSize.x = halfSize.x / halfWidth;
