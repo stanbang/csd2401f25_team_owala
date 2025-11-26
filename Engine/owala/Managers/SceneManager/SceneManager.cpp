@@ -143,7 +143,7 @@ namespace Framework {
 		}
 
 		UnloadScene(); // Unload current active scene first if any
-
+		bool isMenuRestartScene = (sceneName == "MainMenu" || sceneName == "RestartMenu");
 		EntityManager entityMgr(*entityStorageRef_);
 		// Deserialize and populate the scene's entities if not populated yet
 		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
@@ -152,6 +152,9 @@ namespace Framework {
 
 			for (Entity en : entitiesList) {
 				AddEntityToScene(sceneToLoad, en);
+				if (isMenuRestartScene && entityMgr.HasComponent(en, PlayerTagType)) {
+					continue;
+				}
 				entityMgr.AddComponent(en, ActiveTag{});
 			}
 			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
@@ -160,10 +163,17 @@ namespace Framework {
 			for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
 				SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
 				if (sceneOwned.sceneName == sceneName) {
+					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
+						continue;
+					}
 					entityMgr.AddComponent(entity, ActiveTag{});
 					//entityStorageRef_->activeTag[entity] = ActiveTag{};
 				}
-				else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
+				// Handle persistent entities
+				else if (entityMgr.HasComponent(entity, PersistentTagType)) {
+					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
+						continue;
+					}
 					entityMgr.AddComponent(entity, ActiveTag{});
 					//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
 				}
@@ -175,6 +185,7 @@ namespace Framework {
 		scenes_.at(currentScene_).isLoaded = true;
 	}
 
+	// Also update the SceneGUID overload
 	void SceneManager::LoadScene(const SceneGUID sceneIndex) {
 		SceneAsset sceneToLoad = GetSceneAt(sceneIndex);
 		if (!sceneToLoad.IsValid()) {
@@ -183,7 +194,7 @@ namespace Framework {
 		}
 
 		UnloadScene(); // Unload current active scene first if any
-
+		bool isMenuRestartScene = (sceneToLoad.name == "MainMenu" || sceneToLoad.name == "RestartMenu");
 		EntityManager entityMgr(*entityStorageRef_);
 		// Deserialize and populate the scene's entities if not populated yet
 		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
@@ -192,6 +203,9 @@ namespace Framework {
 
 			for (Entity en : entitiesList) {
 				AddEntityToScene(sceneToLoad, en);
+				if (isMenuRestartScene && entityMgr.HasComponent(en, PlayerTagType)) {
+					continue;
+				}
 				entityMgr.AddComponent(en, ActiveTag{});
 			}
 			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
@@ -201,12 +215,17 @@ namespace Framework {
 			for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
 				SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
 				if (sceneOwned.sceneName == sceneToLoad.name) {
+					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
+						continue;
+					}
 					entityMgr.AddComponent(entity, ActiveTag{});
-					//entityStorageRef_->activeTag[entity] = ActiveTag{};
 				}
-				else if (entityMgr.HasComponent(entity, PersistentTagType)) { // Checks if entity has a scene component and is persistent
+				else if (entityMgr.HasComponent(entity, PersistentTagType)) {
+					// Skip persistent players when loading menu/restart scenes
+					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
+						continue;
+					}
 					entityMgr.AddComponent(entity, ActiveTag{});
-					//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
 				}
 			}
 		}
