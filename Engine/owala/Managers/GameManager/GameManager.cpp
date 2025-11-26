@@ -207,6 +207,7 @@ namespace Framework {
 			if (event.deathAnimationFinished) {
 				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
+					GetSystems().levelResetter_->RunReset();
 					SceneManager::GetInstance().LoadScene("RestartMenu");
 				}
 			}
