@@ -156,7 +156,7 @@ namespace Editor {
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
-		float baseGridCellSize_ = 50.f;   // NEW: World-space size of a cell at zoom 1.0
+		float baseGridCellSize_ = 100.f;   // NEW: World-space size of a cell at zoom 1.0
 
 
 		//Drag and Drop State

@@ -26,8 +26,8 @@
         {
             "type": "AABBCollider",
             "data": {
-                "halfSizeX": 50.0,
-                "halfSizeY": 50.0
+                "halfSizeX": 30.0,
+                "halfSizeY": 20.0
             }
         },
         {

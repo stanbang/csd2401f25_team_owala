@@ -28,8 +28,8 @@ namespace Framework {
          * \param rcm          Reference to ResourceManager for assets access.
          * \param gfx          Reference to Graphics subsystem for drawing.
          */
-        TextRenderSystem(EntityStorage& ecs, ResourceManager& rcm, Graphics& gfx)
-            : ecs_(ecs), rcm_(rcm), gfx_(gfx) {}
+        TextRenderSystem(EntityStorage& ecs, ResourceManager& rcm, Graphics& gfx, WindowsSystem& win)
+            : ecs_(ecs), rcm_(rcm), gfx_(gfx), win_(win) {}
 
         // Camera setter
         void SetCameraSystem(CameraSystem* cameraSystem) {
@@ -68,6 +68,7 @@ namespace Framework {
         EntityStorage& ecs_;          //!< ECS storage reference.
         Graphics& gfx_;          //!< Graphics subsystem reference.
         ResourceManager& rcm_;    //!< Resource manager reference.
+        WindowsSystem& win_;
         CameraSystem* cameraSystem_ = nullptr;
     };
 

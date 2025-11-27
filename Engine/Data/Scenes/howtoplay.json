@@ -1,0 +1,1 @@
+{"scene_name":"HowToPlay","entities":[{"name":"HowToPlayImage","layer":0,"render_layer":50,"custom_render_order":0,"components":{"position":{"x":0.0,"y":0.0},"TextureComponent":{"texture_key":"","half_size":{"x":50.0,"y":50.0}},"SceneOwned":{"sceneName":"HowToPlay"}},"tags":["ActiveTag","GUITag"]}]}

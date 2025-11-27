@@ -14,6 +14,7 @@
  *********************************************************************/
 #pragma once
 #include "ISystem.h"
+#include "Core.h"
 #include "EntityStorage.h"
 #include "ResourceManager.h"
 #include "EntityManager.h"
@@ -29,8 +30,8 @@ namespace Framework{
 	class GuiSystem : public ISystem {
 	public:
 		// Constructor taking references to EntityStorage and ResourceManager
-		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, WindowsSystem& win)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), windowsSystem_(&win) {
+		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, WindowsSystem& win, CoreEngine& engine)
+			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), windowsSystem_(&win), engine_(&engine) {
 		}
 		void Initialize() override;
 		void Update() override;
@@ -52,6 +53,7 @@ namespace Framework{
 		ResourceManager* resourceManager_ = nullptr;
 		InputSystem* inputSystem_ = nullptr;
 		WindowsSystem* windowsSystem_ = nullptr;
+		CoreEngine* engine_ = nullptr;
 
 		//Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
 

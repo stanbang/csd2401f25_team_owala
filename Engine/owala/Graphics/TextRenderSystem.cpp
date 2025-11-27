@@ -15,6 +15,9 @@
  *********************************************************************/
 
 #include "TextRenderSystem.h"
+#include <cmath>
+#include "GuiSystem.h"
+#include "WindowsSystem.h"
 
 namespace Framework {
 
@@ -113,12 +116,19 @@ namespace Framework {
 
             // Total rendered size in world coords
             Vector2D totalSize = Vector2D(renderedWidth, totalHeight);
+
             // Set halfsize and convert to screen space if is GUI
             if (camera != 0 && cameraSystem_ && entityMgr.HasComponent(entity, GUITagType)) {
-                textComp.halfSize = cameraSystem_->WorldToScreen(totalSize, camera) * 0.5f;
+                Vector2D windowSize = win_.getWindowSize();
+                Vector2D screenHalfSize(totalSize.x / windowSize.x, totalSize.y / windowSize.y);
+
+                textComp.halfSize.x = std::abs(screenHalfSize.x);
+                textComp.halfSize.y = std::abs(screenHalfSize.y);
             }
             else {
-                textComp.halfSize = totalSize * 0.5f;
+                Vector2D halfSize = totalSize * 0.5f;
+                textComp.halfSize.x = std::abs(halfSize.x);
+                textComp.halfSize.y = std::abs(halfSize.y);
             }
         }
         catch (const std::exception& e) {

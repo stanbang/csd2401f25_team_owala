@@ -25,6 +25,7 @@ namespace Framework {
 
     void AnimationSystem::Update() {
 		EntityManager entityMgr(*entityStorage_);
+
         // Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
 			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
@@ -34,6 +35,7 @@ namespace Framework {
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 
+
 			if (textureComponent.textureKey.empty()) {
 				continue; // Don't try to load animation for empty texture
 			}
@@ -42,6 +44,7 @@ namespace Framework {
 			bool isFacingRight = true;
 			// The last texture key used
 			std::string previousTextureKey = textureComponent.textureKey;
+			std::string baseTextureKey = textureComponent.textureKey;
 
 			// Handle Player Animation State to Texture Key mapping
 			if (entityMgr.HasComponent(entity, PlayerTagType)) {
@@ -54,19 +57,19 @@ namespace Framework {
 
 				// Map AnimationState to Texture Key
 				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    textureComponent.textureKey = "Eli_Idle_Spritesheet.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
-				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
-				case AnimationState::JUMPING: textureComponent.textureKey = "Eli_Jump_Spritesheet.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
-				case AnimationState::FALLING: textureComponent.textureKey = "Eli_Falling_Spritesheet.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
-				case AnimationState::DEATH:   textureComponent.textureKey = "Eli_Death_Spritesheet.png";/*std::cout << "Player State : DEATH \n";*/ break; // When dying, use death animation
+				case AnimationState::IDLE:    baseTextureKey = "SB_Eli_Idle_Spritesheet_1.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
+				case AnimationState::RUNNING: baseTextureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
+				case AnimationState::JUMPING: baseTextureKey = "Eli_Jump_Spritesheet.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
+				case AnimationState::FALLING: baseTextureKey = "Eli_Falling_Spritesheet.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
+				case AnimationState::DEATH:   baseTextureKey = "SB_Eli_Death_Spritesheet_1.png";/*std::cout << "Player State : DEATH \n";*/ break; // When dying, use death animation
 				}
 
 			}
 
 			else if (entityMgr.HasComponent(entity, FakePlayerTagType)) {
 				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    textureComponent.textureKey = "Eli_Idle_Spritesheet.png"; break; //When idle, use idle animation
-				case AnimationState::RUNNING: textureComponent.textureKey = "Eli_Walk_Spritesheet.png"; break; //When running, use running animation
+				case AnimationState::IDLE:    baseTextureKey = "SB_Eli_Idle_Spritesheet_1.png"; break; //When idle, use idle animation
+				case AnimationState::RUNNING: baseTextureKey = "Eli_Walk_Spritesheet.png"; break; //When running, use running animation
 				}
 			}
 
@@ -78,29 +81,33 @@ namespace Framework {
 				isFacingRight = birdAI.isFacingRight; // use bird facing direction
 
 				switch (birdAI.state) {
-				case BirdState::IDLE: textureComponent.textureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::WAKING: textureComponent.textureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::CHASE: textureComponent.textureKey = "SB_BirdEnemy_Fly_Spritesheet.png"; break;
-				case BirdState::HOVER: textureComponent.textureKey = "SB_BirdEnemy_Fly_Spritesheet.png"; break;
-				case BirdState::ATTACK: textureComponent.textureKey = "SB_BirdEnemy_DiveAttack_Spritesheet.png"; break;
+				case BirdState::IDLE: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
+				case BirdState::WAKING: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
+				case BirdState::CHASE: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
+				case BirdState::HOVER: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
+				case BirdState::ATTACK: baseTextureKey = "SB_BirdEnemy_DiveAttack_Spritesheet.png"; break;
 				}
 			}
+
+			// Load animation info using base texture key
+			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
+				resourceManager_->loadAnimationInfo(baseTextureKey);
+			}
+			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(baseTextureKey);
 
 			// Check if the texture key has changed
-			bool animationStateChanged = (previousTextureKey != textureComponent.textureKey);
+			bool animationStateChanged = (previousTextureKey != baseTextureKey);
 
-			// Ensure the AnimationInfo for the current texture is loaded
-			if (!resourceManager_->has<AnimationInfo>(textureComponent.textureKey)) {
-				// Try to load it. If it fails, skip this entity for this frame to prevent crash.
-				if (!resourceManager_->loadAnimationInfo(textureComponent.textureKey)) {
-					Logger::Get().Error(DebugType::ResourceManager)
-						<< "Failed to load AnimationInfo for texture key: " << textureComponent.textureKey << std::endl;
-					continue;
+			// Special check: If we are in a multi-sheet animation, previousTextureKey might be "Part_2" 
+			// while base is "Part_1". We need to check if previousTextureKey is valid for this animation.
+			if (animationStateChanged && !animationInfo.sheets.empty()) {
+				for (const auto& sheet : animationInfo.sheets) {
+					if (sheet.textureKey == previousTextureKey) {
+						animationStateChanged = false; // It's just a different part of the same animation
+						break;
+					}
 				}
 			}
-
-			// Get AnimationInfo from ResourceManager
-			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(textureComponent.textureKey); // Retrieve the respective AnimationInfo
 
 			try {
 				// Update animation component properties based on the retrieved AnimationInfo
@@ -148,26 +155,66 @@ namespace Framework {
 				}
 			}
 
-			// Calculate UV coordinates based on the current frame
-			if (animationComponent.frameCount > 0) {
-				float frameUVWidth = 1.0f / (float)animationComponent.frameCount; // Width of each frame in UV space
+			// Multi spritesheet support
+			if (!animationInfo.sheets.empty()) {
+				int framesCovered = 0;
+				bool foundSheet = false;
 
-				// Calculate the standard (right-facing) U coordinates
+				for (const auto& sheet : animationInfo.sheets) {
+					// Check if the current global frame falls within this sheet's range
+					if (animationComponent.currentFrame < (framesCovered + sheet.frameCount)) {
+
+						// Swap the texture to the specific file for this segment
+						textureComponent.textureKey = sheet.textureKey;
+
+						// Calculate "local" frame index (e.g., Global Frame 15 minus 10 previous frames = Local Frame 5)
+						int localFrame = animationComponent.currentFrame - framesCovered;
+
+						// Calculate UVs for this specific sheet
+						// Note: Using sheet.frameCount, NOT animationComponent.frameCount (which is the total)
+						if (sheet.frameCount > 0) {
+							float frameUVWidth = 1.0f / (float)sheet.frameCount;
+							float u_min = (float)localFrame * frameUVWidth;
+							float u_max = u_min + frameUVWidth;
+
+							if (isFacingRight) {
+								animationComponent.minUV.x = u_min;
+								animationComponent.maxUV.x = u_max;
+							}
+							else {
+								animationComponent.minUV.x = u_max;
+								animationComponent.maxUV.x = u_min;
+							}
+						}
+
+						// V is standard 0-1 for horizontal strips
+						animationComponent.minUV.y = 0.0f;
+						animationComponent.maxUV.y = 1.0f;
+
+						foundSheet = true;
+						break;
+					}
+					framesCovered += sheet.frameCount;
+				}
+			}
+			// Fallback for Single-Texture Logic
+			else if (animationComponent.frameCount > 0) {
+				// Ensure texture key matches the base key
+				textureComponent.textureKey = baseTextureKey;
+
+				float frameUVWidth = 1.0f / (float)animationComponent.frameCount;
 				float u_min = (float)animationComponent.currentFrame * frameUVWidth;
 				float u_max = u_min + frameUVWidth;
 
-				// Apply horizontal flip if not facing right
 				if (isFacingRight) {
 					animationComponent.minUV.x = u_min;
 					animationComponent.maxUV.x = u_max;
 				}
 				else {
-					// Invert horizontally by swapping min and max U
 					animationComponent.minUV.x = u_max;
 					animationComponent.maxUV.x = u_min;
 				}
 
-				// V (Vertical) remains 0.0 to 1.0 for a single-row sprite sheet
 				animationComponent.minUV.y = 0.0f;
 				animationComponent.maxUV.y = 1.0f;
 			}

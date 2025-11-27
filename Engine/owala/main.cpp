@@ -102,11 +102,11 @@ int main() {
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
     gm->SetEngine(engine); // Link the engine to the game manager
 	AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
-	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win);
+	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win, engine);
     CameraSystem* camera = new CameraSystem(*ecs);
     VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, transformation, /*drawColliders*/false);
-    TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx);
+    TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx, *win);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation, *animation); // Register all core systems to the GameManager
 

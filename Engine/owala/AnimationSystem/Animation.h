@@ -14,9 +14,16 @@
  *********************************************************************/
 #pragma once
 
+struct SpriteSheetSegment {
+    std::string textureKey;
+    int frameCount;
+};
+
 struct AnimationInfo {
     int frameCount = 0;
     float frameDuration = 0;
     bool isLooping = false;
     int startFrame = 0;
+
+    std::vector<SpriteSheetSegment> sheets; // Store relevant spritesheets
 };
