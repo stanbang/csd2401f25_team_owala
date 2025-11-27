@@ -298,7 +298,7 @@ namespace Framework {
 
         ParticleBurstEvent burst;
         burst.position = position;  // Player center
-        burst.offset = { 0.0f, 0.0f };  // Shift to feet
+        burst.offset = { 0.0f, 38.0f };  // Shift to feet
         burst.textureKey = "SB_PlayerLand_VFX_Spritesheet.png";
         burst.isAnimated = true;
         burst.style = EmissionStyle::FROM_POINT;

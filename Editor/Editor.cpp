@@ -1535,7 +1535,7 @@ namespace Editor {
 					if (!isCurrentScene) {
 						isGamePlaying = false;
 						gameManager_->GetSystems().levelResetter_->RunReset();
-						ResetEditorCamera();
+						//ResetEditorCamera();
 						if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
 							Framework::Logger::Get().Error(DebugType::Editor)
 								<< "Failed to reload prefabs before scene load!" << std::endl;
@@ -1545,6 +1545,31 @@ namespace Editor {
 								<< "Successfully reloaded prefabs before scene load" << std::endl;
 						}
 						sceneMgr.LoadScene(id);
+
+						editorCamera_ = 0;
+						if (cameraSystem_) {
+							// Create a new independent camera entity
+							editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false);
+
+							// Re-apply default editor settings
+							Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+							cam.size = { 20.0f, 20.0f };
+							cam.zoom = 1.0f;
+
+							// Set Zoom/Aspect Ratio
+							cameraSystem_->SetZoom(editorCamera_, 540.0f);
+							float aspect = (gameViewportSize_.y > 0) ? gameViewportSize_.x / gameViewportSize_.y : 16.0f / 9.0f;
+							cameraSystem_->SetAspectRatio(editorCamera_, aspect);
+
+							// Update state trackers
+							defaultEditorCameraState_.position = { 0.0f, 0.0f };
+							defaultEditorCameraState_.zoom = 1.0f;
+							currentEditorCameraState_ = defaultEditorCameraState_;
+
+							// Log for verification
+							Framework::Logger::Get().Info(DebugType::Editor) << "Re-created Editor Camera with ID: " << editorCamera_ << std::endl;
+						}
+
 						ApplyAllPrefabChangesToCurrentScene();
 
 						palettePrepared_ = false;
@@ -4421,6 +4446,7 @@ namespace Editor {
 				if (physics_->IsPaused()) physics_->SetPaused(false);
 
 				if (gizmoSystem_) gizmoSystem_->SetGizmoMode(GizmoMode::None);
+
 			}
 			ImGui::PopStyleColor();
 

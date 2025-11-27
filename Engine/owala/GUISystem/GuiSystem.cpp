@@ -28,6 +28,10 @@ namespace Framework {
 	}
 
 	void GuiSystem::Update() {
+		if (engine_->IsEditorMode()) {
+			return; // STOP here. Do not update buttons, do not render UI.
+		}
+
 		EntityManager entityMgr(*entityStorage_);
 
 		// Get mouse position in world coordinates
