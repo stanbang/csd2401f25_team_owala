@@ -2466,7 +2466,7 @@ namespace Editor {
 					Vector2D ScaleFactor = { scale.axes.x, scale.axes.y };
 
 					bool active = false;
-					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1, 0.1, 10.0, "%.2f")) {
+					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1, 0.1, 5.0, "%.2f")) {
 						scale.axes.x = ScaleFactor.x;
 						scale.axes.y = ScaleFactor.y;
 
@@ -2483,7 +2483,7 @@ namespace Editor {
 
 					if (uniform) {
 						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1, 0.1, 10.0, "%.2f")) {
+						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1, 0.1, 5.0, "%.2f")) {
 							scale.axes.x = uniformValue;
 							scale.axes.y = uniformValue;
 
