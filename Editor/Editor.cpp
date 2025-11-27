@@ -725,7 +725,7 @@ namespace Editor {
 		else brushPreviewPos_ = snappedPos;
 
 		// 5. Calculate Screen Rect
-		Vector2D halfSize = { baseGridCellSize_, baseGridCellSize_ };
+		Vector2D halfSize = { baseGridCellSize_/2, baseGridCellSize_/2 };
 
 		Vector2D worldMin = { snappedPos.x - halfSize.x, snappedPos.y - halfSize.y };
 		Vector2D worldMax = { snappedPos.x + halfSize.x, snappedPos.y + halfSize.y };
@@ -2384,7 +2384,7 @@ namespace Editor {
 			ImGui::Separator();
 			if (unifiedRotation) {
 				float unifiedDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Rotation (Degrees)", &unifiedDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
 					rotation.textureAngle = newRadians;
 					rotation.colliderAngle = newRadians;
@@ -2404,7 +2404,7 @@ namespace Editor {
 			else {
 				ImGui::Text("Texture Rotation");
 				float textureDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Texture (Degrees)", &textureDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
@@ -2413,7 +2413,7 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Text("Collider Rotation");
 				float colliderDegrees = static_cast<float>(rotation.colliderAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Collider (Degrees)", &colliderDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
@@ -2465,7 +2465,7 @@ namespace Editor {
 					Vector2D ScaleFactor = { scale.axes.x, scale.axes.y };
 
 					bool active = false;
-					if (ImGui::InputFloat2("Scale (X, Y)", &ScaleFactor.x, "%.2f")) {
+					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1, 0.1, 10.0, "%.2f")) {
 						scale.axes.x = ScaleFactor.x;
 						scale.axes.y = ScaleFactor.y;
 
@@ -2482,7 +2482,7 @@ namespace Editor {
 
 					if (uniform) {
 						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-						if (ImGui::SliderFloat("Uniform Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
+						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1, 0.1, 10.0, "%.2f")) {
 							scale.axes.x = uniformValue;
 							scale.axes.y = uniformValue;
 
@@ -4055,9 +4055,9 @@ namespace Editor {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-			/*	if (showGrid_) {
+				if (showGrid_) {
 					DrawEditorGrid(drawList);
-				}*/
+				}
 
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
@@ -4309,7 +4309,28 @@ namespace Editor {
 			"Custom"
 		};
 
-		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+		// Determine dropdown index based on the actual enum value
+		int currentRenderLayerIndex = 5; // Default to Custom
+
+		// Check the actual enum, not the numeric value
+		if (props.renderLayer == Framework::RenderLayer::Background) {
+			currentRenderLayerIndex = 0;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Platform) {
+			currentRenderLayerIndex = 1;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Enemy) {
+			currentRenderLayerIndex = 2;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Player) {
+			currentRenderLayerIndex = 3;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::UI) {
+			currentRenderLayerIndex = 4;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Custom) {
+			currentRenderLayerIndex = 5;
+		}
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Render Layer:");
@@ -4318,7 +4339,32 @@ namespace Editor {
 
 		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
 			IM_ARRAYSIZE(renderLayerNames))) {
-			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+			// Convert dropdown index back to enum
+			switch (currentRenderLayerIndex) {
+			case 0:
+				props.renderLayer = Framework::RenderLayer::Background;
+				props.customRenderOrder = -100;
+				break;
+			case 1:
+				props.renderLayer = Framework::RenderLayer::Platform;
+				props.customRenderOrder = 50;
+				break;
+			case 2:
+				props.renderLayer = Framework::RenderLayer::Enemy;
+				props.customRenderOrder = 75;
+				break;
+			case 3:
+				props.renderLayer = Framework::RenderLayer::Player;
+				props.customRenderOrder = 100;
+				break;
+			case 4:
+				props.renderLayer = Framework::RenderLayer::UI;
+				props.customRenderOrder = 200;
+				break;
+			case 5:
+				props.renderLayer = Framework::RenderLayer::Custom;
+				break;
+			}
 		}
 
 		ImGui::Spacing();
@@ -4345,11 +4391,16 @@ namespace Editor {
 		// Show render order info
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Render Order Info")) {
-			int effectiveRenderOrder = props.renderLayer == Framework::RenderLayer::Custom
-				? props.customRenderOrder
-				: static_cast<int>(props.renderLayer);
+			int effectiveRenderOrder;
+			if (props.renderLayer == Framework::RenderLayer::Custom) {
+				effectiveRenderOrder = props.customRenderOrder;
+			}
+			else {
+				effectiveRenderOrder = static_cast<int>(props.renderLayer);
+			}
 
 			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
+			ImGui::Text("Current Render Layer Enum: %d", static_cast<int>(props.renderLayer));
 			ImGui::Spacing();
 
 			ImGui::TextWrapped("Standard render order:");
@@ -4618,7 +4669,7 @@ namespace Editor {
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos, bool normalized) const
 	{
-		const float cell = normalized ? 0.1f : baseGridCellSize_; // world units
+		const float cell = normalized ? 0.1f : baseGridCellSize_/2; // world units
 		float snappedX = std::round(worldPos.x / cell) * cell;
 		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
@@ -4635,7 +4686,6 @@ namespace Editor {
 
 #pragma endregion
 
-#pragma region PREFAB EDITOR
 #pragma region PREFAB EDITOR
 	void Editor::ShowPrefabEditor() {
 		using namespace Framework;
