@@ -1,3 +1,18 @@
+/*****************************************************************//**
+ * \file   GameMessages.h
+ *
+ * \primary_author
+ *      Ng Jing Wen (70%)
+ * \secondary_author
+ *		Ng Jordain Ying Zhe (30%)
+ *
+ * \brief	Declarations of various game event message structs for 
+ *			inter-system communication.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #pragma once
 #include "Entity.h"
 

@@ -1,11 +1,15 @@
 /*****************************************************************//**
 * \file   EntitySerializer.cpp
 *
-* \primary_author
-*       Jason Lou (70%)
-*
-* \secondary_author
-*       Yar Xuan (30%)
+ * \primary_author
+ *		Lou Jason (50%)
+ * \secondary_author
+ *      Lur Pei Hao Stanley (10%)
+ *      Sitara Anil (10%)
+ *      Ng Jordain Ying Zhe (10%)
+ *      Ng Jing Wen (10%)
+ *      Yar Xuan (10%)
+*		
 *
 * \brief    This file defines the EntitySerializer class, which provides a static interface for
 			serializing (saving) and deserializing (loading) game entities, their components,

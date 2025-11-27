@@ -2,7 +2,9 @@
  * \file   SpriteRenderSystem.cpp
  *
  * \primary_author
- *      Ng Jordain Ying Zhe (100%)
+ *      Ng Jordain Ying Zhe (90%)
+ * \secondary_author 
+ *      Ng Jing Wen (10%)
  *
  * \brief
  *      Implements the SpriteRenderSystem responsible for rendering sprites,
