@@ -4284,7 +4284,28 @@ namespace Editor {
 			"Custom"
 		};
 
-		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+		// Determine dropdown index based on the actual enum value
+		int currentRenderLayerIndex = 5; // Default to Custom
+
+		// Check the actual enum, not the numeric value
+		if (props.renderLayer == Framework::RenderLayer::Background) {
+			currentRenderLayerIndex = 0;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Platform) {
+			currentRenderLayerIndex = 1;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Enemy) {
+			currentRenderLayerIndex = 2;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Player) {
+			currentRenderLayerIndex = 3;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::UI) {
+			currentRenderLayerIndex = 4;
+		}
+		else if (props.renderLayer == Framework::RenderLayer::Custom) {
+			currentRenderLayerIndex = 5;
+		}
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Render Layer:");
@@ -4293,7 +4314,32 @@ namespace Editor {
 
 		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
 			IM_ARRAYSIZE(renderLayerNames))) {
-			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+			// Convert dropdown index back to enum
+			switch (currentRenderLayerIndex) {
+			case 0:
+				props.renderLayer = Framework::RenderLayer::Background;
+				props.customRenderOrder = -100;
+				break;
+			case 1:
+				props.renderLayer = Framework::RenderLayer::Platform;
+				props.customRenderOrder = 50;
+				break;
+			case 2:
+				props.renderLayer = Framework::RenderLayer::Enemy;
+				props.customRenderOrder = 75;
+				break;
+			case 3:
+				props.renderLayer = Framework::RenderLayer::Player;
+				props.customRenderOrder = 100;
+				break;
+			case 4:
+				props.renderLayer = Framework::RenderLayer::UI;
+				props.customRenderOrder = 200;
+				break;
+			case 5:
+				props.renderLayer = Framework::RenderLayer::Custom;
+				break;
+			}
 		}
 
 		ImGui::Spacing();
@@ -4320,11 +4366,16 @@ namespace Editor {
 		// Show render order info
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Render Order Info")) {
-			int effectiveRenderOrder = props.renderLayer == Framework::RenderLayer::Custom
-				? props.customRenderOrder
-				: static_cast<int>(props.renderLayer);
+			int effectiveRenderOrder;
+			if (props.renderLayer == Framework::RenderLayer::Custom) {
+				effectiveRenderOrder = props.customRenderOrder;
+			}
+			else {
+				effectiveRenderOrder = static_cast<int>(props.renderLayer);
+			}
 
 			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
+			ImGui::Text("Current Render Layer Enum: %d", static_cast<int>(props.renderLayer));
 			ImGui::Spacing();
 
 			ImGui::TextWrapped("Standard render order:");
