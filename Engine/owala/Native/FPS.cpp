@@ -26,7 +26,6 @@ void FPS::OnUpdate() {
 
 		const float updateInterval = 0.25f;
 		if (accum_ >= updateInterval) {
-			std::cout << "Hello" << std::endl;
 			float fps = frames_ / accum_;
 
 			TextComponent& text = entityMgr.GetComponent<TextComponent>(self);
