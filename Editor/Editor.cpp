@@ -3963,15 +3963,17 @@ namespace Editor {
 		// Camera Controls (WASD, Up/Down Arrows, R)
 		if (editorCamera_ != 0) {
 			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+			// Mark this camera as editor-controlled
+			cam.isEditorControlled = true;
+
 			const float dt = Framework::Time::UnscaledDeltaTime();
 			const float camSpeed = 2000.0f;
 
-			// Move camera with WASD
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) cam.position.y += camSpeed * dt;
-			if (ImGui::IsKeyPressed(ImGuiKey_S)) cam.position.y -= camSpeed * dt;
-			if (ImGui::IsKeyPressed(ImGuiKey_A)) cam.position.x -= camSpeed * dt;
-			if (ImGui::IsKeyPressed(ImGuiKey_D)) cam.position.x += camSpeed * dt;
-
+			if (ImGui::IsKeyDown(ImGuiKey_W)) cam.position.y += camSpeed * dt;
+			if (ImGui::IsKeyDown(ImGuiKey_S)) cam.position.y -= camSpeed * dt;
+			if (ImGui::IsKeyDown(ImGuiKey_A)) cam.position.x -= camSpeed * dt;
+			if (ImGui::IsKeyDown(ImGuiKey_D)) cam.position.x += camSpeed * dt;
 			// Zoom in/out using Up / Down arrow keys
 			if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
 				cam.zoom *= 0.8f; // zoom in

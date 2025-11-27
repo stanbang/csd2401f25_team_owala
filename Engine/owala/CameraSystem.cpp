@@ -56,6 +56,11 @@ namespace Framework {
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
 
+            // Skip cameras that are controlled by the editor
+            if (camera.isEditorControlled) {
+                continue;
+            }
+
             // Keep square coordinates — no aspect ratio scaling
             camera.size.x = 2.0f * camera.zoom * camera.aspectRatio;
             camera.size.y = 2.0f * camera.zoom;
@@ -73,12 +78,11 @@ namespace Framework {
                 }
             }
 
-            // Print camera position
-			//Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
-			//	<< " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
+            // Print camera position (optional debug)
+            // Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
+            //     << " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
         }
     }
-
     /**
      * \brief Converts a world-space position to normalized screen-space coordinates.
      * \param worldPos Position in world coordinates.

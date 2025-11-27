@@ -60,21 +60,15 @@ namespace TestScene {
                 << players.size() << std::endl;
 		}
 
-        std::vector<Entity>cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
+        std::vector<Entity> cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
         Entity mainCamera = 0;
         if (cameras.size() > 0) {
             mainCamera = cameras[0];
             cameraSystem->SetActiveCamera(mainCamera);
-        }
-        else {
-			Framework::Logger::Get().Error(DebugType::GameManager)
-                << "[TestScene] Camera missing! CameraCount: "
-                << cameras.size() << " Adding Camera Manually!" << std::endl;
-            mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, false);
-            cameraSystem->SetZoom(mainCamera, 540.0f); //540 for 1080p
-            float aspect = static_cast<float>(win_->getWidth()) / static_cast<float>(win_->getHeight());
-            cameraSystem->SetAspectRatio(mainCamera, aspect);
-            cameraSystem->SetActiveCamera(mainCamera);
+
+            // Ensure game camera is NOT editor-controlled
+            Camera& gameCam = cameraSystem->GetCamera(mainCamera);
+            gameCam.isEditorControlled = false;
         }
 
         if (playerEntity && mainCamera) {

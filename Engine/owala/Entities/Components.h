@@ -136,6 +136,7 @@ namespace Framework{
 		uint32_t targetEntity = 0;        // Use uint32_t instead
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
+		bool isEditorControlled = false;   // NEW: Prevent game from moving this camera
 	};
 
 	struct TextureComponent {
