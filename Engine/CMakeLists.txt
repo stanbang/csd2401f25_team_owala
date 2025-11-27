@@ -56,11 +56,18 @@ file(GLOB_RECURSE EDITOR_SRC
 # ======================= Engine Executable =========================
 add_executable(${CMAKE_PROJECT_NAME}_Engine ${ENGINE_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Engine PRIVATE -DBUILD_ENGINE)
-set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES FOLDER "")
+set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES 
+    FOLDER ""
+    OUTPUT_NAME "StageBound"
+)
 
 # ======================= Editor Executable =========================
 add_executable(${CMAKE_PROJECT_NAME}_Editor ${ENGINE_SRC} ${EDITOR_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Editor PRIVATE -DBUILD_EDITOR)
+set_target_properties(${CMAKE_PROJECT_NAME}_Editor PROPERTIES 
+    FOLDER ""
+    OUTPUT_NAME "StageBound_Editor"
+)
 
 # ======================= File Organization for Visual Studio =========================
 foreach(source IN LISTS ENGINE_SRC)
