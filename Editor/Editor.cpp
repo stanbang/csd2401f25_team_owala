@@ -1320,8 +1320,9 @@ namespace Editor {
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
 			entityMgr.AddComponent<AnimationComponent>(bird, {});
 			entityMgr.AddComponent<RotationFlag>(bird, {});
+			entityMgr.AddComponent<Rotation>(bird, Rotation(0.0f, 0.0f));
 
-			RigidBody rb;
+			RigidBody rb;	
 			rb.SetMass(1.0f); // Give it some mass
 			rb.isAffectedByGravity = false; // Make sure it doesn't fall
 			entityMgr.AddComponent<RigidBody>(bird, rb);
