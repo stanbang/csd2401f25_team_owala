@@ -383,6 +383,16 @@ namespace Editor {
 	}
 	void Editor::Update() {
 
+		// SAFETY BLOCK FOR CONTEXT SWITCH (ALT TAB OR WTV) 
+		if (gameManager_) {
+			cameraSystem_ = gameManager_->GetSystems().camera_;
+			graphicsSystem_ = gameManager_->GetSystems().gfx_;
+			transformationSystem_ = gameManager_->GetSystems().transformation_;
+			if (!transformationSystem_) {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not available" << std::endl;
+			}
+		}
+
 		if (!palettePrepared_ && resourceManager_) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
 			PreparePaletteItems();
