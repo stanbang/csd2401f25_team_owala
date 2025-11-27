@@ -315,7 +315,7 @@ namespace Editor {
 		*/
 		void PreparePaletteItems();
 
-		void LoadTilesFromFile();
+		//void LoadTilesFromFile();
 		void PrepareTilePaletteItems();
 
 		//ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);

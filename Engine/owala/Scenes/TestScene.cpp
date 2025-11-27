@@ -21,7 +21,7 @@ namespace TestScene {
 		GameManager& gm = GameManager::GetInstance();
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
-		WindowsSystem* win_ = gm.GetSystems().win_;
+		//WindowsSystem* win_ = gm.GetSystems().win_;
 		//ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
         CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
         SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
