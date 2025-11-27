@@ -105,6 +105,7 @@ namespace Editor {
 
 		void Begin(Entity entity, Framework::ComponentType compType);
 		void End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManagerRef);
+		void Flush();
 	};
 
 	class Editor : public Framework::ISystem {

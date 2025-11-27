@@ -151,6 +151,24 @@ namespace Editor {
 		}
 	}
 
+	void EditSession::Flush() {
+		using namespace Framework;
+
+		if (!active) return;
+
+		EntityStorage* ecs = GameManager::GetInstance().GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
+		if (!entityMgr.ValidateEntity(entityInEdit)) {
+			*this = {};
+			return;
+		}
+
+		std::stringstream ss;
+		ss << "Modified " << ComponentToString(compInEdit) << " in " << entityMgr.GetProperties(entityInEdit).name << std::endl;
+		End(entityInEdit, compInEdit, ss.str(), *GameManager::GetInstance().GetEditor()->GetHistoryMgr());
+	}
+
 	// Add these member variable definitions at the top of your Editor class implementation
 	// (or wherever you have other member variable initializations)
 
@@ -1065,6 +1083,7 @@ namespace Editor {
 					selectedTagIndex = 0;
 				}
 			}
+			editSession.Flush();
 		}
 	}
 
