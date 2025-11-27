@@ -179,6 +179,7 @@ namespace Framework {
                 }
 #endif
                 // --- Main State Machine ---
+                // Demon eye inspiration from terraria
                 switch (ai.state) {
                 case BirdState::IDLE:
                     HandleIdleState(enemy, ai, birdPos, playerPos);
@@ -197,6 +198,7 @@ namespace Framework {
                     break;
                 case BirdState::HOVER:
                     HandleHoverState(enemy, ai, birdPos, {}, playerPos, {});
+                    
                     break;
                 }
 
