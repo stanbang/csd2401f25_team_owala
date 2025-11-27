@@ -1,3 +1,19 @@
+/*****************************************************************//**
+* \file   History.cpp
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file defines the HistoryManager class. History is a Editor-Only
+*			system. The History system stores ECS changes in the Editor to the
+*			Undo stack. Undo operation recording API is defined here.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "History.h"
 #include "EntityManager.h"
 #include "EntitySerializer.h"

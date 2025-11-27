@@ -1,3 +1,20 @@
+/*****************************************************************//**
+* \file   History.h
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file declares the HistoryManager class and other structures associated 
+*			to the History (Undo/Redo System). History is a Editor-Only
+*			system. The History system stores ECS changes in the Editor to the
+*			Undo stack.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 // Entity
 #include "Entity.h"
