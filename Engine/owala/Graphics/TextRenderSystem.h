@@ -58,7 +58,7 @@ namespace Framework {
         void RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp, const Entity camera);
 
         // Calculate and update text halfsize if needed
-        void UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp, const Entity camera);
+        void UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp);
 
         // Calculate and update wrapped lines if needed
         void UpdateWrappedText(TextComponent& textComp);

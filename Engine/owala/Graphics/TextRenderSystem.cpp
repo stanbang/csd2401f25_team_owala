@@ -46,7 +46,7 @@ namespace Framework {
             // Only calculate if data changed
             if (textComp.isDirty) {
                 UpdateWrappedText(textComp);
-                UpdateTextBounds(entity, entityMgr, textComp, activeCamera);
+                UpdateTextBounds(entity, entityMgr, textComp);
                 textComp.isDirty = false;
             }
 
@@ -98,7 +98,7 @@ namespace Framework {
     /**
      * \brief Calculate and update text halfsize 
      */
-    void TextRenderSystem::UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp, const Entity camera) {
+    void TextRenderSystem::UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp) {
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
 
@@ -118,7 +118,7 @@ namespace Framework {
             Vector2D totalSize = Vector2D(renderedWidth, totalHeight);
 
             // Set halfsize and convert to screen space if is GUI
-            if (camera != 0 && cameraSystem_ && entityMgr.HasComponent(entity, GUITagType)) {
+            if (entityMgr.HasComponent(entity, GUITagType)) {
                 Vector2D windowSize = win_.getWindowSize();
                 Vector2D screenHalfSize(totalSize.x / windowSize.x, totalSize.y / windowSize.y);
 
