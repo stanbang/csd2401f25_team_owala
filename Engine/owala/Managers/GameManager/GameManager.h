@@ -34,7 +34,6 @@
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
-#include "Gizmo.h"
 #endif
 
 #include <vector>
