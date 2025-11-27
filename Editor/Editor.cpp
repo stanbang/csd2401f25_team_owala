@@ -2975,6 +2975,7 @@ namespace Editor {
 					}
 					else
 					{
+						ImGui::OpenPopup("Invalid Audio File");
 						Framework::Logger::Get().Error(DebugType::Editor)
 							<< "Dropped file is not a supported audio format: " << ext << std::endl;
 					}
@@ -2987,16 +2988,41 @@ namespace Editor {
 			//Button to update audio key
 			if (ImGui::Button("Update Audio")) {
 				if (!newSoundKey.empty()) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					audioComp.soundKey = newSoundKey;
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					fs::path filePath(newSoundKey);
 
-					if (beforeJSON != afterJSON) {
-						std::stringstream ss;
-						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					if (filePath.has_extension()) {
+						std::string ext = filePath.extension().string();
+
+						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							audioComp.soundKey = newSoundKey;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+						}
+						else {
+							ImGui::OpenPopup("Invalid Audio File");
+						}
 					}
+
 				}
+			}
+
+			// Invalid Audio File Popup
+			if (ImGui::BeginPopupModal("Invalid Audio File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Error: An invalid audio file was uploaded!");
+
+				if (ImGui::Button("Ok", ImVec2(120, 0)))
+				{
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
 			}
 
 			// Looping Checkbox
