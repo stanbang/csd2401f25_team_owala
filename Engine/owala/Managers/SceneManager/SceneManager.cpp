@@ -143,6 +143,9 @@ namespace Framework {
 		}
 
 		UnloadScene(); // Unload current active scene first if any
+
+		// TODO: Remove scene exclusive logic in here.
+
 		bool isMenuRestartScene = (sceneName == "MainMenu" || sceneName == "RestartMenu");
 		EntityManager entityMgr(*entityStorageRef_);
 		// Deserialize and populate the scene's entities if not populated yet
@@ -157,6 +160,12 @@ namespace Framework {
 				}
 				entityMgr.AddComponent(en, ActiveTag{});
 			}
+
+			// Maintain HUD Elements across scene changes (Persistent + GUI)
+			for (Entity entity : entityMgr.GetAllEntitiesWithComponents(PersistentTagType, GUITagType)) {
+				entityMgr.AddComponent(entity, ActiveTag{});
+			}
+
 			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
 		}
 		else {
@@ -167,7 +176,6 @@ namespace Framework {
 						continue;
 					}
 					entityMgr.AddComponent(entity, ActiveTag{});
-					//entityStorageRef_->activeTag[entity] = ActiveTag{};
 				}
 				// Handle persistent entities
 				else if (entityMgr.HasComponent(entity, PersistentTagType)) {
@@ -175,7 +183,6 @@ namespace Framework {
 						continue;
 					}
 					entityMgr.AddComponent(entity, ActiveTag{});
-					//entityStorageRef_->activeTag[entity] = ActiveTag{}; // If entity is persistent and belongs to another scene, it should still be loaded
 				}
 			}
 		}
@@ -208,6 +215,7 @@ namespace Framework {
 				}
 				entityMgr.AddComponent(en, ActiveTag{});
 			}
+
 			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
 		}
 		// Else iterate through all entities
