@@ -2,9 +2,9 @@
 * \file   Gizmo.h
 *
 * \primary_author
-*       Yar Xuan
+*       Yar Xuan (80%)
 * \secondary_author
-*      
+*      Jason Lou (20%)
 *
 * \brief    Header file for Gizmo system in the Editor module.
 *
