@@ -4803,7 +4803,7 @@ namespace Editor {
 			ImGui::SetCursorPosX(historyStartX);
 
 			// Undo Button
-			if (historyManager_.CanUndo()) {
+			if (historyManager_.CanUndo() && !IsGamePlaying()) {
 				if (ImGui::Button("Undo", historyControlBtnSize)) {
 					historyManager_.Undo();
 				}
@@ -4826,7 +4826,7 @@ namespace Editor {
 			ImGui::SameLine(0.f, historySpacing);
 
 			// Redo Button
-			if (historyManager_.CanRedo()) {
+			if (historyManager_.CanRedo() && !IsGamePlaying()) {
 				if (ImGui::Button("Redo", historyControlBtnSize)) {
 					historyManager_.Redo();
 				}

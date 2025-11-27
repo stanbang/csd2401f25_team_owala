@@ -277,6 +277,11 @@ namespace Framework {
 				newScene->second.fpInitialize();
 			}
 
+
+#ifdef BUILD_EDITOR
+			// Clear History when changing scenes
+			editor_->GetHistoryMgr()->ClearHistory();
+#endif
 			lastInitializedScene_ = currentSceneIndex;
 		}
 
