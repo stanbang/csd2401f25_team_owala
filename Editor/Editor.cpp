@@ -725,7 +725,7 @@ namespace Editor {
 		else brushPreviewPos_ = snappedPos;
 
 		// 5. Calculate Screen Rect
-		Vector2D halfSize = { baseGridCellSize_, baseGridCellSize_ };
+		Vector2D halfSize = { baseGridCellSize_/2, baseGridCellSize_/2 };
 
 		Vector2D worldMin = { snappedPos.x - halfSize.x, snappedPos.y - halfSize.y };
 		Vector2D worldMax = { snappedPos.x + halfSize.x, snappedPos.y + halfSize.y };
@@ -4030,9 +4030,9 @@ namespace Editor {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-			/*	if (showGrid_) {
+				if (showGrid_) {
 					DrawEditorGrid(drawList);
-				}*/
+				}
 
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
@@ -4592,7 +4592,7 @@ namespace Editor {
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos, bool normalized) const
 	{
-		const float cell = normalized ? 0.1f : baseGridCellSize_; // world units
+		const float cell = normalized ? 0.1f : baseGridCellSize_/2; // world units
 		float snappedX = std::round(worldPos.x / cell) * cell;
 		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
