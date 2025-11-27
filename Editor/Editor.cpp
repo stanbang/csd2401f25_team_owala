@@ -2359,7 +2359,7 @@ namespace Editor {
 			ImGui::Separator();
 			if (unifiedRotation) {
 				float unifiedDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Rotation (Degrees)", &unifiedDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
 					rotation.textureAngle = newRadians;
 					rotation.colliderAngle = newRadians;
@@ -2379,7 +2379,7 @@ namespace Editor {
 			else {
 				ImGui::Text("Texture Rotation");
 				float textureDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Texture (Degrees)", &textureDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
@@ -2388,7 +2388,7 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Text("Collider Rotation");
 				float colliderDegrees = static_cast<float>(rotation.colliderAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Collider (Degrees)", &colliderDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
@@ -2440,7 +2440,7 @@ namespace Editor {
 					Vector2D ScaleFactor = { scale.axes.x, scale.axes.y };
 
 					bool active = false;
-					if (ImGui::InputFloat2("Scale (X, Y)", &ScaleFactor.x, "%.2f")) {
+					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1, 0.1, 10.0, "%.2f")) {
 						scale.axes.x = ScaleFactor.x;
 						scale.axes.y = ScaleFactor.y;
 
@@ -2457,7 +2457,7 @@ namespace Editor {
 
 					if (uniform) {
 						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-						if (ImGui::SliderFloat("Uniform Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
+						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1, 0.1, 10.0, "%.2f")) {
 							scale.axes.x = uniformValue;
 							scale.axes.y = uniformValue;
 
@@ -4609,7 +4609,6 @@ namespace Editor {
 
 #pragma endregion
 
-#pragma region PREFAB EDITOR
 #pragma region PREFAB EDITOR
 	void Editor::ShowPrefabEditor() {
 		using namespace Framework;
