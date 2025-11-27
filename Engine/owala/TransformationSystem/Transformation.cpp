@@ -1,4 +1,19 @@
-// Transformation.cpp
+/*****************************************************************//**
+* \file   Transformation.cpp
+*
+* \primary_author
+*      Sitara Anil
+* \secondary_author
+*
+*
+* \brief    Implementing of creating 2D transformation matrices including
+*           rotation, translation, scaling, and combined transformations.
+*           Also provides matrix multiplication operator.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "Transformation.h"
 #include <cmath>
 #ifndef M_PI
