@@ -474,6 +474,7 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
                 entityWorldPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
             }
+            
             else return;
 
             // 1. Get Screen Center of the Entity

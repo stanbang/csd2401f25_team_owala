@@ -328,6 +328,7 @@ namespace Editor {
 
 		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
+		void ShowSceneEntityTracker(Framework::EntityManager& entityMgr);
 
 	public:
 		bool isEnabled = true;

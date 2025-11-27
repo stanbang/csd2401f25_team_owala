@@ -1319,7 +1319,7 @@ namespace Editor {
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
 			entityMgr.AddComponent<AnimationComponent>(bird, {});
-			//entityMgr.AddComponent<RotationFlag>(bird, {});
+			entityMgr.AddComponent<RotationFlag>(bird, {});
 
 			RigidBody rb;
 			rb.SetMass(1.0f); // Give it some mass
@@ -4120,6 +4120,11 @@ namespace Editor {
 		return;
 	}
 
+	if (ImGui::CollapsingHeader("Scene Entity Layer Tracker", ImGuiTreeNodeFlags_DefaultOpen)) {
+		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		ShowSceneEntityTracker(entityMgr);
+	}
+
 	//collision matrix section
 	if (ImGui::CollapsingHeader("Collision Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::TextWrapped("Configure which collision layers can interact:");
@@ -4284,7 +4289,19 @@ namespace Editor {
 			"Custom"
 		};
 
-		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+		//int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+		
+		// map enums to int
+		int currentRenderLayerIndex = 0;
+		switch (props.renderLayer) {
+		case Framework::RenderLayer::Background: currentRenderLayerIndex = 0; break;
+		case Framework::RenderLayer::Platform: currentRenderLayerIndex = 1; break;
+		case Framework::RenderLayer::Enemy: currentRenderLayerIndex = 2; break;
+		case Framework::RenderLayer::Player: currentRenderLayerIndex = 3; break;
+		case Framework::RenderLayer::UI: currentRenderLayerIndex = 4; break;
+		case Framework::RenderLayer::Custom: currentRenderLayerIndex = 5; break;
+		default: currentRenderLayerIndex = 0; break;
+		}
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Render Layer:");
@@ -4293,7 +4310,16 @@ namespace Editor {
 
 		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
 			IM_ARRAYSIZE(renderLayerNames))) {
-			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+			//props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+			switch (currentRenderLayerIndex) {
+			case 0: props.renderLayer = Framework::RenderLayer::Background; break;
+			case 1: props.renderLayer = Framework::RenderLayer::Platform; break;
+			case 2: props.renderLayer = Framework::RenderLayer::Enemy; break;
+			case 3: props.renderLayer = Framework::RenderLayer::Player; break;
+			case 4: props.renderLayer = Framework::RenderLayer::UI; break;
+			case 5: props.renderLayer = Framework::RenderLayer::Custom; break;
+			default: props.renderLayer = Framework::RenderLayer::Background; break;
+			}
 		}
 
 		ImGui::Spacing();
@@ -4339,6 +4365,137 @@ namespace Editor {
 			ImGui::Unindent();
 			ImGui::TreePop();
 		}
+	}
+
+	// Helper function to show scene entity layer tracker
+	void Editor::ShowSceneEntityTracker(Framework::EntityManager& entityMgr) {
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+		const Framework::SceneAsset& currentScene = sceneMgr.GetActiveScene();
+
+		if (!currentScene.IsValid()) {
+			ImGui::TextDisabled("No active scene loaded");
+			return;
+		}
+
+		const std::vector<Entity>& sceneEntities = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		if (sceneEntities.empty()) {
+			ImGui::TextDisabled("No entities in current scene");
+			return;
+		}
+
+		ImGui::Text("Scene: %s", currentScene.name.c_str());
+		ImGui::Text("Total Entities: %zu", sceneEntities.size());
+		ImGui::Spacing();
+		ImGui::Separator();
+
+		// Create a sortable list of entities with their render layers
+		struct EntityRenderInfo {
+			Entity entity;
+			std::string name;
+			Framework::RenderLayer renderLayer;
+			int effectiveRenderOrder;
+			Framework::CollisionLayer collisionLayer;
+		};
+
+		std::vector<EntityRenderInfo> entityInfos;
+		entityInfos.reserve(sceneEntities.size());
+
+		for (const Entity& entity : sceneEntities) {
+			if (!entityMgr.ValidateEntity(entity)) continue;
+
+			const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
+
+			int effectiveOrder = props.renderLayer == Framework::RenderLayer::Custom
+				? props.customRenderOrder
+				: static_cast<int>(props.renderLayer);
+
+			entityInfos.push_back({
+				entity,
+				props.name,
+				props.renderLayer,
+				effectiveOrder,
+				props.layer
+				});
+		}
+
+		// Sort by effective render order (ascending)
+		std::sort(entityInfos.begin(), entityInfos.end(),
+			[](const EntityRenderInfo& a, const EntityRenderInfo& b) {
+				return a.effectiveRenderOrder < b.effectiveRenderOrder;
+			});
+
+		// Display in a table
+		if (ImGui::BeginTable("EntityLayerTable", 4,
+			ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY,
+			ImVec2(0.0f, 300.0f))) {
+
+			ImGui::TableSetupColumn("Entity", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Render Layer", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+			ImGui::TableSetupColumn("Order", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+			ImGui::TableSetupColumn("Collision", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+			ImGui::TableSetupScrollFreeze(0, 1); // Freeze header row
+			ImGui::TableHeadersRow();
+
+			for (const auto& info : entityInfos) {
+				ImGui::TableNextRow();
+
+				// Entity Name
+				ImGui::TableNextColumn();
+
+				// Highlight if this is the selected entity
+				bool isSelected = (selectedEntityIndex > 0 &&
+					static_cast<Entity>(selectedEntityIndex - 1) == info.entity);
+
+				if (isSelected) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+				}
+
+				if (ImGui::Selectable(info.name.c_str(), isSelected,
+					ImGuiSelectableFlags_SpanAllColumns)) {
+					// Select this entity when clicked
+					selectedEntityIndex = info.entity + 1;
+					isEntitySelected_ = true;
+					selectedComponentIndex = 0;
+					selectedTagIndex = 0;
+				}
+
+				if (isSelected) {
+					ImGui::PopStyleColor();
+				}
+
+				// Render Layer
+				ImGui::TableNextColumn();
+				const char* layerName = "";
+				switch (info.renderLayer) {
+				case Framework::RenderLayer::Background: layerName = "Background"; break;
+				case Framework::RenderLayer::Platform: layerName = "Platform"; break;
+				case Framework::RenderLayer::Enemy: layerName = "Enemy"; break;
+				case Framework::RenderLayer::Player: layerName = "Player"; break;
+				case Framework::RenderLayer::UI: layerName = "UI"; break;
+				case Framework::RenderLayer::Custom: layerName = "Custom"; break;
+				}
+				ImGui::Text("%s", layerName);
+
+				// Effective Render Order
+				ImGui::TableNextColumn();
+				if (info.renderLayer == Framework::RenderLayer::Custom) {
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "%d", info.effectiveRenderOrder);
+				}
+				else {
+					ImGui::Text("%d", info.effectiveRenderOrder);
+				}
+
+				// Collision Layer
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", LayerToString(info.collisionLayer));
+			}
+
+			ImGui::EndTable();
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("Click an entity to select it. Custom render orders shown in yellow.");
 	}
 
 #pragma endregion

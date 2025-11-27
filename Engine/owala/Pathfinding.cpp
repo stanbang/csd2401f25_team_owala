@@ -59,9 +59,17 @@ namespace Framework {
                 const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
                 float rotation = 0.0f;
-                if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                float rotationAngle = 0.0f;
+                if (entityMgr.HasComponent(entity, RotationFlagType)){
                     rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
                 }
+
+                if (entityMgr.HasComponent(entity, RotationType)) {
+                    rotationAngle = entityMgr.GetComponent<Rotation>(entity).angle;
+
+                }
+
+
 
                 // Get the AABB of the rotated box
                 AABB_Bounds worldAABB = PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
