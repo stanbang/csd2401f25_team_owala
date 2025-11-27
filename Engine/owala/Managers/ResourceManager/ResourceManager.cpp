@@ -324,14 +324,14 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 		for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) {
 			const rapidjson::Value& entry = animations[i];
 
-			// 1. Validate 'animation_path'
+			// Validate 'animation_path'
 			if (!entry.HasMember("animation_path") || !entry["animation_path"].IsString()) {
 				Logger::Get().Info(DebugType::ResourceManager) << "Skipping entry " << i << ": Missing 'animation_path'";
 				continue;
 			}
 			std::string animationPath = entry["animation_path"].GetString();
 
-			// 2. Check for 'texture_keys' (Array)
+			// Check for 'texture_keys' (Array)
 			if (entry.HasMember("texture_keys") && entry["texture_keys"].IsArray()) {
 				const rapidjson::Value& keys = entry["texture_keys"];
 
@@ -347,7 +347,7 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 					}
 				}
 			}
-			// 3. Backward Compatibility (Optional): Check for old "texture_key" (String)
+			// Backward Compatibility for old "texture_key" (String)
 			else if (entry.HasMember("texture_key") && entry["texture_key"].IsString()) {
 				std::string textureKey = entry["texture_key"].GetString();
 				if (loadAnimationInfo(textureKey, animationPath)) {
