@@ -100,7 +100,9 @@ namespace Framework {
 		EntityManager entityMgr(*systems_.ecs_);
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
-			if (entityMgr.GetComponent<SceneOwned>(scriptableEntity).sceneName != sceneMgr.GetActiveScene().name) continue;
+			if (entityMgr.GetComponent<SceneOwned>(scriptableEntity).sceneName != sceneMgr.GetActiveScene().name) {
+				if (!entityMgr.HasComponent(scriptableEntity, PersistentTagType)) continue;
+			}
 
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
 			if (nativeScripts.empty()) continue;
