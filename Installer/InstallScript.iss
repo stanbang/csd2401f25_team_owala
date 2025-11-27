@@ -8,7 +8,7 @@
 ; !!NOTE!!: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click "Tools" | "Create GUID" inside the Visual Studio IDE.)
-AppId={{99612BF2-3DA1-45E8-9086-75D4E4760CBF}
+AppId={{19DE85FA-9131-485A-9887-97E89D2F685E}
 
 ; Standard app data stuff
 ; !!NOTE!!: Replace all instances of "StageBound" with your game name.
@@ -35,7 +35,7 @@ OutputBaseFilename=StageBound_Setup
 LicenseFile=INSTALLERFILES\DigiPen_EULA.txt
 
 ; Path to the icon for the installer (TCR check requires custom icon)
-SetupIconFile=.\INSTALLERFILES\SetupIcon.ico
+SetupIconFile=.\INSTALLERFILES\StageBound.ico
 
 ; Compression scheme for the installer. Check Inno Setup help files for more options.
 Compression=lzma
@@ -87,10 +87,10 @@ Source: .\REDIST\VC_redist.x64.exe; DestDir: {tmp}; Flags: ignoreversion
 ;   {group} is the start menu location that the game will install shortcuts to.
 ;   {commondesktop} is your Windows desktop directory.
 [Icons]
-Name: {group}\StageBound; Filename: {app}\StageBound.exe; WorkingDir: {app}; IconFilename: "{app}\Icon.ico"
+Name: {group}\StageBound; Filename: {app}\StageBound.exe; WorkingDir: {app}; IconFilename: "{app}\StageBound.ico"
 Name: {group}\{cm:UninstallProgram,StageBound}; Filename: {uninstallexe}
-Name: {group}\{cm:UninstallProgram,StageBound}; Filename: {uninstallexe};  IconFilename: "{app}\Icon.ico"
-Name: {commondesktop}\StageBound; Filename: {app}\StageBound.exe; Tasks: desktopicon; WorkingDir: {app}; IconFilename: "{app}\Icon.ico"
+Name: {group}\{cm:UninstallProgram,StageBound}; Filename: {uninstallexe};  IconFilename: "{app}\StageBound.ico"
+Name: {commondesktop}\StageBound; Filename: {app}\StageBound.exe; Tasks: desktopicon; WorkingDir: {app}; IconFilename: "{app}\StageBound.ico"
 
 ; List of items to execute in the installer.
 ; Note that this will run all executables in their silent versions as required by the TCRs.

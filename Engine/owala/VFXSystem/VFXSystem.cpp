@@ -244,8 +244,8 @@ namespace Framework {
 	}
 
 	case EmissionStyle::FROM_RADIUS: {
-		float angle = rand01 * 2.0f * 3.14159265f;
-		float distance = rand02 * emitter.emissionRadius;
+		float angle = rand01 * 2.0f * 3.14159265f; // Random angle
+		float distance = rand02 * emitter.emissionRadius; // Random distance within radius
 
 		result = Vector2D{
 			emitterPos.Pos.x + distance * cos(angle),
@@ -310,17 +310,19 @@ namespace Framework {
 		break;
 	}
 
+	// Emit along a line defined by lineStart and lineEnd
 	case EmissionStyle::FROM_LINE: {
 		float t = rand01;
-		result = Vector2D{
-			emitter.lineStart.x + t * (emitter.lineEnd.x - emitter.lineStart.x),
-			emitter.lineStart.y + t * (emitter.lineEnd.y - emitter.lineStart.y)
+		result = Vector2D{ 
+			emitter.lineStart.x + t * (emitter.lineEnd.x - emitter.lineStart.x), 
+			emitter.lineStart.y + t * (emitter.lineEnd.y - emitter.lineStart.y) 
 		};
 		break;
 	}
 
+	// Imagine a circle centered at emitterPos with radius circleRadius
 	case EmissionStyle::FROM_CIRCLE_EDGE: {
-		float angle = rand01 * 2.0f * 3.14159265f;
+		float angle = rand01 * 2.0f * 3.14159265f; // Random angle
 
 		result = Vector2D{
 			emitterPos.Pos.x + emitter.circleRadius * cos(angle),
@@ -340,6 +342,7 @@ namespace Framework {
 	return result;
 }
 
+// Calculate initial velocity based on emission style
 	Vector2D VFXSystem::CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,
 		const Vector2D& emissionPos, float rand01, bool isScreenSpace) {
 
