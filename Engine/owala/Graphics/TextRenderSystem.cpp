@@ -65,7 +65,6 @@ namespace Framework {
             if (camera != 0 && cameraSystem_ && !isUIElement) {
                 screenTextPos = cameraSystem_->WorldToScreen(textPos, camera);
             }
-
             // offset so that pos is the middle of the text
             screenTextPos.x -= textComp.halfSize.x;
             screenTextPos.y += textComp.halfSize.y;
@@ -114,10 +113,9 @@ namespace Framework {
 
             // Total rendered size in world coords
             Vector2D totalSize = Vector2D(renderedWidth, totalHeight);
-
             // Set halfsize and convert to screen space if is GUI
             if (camera != 0 && cameraSystem_ && entityMgr.HasComponent(entity, GUITagType)) {
-                textComp.halfSize = cameraSystem_->WorldToScreen(totalSize) * 0.5f;
+                textComp.halfSize = cameraSystem_->WorldToScreen(totalSize, camera) * 0.5f;
             }
             else {
                 textComp.halfSize = totalSize * 0.5f;

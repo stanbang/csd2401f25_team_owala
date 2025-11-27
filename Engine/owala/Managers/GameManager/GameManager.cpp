@@ -13,6 +13,7 @@
 // Scene Scripts
 #include "SplashScreen.h"
 #include "TestScene.h"
+#include "LoadingScreenController.h"
 
 // ImGui headers
 #ifdef BUILD_EDITOR
@@ -25,7 +26,6 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <RestartMenu.h>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -133,7 +133,8 @@ namespace Framework {
 	// GameManager Config
 	// ---------------------------------------------------------------------------
 	void GameManager::RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx, WindowsSystem& win, InputSystem& input, PhysicsSystem& physics, AudioSystem& audio,
-		SpriteRenderSystem& renderer,TextRenderSystem& textRenderer, CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter,  TransformationSystem& transformation) {
+		SpriteRenderSystem& renderer,TextRenderSystem& textRenderer, CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter,  TransformationSystem& transformation,
+		AnimationSystem& animSys) {
 		systems_.resourceManager_ = &rcm;
 		systems_.ecs_ = &ecs;
 		systems_.gfx_ = &gfx;
@@ -148,6 +149,7 @@ namespace Framework {
 		systems_.guiSystem_ = &gui;
 		systems_.levelResetter_ = &levelResetter;
 		systems_.transformation_ = &transformation;
+		systems_.animationSystem_ = &animSys;
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
 	}
@@ -183,7 +185,10 @@ namespace Framework {
 						<< "Switching Scene to: " << event.stringParam << std::endl;
 
 					// Use the SceneManager instance we already have access to
-					SceneManager::GetInstance().LoadScene(event.stringParam);
+					//SceneManager::GetInstance().LoadScene(event.stringParam);
+
+					// Use GameManager to initiate async level load with loading screen
+					this->InitiateLevelLoad(event.stringParam);
 				}
 				else {
 					Logger::Get().Error(DebugType::GameManager)
@@ -204,6 +209,17 @@ namespace Framework {
 				break;
 			}
 			});
+
+		MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
+			// Change to RestartMenu when death animation finishes
+			if (event.deathAnimationFinished) {
+				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
+					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
+					GetSystems().levelResetter_->RunReset();
+					SceneManager::GetInstance().LoadScene("RestartMenu");
+				}
+			}
+		});
 
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 
@@ -240,7 +256,8 @@ namespace Framework {
 		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
-		sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		//sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
+		sceneMgr.LoadScene("MainMenu");
 	}
 
 	void GameManager::Update() {
@@ -266,8 +283,11 @@ namespace Framework {
 		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
 			sceneCallbacks_[currentSceneIndex].fpUpdate();
 
-			UpdateNativeScripts();
+			//UpdateNativeScripts();
 		}
+
+		// Always update native scripts
+		UpdateNativeScripts();
 
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
@@ -311,7 +331,6 @@ namespace Framework {
 		ImGui::End();*/
 
 		//ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_FirstUseEver);
-		RunRestartMenu();
 	}
 
 	void GameManager::Shutdown() {
@@ -339,14 +358,73 @@ namespace Framework {
 		instance = nullptr; // Reset instance pointer
 	}
 
-	void GameManager::RunRestartMenu()
-	{
-		if (!restartMenuInitialized)
-		{
-			restartMenu_.Initialize(systems_.ecs_,systems_.levelResetter_,systems_.resourceManager_);
-			restartMenuInitialized = true;
+	// Helper to trigger the loading process
+	void GameManager::InitiateLevelLoad(const std::string& levelName) {
+		SetNextScene(levelName);
+		PreloadSceneAssets(levelName);
+		// Switch immediately to the loading screen
+		SceneManager::GetInstance().LoadScene("LoadingScreen");
+	}
+
+	void GameManager::PreloadSceneAssets(const std::string& sceneName) {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		ResourceManager& rcm = *systems_.resourceManager_;
+
+		// Find the scene file path
+		const SceneAsset& scene = sceneMgr.GetSceneByName(sceneName);
+		if (!scene.IsValid()) {
+			Logger::Get().Error(DebugType::GameManager) << "Cannot preload assets: Scene not found: " << sceneName << std::endl;
+			return;
 		}
-		restartMenu_.Update();
+
+		std::string jsonPath = scene.path;
+		Logger::Get().Info(DebugType::GameManager) << "Parsing scene JSON for assets: " << jsonPath << std::endl;
+
+		// Open JSON file
+		std::ifstream ifs(jsonPath);
+		if (!ifs.is_open()) {
+			Logger::Get().Error(DebugType::GameManager) << "Failed to open scene file: " << jsonPath << std::endl;
+			return;
+		}
+
+		rapidjson::IStreamWrapper isw(ifs);
+		rapidjson::Document doc;
+		doc.ParseStream(isw);
+
+		if (!doc.IsObject() || !doc.HasMember("entities")) return;
+
+		// 3. Loop through entities and find textures
+		const rapidjson::Value& entities = doc["entities"];
+		for (const auto& entity : entities.GetArray()) {
+			if (!entity.HasMember("components")) continue;
+			const auto& components = entity["components"];
+
+			// Check TextureComponent
+			if (components.HasMember("TextureComponent")) {
+				const auto& texComp = components["TextureComponent"];
+				if (texComp.HasMember("texture_key")) {
+					std::string key = texComp["texture_key"].GetString();
+					std::string path = rcm.GetAssetPath(key);
+
+					if (!path.empty() && !rcm.has<Texture>(key)) {
+						rcm.LoadTextureAsync(path);
+					}
+				}
+			}
+
+			// Check ParticleEmitterComponent
+			if (components.HasMember("ParticleEmitterComponent")) {
+				const auto& partComp = components["ParticleEmitterComponent"];
+				if (partComp.HasMember("particle_texture_key")) {
+					std::string key = partComp["particle_texture_key"].GetString();
+					std::string path = rcm.GetAssetPath(key);
+
+					if (!path.empty() && !rcm.has<Texture>(key)) {
+						rcm.LoadTextureAsync(path);
+					}
+				}
+			}
+		}
 	}
 
 }

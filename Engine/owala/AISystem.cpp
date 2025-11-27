@@ -67,6 +67,9 @@ namespace Framework {
     void AISystem::Update() {
         EntityManager entityMgr(*ecs_);
 
+        std::vector<Entity> enemies = entityMgr.GetAllEntitiesWithComponent(EnemyTagType);
+        if (enemies.empty()) return;
+
         // Check if world is rotating
         bool worldIsRotating = false;
        
@@ -120,7 +123,7 @@ namespace Framework {
         }
 
         // Loop over all entities with an EnemyTagType and BirdAIComponent
-        for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
+        for (const Entity& enemy : enemies) {
 
             // PAUSE AI during world rotation
             if (worldIsRotating) {
@@ -262,6 +265,8 @@ namespace Framework {
     }
 
     void AISystem::HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
+        (void)playerHalfSize; 
+        (void)birdHalfSize;
 
         EntityManager entityMgr(*ecs_);
 
@@ -305,6 +310,8 @@ namespace Framework {
     }
 
     void AISystem::HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize) {
+        (void)playerHalfSize;
+        (void)birdHalfSize;
 
         EntityManager entityMgr(*ecs_);
 

@@ -352,8 +352,8 @@ namespace Framework {
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf.data());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -386,8 +386,15 @@ namespace Framework {
         const float c = std::cos(rotation);
         const float s = std::sin(rotation);
 
+        float aspectCorrection = (float)screenHeight / (float)screenWidth;
+
         auto rot = [&](float x, float y) -> Vector2D {
-            return { cx + c * x - s * y, cy + s * x + c * y };
+            float rx = c * x - s * y;
+            float ry = s * x + c * y;
+
+            rx *= aspectCorrection; // Shrink X offset
+
+            return { cx + rx, cy + ry };
             };
 
         Vector2D p0 = rot(-hx, -hy);
@@ -461,6 +468,8 @@ namespace Framework {
         g_batchVerts.clear();
         g_batchVerts.reserve(sprites.size() * 6 * 4);
 
+        float aspectCorrection = (float)screenHeight / (float)screenWidth;
+
         for (const auto& s : sprites) {
             const float cx = s.topLeft.x + s.size.x * 0.5f;
             const float cy = s.topLeft.y + s.size.y * 0.5f;
@@ -471,7 +480,15 @@ namespace Framework {
             const float q = std::sin(s.rotation);
 
             auto rot = [&](float x, float y) -> Vector2D {
-                return { cx + c * x - q * y, cy + q * x + c * y };
+                // 1. Rotate the point in "Square Local Space"
+                float rx = c * x - q * y;
+                float ry = q * x + c * y;
+
+                // 2. Apply Aspect Ratio Correction to the X offset ONLY
+                rx *= aspectCorrection;
+
+                // 3. Add to center position
+                return { cx + rx, cy + ry };
                 };
 
             Vector2D p0 = rot(-hx, -hy);
@@ -573,8 +590,8 @@ namespace Framework {
         glTexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
         // Better sampling (optional: generate mipmaps for zoomed-out scenes)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -809,6 +826,52 @@ namespace Framework {
     void Graphics::UnbindGameFramebuffer() const {
         if (gameFramebuffer_) {
             gameFramebuffer_->Unbind();
+        }
+    }
+
+	// CPU Image Loading for background thread
+    Graphics::ImageRawData Graphics::LoadImageToCPU(const char* path, bool flipY) {
+        if (flipY) stbi_set_flip_vertically_on_load(1);
+        else stbi_set_flip_vertically_on_load(0);
+
+        ImageRawData data;
+        // Force 4 channels (RGBA)
+        data.pixels = stbi_load(path, &data.width, &data.height, &data.channels, STBI_rgb_alpha);
+
+        if (!data.pixels) {
+            std::fprintf(stderr, "stbi_load failed for '%s': %s\n", path, stbi_failure_reason());
+        }
+        return data;
+    }
+
+	// Upload CPU image data to GPU as texture on main thread
+    Texture Graphics::CreateTextureFromRawData(const ImageRawData& data, bool srgb) {
+        if (!data.pixels) return 0;
+
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+
+        const GLint internal = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+
+        // Upload pixels to GPU
+        glTexImage2D(GL_TEXTURE_2D, 0, internal, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.pixels);
+
+        // Set parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        return tex;
+    }
+
+	// Free CPU image data
+    void Graphics::FreeImageRawData(ImageRawData& data) {
+        if (data.pixels) {
+            stbi_image_free(data.pixels);
+            data.pixels = nullptr;
         }
     }
 

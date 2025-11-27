@@ -85,7 +85,6 @@ namespace Framework {
 		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
 		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";
 
-		//static constexpr const char* PLATFORM_PREFABS_FILEPATH = "Data/platformPrefab.json";
 
 		// Window config Json keys
 		static constexpr const char* WINDOW_W = "window_width";

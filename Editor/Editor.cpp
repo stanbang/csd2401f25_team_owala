@@ -206,10 +206,10 @@ namespace Editor {
 			cam.zoom = currentEditorCameraState_.zoom;
 			cameraSystem_->SetZoom(editorCamera_, currentEditorCameraState_.zoom);
 
-			Framework::Logger::Get().Info(DebugType::Editor)
+			/*Framework::Logger::Get().Info(DebugType::Editor)
 				<< "Restored editor camera state: position ("
 				<< cam.position.x << ", " << cam.position.y
-				<< ") zoom: " << cam.zoom << std::endl;
+				<< ") zoom: " << cam.zoom << std::endl;*/
 		}
 	}
 
@@ -725,7 +725,7 @@ namespace Editor {
 		else brushPreviewPos_ = snappedPos;
 
 		// 5. Calculate Screen Rect
-		Vector2D halfSize = { baseGridCellSize_, baseGridCellSize_ };
+		Vector2D halfSize = { baseGridCellSize_/2, baseGridCellSize_/2 };
 
 		Vector2D worldMin = { snappedPos.x - halfSize.x, snappedPos.y - halfSize.y };
 		Vector2D worldMax = { snappedPos.x + halfSize.x, snappedPos.y + halfSize.y };
@@ -1313,6 +1313,7 @@ namespace Editor {
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
 			// Add components required for the AI
+			entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Position>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
@@ -1548,6 +1549,10 @@ namespace Editor {
 
 						palettePrepared_ = false;
 						tilePalettePrepared_ = false;
+
+						// reset entity selection
+						selectedEntityIndex = 0;
+						isEntitySelected_ = false;
 					}
 				}
 
@@ -2112,7 +2117,9 @@ namespace Editor {
 				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 			}
 
-			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
+
+			}
 			if (ImGui::IsItemActivated()) editingName = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newName = nameBuffer;
@@ -2352,7 +2359,7 @@ namespace Editor {
 			ImGui::Separator();
 			if (unifiedRotation) {
 				float unifiedDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Rotation (Degrees)", &unifiedDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
 					rotation.textureAngle = newRadians;
 					rotation.colliderAngle = newRadians;
@@ -2372,7 +2379,7 @@ namespace Editor {
 			else {
 				ImGui::Text("Texture Rotation");
 				float textureDegrees = static_cast<float>(rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Texture (Degrees)", &textureDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
@@ -2381,7 +2388,7 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Text("Collider Rotation");
 				float colliderDegrees = static_cast<float>(rotation.colliderAngle * (180.0f / M_PI));
-				if (ImGui::SliderFloat("Collider (Degrees)", &colliderDegrees, -180.0f, 180.0f, "%.1f")) {
+				if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
 					rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
@@ -2433,7 +2440,7 @@ namespace Editor {
 					Vector2D ScaleFactor = { scale.axes.x, scale.axes.y };
 
 					bool active = false;
-					if (ImGui::InputFloat2("Scale (X, Y)", &ScaleFactor.x, "%.2f")) {
+					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1, 0.1, 10.0, "%.2f")) {
 						scale.axes.x = ScaleFactor.x;
 						scale.axes.y = ScaleFactor.y;
 
@@ -2450,7 +2457,7 @@ namespace Editor {
 
 					if (uniform) {
 						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-						if (ImGui::SliderFloat("Uniform Scale", &uniformValue, 0.1f, 5.0f, "%.2f")) {
+						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1, 0.1, 10.0, "%.2f")) {
 							scale.axes.x = uniformValue;
 							scale.axes.y = uniformValue;
 
@@ -3949,8 +3956,23 @@ namespace Editor {
 
 			if (gfx && spriteRenderer_ && camSystem) {
 
-				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
-				//camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+				// 1. Calculate the aspect ratio of the specific ImGui Window
+				float viewportAspect = viewportPanelSize.x / viewportPanelSize.y;
+
+				// 2. Determine which camera is currently being used
+				Entity cameraInUse = 0;
+				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					cameraInUse = editorCamera_;
+				}
+				else {
+					// If in Play Mode, we are using the Game's active camera
+					cameraInUse = camSystem->GetActiveCamera();
+				}
+
+				// 3. Force that camera to match the ImGui window dimensions
+				if (cameraInUse != 0) {
+					camSystem->SetAspectRatio(cameraInUse, viewportAspect);
+				}
 
 				// === STEP 1: PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
@@ -4008,9 +4030,9 @@ namespace Editor {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-			/*	if (showGrid_) {
+				if (showGrid_) {
 					DrawEditorGrid(drawList);
-				}*/
+				}
 
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
@@ -4570,7 +4592,7 @@ namespace Editor {
 
 	Vector2D Editor::SnapToGrid(const Vector2D& worldPos, bool normalized) const
 	{
-		const float cell = normalized ? 0.1f : baseGridCellSize_; // world units
+		const float cell = normalized ? 0.1f : baseGridCellSize_/2; // world units
 		float snappedX = std::round(worldPos.x / cell) * cell;
 		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
@@ -4587,7 +4609,6 @@ namespace Editor {
 
 #pragma endregion
 
-#pragma region PREFAB EDITOR
 #pragma region PREFAB EDITOR
 	void Editor::ShowPrefabEditor() {
 		using namespace Framework;
@@ -4774,15 +4795,6 @@ namespace Editor {
 			// Save button
 			if (ImGui::Button("Save Prefab to File")) {
 				SavePrefabToFile(selectedPrefabForEditing_);
-
-				// Reload to ensure everything is synchronized
-				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-					std::cout << "Failed to reload prefabs after save!" << std::endl;
-				}
-				else {
-					std::cout << "Reloaded prefabs after save" << std::endl;
-				}
-
 				palettePrepared_ = false;
 			}
 

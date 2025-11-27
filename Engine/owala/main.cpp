@@ -66,7 +66,13 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+    #ifdef BUILD_EDITOR
+        SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+    #endif
+
+    #ifdef BUILD_ENGINE
+        SetConsoleCtrlHandler(ConsoleHandler, FALSE); // Set the console control handler
+    #endif
 
     using namespace Framework;
 
@@ -90,7 +96,7 @@ int main() {
     PlayerSystem* player = new PlayerSystem(*ecs, *input ,*phx,*transformation);
     AudioSystem* audio = new AudioSystem(*ecs);
     Graphics *gfx = new Graphics(*win);
-    AISystem* aiSystem = new AISystem(*ecs, *gfx); // <-- ADD THIS
+    AISystem* aiSystem = new AISystem(*ecs, *gfx);
 	ResourceManager* rcm = new ResourceManager(*gfx, *audio); //Create resource manager on the heap
 	audio->SetResourceManager(*rcm); // Set resource manager for audio system
     GameManager* gm = &GameManager::GetInstance(); // Create GameManager instance
@@ -99,10 +105,10 @@ int main() {
 	GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win);
     CameraSystem* camera = new CameraSystem(*ecs);
     VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
-    SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
+    SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, transformation, /*drawColliders*/false);
     TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
-	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
+	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter,*transformation, *animation); // Register all core systems to the GameManager
 
 	// Editor Registration
     #ifdef BUILD_EDITOR

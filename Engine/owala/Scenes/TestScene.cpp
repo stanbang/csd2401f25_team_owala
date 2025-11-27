@@ -27,9 +27,8 @@ namespace TestScene {
         SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
         TextRenderSystem* textRenderer = gm.GetSystems().textRenderer_; // Get text renderer
         PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
-		(void)win_; // Suppress unused parameter warning if not used
+		//(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
-        PrefabSystem prefabSystem;
 
         // --- CONFIGURE COLLISION MATRIX ---
         // Player should collide with Platforms, but not with other Players 
@@ -48,15 +47,40 @@ namespace TestScene {
 
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
-        // Loading Platform Prefabs
-        prefabSystem.LoadPrefabsFromFile("Data/platformPrefab.json");
-
         EntityManager entityMgr(*ecs);
-        Entity playerEntity = entityMgr.GetAllEntitiesWithComponent(PlayerTagType)[0];
-        Entity mainCamera = entityMgr.GetAllEntitiesWithComponent(CameraType)[0];   
+        
+        std::vector<Entity> players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        Entity playerEntity = 0;
+        if (players.size() > 0) {
+            playerEntity = players[0];
+        }
+		else {
+			Framework::Logger::Get().Error(DebugType::GameManager)
+                << "[TestScene] Player missing! PlayerCount: "
+                << players.size() << std::endl;
+		}
 
-        cameraSystem->SetActiveCamera(mainCamera);
-        cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        std::vector<Entity>cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
+        Entity mainCamera = 0;
+        if (cameras.size() > 0) {
+            mainCamera = cameras[0];
+            cameraSystem->SetActiveCamera(mainCamera);
+        }
+        else {
+			Framework::Logger::Get().Error(DebugType::GameManager)
+                << "[TestScene] Camera missing! CameraCount: "
+                << cameras.size() << " Adding Camera Manually!" << std::endl;
+            mainCamera = cameraSystem->CreateCamera({ 0.0f, 0.0f }, 0, false);
+            cameraSystem->SetZoom(mainCamera, 540.0f); //540 for 1080p
+            float aspect = static_cast<float>(win_->getWidth()) / static_cast<float>(win_->getHeight());
+            cameraSystem->SetAspectRatio(mainCamera, aspect);
+            cameraSystem->SetActiveCamera(mainCamera);
+        }
+
+        if (playerEntity && mainCamera) {
+            cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+        }
+
         spriteRenderer->SetCameraSystem(cameraSystem);
         textRenderer->SetCameraSystem(cameraSystem);
 	}

@@ -153,6 +153,10 @@ namespace Framework {
          */
         void OnButtonClicked(const ButtonClickedEvent& event);
 
+        // For Interupption Handling
+        void SuspendAudio();
+        void ResumeAudio();
+
     private:
         /// \name FMOD Core Pointers
         ///@{

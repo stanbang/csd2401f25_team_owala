@@ -50,10 +50,40 @@ void ResourceManager::Initialize() {
 	catch (const fs::filesystem_error& e) {
 		Logger::Get().Error(DebugType::ResourceManager) << "Failed to scan assets: " << e.what();
 	}
+
+	// Start worker thread for asynchronous loading if needed
+	m_isLoading = true;
+	m_workerThread = std::thread(&ResourceManager::WorkerThreadLoop, this);
 }
 
 void ResourceManager::Update() {
-	// Intentionally left empty
+	// Upload a limited number of textures per frame to maintain high FPS
+	int uploadsThisFrame = 0;
+	const int MAX_UPLOADS_PER_FRAME = 2;
+
+	std::lock_guard<std::mutex> lock(m_queueMutex);
+
+	while (!m_dataReadyToUpload.empty() && uploadsThisFrame < MAX_UPLOADS_PER_FRAME) {
+		AsyncTextureData item = m_dataReadyToUpload.front();
+		m_dataReadyToUpload.pop();
+
+		// GPU Upload (Fast, Main Thread)
+		Texture tex = gfx_->CreateTextureFromRawData(item.rawData);
+
+		// Add to the map
+		if (tex != 0) {
+			std::stringstream ss;
+			ss << "[Main Thread   " << std::this_thread::get_id() << "] Uploaded to GPU: " << item.name;
+			Logger::Get().Info(DebugType::ResourceManager) << ss.str() << "\n";
+			add<Texture>(item.name, tex);
+		}
+
+		// Free CPU memory
+		gfx_->FreeImageRawData(item.rawData);
+
+		m_itemsProcessed++;
+		uploadsThisFrame++;
+	}
 }
 
 // Clear all resources
@@ -89,7 +119,7 @@ void ResourceManager::ScanAssetDirectory(const fs::path& directoryPath) {
 
 // Loads a texture by name using the scanned asset paths
 bool ResourceManager::loadTexture(const std::string& name) {
-	// 1. Check if we scanned this asset
+	// Check if we scanned this asset
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
@@ -97,7 +127,7 @@ bool ResourceManager::loadTexture(const std::string& name) {
 		return false;
 	}
 
-	// 2. We found it, now call the original loadTexture with the full path
+	// We found it, now call the original loadTexture with the full path
 	const std::string& fullPath = it->second.string();
 	return loadTexture(name, fullPath); // Calls your existing function
 }
@@ -263,6 +293,12 @@ bool ResourceManager::loadAnimationInfo(const std::string& name, const std::stri
 void ResourceManager::Shutdown() {
 	Logger::Get().Info(DebugType::ResourceManager) << "ResourceManager shutdown: freeing all resources." << std::endl;
 
+	// Stop thread
+	m_isLoading = false;
+	if (m_workerThread.joinable()) {
+		m_workerThread.join();
+	}
+
     // Clear all maps
 	clearAll();
 }
@@ -324,4 +360,68 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 			<< "Exception while loading texture-animation mappings: " << e.what();
 		return false;
 	}
+}
+
+// Adds a texture file to the async loading queue eg. when loading big assets
+void ResourceManager::LoadTextureAsync(const std::string& filepath) {
+	std::lock_guard<std::mutex> lock(m_queueMutex);
+	m_filesToLoad.push(filepath);
+
+	m_totalItemsToLoad++;
+}
+
+// Background worker thread loop for loading resources asynchronously
+void ResourceManager::WorkerThreadLoop() {
+	while (m_isLoading) {
+		std::string filePath;
+		bool hasWork = false;
+
+		// Check for work
+		{
+			std::lock_guard<std::mutex> lock(m_queueMutex);
+			if (!m_filesToLoad.empty()) {
+				filePath = m_filesToLoad.front();
+				m_filesToLoad.pop();
+				hasWork = true;
+			}
+		}
+
+		if (hasWork) {
+			// Heavy lifting (Disk I/O + Decode)
+			std::stringstream ss;
+			ss << "[Worker Thread " << std::this_thread::get_id() << "] Loading from Disk: " << filePath;
+			Logger::Get().Info(DebugType::ResourceManager) << ss.str() << "\n";
+
+			std::string name = fs::path(filePath).filename().string();
+
+			Graphics::ImageRawData raw = gfx_->LoadImageToCPU(filePath.c_str());
+
+			// Push result to Upload Queue
+			{
+				std::lock_guard<std::mutex> lock(m_queueMutex);
+				m_dataReadyToUpload.push({ name, raw });
+			}
+		}
+		else {
+			// Sleep to save CPU if no work
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+	}
+}
+
+float ResourceManager::GetLoadingProgress() const {
+	if (m_totalItemsToLoad == 0) return 1.0f;
+	return (float)m_itemsProcessed / (float)m_totalItemsToLoad;
+}
+
+bool ResourceManager::IsLoadingComplete() const {
+	return m_itemsProcessed >= m_totalItemsToLoad;
+}
+
+std::string ResourceManager::GetAssetPath(const std::string& key) const {
+	auto it = assetPathMap_.find(key);
+	if (it != assetPathMap_.end()) {
+		return it->second.string();
+	}
+	return ""; // Not found
 }

@@ -28,6 +28,7 @@ namespace Framework {
         playerSig.set(PositionType);
         playerSig.set(VelocityType);
         playerSig.set(RotationFlagType);
+        playerSig.set(SceneOwnedType);
 
         playerSpawnPtSig.set(ActiveTagType);
         playerSpawnPtSig.set(SpawnPointType);
@@ -38,10 +39,21 @@ namespace Framework {
         trapPlatformSig.set(TrapPlatformComponentType);
         trapPlatformSig.set(PositionType);
         trapPlatformSig.set(RotationFlagType);
+        trapPlatformSig.set(SceneOwnedType);
     
         basicPlatformSig.set(ActiveTagType);
         basicPlatformSig.set(PlatformTagType);
         basicPlatformSig.set(PositionType);
+        basicPlatformSig.set(SceneOwnedType);
+
+        // Enemy signatures
+        enemySig.set(EnemyTagType);
+        enemySig.set(SceneOwnedType);
+        enemySig.set(PositionType);
+        enemySig.set(VelocityType);
+        enemySig.set(SpawnPointType);
+        enemySig.set(ActiveTagType);
+        enemySig.set(SceneOwnedType);
 
         // Subscribe to ButtonClickedEvent for resetting player position
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
@@ -100,6 +112,19 @@ namespace Framework {
                 Position originalPos{ TransformationSystem::GetOriginalPos(entityMgr, entity) };
                 ResetPosition(entityMgr, entity, originalPos);
                 ResetRotation(entityMgr, entity);
+                continue;
+            }
+
+            // --- Enemy Reset ---
+            if (CmpSignatures(signature, enemySig)) {
+                Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Enemy, Entity: " << entity << std::endl;
+                Position originalPos{ entityMgr.GetComponent<SpawnPoint>(entity).Pos};
+                ResetPosition(entityMgr, entity, originalPos);
+                ResetVelocity(entityMgr, entity);
+                //if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
+                //    BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+                //}
+
                 continue;
             }
         }

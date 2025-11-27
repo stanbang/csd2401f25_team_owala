@@ -45,6 +45,11 @@ namespace Framework {
 		float floatParam;
 	};
 
+	struct PlayerDeathEvent {
+		Entity player;
+		bool deathAnimationFinished = false;
+	};
+
 	struct ParticleBurstEvent {
 		Vector2D position;              // Where to spawn
 		int count = 1;                 // How many particles in the burst

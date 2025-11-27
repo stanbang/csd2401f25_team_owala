@@ -35,6 +35,9 @@ namespace Framework {
         ComponentSignature trapPlatformSig;
         ComponentSignature scalingPlatformSig;
 
+        // Enemy signatures
+        ComponentSignature enemySig;
+
     public:
         // Constructor initializes the system with necessary references/masks
         LevelResetSystem(EntityStorage& ecs, TransformationSystem& transSys);

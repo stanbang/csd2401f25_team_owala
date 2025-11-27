@@ -6,7 +6,10 @@
  * \secondary_author
  *
  *
- * \brief
+ * \brief	Implements the VFXSystem to handle particle effects in the game.
+ *			Uses event-driven approach and emitter pattern to manage particles.
+ *			Contains logic for spawning, updating, and destroying particles as
+ *			well as handling different emission styles and effects.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior
@@ -109,7 +112,7 @@ namespace Framework {
 		entityMgr.AddComponent<Position>(particleEntity, posComp);
 
 		// Calculate Velocity
-		Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, rand02, emitter.isScreenSpace);
+		Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, emitter.isScreenSpace);
 		Velocity velocityComp;
 		velocityComp.Vel = emissionVel;
 		entityMgr.AddComponent<Velocity>(particleEntity, velocityComp);
@@ -338,7 +341,7 @@ namespace Framework {
 }
 
 	Vector2D VFXSystem::CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,
-		const Vector2D& emissionPos, float rand01, float rand02, bool isScreenSpace) {
+		const Vector2D& emissionPos, float rand01, bool isScreenSpace) {
 
 		float angle, speed;
 

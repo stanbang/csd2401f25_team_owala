@@ -4,8 +4,8 @@
  * \primary_author
  *      Ng Jing Wen (50%)
  * \secondary_author
- *		Lur Pei Hao Stanley (50%)
- *      Sitara Anil
+ *		Lur Pei Hao Stanley (45%)
+ *      Sitara Anil (5%)
  * \brief	Contains Implementations of a Player System that
  *			updates the player entity's components.
  *
@@ -36,6 +36,7 @@ namespace Framework {
 	void PlayerSystem::Update() {
         CheckPlayerDeathFromTraps();
         CheckPlayerDeathFromEnemies();
+        HandlePlayerDeath();
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_->gravity_.y);
         const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
@@ -73,33 +74,35 @@ namespace Framework {
                     state.isGrounded)
                 {
                     // Pass the impact speed (absolute value of previous fall speed)
-                    OnPlayerLanded(entity, currentPos, std::abs(prevVelY));
+                    OnPlayerLanded(entity, currentPos);
                 }
 
                 // Update the component for the next frame
                 state.previousVelocityY = currentVelY;
 
                 // Horizontal Movement 
-                float targetVelX = 0.0f;
-                if (input_->KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
-                if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
-                vel.Vel.x = targetVelX;
+                if (!state.isDead) {
+                    float targetVelX = 0.0f;
+                    if (input_->KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
+                    if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
+                    vel.Vel.x = targetVelX;
 
-				// Apply Jumping
-                if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
-                    vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
+				    // Apply Jumping
+                    if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
+                        vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
 
-                    float jumpVolume = 0.3f;
-                    //messageBus
-                    MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume}); //empty cause currently theres nothign to pass and just for testing
-                }
+                        float jumpVolume = 0.3f;
+                        //messageBus
+                        MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume}); //empty cause currently theres nothign to pass and just for testing
+                    }
 
-				// Sets the direction the player is facing based on movement
-                if (targetVelX > 0.01f) {
-                    state.isFacingRight = true;
-                }
-                else if (targetVelX < -0.01f) {
-                    state.isFacingRight = false;
+				    // Sets the direction the player is facing based on movement
+                    if (targetVelX > 0.01f) {
+                        state.isFacingRight = true;
+                    }
+                    else if (targetVelX < -0.01f) {
+                        state.isFacingRight = false;
+                    }
                 }
 
                 // Animation State Handling
@@ -284,7 +287,7 @@ namespace Framework {
     }
 
 	// Publish particle burst event when player lands
-    void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position, float impactSpeed) {
+    void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
 
         EntityManager entityMgr(*entityStorage_);
         Vector2D playerHalfSize = { 0.1f, 0.1f };
@@ -306,6 +309,27 @@ namespace Framework {
         burst.size = { 100, 100 };
 
         MessageBus::Instance().Publish(burst);
+    }
+
+    void PlayerSystem::HandlePlayerDeath() {
+        EntityManager entityMgr(*entityStorage_);
+
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+
+            if (entityMgr.HasComponent(entity, PlayerStateType)) {
+                PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+
+                if (state.isDead && entityMgr.HasComponent(entity, AnimationComponentType)) {
+                    AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
+
+                    if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
+                        MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
+						state.isDead = false; // Reset death state after handling
+                    }
+                }
+            }
+        }
     }
 
 } // namespace Framework

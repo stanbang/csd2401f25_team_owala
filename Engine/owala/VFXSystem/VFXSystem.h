@@ -6,7 +6,8 @@
  * \secondary_author
  *
  *
- * \brief	
+ * \brief	Contains the declaration of VFXSystem to handle particle effects 
+ *			in the game.
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  * Reproduction or disclosure of this file or its contents without the prior
@@ -53,7 +54,7 @@ namespace Framework {
 
 		// Helper function to calculate emission velocity based on style
 		Vector2D CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,
-			const Vector2D& emissionPos, float rand01, float rand02, bool isScreenSpace);
+			const Vector2D& emissionPos, float rand01, bool isScreenSpace);
 
 		// Convert world position to screen space
 		Vector2D WorldToScreenSpace(const Vector2D& worldPos);

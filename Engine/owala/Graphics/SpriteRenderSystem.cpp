@@ -191,7 +191,7 @@ namespace Framework {
 
                     // Convert world-space size to screen-space size
                     // The key is to scale by the camera's zoom and aspect ratio
-                    float halfWidth = cam.zoom * cam.aspectRatio;
+                    float halfWidth = cam.zoom;
                     float halfHeight = cam.zoom;
 
                     screenHalfSize.x = halfSize.x / halfWidth;
@@ -206,6 +206,14 @@ namespace Framework {
                     // Do NOT apply camera zoom to size. 
                     // This keeps the particle size constant regardless of camera zoom.
                     screenHalfSize = halfSize;
+                }
+                // Handle UI Elements (GUITag)
+                else if (isUIElement) {
+                    // Graphics.cpp shrinks X by (Height/Width). 
+                    // We must stretch X by (Width/Height) to counteract it, allowing 
+                    // a 1.0 half-size to actually reach the edge of the screen.
+                    float aspectRatio = (float)gfx_.getScreenWidth() / (float)gfx_.getScreenHeight();
+                    screenHalfSize.x *= aspectRatio;
                 }
 
                 // Calculate final screen-space top-left and size
@@ -228,6 +236,13 @@ namespace Framework {
                     batchedSprite.minUV = { 0.0f, 0.0f };
                     batchedSprite.maxUV = { 1.0f, 1.0f };
                 }
+
+				// UV Inset to prevent texture bleeding
+                /*float uvInset = 0.005f;
+                batchedSprite.minUV.x += uvInset;
+                batchedSprite.minUV.y += uvInset;
+                batchedSprite.maxUV.x -= uvInset;
+                batchedSprite.maxUV.y -= uvInset;*/
 
                 // --- Add to Batch ---
                 BatchKey key{ tex, renderOrder };
