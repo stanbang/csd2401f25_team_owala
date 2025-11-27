@@ -178,6 +178,20 @@ namespace Framework {
 		//Create AnimationComponent from data
 		AnimationInfo anim{ frameCount.GetInt(), frameDuration.GetFloat(), isLooping.GetBool(), startFrame.GetInt()};
 
+		// Push relevant spritesheets into animation info component
+		if (d.HasMember("spritesheets") && d["spritesheets"].IsArray()) {
+			const rapidjson::Value& sheetsJson = d["spritesheets"];
+			for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
+				const rapidjson::Value& sheet = sheetsJson[i];
+				if (sheet.HasMember("texture") && sheet.HasMember("count")) {
+					anim.sheets.push_back({
+						sheet["texture"].GetString(),
+						sheet["count"].GetInt()
+						});
+				}
+			}
+		}
+
 		return anim;
 	}
 

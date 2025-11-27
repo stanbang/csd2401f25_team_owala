@@ -2,5 +2,9 @@
   "frame_count": 15,
   "frame_duration": 0.05,
   "is_looping": false,
-  "start_frame": 0
+  "start_frame": 0,
+  "spritesheets": [
+	{ "texture": "SB_PlayerLand_VFX_Spritesheet_1.png", "count": 8 },
+	{ "texture": "SB_PlayerLand_VFX_Spritesheet_2.png", "count": 7 }
+  ]
 }

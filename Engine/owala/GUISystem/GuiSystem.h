@@ -53,7 +53,7 @@ namespace Framework{
 		ResourceManager* resourceManager_ = nullptr;
 		InputSystem* inputSystem_ = nullptr;
 		WindowsSystem* windowsSystem_ = nullptr;
-		CoreEngine* engine_;
+		CoreEngine* engine_ = nullptr;
 
 		//Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
 
