@@ -2793,7 +2793,7 @@ namespace Editor {
 						fs::path dropped_file(dropped_path);
 						// Validate the file extension
 						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 						if (ext == ".json") // Assuming scene files are .json
 						{
 							// Update the target string with the new scene's filename without extension
@@ -2833,7 +2833,7 @@ namespace Editor {
 
 						// Validate the file extension
 						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 						// Check for common audio formats
 						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
@@ -2868,6 +2868,89 @@ namespace Editor {
 				ImGui::Text("Event Value:");
 				if (ImGui::DragFloat("##Val", &buttonComp.targetValue)) {
 					dataChanged = true;
+				}
+			}
+
+			// Sound Effects
+			ImGui::Separator();
+			ImGui::SeparatorText("Sound Effects");
+
+			// Hover Sound
+			ImGui::Text("Hover Sound:");
+			if (ImGui::InputText("##HoverSound", &buttonComp.hoverSoundKey)) {
+				dataChanged = true;
+			}
+
+			// Drag & Drop Support for Hover Sound
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+						buttonComp.hoverSoundKey = dropped_file.filename().string();
+						dataChanged = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			if (ImGui::SliderFloat("Hover Volume", &buttonComp.hoverSoundVolume, 0.0f, 1.0f)) {
+				dataChanged = true;
+			}
+
+			// Test button for hover sound
+			if (ImGui::Button("Test Hover Sound") && !buttonComp.hoverSoundKey.empty()) {
+				try {
+					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.hoverSoundKey);
+					gameManager_->GetSystems().audio_->play(sound, buttonComp.hoverSoundVolume, false);
+				}
+				catch (...) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Failed to play hover sound: " << buttonComp.hoverSoundKey << std::endl;
+				}
+			}
+
+			ImGui::Spacing();
+
+			// Click Sound
+			ImGui::Text("Click Sound:");
+			if (ImGui::InputText("##ClickSound", &buttonComp.clickSoundKey)) {
+				dataChanged = true;
+			}
+			// Drag & Drop Support for Click Sound
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+						buttonComp.clickSoundKey = dropped_file.filename().string();
+						dataChanged = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			if (ImGui::SliderFloat("Click Volume", &buttonComp.clickSoundVolume, 0.0f, 1.0f)) {
+				dataChanged = true;
+			}
+
+			// Test button for click sound
+			if (ImGui::Button("Test Click Sound") && !buttonComp.clickSoundKey.empty()) {
+				try {
+					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.clickSoundKey);
+					gameManager_->GetSystems().audio_->play(sound, buttonComp.clickSoundVolume, false);
+				}
+				catch (...) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Failed to play click sound: " << buttonComp.clickSoundKey << std::endl;
 				}
 			}
 
@@ -2970,7 +3053,7 @@ namespace Editor {
 
 					// Validate the file extension
 					std::string ext = dropped_path.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
 					{
@@ -3054,7 +3137,7 @@ namespace Editor {
 
 					// Validate the file extension
 					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					// Check for common audio formats
 					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
@@ -3249,7 +3332,7 @@ namespace Editor {
 
 					// Validate extension
 					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					if (ext == ".ttf" || ext == ".otf")
 					{
@@ -3725,7 +3808,7 @@ namespace Editor {
 					fs::path dropped_path(dropped_path_c_str);
 
 					std::string ext = dropped_path.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
 						std::string newKey = dropped_path.filename().string();

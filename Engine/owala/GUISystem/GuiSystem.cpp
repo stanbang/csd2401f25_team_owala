@@ -82,12 +82,27 @@ namespace Framework {
 			// Update Button Hovering State
 			buttonComponent.isHovered = isHovering;
 
+			// Play hover sound on hover state change
+			if (isHovering && !buttonComponent.wasHoveredLastFrame) {
+				// Just started hovering
+				if (!buttonComponent.hoverSoundKey.empty()) {
+					PlayButtonSound(buttonComponent.hoverSoundKey, buttonComponent.hoverSoundVolume);
+				}
+			}
+			buttonComponent.wasHoveredLastFrame = isHovering;
+
 			bool mouseClicked = inputSystem_->MouseReleased(InputSystem::MouseButton::Left);
 
 			// If mouse clicked while hovering, trigger button action
 			if (isHovering && mouseClicked) {
 				Logger::Get().Info(DebugType::GUISystem)
 					<< "Clicked: " << button << std::endl;
+				
+				// Play click sound
+				if (!buttonComponent.clickSoundKey.empty()) {
+					PlayButtonSound(buttonComponent.clickSoundKey, buttonComponent.clickSoundVolume);
+				}
+				
 				// Reset button pressed state
 				buttonComponent.isPressed = false;
 
@@ -127,5 +142,22 @@ namespace Framework {
 		if (viewportSize_.y == 0) viewportSize_.y = 1.0f;
 	}
 	#endif
+
+	// Play button sounds
+	void GuiSystem::PlayButtonSound(const std::string& soundKey, float volume) {
+		try {
+			// Get the audio system through the resource manager or message bus
+			// Assuming you have access to AudioSystem through a pointer
+			if (audioSystem_) {
+				FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(soundKey);
+				audioSystem_->play(sound, volume, false);
+			}
+		}
+		catch (const std::exception& e) {
+			Logger::Get().Error(DebugType::GUISystem)
+				<< "Failed to play button sound: " << soundKey
+				<< " - " << e.what() << std::endl;
+		}
+	}
 
 }

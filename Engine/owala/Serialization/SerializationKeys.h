@@ -135,6 +135,10 @@ namespace Framework::Serialization {
 	static constexpr const char* ACTION = "action";
 	static constexpr const char* TARGET_STRING = "target_string";
 	static constexpr const char* TARGET_VALUE = "target_value";
+	static constexpr const char* HOVER_SOUND_KEY = "hover_sound_key";
+	static constexpr const char* HOVER_SOUND_VOLUME = "hover_sound_volume";
+	static constexpr const char* CLICK_SOUND_KEY = "click_sound_key";
+	static constexpr const char* CLICK_SOUND_VOLUME = "click_sound_volume";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";

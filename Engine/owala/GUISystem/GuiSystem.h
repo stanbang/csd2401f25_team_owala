@@ -20,6 +20,7 @@
 #include "EntityManager.h"
 #include "InputSystem.h"
 #include "OwalaTime.h"
+#include "AudioSystem.h"
 
 #ifdef BUILD_EDITOR
 // Imgui Editor
@@ -30,8 +31,8 @@ namespace Framework{
 	class GuiSystem : public ISystem {
 	public:
 		// Constructor taking references to EntityStorage and ResourceManager
-		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, WindowsSystem& win, CoreEngine& engine)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), windowsSystem_(&win), engine_(&engine) {
+		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, WindowsSystem& win, CoreEngine& engine, AudioSystem& audioSystem)
+			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), windowsSystem_(&win), engine_(&engine), audioSystem_(&audioSystem) {
 		}
 		void Initialize() override;
 		void Update() override;
@@ -54,6 +55,7 @@ namespace Framework{
 		InputSystem* inputSystem_ = nullptr;
 		WindowsSystem* windowsSystem_ = nullptr;
 		CoreEngine* engine_ = nullptr;
+		AudioSystem* audioSystem_ = nullptr;
 
 		//Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
 
@@ -62,6 +64,7 @@ namespace Framework{
 		ImVec2 viewportSize_ = { 1.0f, 1.0f };
 		#endif
 
-
+		// Helper function to play button sounds
+		void PlayButtonSound(const std::string& soundKey, float volume);
 	};
 }
