@@ -35,7 +35,7 @@ OutputBaseFilename=StageBound_Setup
 LicenseFile=INSTALLERFILES\DigiPen_EULA.txt
 
 ; Path to the icon for the installer (TCR check requires custom icon)
-SetupIconFile=.\INSTALLERFILES\StageBound.ico
+SetupIconFile=.\INSTALLERFILES\SB_Icon_White.ico
 
 ; Compression scheme for the installer. Check Inno Setup help files for more options.
 Compression=lzma
@@ -87,10 +87,10 @@ Source: .\REDIST\VC_redist.x64.exe; DestDir: {tmp}; Flags: ignoreversion
 ;   {group} is the start menu location that the game will install shortcuts to.
 ;   {commondesktop} is your Windows desktop directory.
 [Icons]
-Name: {group}\StageBound; Filename: {app}\StageBound.exe; WorkingDir: {app}; IconFilename: "{app}\StageBound.ico"
+Name: {group}\StageBound; Filename: {app}\StageBound.exe; WorkingDir: {app}; IconFilename: "{app}\SB_Icon_White.ico"
 Name: {group}\{cm:UninstallProgram,StageBound}; Filename: {uninstallexe}
-Name: {group}\{cm:UninstallProgram,StageBound}; Filename: {uninstallexe};  IconFilename: "{app}\StageBound.ico"
-Name: {commondesktop}\StageBound; Filename: {app}\StageBound.exe; Tasks: desktopicon; WorkingDir: {app}; IconFilename: "{app}\StageBound.ico"
+Name: {group}\{cm:UninstallProgram,StageBound}; Filename: {uninstallexe};  IconFilename: "{app}\SB_Icon_White.ico"
+Name: {commondesktop}\StageBound; Filename: {app}\StageBound.exe; Tasks: desktopicon; WorkingDir: {app}; IconFilename: "{app}\SB_Icon_White.ico"
 
 ; List of items to execute in the installer.
 ; Note that this will run all executables in their silent versions as required by the TCRs.
