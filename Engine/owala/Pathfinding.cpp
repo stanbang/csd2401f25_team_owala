@@ -73,8 +73,13 @@ namespace Framework {
 
                 // Get the AABB of the rotated box
                 AABB_Bounds worldAABB = PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
-                Vector2D gridMin = WorldToGrid(worldAABB.min);
-                Vector2D gridMax = WorldToGrid(worldAABB.max);
+
+                // add padding to catch cells when rotating 
+                float padding = cellSize * 0.5f;
+                Vector2D paddedMin = worldAABB.min - Vector2D(padding, padding);
+                Vector2D paddedMax = worldAABB.max + Vector2D(padding, padding);
+                Vector2D gridMin = WorldToGrid(paddedMin);
+                Vector2D gridMax = WorldToGrid(paddedMax);
 
                 // calculate rotation math
                 float rotationRad = static_cast<float>(rotation * M_PI / 180.0f);
@@ -91,9 +96,13 @@ namespace Framework {
                         Vector2D p_rot = { p_local.x * cos_r + p_local.y * sin_r,
                                           -p_local.x * sin_r + p_local.y * cos_r };
 
-                        // Check if cell is inside the halfsize
-                        if (p_rot.x >= -halfSize.x && p_rot.x <= halfSize.x &&
-                            p_rot.y >= -halfSize.y && p_rot.y <= halfSize.y)
+                        // added margin for edge cases where cell might overlap with platform
+                        float checkMargin = cellSize * 0.3f; // 30% of cell size as margin
+
+                        if (p_rot.x >= -(halfSize.x + checkMargin) &&
+                            p_rot.x <= (halfSize.x + checkMargin) &&
+                            p_rot.y >= -(halfSize.y + checkMargin) &&
+                            p_rot.y <= (halfSize.y + checkMargin))
                         {
                             wallNodes_.insert({ x, y });
                         }
