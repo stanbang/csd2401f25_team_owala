@@ -877,16 +877,14 @@ namespace Editor {
 
 	void Editor::PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position)
 	{
-		// 1. Force Snap (Double check)
+		// Force Snap
 		Vector2D snappedPos = SnapToGrid(position);
 
 		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		Framework::EntityManager entityMgr(*ecs);
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
-		// 2. Overlap Check
-		// We check if ANY entity with a Position component exists at this exact grid point.
-		// Epsilon is small to allow floating point comparison.
+		// Overlap Check
 		const float epsilon = 0.05f;
 		const std::vector<Entity>& entities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
 
@@ -900,13 +898,13 @@ namespace Editor {
 
 					// Allow replacing if in Eraser mode, otherwise BLOCK placement
 					if (info.type != PrefabType::Eraser) {
-						return; // EXIT: Object already exists here
+						return; 
 					}
 				}
 			}
 		}
 
-		// 3. Create Entity
+		// Create Entity
 		Entity newEntity = 0;
 
 		if (info.type == PrefabType::Tile) {
@@ -925,32 +923,30 @@ namespace Editor {
 
 	void Editor::HandleBrushInput()
 	{
-		// 1. Exit conditions
+		
 		if (!isBrushMode_ || isDraggingPrefab_) return;
 
-		// 2. Cancellation (Right Click in viewport or ESC)
+		//Right Click in viewport or ESC to leave brushmode
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 		if (input->MousePressed(Framework::InputSystem::MouseButton::Right) ||
-			input->KeyPressed(Framework::InputSystem::Key::Escape)) {
+			input->KeyPressed(Framework::InputSystem::Key::Escape) || !isTileEditorActive_){
 			isBrushMode_ = false;
 			lastPlacedPos_ = { -99999.0f, -99999.0f };
-			Framework::Logger::Get().Info(DebugType::Editor) << "Exited Brush Mode" << std::endl;
 			return;
 		}
 
-		// 3. Painting Logic (Left Mouse Held)
+		//Painting Logic (Left Mouse Held)
 		if (input->MouseDown(Framework::InputSystem::MouseButton::Left) && isMouseOverGameViewport_) {
 
 			Vector2D worldMousePos = GetMouseWorldPosition();
 			Vector2D snappedPos = SnapToGrid(worldMousePos);
 
 			// check if we already placed at this exact grid spot this stroke
-			// (Prevents spamming the creation function 60 times a second on one tile)
 			if (snappedPos.x != lastPlacedPos_.x || snappedPos.y != lastPlacedPos_.y) {
 
 				if (brushPayload_.type == PrefabType::Eraser) {
-					// Set payload for existing eraser logic function, or call specific eraser helper
-					dragDropPayload_ = brushPayload_; // Hacky reuse of existing eraser logic
+					// Set payload for existing eraser logic 
+					dragDropPayload_ = brushPayload_;
 					HandleTileErasing();
 				}
 				else {
@@ -961,7 +957,7 @@ namespace Editor {
 			}
 		}
 		else if (input->MouseReleased(Framework::InputSystem::MouseButton::Left)) {
-			// Reset last placed when mouse is let go, allows clicking same spot again if needed
+			// Reset last placed when mouse is let go 
 			lastPlacedPos_ = { -99999.0f, -99999.0f };
 		}
 	}
