@@ -311,8 +311,7 @@ namespace Editor {
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
 
-		// Sort a list of entities by descending render layer
-		void SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr);
+		
 
 		/**
 		* @brief Loads textures and prepares palette items.
@@ -328,9 +327,11 @@ namespace Editor {
 		void UpdateViewportData();
 
 
+		// Sort a list of entities by descending render layer
+		void SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr);
+
 		// Layer viewport data for IMGUI
 		void ShowCollisionMatrix(Framework::PhysicsSystem* physics);
-
 		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowSceneEntityTracker(Framework::EntityManager& entityMgr);
