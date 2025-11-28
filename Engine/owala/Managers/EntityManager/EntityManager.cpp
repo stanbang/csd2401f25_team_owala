@@ -63,6 +63,7 @@ namespace Framework {
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
 					case ComponentType::PositionType: AddComponent<Position>(newEntity, GetComponent<Position>(entity)); break;
+					case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(newEntity, GetComponent<SpawnPoint>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
 					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
 					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
@@ -75,7 +76,9 @@ namespace Framework {
 					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
 					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
 					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
-					case ComponentType::TextComponentType: 	AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
+					case ComponentType::TextComponentType: AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
+					case ComponentType::CameraType: AddComponent<Camera>(newEntity, GetComponent<Camera>(entity)); break;
+					case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(newEntity, GetComponent<NativeScriptsComponent>(entity)); break;
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
 					case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
