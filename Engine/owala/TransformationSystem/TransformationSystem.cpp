@@ -165,7 +165,7 @@ namespace Framework {
                 entityMgr.GetComponent<Position>(entity).Pos = rotationMat * originalPos;
 
                 // Update entity's local rotation angle (except for players)
-                if (!entityMgr.HasComponent(entity, PlayerTagType)) {
+                if (!entityMgr.HasComponent(entity, PlayerTagType) && !entityMgr.HasComponent(entity, EnemyTagType)) {
                     RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     rotationFlag.currentRotation += rotationIncrement;
                     rotationFlag.currentRotation = std::fmod(rotationFlag.currentRotation + 360.0f, 360.0f);
