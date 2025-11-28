@@ -178,7 +178,7 @@ namespace Editor {
 		Vector2D brushPreviewPos_;         // World position for brush preview
 		Vector2D lastPlacedPos_ = { -99999.0f, -99999.0f }; // To prevent stacking duplicates on same frame
 
-		// Helper to consolidate placement logic
+		// Function for placing items in world
 		void PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position);
 
 		// Helper to get the HalfSize of a prefab or tile BEFORE creating it

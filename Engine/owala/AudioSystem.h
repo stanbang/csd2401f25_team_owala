@@ -154,7 +154,16 @@ namespace Framework {
         void OnButtonClicked(const ButtonClickedEvent& event);
 
         // For Interupption Handling
+        /**
+         * \brief Suspends audio
+         * \details Iterates known channels and stops them; safe to call anytime.
+         */
         void SuspendAudio();
+
+        /**
+           * \brief Resumes Audio
+           * \details Iterates known channels and stops them; safe to call anytime.
+           */
         void ResumeAudio();
 
     private:

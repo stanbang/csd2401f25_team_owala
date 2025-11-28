@@ -300,7 +300,7 @@ namespace Framework {
             return;
         }
 
-        // Continue chasing with A*
+        // Continue chasing with A star
         ai.pathRecalculateTimer -= Framework::Time::DeltaTime();
         if (ai.pathRecalculateTimer <= 0.0f || ai.currentPath.empty()) {
             ai.currentPath = pather_.FindPath(navGrid_, birdPos, playerPos);

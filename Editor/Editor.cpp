@@ -4627,10 +4627,14 @@ namespace Editor {
 			ImGui::TableHeadersRow();
 
 			for (const auto& info : entityInfos) {
+				ImGui::PushID(static_cast<int>(info.entity));
+
 				ImGui::TableNextRow();
 
 				// Entity Name
 				ImGui::TableNextColumn();
+
+				ImGui::PopID();
 
 				// Highlight if this is the selected entity
 				bool isSelected = (selectedEntityIndex > 0 &&
@@ -4640,14 +4644,18 @@ namespace Editor {
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 				}
 
+				ImGui::PushID(static_cast<int>(info.entity));
+
+				// select the entity
 				if (ImGui::Selectable(info.name.c_str(), isSelected,
 					ImGuiSelectableFlags_SpanAllColumns)) {
-					// Select this entity when clicked
 					selectedEntityIndex = info.entity + 1;
 					isEntitySelected_ = true;
 					selectedComponentIndex = 0;
 					selectedTagIndex = 0;
 				}
+
+				ImGui::PopID();
 
 				if (isSelected) {
 					ImGui::PopStyleColor();

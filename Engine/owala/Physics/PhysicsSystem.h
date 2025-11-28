@@ -77,10 +77,16 @@ namespace Framework {
 
         // --- Layer-Based Collision API ---
 
-        //Get the collision state for the Editor
+       /**
+        * @brief Gets layer collision for the Editor
+        * @param layer1 The first collision layer.
+        * @param layer2 The second collision layer.
+        * 
+        */
         bool GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const;
 
 
+        // Returns layer count of collision layers
         static size_t GetLayerCount() { return static_cast<size_t>(CollisionLayer::Count); }
 
         /**
@@ -213,7 +219,7 @@ namespace Framework {
         // The grid using vector of bitsets. One bitset per cell
         std::vector<std::bitset<maxCollidableEntities>> grid_;
 
-        // Mapping from Entity ID -> bitset index (0 to MaxCollidableEntities-1)
+        // Mapping from Entity ID to bitset index (0 to MaxCollidableEntities-1)
         std::unordered_map<Entity, int> entityToColliderIndex_;
         // Mapping from bitset index -> Entity ID
         std::vector<Entity> colliderEntities_;
