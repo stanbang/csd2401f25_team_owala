@@ -482,7 +482,7 @@ namespace Editor {
 			op.data.memento.beforeJSON = EntitySerializer::SerializeEntityToString(entity, *ecs_);
 			op.data.memento.afterJSON.clear();
 			break;
-		default:
+		default: // Components should be handled via the dedicated function.
 			return;
 		}
 

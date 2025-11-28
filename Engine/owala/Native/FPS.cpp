@@ -1,3 +1,19 @@
+/*****************************************************************//**
+ * \file   FPS.h
+ *
+ * \primary_author
+ *      Jason Lou
+ * \secondary_author
+ *
+ *
+ * \brief	Source file for the FPS custom Native Script. When
+ *			attached to an entity with a text component, will
+ *			cause it to display current game FPS live.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "FPS.h"
 #include "ScriptRegistry.h"
 #include "GameManager.h"

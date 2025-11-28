@@ -96,6 +96,7 @@ namespace Editor {
 		std::string textureID;
 	};
 
+	// Struct for handling Editing Session of the Inspector Window for the HistoryManager.
 	struct EditSession {
 		bool active = false;
 		bool wasItemActive = false;
@@ -103,8 +104,11 @@ namespace Editor {
 		Framework::ComponentType compInEdit = Framework::ComponentType::MAX_COMPONENTS;
 		std::string beforeJSON;
 
+		// Marks the beginning of the editing session for a component, saving it's initial state.
 		void Begin(Entity entity, Framework::ComponentType compType);
+		// Marks the end of the editing session for a component, saving it's post modification state.
 		void End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManagerRef);
+		// Clears Session Data.
 		void Flush();
 	};
 
