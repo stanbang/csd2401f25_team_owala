@@ -4969,7 +4969,6 @@ namespace Editor {
 		std::vector<std::string> prefabNames;
 		std::vector<const char*> prefabItems;
 
-		// Gather all prefab names from the ACTUAL loaded prefabs
 		prefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
 			prefabNames.push_back(pair.first);
@@ -5240,7 +5239,6 @@ namespace Editor {
 	void Editor::SavePrefabToFile(const std::string& prefabName) {
 		using namespace Framework;
 
-		// Use the PrefabSystem's save method instead
 		if (prefabSystem_.SavePrefabToFile(prefabName)) {
 			Logger::Get().Info(DebugType::Editor)<< "Successfully saved prefab: " << prefabName << std::endl;
 
