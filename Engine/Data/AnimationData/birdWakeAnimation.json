@@ -5,27 +5,27 @@
     "start_frame": 0,
     "spritesheets": [
         {
-            "texture": "SB_BirdEnemy_Wake_Spritsheet_1.png",
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_1.png",
             "count": 6
         },
         {
-            "texture": "SB_BirdEnemy_Wake_Spritsheet_2.jpg",
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_2.jpg",
             "count": 6
         },
         {
-            "texture": "SB_BirdEnemy_Wake_Spritsheet_3.jpg",
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_3.jpg",
             "count": 6
         },
         {
-            "texture": "SB_BirdEnemy_Wake_Spritsheet_4.png",
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_4.png",
             "count": 6
         },
         {
-            "texture": "SB_BirdEnemy_Wake_Spritsheet_5.png",
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_5.png",
             "count": 6
         },
         {
-            "texture": "SB_BirdEnemy_Wake_Spritsheet_6.png",
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_6.png",
             "count": 6
         },
         {

@@ -121,9 +121,10 @@ namespace Framework {
                 Position originalPos{ entityMgr.GetComponent<SpawnPoint>(entity).Pos};
                 ResetPosition(entityMgr, entity, originalPos);
                 ResetVelocity(entityMgr, entity);
-                //if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
-                //    BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
-                //}
+                if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
+                    BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+                    birdAI.state = BirdState::IDLE;
+                }
 
                 continue;
             }
