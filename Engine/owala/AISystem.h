@@ -49,6 +49,11 @@ namespace Framework {
         void Update() override;
         void Shutdown() override;
 
+        // Forces the grid to rebuild instantly
+        inline void ForceGridRebuild() {
+            navGrid_.BuildGrid(*ecs_);
+        }
+
         #ifdef BUILD_EDITOR
         // Debug drawing - ONLY available in editor build
         void DrawDebug(CameraSystem* cameraSystem, ImDrawList* drawList, Editor::Editor* editor, Entity cameraToUse);

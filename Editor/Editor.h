@@ -91,6 +91,7 @@ namespace Editor {
 		ImVec2 uv1{ 1.0f, 1.0f };
 	};
 
+	// Helper Struct for Tile Data
 	struct TileData {
 		std::string name;
 		std::string textureID;
@@ -178,15 +179,6 @@ namespace Editor {
 		Vector2D brushPreviewPos_;         // World position for brush preview
 		Vector2D lastPlacedPos_ = { -99999.0f, -99999.0f }; // To prevent stacking duplicates on same frame
 
-		// Function for placing items in world
-		void PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position);
-
-		// Helper to get the HalfSize of a prefab or tile BEFORE creating it
-		Vector2D GetPrefabHalfSize(const std::string& name, PrefabType type);
-
-		// Handle the continuous clicking input
-		void HandleBrushInput();
-
 		//Palette Info storage (prefabs)
 		bool palettePrepared_ = false; // flag for storing palette items
 		std::vector<DraggablePrefabInfo> paletteItems_;
@@ -226,6 +218,7 @@ namespace Editor {
 		CameraState currentEditorCameraState_;
 		bool editorCameraNeedsReset_ = false;
 
+		// Camera state functions
 		void ResetEditorCamera();
 		void SaveEditorCameraState();
 		void RestoreEditorCameraState();
@@ -235,32 +228,22 @@ namespace Editor {
 		// Internal Checkers
 		void SanityCheck();
 
-		/**
-		 * @brief Handles placing the dragged prefab when the mouse is released.
-		 */
+		// Handles placing the dragged prefab when the mouse is released.
 		void HandleDragDropPlacement(); // Renamed from HandleTilePlacement	
 
+		//  Renders a preview of the tile being dragged.
+		void DrawDragDropPreview(ImDrawList* drawList);
 
-		/**
-		* @brief Renders a preview of the tile being dragged.
-		*/
-		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
-
-		/**
-		 * @brief Handles logic for erasing a tile from the grid.
-		 */
+		// Handles logic for erasing a tile from the grid.
 		void HandleTileErasing();
 
-
-		/**
-		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
-		 */
+		//  Handles the logic for spawning a selected prefab at the mouse cursor position.
 		void HandleSpawning();
-
-		/**
-		 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
-		 */
+		
+		// Handles the logic for selecting an entity by clicking on it in the game world.
 		void HandleSelection();
+
+		// Handles the logic for deleting an entity by clicking on it in the game world.
 		void HandleDeletion();
 
 		// Handle input keys when game viewport is active
@@ -299,8 +282,7 @@ namespace Editor {
 		PrefabType selectedPrefabTypeForEditing_ = PrefabType::None;
 		bool isPrefabEditorOpen_ = false;
 
-		// Helper functions
-
+		// Helper functions for prefabs 
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
 		void ApplyAllPrefabChangesToCurrentScene();
@@ -311,15 +293,20 @@ namespace Editor {
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
 
-		
-
-		/**
-		* @brief Loads textures and prepares palette items.
-		*/
+		// Loads textures and prepares palette items.
 		void PreparePaletteItems();
 
 		//void LoadTilesFromFile();
 		void PrepareTilePaletteItems();
+
+		// Function for placing items in world
+		void PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position);
+
+		// Helper to get the HalfSize of a prefab or tile BEFORE creating it
+		Vector2D GetPrefabHalfSize(const std::string& name, PrefabType type);
+
+		// Handle the continuous clicking input
+		void HandleBrushInput();
 
 		//ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
@@ -347,15 +334,12 @@ namespace Editor {
 
 		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm);
 
-		/**
-		 * @brief Initializes the Editor system.
-		 * @details Loads prefabs from file and sets up the ImGui context and backends.
-		 */
+		// Editor loop functions
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
 
-		/* Helper Functions */
+		/* Helper Functions for playing / pausing state */
 		const bool IsGamePlaying() const { return isGamePlaying; };
 		const bool IsGamePaused() const { return isGamePaused; };
 		const ImVec2 GetGameViewportSize() const { return gameViewportSize_; }
@@ -363,10 +347,8 @@ namespace Editor {
 
 		Vector2D SnapToGrid(const Vector2D& worldPos, bool normalized = false) const;
 
-		/**
-		 * @brief Converts the current mouse position from screen coordinates to world coordinates.
-		 * @return A Vector2D representing the mouse's position in the game world's normalized device coordinates (-1 to 1).
-		 */
+		
+		//Converts the current mouse position from screen coordinates to world coordinates.
 		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
 
 		Vector2D GetNormalizedMousePos() const;

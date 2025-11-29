@@ -44,73 +44,269 @@ namespace Framework {
 
     // --- NavigationGrid Implementation ---
 
-    void NavigationGrid::BuildGrid(EntityStorage& ecs) {
-        wallNodes_.clear();
-        EntityManager entityMgr(ecs);
+    //void NavigationGrid::BuildGrid(EntityStorage& ecs) {
+    //    wallNodes_.clear();
+    //    EntityManager entityMgr(ecs);
 
-        // Find all entities that are platforms
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+    //    // Find all entities that are platforms
+    //    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
 
-            // Ensure it has collision and position data
-            if (entityMgr.HasComponent(entity, AABBColliderType) &&
-                entityMgr.HasComponent(entity, PositionType)) {
+    //        // Ensure it has collision and position data
+    //        if (entityMgr.HasComponent(entity, AABBColliderType) &&
+    //            entityMgr.HasComponent(entity, PositionType)) {
 
-                const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
-                const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+    //            const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+    //            const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
-                float rotation = 0.0f;
-                float rotationAngle = 0.0f;
-                if (entityMgr.HasComponent(entity, RotationFlagType)){
-                    rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
-                }
+    //            float rotation = 0.0f;
+    //            float rotationAngle = 0.0f;
+    //            if (entityMgr.HasComponent(entity, RotationFlagType)){
+    //                rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+    //            }
 
-                if (entityMgr.HasComponent(entity, RotationType)) {
-                    rotationAngle = entityMgr.GetComponent<Rotation>(entity).angle;
+    //            if (entityMgr.HasComponent(entity, RotationType)) {
+    //                rotationAngle = entityMgr.GetComponent<Rotation>(entity).angle;
 
-                }
+    //            }
 
 
 
-                // Get the AABB of the rotated box
-                AABB_Bounds worldAABB = PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
+    //            // Get the AABB of the rotated box
+    //            AABB_Bounds worldAABB = PhysicsSystem::GetRotatedAABB(pos, halfSize, rotation);
 
-                // add padding to catch cells when rotating 
-                float padding = cellSize * 0.5f;
-                Vector2D paddedMin = worldAABB.min - Vector2D(padding, padding);
-                Vector2D paddedMax = worldAABB.max + Vector2D(padding, padding);
-                Vector2D gridMin = WorldToGrid(paddedMin);
-                Vector2D gridMax = WorldToGrid(paddedMax);
+    //            // add padding to catch cells when rotating 
+    //            float padding = cellSize * 0.1f;
+    //            Vector2D paddedMin = worldAABB.min - Vector2D(padding, padding);
+    //            Vector2D paddedMax = worldAABB.max + Vector2D(padding, padding);
+    //            Vector2D gridMin = WorldToGrid(paddedMin);
+    //            Vector2D gridMax = WorldToGrid(paddedMax);
 
-                // calculate rotation math
-                float rotationRad = static_cast<float>(rotation * M_PI / 180.0f);
-                float cos_r = std::cos(rotationRad);
-                float sin_r = std::sin(rotationRad);
+    //            // calculate rotation math
+    //            float rotationRad = static_cast<float>(rotation * M_PI / 180.0f);
+    //            float cos_r = std::cos(rotationRad);
+    //            float sin_r = std::sin(rotationRad);
 
-                for (int x = static_cast<int>(gridMin.x); x <= static_cast<int>(gridMax.x); ++x) {
-                    for (int y = static_cast<int>(gridMin.y); y <= static_cast<int>(gridMax.y); ++y) {
+    //            for (int x = static_cast<int>(gridMin.x); x <= static_cast<int>(gridMax.x); ++x) {
+    //                for (int y = static_cast<int>(gridMin.y); y <= static_cast<int>(gridMax.y); ++y) {
 
-                        Vector2D cellCenterWorld = GridToWorld(x, y);
-                        Vector2D p_local = cellCenterWorld - pos;
+    //                    Vector2D cellCenterWorld = GridToWorld(x, y);
+    //                    Vector2D p_local = cellCenterWorld - pos;
 
-                        // Rotate cell center into box's local space
-                        Vector2D p_rot = { p_local.x * cos_r + p_local.y * sin_r,
-                                          -p_local.x * sin_r + p_local.y * cos_r };
+    //                    // Rotate cell center into box's local space
+    //                    Vector2D p_rot = { p_local.x * cos_r + p_local.y * sin_r,
+    //                                      -p_local.x * sin_r + p_local.y * cos_r };
 
-                        // added margin for edge cases where cell might overlap with platform
-                        float checkMargin = cellSize * 0.3f; // 30% of cell size as margin
+    //                    // added margin for edge cases where cell might overlap with platform
+    //                    float checkMargin = cellSize * 0.1f; // 30% of cell size as margin
 
-                        if (p_rot.x >= -(halfSize.x + checkMargin) &&
-                            p_rot.x <= (halfSize.x + checkMargin) &&
-                            p_rot.y >= -(halfSize.y + checkMargin) &&
-                            p_rot.y <= (halfSize.y + checkMargin))
-                        {
-                            wallNodes_.insert({ x, y });
-                        }
-                    }
+    //                    if (p_rot.x >= -(halfSize.x + checkMargin) &&
+    //                        p_rot.x <= (halfSize.x + checkMargin) &&
+    //                        p_rot.y >= -(halfSize.y + checkMargin) &&
+    //                        p_rot.y <= (halfSize.y + checkMargin))
+    //                    {
+    //                        wallNodes_.insert({ x, y });
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+
+    // In Pathfinding.cpp
+
+    //void NavigationGrid::BuildGrid(EntityStorage& ecs) {
+    //    wallNodes_.clear();
+    //    EntityManager entityMgr(ecs);
+
+    //    // Find all entities that are platforms
+    //    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+
+    //        // 1. We require Position. We prefer Texture for size, fall back to AABB.
+    //        if (!entityMgr.HasComponent(entity, PositionType)) continue;
+
+    //        Vector2D pos = entityMgr.GetComponent<Position>(entity).Pos;
+    //        Vector2D baseHalfSize = { 50.0f, 50.0f }; // Default fallback
+
+    //        // PREFER TextureComponent for exact visual matching as requested
+    //        if (entityMgr.HasComponent(entity, TextureComponentType)) {
+    //            baseHalfSize = entityMgr.GetComponent<TextureComponent>(entity).HalfSize;
+    //        }
+    //        else if (entityMgr.HasComponent(entity, AABBColliderType)) {
+    //            // Note: If TransformationSystem ran, this might already be scaled. 
+    //            // Ideally, use TextureComponent for static platforms to be safe.
+    //            baseHalfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+    //        }
+
+    //        // 2. Get Scale explicitly to calculate real world size immediately
+    //        Vector2D scale = { 1.0f, 1.0f };
+    //        if (entityMgr.HasComponent(entity, ScaleType)) {
+    //            scale = entityMgr.GetComponent<Scale>(entity).axes;
+    //        }
+
+    //        // Calculate the EFFECTIVE size for the grid generation
+    //        Vector2D finalHalfSize = { baseHalfSize.x * scale.x, baseHalfSize.y * scale.y };
+
+    //        // 3. Get Rotation
+    //        float rotation = 0.0f;
+    //        if (entityMgr.HasComponent(entity, RotationFlagType)) {
+    //            rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+    //        }
+    //        else if (entityMgr.HasComponent(entity, RotationType)) {
+    //            // Convert radians to degrees if necessary, or use angle
+    //            rotation = entityMgr.GetComponent<Rotation>(entity).angle;
+    //        }
+
+    //        // 4. Calculate bounds for the loop using the FINAL Scaled Size
+    //        // We manually calculate the AABB of the rotated object here to ensure 
+    //        // we cover all necessary grid cells.
+
+    //        float rotationRad = static_cast<float>(rotation * M_PI / 180.0f);
+    //        float cos_r = std::cos(rotationRad);
+    //        float sin_r = std::sin(rotationRad);
+
+    //        // Calculate corners of the OBB
+    //        float dx = finalHalfSize.x;
+    //        float dy = finalHalfSize.y;
+
+    //        // Project corners to find AABB min/max
+    //        // Corner 1: ( dx,  dy)
+    //        // Corner 2: (-dx,  dy)
+    //        // We only need to check these two combinations for AABB extents due to symmetry
+    //        float x1 = dx * cos_r - dy * sin_r;
+    //        float y1 = dx * sin_r + dy * cos_r;
+    //        float x2 = -dx * cos_r - dy * sin_r;
+    //        float y2 = -dx * sin_r + dy * cos_r;
+
+    //        float maxX = std::max({ std::abs(x1), std::abs(x2) });
+    //        float maxY = std::max({ std::abs(y1), std::abs(y2) });
+
+    //        Vector2D minAABB = pos - Vector2D(maxX, maxY);
+    //        Vector2D maxAABB = pos + Vector2D(maxX, maxY);
+
+    //        // Add padding
+    //        float padding = cellSize * 0.5f;
+    //        Vector2D gridMin = WorldToGrid(minAABB - Vector2D(padding, padding));
+    //        Vector2D gridMax = WorldToGrid(maxAABB + Vector2D(padding, padding));
+
+    //        // 5. Loop through cells
+    //        for (int x = static_cast<int>(gridMin.x); x <= static_cast<int>(gridMax.x); ++x) {
+    //            for (int y = static_cast<int>(gridMin.y); y <= static_cast<int>(gridMax.y); ++y) {
+
+    //                Vector2D cellCenterWorld = GridToWorld(x, y);
+    //                Vector2D p_local = cellCenterWorld - pos;
+
+    //                // Rotate cell center into box's local space (Inverse rotation)
+    //                // Inverse of rotation matrix is just transposing the sin term
+    //                Vector2D p_rot = {
+    //                    p_local.x * cos_r + p_local.y * sin_r,
+    //                   -p_local.x * sin_r + p_local.y * cos_r
+    //                };
+
+    //                // Check overlap using the CALCULATED FinalHalfSize
+    //                // We add a small margin to make walls slightly "thicker" to the AI
+    //                // so they don't clip corners.
+    //                float checkMargin = cellSize * 0.25f;
+
+    //                if (p_rot.x >= -(finalHalfSize.x + checkMargin) &&
+    //                    p_rot.x <= (finalHalfSize.x + checkMargin) &&
+    //                    p_rot.y >= -(finalHalfSize.y + checkMargin) &&
+    //                    p_rot.y <= (finalHalfSize.y + checkMargin))
+    //                {
+    //                    wallNodes_.insert({ x, y });
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+
+// In Pathfinding.cpp
+
+void NavigationGrid::BuildGrid(EntityStorage& ecs) {
+    wallNodes_.clear();
+    EntityManager entityMgr(ecs);
+
+    // Find all entities that are platforms
+    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+
+        if (!entityMgr.HasComponent(entity, PositionType)) continue;
+        Vector2D pos = entityMgr.GetComponent<Position>(entity).Pos;
+
+        // use aabbcollider as source of size
+        Vector2D baseHalfSize = { 50.0f, 50.0f };
+
+        if (entityMgr.HasComponent(entity, AABBColliderType)) {
+            baseHalfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+        }
+        else if (entityMgr.HasComponent(entity, TextureComponentType)) {
+            baseHalfSize = entityMgr.GetComponent<TextureComponent>(entity).HalfSize;
+        }
+
+        // Apply Scale for updating the aabbcollider when changing
+        Vector2D scale = { 1.0f, 1.0f };
+        if (entityMgr.HasComponent(entity, ScaleType)) {
+            scale = entityMgr.GetComponent<Scale>(entity).axes;
+        }
+
+        
+        Vector2D finalHalfSize = { baseHalfSize.x * scale.x, baseHalfSize.y * scale.y };
+
+        // Get Rotation
+        float rotation = 0.0f;
+        if (entityMgr.HasComponent(entity, RotationFlagType)) {
+            rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+        }
+        else if (entityMgr.HasComponent(entity, RotationType)) {
+            rotation = entityMgr.GetComponent<Rotation>(entity).angle;
+        }
+
+        //Calculate AABB of the Rotated Object 
+        float rotationRad = static_cast<float>(rotation * M_PI / 180.0f);
+        float cos_r = std::cos(rotationRad);
+        float sin_r = std::sin(rotationRad);
+
+        float dx = finalHalfSize.x;
+        float dy = finalHalfSize.y;
+
+        
+        float x1 = dx * cos_r - dy * sin_r;
+        float y1 = dx * sin_r + dy * cos_r;
+        float x2 = -dx * cos_r - dy * sin_r;
+        float y2 = -dx * sin_r + dy * cos_r;
+
+        float maxX = std::max({ std::abs(x1), std::abs(x2) });
+        float maxY = std::max({ std::abs(y1), std::abs(y2) });
+
+        // padding for error margin
+        float loopPadding = cellSize * 0.1f;
+        Vector2D minAABB = pos - Vector2D(maxX, maxY);
+        Vector2D maxAABB = pos + Vector2D(maxX, maxY);
+
+        Vector2D gridMin = WorldToGrid(minAABB - Vector2D(loopPadding, loopPadding));
+        Vector2D gridMax = WorldToGrid(maxAABB + Vector2D(loopPadding, loopPadding));
+
+       
+        for (int x = static_cast<int>(gridMin.x); x <= static_cast<int>(gridMax.x); ++x) {
+            for (int y = static_cast<int>(gridMin.y); y <= static_cast<int>(gridMax.y); ++y) {
+
+                Vector2D cellCenterWorld = GridToWorld(x, y);
+                Vector2D p_local = cellCenterWorld - pos;
+
+                // Rotate cell center into box's local space 
+                Vector2D p_rot = {
+                    p_local.x * cos_r + p_local.y * sin_r,
+                   -p_local.x * sin_r + p_local.y * cos_r
+                };
+
+                // EXACT BOX CHECK
+                if (p_rot.x >= -finalHalfSize.x && p_rot.x <= finalHalfSize.x &&
+                    p_rot.y >= -finalHalfSize.y && p_rot.y <= finalHalfSize.y)
+                {
+                    wallNodes_.insert({ x, y });
                 }
             }
         }
     }
+}
 
     bool NavigationGrid::IsWalkable(int x, int y) const {
         return wallNodes_.find({ x, y }) == wallNodes_.end(); 
