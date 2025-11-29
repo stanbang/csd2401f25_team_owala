@@ -232,6 +232,14 @@ namespace Framework{
 		// Data to customize the action
 		std::string targetString = ""; // Stores Scene Name or Sound File
 		float targetValue = 0.0f;      // Stores specific numbers if needed
+	
+		// Sound effects
+		std::string hoverSoundKey = "";   // Sound to play when hovering
+		float hoverSoundVolume = 0.5f;    // Volume for hover sound
+		std::string clickSoundKey = "";   // Sound to play when clicked
+		float clickSoundVolume = 0.5f;    // Volume for click sound
+
+		bool wasHoveredLastFrame = false; // Track hover state changes
 	};
 
 	struct NativeScriptsComponent {
@@ -358,7 +366,7 @@ namespace Framework{
 		WAKING,  // Alerted, playing "wake up" animation
 		CHASE,   // Using A* to navigate to the player
 		HOVER,   // Close to the player, hovering erratically
-		STUNNED,
+		STUNNED, // Stunned after attacking
 		ATTACK   // Diving at the player's last known position
 	};
 

@@ -1050,6 +1050,16 @@ namespace Framework {
 		targetStrVal.SetString(button.targetString.c_str(), static_cast<rapidjson::SizeType>(button.targetString.length()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TARGET_STRING), targetStrVal, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TARGET_VALUE), button.targetValue, alloc);
+
+		rapidjson::Value hoverSoundVal;
+		hoverSoundVal.SetString(button.hoverSoundKey.c_str(), static_cast<rapidjson::SizeType>(button.hoverSoundKey.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::HOVER_SOUND_KEY), hoverSoundVal, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::HOVER_SOUND_VOLUME), button.hoverSoundVolume, alloc);
+
+		rapidjson::Value clickSoundVal;
+		clickSoundVal.SetString(button.clickSoundKey.c_str(), static_cast<rapidjson::SizeType>(button.clickSoundKey.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::CLICK_SOUND_KEY), clickSoundVal, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::CLICK_SOUND_VOLUME), button.clickSoundVolume, alloc);
 	}
 
 	// SceneOwned Component
@@ -1618,6 +1628,35 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::TARGET_VALUE) && componentData[Serialization::TARGET_VALUE].IsFloat()) {
 			out.targetValue = componentData[Serialization::TARGET_VALUE].GetFloat();
 		}
+
+		if (componentData.HasMember(Serialization::HOVER_SOUND_KEY) && componentData[Serialization::HOVER_SOUND_KEY].IsString()) {
+			out.hoverSoundKey = componentData[Serialization::HOVER_SOUND_KEY].GetString();
+		}
+		else {
+			out.hoverSoundKey = ""; // Default for old save files
+		}
+
+		if (componentData.HasMember(Serialization::HOVER_SOUND_VOLUME) && componentData[Serialization::HOVER_SOUND_VOLUME].IsFloat()) {
+			out.hoverSoundVolume = componentData[Serialization::HOVER_SOUND_VOLUME].GetFloat();
+		}
+		else {
+			out.hoverSoundVolume = 0.5f; // Default for old save files
+		}
+
+		if (componentData.HasMember(Serialization::CLICK_SOUND_KEY) && componentData[Serialization::CLICK_SOUND_KEY].IsString()) {
+			out.clickSoundKey = componentData[Serialization::CLICK_SOUND_KEY].GetString();
+		}
+		else {
+			out.clickSoundKey = ""; // Default for old save files
+		}
+
+		if (componentData.HasMember(Serialization::CLICK_SOUND_VOLUME) && componentData[Serialization::CLICK_SOUND_VOLUME].IsFloat()) {
+			out.clickSoundVolume = componentData[Serialization::CLICK_SOUND_VOLUME].GetFloat();
+		}
+		else {
+			out.clickSoundVolume = 0.5f; // Default for old save files
+		}
+
 		return true;
 	}
 

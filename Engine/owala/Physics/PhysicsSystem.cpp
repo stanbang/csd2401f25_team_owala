@@ -29,6 +29,8 @@ namespace Framework {
 
     PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
 
+    // ----- Layer Collision Functions ------- //
+
     void PhysicsSystem::InitializeCollisionMatrix() {
         // Resize the matrix to fit all layers
         collisionMatrix_.resize(static_cast<size_t>(CollisionLayer::Count));
@@ -37,8 +39,6 @@ namespace Framework {
             row.set(); // Sets all bits to true
         }
     }
-
-    // ----- Layer Collision Functions ------- //
 
     bool PhysicsSystem::GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const {
         size_t l1 = static_cast<size_t>(layer1);
@@ -60,6 +60,8 @@ namespace Framework {
             collisionMatrix_[l2][l1] = canCollide;
         }
     }
+
+
 
     void PhysicsSystem::Initialize() {
         InitializeCollisionMatrix();
@@ -314,9 +316,8 @@ namespace Framework {
             GridQuery(bounds1, potentialPartners);
 
             // potentialPartners has a '1' for the index of
-            // every entity that could be colliding with e1.
+            // every entity that could be colliding with e1
 
-            // Iterate only over potential partners
             for (int j = 0; j < colliderEntities_.size(); ++j) {
                 if (i == j) continue; // Don't check against self
 
@@ -327,10 +328,9 @@ namespace Framework {
                     Entity first = std::min(e1, e2);
                     Entity second = std::max(e1, e2);
 
-                    // .insert returns a pair. .second is true if insertion
-                    // was successful (i.e., the pair was new).
+
                     if (checkedPairs.insert({ first, second }).second) {
-                        // This is a new pair. Perform the narrow-phase check.
+                        // This is a new pair, use the narrow-phase check
                         CheckCollisionPair(first, second, dt);
                     }
                 }

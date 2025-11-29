@@ -111,7 +111,7 @@ int main() {
         GameManager* gm = &GameManager::GetInstance();
         gm->SetEngine(engine);
         AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
-        GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win, engine);
+        GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win, engine, *audio);
         CameraSystem* camera = new CameraSystem(*ecs);
         VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
         SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, transformation, false);

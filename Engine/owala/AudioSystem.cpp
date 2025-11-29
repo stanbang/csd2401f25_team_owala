@@ -30,12 +30,13 @@ namespace Framework {
         check(r, "System::getMasterChannelGroup");
         //MessageBus
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
+            std::string jumpSoundFile = "jump.wav";
             try {
-                FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>("jump.ogg");
+                FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>(jumpSoundFile);
                 this->play(jumpSound, e.volume, false);
             }
             catch (...) {
-                std::fprintf(stderr, "[AudioSystem] Missing sound: jump.ogg\n");
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << jumpSoundFile << std::endl;
             }
             });
 

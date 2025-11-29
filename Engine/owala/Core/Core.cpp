@@ -31,6 +31,9 @@
 #include "Graphics.h"
 #include "OwalaTime.h"
 #include "GLFW/glfw3.h"
+#include "PlatformBehaviorSystem.h" 
+#include "VFXSystem.h"
+
 #ifdef BUILD_EDITOR
 #include "Editor.h"
 #endif
@@ -53,6 +56,14 @@ namespace Framework {
         if (info == typeid(Framework::FileIOSystem))    return "File IO";
         if (info == typeid(Framework::Graphics))        return "Graphics";
         if (info == typeid(Framework::AISystem))        return "AI System";
+        if (info == typeid(Framework::AnimationSystem)) return "Animation System";
+        if (info == typeid(Framework::CameraSystem))    return "Camera System";
+        if (info == typeid(Framework::GuiSystem))       return "GUI";
+        if (info == typeid(Framework::LevelResetSystem))       return "Level Reset";
+        if (info == typeid(Framework::SpriteRenderSystem))       return "Sprite Render System";
+        if (info == typeid(Framework::TextRenderSystem))       return "Text Render";
+        if (info == typeid(Framework::PlatformBehaviorSystem)) return "Platform Behavior";
+        if (info == typeid(Framework::VFXSystem))              return "VFX System";
 
 	#ifdef BUILD_EDITOR
         if (info == typeid(Editor::Editor))             return "Editor";

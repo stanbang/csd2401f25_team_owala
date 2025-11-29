@@ -336,7 +336,7 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 				// Determine file extension
                 std::string ext = asset.path.extension().string();
 				// Convert extension to lowercase for comparison
-                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
                 bool clicked = false;
 
@@ -429,7 +429,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
             ImGui::TextWrapped("Selected Asset: %s", selectedAsset_.string().c_str());
             ImGui::Separator();
             std::string ext = selectedAsset_.extension().string();
-            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 			// Reimport Button(Reloads the asset from disk)
             if (ImGui::Button("Reimport Asset", ImVec2(150, 30)))
@@ -716,7 +716,7 @@ void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
             filesCopied = true;
 
             std::string ext = sourcePath.extension().string();
-            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
             if (ext == ".ttf")
             {
@@ -813,8 +813,11 @@ void AssetBrowser::HandleReplaceFile(const std::vector<fs::path>& droppedFiles)
     // Check if the file extensions match
     std::string selectedExt = selectedAsset_.extension().string();
     std::string droppedExt = droppedFile.extension().string();
-    std::transform(selectedExt.begin(), selectedExt.end(), selectedExt.begin(), ::tolower);
-    std::transform(droppedExt.begin(), droppedExt.end(), droppedExt.begin(), ::tolower);
+    std::transform(selectedExt.begin(), selectedExt.end(), selectedExt.begin(),
+        [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+    std::transform(droppedExt.begin(), droppedExt.end(), droppedExt.begin(),
+        [](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
 	// If extensions do not match, log error and return
     if (selectedExt != droppedExt)

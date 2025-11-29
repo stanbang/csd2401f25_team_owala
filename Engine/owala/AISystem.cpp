@@ -122,6 +122,30 @@ namespace Framework {
             Logger::Get().Info(DebugType::AISystem) << "Navigation grid rebuilt." << std::endl;
         }
 
+        //edge case where bird gets stuck inside unwalkable wall 
+        static float stuckCheckTimer = 0.0f;
+        stuckCheckTimer += Framework::Time::DeltaTime();
+        if (stuckCheckTimer >= 0.5f) { // Check every 0.5 seconds
+            stuckCheckTimer = 0.0f;
+
+            for (const Entity& enemy : enemies) {
+                if (!entityMgr.HasComponent(enemy, BirdAIComponentType)) continue;
+                if (!entityMgr.HasComponent(enemy, PositionType)) continue;
+
+                Vector2D birdPos = entityMgr.GetComponent<Position>(enemy).Pos;
+                Vector2D gridPos = navGrid_.WorldToGrid(birdPos);
+
+                // If bird is in a wall, rebuild the grid immediately
+                if (!navGrid_.IsWalkable(static_cast<int>(gridPos.x), static_cast<int>(gridPos.y))) {
+                    Logger::Get().Info(DebugType::AISystem)
+                        << "Bird stuck in wall - forcing grid rebuild" << std::endl;
+                    navGrid_.BuildGrid(*ecs_);
+                    gridRebuildTimer_ = 0.0f;
+                    break;
+                }
+            }
+        }
+
         // Loop over all entities with an EnemyTagType and BirdAIComponent
         for (const Entity& enemy : enemies) {
 
@@ -203,6 +227,7 @@ namespace Framework {
                 }
 
             }
+            // currently not in use
             else if (entityMgr.HasComponent(enemy, SkeletonAIComponentType))
             {
                 // Skeletons need these components to function
@@ -300,7 +325,7 @@ namespace Framework {
             return;
         }
 
-        // Continue chasing with A*
+        // Continue chasing with A star
         ai.pathRecalculateTimer -= Framework::Time::DeltaTime();
         if (ai.pathRecalculateTimer <= 0.0f || ai.currentPath.empty()) {
             ai.currentPath = pather_.FindPath(navGrid_, birdPos, playerPos);
@@ -357,6 +382,7 @@ namespace Framework {
         }
 
         Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+        Vector2D& birdVel = entityMgr.GetComponent<Velocity>(bird).Vel;
 
         UpdateBirdFacingDirection(bird, ai.attackTargetPosition);
 
@@ -366,27 +392,60 @@ namespace Framework {
             playerKilled = entityMgr.GetComponent<PlayerState>(player).isDead;
         }
 
+        bool hitWall = false; // boolean for checking if wall is hit
+
+        //Check if bird is inside a blocked grid cell
+        Vector2D gridPos = navGrid_.WorldToGrid(birdPos);
+        if (!navGrid_.IsWalkable(static_cast<int>(gridPos.x), static_cast<int>(gridPos.y))) {
+            hitWall = true;
+        }
+
+        // Check if velocity suddenly dropped 
+        if (!hitWall && birdVel.Magnitude() < ai.attackSpeed * 0.3f) {
+            hitWall = true;
+        }
+
+        //find next frame and check if about to hit wall
+        if (!hitWall) {
+            Vector2D direction = (ai.attackTargetPosition - birdPos).Normalized();
+            Vector2D nextPos = birdPos + direction * ai.attackSpeed * Framework::Time::DeltaTime();
+            Vector2D nextGridPos = navGrid_.WorldToGrid(nextPos);
+
+            if (!navGrid_.IsWalkable(static_cast<int>(nextGridPos.x), static_cast<int>(nextGridPos.y))) {
+                hitWall = true;
+            }
+        }
+
+        if (hitWall) {
+            // Stop ALL movement instantly
+            birdVel = Vector2D::Zero();
+
+            // Enter stunned state
+            ai.state = BirdState::STUNNED;
+            ai.stateTimer = ai.stunDuration;
+
+            Logger::Get().Info(DebugType::AISystem)
+                << "Bird [" << bird << "] entered STUNNED state after collision" << std::endl;
+
+            return; // Exit immediately
+        }
+
         // Dive straight at snapshot position
         Vector2D direction = (ai.attackTargetPosition - birdPos).Normalized();
         entityMgr.GetComponent<Velocity>(bird).Vel = direction * ai.attackSpeed;
 
         ai.stateTimer -= Framework::Time::DeltaTime();
 
-        // Check collision with platforms or timeout
-        bool hitWall = false;
-
-        // Simple wall detection: if velocity suddenly drops to near-zero
-        Vector2D currentVel = entityMgr.GetComponent<Velocity>(bird).Vel;
-        if (currentVel.Magnitude() < ai.attackSpeed * 0.5f) {
-            hitWall = true;
-        }
-
-        if (hitWall || ai.stateTimer <= 0.0f) {
+        if (ai.stateTimer <= 0.0f) {
             Logger::Get().Info(DebugType::AISystem)
-                << "Bird [" << bird << "] attack ended, entering STUNNED state" << std::endl;
+                << "Bird [" << bird << "] attack timed out, entering STUNNED state" << std::endl;
+
+            // Stop movement
+            birdVel = Vector2D::Zero();
+
+            // Enter stunned state
             ai.state = BirdState::STUNNED;
             ai.stateTimer = ai.stunDuration;
-            entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
         }
     }
 
