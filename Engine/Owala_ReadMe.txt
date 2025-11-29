@@ -33,26 +33,6 @@ O - Pause the game and enter physics step mode.
 I - Advance physics mode forward.
 
 ------------------------------------------------
-EDITOR CAMERA
-------------------------------------------------
-1. Click Level Editor > Open Tilemap Editor
-2. Press Play while Tile Palette is open to use Editor Camera
-
-W - Move Editor Camera Up
-A - Move Editor Camera Left
-S - Move Editor Camera Down
-D - Move Editor Camera Right
-
-Arrow Up - Zoom Editor Camera In
-Arrow Down - Zoom Editor Camera Out
-
-------------------------------------------------
-PLAYING IN THE EDITOR
-------------------------------------------------
-1. Ensure Tile Palette is NOT open.
-2. Press Play
-
-------------------------------------------------
 GAME USER INTERFACE
 ------------------------------------------------
 The level comes with 2 UI buttons in the top right.

@@ -1,0 +1,9 @@
+{
+  "frame_count": 8,
+  "frame_duration": 0.05,
+  "is_looping": true,
+  "start_frame": 0,
+  "spritesheets": [
+	{ "texture": "SB_HoverButton_SpriteSheet.png", "count": 8 }
+  ]
+}
