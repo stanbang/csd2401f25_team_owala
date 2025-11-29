@@ -82,6 +82,23 @@ namespace Framework {
 			// Update Button Hovering State
 			buttonComponent.isHovered = isHovering;
 
+			// Determine visual state
+			Button::ButtonVisualState newVisualState = Button::ButtonVisualState::DEFAULT;
+			
+			// Update visual state based on hovering and mouse down
+			if (isHovering && mouseDown) {
+				newVisualState = Button::ButtonVisualState::PRESSED;
+			}
+			else if (isHovering) {
+				newVisualState = Button::ButtonVisualState::HOVER;
+			}
+
+			// Switch textures when state changes
+			if (newVisualState != buttonComponent.currentVisualState) {
+				SwitchButtonTexture(button, buttonComponent, tex, newVisualState, entityMgr);
+				buttonComponent.currentVisualState = newVisualState;
+			}
+
 			// Play hover sound on hover state change
 			if (isHovering && !buttonComponent.wasHoveredLastFrame) {
 				// Just started hovering
@@ -91,8 +108,8 @@ namespace Framework {
 			}
 			buttonComponent.wasHoveredLastFrame = isHovering;
 
+			// Check for mouse click release
 			bool mouseClicked = inputSystem_->MouseReleased(InputSystem::MouseButton::Left);
-
 			// If mouse clicked while hovering, trigger button action
 			if (isHovering && mouseClicked) {
 				Logger::Get().Info(DebugType::GUISystem)
@@ -159,5 +176,152 @@ namespace Framework {
 				<< " - " << e.what() << std::endl;
 		}
 	}
+
+	// Switch button textures
+    void GuiSystem::SwitchButtonTexture(Entity button, Button& buttonComp,
+        TextureComponent& tex,
+        Button::ButtonVisualState newState,
+        EntityManager& entityMgr) {
+        std::string newTextureKey;
+        bool shouldAnimate = false;
+
+        // Determine which texture to use
+        switch (newState) {
+        case Button::ButtonVisualState::PRESSED:
+            if (!buttonComp.pressedTextureKey.empty()) {
+                newTextureKey = buttonComp.pressedTextureKey;
+                shouldAnimate = buttonComp.pressedIsAnimated;
+            }
+            else {
+                newTextureKey = buttonComp.defaultTextureKey;
+                shouldAnimate = buttonComp.defaultIsAnimated;
+            }
+            break;
+
+        case Button::ButtonVisualState::HOVER:
+            if (!buttonComp.hoverTextureKey.empty()) {
+                newTextureKey = buttonComp.hoverTextureKey;
+                shouldAnimate = buttonComp.hoverIsAnimated;
+            }
+            else {
+                newTextureKey = buttonComp.defaultTextureKey;
+                shouldAnimate = buttonComp.defaultIsAnimated;
+            }
+            break;
+
+        case Button::ButtonVisualState::DEFAULT:
+        default:
+            newTextureKey = buttonComp.defaultTextureKey;
+            shouldAnimate = buttonComp.defaultIsAnimated;
+            break;
+        }
+
+        // Only switch if texture actually changed
+        if (newTextureKey.empty() || newTextureKey == tex.textureKey) {
+            return;
+        }
+
+        // Handle animation component
+        if (shouldAnimate) {
+            // Add AnimationComponent if it doesn't exist
+            if (!entityMgr.HasComponent(button, AnimationComponentType)) {
+                entityMgr.AddComponent<AnimationComponent>(button, AnimationComponent{});
+            }
+
+            AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(button);
+
+            // Load animation info BEFORE setting texture key to prevent seeing a whole spritesheet for like a single frame
+            if (resourceManager_->has<AnimationInfo>(newTextureKey)) {
+                AnimationInfo& animInfo = resourceManager_->get<AnimationInfo>(newTextureKey);
+
+                // Set animation properties from loaded data
+                animComp.frameCount = animInfo.frameCount;
+                animComp.frameDuration = animInfo.frameDuration;
+                animComp.isLooping = animInfo.isLooping;
+                animComp.startFrame = animInfo.startFrame;
+                animComp.currentFrame = animInfo.startFrame;
+                animComp.elapsedTime = 0.0f;
+                animComp.isPlaying = true;
+
+                // Calculate initial UV coordinates for first frame
+                if (animInfo.frameCount > 0) {
+                    // Check if multi-sheet animation
+                    if (!animInfo.sheets.empty()) {
+                        // Use first sheet
+                        const SpriteSheetSegment& firstSheet = animInfo.sheets[0];
+                        float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
+                        animComp.minUV = { 0.0f, 0.0f };
+                        animComp.maxUV = { frameUVWidth, 1.0f };
+                    }
+                    else {
+                        // Single sheet
+                        float frameUVWidth = 1.0f / (float)animInfo.frameCount;
+                        animComp.minUV = { 0.0f, 0.0f };
+                        animComp.maxUV = { frameUVWidth, 1.0f };
+                    }
+                }
+            }
+            else {
+                // Animation info not found, try to load it
+                try {
+                    resourceManager_->loadAnimationInfo(newTextureKey);
+
+                    if (resourceManager_->has<AnimationInfo>(newTextureKey)) {
+                        AnimationInfo& animInfo = resourceManager_->get<AnimationInfo>(newTextureKey);
+
+                        animComp.frameCount = animInfo.frameCount;
+                        animComp.frameDuration = animInfo.frameDuration;
+                        animComp.isLooping = animInfo.isLooping;
+                        animComp.startFrame = animInfo.startFrame;
+                        animComp.currentFrame = animInfo.startFrame;
+                        animComp.elapsedTime = 0.0f;
+                        animComp.isPlaying = true;
+
+                        // Calculate initial UVs
+                        if (animInfo.frameCount > 0) {
+                            if (!animInfo.sheets.empty()) {
+                                const auto& firstSheet = animInfo.sheets[0];
+                                float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
+                                animComp.minUV = { 0.0f, 0.0f };
+                                animComp.maxUV = { frameUVWidth, 1.0f };
+                            }
+                            else {
+                                float frameUVWidth = 1.0f / (float)animInfo.frameCount;
+                                animComp.minUV = { 0.0f, 0.0f };
+                                animComp.maxUV = { frameUVWidth, 1.0f };
+                            }
+                        }
+                    }
+                    else {
+                        Logger::Get().Error(DebugType::GUISystem)
+                            << "Failed to load animation info for: " << newTextureKey << std::endl;
+
+                        // Fallback and show full texture
+                        animComp.minUV = { 0.0f, 0.0f };
+                        animComp.maxUV = { 1.0f, 1.0f };
+                    }
+                }
+                catch (const std::exception& e) {
+                    Logger::Get().Error(DebugType::GUISystem)
+                        << "Exception loading animation info for " << newTextureKey
+                        << ": " << e.what() << std::endl;
+
+                    // Fallback
+                    animComp.minUV = { 0.0f, 0.0f };
+                    animComp.maxUV = { 1.0f, 1.0f };
+                }
+            }
+
+        }
+        else {
+            // Remove AnimationComponent if texture is not animated
+            if (entityMgr.HasComponent(button, AnimationComponentType)) {
+                entityMgr.RemoveComponent(button, AnimationComponentType);
+            }
+        }
+
+        // Update the texture key (after animation setup is complete)
+        tex.textureKey = newTextureKey;
+    }
 
 }

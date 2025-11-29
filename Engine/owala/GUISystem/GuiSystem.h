@@ -66,5 +66,11 @@ namespace Framework{
 
 		// Helper function to play button sounds
 		void PlayButtonSound(const std::string& soundKey, float volume);
+
+		// Helper function to switch button textures
+		void SwitchButtonTexture(Entity button, Button& buttonComp,
+			TextureComponent& tex,
+			Button::ButtonVisualState newState,
+			EntityManager& entityMgr);
 	};
 }

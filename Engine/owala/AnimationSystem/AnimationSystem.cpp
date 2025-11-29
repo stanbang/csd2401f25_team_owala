@@ -35,7 +35,6 @@ namespace Framework {
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 
-
 			if (textureComponent.textureKey.empty()) {
 				continue; // Don't try to load animation for empty texture
 			}

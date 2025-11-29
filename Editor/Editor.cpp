@@ -2657,6 +2657,153 @@ namespace Editor {
 				}
 			}
 
+			ImGui::Separator();
+			ImGui::SeparatorText("Button Visual States");
+
+			bool visualStatesChanged = false;
+			std::string visualStatesBeforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+			// Default State
+			if (ImGui::TreeNodeEx("Default State", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Default Texture Key:");
+				if (ImGui::InputText("##DefaultTexture", &buttonComp.defaultTextureKey)) {
+					visualStatesChanged = true;
+				}
+
+				// Drag & Drop for Default Texture
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+							buttonComp.defaultTextureKey = dropped_file.filename().string();
+							visualStatesChanged = true;
+
+							// Load texture if not already loaded
+							resourceManager_->unload<Texture>(buttonComp.defaultTextureKey);
+							resourceManager_->loadTexture(buttonComp.defaultTextureKey, dropped_file.string());
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::Checkbox("Is Animated##default", &buttonComp.defaultIsAnimated)) {
+					visualStatesChanged = true;
+				}
+
+				if (buttonComp.defaultIsAnimated) {
+					ImGui::Indent();
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+						"Ensure animation data exists in textureToAnimationMapping.json");
+					ImGui::Unindent();
+				}
+
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			// Hover State
+			if (ImGui::TreeNodeEx("Hover State", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Hover Texture Key:");
+				if (ImGui::InputText("##HoverTexture", &buttonComp.hoverTextureKey)) {
+					visualStatesChanged = true;
+				}
+
+				// Drag & Drop for Hover Texture
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+							buttonComp.hoverTextureKey = dropped_file.filename().string();
+							visualStatesChanged = true;
+
+							resourceManager_->unload<Texture>(buttonComp.hoverTextureKey);
+							resourceManager_->loadTexture(buttonComp.hoverTextureKey, dropped_file.string());
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::Checkbox("Is Animated##hover", &buttonComp.hoverIsAnimated)) {
+					visualStatesChanged = true;
+				}
+
+				if (buttonComp.hoverIsAnimated) {
+					ImGui::Indent();
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+						"Ensure animation data exists in textureToAnimationMapping.json");
+					ImGui::Unindent();
+				}
+
+				ImGui::TextDisabled("(Leave empty to use default texture)");
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			// Pressed State
+			if (ImGui::TreeNodeEx("Pressed State", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Pressed Texture Key:");
+				if (ImGui::InputText("##PressedTexture", &buttonComp.pressedTextureKey)) {
+					visualStatesChanged = true;
+				}
+
+				// Drag & Drop for Pressed Texture
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+							buttonComp.pressedTextureKey = dropped_file.filename().string();
+							visualStatesChanged = true;
+
+							resourceManager_->unload<Texture>(buttonComp.pressedTextureKey);
+							resourceManager_->loadTexture(buttonComp.pressedTextureKey, dropped_file.string());
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::Checkbox("Is Animated##pressed", &buttonComp.pressedIsAnimated)) {
+					visualStatesChanged = true;
+				}
+
+				if (buttonComp.pressedIsAnimated) {
+					ImGui::Indent();
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+						"Ensure animation data exists in textureToAnimationMapping.json");
+					ImGui::Unindent();
+				}
+
+				ImGui::TextDisabled("(Leave empty to use default texture)");
+				ImGui::TreePop();
+			}
+
+			// Save changes if any texture data was modified
+			if (visualStatesChanged) {
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				if (visualStatesBeforeJSON != afterJSON) {
+					historyManager_.RecordModifyComponent(selectedEntity, "Modified Button Visual States", visualStatesBeforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Button Actions");
+
 			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME" };
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 

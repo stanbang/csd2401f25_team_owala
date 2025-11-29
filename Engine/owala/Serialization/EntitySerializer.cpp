@@ -1060,6 +1060,22 @@ namespace Framework {
 		clickSoundVal.SetString(button.clickSoundKey.c_str(), static_cast<rapidjson::SizeType>(button.clickSoundKey.length()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::CLICK_SOUND_KEY), clickSoundVal, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::CLICK_SOUND_VOLUME), button.clickSoundVolume, alloc);
+	
+		rapidjson::Value defaultTexVal;
+		defaultTexVal.SetString(button.defaultTextureKey.c_str(), static_cast<rapidjson::SizeType>(button.defaultTextureKey.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_DEFAULT_TEXTURE), defaultTexVal, alloc);
+
+		rapidjson::Value hoverTexVal;
+		hoverTexVal.SetString(button.hoverTextureKey.c_str(), static_cast<rapidjson::SizeType>(button.hoverTextureKey.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_HOVER_TEXTURE), hoverTexVal, alloc);
+
+		rapidjson::Value pressedTexVal;
+		pressedTexVal.SetString(button.pressedTextureKey.c_str(), static_cast<rapidjson::SizeType>(button.pressedTextureKey.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_PRESSED_TEXTURE), pressedTexVal, alloc);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_DEFAULT_ANIMATED), button.defaultIsAnimated, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_HOVER_ANIMATED), button.hoverIsAnimated, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_PRESSED_ANIMATED), button.pressedIsAnimated, alloc);
 	}
 
 	// SceneOwned Component
@@ -1655,6 +1671,36 @@ namespace Framework {
 		}
 		else {
 			out.clickSoundVolume = 0.5f; // Default for old save files
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_DEFAULT_TEXTURE) &&
+			componentData[Serialization::BUTTON_DEFAULT_TEXTURE].IsString()) {
+			out.defaultTextureKey = componentData[Serialization::BUTTON_DEFAULT_TEXTURE].GetString();
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_HOVER_TEXTURE) &&
+			componentData[Serialization::BUTTON_HOVER_TEXTURE].IsString()) {
+			out.hoverTextureKey = componentData[Serialization::BUTTON_HOVER_TEXTURE].GetString();
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_PRESSED_TEXTURE) &&
+			componentData[Serialization::BUTTON_PRESSED_TEXTURE].IsString()) {
+			out.pressedTextureKey = componentData[Serialization::BUTTON_PRESSED_TEXTURE].GetString();
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_DEFAULT_ANIMATED) &&
+			componentData[Serialization::BUTTON_DEFAULT_ANIMATED].IsBool()) {
+			out.defaultIsAnimated = componentData[Serialization::BUTTON_DEFAULT_ANIMATED].GetBool();
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_HOVER_ANIMATED) &&
+			componentData[Serialization::BUTTON_HOVER_ANIMATED].IsBool()) {
+			out.hoverIsAnimated = componentData[Serialization::BUTTON_HOVER_ANIMATED].GetBool();
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_PRESSED_ANIMATED) &&
+			componentData[Serialization::BUTTON_PRESSED_ANIMATED].IsBool()) {
+			out.pressedIsAnimated = componentData[Serialization::BUTTON_PRESSED_ANIMATED].GetBool();
 		}
 
 		return true;

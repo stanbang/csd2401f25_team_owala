@@ -240,6 +240,24 @@ namespace Framework{
 		float clickSoundVolume = 0.5f;    // Volume for click sound
 
 		bool wasHoveredLastFrame = false; // Track hover state changes
+	
+		// Texture keys for different button states
+		std::string defaultTextureKey = "";   // Default/idle state
+		std::string hoverTextureKey = "";     // When hovering
+		std::string pressedTextureKey = "";   // When pressed
+
+		// Track which textures are animated
+		bool defaultIsAnimated = false;
+		bool hoverIsAnimated = false;
+		bool pressedIsAnimated = false;
+
+		// NEW: Track current state for texture switching
+		enum class ButtonVisualState {
+			DEFAULT,
+			HOVER,
+			PRESSED
+		};
+		ButtonVisualState currentVisualState = ButtonVisualState::DEFAULT;
 	};
 
 	struct NativeScriptsComponent {
