@@ -21,6 +21,7 @@
 #include <vector>
 #include <set> // Include for duplicate pair checking
 #include "OwalaTime.h"
+#include "GameManager.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -228,6 +229,51 @@ namespace Framework {
             {center.x - newHalfSize.x, center.y - newHalfSize.y},
             {center.x + newHalfSize.x, center.y + newHalfSize.y}
         };
+    }
+
+    bool PhysicsSystem::CheckTriggerOverlap(Entity e1, Entity e2) {
+
+        GameManager& gm = GameManager::GetInstance();
+
+     
+        // We use the pointer *gm.GetSystems().ecs_ to get the reference
+        if (!gm.GetSystems().ecs_) return false; // Safety check
+        EntityManager entityMgr(*gm.GetSystems().ecs_);
+
+        // check for correct entity
+        if (!entityMgr.ValidateEntity(e1) || !entityMgr.ValidateEntity(e2)) return false;
+
+        //Safety Check for ONLY pos and AABB , not RIGIDBODY
+        if (!entityMgr.HasComponent(e1, Framework::PositionType) ||
+            !entityMgr.HasComponent(e1, Framework::AABBColliderType)) return false;
+        if (!entityMgr.HasComponent(e2, Framework::PositionType) ||
+            !entityMgr.HasComponent(e2, Framework::AABBColliderType)) return false;
+
+        // entity 1 data
+        const Vector2D& pos1 = entityMgr.GetComponent<Framework::Position>(e1).Pos;
+        const Vector2D& halfSize1 = entityMgr.GetComponent<Framework::AABBCollider>(e1).HalfSize;
+        float rot1 = 0.0f;
+        if (entityMgr.HasComponent(e1, Framework::RotationFlagType)) {
+            rot1 = entityMgr.GetComponent<Framework::RotationFlag>(e1).currentRotation;
+        }
+
+        // entity 2 data
+        const Vector2D& pos2 = entityMgr.GetComponent<Framework::Position>(e2).Pos;
+        const Vector2D& halfSize2 = entityMgr.GetComponent<Framework::AABBCollider>(e2).HalfSize;
+        float rot2 = 0.0f;
+        if (entityMgr.HasComponent(e2, Framework::RotationFlagType)) {
+            rot2 = entityMgr.GetComponent<Framework::RotationFlag>(e2).currentRotation;
+        }
+
+        //Calculate Bounds 
+        Framework::AABB_Bounds bounds1 = PhysicsSystem::GetRotatedAABB(pos1, halfSize1, rot1);
+        Framework::AABB_Bounds bounds2 = PhysicsSystem::GetRotatedAABB(pos2, halfSize2, rot2);
+
+        
+        bool collisionX = bounds1.max.x >= bounds2.min.x && bounds2.max.x >= bounds1.min.x;
+        bool collisionY = bounds1.max.y >= bounds2.min.y && bounds2.max.y >= bounds1.min.y;
+
+        return collisionX && collisionY;
     }
 
     // ----------------------------------------------------------------------------

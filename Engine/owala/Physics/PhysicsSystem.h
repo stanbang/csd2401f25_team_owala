@@ -75,6 +75,10 @@ namespace Framework {
         Vector2D gravity_ = { 0.0f, -981.0f }; // Public for easy access/modification (e.g., world rotation)
         static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
 
+
+        // Checks for overlapping collision triggers (wincons)
+        static bool CheckTriggerOverlap(Entity e1, Entity e2);
+
         // --- Layer-Based Collision API ---
 
        /**
