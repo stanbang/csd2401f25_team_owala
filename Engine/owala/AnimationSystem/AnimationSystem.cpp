@@ -82,7 +82,8 @@ namespace Framework {
 
 				switch (birdAI.state) {
 				case BirdState::IDLE: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::WAKING: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
+				//case BirdState::WAKING: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
+				case BirdState::WAKING: baseTextureKey = "SB_BirdEnemy_Wake_Spritsheet_1.png"; break;
 				case BirdState::CHASE: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
 				case BirdState::HOVER: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
 				case BirdState::ATTACK: baseTextureKey = "SB_BirdEnemy_DiveAttack_Spritesheet.png"; break;

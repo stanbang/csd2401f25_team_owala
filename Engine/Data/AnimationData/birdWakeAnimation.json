@@ -1,0 +1,40 @@
+{
+    "frame_count": 44,
+    "frame_duration": 0.1,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritsheet_1.png",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritsheet_2.jpg",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritsheet_3.jpg",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritsheet_4.png",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritsheet_5.png",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritsheet_6.png",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_7.jpg",
+            "count": 6
+        },
+        {
+            "texture": "SB_BirdEnemy_Wake_Spritesheet_8.png",
+            "count": 2
+        }
+    ]
+}
