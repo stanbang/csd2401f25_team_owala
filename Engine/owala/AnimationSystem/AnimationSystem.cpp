@@ -91,7 +91,28 @@ namespace Framework {
 
 			// Load animation info using base texture key
 			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
-				resourceManager_->loadAnimationInfo(baseTextureKey);
+				// Try to load animation info if not already loaded
+				try {
+					resourceManager_->loadAnimationInfo(baseTextureKey);
+				}
+				catch (...) {
+					Logger::Get().Error(DebugType::ResourceManager)
+						<< "Error loading AnimationInfo for texture key: " << baseTextureKey << std::endl;
+				}
+			}
+
+			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
+				// Fallback and treat as static image without animation
+				// Reset UVs here to show full image
+				animationComponent.isPlaying = false;
+				animationComponent.frameCount = 1;
+				animationComponent.currentFrame = 0;
+
+				// Force full image display
+				animationComponent.minUV = { 0.0f, 0.0f };
+				animationComponent.maxUV = { 1.0f, 1.0f };
+
+				continue;
 			}
 			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(baseTextureKey);
 
