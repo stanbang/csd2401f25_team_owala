@@ -210,10 +210,6 @@ namespace Editor {
 			currentEditorCameraState_.position = cam.position;
 			currentEditorCameraState_.zoom = cam.zoom;
 
-			/*Framework::Logger::Get().Info(DebugType::Editor)
-				<< "Saved editor camera state: position ("
-				<< currentEditorCameraState_.position.x << ", " << currentEditorCameraState_.position.y
-				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;*/
 		}
 	}
 
@@ -224,10 +220,6 @@ namespace Editor {
 			cam.zoom = currentEditorCameraState_.zoom;
 			cameraSystem_->SetZoom(editorCamera_, currentEditorCameraState_.zoom);
 
-			/*Framework::Logger::Get().Info(DebugType::Editor)
-				<< "Restored editor camera state: position ("
-				<< cam.position.x << ", " << cam.position.y
-				<< ") zoom: " << cam.zoom << std::endl;*/
 		}
 	}
 
@@ -412,6 +404,9 @@ namespace Editor {
 			if (!transformationSystem_) {
 				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not available" << std::endl;
 			}
+			// Tell the InputSystem whether to lock gameplay input
+			Framework::InputSystem* input = gameManager_->GetSystems().input_;
+			input->SetCursorLocked(false);
 		}
 
 		if (!palettePrepared_ && resourceManager_) {
@@ -428,18 +423,8 @@ namespace Editor {
 			Framework::Logger::Get().Info(DebugType::Editor)<< "PrepareTilePaletteItems finished. tilePaletteItems_ size: "<< tilePaletteItems_.size() << std::endl;
 		}
 
-		//for IMGUI INPUT
-		//ImGuiIO& io = ImGui::GetIO();
-
-		// Determine if ImGui currently "owns" the input
-		//bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
-
-		// Tell the InputSystem whether to lock gameplay input
-		Framework::InputSystem* input = gameManager_->GetSystems().input_;
-		input->SetCursorLocked(false);
-
-		if (!isEnabled) return;
-		SanityCheck();
+		/*if (!isEnabled) return;
+		SanityCheck();*/
 
 		// --- START IMGUI FRAME ---
 		ImGui_ImplOpenGL3_NewFrame();
@@ -638,8 +623,6 @@ namespace Editor {
 			}
 			};
 
-		// Add Eraser (no texture needed, or use a placeholder if desired)
-		// paletteItems_.push_back({"Eraser", PrefabType::Eraser, 0}); // Add eraser without texture
 
 		// Add items for each prefab type
 		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
@@ -808,11 +791,10 @@ namespace Editor {
 			return defaultSize;
 		}
 
-		// Look up the prefab definition
 		const EntityPrefab* prefab = prefabSystem_.GetPrefab(name);
 		if (!prefab) return defaultSize;
 
-		// 1. Try to find AABBCollider data
+		// find AABBCollider data
 		for (const auto& comp : prefab->components) {
 			if (comp.type == "AABBCollider") {
 				if (comp.data.HasMember("halfSizeX") && comp.data.HasMember("halfSizeY")) {
@@ -824,7 +806,7 @@ namespace Editor {
 			}
 		}
 
-		// 2. Fallback to TextureComponent data if no collider
+		// TextureComponent data if no collider
 		for (const auto& comp : prefab->components) {
 			if (comp.type == "TextureComponent") {
 				if (comp.data.HasMember("halfSizeX") && comp.data.HasMember("halfSizeY")) {
@@ -874,7 +856,7 @@ namespace Editor {
 		Entity newEntity = 0;
 
 		if (info.type == PrefabType::Tile) {
-			// Tiles are now created from prefabs too
+			// Tiles created from prefabs too
 			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, info.name, snappedPos);
 		}
 		else if (info.type != PrefabType::Eraser) {
@@ -977,16 +959,6 @@ namespace Editor {
 				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 				Entity newEntity = 0;
 
-				/*	switch (selectedPrefabType_) {
-					case PrefabType::Platform:
-						newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-						break;
-					case PrefabType::TrapPlatform:
-						newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-						break;
-					case PrefabType::None: // Should not happen
-						break;
-					}*/
 
 				newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 				if (newEntity != 0) {
@@ -1137,17 +1109,6 @@ namespace Editor {
 
 		ImGui::Begin("Performance Profiler");
 		{
-			/*Framework::PhysicsSystem* physics = gameManager_->GetSystems().physics_;
-			if (physics) {
-				bool isForced = physics->IsForcingNarrowPhase();
-				if (ImGui::Checkbox("Force Narrow-Phase (O(n^2))", &isForced)) {
-					physics->SetNarrowPhase(isForced);
-				}
-				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("Disables broad-phase grid to show performance difference.");
-				}
-				ImGui::Separator();
-			}*/
 
 			// Add a slider to control how often the profiler updates
 			static float updateInterval = 1.0f; // Default to updating once per second
@@ -1322,7 +1283,7 @@ namespace Editor {
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
 			//  Add components to make it visible and selectable
-			Vector2D texHalfSize = { 100.f, 100.f }; // Set a default size
+			Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
 			Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
 
 			// texture is loaded in TestScene.cpp
@@ -1339,42 +1300,44 @@ namespace Editor {
 		}
 
 		//ImGui::SameLine();
-		if (ImGui::Button("Spawn Test Skeleton")) {
-			
-			SceneManager& sceneMgr = SceneManager::GetInstance();
-			//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		
+		// SKELETON AI NOT IN USE CURRENTLY
+		//if (ImGui::Button("Spawn Test Skeleton")) {
+		//	
+		//	SceneManager& sceneMgr = SceneManager::GetInstance();
+		//	//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
-			// Create entity
-			Entity skeleton = entityMgr.CreateEntity();
+		//	// Create entity
+		//	Entity skeleton = entityMgr.CreateEntity();
 
-			// Set properties
-			entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
+		//	// Set properties
+		//	entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
 
-			// Add components required for the AI
-			entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
-			entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
-			entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
-			entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
-			
+		//	// Add components required for the AI
+		//	entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
+		//	entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
+		//	entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
+		//	entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
+		//	entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
+		//	
 
-			// Add physics, but make it affected by gravity
-			RigidBody rb;
-			rb.SetMass(1.0f); // Give it some mass
-			rb.isAffectedByGravity = true; // Make it fall
-			entityMgr.AddComponent<RigidBody>(skeleton, rb);
+		//	// Add physics, but make it affected by gravity
+		//	RigidBody rb;
+		//	rb.SetMass(1.0f); // Give it some mass
+		//	rb.isAffectedByGravity = true; // Make it fall
+		//	entityMgr.AddComponent<RigidBody>(skeleton, rb);
 
-			// Add components to make it visible and selectable
-			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
-			entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
-			entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
+		//	// Add components to make it visible and selectable
+		//	Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
+		//	entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
+		//	entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
 
-			// Add it to the active scene
-			sceneMgr.AddEntityToScene(currentScene, skeleton);
+		//	// Add it to the active scene
+		//	sceneMgr.AddEntityToScene(currentScene, skeleton);
 
-			Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
-				<< skeleton << ")";
-		}
+		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
+		//		<< skeleton << ")";
+		//}
 		
 
 		ImGui::End(); // End "Level Editor" window
@@ -1656,7 +1619,7 @@ namespace Editor {
 					ImGui::EndDragDropSource();
 				}
 
-				// 2. Handle Right Click (New Brush Mode)
+				// Right Click (Brush Mode)
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 					isBrushMode_ = true;
 					brushPayload_ = item; // Copy item info to brush
@@ -1895,7 +1858,7 @@ namespace Editor {
 					ImGui::EndDragDropSource();
 				}
 
-				// 2. Brush Mode (Right Click)
+				// Brush Mode (Right Click)
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 					isBrushMode_ = true;
 					brushPayload_ = item;
@@ -2048,33 +2011,6 @@ namespace Editor {
 
 				ImGui::Separator();
 
-				/* // Prefabs
-				if (ImGui::BeginMenu("Prefabs")) {
-					// Platforms
-					if (ImGui::BeginMenu("Platforms")) {
-						for (const std::pair<std::string, PlatformPrefab>& pair : prefabSystem_.GetPlatformPrefabs()) {
-							if (ImGui::MenuItem(pair.first.c_str())) {
-								selectedPrefabType_ = PrefabType::Platform;
-								selectedPrefabName_ = pair.first;
-							}
-						}
-						ImGui::EndMenu();
-					}
-					// Trap Platforms
-					if (ImGui::BeginMenu("Trap Platforms")) {
-						for (const std::pair<std::string, TrapPlatformPrefab>& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
-							if (ImGui::MenuItem(pair.first.c_str())) {
-								selectedPrefabType_ = PrefabType::TrapPlatform;
-								selectedPrefabName_ = pair.first;
-							}
-						}
-						ImGui::EndMenu();
-					}
-					
-					ImGui::EndMenu(); // End Prefabs Menu
-				}
-
-				ImGui::Separator();*/
 
 				// Create Empty Entity
 				if (ImGui::MenuItem("Create Empty")) {
@@ -2096,9 +2032,6 @@ namespace Editor {
 
 	void Editor::ShowInspector() {
 		using namespace Framework;
-
-		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 400, 20), ImGuiCond_FirstUseEver);
-		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 100), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Inspector");
 		if (isEntitySelected_) {
@@ -3623,8 +3556,7 @@ namespace Editor {
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		/*	ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);*/
+		
 			ImGui::PopStyleColor(2);
 
 			ImGui::Separator();
@@ -4165,10 +4097,10 @@ namespace Editor {
 
 			if (gfx && spriteRenderer_ && camSystem) {
 
-				// 1. Calculate the aspect ratio of the specific ImGui Window
+				// Calculate the aspect ratio of the specific ImGui Window
 				float viewportAspect = viewportPanelSize.x / viewportPanelSize.y;
 
-				// 2. Determine which camera is currently being used
+				// Determine which camera is currently being used
 				Entity cameraInUse = 0;
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
 					cameraInUse = editorCamera_;
@@ -4178,17 +4110,17 @@ namespace Editor {
 					cameraInUse = camSystem->GetActiveCamera();
 				}
 
-				// 3. Force that camera to match the ImGui window dimensions
+				// Force that camera to match the ImGui window dimensions
 				if (cameraInUse != 0) {
 					camSystem->SetAspectRatio(cameraInUse, viewportAspect);
 				}
 
-				// === STEP 1: PREPARE FRAMEBUFFER ===
+				// === PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
 				gfx->BindGameFramebuffer();
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-				// === STEP 2: TEMPORARILY SWITCH TO EDITOR CAMERA ===
+				// ===  TEMPORARILY SWITCH TO EDITOR CAMERA ===
 				Entity prevCamera = camSystem->GetActiveCamera();
 
 				// Save current editor camera state before any rendering
@@ -4197,11 +4129,11 @@ namespace Editor {
 				}
 
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
-					// 1. Update Aspect Ratio based on the actual ImGui Window size
+					//  Update Aspect Ratio based on the actual ImGui Window size
 					float aspect = (viewportPanelSize.y > 0) ? (viewportPanelSize.x / viewportPanelSize.y) : 1.0f;
 					camSystem->SetAspectRatio(editorCamera_, aspect);
 
-					// 2. Manually update the camera.size. 
+					//  Manually update the camera.size. 
 					Framework::Camera& cam = camSystem->GetCamera(editorCamera_);
 					cam.size.x = 2.0f * cam.zoom * cam.aspectRatio;
 					cam.size.y = 2.0f * cam.zoom;
@@ -4209,11 +4141,11 @@ namespace Editor {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// === STEP 3: RENDER SPRITES ===
+				// ===  RENDER SPRITES ===
 				spriteRenderer_->Update();
 				textRenderer_->Update();
 
-				// === STEP 4: RESTORE ORIGINAL CAMERA ===
+				// ===  RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
 					camSystem->SetActiveCamera(prevCamera);
 
@@ -4223,15 +4155,15 @@ namespace Editor {
 					}
 				}
 
-				// === STEP 5: UNBIND FRAMEBUFFER ===
+				// ===  UNBIND FRAMEBUFFER ===
 				gfx->UnbindGameFramebuffer();
 
-				// === STEP 6: DRAW GAME TEXTURE ===
+				// === DRAW GAME TEXTURE ===
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(),
 					viewportPanelSize,
 					ImVec2(0, 1), ImVec2(1, 0));
 
-				// === STEP 7: DRAW OVERLAYS (GRID, DEBUG) ===
+				// ===  DRAW OVERLAYS (GRID, DEBUG) ===
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 				ImVec2 clipMin = gameViewportPos_;
@@ -4643,7 +4575,7 @@ namespace Editor {
 			ImGui::TableSetupScrollFreeze(0, 1); // Freeze header row
 			ImGui::TableHeadersRow();
 
-			// 3. Iterate through the now-sorted entity list
+			//  Iterate through entity list
 			for (const Entity& entity : sceneEntities) {
 				if (!entityMgr.ValidateEntity(entity)) continue;
 
