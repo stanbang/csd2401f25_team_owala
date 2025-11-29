@@ -366,7 +366,7 @@ namespace Framework{
 		WAKING,  // Alerted, playing "wake up" animation
 		CHASE,   // Using A* to navigate to the player
 		HOVER,   // Close to the player, hovering erratically
-		STUNNED,
+		STUNNED, // Stunned after attacking
 		ATTACK   // Diving at the player's last known position
 	};
 
