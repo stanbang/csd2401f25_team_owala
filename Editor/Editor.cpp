@@ -710,10 +710,10 @@ namespace Editor {
 		Vector2D worldMousePos = cameraSystem_->ScreenToWorld(screenPos, editorCamera_);
 
 
-		// --- SNAP TO GRID ---
+		
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		// Call the new helper
+		
 		PlaceObjectInWorld(dragDropPayload_, snappedPos);
 
 		isDraggingPrefab_ = false;
@@ -724,15 +724,15 @@ namespace Editor {
 	void Editor::DrawDragDropPreview(ImDrawList* drawList)
 	{
 
-		// 1. Check Visibility
+		//Check Visibility
 		bool showPreview = (isDraggingPrefab_ || isBrushMode_) && isMouseOverGameViewport_;
 		if (!showPreview) return;
 
-		// 2. Get Payload
+		// Get Payload
 		const DraggablePrefabInfo& currentPayload = dragDropPayload_;//isDraggingPrefab_ ? dragDropPayload_ : brushPayload_;
 		if (currentPayload.type == PrefabType::None || currentPayload.type == PrefabType::Eraser) return;
 
-		// DEBUG: Log what we're trying to draw
+		
 		static int debugCounter = 0;
 		if (debugCounter++ % 60 == 0) { // Log once per second at 60fps
 			Framework::Logger::Get().Info(DebugType::Editor)
@@ -747,7 +747,7 @@ namespace Editor {
 
 		if (!cameraSystem_ || editorCamera_ == 0) return;
 
-		// 4. Calculate Position (Snapped to Grid)
+		//  Calculate Position 
 		Vector2D worldMousePos = GetMouseWorldPosition();
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
 
@@ -755,7 +755,7 @@ namespace Editor {
 		if (isDraggingPrefab_) dragDropPreviewPos_ = snappedPos;
 		else brushPreviewPos_ = snappedPos;
 
-		// 5. Calculate Screen Rect
+		// Calculate Screen Rect
 		Vector2D halfSize = { baseGridCellSize_/2, baseGridCellSize_/2 };
 
 		Vector2D worldMin = { snappedPos.x - halfSize.x, snappedPos.y - halfSize.y };
@@ -764,11 +764,11 @@ namespace Editor {
 		ImVec2 p1 = WorldToImGuiScreen(worldMin);
 		ImVec2 p2 = WorldToImGuiScreen(worldMax);
 
-		// FIX: Normalize Min/Max to prevent negative width/height
+		// Normalize Min/Max to prevent negative width/height
 		ImVec2 rectMin = ImVec2(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
 		ImVec2 rectMax = ImVec2(std::max(p1.x, p2.x), std::max(p1.y, p2.y));
 
-		// 6. Draw with proper clipping
+		// Draw with proper clipping
 		ImVec2 clipMin = gameViewportPos_;
 		ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x,
 			gameViewportPos_.y + gameViewportSize_.y);
@@ -794,42 +794,8 @@ namespace Editor {
 				tint
 			);
 
-			// Draw border
-		/*	ImU32 borderCol = isBrushMode_ ? IM_COL32(0, 255, 0, 255) : IM_COL32(255, 255, 0, 255);
-			drawList->AddRect(rectMin, rectMax, borderCol, 0.0f, 0, 2.0f);*/
 		}
-		//if (!isDraggingPrefab_ ||
-		//	dragDropPayload_.type == PrefabType::None ||
-		//	dragDropPayload_.type == PrefabType::Eraser)
-		//	return;
-
-		//if (!cameraSystem_ || editorCamera_ == 0)
-		//	return;
-
-		//Vector2D worldMousePos = GetMouseWorldPosition();
-		//dragDropPreviewPos_ = SnapToGrid(worldMousePos);
-
-		//Texture previewTextureID = dragDropPayload_.textureID;
-		//if (previewTextureID == 0)
-		//	return;
-
-		//// Use consistent world space sizing
-		//Vector2D previewHalfSize = { baseGridCellSize_, baseGridCellSize_ };
-
-		//// Calculate world space corners
-		//Vector2D worldMin = { dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y };
-		//Vector2D worldMax = { dragDropPreviewPos_.x + previewHalfSize.x, dragDropPreviewPos_.y + previewHalfSize.y };
-
-		//// Convert to screen space
-		//ImVec2 screenMin = WorldToImGuiScreen(worldMin);
-		//ImVec2 screenMax = WorldToImGuiScreen(worldMax);
-
-		//ImVec2 uv0 = dragDropPayload_.uv0;
-		//ImVec2 uv1 = dragDropPayload_.uv1;
-		//ImU32 tintColor = IM_COL32(255, 255, 255, 150);
-
-		//ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
-		//drawList->AddImage(texID, screenMin, screenMax, uv0, uv1, tintColor);
+		
 	}
 
 	Vector2D Editor::GetPrefabHalfSize(const std::string& name, PrefabType type)
@@ -2424,6 +2390,7 @@ namespace Editor {
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
+					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 				}
 				if (ImGui::IsItemActive()) nowActive = true;
 
@@ -2564,6 +2531,7 @@ namespace Editor {
 							collider.HalfSize.y = originalSizes[selectedEntity].y * ScaleFactor.y;
 						}
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
+						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild(); // force grid to rebuild instantly 
 					}
 					if (ImGui::IsItemActive()) nowActive = true;
 
@@ -2581,6 +2549,7 @@ namespace Editor {
 								collider.HalfSize.y = originalSizes[selectedEntity].y * uniformValue;
 							}
 							transformationSystem_->UpdateEntityTransform(selectedEntity);
+							if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 						}
 						if (ImGui::IsItemActive()) nowActive = true;
 					}
@@ -3103,7 +3072,9 @@ namespace Editor {
 			}
 
 			// Vector2D HalfSize Input
-			ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f");
+			if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
+				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+			}
 			bool activeNow = ImGui::IsItemActive();
 
 			if (activeNow && !editSession.wasItemActive) {
