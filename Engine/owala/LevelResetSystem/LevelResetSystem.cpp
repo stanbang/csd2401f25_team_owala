@@ -127,6 +127,14 @@ namespace Framework {
 
                 continue;
             }
+
+            // --- Portal Reset ---
+            if (entityMgr.GetProperties(entity).name == "Portal") {
+                Position originalPos{ TransformationSystem::GetOriginalPos(entityMgr, entity) };
+                ResetPosition(entityMgr, entity, originalPos);
+                ResetRotation(entityMgr, entity);
+                continue;
+            }
         }
     }
 
