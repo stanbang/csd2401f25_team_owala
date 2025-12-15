@@ -42,7 +42,8 @@ namespace Framework {
 	class WIPEntityManager;
 
 	enum ComponentType : int {
-		PositionType = 0,
+		TransformType = 0,
+		PositionType,
 		SpawnPointType,
 		VelocityType,
 		AccelerationType,
@@ -89,6 +90,7 @@ namespace Framework {
 	struct ComponentTypeTrait;
 
 	// Specializations for each real component
+	template <> struct ComponentTypeTrait<Transform> { static constexpr ComponentType value = TransformType; };
 	template <> struct ComponentTypeTrait<Position> { static constexpr ComponentType value = PositionType; };
 	template <> struct ComponentTypeTrait<SpawnPoint> { static constexpr ComponentType value = SpawnPointType; };
 	template <> struct ComponentTypeTrait<Velocity> { static constexpr ComponentType value = VelocityType; };
@@ -139,6 +141,7 @@ namespace Framework {
 
 		//Basic Components
 		std::unordered_map<Entity, EntityProperties> properties;
+		std::unordered_map<Entity, Transform>	 transform;
 		std::unordered_map<Entity, Position>     position;
 		std::unordered_map<Entity, SpawnPoint>   spawnPoint;
 		std::unordered_map<Entity, Velocity>     velocity;

@@ -134,6 +134,16 @@ namespace Editor {
 		}
 
 		switch (type) {
+		case ComponentType::TransformType: {
+			Transform newTransform;
+			if (EntitySerializer::DeserializeComponent(doc, newTransform)) {
+				if (entityMgr.HasComponent(entity, ComponentType::TransformType)) {
+					entityMgr.RemoveComponent(entity, ComponentType::TransformType);
+				}
+				entityMgr.AddComponent<Transform>(entity, newTransform);
+			}
+			break;
+		}
 			case ComponentType::PositionType: {
 				Position newPosition;
 				if (EntitySerializer::DeserializeComponent(doc, newPosition)) {

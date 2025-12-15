@@ -58,12 +58,31 @@ namespace Framework{
 		DEATH
 	};
 
+	struct Rotation {
+		float angle = 0.0f;
+		float textureAngle = 0.0f; // Texture rotation angle
+		float colliderAngle = 0.0f; // Collider rotation angle
+		Matrix3x3 textureTransformMatrix; // For texture
+		Matrix3x3 colliderTransformMatrix; // For collider
+
+		Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
+		Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
+	};
+
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
 		RenderLayer renderLayer = RenderLayer::Platform;
 		int customRenderOrder = 0; // Used when renderLayer is Custom
+
+		bool isActive = true;
+	};
+
+	struct Transform {
+		Vector2D position{ 0.f, 0.f };
+		Rotation rotation;
+		Vector2D scale{ 1.f, 1.f };
 	};
 
 	/*	Position component to store x and y 
@@ -194,17 +213,6 @@ namespace Framework{
 		float currentRotation = 0.0f;
 		float targetRotation = 0.0f;
 		Matrix3x3 transformMatrix;
-	};
-
-	struct Rotation {
-		float angle = 0.0f;
-		float textureAngle = 0.0f; // Texture rotation angle
-		float colliderAngle = 0.0f; // Collider rotation angle
-		Matrix3x3 textureTransformMatrix; // For texture
-		Matrix3x3 colliderTransformMatrix; // For collider
-
-		Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
-		Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
 	};
 
 	struct Scale {

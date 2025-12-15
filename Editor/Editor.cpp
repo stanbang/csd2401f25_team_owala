@@ -75,6 +75,7 @@ namespace Editor {
 	std::string ComponentToString(ComponentType componentType) {
 		switch (componentType)
 		{
+		case ComponentType::TransformType:					return "Transform";
 		case ComponentType::PositionType:					return "Position";
 		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
@@ -2284,6 +2285,216 @@ namespace Editor {
 
 		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
 		switch (selectedComponent) {
+		case ComponentType::TransformType: {
+			Transform& transform = entityMgr.GetComponent<Transform>(selectedEntity);
+
+			bool nowActive = false;
+			// Position
+			ImGui::InputFloat2("Position", &transform.position.x, "%.2f");
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			// Rotation
+			static bool unifiedTransformRotation = true;
+			ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedTransformRotation);
+			ImGui::Separator();
+
+			if (unifiedTransformRotation) {
+				float unifiedDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
+
+				// Unified Rotation Slider
+				ImGui::SetNextItemWidth(100.f);
+				if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
+					transform.rotation.textureAngle = newRadians;
+					transform.rotation.colliderAngle = newRadians;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+				}
+				if (ImGui::IsItemActive()) nowActive = true;
+
+				if (ImGui::Button("Reset Rotation")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.textureAngle = 0.0f;
+					transform.rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::Text("Current: %.1f°", unifiedDegrees);
+			}
+			else {
+				// Texture Rotation Slider
+				ImGui::Text("Texture Rotation");
+				float textureDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
+				if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+					transform.rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				if (ImGui::IsItemActive()) nowActive = true;
+
+				ImGui::Separator();
+
+				// Collider Rotation Slider
+				ImGui::Text("Collider Rotation");
+				float colliderDegrees = static_cast<float>(transform.rotation.colliderAngle * (180.0f / M_PI));
+				if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+					transform.rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+				}
+				if (ImGui::IsItemActive()) nowActive = true;
+
+				ImGui::Separator();
+
+				// Reset Texture Button
+				if (ImGui::Button("Reset Texture")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.textureAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Texture Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Collider")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Collider Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Both")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.textureAngle = 0.0f;
+					transform.rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::Text("Texture: %.1f° | Collider: %.1f°", textureDegrees, colliderDegrees);
+			}
+
+			// Scale
+			if (transformationSystem_) {
+				static std::unordered_map<Entity, Vector2D> defaultSizes;
+
+				if (defaultSizes.find(selectedEntity) == defaultSizes.end()) {
+					if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
+						defaultSizes[selectedEntity] = entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize;
+					}
+				}
+
+				// ===========================================================
+				// SCALING
+				// ===========================================================
+				if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(selectedEntity);
+					Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
+
+					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
+						transform.scale.x = ScaleFactor.x;
+						transform.scale.y = ScaleFactor.y;
+
+						if (defaultSizes.count(selectedEntity)) {
+							collider.HalfSize.x = defaultSizes[selectedEntity].x * ScaleFactor.x;
+							collider.HalfSize.y = defaultSizes[selectedEntity].y * ScaleFactor.y;
+						}
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild(); // force grid to rebuild instantly 
+					}
+					if (ImGui::IsItemActive()) nowActive = true;
+
+					static bool uniformTransformScale = false;
+					ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
+
+					if (uniformTransformScale) {
+						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
+						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
+							transform.scale.x = uniformValue;
+							transform.scale.y = uniformValue;
+
+							if (defaultSizes.count(selectedEntity)) {
+								collider.HalfSize.x = defaultSizes[selectedEntity].x * uniformValue;
+								collider.HalfSize.y = defaultSizes[selectedEntity].y * uniformValue;
+							}
+							transformationSystem_->UpdateEntityTransform(selectedEntity);
+							if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+						}
+						if (ImGui::IsItemActive()) nowActive = true;
+					}
+					if (ImGui::Button("Reset Scale")) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						transform.scale = { 1.0f, 1.0f };
+						if (defaultSizes.count(selectedEntity)) {
+							collider.HalfSize = defaultSizes[selectedEntity];
+						}
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Reset Scale in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+					}
+				}
+				else {
+					ImGui::TextDisabled("No AABBCollider attached");
+				}
+			}
+			else {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
+			}
+
+			if (nowActive && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+			if (!nowActive && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Set Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+			editSession.wasItemActive = nowActive;
+			break;
+		}
 		case ComponentType::PositionType: {
 			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
 

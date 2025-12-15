@@ -62,6 +62,7 @@ namespace Framework {
 
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
+					case ComponentType::TransformType: AddComponent<Transform>(newEntity, GetComponent<Transform>(entity)); break;
 					case ComponentType::PositionType: AddComponent<Position>(newEntity, GetComponent<Position>(entity)); break;
 					case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(newEntity, GetComponent<SpawnPoint>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
@@ -137,6 +138,7 @@ namespace Framework {
 
 		switch (componentType)
 		{
+		case ComponentType::TransformType: AddComponent<Transform>(entity, Transform{}); break;
 		case ComponentType::PositionType: AddComponent<Position>(entity, Position{}); break;
 		case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(entity, SpawnPoint{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
@@ -181,6 +183,7 @@ namespace Framework {
 		if (!HasComponent(entity, componentType)) return;
 
 		switch (componentType) {
+			case TransformType:		ecs.transform.erase(entity); break;
 			case PositionType:      ecs.position.erase(entity); break;
 			case SpawnPointType:    ecs.spawnPoint.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;

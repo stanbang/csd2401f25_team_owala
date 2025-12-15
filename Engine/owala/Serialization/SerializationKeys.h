@@ -37,9 +37,15 @@ namespace Framework::Serialization {
 	static constexpr const char* ENTITY_LAYER = "layer";
 	static constexpr const char* ENTITY_RENDER_LAYER = "render_layer";          
 	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
+	static constexpr const char* ENTITY_IS_ACTIVE = "active";
 
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";
+
+	static constexpr const char* TRANSFORM_COMPONENT = "Transform";
+	static constexpr const char* TRANSFORM_POSITION = "Position";
+	static constexpr const char* TRANSFORM_ROTATION = "Rotation";
+	static constexpr const char* TRANSFORM_SCALE = "Scale";
 
 	static constexpr const char* POSITION_COMPONENT = "Position";
 	static constexpr const char* SPAWN_PT_COMPONENT = "SpawnPoint";

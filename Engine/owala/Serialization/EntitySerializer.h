@@ -72,6 +72,7 @@ namespace Framework {
         /* Specialized Serialization APIs */
         /* Components */
 
+        static void SerializeComponent(const Transform& transform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Position& pos, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SpawnPoint& spawnPt, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Velocity& vel, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
@@ -99,6 +100,7 @@ namespace Framework {
         /* Specialized Deserialization APIs */
         /* Components */
 
+        static bool DeserializeComponent(const rapidjson::Value& componentData, Transform& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, Position& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, SpawnPoint& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, Velocity& out);
