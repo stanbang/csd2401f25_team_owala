@@ -838,8 +838,8 @@ namespace Editor {
 		const std::vector<Entity>& entities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
 
 		for (const auto& entity : entities) {
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+			if (entityMgr.HasComponent(entity, Framework::TransformType)) {
+				const Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
 
 				// Check intersection
 				if (std::abs(pos.x - snappedPos.x) < epsilon &&
@@ -932,8 +932,8 @@ namespace Editor {
 
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+			if (entityMgr.HasComponent(entity, Framework::TransformType)) {
+				const Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
 				if (std::abs(pos.x - snappedPos.x) < eraseTolerance && std::abs(pos.y - snappedPos.y) < eraseTolerance) {
 					entityToErase = entity;
 					break;
@@ -5727,9 +5727,9 @@ namespace Editor {
 
 		// Iterate through entities to find which one was clicked.
 		for (Entity& entity : sortedByRenderLayer) {
-			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType))
+			if (entityMgr.HasComponent(entity, Framework::ComponentType::TransformType))
 			{
-				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+				Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
 				bool isGUI = entityMgr.HasComponent(entity, GUITagType);
 				Vector2D checkPos = isGUI ? GetNormalizedMousePos() : mouseWorldPos;
 

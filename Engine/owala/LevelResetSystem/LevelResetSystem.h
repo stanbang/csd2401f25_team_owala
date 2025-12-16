@@ -49,17 +49,15 @@ namespace Framework {
         void ResetPlayer(EntityManager& entityMgr, Entity entity);
         
         // --- Reset Helpers ---
-        // Reset Position to given position, defaults to 0,0 if no Position provided
-        void ResetPosition(EntityManager& entityMgr, Entity entity, Position pos = Position(Vector2D{}));
+        // Reset Transform of a Entity, uses default transform if no Transform provided
+        void ResetTransform(EntityManager& entityMgr, Entity entity, Transform transform = Transform());
         // Reset Velocity to given velocity, default to 0,0 if no Velocity provided
         void ResetVelocity(EntityManager& entityMgr, Entity entity, Velocity vel = Velocity());
-        // Reset RotationFlag component
-        void ResetRotation(EntityManager& entityMgr, Entity entity);
         
         // Helper function to compare signatures
         bool CmpSignatures(ComponentSignature sigToTest, ComponentSignature sigToMatch);
 
-        Position GetPlayerSpawnPt(EntityManager& entityMgr) const;
+        Vector2D GetPlayerSpawnPt(EntityManager& entityMgr) const;
     };
 
 } // namespace Framework

@@ -97,12 +97,12 @@ namespace Framework {
             return;
         }
 
-        if (!entityMgr.HasComponent(player, PositionType)) {
-            Logger::Get().Error(DebugType::AISystem) << "Player doesn't have Position component!" << std::endl;
+        if (!entityMgr.HasComponent(player, TransformType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Player doesn't have Transform component!" << std::endl;
             return;
         }
 
-        Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
+        Vector2D playerPos = entityMgr.GetComponent<Transform>(player).position;
         
 
         // Get players collision halfsize
@@ -130,9 +130,9 @@ namespace Framework {
 
             for (const Entity& enemy : enemies) {
                 if (!entityMgr.HasComponent(enemy, BirdAIComponentType)) continue;
-                if (!entityMgr.HasComponent(enemy, PositionType)) continue;
+                if (!entityMgr.HasComponent(enemy, TransformType)) continue;
 
-                Vector2D birdPos = entityMgr.GetComponent<Position>(enemy).Pos;
+                Vector2D birdPos = entityMgr.GetComponent<Transform>(enemy).position;
                 Vector2D gridPos = navGrid_.WorldToGrid(birdPos);
 
                 // If bird is in a wall, rebuild the grid immediately
@@ -160,14 +160,14 @@ namespace Framework {
             // Check that the bird has all components before proceeding
             if (entityMgr.HasComponent(enemy, BirdAIComponentType))
             {
-                if (!entityMgr.HasComponent(enemy, PositionType) ||
+                if (!entityMgr.HasComponent(enemy, TransformType) ||
                     !entityMgr.HasComponent(enemy, VelocityType))
                 {
                     continue; // Skip if bird doesn't have all required components
                 }
 
                 Framework::BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(enemy);
-                Vector2D& birdPos = entityMgr.GetComponent<Position>(enemy).Pos;
+                Vector2D& birdPos = entityMgr.GetComponent<Transform>(enemy).position;
 
                 // Get birds collision halfsize
                 Vector2D birdHalfSize = Vector2D::Zero();
@@ -231,15 +231,15 @@ namespace Framework {
             else if (entityMgr.HasComponent(enemy, SkeletonAIComponentType))
             {
                 // Skeletons need these components to function
-                if (!entityMgr.HasComponent(enemy, PositionType) ||
+                if (!entityMgr.HasComponent(enemy, TransformType) ||
                     !entityMgr.HasComponent(enemy, VelocityType) ||
                     !entityMgr.HasComponent(enemy, PlayerStateType)) // Used for facing and grounded
                 {
                     continue;
                 }
 
-                auto& ai = entityMgr.GetComponent<SkeletonAIComponent>(enemy);
-                auto& skeletonPos = entityMgr.GetComponent<Position>(enemy).Pos;
+                SkeletonAIComponent& ai = entityMgr.GetComponent<SkeletonAIComponent>(enemy);
+                Vector2D& skeletonPos = entityMgr.GetComponent<Transform>(enemy).position;
 
                 // --- Skeleton State Machine ---
                 switch (ai.state) {
@@ -376,12 +376,12 @@ namespace Framework {
     void AISystem::HandleAttackState(Entity bird, BirdAIComponent& ai) {
         EntityManager entityMgr(*ecs_);
 
-        if (!entityMgr.HasComponent(bird, PositionType) ||
+        if (!entityMgr.HasComponent(bird, TransformType) ||
             !entityMgr.HasComponent(bird, VelocityType)) {
             return;
         }
 
-        Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+        Vector2D birdPos = entityMgr.GetComponent<Transform>(bird).position;
         Vector2D& birdVel = entityMgr.GetComponent<Velocity>(bird).Vel;
 
         UpdateBirdFacingDirection(bird, ai.attackTargetPosition);
@@ -472,8 +472,8 @@ namespace Framework {
             Entity player = GetPlayer();
             if (player == 0) return;
 
-            if (!entityMgr.HasComponent(player, PositionType)) {
-                Logger::Get().Error(DebugType::AISystem) << "Player is missing Position component!" << std::endl;
+            if (!entityMgr.HasComponent(player, TransformType)) {
+                Logger::Get().Error(DebugType::AISystem) << "Player is missing Transform component!" << std::endl;
                 return;
             }
             if (!entityMgr.HasComponent(bird, VelocityType)) {
@@ -481,7 +481,7 @@ namespace Framework {
                 return;
             }
 
-            Vector2D dir = (entityMgr.GetComponent<Position>(player).Pos - birdPos).Normalized();
+            Vector2D dir = (entityMgr.GetComponent<Transform>(player).position - birdPos).Normalized();
             entityMgr.GetComponent<Velocity>(bird).Vel = dir * ai.moveSpeed;
             return;
         }
@@ -584,12 +584,12 @@ namespace Framework {
         EntityManager entityMgr(*ecs_);
 
         if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
-            !entityMgr.HasComponent(bird, PositionType)) {
+            !entityMgr.HasComponent(bird, TransformType)) {
             return;
         }
 
         BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
-        Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+        Vector2D birdPos = entityMgr.GetComponent<Transform>(bird).position;
 
         // Determine facing direction based on target
         float deltaX = targetPos.x - birdPos.x;
@@ -652,12 +652,12 @@ namespace Framework {
             Logger::Get().Error(DebugType::AISystem) << "No player found for debug drawing" << std::endl;
             return;
         }
-        if (!entityMgr.HasComponent(player, PositionType)) {
-            Logger::Get().Error(DebugType::AISystem) << "Player is missing Position component for debug drawing" << std::endl;
+        if (!entityMgr.HasComponent(player, TransformType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Player is missing Transform component for debug drawing" << std::endl;
             return;
         }
 
-        Vector2D playerPos = entityMgr.GetComponent<Position>(player).Pos;
+        Vector2D playerPos = entityMgr.GetComponent<Transform>(player).position;
         Entity activeCam = cameraToUse; 
 
         if (activeCam == 0) {
@@ -709,14 +709,14 @@ namespace Framework {
 
         for (const Entity& bird : Enemies) {
             if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
-                !entityMgr.HasComponent(bird, PositionType))
+                !entityMgr.HasComponent(bird, TransformType))
             {
                 Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing BirdAIComponent/Position components!" << std::endl;
                 continue;
             }
 
             Framework::BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(bird);
-            Vector2D birdPos = entityMgr.GetComponent<Position>(bird).Pos;
+            Vector2D birdPos = entityMgr.GetComponent<Transform>(bird).position;
 
 
             if (showBirdDebug) {

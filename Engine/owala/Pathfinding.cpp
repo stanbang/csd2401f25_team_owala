@@ -228,8 +228,9 @@ void NavigationGrid::BuildGrid(EntityStorage& ecs) {
     // Find all entities that are platforms
     for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
 
-        if (!entityMgr.HasComponent(entity, PositionType)) continue;
-        Vector2D pos = entityMgr.GetComponent<Position>(entity).Pos;
+        if (!entityMgr.HasComponent(entity, TransformType)) continue;
+        const Transform& transform = entityMgr.GetComponent<Transform>(entity);
+        Vector2D pos = transform.position;
 
         // use aabbcollider as source of size
         Vector2D baseHalfSize = { 50.0f, 50.0f };
@@ -242,11 +243,7 @@ void NavigationGrid::BuildGrid(EntityStorage& ecs) {
         }
 
         // Apply Scale for updating the aabbcollider when changing
-        Vector2D scale = { 1.0f, 1.0f };
-        if (entityMgr.HasComponent(entity, ScaleType)) {
-            scale = entityMgr.GetComponent<Scale>(entity).axes;
-        }
-
+        Vector2D scale = transform.scale;
         
         Vector2D finalHalfSize = { baseHalfSize.x * scale.x, baseHalfSize.y * scale.y };
 
@@ -255,8 +252,8 @@ void NavigationGrid::BuildGrid(EntityStorage& ecs) {
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
             rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
         }
-        else if (entityMgr.HasComponent(entity, RotationType)) {
-            rotation = entityMgr.GetComponent<Rotation>(entity).angle;
+        else {
+            rotation = transform.rotation.angle;
         }
 
         //Calculate AABB of the Rotated Object 

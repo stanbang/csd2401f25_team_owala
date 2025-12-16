@@ -25,7 +25,7 @@ namespace Framework {
         // Player Signature
         playerSig.set(ActiveTagType);
         playerSig.set(PlayerTagType);
-        playerSig.set(PositionType);
+        playerSig.set(TransformType);
         playerSig.set(VelocityType);
         playerSig.set(RotationFlagType);
         playerSig.set(SceneOwnedType);
@@ -37,19 +37,19 @@ namespace Framework {
         // Platform signatures
         trapPlatformSig.set(ActiveTagType);
         trapPlatformSig.set(TrapPlatformComponentType);
-        trapPlatformSig.set(PositionType);
+        trapPlatformSig.set(TransformType);
         trapPlatformSig.set(RotationFlagType);
         trapPlatformSig.set(SceneOwnedType);
     
         basicPlatformSig.set(ActiveTagType);
         basicPlatformSig.set(PlatformTagType);
-        basicPlatformSig.set(PositionType);
+        basicPlatformSig.set(TransformType);
         basicPlatformSig.set(SceneOwnedType);
 
         // Enemy signatures
         enemySig.set(EnemyTagType);
         enemySig.set(SceneOwnedType);
-        enemySig.set(PositionType);
+        enemySig.set(TransformType);
         enemySig.set(VelocityType);
         enemySig.set(SpawnPointType);
         enemySig.set(ActiveTagType);
@@ -60,8 +60,8 @@ namespace Framework {
             if (event.action == ButtonAction::RESETPLAYERPOS) {
                 EntityManager entityMgr(ecs_);
                 for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-                    if (entityMgr.HasComponent(entity, PositionType)) {
-                        ResetPosition(entityMgr, entity, GetPlayerSpawnPt(entityMgr));
+                    if (entityMgr.HasComponent(entity, TransformType)) {
+                        ResetTransform(entityMgr, entity, Transform(GetPlayerSpawnPt(entityMgr)));
                     }
                 }
             }
@@ -92,8 +92,7 @@ namespace Framework {
             if (CmpSignatures(signature, trapPlatformSig)) {
                 Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Trap Platform, Entity: " << entity << std::endl;
                 TrapPlatformComponent& platform = entityMgr.GetComponent<TrapPlatformComponent>(entity);
-                ResetPosition(entityMgr, entity, Position(platform.originalPosition));
-                ResetRotation(entityMgr, entity);
+                ResetTransform(entityMgr, entity, Transform(platform.originalPosition));
                 if (entityMgr.HasComponent(entity, RigidBodyType)) {
                     entityMgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
                 }
@@ -109,30 +108,25 @@ namespace Framework {
             // --- Basic Platform Reset ---
             if (CmpSignatures(signature, basicPlatformSig)) {
                 Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Basic Platform, Entity: " << entity << std::endl;
-                Position originalPos{ TransformationSystem::GetOriginalPos(entityMgr, entity) };
-                ResetPosition(entityMgr, entity, originalPos);
-                ResetRotation(entityMgr, entity);
+                Vector2D originalPos = TransformationSystem::GetOriginalPos(entityMgr, entity);
+                ResetTransform(entityMgr, entity, Transform{ originalPos });
                 continue;
             }
 
             // --- Enemy Reset ---
             if (CmpSignatures(signature, enemySig)) {
                 Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Enemy, Entity: " << entity << std::endl;
-                Position originalPos{ entityMgr.GetComponent<SpawnPoint>(entity).Pos};
-                ResetPosition(entityMgr, entity, originalPos);
+                Vector2D originalPos = entityMgr.GetComponent<SpawnPoint>(entity).Pos;
+                ResetTransform(entityMgr, entity, Transform{ originalPos });
                 ResetVelocity(entityMgr, entity);
-                //if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
-                //    BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
-                //}
 
                 continue;
             }
 
             // --- Portal Reset ---
             if (entityMgr.GetProperties(entity).name == "Portal") {
-                Position originalPos{ TransformationSystem::GetOriginalPos(entityMgr, entity) };
-                ResetPosition(entityMgr, entity, originalPos);
-                ResetRotation(entityMgr, entity);
+                Vector2D originalPos = TransformationSystem::GetOriginalPos(entityMgr, entity);
+                ResetTransform(entityMgr, entity, Transform{ originalPos });
                 continue;
             }
         }
@@ -142,9 +136,8 @@ namespace Framework {
     // Reset Player
     void LevelResetSystem::ResetPlayer(EntityManager& entityMgr, Entity entity) {
         Logger::Get().Info(DebugType::LevelResetSystem) << "Resetting Player, Entity: " << entity << std::endl;
-        ResetPosition(entityMgr, entity, GetPlayerSpawnPt(entityMgr));
+        ResetTransform(entityMgr, entity, Transform(GetPlayerSpawnPt(entityMgr)));
         ResetVelocity(entityMgr, entity);
-        ResetRotation(entityMgr, entity);
 
         // Reset animation
         if (entityMgr.HasComponent(entity, AnimationComponentType)) {
@@ -166,24 +159,23 @@ namespace Framework {
         }
     
     }
-    
-    // Reset Position to given position, defaults to 0,0 if no Position provided
-    void LevelResetSystem::ResetPosition(EntityManager& entityMgr, Entity entity, Position pos) {
-        (entityMgr.GetComponent<Position>(entity)) = pos;
+
+    // Reset Transform of a Entity, uses default transform if no Transform provided
+    void LevelResetSystem::ResetTransform(EntityManager& entityMgr, Entity entity, Transform transform) {
+        entityMgr.GetComponent<Transform>(entity) = transform;
+
+        if (entityMgr.HasComponent(entity, RotationFlagType)) {
+            RotationFlag& rot = entityMgr.GetComponent<RotationFlag>(entity);
+            rot.isRotating = false;
+            rot.currentRotation = 0.0f;
+            rot.targetRotation = 0.0f;
+            rot.transformMatrix = {};
+        }
     }
 
     // Reset Velocity to given velocity, default to 0,0 if no Velocity provided
     void LevelResetSystem::ResetVelocity(EntityManager& entityMgr, Entity entity, Velocity vel) {
         (entityMgr.GetComponent<Velocity>(entity)) = vel;
-    }
-    
-    // Reset RotationFlag component
-    void LevelResetSystem::ResetRotation(EntityManager& entityMgr, Entity entity) {
-        RotationFlag& rot = entityMgr.GetComponent<RotationFlag>(entity);
-        rot.isRotating = false;
-        rot.currentRotation = 0.0f;
-        rot.targetRotation = 0.0f;
-        rot.transformMatrix = {};
     }
 
     // --- Helper Functions --- 
@@ -191,7 +183,7 @@ namespace Framework {
         return ((sigToTest & sigToMatch) == sigToMatch);
     }
 
-    Position LevelResetSystem::GetPlayerSpawnPt(EntityManager& entityMgr) const {
+    Vector2D LevelResetSystem::GetPlayerSpawnPt(EntityManager& entityMgr) const {
         // Get player spawn point entity (should only have one in the scene)
         Entity spawnPtEntity = 0;
         for (const auto& [entity, signature] : entityMgr.GetEntitySignatures()) {
@@ -203,13 +195,13 @@ namespace Framework {
 
         if (spawnPtEntity > 0) {
             SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(spawnPtEntity);
-            return Position(spawnPt.Pos);
+            return spawnPt.Pos;
         }
         else {
             Logger::Get().Error(DebugType::LevelResetSystem) << "Player spawn point not found!" << std::endl;
         }
 
-        return Position(Vector2D{});
+        return Vector2D{};
     }
 
 } // namespace Framework

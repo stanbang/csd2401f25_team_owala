@@ -74,12 +74,12 @@ namespace Framework {
 		config.emissionOffset = event.offset;
 
 		// Define origin
-		Position origin;
-		origin.Pos = event.position;
+		Vector2D origin;
+		origin = event.position;
 
 		// Handle Screen Space conversion for the origin if needed
 		if (config.isScreenSpace) {
-			origin.Pos = WorldToScreenSpace(event.position);
+			origin = WorldToScreenSpace(event.position);
 		}
 
 		// Loop 'count' times to spawn the burst
@@ -89,7 +89,7 @@ namespace Framework {
 	}
 
 	// Helper to spawn a single particle based on emitter config and origin
-	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Position& origin) {
+	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin) {
 		// Create new particle entity
 		Entity particleEntity = entityMgr.CreateEntity();
 
@@ -107,9 +107,7 @@ namespace Framework {
 
 		// Calculate Position
 		Vector2D emissionPos = CalculateEmissionPosition(emitter, origin, rand01, rand02, emitter.isScreenSpace);
-		Position posComp;
-		posComp.Pos = emissionPos;
-		entityMgr.AddComponent<Position>(particleEntity, posComp);
+		entityMgr.AddComponent<Transform>(particleEntity, Transform(emissionPos));
 
 		// Calculate Velocity
 		Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, emitter.isScreenSpace);
@@ -155,16 +153,16 @@ namespace Framework {
 			emitter.timeSinceLastEmission += Time::DeltaTime();
 
 			// Get emitter position (needed for some emission styles)
-			Position emitterPos = { { 0.0f, 0.0f } };
-			if (entityMgr.HasComponent(entity, PositionType)) {
-				emitterPos = entityMgr.GetComponent<Position>(entity);
+			Vector2D emitterPos = { 0.0f, 0.0f };
+			if (entityMgr.HasComponent(entity, TransformType)) {
+				emitterPos = entityMgr.GetComponent<Transform>(entity).position;
 			}
 
 			// Create a temporary origin for calculation. 
 			// If emitting in screen space, convert the World Position to Screen Space (0-1).
-			Position calculationOrigin = emitterPos;
+			Vector2D calculationOrigin = emitterPos;
 			if (emitter.isScreenSpace) {
-				calculationOrigin.Pos = WorldToScreenSpace(emitterPos.Pos);
+				calculationOrigin = WorldToScreenSpace(emitterPos);
 			}
 
 			// Emit particles based on emission rate
@@ -233,13 +231,13 @@ namespace Framework {
 	}
 
 	Vector2D VFXSystem::CalculateEmissionPosition(const ParticleEmitterComponent& emitter,
-	const Position& emitterPos, float rand01, float rand02, bool isScreenSpace) {
+	const Vector2D& emitterPos, float rand01, float rand02, bool isScreenSpace) {
 
 	Vector2D result;
 
 	switch (emitter.emissionStyle) {
 	case EmissionStyle::FROM_POINT: {
-		result = emitterPos.Pos;
+		result = emitterPos;
 		break;
 	}
 
@@ -248,8 +246,8 @@ namespace Framework {
 		float distance = rand02 * emitter.emissionRadius; // Random distance within radius
 
 		result = Vector2D{
-			emitterPos.Pos.x + distance * cos(angle),
-			emitterPos.Pos.y + distance * sin(angle)
+			emitterPos.x + distance * cos(angle),
+			emitterPos.y + distance * sin(angle)
 		};
 		break;
 	}
@@ -325,14 +323,14 @@ namespace Framework {
 		float angle = rand01 * 2.0f * 3.14159265f; // Random angle
 
 		result = Vector2D{
-			emitterPos.Pos.x + emitter.circleRadius * cos(angle),
-			emitterPos.Pos.y + emitter.circleRadius * sin(angle)
+			emitterPos.x + emitter.circleRadius * cos(angle),
+			emitterPos.y + emitter.circleRadius * sin(angle)
 		};
 		break;
 	}
 
 	default:
-		result = emitterPos.Pos;
+		result = emitterPos;
 	}
 
 	// Apply emission offset after calculating base position

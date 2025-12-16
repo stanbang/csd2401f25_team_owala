@@ -83,6 +83,10 @@ namespace Framework{
 		Vector2D position{ 0.f, 0.f };
 		Rotation rotation;
 		Vector2D scale{ 1.f, 1.f };
+
+		// Parameterized Constructor
+		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
+			: position(pos), rotation(angle), scale(scl) {}
 	};
 
 	/*	Position component to store x and y 

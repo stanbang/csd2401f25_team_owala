@@ -60,16 +60,16 @@ namespace Framework {
 		bool mouseDown = inputSystem_->MouseDown(InputSystem::MouseButton::Left);
 
 		// Loop through all active entities with Button, Position and AABB
-		for (const Entity& button : entityMgr.GetAllEntitiesWithComponents(ButtonType, PositionType, TextureComponentType, ActiveTagType)){
+		for (const Entity& button : entityMgr.GetAllEntitiesWithComponents(ButtonType, TransformType, TextureComponentType, ActiveTagType)){
 			Button& buttonComponent = entityMgr.GetComponent<Button>(button);
-			Position& position = entityMgr.GetComponent<Position>(button);
+			Transform& transform = entityMgr.GetComponent<Transform>(button);
 			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(button);
 
 			// Calculate button bounds
-			double minX = static_cast<double>(position.Pos.x - tex.HalfSize.x);
-			double maxX = static_cast<double>(position.Pos.x + tex.HalfSize.x);
-			double minY = static_cast<double>(position.Pos.y - tex.HalfSize.y);
-			double maxY = static_cast<double>(position.Pos.y + tex.HalfSize.y);
+			double minX = static_cast<double>(transform.position.x - tex.HalfSize.x);
+			double maxX = static_cast<double>(transform.position.x + tex.HalfSize.x);
+			double minY = static_cast<double>(transform.position.y - tex.HalfSize.y);
+			double maxY = static_cast<double>(transform.position.y + tex.HalfSize.y);
 
 			//Logger::Get().Info(DebugType::GUISystem) << "Mouse At: " << mouseX_ndc << ", " << mouseY_ndc << std::endl;
 			//Logger::Get().Info(DebugType::GUISystem) << "Button At: " << minX << ", " << minY << " to " << maxX << ", " << maxY << std::endl;

@@ -43,14 +43,14 @@ namespace Framework {
 		CameraSystem* cameraSystem_ = nullptr;
 
 		// Creation logic so it can be used by both EmitParticles and the Event
-		void SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& config, const Position& origin);
+		void SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& config, const Vector2D& origin);
 
 		// Event handler for particle burst events
 		void OnParticleBurst(const ParticleBurstEvent& event);
 
 		// Helper function to calculate emission position based on style
 		Vector2D CalculateEmissionPosition(const ParticleEmitterComponent& emitter,
-			const Position& emitterPos, float rand01, float rand02, bool isScreenSpace);
+			const Vector2D& emitterPos, float rand01, float rand02, bool isScreenSpace);
 
 		// Helper function to calculate emission velocity based on style
 		Vector2D CalculateEmissionVelocity(const ParticleEmitterComponent& emitter,

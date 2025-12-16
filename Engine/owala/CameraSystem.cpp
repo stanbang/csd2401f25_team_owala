@@ -65,8 +65,8 @@ namespace Framework {
             camera.size.x = 2.0f * camera.zoom * camera.aspectRatio;
             camera.size.y = 2.0f * camera.zoom;
 
-            if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, PositionType)) {
-                const auto& targetPos = entityMgr.GetComponent<Position>(camera.targetEntity).Pos;
+            if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, TransformType)) {
+                const Vector2D& targetPos = entityMgr.GetComponent<Transform>(camera.targetEntity).position;
 
                 if (camera.followSpeed <= 0.0f) {
                     camera.position = targetPos;

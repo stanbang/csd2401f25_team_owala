@@ -56,8 +56,8 @@ namespace Framework {
 
                 // Get Position
                 Vector2D currentPos = { 0,0 };
-                if (entityMgr.HasComponent(entity, PositionType)) {
-                    currentPos = entityMgr.GetComponent<Position>(entity).Pos;
+                if (entityMgr.HasComponent(entity, TransformType)) {
+                    currentPos = entityMgr.GetComponent<Transform>(entity).position;
                 }
 
 				// Get previous and current vertical velocities for landing detection
@@ -152,9 +152,9 @@ namespace Framework {
 
             if (!trapComp.isTriggered) continue;
 
-            const Vector2D& playerPos = entityMgr.GetComponent<Position>(playerEntity).Pos;
+            const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
             const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
-            const Vector2D& trapPos = entityMgr.GetComponent<Position>(trapEntity).Pos;
+            const Vector2D& trapPos = entityMgr.GetComponent<Transform>(trapEntity).position;
             const Vector2D& trapHalfSize = entityMgr.GetComponent<AABBCollider>(trapEntity).HalfSize;
 
             // Player bounds (player doesn't rotate)
@@ -204,16 +204,16 @@ namespace Framework {
 
         // Check all enemies for collision with player
         for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
-            if (!entityMgr.HasComponent(enemy, PositionType) ||
+            if (!entityMgr.HasComponent(enemy, TransformType) ||
                 !entityMgr.HasComponent(enemy, AABBColliderType) ||
-                !entityMgr.HasComponent(playerEntity, PositionType) ||
+                !entityMgr.HasComponent(playerEntity, TransformType) ||
                 !entityMgr.HasComponent(playerEntity, AABBColliderType)) {
                 continue;
             }
 
-            const Vector2D& playerPos = entityMgr.GetComponent<Position>(playerEntity).Pos;
+            const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
             const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
-            const Vector2D& enemyPos = entityMgr.GetComponent<Position>(enemy).Pos;
+            const Vector2D& enemyPos = entityMgr.GetComponent<Transform>(enemy).position;
             const Vector2D& enemyHalfSize = entityMgr.GetComponent<AABBCollider>(enemy).HalfSize;
 
             AABB_Bounds playerBounds = {
@@ -244,13 +244,13 @@ namespace Framework {
     bool PlayerSystem::IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius) {
         EntityManager entityMgr(*entityStorage_);
 
-        if (!entityMgr.HasComponent(playerEntity, PositionType) ||
-            !entityMgr.HasComponent(enemyEntity, PositionType)) {
+        if (!entityMgr.HasComponent(playerEntity, TransformType) ||
+            !entityMgr.HasComponent(enemyEntity, TransformType)) {
             return false;
         }
 
-        const Vector2D& playerPos = entityMgr.GetComponent<Position>(playerEntity).Pos;
-        const Vector2D& enemyPos = entityMgr.GetComponent<Position>(enemyEntity).Pos;
+        const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
+        const Vector2D& enemyPos = entityMgr.GetComponent<Transform>(enemyEntity).position;
 
         float distance = playerPos.Distance(enemyPos);
         return distance <= attackRadius;

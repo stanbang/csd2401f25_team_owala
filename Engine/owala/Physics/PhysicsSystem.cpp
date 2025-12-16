@@ -146,7 +146,7 @@ namespace Framework {
             // Check if Entity is active in the scene. Handle Physics if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType)) {
+            if (entityMgr.HasComponent(entity, TransformType) && entityMgr.HasComponent(entity, VelocityType)) {
 				RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
 				//Position& pos = entityMgr.GetComponent<Position>(entity);
 				Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
@@ -156,14 +156,14 @@ namespace Framework {
         }
 
         //Update positions of everything
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(PositionType, VelocityType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TransformType, VelocityType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-			Position& pos = entityMgr.GetComponent<Position>(entity);
+			Transform& transform = entityMgr.GetComponent<Transform>(entity);
 			Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
 
-			pos.Pos += vel.Vel *  dt;
+			transform.position += vel.Vel *  dt;
         }
     }
 
@@ -188,9 +188,9 @@ namespace Framework {
         constrainedEntities.insert(constrainedEntities.end(), trapPlatforms.begin(), trapPlatforms.end());
 
         for (const Entity& entity : constrainedEntities) {
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
+            if (entityMgr.HasComponent(entity, TransformType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
 
-                Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+                Vector2D& pos = entityMgr.GetComponent<Transform>(entity).position;
                 Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
                 const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
@@ -244,13 +244,13 @@ namespace Framework {
         if (!entityMgr.ValidateEntity(e1) || !entityMgr.ValidateEntity(e2)) return false;
 
         //Safety Check for ONLY pos and AABB , not RIGIDBODY
-        if (!entityMgr.HasComponent(e1, Framework::PositionType) ||
+        if (!entityMgr.HasComponent(e1, Framework::TransformType) ||
             !entityMgr.HasComponent(e1, Framework::AABBColliderType)) return false;
-        if (!entityMgr.HasComponent(e2, Framework::PositionType) ||
+        if (!entityMgr.HasComponent(e2, Framework::TransformType) ||
             !entityMgr.HasComponent(e2, Framework::AABBColliderType)) return false;
 
         // entity 1 data
-        const Vector2D& pos1 = entityMgr.GetComponent<Framework::Position>(e1).Pos;
+        const Vector2D& pos1 = entityMgr.GetComponent<Framework::Transform>(e1).position;
         const Vector2D& halfSize1 = entityMgr.GetComponent<Framework::AABBCollider>(e1).HalfSize;
         float rot1 = 0.0f;
         if (entityMgr.HasComponent(e1, Framework::RotationFlagType)) {
@@ -258,7 +258,7 @@ namespace Framework {
         }
 
         // entity 2 data
-        const Vector2D& pos2 = entityMgr.GetComponent<Framework::Position>(e2).Pos;
+        const Vector2D& pos2 = entityMgr.GetComponent<Framework::Transform>(e2).position;
         const Vector2D& halfSize2 = entityMgr.GetComponent<Framework::AABBCollider>(e2).HalfSize;
         float rot2 = 0.0f;
         if (entityMgr.HasComponent(e2, Framework::RotationFlagType)) {
@@ -281,7 +281,7 @@ namespace Framework {
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
 		EntityManager entityMgr(*ecs_);
-        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, PositionType);
+        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, TransformType);
 
         // --- Check Entity Count OR DEBUG TOGGLE ---
         if (forceNarrowPhase_ || allColliders.size() > maxCollidableEntities) {
@@ -325,15 +325,15 @@ namespace Framework {
             Entity entity = colliderEntities_[i];
 
             // Get the AABB_Bounds for insertion
-            const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+            const Vector2D& pos = entityMgr.GetComponent<Transform>(entity).position;
             const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
             float colliderRotation = 0.0f;
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
                 colliderRotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
-            if (entityMgr.HasComponent(entity, RotationType)) {
-                colliderRotation += entityMgr.GetComponent<Rotation>(entity).colliderAngle * (180.0f / static_cast<float>(M_PI));
+            if (entityMgr.HasComponent(entity, TransformType)) {
+                colliderRotation += entityMgr.GetComponent<Transform>(entity).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
             }
 
             AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, colliderRotation);
@@ -350,7 +350,7 @@ namespace Framework {
             Entity e1 = colliderEntities_[i];
 
             // Get the AABB for e1 to query the grid
-            const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
+            const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
             const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
             float rotation1 = 0.0f;
             if (entityMgr.HasComponent(e1, RotationFlagType)) {
@@ -398,8 +398,8 @@ namespace Framework {
             return;
         }
         // Check entities have Position component
-        if (!entityMgr.HasComponent(e1, PositionType) || !entityMgr.HasComponent(e2, PositionType)) {
-            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing Position component. Unable to CheckCollisionPair" << std::endl;
+        if (!entityMgr.HasComponent(e1, TransformType) || !entityMgr.HasComponent(e2, TransformType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing Transform component. Unable to CheckCollisionPair" << std::endl;
             return;
         }
         // Check entities have AABBCollider component
@@ -432,8 +432,8 @@ namespace Framework {
         if (entityMgr.HasComponent(e1, RotationFlagType)) {
             rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
         }
-        if (entityMgr.HasComponent(e1, RotationType)) {
-            rotation1 += entityMgr.GetComponent<Rotation>(e1).colliderAngle * (180.0f / static_cast<float>(M_PI));
+        if (entityMgr.HasComponent(e1, TransformType)) {
+            rotation1 += entityMgr.GetComponent<Transform>(e1).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
         }
 
         // --- Get rotation for e2 ---
@@ -441,17 +441,17 @@ namespace Framework {
         if (entityMgr.HasComponent(e2, RotationFlagType)) {
             rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
         }
-        if (entityMgr.HasComponent(e2, RotationType)) {
-            rotation2 += entityMgr.GetComponent<Rotation>(e2).colliderAngle * (180.0f / static_cast<float>(M_PI));
+        if (entityMgr.HasComponent(e2, TransformType)) {
+            rotation2 += entityMgr.GetComponent<Transform>(e2).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
         }
 
 
         // --- Convert to min/max format for the collision functions ---
-        const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
+        const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
         const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
         AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
 
-        const Vector2D& pos2 = entityMgr.GetComponent<Position>(e2).Pos;
+        const Vector2D& pos2 = entityMgr.GetComponent<Transform>(e2).position;
         const Vector2D& halfSize2 = entityMgr.GetComponent<AABBCollider>(e2).HalfSize;
         AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
 
@@ -480,7 +480,7 @@ namespace Framework {
                 return;
             }
 
-            Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;
+            Vector2D& dynPos = entityMgr.GetComponent<Transform>(dynE).position;
             const auto& dynBounds = (dynE == e1) ? bounds1 : bounds2;
             const auto& staticBounds = (dynE == e1) ? bounds2 : bounds1;
 

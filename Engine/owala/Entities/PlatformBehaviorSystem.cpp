@@ -179,7 +179,7 @@ namespace Framework {
         EntityManager entityMgr(*ecs_);
 
         if (!entityMgr.HasComponent(trapPlatform, TrapPlatformComponentType) ||
-            !entityMgr.HasComponent(trapPlatform, PositionType)) {
+            !entityMgr.HasComponent(trapPlatform, TransformType)) {
             return;
         }
 
@@ -192,7 +192,7 @@ namespace Framework {
         trapComp.currentFallDistance = 0.0f;
 
         // Reset position to original
-        entityMgr.GetComponent<Position>(trapPlatform).Pos = trapComp.originalPosition;
+        entityMgr.GetComponent<Transform>(trapPlatform).position = trapComp.originalPosition;
 
         // Stop movement
         if (entityMgr.HasComponent(trapPlatform, VelocityType)) {

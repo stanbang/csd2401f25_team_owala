@@ -76,8 +76,8 @@ void GizmoSystem::DrawGizmos(ImDrawList* drawList, int selectedEntityIndex) {
     EntityManager entityMgr(ecs_);
     Vector2D pos{};
 
-    if (entityMgr.HasComponent(entity, PositionType)) {
-        pos = entityMgr.GetComponent<Position>(entity).Pos;
+    if (entityMgr.HasComponent(entity, TransformType)) {
+        pos = entityMgr.GetComponent<Transform>(entity).position;
     }
     else if (entityMgr.HasComponent(entity, SpawnPointType)) {
         pos = entityMgr.GetComponent<SpawnPoint>(entity).Pos;
@@ -239,9 +239,9 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
 
      // Draw a line indicating current rotation
     EntityManager entityMgr(ecs_);
-    if (entityMgr.HasComponent(entity, RotationType)) {
+    if (entityMgr.HasComponent(entity, TransformType)) {
         //float currentRot = entityMgr.GetComponent<Rotation>(entity).angle;
-        float currentRot = entityMgr.GetComponent<Rotation>(entity).textureAngle;
+        float currentRot = entityMgr.GetComponent<Transform>(entity).rotation.textureAngle;
         float adjustedRot = currentRot + (float)(M_PI/2.0f);
 
         // Calculate coordinates and invert the Y component sign for ImGui screen space.
@@ -359,45 +359,30 @@ void GizmoSystem::HandleStartDrag() {
     beforeGizmosJSON_.clear();
     afterGizmosJSON_.clear();
 
+    auto record = [&](ComponentType compType, bool allowEmpty) {
+        if (!entityMgr.HasComponent(draggedEntity_, compType)) {
+            if (!allowEmpty) return;
+
+            gizmoAffectedComponents_.push_back(compType);
+            beforeGizmosJSON_.push_back("");
+            return;
+        }
+
+        gizmoAffectedComponents_.push_back(compType);
+        beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, compType, ecs_));
+    };
+
     // save the current state of the relevant component before applying any transformations
     if (currentMode_ == GizmoMode::Translate) {
-        if (entityMgr.HasComponent(draggedEntity_, TrapPlatformComponentType)) {
-            gizmoAffectedComponents_.push_back(TrapPlatformComponentType);
-            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, TrapPlatformComponentType, ecs_));
-
-            if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-                gizmoAffectedComponents_.push_back(PositionType);
-                beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_));
-            }
-        }
-        else if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-            gizmoAffectedComponents_.push_back(PositionType);
-            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, PositionType, ecs_));
-        }
-        else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
-            gizmoAffectedComponents_.push_back(SpawnPointType);
-            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, SpawnPointType, ecs_));
-        }
+        record(TransformType, true);
+        record(TrapPlatformComponentType, false);
+        record(SpawnPointType, false);
     }
     else if (currentMode_ == GizmoMode::Scale) {
-        gizmoAffectedComponents_.push_back(ScaleType);
-
-        if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
-            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, ScaleType, ecs_));
-        }
-        else {
-            beforeGizmosJSON_.push_back("");
-        }
+        record(TransformType, true);
     }
     else if (currentMode_ == GizmoMode::Rotate) {
-        gizmoAffectedComponents_.push_back(RotationType);
-
-        if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
-            beforeGizmosJSON_.push_back(EntitySerializer::SerializeComponentToString(draggedEntity_, RotationType, ecs_));
-        }
-        else {
-            beforeGizmosJSON_.push_back("");
-        }
+        record(TransformType, true);
     }
 }
 
@@ -413,6 +398,11 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
         bool isGUI = entityMgr.HasComponent(draggedEntity_, GUITagType);
         Vector2D currentMousePos = editor_->GetMouseWorldPosition();
 
+        // If draggedEntity does not have Transform component, add an empty one.
+        if (!entityMgr.HasComponent(draggedEntity_, TransformType)) {
+            entityMgr.AddComponent(draggedEntity_, TransformType);
+        }
+
         // --- Determine new position based on active axis ---
         if (isGUI) {
             currentMousePos = editor_->GetNormalizedMousePos();
@@ -425,8 +415,8 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
         if (activeAxis_ == GizmoAxis::X || activeAxis_ == GizmoAxis::Y) {
             // Get the entity's CURRENT position to preserve the fixed axis
             Vector2D currentPos;
-            if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-                currentPos = entityMgr.GetComponent<Position>(draggedEntity_).Pos;
+            if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
+                currentPos = entityMgr.GetComponent<Transform>(draggedEntity_).position;
             }
             else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
                 currentPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
@@ -442,8 +432,8 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
         }
 
         // --- Apply the Transformation to all relevant components ---
-        if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-            entityMgr.GetComponent<Position>(draggedEntity_).Pos = snappedPos;
+        if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
+            entityMgr.GetComponent<Transform>(draggedEntity_).position = snappedPos;
         }
         if (entityMgr.HasComponent(draggedEntity_, TrapPlatformComponentType)) {
             entityMgr.GetComponent<TrapPlatformComponent>(draggedEntity_).originalPosition = snappedPos;
@@ -458,18 +448,18 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
     {
         if (activeAxis_ != GizmoAxis::RotateRing) return;
 
-        // If draggedEntity does not have Rotation component, add an empty one.
-        if (!entityMgr.HasComponent(draggedEntity_, RotationType)) {
-            entityMgr.AddComponent(draggedEntity_, RotationType);
+        // If draggedEntity does not have Transform component, add an empty one.
+        if (!entityMgr.HasComponent(draggedEntity_, TransformType)) {
+            entityMgr.AddComponent(draggedEntity_, TransformType);
         }
 
-        if (entityMgr.HasComponent(draggedEntity_, RotationType)) {
-            Rotation& rotComp = entityMgr.GetComponent<Rotation>(draggedEntity_);
+        if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
+            Rotation& rotation = entityMgr.GetComponent<Transform>(draggedEntity_).rotation;
             
             // Get position
             Vector2D entityWorldPos;
-            if (entityMgr.HasComponent(draggedEntity_, PositionType)) {
-                entityWorldPos = entityMgr.GetComponent<Position>(draggedEntity_).Pos;
+            if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
+                entityWorldPos = entityMgr.GetComponent<Transform>(draggedEntity_).position;
             }
             else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
                 entityWorldPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
@@ -495,22 +485,22 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             float deltaAngle = angle2 - angle1;
 
             // 5. Apply the rotation
-            rotComp.angle += deltaAngle;
-            rotComp.textureAngle += deltaAngle;
-            rotComp.colliderAngle += deltaAngle;
+            rotation.angle += deltaAngle;
+            rotation.textureAngle += deltaAngle;
+            rotation.colliderAngle += deltaAngle;
         }
         break;
     }
 
     case GizmoMode::Scale:
     {
-        // If draggedEntity does not have Scale component, add an empty one.
-        if (!entityMgr.HasComponent(draggedEntity_, ScaleType)) {
-            entityMgr.AddComponent(draggedEntity_, ScaleType);
+        // If draggedEntity does not have Transform component, add an empty one.
+        if (!entityMgr.HasComponent(draggedEntity_, TransformType)) {
+            entityMgr.AddComponent(draggedEntity_, TransformType);
         }
 
-        if (entityMgr.HasComponent(draggedEntity_, ScaleType)) {
-            Scale& scaleComp = entityMgr.GetComponent<Scale>(draggedEntity_);
+        if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
+            Vector2D& scale = entityMgr.GetComponent<Transform>(draggedEntity_).scale;
 
             // Get camera zoom for screen-to-world conversion
             float cameraZoom = cameraSystem_->GetCamera(activeCamera).size.x / editor_->GetGameViewportSize().x;
@@ -520,22 +510,22 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             float deltaWorldY = -mouseDelta.y * cameraZoom * 0.01f; // Y inverted
 
             if (activeAxis_ == GizmoAxis::X) {
-                scaleComp.axes.x += deltaWorldX;
+                scale.x += deltaWorldX;
             }
             else if (activeAxis_ == GizmoAxis::Y) {
-                scaleComp.axes.y += deltaWorldY;
+                scale.y += deltaWorldY;
             }
             else if (activeAxis_ == GizmoAxis::Center) {
                 // Apply uniform scaling based on the larger delta (for proportional scaling)
                 float deltaUniform = (abs(deltaWorldX) > abs(deltaWorldY)) ? deltaWorldX : deltaWorldY;
 
-                scaleComp.axes.x += deltaUniform;
-                scaleComp.axes.y += deltaUniform;
+                scale.x += deltaUniform;
+                scale.y += deltaUniform;
             }
 
             // Safety: Clamp scale factors to prevent negative sizes
-            scaleComp.axes.x = std::max(0.1f, scaleComp.axes.x);
-            scaleComp.axes.y = std::max(0.1f, scaleComp.axes.y);
+            scale.x = std::max(0.1f, scale.x);
+            scale.y = std::max(0.1f, scale.y);
         }
 
         break;

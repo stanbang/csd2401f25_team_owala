@@ -39,7 +39,7 @@ namespace Framework {
         //}
 
         // Loop through all text components
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, PositionType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
             auto& textComp = entityMgr.GetComponent<TextComponent>(entity);
             if (textComp.fontKey.empty() || textComp.textToDraw.empty()) continue;
 
@@ -60,7 +60,7 @@ namespace Framework {
     void TextRenderSystem::RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp/*, const Entity camera*/) {
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
-            const Vector2D& textPos = entityMgr.GetComponent<Position>(en).Pos;
+            const Vector2D& textPos = entityMgr.GetComponent<Transform>(en).position;
             bool isUIElement = entityMgr.HasComponent(en, GUITagType);
 
             float zoom = 1.0f;

@@ -266,8 +266,8 @@ namespace Framework {
             DeserializeComponent(storage, entity, compData);
         }
 
-        if (entityMgr.HasComponent(entity, PositionType)) {
-            entityMgr.GetComponent<Position>(entity).Pos = position;
+        if (entityMgr.HasComponent(entity, TransformType)) {
+            entityMgr.GetComponent<Transform>(entity).position = position;
         }
 
         if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
@@ -282,10 +282,10 @@ namespace Framework {
         const rapidjson::Document& data = compData.data;
 
         if (compData.type == "Position") {
-            Position pos;
-            if (data.HasMember("x")) pos.Pos.x = data["x"].GetFloat();
-            if (data.HasMember("y")) pos.Pos.y = data["y"].GetFloat();
-            entityMgr.AddComponent(entity, pos);
+            Vector2D pos;
+            if (data.HasMember("x")) pos.x = data["x"].GetFloat();
+            if (data.HasMember("y")) pos.y = data["y"].GetFloat();
+            entityMgr.AddComponent(entity, Transform(pos));
         }
         else if (compData.type == "Velocity") {
             Velocity vel;

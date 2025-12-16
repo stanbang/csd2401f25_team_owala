@@ -92,12 +92,13 @@ namespace Framework {
         std::map<BatchKey, std::vector<BatchedSprite>> batches;
 
         // --- Collect Sprite Entities ---
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, PositionType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, TransformType, ActiveTagType)) {
             TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(entity);
             if (sprite.textureKey.empty()) continue;
 
             try {
-                const Vector2D& worldPos = entityMgr.GetComponent<Position>(entity).Pos;
+                const Transform& transform = entityMgr.GetComponent<Transform>(entity);
+                const Vector2D& worldPos = transform.position;
 				bool isUIElement = entityMgr.HasComponent(entity, GUITagType); // Check if entity is a UI element
 				bool isScreenSpaceParticle = false;
 
@@ -126,31 +127,23 @@ namespace Framework {
                 Vector2D finalScale = { 1.0f, 1.0f };
                 //float finalRotation = 0.0f;
                 // --- Apply Scale ---
-                if (entityMgr.HasComponent(entity, ScaleType)) {
-                    const Scale& scale = entityMgr.GetComponent<Scale>(entity);
-                    finalScale = scale.axes;
-                    halfSize.x *= finalScale.x;
-                    halfSize.y *= finalScale.y;
-
-                }
+                const Vector2D& scale = transform.scale;
+                finalScale = scale;
+                halfSize.x *= finalScale.x;
+                halfSize.y *= finalScale.y;
                 // --- Rotation (degrees → radians) ---
                 float rotationRad = 0.0f;
                 bool hasRotationFlag = entityMgr.HasComponent(entity, RotationFlagType);
-                bool hasRotationType = entityMgr.HasComponent(entity, RotationType);
 
-                if (hasRotationFlag && hasRotationType) {
+                if (hasRotationFlag) {
                     const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
-                    const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
+                    const Rotation& rotation = transform.rotation;
                     float worldRotationRad = rotation.textureAngle;
                     float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
                     rotationRad = worldRotationRad + localRotationRad;
                 }
-                else if (hasRotationFlag) {
-                    const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
-                    rotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
-                }
-                else if (hasRotationType) {
-                    const Rotation& rotation = entityMgr.GetComponent<Rotation>(entity);
+                else {
+                    const Rotation& rotation = transform.rotation;
                     rotationRad = rotation.textureAngle;
                 }
 
@@ -286,9 +279,10 @@ namespace Framework {
             if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;
 
             const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
-            if (!entityMgr.HasComponent(e, PositionType)) continue;
+            if (!entityMgr.HasComponent(e, TransformType)) continue;
 
-            const Vector2D& worldPos = entityMgr.GetComponent<Position>(e).Pos;
+            const Transform& transform = entityMgr.GetComponent<Transform>(e);
+            const Vector2D& worldPos = transform.position;
             const Vector2D& halfSize = collider.HalfSize;
 
             Vector2D screenPos = worldPos;
@@ -311,19 +305,16 @@ namespace Framework {
             Vector2D scaledHalfSize = halfSize;
 
             // Apply Scale component if present
-            if (entityMgr.HasComponent(e, ScaleType)) {
-                const Scale& scale = entityMgr.GetComponent<Scale>(e);
-                scaledHalfSize.x *= scale.axes.x;
-                scaledHalfSize.y *= scale.axes.y;
-            }
+            const Vector2D& scale = transform.scale;
+            scaledHalfSize.x *= scale.x;
+            scaledHalfSize.y *= scale.y;
             // Get rotation if entity has it
             float deg = 0.0f;
             if (entityMgr.HasComponent(e, RotationFlagType)) {
                 deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
             }
-            if (entityMgr.HasComponent(e, RotationType)) {
-                deg += entityMgr.GetComponent<Rotation>(e).colliderAngle * (180.0f / 3.14159265359f);
-            }
+
+            deg += transform.rotation.colliderAngle * (180.0f / 3.14159265359f);
 
             // Use the rotated AABB calculation
             AABB_Bounds rotatedBounds = PhysicsSystem::GetRotatedAABB(worldPos, halfSize, deg);
