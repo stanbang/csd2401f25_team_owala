@@ -299,43 +299,8 @@ namespace Framework {
 		systems_.spriteRenderer_->Update();
 		systems_.textRenderer_->Update();
 		#endif
-		//glfwSwapInterval(0); //just for testing to turn vsync off
 
 		// --- END GAME UPDATE ---
-
-		 //--- NEW: CREATE THE MAIN DOCKSPACE HOST WINDOW ---
-		// This should be done here in the GameManager to provide a consistent
-		 //editor environment across all scenes.
-		//{
-		//	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-		//	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		//	ImGui::SetNextWindowPos(viewport->WorkPos);
-		//	ImGui::SetNextWindowSize(viewport->WorkSize);
-		//	ImGui::SetNextWindowViewport(viewport->ID);
-		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		//	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-		//	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-		//	// Begin the host window that will contain the dockspace
-		//	ImGui::Begin("DockSpace Host", nullptr, window_flags);
-		//	ImGui::PopStyleVar(3);
-
-		//	// Submit the DockSpace itself
-		//	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-		//	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
-
-		//	ImGui::End(); // End the host window
-		//}
-
-		// --- RENDER RUNTIME STATS USING IMGUI ---
-		/*ImGui::Begin("Game Info");
-		ImGui::Text("--- Current Game Information ---");
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::End();*/
-
-		//ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_FirstUseEver);
 	}
 
 	void GameManager::Shutdown() {

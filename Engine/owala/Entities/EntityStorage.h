@@ -43,7 +43,6 @@ namespace Framework {
 
 	enum ComponentType : int {
 		TransformType = 0,
-		PositionType,
 		SpawnPointType,
 		VelocityType,
 		AccelerationType,
@@ -73,8 +72,6 @@ namespace Framework {
 		GUITagType,
 		ParticleComponentType,
 		ParticleEmitterComponentType,
-		RotationType,
-		ScaleType,
 		MAX_COMPONENTS
 	};
 
@@ -91,7 +88,6 @@ namespace Framework {
 
 	// Specializations for each real component
 	template <> struct ComponentTypeTrait<Transform> { static constexpr ComponentType value = TransformType; };
-	template <> struct ComponentTypeTrait<Position> { static constexpr ComponentType value = PositionType; };
 	template <> struct ComponentTypeTrait<SpawnPoint> { static constexpr ComponentType value = SpawnPointType; };
 	template <> struct ComponentTypeTrait<Velocity> { static constexpr ComponentType value = VelocityType; };
 	template <> struct ComponentTypeTrait<Acceleration> { static constexpr ComponentType value = AccelerationType; };
@@ -120,8 +116,6 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; 
 	template <> struct ComponentTypeTrait<ParticleComponent> { static constexpr ComponentType value = ParticleComponentType; };
 	template <> struct ComponentTypeTrait<ParticleEmitterComponent> { static constexpr ComponentType value = ParticleEmitterComponentType; };
-	template <> struct ComponentTypeTrait<Scale> { static constexpr ComponentType value = ScaleType; };
-	template <> struct ComponentTypeTrait<Rotation> { static constexpr ComponentType value = RotationType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 
 #pragma endregion
@@ -133,16 +127,9 @@ namespace Framework {
 		std::unordered_map<Entity, ComponentSignature> entitySignatures; // Track components of each entity
 		friend class EntityManager; // Allow EntityManager to access private members
 	private:
-		//Tags
-		//std::unordered_map<Entity, PlayerTag>		playerTag;
-		//std::unordered_map<Entity, PlatformTag>		platformTag;
-		//std::unordered_map<Entity, BackgroundTag>	backgroundTag;
-		//std::unordered_map<Entity, EnemyTag>		enemyTag;
-
 		//Basic Components
 		std::unordered_map<Entity, EntityProperties> properties;
 		std::unordered_map<Entity, Transform>	 transform;
-		std::unordered_map<Entity, Position>     position;
 		std::unordered_map<Entity, SpawnPoint>   spawnPoint;
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;
@@ -170,13 +157,6 @@ namespace Framework {
 
 		// Scene Components
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
-		//std::unordered_map<Entity, PersistentTag>	persistentTag; // Tag to indicate if the entity should persist across scene changes
-		//std::unordered_map<Entity, ActiveTag>		activeTag; // Tag to indicate if entity is to be loaded in the scene
-		std::unordered_map<Entity, Rotation> rotation;
-		std::unordered_map<Entity, Scale> scale;
-	//	//Sprite Components
-	//	//std::unordered_map<Entity, Sprite>       sprite;    // single sprite
-	//	//std::unordered_map<Entity, Sprites>      sprites;   // multiple frames (animations)
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.
@@ -188,7 +168,6 @@ namespace Framework {
 			ComponentSignature signature; // Components in this Archetype
 			std::vector<Entity> entities; // Entities that belong to this Archetype
 
-			std::vector<Position> positions;
 			std::vector<Velocity> velocities;
 			std::vector<Acceleration> accelerations;
 			std::vector<RigidBody> rigidBodies;

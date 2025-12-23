@@ -454,7 +454,7 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
         }
 
         if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
-            Rotation& rotation = entityMgr.GetComponent<Transform>(draggedEntity_).rotation;
+            Transform::Rotation& rotation = entityMgr.GetComponent<Transform>(draggedEntity_).rotation;
             
             // Get position
             Vector2D entityWorldPos;

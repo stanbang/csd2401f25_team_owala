@@ -134,23 +134,13 @@ namespace Editor {
 		}
 
 		switch (type) {
-		case ComponentType::TransformType: {
-			Transform newTransform;
-			if (EntitySerializer::DeserializeComponent(doc, newTransform)) {
-				if (entityMgr.HasComponent(entity, ComponentType::TransformType)) {
-					entityMgr.RemoveComponent(entity, ComponentType::TransformType);
-				}
-				entityMgr.AddComponent<Transform>(entity, newTransform);
-			}
-			break;
-		}
-			case ComponentType::PositionType: {
-				Position newPosition;
-				if (EntitySerializer::DeserializeComponent(doc, newPosition)) {
-					if (entityMgr.HasComponent(entity, ComponentType::PositionType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::PositionType);
+			case ComponentType::TransformType: {
+				Transform newTransform;
+				if (EntitySerializer::DeserializeComponent(doc, newTransform)) {
+					if (entityMgr.HasComponent(entity, ComponentType::TransformType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::TransformType);
 					}
-					entityMgr.AddComponent<Position>(entity, newPosition);
+					entityMgr.AddComponent<Transform>(entity, newTransform);
 				}
 				break;
 			}
@@ -351,26 +341,6 @@ namespace Editor {
 						entityMgr.RemoveComponent(entity, ComponentType::ParticleEmitterComponentType);
 					}
 					entityMgr.AddComponent<ParticleEmitterComponent>(entity, newParticleEmitterComponent);
-				}
-				break;
-			}
-			case ComponentType::RotationType: {
-				Rotation newRotationComp;
-				if (EntitySerializer::DeserializeComponent(doc, newRotationComp)) {
-					if (entityMgr.HasComponent(entity, ComponentType::RotationType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::RotationType);
-					}
-					entityMgr.AddComponent<Rotation>(entity, newRotationComp);
-				}
-				break;
-			}
-			case ComponentType::ScaleType: {
-				Scale newScaleComp;
-				if (EntitySerializer::DeserializeComponent(doc, newScaleComp)) {
-					if (entityMgr.HasComponent(entity, ComponentType::ScaleType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::ScaleType);
-					}
-					entityMgr.AddComponent<Scale>(entity, newScaleComp);
 				}
 				break;
 			}

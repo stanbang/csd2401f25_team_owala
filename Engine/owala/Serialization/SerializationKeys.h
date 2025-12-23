@@ -45,9 +45,13 @@ namespace Framework::Serialization {
 	static constexpr const char* TRANSFORM_COMPONENT = "Transform";
 	static constexpr const char* TRANSFORM_POSITION = "Position";
 	static constexpr const char* TRANSFORM_ROTATION = "Rotation";
+	static constexpr const char* ROTATION_ANGLE = "angle";
+	static constexpr const char* ROTATION_TEXTURE_ANGLE = "texture_angle";
+	static constexpr const char* ROTATION_COLLIDER_ANGLE = "collider_angle";
+	static constexpr const char* ROTATION_TEXTURE_MTX = "texture_matrix";
+	static constexpr const char* ROTATION_COLLIDER_MTX = "collider_matrix";
 	static constexpr const char* TRANSFORM_SCALE = "Scale";
 
-	static constexpr const char* POSITION_COMPONENT = "Position";
 	static constexpr const char* SPAWN_PT_COMPONENT = "SpawnPoint";
 	static constexpr const char* VELOCITY_COMPONENT = "Velocity";
 	static constexpr const char* ACCELERATION_COMPONENT = "Acceleration";
@@ -179,16 +183,6 @@ namespace Framework::Serialization {
 	static constexpr const char* VIEWPORT_MAX = "viewport_max";
 	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
 	static constexpr const char* EMISSION_OFFSET = "emission_offset";
-
-	static constexpr const char* ROTATION_COMPONENT= "Rotation";
-	static constexpr const char* ROTATION_ANGLE = "angle";
-	static constexpr const char* ROTATION_TEXTURE_ANGLE = "texture_angle";
-	static constexpr const char* ROTATION_COLLIDER_ANGLE = "collider_angle";
-	static constexpr const char* ROTATION_TEXTURE_MTX = "texture_matrix";
-	static constexpr const char* ROTATION_COLLIDER_MTX = "collider_matrix";
-	
-	static constexpr const char* SCALE_COMPONENT = "Scale";
-	static constexpr const char* SCALE_AXES= "axes";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";

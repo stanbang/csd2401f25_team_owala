@@ -45,7 +45,7 @@ namespace Editor{
 	};
 
 	struct OpData {
-		Entity entity;
+		Entity entity = 0;
 		PayloadMode mode = PayloadMode::Component;
 		Framework::ComponentType componentType = Framework::ComponentType::MAX_COMPONENTS;
 		Memento memento;

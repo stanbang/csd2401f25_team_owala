@@ -256,7 +256,7 @@ namespace Framework {
         }
 
         // Handle Texture Rotation
-        Rotation& rotComp = transform.rotation;
+        Transform::Rotation& rotComp = transform.rotation;
 
         float textureRotationDegrees = rotComp.textureAngle * (180.0f / 3.14159265359f);
         float colliderRotationDegrees = rotComp.colliderAngle * (180.0f / 3.14159265359f);

@@ -73,7 +73,6 @@ namespace Framework {
         /* Components */
 
         static void SerializeComponent(const Transform& transform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const Position& pos, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SpawnPoint& spawnPt, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Velocity& vel, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Acceleration& acc, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
@@ -94,14 +93,11 @@ namespace Framework {
         static void SerializeComponent(const Button& button, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SceneOwned& sceneOwnedComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const Scale& scaleComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
 
         /* Specialized Deserialization APIs */
         /* Components */
 
         static bool DeserializeComponent(const rapidjson::Value& componentData, Transform& out);
-        static bool DeserializeComponent(const rapidjson::Value& componentData, Position& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, SpawnPoint& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, Velocity& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Acceleration& out);
@@ -122,8 +118,6 @@ namespace Framework {
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Button& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, SceneOwned& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
-        static bool DeserializeComponent(const rapidjson::Value& componentData, Rotation& out);
-        static bool DeserializeComponent(const rapidjson::Value& componentData, Scale& out);
 
     };
 }

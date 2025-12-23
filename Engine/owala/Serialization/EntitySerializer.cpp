@@ -83,51 +83,12 @@ namespace Framework {
 	void EntitySerializer::SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		rapidjson::Value componentList(rapidjson::kObjectType);
 
-		// Refactor Helper
-		if (entityMgr.HasComponent(entity, ComponentType::PositionType)) {
-			Position& pos = entityMgr.GetComponent<Position>(entity);
-			if (!entityMgr.HasComponent(entity, ComponentType::TransformType)) {
-				entityMgr.AddComponent(entity, ComponentType::TransformType);
-			}
-
-			Transform& transform = entityMgr.GetComponent<Transform>(entity);
-			transform.position = pos.Pos;
-		}
-
-		if (entityMgr.HasComponent(entity, ComponentType::RotationType)) {
-			Rotation& rot = entityMgr.GetComponent<Rotation>(entity);
-			if (!entityMgr.HasComponent(entity, ComponentType::TransformType)) {
-				entityMgr.AddComponent(entity, ComponentType::TransformType);
-			}
-
-			Transform& transform = entityMgr.GetComponent<Transform>(entity);
-			transform.rotation = rot;
-		}
-
-		if (entityMgr.HasComponent(entity, ComponentType::ScaleType)) {
-			Scale& scale = entityMgr.GetComponent<Scale>(entity);
-			if (!entityMgr.HasComponent(entity, ComponentType::TransformType)) {
-				entityMgr.AddComponent(entity, ComponentType::TransformType);
-			}
-
-			Transform& transform = entityMgr.GetComponent<Transform>(entity);
-			transform.scale = scale.axes;
-		}
-
 		// Serialize Transform Component
 		if (entityMgr.HasComponent(entity, ComponentType::TransformType)) {
 			Transform& transform = entityMgr.GetComponent<Transform>(entity);
 			rapidjson::Value value(rapidjson::kObjectType);
 			SerializeComponent(transform, value, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_COMPONENT), value, alloc);
-		}
-
-		// Serialize Position Component
-		if (entityMgr.HasComponent(entity, ComponentType::PositionType)) {
-			Position& pos = entityMgr.GetComponent<Position>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(pos, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::POSITION), value, alloc);
 		}
 
 		// Serialize SpawnPoint Component
@@ -294,21 +255,6 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EMITTER_COMPONENT), value, alloc);
 		}
 
-		// Serialize Rotation Component
-		if (entityMgr.HasComponent(entity, ComponentType::RotationType)) {
-			Rotation& rot = entityMgr.GetComponent<Rotation>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(rot, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::ROTATION_COMPONENT), value, alloc);
-		}
-		
-		// Serialize Scale Component
-		if (entityMgr.HasComponent(entity, ComponentType::ScaleType)) {
-			Scale& scale = entityMgr.GetComponent<Scale>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(scale, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::SCALE_COMPONENT), value, alloc);
-		}
 		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
 	}
 
@@ -415,9 +361,6 @@ namespace Framework {
 		case TransformType:
 			SerializeComponent(entityMgr.GetComponent<Transform>(entity), componentData, alloc);
 			break;
-		case PositionType:
-			SerializeComponent(entityMgr.GetComponent<Position>(entity), componentData, alloc);
-			break;
 		case SpawnPointType:
 			SerializeComponent(entityMgr.GetComponent<SpawnPoint>(entity), componentData, alloc);
 			break;
@@ -478,12 +421,6 @@ namespace Framework {
 		case ParticleEmitterComponentType:
 			SerializeComponent(entityMgr.GetComponent<ParticleEmitterComponent>(entity), componentData, alloc);
 			break;
-		case RotationType:
-			SerializeComponent(entityMgr.GetComponent<Rotation>(entity), componentData, alloc);
-			break;
-		case ScaleType:
-			SerializeComponent(entityMgr.GetComponent<Scale>(entity), componentData, alloc);
-			break;
 		}
 		doc.CopyFrom(componentData, alloc);
 
@@ -535,16 +472,6 @@ namespace Framework {
 			Transform transform;
 			if (DeserializeComponent(transformData, transform)) {
 				entityMgr.AddComponent<Transform>(loadedEntity, transform);
-			}
-		}
-
-		// Deserialize Position Component
-		if (componentLists.HasMember(Serialization::POSITION)) {
-			const rapidjson::Value& pos = componentLists[Serialization::POSITION];
-
-			Position position;
-			if (DeserializeComponent(pos, position)) {
-				entityMgr.AddComponent<Position>(loadedEntity, position);
 			}
 		}
 
@@ -746,24 +673,6 @@ namespace Framework {
 				entityMgr.AddComponent<ParticleEmitterComponent>(loadedEntity, particleEmitter);
 			}
 		}
-
-		// Deserialize Rotation Component
-		if (componentLists.HasMember(Serialization::ROTATION_COMPONENT)) {
-			const rapidjson::Value& rotationData = componentLists[Serialization::ROTATION_COMPONENT];
-			Rotation rotationComp;
-			if (DeserializeComponent(rotationData, rotationComp)) {
-				entityMgr.AddComponent<Rotation>(loadedEntity, rotationComp);
-			}
-		}
-
-		// Deserialize Scale Component
-		if (componentLists.HasMember(Serialization::SCALE_COMPONENT)) {
-			const rapidjson::Value& scaleData = componentLists[Serialization::SCALE_COMPONENT];
-			Scale scaleComp;
-			if (DeserializeComponent(scaleData, scaleComp)) {
-				entityMgr.AddComponent<Scale>(loadedEntity, scaleComp);
-			}
-		}
 	}
 
 	void EntitySerializer::DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData) {
@@ -933,12 +842,6 @@ namespace Framework {
 		scale.AddMember(rapidjson::StringRef(Serialization::VEC2_X), transform.scale.x, alloc);
 		scale.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), transform.scale.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_SCALE), scale, alloc);
-	}
-
-	// Position Component
-	void EntitySerializer::SerializeComponent(const Position& pos, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		outData.AddMember(rapidjson::StringRef(Serialization::VEC2_X), pos.Pos.x, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), pos.Pos.y, alloc);
 	}
 
 	// Spawnpoint Component
@@ -1241,35 +1144,6 @@ namespace Framework {
 		emitOffset.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.emissionOffset.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_OFFSET), emitOffset, alloc);
 	}
-
-	// Rotation Component
-	void EntitySerializer::SerializeComponent(const Rotation& rotationComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_ANGLE), rotationComp.angle, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_TEXTURE_ANGLE), rotationComp.textureAngle, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_COLLIDER_ANGLE), rotationComp.colliderAngle, alloc);
-
-		rapidjson::Value textureMatrix(rapidjson::kArrayType);
-		rapidjson::Value colliderMatrix(rapidjson::kArrayType);
-
-		for (int i = 0; i < 9; ++i) {
-			rapidjson::Value textureVal(rotationComp.textureTransformMatrix.m[i]);
-			textureMatrix.PushBack(textureVal, alloc);
-
-			rapidjson::Value colliderVal(rotationComp.colliderTransformMatrix.m[i]);
-			colliderMatrix.PushBack(colliderVal, alloc);
-		}
-
-		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_TEXTURE_MTX), textureMatrix, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::ROTATION_COLLIDER_MTX), colliderMatrix, alloc);
-	}
-
-	// Scale Component
-	void EntitySerializer::SerializeComponent(const Scale& scaleComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		rapidjson::Value scaleAxes(rapidjson::kObjectType);
-		scaleAxes.AddMember(rapidjson::StringRef(Serialization::VEC2_X), scaleComp.axes.x, alloc);
-		scaleAxes.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), scaleComp.axes.y, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::SCALE_AXES), scaleAxes, alloc);
-	}
 #pragma endregion
 
 #pragma region SPECIALIZED DESERIALIZATION
@@ -1330,18 +1204,6 @@ namespace Framework {
 			if (scaleData.HasMember(Serialization::VEC2_Y) && scaleData[Serialization::VEC2_Y].IsFloat()) {
 				out.scale.y = scaleData[Serialization::VEC2_Y].GetFloat();
 			}
-		}
-	}
-
-	// Position Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Position& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::VEC2_X) && componentData[Serialization::VEC2_X].IsFloat()) {
-			out.Pos.x = componentData[Serialization::VEC2_X].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::VEC2_Y) && componentData[Serialization::VEC2_Y].IsFloat()) {
-			out.Pos.y = componentData[Serialization::VEC2_Y].GetFloat();
 		}
 		return true;
 	}
@@ -1990,57 +1852,6 @@ namespace Framework {
 			out.emissionOffset = { 0.0f, 0.0f };
 		}
 
-		return true;
-	}
-
-	// Rotation Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Rotation& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::ROTATION_ANGLE) && componentData[Serialization::ROTATION_ANGLE].IsFloat()) {
-			out.angle = componentData[Serialization::ROTATION_ANGLE].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::ROTATION_TEXTURE_ANGLE) && componentData[Serialization::ROTATION_TEXTURE_ANGLE].IsFloat()) {
-			out.textureAngle = componentData[Serialization::ROTATION_TEXTURE_ANGLE].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::ROTATION_COLLIDER_ANGLE) && componentData[Serialization::ROTATION_COLLIDER_ANGLE].IsFloat()) {
-			out.colliderAngle = componentData[Serialization::ROTATION_COLLIDER_ANGLE].GetFloat();
-		}
-
-		Matrix3x3 matrix;
-		if (componentData.HasMember(Serialization::ROTATION_TEXTURE_MTX) && componentData[Serialization::ROTATION_TEXTURE_MTX].IsArray()) {
-			rapidjson::GenericArray textureMtxArray = componentData[Serialization::ROTATION_TEXTURE_MTX].GetArray();
-			for (int i = 0; i < 9; ++i) {
-				matrix.m[i] = textureMtxArray[i].GetFloat();
-			}
-			
-			out.textureTransformMatrix = matrix;
-		}
-		if (componentData.HasMember(Serialization::ROTATION_COLLIDER_MTX) && componentData[Serialization::ROTATION_COLLIDER_MTX].IsArray()) {
-			rapidjson::GenericArray colliderMtxArray = componentData[Serialization::ROTATION_COLLIDER_MTX].GetArray();
-			for (int i = 0; i < 9; ++i) {
-				matrix.m[i] = colliderMtxArray[i].GetFloat();
-			}
-
-			out.colliderTransformMatrix = matrix;
-		}
-
-		return true;
-	}
-
-	// Scale Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Scale& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::SCALE_AXES) && componentData[Serialization::SCALE_AXES].IsObject()) {
-			const rapidjson::Value& axesData = componentData[Serialization::SCALE_AXES];
-			if (axesData.HasMember(Serialization::VEC2_X) && axesData[Serialization::VEC2_X].IsFloat()) {
-				out.axes.x = axesData[Serialization::VEC2_X].GetFloat();
-			}
-			if (axesData.HasMember(Serialization::VEC2_Y) && axesData[Serialization::VEC2_Y].IsFloat()) {
-				out.axes.y = axesData[Serialization::VEC2_Y].GetFloat();
-			}
-		}
 		return true;
 	}
 

@@ -63,7 +63,6 @@ namespace Framework {
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
 					case ComponentType::TransformType: AddComponent<Transform>(newEntity, GetComponent<Transform>(entity)); break;
-					case ComponentType::PositionType: AddComponent<Position>(newEntity, GetComponent<Position>(entity)); break;
 					case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(newEntity, GetComponent<SpawnPoint>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
 					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
@@ -85,8 +84,6 @@ namespace Framework {
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
 					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
 					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
-					case ComponentType::RotationType: AddComponent<Rotation>(newEntity, GetComponent<Rotation>(entity)); break;
-					case ComponentType::ScaleType: AddComponent<Scale>(newEntity, GetComponent<Scale>(entity)); break;
 					default:
 						break;
 				}
@@ -139,7 +136,6 @@ namespace Framework {
 		switch (componentType)
 		{
 		case ComponentType::TransformType: AddComponent<Transform>(entity, Transform{}); break;
-		case ComponentType::PositionType: AddComponent<Position>(entity, Position{}); break;
 		case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(entity, SpawnPoint{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
 		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
@@ -168,8 +164,6 @@ namespace Framework {
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
 		case ComponentType::GUITagType: break;
-		case ComponentType::RotationType: AddComponent<Rotation>(entity, Rotation{}); break;
-		case ComponentType::ScaleType: AddComponent<Scale>(entity, Scale{}); break;
 
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
@@ -184,7 +178,6 @@ namespace Framework {
 
 		switch (componentType) {
 			case TransformType:		ecs.transform.erase(entity); break;
-			case PositionType:      ecs.position.erase(entity); break;
 			case SpawnPointType:    ecs.spawnPoint.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
@@ -224,8 +217,6 @@ namespace Framework {
 			case PersistentTagType:
 			case ActiveTagType: break;
 			case GUITagType: break;
-			case RotationType: ecs.rotation.erase(entity); break;
-			case ScaleType: ecs.scale.erase(entity); break;
 			default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 				return;

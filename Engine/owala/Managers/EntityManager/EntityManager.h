@@ -56,7 +56,6 @@ namespace Framework {
 			if (HasComponent(entity, type)) return;
 
 			if constexpr (std::is_same_v<T, Transform>) ecs.transform[entity] = component;
-			else if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
 			else if constexpr (std::is_same_v<T, SpawnPoint>) ecs.spawnPoint[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
@@ -78,8 +77,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) ecs.skeletonAIComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, ParticleComponent>) ecs.particleComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) ecs.particleEmitterComponent[entity] = component;
-			else if constexpr (std::is_same_v<T, Rotation>) ecs.rotation[entity] = component;
-			else if constexpr (std::is_same_v<T, Scale>) ecs.scale[entity] = component;
 			else {
 				// If this is a tag-only type, no storage is necessary.
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
@@ -104,7 +101,6 @@ namespace Framework {
 
 			// Return a reference to the component in the map
 			if constexpr (std::is_same_v<T, Transform>) return ecs.transform.at(entity);
-			else if constexpr (std::is_same_v<T, Position>) return ecs.position.at(entity);
 			else if constexpr (std::is_same_v<T, SpawnPoint>) return ecs.spawnPoint.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
@@ -126,8 +122,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) return ecs.skeletonAIComponent.at(entity);
 			else if constexpr (std::is_same_v<T, ParticleComponent>) return ecs.particleComponent.at(entity);
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) return ecs.particleEmitterComponent.at(entity);
-			else if constexpr (std::is_same_v<T, Rotation>) return ecs.rotation.at(entity);
-			else if constexpr (std::is_same_v<T, Scale>) return ecs.scale.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}

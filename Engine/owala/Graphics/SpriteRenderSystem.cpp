@@ -137,13 +137,13 @@ namespace Framework {
 
                 if (hasRotationFlag) {
                     const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
-                    const Rotation& rotation = transform.rotation;
+                    const Transform::Rotation& rotation = transform.rotation;
                     float worldRotationRad = rotation.textureAngle;
                     float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
                     rotationRad = worldRotationRad + localRotationRad;
                 }
                 else {
-                    const Rotation& rotation = transform.rotation;
+                    const Transform::Rotation& rotation = transform.rotation;
                     rotationRad = rotation.textureAngle;
                 }
 

@@ -58,17 +58,6 @@ namespace Framework{
 		DEATH
 	};
 
-	struct Rotation {
-		float angle = 0.0f;
-		float textureAngle = 0.0f; // Texture rotation angle
-		float colliderAngle = 0.0f; // Collider rotation angle
-		Matrix3x3 textureTransformMatrix; // For texture
-		Matrix3x3 colliderTransformMatrix; // For collider
-
-		Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
-		Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
-	};
-
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
@@ -79,7 +68,19 @@ namespace Framework{
 		bool isActive = true;
 	};
 
+	/* Transform Component indicating data relating to the entity's Position, Rotation and Scale */
 	struct Transform {
+		struct Rotation {
+			float angle = 0.0f;
+			float textureAngle = 0.0f; // Texture rotation angle
+			float colliderAngle = 0.0f; // Collider rotation angle
+			Matrix3x3 textureTransformMatrix; // For texture
+			Matrix3x3 colliderTransformMatrix; // For collider
+
+			Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
+			Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
+		};
+
 		Vector2D position{ 0.f, 0.f };
 		Rotation rotation;
 		Vector2D scale{ 1.f, 1.f };
@@ -87,12 +88,6 @@ namespace Framework{
 		// Parameterized Constructor
 		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
 			: position(pos), rotation(angle), scale(scl) {}
-	};
-
-	/*	Position component to store x and y 
-		coordinates of an entity.*/
-	struct Position {
-		Vector2D Pos;
 	};
 
 	/*	SpawnPoint component to store initial x and y
@@ -218,11 +213,6 @@ namespace Framework{
 		float targetRotation = 0.0f;
 		Matrix3x3 transformMatrix;
 	};
-
-	struct Scale {
-		Vector2D axes{ 1.0f, 1.0f }; // Scale factors for X and Y axes
-	};
-
 
 	// Component to track trap platform state
 	struct TrapPlatformComponent {
