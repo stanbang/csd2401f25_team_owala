@@ -34,23 +34,23 @@ namespace Editor {
 								AnimationFileData animData;
 								animData.name = filename;
 
-								if (doc.HasMember("frameCount")) {
-									animData.frameCount = doc["frameCount"].GetInt();
-								}
-								if (doc.HasMember("frameDuration")) {
-									animData.frameDuration = doc["frameDuration"].GetFloat();
-								}
-								if (doc.HasMember("isLooping")) {
-									animData.isLooping = doc["isLooping"].GetBool();
-								}
-								if (doc.HasMember("startFrame")) {
-									animData.startFrame = doc["startFrame"].GetInt();
-								}
+							if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
+								animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
+							}
+							if (doc.HasMember(FileIOKeys::FRAME_DURATION)) {
+								animData.frameDuration = doc[FileIOKeys::FRAME_DURATION].GetFloat();
+							}
+							if (doc.HasMember(FileIOKeys::IS_LOOPING)) {
+								animData.isLooping = doc[FileIOKeys::IS_LOOPING].GetBool();
+							}
+							if (doc.HasMember(FileIOKeys::START_FRAME)) {
+								animData.startFrame = doc[FileIOKeys::START_FRAME].GetInt();
+							}
 
-								// Load spritesheets
-								if (doc.HasMember("spritesheets") && doc["spritesheets"].IsArray()) {
-									const rapidjson::Value& sheetsJson = doc["spritesheets"];
-									for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
+							// Load spritesheets
+							if (doc.HasMember("spritesheets") && doc["spritesheets"].IsArray()) {
+								const rapidjson::Value& sheetsJson = doc["spritesheets"];
+								for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
 										const rapidjson::Value& sheet = sheetsJson[i];
 										if (sheet.HasMember("texture") && sheet.HasMember("count")) {
 											animData.spritesheets.push_back({
@@ -108,25 +108,25 @@ namespace Editor {
 
 		AnimationFileData& animData = loadedAnimations_[animIndex];
 
-		// Create JSON document
-		rapidjson::Document doc;
-		doc.SetObject();
-		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+	// Create JSON document
+	rapidjson::Document doc;
+	doc.SetObject();
+	rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
-		doc.AddMember("frameCount", animData.frameCount, alloc);
-		doc.AddMember("frameDuration", animData.frameDuration, alloc);
-		doc.AddMember("isLooping", animData.isLooping, alloc);
-		doc.AddMember("startFrame", animData.startFrame, alloc);
+	doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_COUNT), animData.frameCount, alloc);
+	doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_DURATION), animData.frameDuration, alloc);
+	doc.AddMember(rapidjson::StringRef(FileIOKeys::IS_LOOPING), animData.isLooping, alloc);
+	doc.AddMember(rapidjson::StringRef(FileIOKeys::START_FRAME), animData.startFrame, alloc);
 
-		// Add spritesheets array
-		rapidjson::Value sheetsArray(rapidjson::kArrayType);
-		for (const auto& sheet : animData.spritesheets) {
-			rapidjson::Value sheetObj(rapidjson::kObjectType);
-			sheetObj.AddMember("texture", rapidjson::StringRef(sheet.first.c_str()), alloc);
-			sheetObj.AddMember("count", sheet.second, alloc);
-			sheetsArray.PushBack(sheetObj, alloc);
-		}
-		doc.AddMember("spritesheets", sheetsArray, alloc);
+	// Add spritesheets array
+	rapidjson::Value sheetsArray(rapidjson::kArrayType);
+	for (const auto& sheet : animData.spritesheets) {
+		rapidjson::Value sheetObj(rapidjson::kObjectType);
+		sheetObj.AddMember("texture", rapidjson::StringRef(sheet.first.c_str()), alloc);
+		sheetObj.AddMember("count", sheet.second, alloc);
+		sheetsArray.PushBack(sheetObj, alloc);
+	}
+	doc.AddMember("spritesheets", sheetsArray, alloc);
 
 		// Write to Debug folder first
 		std::string debugFilepath = "Data/AnimationData/" + animationName + ".json";
@@ -217,17 +217,17 @@ namespace Editor {
 		if (FileIOSystem::ReadFile(filepath, doc) && doc.IsObject()) {
 			AnimationFileData& animData = loadedAnimations_[animIndex];
 
-			if (doc.HasMember("frameCount")) {
-				animData.frameCount = doc["frameCount"].GetInt();
+			if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
+				animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
 			}
-			if (doc.HasMember("frameDuration")) {
-				animData.frameDuration = doc["frameDuration"].GetFloat();
+			if (doc.HasMember(FileIOKeys::FRAME_DURATION)) {
+				animData.frameDuration = doc[FileIOKeys::FRAME_DURATION].GetFloat();
 			}
-			if (doc.HasMember("isLooping")) {
-				animData.isLooping = doc["isLooping"].GetBool();
+			if (doc.HasMember(FileIOKeys::IS_LOOPING)) {
+				animData.isLooping = doc[FileIOKeys::IS_LOOPING].GetBool();
 			}
-			if (doc.HasMember("startFrame")) {
-				animData.startFrame = doc["startFrame"].GetInt();
+			if (doc.HasMember(FileIOKeys::START_FRAME)) {
+				animData.startFrame = doc[FileIOKeys::START_FRAME].GetInt();
 			}
 
 			// Reload spritesheets
