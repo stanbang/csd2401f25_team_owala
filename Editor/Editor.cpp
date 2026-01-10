@@ -30,6 +30,8 @@
 #include "AssetBrowser.h"
 #include "AISystem.h" // Include AISystem for debugging purposes
 #include "rapidjson/prettywriter.h"
+#include "FileUtility.h"
+#include <fstream>
 
 // Debug
 #include "Logger.h"
@@ -477,6 +479,7 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
+			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
@@ -534,6 +537,18 @@ namespace Editor {
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
+
+		// To show animation editor beside asset viewer
+		if (settings.showAnimationEditor) {
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::BeginTabBar("BottomTabBar", ImGuiTabBarFlags_None)) {
+				if (ImGui::BeginTabItem("Animation Editor")) {
+					ShowAnimationEditor();
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
+		}
 
 		// Set editor play/edit mode
 		if (isTileEditorActive_ || !isGamePlaying || (gizmoSystem_ && gizmoSystem_->IsGizmosToggled())) {
@@ -1199,6 +1214,10 @@ namespace Editor {
 
 			if (ImGui::Button("Open Prefab Editor")) {
 				isPrefabEditorOpen_ = true;
+			}
+
+			if (ImGui::Button("Open Animation Editor")) {
+				settings.showAnimationEditor = true;
 			}
 		}
 
