@@ -185,72 +185,75 @@ namespace Editor {
 				<< "Error saving animation file to root: " << e.what() << std::endl;
 		}
 
-		// Only reload if we successfully saved
+		// Reload animation from file into ResourceManager if successfully saved
 		if (debugSaveSuccess) {
-			ReloadAnimationFromFile(animationName);
+			RefreshAnimationInResourceManager(animationName);
 		}
 
 		Logger::Get().Info(DebugType::Editor)
-			<< "Animation saved and reloaded: " << animationName << std::endl;
+			<< "Animation saved and resource manager refreshed: " << animationName << std::endl;
 	}
 
-	void Editor::ReloadAnimationFromFile(const std::string& animationName) {
+	void Editor::RefreshAnimationInResourceManager(const std::string& animationName) {
 		using namespace Framework;
 
-		// Find and reload from disk
-		int animIndex = -1;
-		for (size_t i = 0; i < loadedAnimations_.size(); ++i) {
-			if (loadedAnimations_[i].name == animationName) {
-				animIndex = static_cast<int>(i);
-				break;
-			}
-		}
-
-		if (animIndex < 0) {
+		if (!resourceManager_) {
 			Logger::Get().Error(DebugType::Editor)
-				<< "Animation not found: " << animationName << std::endl;
+				<< "Failed to access ResourceManager for animation refresh" << std::endl;
 			return;
 		}
 
 		std::string filepath = "Data/AnimationData/" + animationName + ".json";
-		rapidjson::Document doc;
-		if (FileIOSystem::ReadFile(filepath, doc) && doc.IsObject()) {
-			AnimationFileData& animData = loadedAnimations_[animIndex];
-
-			if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
-				animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
-			}
-			if (doc.HasMember(FileIOKeys::FRAME_DURATION)) {
-				animData.frameDuration = doc[FileIOKeys::FRAME_DURATION].GetFloat();
-			}
-			if (doc.HasMember(FileIOKeys::IS_LOOPING)) {
-				animData.isLooping = doc[FileIOKeys::IS_LOOPING].GetBool();
-			}
-			if (doc.HasMember(FileIOKeys::START_FRAME)) {
-				animData.startFrame = doc[FileIOKeys::START_FRAME].GetInt();
-			}
-
-			// Reload spritesheets
-			animData.spritesheets.clear();
-			if (doc.HasMember("spritesheets") && doc["spritesheets"].IsArray()) {
-				const rapidjson::Value& sheetsJson = doc["spritesheets"];
-				for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
-					const rapidjson::Value& sheet = sheetsJson[i];
-					if (sheet.HasMember("texture") && sheet.HasMember("count")) {
-						animData.spritesheets.push_back({
-							sheet["texture"].GetString(),
-							sheet["count"].GetInt()
-						});
+		std::vector<std::string> textureKeysToRefresh;
+		
+		// Find all texture keys that reference this animation by checking the mapping file
+		try {
+			rapidjson::Document mappingDoc;
+			if (FileIOSystem::ReadFile("Data/textureToAnimationMapping.json", mappingDoc)) {
+				if (mappingDoc.IsObject() && mappingDoc.HasMember("animations") && mappingDoc["animations"].IsArray()) {
+					const rapidjson::Value& animations = mappingDoc["animations"];
+					for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) {
+						const rapidjson::Value& entry = animations[i];
+						if (entry.HasMember("animation_path") && entry["animation_path"].IsString()) {
+							std::string animPath = entry["animation_path"].GetString();
+							if (animPath.find(animationName) != std::string::npos) {
+								if (entry.HasMember("texture_keys") && entry["texture_keys"].IsArray()) {
+									const rapidjson::Value& keys = entry["texture_keys"];
+									for (rapidjson::SizeType j = 0; j < keys.Size(); ++j) {
+										if (keys[j].IsString()) {
+											textureKeysToRefresh.push_back(keys[j].GetString());
+										}
+									}
+								}
+								else if (entry.HasMember("texture_key") && entry["texture_key"].IsString()) {
+									textureKeysToRefresh.push_back(entry["texture_key"].GetString());
+								}
+							}
+						}
 					}
 				}
 			}
-
-			Logger::Get().Info(DebugType::Editor)
-				<< "Reloaded animation from file: " << filepath << " (frameCount: " << animData.frameCount << ")" << std::endl;
 		}
-		else {
-			Logger::Get().Error(DebugType::Editor)
-				<< "Failed to reload animation file: " << filepath << std::endl;
+		catch (const std::exception& e) {
+			Logger::Get().Error(DebugType::Editor) << "Error reading texture-to-animation mapping: " << e.what() << std::endl;
+		}
+		
+		// If no texture keys found, use animation name as fallback
+		if (textureKeysToRefresh.empty()) {
+			textureKeysToRefresh.push_back(animationName);
+		}
+
+		// Remove and reload all affected texture keys
+		auto& animationMap = resourceManager_->getAnimationMap();
+		for (const auto& textureKey : textureKeysToRefresh) {
+			auto it = animationMap.find(textureKey);
+			if (it != animationMap.end()) {
+				animationMap.erase(it);
+				Logger::Get().Info(DebugType::Editor) << "Removed old animation from cache: " << textureKey << std::endl;
+			}
+			if (resourceManager_->loadAnimationInfo(textureKey, filepath)) {
+				Logger::Get().Info(DebugType::Editor) << "Refreshed animation in ResourceManager for texture key: " << textureKey << std::endl;
+			}
 		}
 	}
 
@@ -397,7 +400,7 @@ namespace Editor {
 			if (ImGui::Button("Reload from Disk", ImVec2(150.0f, 0.0f))) {
 				ReloadAnimationFromFile(animData.name);
 				Logger::Get().Info(DebugType::Editor)
-					<< "Animation reloaded: " << animData.name << std::endl;
+					<< "Animation reloaded from file: " << animData.name << std::endl;
 			}
 
 			// Preview info
@@ -411,6 +414,69 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+	void Editor::ReloadAnimationFromFile(const std::string& animationName) {
+		using namespace Framework;
+
+		// Find and reload from disk
+		int animIndex = -1;
+		for (size_t i = 0; i < loadedAnimations_.size(); ++i) {
+			if (loadedAnimations_[i].name == animationName) {
+				animIndex = static_cast<int>(i);
+				break;
+			}
+		}
+
+		if (animIndex < 0) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Animation not found: " << animationName << std::endl;
+			return;
+		}
+
+		std::string filepath = "Data/AnimationData/" + animationName + ".json";
+		rapidjson::Document doc;
+		if (FileIOSystem::ReadFile(filepath, doc) && doc.IsObject()) {
+			AnimationFileData& animData = loadedAnimations_[animIndex];
+
+			if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
+				animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
+			}
+			if (doc.HasMember(FileIOKeys::FRAME_DURATION)) {
+				animData.frameDuration = doc[FileIOKeys::FRAME_DURATION].GetFloat();
+			}
+			if (doc.HasMember(FileIOKeys::IS_LOOPING)) {
+				animData.isLooping = doc[FileIOKeys::IS_LOOPING].GetBool();
+			}
+			if (doc.HasMember(FileIOKeys::START_FRAME)) {
+				animData.startFrame = doc[FileIOKeys::START_FRAME].GetInt();
+			}
+
+			// Reload spritesheets
+			animData.spritesheets.clear();
+			if (doc.HasMember("spritesheets") && doc["spritesheets"].IsArray()) {
+				const rapidjson::Value& sheetsJson = doc["spritesheets"];
+				for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
+					const rapidjson::Value& sheet = sheetsJson[i];
+					if (sheet.HasMember("texture") && sheet.HasMember("count")) {
+						animData.spritesheets.push_back({
+							sheet["texture"].GetString(),
+							sheet["count"].GetInt()
+						});
+					}
+				}
+			}
+
+			// Refresh animation in ResourceManager
+			RefreshAnimationInResourceManager(animationName);
+
+			Logger::Get().Info(DebugType::Editor)
+				<< "Reloaded animation from file: " << filepath << " (frameCount: " << animData.frameCount << ")" << std::endl;
+		}
+		else {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Failed to reload animation file: " << filepath << std::endl;
+		}
 	}
 
 }

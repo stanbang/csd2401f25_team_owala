@@ -293,6 +293,7 @@ namespace Editor {
 		void LoadAnimationFiles();
 		void SaveAnimationFile(const std::string& animationName);
 		void ReloadAnimationFromFile(const std::string& animationName);
+		void RefreshAnimationInResourceManager(const std::string& animationName);
 
 		// Scene Management Helper functions
 		void SaveScene();
