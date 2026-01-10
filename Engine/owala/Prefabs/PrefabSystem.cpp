@@ -304,9 +304,14 @@ namespace Framework {
         }
         else if (compData.type == "AABBCollider") {
             Vector2D halfSize(0.5f, 0.5f);
+            Vector2D offset(0.0f, 0.0f);
+
             if (data.HasMember("halfSizeX")) halfSize.x = data["halfSizeX"].GetFloat();
             if (data.HasMember("halfSizeY")) halfSize.y = data["halfSizeY"].GetFloat();
-            entityMgr.AddComponent(entity, AABBCollider{ halfSize });
+            if (data.HasMember("offsetX")) offset.x = data["offsetX"].GetFloat();
+            if (data.HasMember("offsetY")) offset.y = data["offsetY"].GetFloat();
+
+            entityMgr.AddComponent(entity, AABBCollider{ halfSize, offset });
         }
         else if (compData.type == "TextureComponent") {
             std::string texID = "";

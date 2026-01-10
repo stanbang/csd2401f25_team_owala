@@ -284,6 +284,23 @@ namespace Framework {
             const Transform& transform = entityMgr.GetComponent<Transform>(e);
             const Vector2D& worldPos = transform.position;
             const Vector2D& halfSize = collider.HalfSize;
+            
+            // Get rotation if entity has it
+            float deg = 0.0f;
+            if (entityMgr.HasComponent(e, RotationFlagType)) {
+               deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
+            }
+
+            deg += transform.rotation.colliderAngle * (180.0f / 3.14159265359f);
+
+            Vector2D rotatedOffset = collider.Offset;
+            if (std::abs(deg) > 0.01f) {
+                float rotRad = deg * (static_cast<float>(M_PI) / 180.0f);
+                Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+                rotatedOffset = rotMat * collider.Offset;
+            }
+
+            Vector2D colliderWorldPos = worldPos + rotatedOffset;
 
             Vector2D screenPos = worldPos;
             Vector2D screenHalfSize = halfSize;
@@ -308,16 +325,9 @@ namespace Framework {
             const Vector2D& scale = transform.scale;
             scaledHalfSize.x *= scale.x;
             scaledHalfSize.y *= scale.y;
-            // Get rotation if entity has it
-            float deg = 0.0f;
-            if (entityMgr.HasComponent(e, RotationFlagType)) {
-                deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
-            }
-
-            deg += transform.rotation.colliderAngle * (180.0f / 3.14159265359f);
-
+           
             // Use the rotated AABB calculation
-            AABB_Bounds rotatedBounds = PhysicsSystem::GetRotatedAABB(worldPos, halfSize, deg);
+            AABB_Bounds rotatedBounds = PhysicsSystem::GetRotatedAABB(colliderWorldPos, halfSize, deg);
 
             // Convert world bounds to screen space
             Vector2D screenMin = rotatedBounds.min;

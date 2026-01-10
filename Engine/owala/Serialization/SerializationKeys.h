@@ -69,6 +69,8 @@ namespace Framework::Serialization {
 	static constexpr const char* AABB_COLLIDER_COMPONENT = "AABBCollider";
 	static constexpr const char* HALF_WIDTH = "half_width";
 	static constexpr const char* HALF_HEIGHT = "half_height";
+	static constexpr const char* OFFSET_X = "offset_x";
+	static constexpr const char* OFFSET_Y = "offset_y";
 
 	static constexpr const char* PLAYER_STATE_COMPONENT = "PlayerState";
 	static constexpr const char* PLAYER_IS_FACING_RIGHT = "is_facing_right";

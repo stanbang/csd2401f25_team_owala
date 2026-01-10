@@ -2582,7 +2582,11 @@ namespace Editor {
 			if (activeNow && !editSession.wasItemActive) {
 				editSession.Begin(selectedEntity, selectedComponent);
 			}
-
+			ImGui::InputFloat2("Offset (X),(Y)", &col.Offset.x, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Offset the collider from the entity's center position.\nPositive X = right, Positive Y = up");
+			}
 			if (!activeNow && editSession.wasItemActive) {
 				std::stringstream ss;
 				ss << std::setprecision(2) << std::fixed;
@@ -2603,6 +2607,15 @@ namespace Editor {
 				}
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Automatically sets the AABB bounds to match the Texture dimensions.");
+				}
+			}
+			if (col.Offset.x != 0.0f || col.Offset.y != 0.0f) {
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Offset")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					col.Offset = { 0.0f, 0.0f };
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					historyManager_.RecordModifyComponent(selectedEntity, "Reset Collider Offset", beforeJSON, afterJSON, selectedComponent);
 				}
 			}
 

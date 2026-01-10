@@ -323,6 +323,8 @@ namespace Editor {
 		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowSceneEntityTracker(Framework::EntityManager& entityMgr);
 
+		bool ShowPrefabComponentEditor(Framework::ComponentData& compData);
+
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;

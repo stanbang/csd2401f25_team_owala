@@ -893,6 +893,9 @@ namespace Framework {
 	void EntitySerializer::SerializeComponent(const AABBCollider& col, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_WIDTH), col.HalfSize.x, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_HEIGHT), col.HalfSize.y, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::OFFSET_X), col.Offset.x, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::OFFSET_Y), col.Offset.y, alloc);
+
 	}
 
 	// PlayerState Component
@@ -1307,6 +1310,12 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::HALF_HEIGHT) && componentData[Serialization::HALF_HEIGHT].IsFloat()) {
 			out.HalfSize.y = componentData[Serialization::HALF_HEIGHT].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::OFFSET_X) && componentData[Serialization::OFFSET_X].IsFloat()) {
+			out.Offset.x = componentData[Serialization::OFFSET_X].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::OFFSET_Y) && componentData[Serialization::OFFSET_Y].IsFloat()) {
+			out.Offset.y = componentData[Serialization::OFFSET_Y].GetFloat();
 		}
 		return true;
 	}
