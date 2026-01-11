@@ -170,6 +170,7 @@ namespace Framework{
 	};
 
 	struct AnimationComponent {
+		std::string profileName; // Name of the animation profile to use(can be Player, BirdEnemy etc)
 		AnimationState currentState = AnimationState::IDLE; // Default animation state is IDLE
 
 		int currentFrame = 0;      // Frame index

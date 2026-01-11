@@ -1290,7 +1290,7 @@ namespace Editor {
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
-			entityMgr.AddComponent<AnimationComponent>(bird, {});
+			entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
 			entityMgr.AddComponent<RotationFlag>(bird, {});
 
 			RigidBody rb;	
@@ -3294,7 +3294,15 @@ namespace Editor {
 		}
 
 		case ComponentType::AnimationComponentType: {
-			ImGui::TextDisabled("Properties are Hidden");
+			AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(selectedEntity);
+
+			// Show the profile name for AnimationComponent
+			ImGui::InputText("Animation Profile", &animComp.profileName);
+			
+			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
+			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
+			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
+			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
 			break;
 		}
 		case ComponentType::TextComponentType: {

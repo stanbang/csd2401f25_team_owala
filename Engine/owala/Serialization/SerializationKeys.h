@@ -107,6 +107,7 @@ namespace Framework::Serialization {
 	static constexpr const char* VOLUME = "volume";
 
 	static constexpr const char* ANIMATION_COMPONENT = "AnimationComponent";
+	static constexpr const char* ANIMATION_PROFILE = "profile_name";
 	static constexpr const char* CURRENT_STATE = "current_state";
 	static constexpr const char* CURRENT_FRAME = "current_frame";
 	static constexpr const char* FRAME_DURATION = "frame_duration";

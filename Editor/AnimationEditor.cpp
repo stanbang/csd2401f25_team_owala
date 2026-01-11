@@ -1,8 +1,3 @@
-/***
-* Animation Editor Implementation
-* Provides ImGui UI for editing animation JSON files
-*/
-
 #include "Editor.h"
 #include "Logger.h"
 #include "FileUtility.h"
@@ -271,7 +266,7 @@ namespace Editor {
 		ImGui::Text("Animation File Editor");
 		ImGui::Separator();
 
-		// --- Animation Selection ---
+		//Animation Selection
 		ImGui::Text("Select Animation:");
 		ImGui::SetNextItemWidth(250.0f);
 		if (ImGui::Combo("##AnimationList", &selectedAnimationIndex_, animationNames_.data(), 

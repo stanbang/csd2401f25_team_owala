@@ -941,6 +941,12 @@ namespace Framework {
 
 	// Animation Component
 	void EntitySerializer::SerializeComponent(const AnimationComponent& animComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		rapidjson::Value profileNameVal;
+		// Handle empty string case
+		const char* pName = animComp.profileName.empty() ? "" : animComp.profileName.c_str();
+		profileNameVal.SetString(pName, static_cast<rapidjson::SizeType>(strlen(pName)), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ANIMATION_PROFILE), profileNameVal, alloc);
+
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_STATE), static_cast<int>(animComp.currentState), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FRAME), animComp.currentFrame, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::FRAME_DURATION), animComp.frameDuration, alloc);
@@ -1415,6 +1421,10 @@ namespace Framework {
 	// Animation Component
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, AnimationComponent& out) {
 		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::ANIMATION_PROFILE) && componentData[Serialization::ANIMATION_PROFILE].IsString()) {
+			out.profileName = componentData[Serialization::ANIMATION_PROFILE].GetString();
+		}
 
 		if (componentData.HasMember(Serialization::CURRENT_STATE) && componentData[Serialization::CURRENT_STATE].IsInt()) {
 			out.currentState = static_cast<AnimationState>(componentData[Serialization::CURRENT_STATE].GetInt());
