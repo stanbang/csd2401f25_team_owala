@@ -88,6 +88,7 @@ namespace Framework {
     void CoreEngine::Initialize() {
         for (auto* s : systems_)
             if (s) s->Initialize();
+        ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
         initialized_ = true;
     }
 

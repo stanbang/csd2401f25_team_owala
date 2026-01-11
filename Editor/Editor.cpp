@@ -3869,6 +3869,52 @@ namespace Editor {
 					"If disabled, particles emit in world space (moves with camera)");
 			}
 
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Mode");
+
+			// Emission Mode Dropdown
+			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST" };
+			int currentModeIndex = static_cast<int>(emitter.emissionMode);
+
+			if (ImGui::Combo("Emission Mode##emitter", &currentModeIndex, emissionModeItems, IM_ARRAYSIZE(emissionModeItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.emissionMode = static_cast<ParticleEmissionMode>(currentModeIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Trigger Event Name (only show if not CONTINUOUS)
+			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS) {
+				ImGui::Text("Trigger Event Name:");
+				if (ImGui::InputText("##TriggerEventName", &emitter.triggerEventName)) {
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Name of the event that triggers this emitter\n"
+						"Examples: 'WorldRotation', 'PlayerDash', 'EnemyDeath'");
+				}
+			}
+
+			// BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::BURST) {
+				ImGui::Text("Burst Count (particles per burst):");
+				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+			}
+
+			// LOOP_BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::LOOP_BURST) {
+				ImGui::Text("Burst Count (particles per burst):");
+				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+
+				ImGui::Text("Burst Interval (seconds):");
+				ImGui::DragFloat("##BurstInterval", &emitter.burstInterval, 0.01f, 0.01f, 5.0f, "%.2f");
+			}
+
 			// Texture Key
 			ImGui::InputText("Texture Key##particle", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
 

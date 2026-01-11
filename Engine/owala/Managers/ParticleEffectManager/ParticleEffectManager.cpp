@@ -18,6 +18,10 @@ namespace Framework {
             return false;
         }
 
+        effectPresets_.clear();
+        triggerToEffects_.clear();
+        effectToTrigger_.clear();
+
         int presetsLoaded = 0;
         for (auto it = doc.MemberBegin(); it != doc.MemberEnd(); ++it) {
             std::string effectName = it->name.GetString();
@@ -114,12 +118,33 @@ namespace Framework {
                 effect.radius = effectObj["radius"].GetFloat();
             }
 
+            // Load trigger event name
+            std::string triggerEvent;
+            if (effectObj.HasMember("triggerEvent") && effectObj["triggerEvent"].IsString()) {
+                triggerEvent = effectObj["triggerEvent"].GetString();
+                effectToTrigger_[effectName] = triggerEvent;
+                triggerToEffects_[triggerEvent].push_back(effectName);
+                
+                Logger::Get().Info(DebugType::ResourceManager)
+                    << "Loaded particle effect '" << effectName << "' triggered by '" << triggerEvent << "'" << std::endl;
+            } else {
+                Logger::Get().Info(DebugType::ResourceManager)
+                    << "Loaded particle effect '" << effectName << "' (no trigger)" << std::endl;
+            }
+
             effectPresets_[effectName] = effect;
             presetsLoaded++;
         }
 
         Logger::Get().Info(DebugType::ResourceManager) 
             << "Loaded " << presetsLoaded << " particle effect presets from: " << filepath << std::endl;
+        
+        // Log all trigger mappings
+        for (const auto& pair : triggerToEffects_) {
+            Logger::Get().Info(DebugType::ResourceManager)
+                << "Trigger '" << pair.first << "' -> " << pair.second.size() << " effects" << std::endl;
+        }
+        
         return presetsLoaded > 0;
     }
 
@@ -133,5 +158,21 @@ namespace Framework {
 
         outEvent = it->second;
         return true;
+    }
+
+    std::vector<std::string> ParticleEffectManager::GetEffectsByTrigger(const std::string& triggerEventName) const {
+        auto it = triggerToEffects_.find(triggerEventName);
+        if (it != triggerToEffects_.end()) {
+            return it->second;
+        }
+        return std::vector<std::string>();
+    }
+
+    std::string ParticleEffectManager::GetTriggerEvent(const std::string& effectName) const {
+        auto it = effectToTrigger_.find(effectName);
+        if (it != effectToTrigger_.end()) {
+            return it->second;
+        }
+        return "";
     }
 }

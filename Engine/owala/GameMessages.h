@@ -85,4 +85,8 @@ namespace Framework {
 		Vector2D offset = { 0.0f, 0.0f };
 	};
 
+	struct WorldRotationEvent {
+		//Empty struct to signal world rotation
+	};
+
 } // namespace Framework

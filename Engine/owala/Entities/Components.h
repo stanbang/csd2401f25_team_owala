@@ -58,6 +58,13 @@ namespace Framework{
 		DEATH
 	};
 
+	// For particle emission modes
+	enum class ParticleEmissionMode {
+		CONTINUOUS,    // Emit constantly while active
+		BURST,         // Emit once on trigger
+		LOOP_BURST     // Emit multiple bursts on trigger
+	};
+
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
@@ -471,6 +478,13 @@ namespace Framework{
 		bool isEmitting = true;
 		bool isParticleAnimated = false; // Is the particle texture animated
 		bool isScreenSpace = false;   // Are the particles rendered in screen space
+		ParticleEmissionMode emissionMode = ParticleEmissionMode::CONTINUOUS;
+
+		// For BURST/LOOP_BURST modes
+		std::string triggerEventName;  // Name of the event to listen for
+		int burstCount = 1;            // How many bursts to emit (for LOOP_BURST)
+		float burstInterval = 0.5f;    // Time between bursts (for LOOP_BURST)
+		float timeSinceBurst = 0.0f;   // Internal timer for burst spacing
 
 		std::string particleTextureKey; // Key to identify the texture resource for particles
 		float particleLifetime = 1.0f;	// Total lifetime of the particle
