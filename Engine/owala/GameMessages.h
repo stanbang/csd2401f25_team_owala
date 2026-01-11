@@ -15,6 +15,7 @@
  *********************************************************************/
 #pragma once
 #include "Entity.h"
+#include "Vector2D.h"
 
 namespace Framework {
 
@@ -37,12 +38,12 @@ namespace Framework {
 	enum class EmissionStyle {
 		FROM_POINT,           // Emit from the position component
 		FROM_RADIUS,          // Emit randomly within a radius around position
-		FROM_TOP_VIEWPORT,    // Emit from top of screen falling down
-		FROM_LEFT_VIEWPORT,   // Emit from left side, moving right
-		FROM_RIGHT_VIEWPORT,  // Emit from right side, moving left
-		FROM_BOTTOM_VIEWPORT, // Emit from bottom, moving up
+		FROM_TOP_VIEWPORT,    // Emit from top of screen falling down, still feels wonky
+		FROM_LEFT_VIEWPORT,   // Emit from left side, moving right, still feels wonky
+		FROM_RIGHT_VIEWPORT,  // Emit from right side, moving left, still feels wonky
+		FROM_BOTTOM_VIEWPORT, // Emit from bottom, moving up, still feels wonky
 		FROM_LINE,            // Emit along a line
-		FROM_CIRCLE_EDGE      // Emit from the edge of a circle
+		FROM_CIRCLE_EDGE      // Emit from the edge of a circle (WIP)
 	};
 
 	struct PlayerJumpedEvent{

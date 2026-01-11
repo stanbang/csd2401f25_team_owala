@@ -24,6 +24,7 @@
 #include "EntityManager.h"
 #include "MessageBus.h"
 #include "GameMessages.h"
+#include "ParticleEffectManager.h"
 #include <cmath>
 #include <OwalaTime.h>
 #include "TransformationSystem.h"
@@ -31,6 +32,7 @@
 namespace Framework {
     void PlayerSystem::Initialize() {
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight);
+		ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
     }
 
 	void PlayerSystem::Update() {
@@ -288,26 +290,24 @@ namespace Framework {
 
 	// Publish particle burst event when player lands
     void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
-
         EntityManager entityMgr(*entityStorage_);
-        Vector2D playerHalfSize = { 0.1f, 0.1f };
-
-        if (entityMgr.HasComponent(player, AABBColliderType)) {
-            playerHalfSize = entityMgr.GetComponent<AABBCollider>(player).HalfSize;
-        }
 
         ParticleBurstEvent burst;
-        burst.position = position;  // Player center
-        burst.offset = { 0.0f, 38.0f };  // Shift to feet
-        burst.textureKey = "SB_PlayerLand_VFX_Spritesheet_1.png";
-        burst.isAnimated = true;
-        burst.style = EmissionStyle::FROM_POINT;
-        burst.isScreenSpace = false;
-        burst.lifetime = 0.7f;
-        burst.count = 1;
-        burst.speed = 0.0f;
-        burst.size = { 100, 100 };
+        if (!ParticleEffectManager::GetInstance().GetEffectPreset("PlayerLanding", burst)) {
+            // Fallback if preset not found
+            burst.position = position;
+            burst.offset = { 0.0f, 38.0f };
+            burst.textureKey = "SB_PlayerLand_VFX_Spritesheet_1.png";
+            burst.isAnimated = true;
+            burst.style = EmissionStyle::FROM_POINT;
+            burst.isScreenSpace = false;
+            burst.lifetime = 0.7f;
+            burst.count = 1;
+            burst.speed = 0.0f;
+            burst.size = { 100, 100 };
+        }
 
+        burst.position = position;  // Always set position at runtime
         MessageBus::Instance().Publish(burst);
     }
 
