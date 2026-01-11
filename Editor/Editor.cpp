@@ -340,13 +340,14 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
-		if (!layerManager_.LoadFromFile()) {
+		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
 			Logger::Get().Info(DebugType::Editor)
 				<< "Using default layer configuration" << std::endl;
 
-			// Optional: Save defaults for next time
-			layerManager_.SaveToFile();
+			// Save defaults to file for next time
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
 		}
+
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
 		firstUpdate = true;
@@ -2098,21 +2099,39 @@ namespace Editor {
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
+			const auto& collisionLayers = layerManager_.GetCollisionLayers();
+
 			// Create a list of layer names for the dropdown
-			std::string layerLabels[static_cast<int>(CollisionLayer::Count)]{};
-			const char* layerNames[static_cast<int>(CollisionLayer::Count)]{};
-			for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
-				std::string label = std::to_string(i) + ": " + LayerToString(static_cast<CollisionLayer>(i));
-				layerLabels[i] = label;
-				layerNames[i] = layerLabels[i].c_str();
+			std::vector<std::string> layerLabels;
+			std::vector<const char*> layerNames;
+
+			for (const auto& layer : collisionLayers) {
+				std::string label = std::to_string(layer.id) + ": " + layer.name;
+				layerLabels.push_back(label);
 			}
 
-			int currentLayer = static_cast<int>(entityLayer);
+			for (const auto& label : layerLabels) {
+				layerNames.push_back(label.c_str());
+			}
+
+			// Find current layer index
+			int currentLayer = -1;
+			for (size_t i = 0; i < collisionLayers.size(); ++i) {
+				if (collisionLayers[i].id == static_cast<uint8_t>(entityLayer)) {
+					currentLayer = static_cast<int>(i);
+
+					// Update name if not set
+					if (entityMgr.GetProperties(selectedEntity).collisionLayerName != collisionLayers[i].name) {
+						entityMgr.GetProperties(selectedEntity).collisionLayerName = collisionLayers[i].name;
+					}
+					break;
+				}
+			}
 			ImGui::AlignTextToFramePadding();
 			ImGui::TextUnformatted("Layer");
 			ImGui::SameLine(); // adjust offset spacing
 			ImGui::SetNextItemWidth(150);
-			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+			if (ImGui::Combo("##Layer", &currentLayer, layerNames.data(), static_cast<int>(layerNames.size()))) {
 				// If a new item was selected, it updates the component's layer
 				// with the new value.
 				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
@@ -4494,7 +4513,7 @@ namespace Editor {
 					newRenderLayerOrder_ = 0;
 
 					// Save immediately
-					layerManager_.SaveToFile();
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
 				}
 			}
 		}
@@ -4568,7 +4587,7 @@ namespace Editor {
 					Logger::Get().Info(DebugType::Editor)
 						<< "Updated render layer: " << editName << std::endl;
 					firstEdit = true;
-					layerManager_.SaveToFile();
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
 				}
 			}
 
@@ -4580,7 +4599,7 @@ namespace Editor {
 						<< "Deleted render layer" << std::endl;
 					selectedRenderLayerIdx_ = -1;
 					firstEdit = true;
-					layerManager_.SaveToFile();
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
 				}
 			}
 
@@ -4854,6 +4873,16 @@ namespace Editor {
 				}
 			}
 		}
+		else {
+			// Check if using built-in enum value
+			for (size_t i = 0; i < renderLayers.size(); ++i) {
+				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
+					currentIdx = static_cast<int>(i) + 1;
+					props.renderLayerName = renderLayers[i].name; // Update to track the name
+					break;
+				}
+			}
+		}
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Render Layer:");
@@ -4866,6 +4895,7 @@ namespace Editor {
 			if (currentIdx == 0) {
 				// Custom selected
 				props.renderLayer = Framework::RenderLayer::Custom;
+				props.renderLayerName = "Custom";
 			}
 			else {
 				// Predefined layer selected
@@ -4873,6 +4903,7 @@ namespace Editor {
 				if (layerIdx >= 0 && layerIdx < static_cast<int>(renderLayers.size())) {
 					props.customRenderOrder = renderLayers[layerIdx].renderOrder;
 					props.renderLayer = Framework::RenderLayer::Custom;
+					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
 				}
 			}
 		}
@@ -4881,21 +4912,32 @@ namespace Editor {
 		ImGui::TextDisabled("This controls when this entity is drawn relative to others");
 
 		// Custom render order
-		if (props.renderLayer == Framework::RenderLayer::Custom) {
+		if (props.renderLayerName == "Custom" || props.renderLayerName.empty()) {
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing();
 
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
-			ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000);
+			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+				props.renderLayerName = "Custom"; // Mark as truly custom
+			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
 				props.customRenderOrder = 0;
+				props.renderLayerName = "Custom";
 			}
 
 			ImGui::Spacing();
 			ImGui::TextWrapped("Lower values render first (behind). Higher values render last (in front).");
+		}
+		else {
+			// Show which named layer is active
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+				"Using layer: %s (Order: %d)",
+				props.renderLayerName.c_str(),
+				props.customRenderOrder);
 		}
 
 		// Show render order info
@@ -4909,13 +4951,19 @@ namespace Editor {
 			ImGui::TextWrapped("Standard render order:");
 			ImGui::Indent();
 			for (const auto& layer : renderLayers) {
-				ImGui::BulletText("%s: %d", layer.name.c_str(), layer.renderOrder);
+				bool isCurrent = (layer.name == props.renderLayerName);
+				if (isCurrent) {
+					ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+						"► %s: %d (CURRENT)", layer.name.c_str(), layer.renderOrder);
+				}
+				else {
+					ImGui::BulletText("%s: %d", layer.name.c_str(), layer.renderOrder);
+				}
 			}
 			ImGui::Unindent();
 
 			ImGui::TreePop();
 		}
-		
 	}
 
 	// Helper function to show scene entity layer tracker
@@ -4961,9 +5009,7 @@ namespace Editor {
 
 				const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
 
-				int effectiveOrder = props.renderLayer == Framework::RenderLayer::Custom
-					? props.customRenderOrder
-					: static_cast<int>(props.renderLayer);
+				int effectiveOrder = props.customRenderOrder;
 
 				ImGui::PushID(static_cast<int>(entity));
 				ImGui::TableNextRow();
@@ -4992,16 +5038,14 @@ namespace Editor {
 
 				// Render Layer Name
 				ImGui::TableNextColumn();
-				const char* layerName = "";
-				switch (props.renderLayer) {
-				case Framework::RenderLayer::Background: layerName = "Background"; break;
-				case Framework::RenderLayer::Platform:   layerName = "Platform"; break;
-				case Framework::RenderLayer::Enemy:      layerName = "Enemy"; break;
-				case Framework::RenderLayer::Player:     layerName = "Player"; break;
-				case Framework::RenderLayer::UI:         layerName = "UI"; break;
-				case Framework::RenderLayer::Custom:     layerName = "Custom"; break;
+				if (!props.renderLayerName.empty() && props.renderLayerName != "Custom") {
+					// Show the named layer
+					ImGui::Text("%s", props.renderLayerName.c_str());
 				}
-				ImGui::Text("%s", layerName);
+				else {
+					// Fallback to showing "Custom"
+					ImGui::Text("Custom");
+				}
 
 				//Effective Order
 				ImGui::TableNextColumn();
@@ -5014,7 +5058,14 @@ namespace Editor {
 
 				// Collision Layer 
 				ImGui::TableNextColumn();
-				ImGui::Text("%s", LayerToString(props.layer));
+				if (!props.collisionLayerName.empty()) {
+					// Show the named collision layer
+					ImGui::Text("%s", props.collisionLayerName.c_str());
+				}
+				else {
+					// Fallback to enum string
+					ImGui::Text("%s", LayerToString(props.layer));
+				}
 
 				ImGui::PopID();
 			}

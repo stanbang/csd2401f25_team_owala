@@ -10,6 +10,7 @@
 #include "Logger.h"
 #include <algorithm>
 #include <fstream>
+#include <filesystem>
 
 namespace Framework {
 
@@ -114,6 +115,15 @@ namespace Framework {
             return renderLayers_[idx].renderOrder;
         }
         return 0; // Default order
+    }   
+
+    std::string LayerManager::GetRenderLayerNameByOrder(int renderOrder) const {
+        for (const auto& layer : renderLayers_) {
+            if (layer.renderOrder == renderOrder) {
+                return layer.name;
+            }
+        }
+        return ""; // Not found
     }
 
     bool LayerManager::RenderLayerNameExists(const std::string& name) const {
@@ -233,14 +243,33 @@ namespace Framework {
             SerializeCollisionLayers(collisionArray, alloc);
             doc.AddMember("CollisionLayers", collisionArray, alloc);
 
-            FileIOSystem::WriteFileJson(filepath, doc);
-            Logger::Get().Info(DebugType::Editor)
-                << "Saved layer configuration to " << filepath << std::endl;
+            // Write to local Data folder
+            if (!FileIOSystem::WriteFileJson(filepath, doc)) {
+                Logger::Get().Error(DebugType::FileIOSystem)
+                    << "Failed to write layer config to: " << filepath << std::endl;
+                return false;
+            }
+            Logger::Get().Info(DebugType::FileIOSystem)
+                << "Successfully saved layer config to: " << filepath << std::endl;
+
+            // Check if root Data folder exists and write to it as well
+            if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+                std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filepath;
+                if (!FileIOSystem::WriteFileJson(rootFilePath, doc)) {
+                    Logger::Get().Error(DebugType::FileIOSystem)
+                        << "Failed to write layer config to: " << rootFilePath << std::endl;
+                }
+                else {
+                    Logger::Get().Info(DebugType::FileIOSystem)
+                        << "Successfully saved layer config to: " << rootFilePath << std::endl;
+                }
+            }
+
             return true;
         }
         catch (const std::exception& e) {
-            Logger::Get().Error(DebugType::Editor)
-                << "Failed to save layers: " << e.what() << std::endl;
+            Logger::Get().Error(DebugType::FileIOSystem)
+                << "Exception while saving layer config: " << e.what() << std::endl;
             return false;
         }
     }

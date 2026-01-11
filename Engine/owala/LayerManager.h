@@ -99,6 +99,13 @@ namespace Framework {
          */
         int GetRenderOrderByName(const std::string& name) const;
 
+        /**
+        * \brief Get render layer name by render order value
+        * \param renderOrder The order value to search for
+        * \return Layer name if found, empty string otherwise
+        */
+        std::string GetRenderLayerNameByOrder(int renderOrder) const;
+
         // === Collision Layer Management ===
 
         /**
@@ -138,6 +145,8 @@ namespace Framework {
          * \brief Get collision layer name by ID
          */
         std::string GetCollisionLayerName(uint8_t id) const;
+
+
 
         // === Persistence ===
 

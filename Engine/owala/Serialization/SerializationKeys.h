@@ -14,6 +14,7 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #pragma once
+#include "SerializationKeys.h"
 
 namespace Framework::Serialization {
 	/* Generic Scene JSON Labels */
@@ -35,9 +36,11 @@ namespace Framework::Serialization {
 	/* Entity Properties JSON Labels */
 	inline constexpr const char* ENTITY_NAME = "name";
 	static constexpr const char* ENTITY_LAYER = "layer";
+	static constexpr const char* ENTITY_COLLISION_LAYER_NAME = "layer_collision_name";
 	static constexpr const char* ENTITY_RENDER_LAYER = "render_layer";          
 	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
 	static constexpr const char* ENTITY_IS_ACTIVE = "active";
+	static constexpr const char* ENTITY_RENDER_LAYER_NAME = "layer_render_name";
 
 	/* Layer Configuration Keys */
 	static constexpr const char* RENDER_LAYERS = "RenderLayers";
