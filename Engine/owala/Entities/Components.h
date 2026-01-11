@@ -36,7 +36,7 @@ namespace Framework{
 		Platform,
 		Enemy,
 		Trigger,
-		Count // track the number of layers
+		Count = 32  // Maximum layers 
 	};
 
 	// Enum for defining rendering layers 
@@ -62,9 +62,10 @@ namespace Framework{
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
+		std::string collisionLayerName = "";
 		RenderLayer renderLayer = RenderLayer::Platform;
 		int customRenderOrder = 0; // Used when renderLayer is Custom
-
+		std::string renderLayerName = ""; // store name of dynamiclly created layers
 		bool isActive = true;
 	};
 

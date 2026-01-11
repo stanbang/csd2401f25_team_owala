@@ -75,8 +75,10 @@ namespace Framework {
 
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_COLLISION_LAYER_NAME), rapidjson::StringRef(properties.collisionLayerName.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER_NAME), rapidjson::StringRef(properties.renderLayerName.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_IS_ACTIVE), properties.isActive, alloc);
 	}
 
@@ -753,6 +755,14 @@ namespace Framework {
 			out.layer = static_cast<CollisionLayer>(entityData[Serialization::ENTITY_LAYER].GetInt());
 		}
 
+		if (entityData.HasMember(Serialization::ENTITY_COLLISION_LAYER_NAME) && entityData[Serialization::ENTITY_COLLISION_LAYER_NAME].IsString()) {
+			out.collisionLayerName = entityData[Serialization::ENTITY_COLLISION_LAYER_NAME].GetString();
+		}
+		else {
+			// Backward compatibility
+			out.collisionLayerName = "";
+		}
+
 		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER) && entityData[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
 			out.renderLayer = static_cast<RenderLayer>(entityData[Serialization::ENTITY_RENDER_LAYER].GetInt());
 		}
@@ -766,6 +776,13 @@ namespace Framework {
 		}
 		else {
 			out.customRenderOrder = 0;
+		}
+		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER_NAME) && entityData[Serialization::ENTITY_RENDER_LAYER_NAME].IsString()) {
+			out.renderLayerName = entityData[Serialization::ENTITY_RENDER_LAYER_NAME].GetString();
+		}
+		else {
+			// Backward compatibility
+			out.renderLayerName = "";
 		}
 
 		if (entityData.HasMember(Serialization::ENTITY_IS_ACTIVE) && entityData[Serialization::ENTITY_IS_ACTIVE].IsBool()) {
