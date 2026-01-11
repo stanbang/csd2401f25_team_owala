@@ -39,6 +39,15 @@ namespace Framework::Serialization {
 	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
 	static constexpr const char* ENTITY_IS_ACTIVE = "active";
 
+	/* Layer Configuration Keys */
+	static constexpr const char* RENDER_LAYERS = "RenderLayers";
+	static constexpr const char* COLLISION_LAYERS = "CollisionLayers";
+	static constexpr const char* LAYER_NAME = "name";
+	static constexpr const char* LAYER_RENDER_ORDER = "renderOrder";
+	static constexpr const char* LAYER_ID = "id";
+	static constexpr const char* LAYER_IS_BUILTIN = "isBuiltIn";
+	static constexpr const char* LAYER_IS_VISIBLE = "isVisible";
+
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";
 

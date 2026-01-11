@@ -36,7 +36,7 @@ namespace Framework{
 		Platform,
 		Enemy,
 		Trigger,
-		Count // track the number of layers
+		Count = 32  // Maximum layers 
 	};
 
 	// Enum for defining rendering layers 

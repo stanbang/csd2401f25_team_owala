@@ -78,6 +78,14 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_IS_ACTIVE), properties.isActive, alloc);
+
+		/*if (layerManager) {
+			rapidjson::Value layerNameVal;
+			std::string layerName = layerManager->GetCollisionLayerName(
+				static_cast<uint8_t>(properties.layer));
+			layerNameVal.SetString(layerName.c_str(), alloc);
+			outData.AddMember("layerName", layerNameVal, alloc);
+		}*/
 	}
 
 	void EntitySerializer::SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
