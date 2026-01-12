@@ -143,17 +143,51 @@ namespace Framework {
 		}
 
 		UnloadScene(); // Unload current active scene first if any
+		
+		// Keep track of existing persistent entities to avoid duplicates
+		std::unordered_map<std::string, Entity> existingPersistentEntities;
+		
+		EntityManager entityMgr(*entityStorageRef_);
 
-		// TODO: Remove scene exclusive logic in here.
+		// Cache existing persistent entities
+		for (const Entity& e : entityMgr.GetAllEntities()) {
+			if (entityMgr.HasComponent(e, PersistentTagType)) {
+				const EntityProperties& props = entityMgr.GetProperties(e);
+				existingPersistentEntities[props.name] = e; // Store mapping
+			}
+		}
 
 		bool isMenuRestartScene = (sceneName == "MainMenu" || sceneName == "RestartMenu");
-		EntityManager entityMgr(*entityStorageRef_);
 		// Deserialize and populate the scene's entities if not populated yet
 		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
 			std::vector<Entity> entitiesList;
 			EntitySerializer::DeserializeSceneData(*entityStorageRef_, sceneToLoad.path, sceneToLoad.name, entitiesList);
 
 			for (Entity en : entitiesList) {
+				// Get the name of the newly loaded entity
+				const EntityProperties& newProps = entityMgr.GetProperties(en);
+
+				// Check if this entity already exists as a persistent entity
+				if (existingPersistentEntities.find(newProps.name) != existingPersistentEntities.end()) {
+
+					// Get the old persistent entity
+					Entity oldEntity = existingPersistentEntities[newProps.name];
+
+					// Destroy the new duplicate entity immediately
+					entityMgr.DestroyEntity(en);
+
+					// Update the old entity to belong to this new scene
+					AddEntityToScene(sceneToLoad, oldEntity);
+
+					// Set Active
+					if (!(isMenuRestartScene && entityMgr.HasComponent(oldEntity, PlayerTagType))) {
+						entityMgr.AddComponent(oldEntity, ActiveTag{});
+					}
+
+					// Skip the rest of the loop for this entity
+					continue;
+				}
+
 				AddEntityToScene(sceneToLoad, en);
 				if (isMenuRestartScene && entityMgr.HasComponent(en, PlayerTagType)) {
 					continue;
@@ -203,12 +237,42 @@ namespace Framework {
 		UnloadScene(); // Unload current active scene first if any
 		bool isMenuRestartScene = (sceneToLoad.name == "MainMenu" || sceneToLoad.name == "RestartMenu");
 		EntityManager entityMgr(*entityStorageRef_);
+
+		// Cache existing persistent entities
+		std::unordered_map<std::string, Entity> existingPersistentEntities;
+		for (const Entity& e : entityMgr.GetAllEntities()) {
+			if (entityMgr.HasComponent(e, PersistentTagType)) {
+				const EntityProperties& props = entityMgr.GetProperties(e);
+				existingPersistentEntities[props.name] = e;
+			}
+		}
+
 		// Deserialize and populate the scene's entities if not populated yet
 		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
 			std::vector<Entity> entitiesList;
 			EntitySerializer::DeserializeSceneData(*entityStorageRef_, sceneToLoad.path, sceneToLoad.name, entitiesList);
 
 			for (Entity en : entitiesList) {
+				const EntityProperties& newProps = entityMgr.GetProperties(en);
+
+				// Duplicate Check
+				if (existingPersistentEntities.find(newProps.name) != existingPersistentEntities.end()) {
+					Entity oldEntity = existingPersistentEntities[newProps.name];
+
+					// Optional: Copy Transform
+					if (entityMgr.HasComponent(en, TransformType) && entityMgr.HasComponent(oldEntity, TransformType)) {
+						entityMgr.GetComponent<Transform>(oldEntity).position = entityMgr.GetComponent<Transform>(en).position;
+					}
+
+					entityMgr.DestroyEntity(en); // Destroy duplicate
+					AddEntityToScene(sceneToLoad, oldEntity); // Re-assign old entity
+
+					if (!(isMenuRestartScene && entityMgr.HasComponent(oldEntity, PlayerTagType))) {
+						entityMgr.AddComponent(oldEntity, ActiveTag{});
+					}
+					continue;
+				}
+
 				AddEntityToScene(sceneToLoad, en);
 				if (isMenuRestartScene && entityMgr.HasComponent(en, PlayerTagType)) {
 					continue;
