@@ -47,6 +47,7 @@ namespace Editor {
         // --- Gizmos Drawing ---
         void DrawGizmos(ImDrawList* drawList, int selectedEntityIndex);
 
+        void DrawOutline(ImDrawList* drawList, Entity entity);
         void DrawTranslateGizmo(ImDrawList* drawList, ImVec2 origin);
         void DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity entity);
         void DrawScaleGizmo(ImDrawList* drawList, ImVec2 origin);

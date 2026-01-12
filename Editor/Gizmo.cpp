@@ -95,15 +95,79 @@ void GizmoSystem::DrawGizmos(ImDrawList* drawList, int selectedEntityIndex) {
     // draw gizmos according to mode
     switch (currentMode_) {
     case GizmoMode::Translate:
+        DrawOutline(drawList, entity);
         DrawTranslateGizmo(drawList, screenOrigin);
         break;
     case GizmoMode::Rotate:
+        DrawOutline(drawList, entity);
         DrawRotateGizmo(drawList, screenOrigin, entity);
         break;
     case GizmoMode::Scale:
+        DrawOutline(drawList, entity);
         DrawScaleGizmo(drawList, screenOrigin);
         break;
     }
+}
+
+void GizmoSystem::DrawOutline(ImDrawList* drawList, Entity entity) {
+    EntityManager entityMgr(ecs_);
+
+    // We need a transform to know how big/rotated the object is
+    if (!entityMgr.HasComponent(entity, TransformType)) return;
+
+    auto& transform = entityMgr.GetComponent<Transform>(entity);
+    Vector2D worldPos = transform.position;
+    Vector2D scale = transform.scale;
+
+    // Get Rotation
+    float rotation = transform.rotation.textureAngle;
+
+    float hw = 10.f, hh = 10.f;
+
+    if (entityMgr.HasComponent(entity, TextureComponentType)) {
+        TextureComponent texture = entityMgr.GetComponent<TextureComponent>(entity);
+        hw = texture.HalfSize.x * scale.x;
+        hh = texture.HalfSize.y * scale.y;
+    }
+    else if (entityMgr.HasComponent(entity, TextComponentType)) {
+        TextComponent text = entityMgr.GetComponent<TextComponent>(entity);
+        hw = text.halfSize.x * scale.x; 
+        hh = text.halfSize.y * scale.y;
+    }
+
+    // Local corners (TopLeft, TopRight, BotRight, BotLeft)
+    Vector2D corners[4] = {
+        { -hw, -hh },
+        {  hw, -hh },
+        {  hw,  hh },
+        { -hw,  hh }
+    };
+
+    ImVec2 screenCorners[4];
+
+    // Pre-calculate sin/cos for rotation
+    float c = cos(rotation);
+    float s = sin(rotation);
+
+    for (int i = 0; i < 4; i++) {
+        // Rotate
+        float rX = corners[i].x * c - corners[i].y * s;
+        float rY = corners[i].x * s + corners[i].y * c;
+
+        // Translate to World Position
+        Vector2D finalWorldPos = { worldPos.x + rX, worldPos.y + rY };
+
+        // Convert to Screen Coordinates
+        if (entityMgr.HasComponent(entity, GUITagType)) {
+            screenCorners[i] = editor_->NormalizedToImGuiScreen(finalWorldPos);
+        }
+        else {
+            screenCorners[i] = editor_->WorldToImGuiScreen(finalWorldPos);
+        }
+    }
+
+    // Draw the Polyline (Closed loop)
+    drawList->AddPolyline(screenCorners, 4, IM_COL32(255, 0, 0, 255), true, 2.0f);
 }
 
 void GizmoSystem::DrawTranslateGizmo(ImDrawList* drawList, ImVec2 origin) {

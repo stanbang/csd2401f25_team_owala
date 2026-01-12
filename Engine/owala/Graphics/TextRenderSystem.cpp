@@ -63,36 +63,37 @@ namespace Framework {
             const Vector2D& textPos = entityMgr.GetComponent<Transform>(en).position;
             bool isUIElement = entityMgr.HasComponent(en, GUITagType);
 
+            float screenW = static_cast<float>(gfx_.getScreenWidth());
+            float screenH = static_cast<float>(gfx_.getScreenHeight());
+            
             float zoom = 1.0f;
             Vector2D camPos = { 0.0f, 0.0f };
+            Vector2D camSize = { screenW, screenH };
 
             if (camera != 0 && cameraSystem_ && !isUIElement) {
                 const Camera& cam = cameraSystem_->GetCamera(camera);
                 //zoom = cam.zoom;
                 camPos = cam.position;
+                camSize = cam.size;
             }
 
             Vector2D screenTextPos = textPos;
+
             // Texts without GUI Tag need to convert to screen space
             if (!isUIElement) {
                 // Subtract Camera Position from Text Position
                 float relativeX = textPos.x - camPos.x;
                 float relativeY = textPos.y - camPos.y;
 
-                float screenW = static_cast<float>(gfx_.getScreenWidth());
-                float screenH = static_cast<float>(gfx_.getScreenHeight());
+                // offset so that pos is the middle of the text
+                relativeX -= textComp.halfSize.x;
+                relativeY += textComp.halfSize.y;
 
                 // Convert Relative Position to NDC
                 screenTextPos = Vector2D(
-                    (relativeX / screenW) * 2.0f / zoom,
-                    (relativeY / screenH) * 2.0f / zoom
+                    (relativeX / camSize.x) * 2.0f / zoom,
+                    (relativeY / camSize.y) * 2.0f / zoom
                 );
-
-                // offset so that pos is the middle of the text
-                float ndcHalfW = (textComp.halfSize.x / gfx_.getScreenWidth()) * 2.0f / zoom;
-                float ndcHalfH = (textComp.halfSize.y / gfx_.getScreenHeight()) * 2.0f / zoom;
-                screenTextPos.x -= ndcHalfW;
-                screenTextPos.y += ndcHalfH;
             }
             else {
                 // Texts with GUI tag already use screen coords
@@ -103,7 +104,7 @@ namespace Framework {
 
             // get line height for offsetting the y when rendering multiple lines of text
             const float line_height_px = font.GetLineHeight(textComp.scale);
-            float line_height_ndc = (line_height_px / gfx_.getScreenHeight()) * 2.0f;
+            float line_height_ndc = (line_height_px / screenH) * 2.0f;
 
             // draw each line of text
             for (const std::string& line : textComp.wrappedLines) {
