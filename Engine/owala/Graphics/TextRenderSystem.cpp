@@ -28,10 +28,10 @@ namespace Framework {
         EntityManager entityMgr(ecs_);
 
         // Retrieve active camera
-        //Entity activeCamera = 0;
-        //if (cameraSystem_) {
-        //    activeCamera = cameraSystem_->GetActiveCamera();
-        //}
+        Entity activeCamera = 0;
+        if (cameraSystem_) {
+            activeCamera = cameraSystem_->GetActiveCamera();
+        }
 
         //float left = -1.0f, right = 1.0f, bottom = -1.0f, top = 1.0f;
         //if (activeCamera != 0 && cameraSystem_) {
@@ -50,33 +50,43 @@ namespace Framework {
                 textComp.isDirty = false;
             }
 
-            RenderText(entity, entityMgr, textComp/*, activeCamera*/);
+            RenderText(entity, entityMgr, textComp, activeCamera);
         }
     }
 
     /**
      * \brief Renders all visible text components.
      */
-    void TextRenderSystem::RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp/*, const Entity camera*/) {
+    void TextRenderSystem::RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp, const Entity camera) {
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
             const Vector2D& textPos = entityMgr.GetComponent<Transform>(en).position;
             bool isUIElement = entityMgr.HasComponent(en, GUITagType);
 
             float zoom = 1.0f;
-            //if (camera != 0 && cameraSystem_ && !isUIElement) {
-            //    const Camera& cam = cameraSystem_->GetCamera(camera);
-            //    zoom = cam.zoom;
-            //}
+            Vector2D camPos = { 0.0f, 0.0f };
+
+            if (camera != 0 && cameraSystem_ && !isUIElement) {
+                const Camera& cam = cameraSystem_->GetCamera(camera);
+                //zoom = cam.zoom;
+                camPos = cam.position;
+            }
 
             Vector2D screenTextPos = textPos;
             // Texts without GUI Tag need to convert to screen space
             if (!isUIElement) {
-                //screenTextPos = cameraSystem_->WorldToScreen(textPos, camera);
+                // Subtract Camera Position from Text Position
+                float relativeX = textPos.x - camPos.x;
+                float relativeY = textPos.y - camPos.y;
+
                 float screenW = static_cast<float>(gfx_.getScreenWidth());
                 float screenH = static_cast<float>(gfx_.getScreenHeight());
 
-                screenTextPos = Vector2D((textPos.x / screenW) * 2.0f / zoom, (textPos.y / screenH) * 2.0f / zoom);
+                // Convert Relative Position to NDC
+                screenTextPos = Vector2D(
+                    (relativeX / screenW) * 2.0f / zoom,
+                    (relativeY / screenH) * 2.0f / zoom
+                );
 
                 // offset so that pos is the middle of the text
                 float ndcHalfW = (textComp.halfSize.x / gfx_.getScreenWidth()) * 2.0f / zoom;
