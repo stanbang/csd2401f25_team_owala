@@ -108,7 +108,7 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
-            tex.textureKey = CLOSE_ANIM_TEXTURE;
+            tex.textureKey = "";
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
@@ -130,7 +130,7 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
-            tex.textureKey = OPEN_ANIM_TEXTURE;
+            tex.textureKey = "";
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
@@ -152,7 +152,13 @@ namespace Framework {
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         if (!entityMgr.HasComponent(GetEntity(), TextureComponentType)) return;
 
+        TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
+        
         if (state_ == TransitionState::CLOSING) {
+            if (animTimer_ == 0.0f) {
+                tex.textureKey = CLOSE_ANIM_TEXTURE;
+            }
+
             animTimer_ += dt;
             float t = std::min(animTimer_ / animDuration_, 1.0f);
 
@@ -166,6 +172,10 @@ namespace Framework {
             }
         }
         else if (state_ == TransitionState::OPENING) {
+            if (animTimer_ == 0.0f) {
+                tex.textureKey = OPEN_ANIM_TEXTURE;
+            }
+
             animTimer_ += dt;
             float t = std::min(animTimer_ / animDuration_, 1.0f);
 
