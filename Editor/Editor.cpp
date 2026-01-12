@@ -5123,33 +5123,36 @@ namespace Editor {
 					}
 					else if (compData.type == "AABBCollider") {
 						ImGui::Text("Collider Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float halfX = compData.data["halfSizeX"].GetFloat();
-							float halfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
+							float halfX = compData.data["half_width"].GetFloat();
+							float halfY = compData.data["half_height"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeX"].SetFloat(halfX);
+							if (ImGui::DragFloat("Collider Half Width", &halfX, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["half_width"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeY"].SetFloat(halfY);
+							if (ImGui::DragFloat("Collider Half Height", &halfY, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["half_height"].SetFloat(halfY);
 								prefabModified = true;
 							}
 						}
 					}
 					else if (compData.type == "TextureComponent") {
 						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float texHalfX = compData.data["halfSizeX"].GetFloat();
-							float texHalfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_size")) {
+							const rapidjson::Value& halfSize = compData.data["half_size"];
+							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
+								float texHalfX = halfSize["x"].GetFloat();
+								float texHalfY = halfSize["y"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeX"].SetFloat(texHalfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeY"].SetFloat(texHalfY);
-								prefabModified = true;
+								if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 1.0f, 0.0f, 10000.0f)) {
+									compData.data["half_size"]["x"].SetFloat(texHalfX);
+									prefabModified = true;
+								}
+								if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 1.0f, 0.0f, 10000.0f)) {
+									compData.data["half_size"]["y"].SetFloat(texHalfY);
+									prefabModified = true;
+								}
 							}
 						}
 					}
@@ -5288,34 +5291,32 @@ namespace Editor {
 				else if (compData.type == "AABBCollider") {
 					if (entityMgr.HasComponent(entity, AABBColliderType)) {
 						AABBCollider& col = entityMgr.GetComponent<AABBCollider>(entity);
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							col.HalfSize.x = compData.data["halfSizeX"].GetFloat();
-							col.HalfSize.y = compData.data["halfSizeY"].GetFloat();
-
-							if (entityMgr.HasComponent(entity, TextureComponentType)) {
-								TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
-								tex.HalfSize = col.HalfSize;
-							}
+						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
+							col.HalfSize.x = compData.data["half_width"].GetFloat();
+							col.HalfSize.y = compData.data["half_height"].GetFloat();
 						}
 					}
 				}
 				else if (compData.type == "TextureComponent") {
 					if (entityMgr.HasComponent(entity, TextureComponentType)) {
 						TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							tex.HalfSize.x = compData.data["halfSizeX"].GetFloat();
-							tex.HalfSize.y = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_size")) {
+							const rapidjson::Value& halfSize = compData.data["half_size"];
+							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
+								tex.HalfSize.x = halfSize["x"].GetFloat();
+								tex.HalfSize.y = halfSize["y"].GetFloat();
+							}
 						}
 					}
 				}
 				else if (compData.type == "TrapPlatformComponent") {
 					if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
 						TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
-						if (compData.data.HasMember("fallSpeed")) {
-							trap.fallSpeed = compData.data["fallSpeed"].GetFloat();
+						if (compData.data.HasMember("fall_speed")) {
+							trap.fallSpeed = compData.data["fall_speed"].GetFloat();
 						}
-						if (compData.data.HasMember("triggerDelay")) {
-							trap.triggerDelay = compData.data["triggerDelay"].GetFloat();
+						if (compData.data.HasMember("trigger_delay")) {
+							trap.triggerDelay = compData.data["trigger_delay"].GetFloat();
 						}
 					}
 				}
