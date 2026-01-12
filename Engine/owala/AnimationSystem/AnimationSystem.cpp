@@ -137,6 +137,20 @@ namespace Framework {
 
 			// If the animation state changed, reset the animation playback
 			if (animationStateChanged) {
+				try {
+					// Update animation component properties based on the retrieved AnimationInfo
+					animationComponent.frameCount = animationInfo.frameCount;
+					animationComponent.frameDuration = animationInfo.frameDuration;
+					animationComponent.isLooping = animationInfo.isLooping; // Only sets default on switch
+					animationComponent.startFrame = animationInfo.startFrame;
+				}
+				catch (const std::exception& e) {
+					Logger::Get().Error(DebugType::ResourceManager)
+						<< "Error updating AnimationComponent from AnimationInfo for texture key: "
+						<< textureComponent.textureKey << ". Exception: " << e.what() << std::endl;
+					continue; // Skip this entity if there's an error
+				}
+
 				animationComponent.isPlaying = true;
 				animationComponent.currentFrame = animationComponent.startFrame;
 				animationComponent.elapsedTime = 0.0f;

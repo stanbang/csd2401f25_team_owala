@@ -111,6 +111,7 @@ namespace Framework::Serialization {
 	static constexpr const char* TEXTURE_COMPONENT = "TextureComponent";
 	static constexpr const char* TEXTURE_KEY = "texture_key";
 	static constexpr const char* HALF_SIZE = "half_size";
+	static constexpr const char* TEXTURE_FLIP_X = "flip_x";
 	
 	static constexpr const char* AUDIO_COMPONENT = "AudioComponent";
 	static constexpr const char* SOUND_KEY = "sound_key";

@@ -332,6 +332,13 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 			}
 			std::string animationPath = entry["animation_path"].GetString();
 
+			// Load the animation info once to validate
+			AnimationInfo cachedInfo = FileIOSystem::LoadAnimationInfo(animationPath);
+			if (cachedInfo.frameCount == 0) {
+				Logger::Get().Error(DebugType::ResourceManager) << "Failed to load animation info from '" << animationPath << "'";
+				continue;
+			}
+
 			// Check for 'texture_keys' (Array)
 			if (entry.HasMember("texture_keys") && entry["texture_keys"].IsArray()) {
 				const rapidjson::Value& keys = entry["texture_keys"];
@@ -342,18 +349,16 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 						std::string textureKey = keys[j].GetString();
 
 						// Load the SAME animation file for THIS texture key
-						if (loadAnimationInfo(textureKey, animationPath)) {
-							loadedCount++;
-						}
+						add<AnimationInfo>(textureKey, std::make_unique<AnimationInfo>(cachedInfo));
+						loadedCount++;
 					}
 				}
 			}
 			// Backward Compatibility for old "texture_key" (String)
 			else if (entry.HasMember("texture_key") && entry["texture_key"].IsString()) {
 				std::string textureKey = entry["texture_key"].GetString();
-				if (loadAnimationInfo(textureKey, animationPath)) {
-					loadedCount++;
-				}
+				add<AnimationInfo>(textureKey, std::make_unique<AnimationInfo>(cachedInfo));
+				loadedCount++;
 			}
 		}
 

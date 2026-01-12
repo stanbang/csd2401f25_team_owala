@@ -15,6 +15,7 @@
  *********************************************************************/
 
 #include "LoadingScreenController.h"
+#include "TransitionController.h"
 #include "ScriptRegistry.h"
 #include "GameManager.h"
 #include "Components.h"
@@ -63,9 +64,13 @@ namespace Framework {
 			//Log when loading is complete
 			Logger::Get().Info(DebugType::GameManager) << "Loading complete. Transitioning to next scene: " << nextScene << std::endl;
 
+            // Switch scene
             if (!nextScene.empty()) {
                 SceneManager::GetInstance().LoadScene(nextScene);
                 GameManager::GetInstance().SetNextScene("");
+
+                // Play open curtain animation
+                TransitionController::PlayAllOpen();
             }
         }
     }

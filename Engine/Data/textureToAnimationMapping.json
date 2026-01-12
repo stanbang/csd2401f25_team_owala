@@ -89,6 +89,40 @@
 				"SB_HoverButton_SpriteSheet.png"
 			],
 			"animation_path": "Data/AnimationData/buttonHoverAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Curtain_Open_Spritesheet_01.png",
+				"SB_Curtain_Open_Spritesheet_02.png",
+				"SB_Curtain_Open_Spritesheet_03.png",
+				"SB_Curtain_Open_Spritesheet_04.png",
+				"SB_Curtain_Open_Spritesheet_05.png",
+				"SB_Curtain_Open_Spritesheet_06.png",
+				"SB_Curtain_Open_Spritesheet_07.png",
+				"SB_Curtain_Open_Spritesheet_08.png",
+				"SB_Curtain_Open_Spritesheet_09.png"
+			],
+			"animation_path": "Data/AnimationData/curtainOpen.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Curtain_Close_Spritesheet_01.png",
+				"SB_Curtain_Close_Spritesheet_02.png",
+				"SB_Curtain_Close_Spritesheet_03.png",
+				"SB_Curtain_Close_Spritesheet_04.png",
+				"SB_Curtain_Close_Spritesheet_05.png",
+				"SB_Curtain_Close_Spritesheet_06.png",
+				"SB_Curtain_Close_Spritesheet_07.png",
+				"SB_Curtain_Close_Spritesheet_08.png",
+				"SB_Curtain_Close_Spritesheet_09.png",
+				"SB_Curtain_Close_Spritesheet_10.png",
+				"SB_Curtain_Close_Spritesheet_11.png",
+				"SB_Curtain_Close_Spritesheet_12.png",
+				"SB_Curtain_Close_Spritesheet_13.png",
+				"SB_Curtain_Close_Spritesheet_14.png",
+				"SB_Curtain_Close_Spritesheet_15.png"
+			],
+			"animation_path": "Data/AnimationData/curtainClose.json"
 		}
 	]
 }

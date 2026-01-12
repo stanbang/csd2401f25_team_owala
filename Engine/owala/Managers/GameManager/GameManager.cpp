@@ -14,6 +14,7 @@
 #include "SplashScreen.h"
 #include "TestScene.h"
 #include "LoadingScreenController.h"
+#include "TransitionController.h"
 
 // ImGui headers
 #ifdef BUILD_EDITOR
@@ -173,7 +174,7 @@ namespace Framework {
 
 	void GameManager::Initialize() {
 		CheckSystems();
-
+		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
 
@@ -332,8 +333,15 @@ namespace Framework {
 	void GameManager::InitiateLevelLoad(const std::string& levelName) {
 		SetNextScene(levelName);
 		PreloadSceneAssets(levelName);
-		// Switch immediately to the loading screen
-		SceneManager::GetInstance().LoadScene("LoadingScreen");
+
+		// NEW LOGIC: Use the static manager function to trigger ALL active curtains.
+		Logger::Get().Info(DebugType::GameManager) << "Playing Transition Close..." << std::endl;
+
+		// Play Close Animation on all controllers.
+		// The callback will only be fired once by the first controller in the list.
+		TransitionController::PlayAllClose([this]() {
+			SceneManager::GetInstance().LoadScene("LoadingScreen");
+			});
 	}
 
 	void GameManager::PreloadSceneAssets(const std::string& sceneName) {
@@ -363,7 +371,7 @@ namespace Framework {
 
 		if (!doc.IsObject() || !doc.HasMember("entities")) return;
 
-		// 3. Loop through entities and find textures
+		// Loop through entities and find textures
 		const rapidjson::Value& entities = doc["entities"];
 		for (const auto& entity : entities.GetArray()) {
 			if (!entity.HasMember("components")) continue;

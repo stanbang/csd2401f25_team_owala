@@ -1,0 +1,44 @@
+{
+    "frame_count": 26,
+    "frame_duration": 0.029999999329447746,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_01.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_02.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_03.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_04.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_05.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_06.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_07.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_08.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Open_Spritesheet_09.png",
+            "count": 2
+        }
+    ]
+}

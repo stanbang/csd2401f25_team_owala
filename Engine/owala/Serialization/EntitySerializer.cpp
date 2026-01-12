@@ -946,6 +946,7 @@ namespace Framework {
 		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_X), texComp.HalfSize.x, alloc);
 		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), texComp.HalfSize.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_SIZE), halfSize, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_FLIP_X), texComp.flipHorizontal, alloc);
 	}
 
 	// Audio Component
@@ -1413,6 +1414,10 @@ namespace Framework {
 				out.HalfSize.y = halfSizeData[Serialization::VEC2_Y].GetFloat();
 			}
 		}
+
+		if (componentData.HasMember(Serialization::TEXTURE_FLIP_X) && componentData[Serialization::TEXTURE_FLIP_X].IsBool()) {
+			out.flipHorizontal = componentData[Serialization::TEXTURE_FLIP_X].GetBool();
+		}
 		return true;
 	}
 
@@ -1466,6 +1471,15 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::IS_LOOPING) && componentData[Serialization::IS_LOOPING].IsBool()) {
 			out.isLooping = componentData[Serialization::IS_LOOPING].GetBool();
+		}
+
+		if (out.frameCount > 0) {
+			float frameUVWidth = 1.0f / (float)out.frameCount;
+			float u_min = (float)out.currentFrame * frameUVWidth;
+			float u_max = u_min + frameUVWidth;
+
+			out.minUV = { u_min, 0.0f };
+			out.maxUV = { u_max, 1.0f };
 		}
 		return true;
 	}

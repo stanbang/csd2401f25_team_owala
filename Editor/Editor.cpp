@@ -3168,6 +3168,9 @@ namespace Editor {
 			if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
 				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 			}
+
+			// Bool flipHorizontal Input
+			ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
 			bool activeNow = ImGui::IsItemActive();
 
 			if (activeNow && !editSession.wasItemActive) {
