@@ -11,7 +11,8 @@ namespace Framework {
             HIDDEN,     // Curtains open, game visible
             CLOSING,    // Animation playing: Open -> Closed
             CLOSED,     // Curtains closed, screen covered
-            OPENING     // Animation playing: Closed -> Open
+            OPENING,     // Animation playing: Closed -> Open
+			WAITING	// Waiting state (no animation)
         };
 
         static void PlayAllClose(std::function<void()> onComplete = nullptr);
@@ -19,6 +20,8 @@ namespace Framework {
 
         void PlayClose(std::function<void()> onComplete = nullptr);
         void PlayOpen(std::function<void()> onComplete = nullptr);
+        static void ForceHideAll();
+        void ForceHide();
 
         // Helper to force closed state (e.g., if starting directly in loading screen)
         void SetClosed();
@@ -28,6 +31,9 @@ namespace Framework {
 
         // Static Reset function
         static void Reset();
+
+		// If true, means the scene will start with curtains closed
+        static bool s_startNextSceneClosed;
 
     protected:
         void OnCreate() override;
@@ -43,5 +49,10 @@ namespace Framework {
         // Animation config
         float animTimer_ = 0.0f;
         float animDuration_ = 1.0f; // Time to open or close
+        float waitTimer_ = 0.0f;      // timer for the delay
+        const float WAIT_DURATION = 1.0f; // 1 second delay
+
+        void CheckStartClosed();
+        void StartWaitingState();
     };
 }

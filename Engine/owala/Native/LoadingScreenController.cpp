@@ -29,7 +29,8 @@ namespace Framework {
     REGISTER_SCRIPT(LoadingScreenController, "LoadingScreenController")
 
     void LoadingScreenController::OnCreate() {
-	// Empty by design
+		// Hide curtains immediately on loading screen creation
+        TransitionController::ForceHideAll();
     }
 
     void LoadingScreenController::OnUpdate() {
@@ -66,11 +67,21 @@ namespace Framework {
 
             // Switch scene
             if (!nextScene.empty()) {
+                bool isTargetLevel = GameManager::GetInstance().IsLevelScene(nextScene);
+                
+				// Set whether the next scene should start with curtains closed
+                if (isTargetLevel) {
+                    TransitionController::s_startNextSceneClosed = true;
+                }
+                else {
+                    TransitionController::s_startNextSceneClosed = false;
+                }
+
                 SceneManager::GetInstance().LoadScene(nextScene);
                 GameManager::GetInstance().SetNextScene("");
 
                 // Play open curtain animation
-                TransitionController::PlayAllOpen();
+                //TransitionController::PlayAllOpen();
             }
         }
     }

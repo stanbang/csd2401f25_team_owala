@@ -330,18 +330,51 @@ namespace Framework {
 	}
 
 	// Helper to trigger the loading process
-	void GameManager::InitiateLevelLoad(const std::string& levelName) {
-		SetNextScene(levelName);
-		PreloadSceneAssets(levelName);
+	void GameManager::InitiateLevelLoad(const std::string& targetSceneName) {
 
-		// NEW LOGIC: Use the static manager function to trigger ALL active curtains.
-		Logger::Get().Info(DebugType::GameManager) << "Playing Transition Close..." << std::endl;
+		std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
+		bool currentIsLevel = IsLevelScene(currentSceneName);
+		bool targetIsLevel = IsLevelScene(targetSceneName);
 
-		// Play Close Animation on all controllers.
-		// The callback will only be fired once by the first controller in the list.
-		TransitionController::PlayAllClose([this]() {
+		// Level > Level (Direct Transition, No Loading Screen)
+		if (currentIsLevel && targetIsLevel) {
+			Logger::Get().Info(DebugType::GameManager) << "Level->Level Transition: " << targetSceneName << std::endl;
+
+			// Close Curtains
+			TransitionController::PlayAllClose([this, targetSceneName]() {
+				// Load Next Level Directly
+				SceneManager::GetInstance().LoadScene(targetSceneName);
+
+				// Tell TransitionController to start CLOSED in the new level, then OPEN
+				TransitionController::s_startNextSceneClosed = true;
+				});
+		}
+		// Menu > Level (Show Loading Screen)
+		else if (!currentIsLevel && targetIsLevel) {
+			Logger::Get().Info(DebugType::GameManager) << "Menu->Level Transition via Loading Screen" << std::endl;
+
+			SetNextScene(targetSceneName); // Store target for LoadingScreenController
+			PreloadSceneAssets(targetSceneName);
+
+			// Just load loading screen immediately
 			SceneManager::GetInstance().LoadScene("LoadingScreen");
-			});
+		}
+		// Level > Menu (Close Curtains, then Loading Screen, then Menu)
+		else if (currentIsLevel && !targetIsLevel) {
+			Logger::Get().Info(DebugType::GameManager) << "Level->Menu Transition" << std::endl;
+
+			SetNextScene(targetSceneName); // Store target (e.g., MainMenu)
+
+			// Close Curtains
+			TransitionController::PlayAllClose([this]() {
+				// Load Loading Screen
+				SceneManager::GetInstance().LoadScene("LoadingScreen");
+				});
+		}
+		// Menu -> Menu (Direct, no curtains)
+		else {
+			SceneManager::GetInstance().LoadScene(targetSceneName);
+		}
 	}
 
 	void GameManager::PreloadSceneAssets(const std::string& sceneName) {
@@ -403,6 +436,18 @@ namespace Framework {
 				}
 			}
 		}
+	}
+
+	// Function to check if a scene is a level scene
+	bool GameManager::IsLevelScene(const std::string& name) {
+		if (name == "MainMenu" || 
+			name == "LevelSelect" || 
+			name == "SplashScreen" || 
+			name == "RestartMenu" || 
+			name == "LoadingScreen" || 
+			name == "HowToPlay")
+			return false;
+		return true;
 	}
 
 }

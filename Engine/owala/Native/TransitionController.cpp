@@ -14,6 +14,7 @@ namespace Framework {
 
     // Replace single instance with a list of all active controllers
     std::vector<TransitionController*> TransitionController::allControllers;
+    bool TransitionController::s_startNextSceneClosed = false;
 
     const std::string CLOSE_ANIM_TEXTURE = "SB_Curtain_Close_Spritesheet_01.png";
     const std::string OPEN_ANIM_TEXTURE = "SB_Curtain_Open_Spritesheet_01.png";
@@ -24,7 +25,7 @@ namespace Framework {
 
 		// Preload textures for open/close animations to make it smooth
 		// Or else it will lag like hell the first time!!!
-        auto* systems = GameManager::GetInstance().GetSystems().resourceManager_;
+        ResourceManager* systems = GameManager::GetInstance().GetSystems().resourceManager_;
         if (!systems) return;
         ResourceManager& rcm = *systems;
 
@@ -63,9 +64,16 @@ namespace Framework {
                 }
             }
         }
+
+        // Check flag immediately on creation
+        CheckStartClosed();
     }
 
     void TransitionController::OnDestroy() {
+        auto it = std::remove(allControllers.begin(), allControllers.end(), this);
+        if (it != allControllers.end()) {
+            allControllers.erase(it, allControllers.end());
+        }
     }
 
     // Static Function to trigger CLOSE on ALL curtains
@@ -108,7 +116,7 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
-            tex.textureKey = "";
+            tex.textureKey = CLOSE_ANIM_TEXTURE;
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
@@ -130,7 +138,7 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
-            tex.textureKey = "";
+            tex.textureKey = OPEN_ANIM_TEXTURE;
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
@@ -147,6 +155,8 @@ namespace Framework {
     }
 
     void TransitionController::OnUpdate() {
+		CheckStartClosed(); // Check flag each update in case it was set later
+
         float dt = Framework::Time::UnscaledDeltaTime();
 
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
@@ -154,7 +164,29 @@ namespace Framework {
 
         TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
         
-        if (state_ == TransitionState::CLOSING) {
+        if (state_ == TransitionState::HIDDEN) {
+            std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
+            bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
+
+            // If we are NOT in a level (e.g., MainMenu, LoadingScreen), ensure texture is empty.
+            // This removes the "hanging curtains" that are preserved from the previous level.
+            if (!isLevel && !tex.textureKey.empty()) {
+                tex.textureKey = "";
+            }
+        }
+
+		// If in WAITING state, increment timer, then transition to OPENING after delay
+        if (state_ == TransitionState::WAITING) {
+            waitTimer_ += dt;
+
+            if (waitTimer_ >= WAIT_DURATION) {
+                Logger::Get().Info(DebugType::GameManager) << "TransitionController: Wait complete. Opening..." << std::endl;
+                PlayOpen(nullptr); // Transition to OPENING state
+            }
+        }
+
+        // If in CLOSING state, play close animation
+        else if (state_ == TransitionState::CLOSING) {
             if (animTimer_ == 0.0f) {
                 tex.textureKey = CLOSE_ANIM_TEXTURE;
             }
@@ -171,6 +203,7 @@ namespace Framework {
                 }
             }
         }
+		// If in OPENING state, play open animation
         else if (state_ == TransitionState::OPENING) {
             if (animTimer_ == 0.0f) {
                 tex.textureKey = OPEN_ANIM_TEXTURE;
@@ -183,7 +216,6 @@ namespace Framework {
                 state_ = TransitionState::HIDDEN;
 
                 TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
-                tex.textureKey = "";
 
                 if (onTransitionComplete_) {
                     auto callback = onTransitionComplete_;
@@ -204,5 +236,94 @@ namespace Framework {
 
     void TransitionController::Reset() {
         allControllers.clear();
+        s_startNextSceneClosed = false;
+    }
+
+    void TransitionController::CheckStartClosed() {
+        // If the flag is set, we apply the state to ALL controllers immediately
+        // This ensures the first one to update doesn't steal the flag from the others.
+        if (s_startNextSceneClosed) {
+
+            Logger::Get().Info(DebugType::GameManager) << "TransitionController: Applying Start Closed to " << allControllers.size() << " curtains." << std::endl;
+
+            for (TransitionController* controller : allControllers) {
+                controller->StartWaitingState();
+            }
+
+            // Reset flag after applying to everyone
+            s_startNextSceneClosed = false;
+        }
+    }
+
+    void TransitionController::StartWaitingState() {
+        EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
+        Entity e = GetEntity();
+
+        if (entityMgr.HasComponent(e, TextureComponentType)) {
+            TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
+
+            // Set Visuals to Closed (Frame 0 of Open Sheet)
+            tex.textureKey = OPEN_ANIM_TEXTURE;
+
+            // Setup Animation
+            if (entityMgr.HasComponent(e, AnimationComponentType)) {
+                AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
+                anim.currentFrame = 0;
+                anim.elapsedTime = 0.0f;
+                anim.isPlaying = false; // Pause
+                anim.isLooping = false;
+
+                // Manual UV Calculation
+                ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+                if (rsm) {
+                    if (!rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
+                        rsm->loadAnimationInfo(OPEN_ANIM_TEXTURE);
+                    }
+
+                    if (rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
+                        AnimationInfo& info = rsm->get<AnimationInfo>(OPEN_ANIM_TEXTURE);
+
+                        anim.frameCount = info.frameCount;
+                        anim.frameDuration = info.frameDuration;
+
+                        // Handle Multi-Spritesheet UVs
+                        if (!info.sheets.empty()) {
+                            const auto& firstSheet = info.sheets[0];
+                            tex.textureKey = firstSheet.textureKey; // Ensure we use the correct sheet
+
+                            if (firstSheet.frameCount > 0) {
+                                float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
+                                anim.minUV = { 0.0f, 0.0f };
+                                anim.maxUV = { frameUVWidth, 1.0f };
+                            }
+                        }
+                        else if (info.frameCount > 0) {
+                            float frameUVWidth = 1.0f / (float)info.frameCount;
+                            anim.minUV = { 0.0f, 0.0f };
+                            anim.maxUV = { frameUVWidth, 1.0f };
+                        }
+                    }
+                }
+            }
+
+            // Set State
+            state_ = TransitionState::WAITING;
+            waitTimer_ = 0.0f;
+        }
+    }
+
+    void TransitionController::ForceHideAll() {
+        for (auto* controller : allControllers) {
+            controller->ForceHide();
+        }
+    }
+
+    void TransitionController::ForceHide() {
+        state_ = TransitionState::HIDDEN;
+        EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
+        if (entityMgr.HasComponent(GetEntity(), TextureComponentType)) {
+            // Clear texture to make it invisible
+            entityMgr.GetComponent<TextureComponent>(GetEntity()).textureKey = "";
+        }
     }
 }
