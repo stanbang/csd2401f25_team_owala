@@ -24,10 +24,8 @@ namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
 	class VFXSystem : public ISystem {
 	public:
-		// Constructor taking references to EntityStorage and ResourceManager
-		VFXSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, CameraSystem& cameraSystem)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), cameraSystem_(&cameraSystem) {
-		}
+		// Constructor
+		VFXSystem() = default;
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
@@ -36,12 +34,6 @@ namespace Framework {
 		void UpdateParticles(EntityManager& entityMgr);
 
 	private:
-		// Pointer to the entity storage to access and modify entities and their components
-		EntityStorage* entityStorage_ = nullptr;
-		ResourceManager* resourceManager_ = nullptr;
-		WindowsSystem* win_ = nullptr;
-		CameraSystem* cameraSystem_ = nullptr;
-
 		// Creation logic so it can be used by both EmitParticles and the Event
 		void SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& config, const Vector2D& origin);
 

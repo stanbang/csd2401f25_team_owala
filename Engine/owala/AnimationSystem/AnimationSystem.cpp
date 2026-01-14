@@ -17,14 +17,15 @@
 #include "EntityManager.h"
 #include "AnimationSystem.h"
 #include <iostream>
-#include "WindowsSystem.h" // Include for glfwGetKey
-#include <GLFW/glfw3.h>   // Include for key codes
+#include "GameManager.h"
 #include "OwalaTime.h"
 
 namespace Framework {
 
     void AnimationSystem::Update() {
-		EntityManager entityMgr(*entityStorage_);
+
+		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
@@ -89,10 +90,10 @@ namespace Framework {
 			}
 
 			// Load animation info using base texture key
-			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
+			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
 				// Try to load animation info if not already loaded
 				try {
-					resourceManager_->loadAnimationInfo(baseTextureKey);
+					resourceManager_.loadAnimationInfo(baseTextureKey);
 				}
 				catch (...) {
 					Logger::Get().Error(DebugType::ResourceManager)
@@ -100,7 +101,7 @@ namespace Framework {
 				}
 			}
 
-			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
+			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
 				// Fallback and treat as static image without animation
 				// Reset UVs here to show full image
 				animationComponent.isPlaying = false;
@@ -113,7 +114,7 @@ namespace Framework {
 
 				continue;
 			}
-			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(baseTextureKey);
+			AnimationInfo& animationInfo = resourceManager_.get<AnimationInfo>(baseTextureKey);
 
 			// Check if the texture key has changed
 			bool animationStateChanged = (previousTextureKey != baseTextureKey);

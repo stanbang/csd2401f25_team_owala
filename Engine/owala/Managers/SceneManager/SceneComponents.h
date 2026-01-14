@@ -15,10 +15,15 @@
 #pragma once
 #include <string>
 
+namespace SceneManagement {
+    using SceneGUID = unsigned int;
+}
+
 namespace Framework {
 
     // The scene that this entity belongs to
     struct SceneOwned {
+        SceneManagement::SceneGUID sceneIndex = 0;
         std::string sceneName;
     };
 

@@ -67,8 +67,8 @@ namespace Framework {
         float GetLoadingProgress() const;
         bool IsLoadingComplete() const;
 
-		// Constructor requires Graphics and AudioSystem instances for loading resources
-        ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};
+		// Constructor
+        ResourceManager() = default;
 
         // Add a copyable resource (like Texture)
         template<typename ResourceType>
@@ -155,9 +155,6 @@ namespace Framework {
         std::unordered_map<std::string, std::unique_ptr<Font>> fontMap; // font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>> animationMap; // Animation map
 		std::unordered_map<std::string, fs::path> assetPathMap_; // Map of asset names to file paths
-
-		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
-        AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
 
         // Structure to transfer data between threads
         struct AsyncTextureData {

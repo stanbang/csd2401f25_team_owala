@@ -15,6 +15,7 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #include "PlatformBehaviorSystem.h"
+#include "GameManager.h"
 #include "TransformationSystem.h"
 #include "EntityManager.h"
 #include "Components.h"
@@ -95,10 +96,12 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void PlatformBehaviorSystem::UpdateTrapPlatforms() {
-        EntityManager entityMgr(*ecs_);
+        GameManager& gm = GameManager::GetInstance();
+        TransformationSystem& transformSystem_ = *gm.GetSystems().transformation_;
+        EntityManager entityMgr(gm.GetECS());
 
         // Get current world rotation
-        float worldRotation = transformSystem_->GetGlobalRotation();
+        float worldRotation = transformSystem_.GetGlobalRotation();
         worldRotation = std::fmod(worldRotation + 360.0f, 360.0f);
 
    
@@ -176,7 +179,7 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void PlatformBehaviorSystem::ResetTrap(Entity trapPlatform) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(trapPlatform, TrapPlatformComponentType) ||
             !entityMgr.HasComponent(trapPlatform, TransformType)) {

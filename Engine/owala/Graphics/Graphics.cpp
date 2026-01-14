@@ -35,7 +35,7 @@
  *      the prior written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "Graphics.h"
-#include "WindowsSystem.h"
+#include "GameManager.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -195,7 +195,7 @@ namespace Framework {
 
         // Set initial viewport
         int fbw = 0, fbh = 0;
-        glfwGetFramebufferSize(win_->window(), &fbw, &fbh);
+        glfwGetFramebufferSize(GameManager::GetInstance().GetSystems().win_->window(), &fbw, &fbh);
         glViewport(0, 0, fbw, fbh);
 
         screenWidth = fbw;
@@ -274,7 +274,7 @@ namespace Framework {
     void Graphics::Update() {
         t_ += Framework::Time::DeltaTime();
         // Present the frame (anything drawn since beginFrame)
-        glfwSwapBuffers(win_->window());
+        glfwSwapBuffers(GameManager::GetInstance().GetSystems().win_->window());
     }
 
     void Graphics::Shutdown() {

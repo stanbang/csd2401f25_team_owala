@@ -47,10 +47,9 @@ namespace Framework {
     class CameraSystem : public ISystem {
     public:
         /**
-         * \brief Constructs a CameraSystem instance bound to a given ECS storage.
-         * \param ecs Reference to the EntityStorage used to manage entities and components.
+         * \brief Constructs a CameraSystem instance.
          */
-        CameraSystem(EntityStorage& ecs);
+        CameraSystem() = default;
 
         /** \brief Initializes the camera system (currently unused). */
         void Initialize() override {}
@@ -145,7 +144,7 @@ namespace Framework {
          * \return Reference to the Camera component.
          * \throws std::runtime_error if the camera does not exist.
          */
-        Camera& GetCamera(Entity cameraEntity);
+        Camera& GetCamera(Entity cameraEntity) const;
 
         /**
          * \brief Updates aspect ratio for all cameras based on viewport dimensions.
@@ -155,7 +154,6 @@ namespace Framework {
         void UpdateAspectRatio(float screenWidth, float screenHeight);
 
     private:
-        EntityStorage& ecs_;        ///< Reference to the ECS storage.
         Entity activeCamera_ = 0;   ///< Currently active camera entity.
     };
 

@@ -1,0 +1,117 @@
+#include "EntityStorage.h"
+#include "Components.h"
+
+namespace Framework {
+
+
+	EntityStorage::EntityStorage(const EntityStorage& other) {
+		entitySignatures = other.entitySignatures;
+
+		properties = other.properties;
+		transform = other.transform;
+		spawnPoint = other.spawnPoint;
+		velocity = other.velocity;
+		acceleration = other.acceleration;
+		triangle = other.triangle;
+		rigidBody = other.rigidBody;
+		colliders = other.colliders;
+		playerState = other.playerState;
+		rotationFlag = other.rotationFlag;
+		trapPlatform = other.trapPlatform;
+		button = other.button;
+		tex = other.tex;
+		audio = other.audio;
+		animatedTex = other.animatedTex;
+		text = other.text;
+		cameras = other.cameras;
+		birdAIComponent = other.birdAIComponent;
+		skeletonAIComponent = other.skeletonAIComponent;
+		particleComponent = other.particleComponent;
+		particleEmitterComponent = other.particleEmitterComponent;
+		sceneOwned = other.sceneOwned;
+
+		for (const auto& [entity, scripts] : other.nativeScripts) {
+			nativeScripts[entity] = scripts;
+		}
+	}
+
+	EntityStorage& EntityStorage::operator=(const EntityStorage& other) {
+		if (this == &other) return *this;
+
+		for (auto& [entity, scripts] : nativeScripts) {
+			for (NativeScriptsComponent::NativeScript& script : scripts.scripts) {
+				script.Reset();
+			}
+		}
+
+		entitySignatures = other.entitySignatures;
+
+		properties = other.properties;
+		transform = other.transform;
+		spawnPoint = other.spawnPoint;
+		velocity = other.velocity;
+		acceleration = other.acceleration;
+		triangle = other.triangle;
+		rigidBody = other.rigidBody;
+		colliders = other.colliders;
+		playerState = other.playerState;
+		rotationFlag = other.rotationFlag;
+		trapPlatform = other.trapPlatform;
+		button = other.button;
+		tex = other.tex;
+		audio = other.audio;
+		animatedTex = other.animatedTex;
+		text = other.text;
+		cameras = other.cameras;
+		birdAIComponent = other.birdAIComponent;
+		skeletonAIComponent = other.skeletonAIComponent;
+		particleComponent = other.particleComponent;
+		particleEmitterComponent = other.particleEmitterComponent;
+		sceneOwned = other.sceneOwned;
+
+		nativeScripts.clear();
+		for (const auto& [entity, scripts] : other.nativeScripts) {
+			nativeScripts[entity] = scripts;
+		}
+		return *this;
+	}
+
+	EntityStorage::~EntityStorage() {
+		for (auto& [entity, scripts] : nativeScripts) {
+			for (auto& script : scripts.scripts) {
+				script.Reset();
+			}
+		}
+	}
+
+	void EntityStorage::SwapWith(EntityStorage& other) noexcept {
+		// Metadata
+		std::swap(entitySignatures, other.entitySignatures);
+		std::swap(properties, other.properties);
+
+		// Components
+		std::swap(transform, other.transform);
+		std::swap(spawnPoint, other.spawnPoint);
+		std::swap(velocity, other.velocity);
+		std::swap(acceleration, other.acceleration);
+		std::swap(triangle, other.triangle);
+		std::swap(rigidBody, other.rigidBody);
+		std::swap(colliders, other.colliders);
+		std::swap(playerState, other.playerState);
+		std::swap(rotationFlag, other.rotationFlag);
+		std::swap(trapPlatform, other.trapPlatform);
+		std::swap(button, other.button);
+		std::swap(tex, other.tex);
+		std::swap(audio, other.audio);
+		std::swap(animatedTex, other.animatedTex);
+		std::swap(text, other.text);
+		std::swap(cameras, other.cameras);
+		std::swap(birdAIComponent, other.birdAIComponent);
+		std::swap(skeletonAIComponent, other.skeletonAIComponent);
+		std::swap(particleComponent, other.particleComponent);
+		std::swap(particleEmitterComponent, other.particleEmitterComponent);
+		std::swap(sceneOwned, other.sceneOwned);
+
+		std::swap(nativeScripts, other.nativeScripts);
+	}
+}

@@ -16,7 +16,9 @@
 
 #include "TextRenderSystem.h"
 #include <cmath>
+#include "GameManager.h"
 #include "GuiSystem.h"
+#include "EntityManager.h"
 #include "WindowsSystem.h"
 
 namespace Framework {
@@ -25,7 +27,7 @@ namespace Framework {
      * \brief Main per-frame update function for text rendering.
      */
     void TextRenderSystem::Update() {
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Retrieve active camera
         //Entity activeCamera = 0;
@@ -58,6 +60,9 @@ namespace Framework {
      * \brief Renders all visible text components.
      */
     void TextRenderSystem::RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp/*, const Entity camera*/) {
+        ResourceManager& rcm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+        Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
             const Vector2D& textPos = entityMgr.GetComponent<Transform>(en).position;
@@ -112,6 +117,9 @@ namespace Framework {
      * \brief Calculate and update text halfsize 
      */
     void TextRenderSystem::UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp) {
+        ResourceManager& rcm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+        WindowsSystem& win_ = *GameManager::GetInstance().GetSystems().win_;
+
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
 
@@ -155,6 +163,7 @@ namespace Framework {
      * \brief Calculate and update text wrappedLines
      */
     void TextRenderSystem::UpdateWrappedText(TextComponent& textComp) {
+        ResourceManager& rcm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
 

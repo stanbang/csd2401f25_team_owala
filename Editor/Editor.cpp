@@ -1417,13 +1417,13 @@ namespace Editor {
 			{
 				SaveScene();
 				ImGui::CloseCurrentPopup();
-				sceneMgr.UnloadScene();
+				sceneMgr.UnloadScene(sceneMgr.GetActiveScene());
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Cancel", ImVec2(120, 0)))
 			{
 				ImGui::CloseCurrentPopup();
-				sceneMgr.UnloadScene();
+				sceneMgr.UnloadScene(sceneMgr.GetActiveScene());;
 			}
 
 			ImGui::EndPopup();
@@ -4829,20 +4829,20 @@ namespace Editor {
 
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
+				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
+
 				if (isGamePlaying) {
-					// on pressing Stop
-					gameManager_->GetSystems().levelResetter_->RunReset();
+					gameManager_->OnEndPlay();
 					ResetEditorCamera();
+				}
+				else {
+					gameManager_->OnBeginPlay();
 				}
 
 				isGamePlaying = !isGamePlaying;
 				isGamePaused = false;
 
-				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
-				if (physics_->IsPaused()) physics_->SetPaused(false);
-
 				if (gizmoSystem_) gizmoSystem_->SetGizmoMode(GizmoMode::None);
-
 			}
 			ImGui::PopStyleColor();
 

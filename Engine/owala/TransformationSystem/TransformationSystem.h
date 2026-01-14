@@ -33,7 +33,7 @@ namespace Framework {
         * \param input Reference to input system for key detection (Q/E for rotation)
         * \param physics Reference to physics system for pause control during rotation
         */
-        TransformationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics);
+        TransformationSystem();
 
         /*!
         * \brief Initializes the transformation system
@@ -89,10 +89,6 @@ namespace Framework {
 
 
     private:
-        EntityStorage* ecs_;
-        InputSystem* input_;
-        PhysicsSystem* physics_;
-
         // Global rotation state
         float globalRotation;
         float targetGlobalRotation;

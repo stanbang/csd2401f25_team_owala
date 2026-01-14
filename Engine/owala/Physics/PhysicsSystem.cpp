@@ -27,9 +27,6 @@
 #endif
 
 namespace Framework {
-
-    PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
-
     // ----- Layer Collision Functions ------- //
 
     void PhysicsSystem::InitializeCollisionMatrix() {
@@ -79,6 +76,15 @@ namespace Framework {
     // This accumulates delta time and runs the simulation
     // ----------------------------------------------------------------------------
     void PhysicsSystem::Update() {
+        static bool debugOnce = true;
+        if (debugOnce) {
+            debugOnce = false;
+            Logger::Get().Info(DebugType::PhysicsSystem)
+                << "Player-Platform collision enabled: "
+                << GetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform)
+                << std::endl;
+        }
+
         if (isPaused_ || stepModeActive_) {
             return; // If paused or in step mode, do not automatically advance time.
         }
@@ -97,7 +103,7 @@ namespace Framework {
     void PhysicsSystem::Step(float dt) {
         contacts_.clear();
 
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Reset player state (assume not grounded until a collision)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
@@ -140,7 +146,7 @@ namespace Framework {
     // Updates position and velocity using Semi-Implicit Euler integration.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::Integrate(float dt) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
@@ -178,7 +184,7 @@ namespace Framework {
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         std::vector<Entity> constrainedEntities;
 
         auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
@@ -280,7 +286,7 @@ namespace Framework {
     // Detects and resolves collisions using direct positional correction.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
         std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, TransformType);
 
         // --- Check Entity Count OR DEBUG TOGGLE ---
@@ -390,7 +396,7 @@ namespace Framework {
     // Previous Implementation of resolve collisions
     // ----------------------------------------------------------------------------
     void PhysicsSystem::CheckCollisionPair(Entity e1, Entity e2, float dt) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Check entities have RigidBody component
         if (!entityMgr.HasComponent(e1, RigidBodyType) || !entityMgr.HasComponent(e2, RigidBodyType)) {

@@ -9,8 +9,10 @@
 #include "SceneManager.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
+#include "GameManager.h"
 #include "Logger.h"
 #include "EntitySerializer.h"
+#include <unordered_set>
 
 namespace Framework {
 	using namespace SceneManagement;
@@ -24,12 +26,20 @@ namespace Framework {
 
 	// Constructor
 	SceneManager::SceneManager() {
-		invalidScene.sceneIndex = 0;
+		invalidScene.sceneIndex = INVALID_SCENEID;
 		invalidScene.name = INVALID_SCENENAME;
 		invalidScene.path = {};
-		invalidScene.isLoaded = false;
-	}
+		invalidScene.isLoaded = invalidScene.isPopulated = false;
 
+		SceneAsset ddol;
+		ddol.sceneIndex = DDOL_SCENEID;
+		ddol.name = DDOL_SCENENAME;
+		ddol.path = {};
+		ddol.isLoaded = false;
+		ddol.isPopulated = true;
+
+		scenes_.emplace(DDOL_SCENEID, ddol);
+	}
 
 	SceneManager& SceneManager::GetInstance() {
 		if (!instance) {
@@ -51,17 +61,17 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// SceneManager Checkers
 	// ---------------------------------------------------------------------------
-	void SceneManager::CheckStorage() {
-		if (!entityStorageRef_) {
-			throw GameException(DebugType::SceneManager, "Entity Storage must be set before use!");
-		}
-	}
+	//void SceneManager::CheckStorage() {
+	//	if (!entityStorageRef_) {
+	//		throw GameException(DebugType::SceneManager, "Entity Storage must be set before use!");
+	//	}
+	//}
 
-	void SceneManager::CheckStorage() const {
-		if (!entityStorageRef_) {
-			throw GameException(DebugType::SceneManager, "Entity Storage must be set before use!");
-		}
-	}
+	//void SceneManager::CheckStorage() const {
+	//	if (!entityStorageRef_) {
+	//		throw GameException(DebugType::SceneManager, "Entity Storage must be set before use!");
+	//	}
+	//}
 
 	// ---------------------------------------------------------------------------
 	// SceneManager Internals
@@ -76,21 +86,155 @@ namespace Framework {
 		return nullptr; // Return nullptr if scene not found
 	}
 
+	void SceneManager::EnsureScenePopulated(SceneGUID sceneIndex) {
+		SceneAsset* scene = GetSceneAssetMutable(sceneIndex);
+		if (!scene || !scene->IsValid()) return; // Check if Scene Exists
+		if (scene->isPopulated) return; // Check if scene has already been deserialized.
+		if (scene->path.empty()) return; // Check if scene is deserializable from file.
+
+		std::vector<Entity> entitiesList;
+		EntitySerializer::DeserializeSceneData(GameManager::GetInstance().GetECS(), scene->path, scene->name, entitiesList);
+
+		for (Entity entity : entitiesList) {
+			AddEntityToScene(*scene, entity);
+		}
+
+		scene->isPopulated = true;
+	}
+
+	void SceneManager::RebuildActiveTags() {
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(ActiveTagType)) {
+			entityMgr.RemoveComponent(entity, ActiveTagType);
+		}
+
+		std::unordered_set<SceneGUID> loaded;
+		loaded.reserve(loadedScenes_.size());
+		for (SceneGUID guid : loadedScenes_) {
+			loaded.insert(guid);
+		}
+		
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+			const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
+
+			bool shouldBeActive = loaded.find(owned.sceneIndex) != loaded.end();
+
+#ifdef BUILD_EDITOR
+			if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+#else
+			if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+#endif
+			if (shouldBeActive) entityMgr.AddComponent(entity, ActiveTag{});
+		}
+	}
+
+#ifdef BUILD_EDITOR
+	// ---------------------------------------------------------------------------
+	// Scene Context Handling
+	// ---------------------------------------------------------------------------
+	void SceneManager::OnEnterPlay() {
+		if (contextCaptured) return;
+
+		// Capture Scene Context
+		prePlayContext.scenes = scenes_;
+		prePlayContext.loadedScenes = loadedScenes_;
+		prePlayContext.activeScene = currentScene_;
+		
+		contextCaptured = true;
+		isPlayMode_ = true;
+
+		// Create DDOL if scene does not exist.
+		if (scenes_.find(DDOL_SCENEID) == scenes_.end()) {
+			SceneAsset ddol{};
+			ddol.sceneIndex = DDOL_SCENEID;
+			ddol.name = DDOL_SCENENAME;
+			ddol.path = {};
+			ddol.isLoaded = false;
+			ddol.isPopulated = true;
+			scenes_.emplace(DDOL_SCENEID, ddol);
+		}
+
+		if (std::find(loadedScenes_.begin(), loadedScenes_.end(), DDOL_SCENEID) == loadedScenes_.end()) {
+			loadedScenes_.push_back(DDOL_SCENEID);
+		}
+
+		if (SceneAsset* ddol = GetSceneAssetMutable(DDOL_SCENEID)) {
+			ddol->isLoaded = true;
+		}
+
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		for (Entity persistentEntity : entityMgr.GetAllEntitiesWithComponent(PersistentTagType)) {
+			if (!entityMgr.HasComponent(persistentEntity, SceneOwnedType)) {
+				entityMgr.AddComponent(persistentEntity, SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME });
+			}
+			else {
+				entityMgr.GetComponent<SceneOwned>(persistentEntity) = SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME };
+			}
+		}
+
+		RebuildActiveTags();
+	}
+
+	void SceneManager::OnExitPlay() {
+		if (!contextCaptured) return;
+
+		scenes_ = prePlayContext.scenes;
+		loadedScenes_ = prePlayContext.loadedScenes;
+		currentScene_ = prePlayContext.activeScene;
+
+		contextCaptured = false;
+		isPlayMode_ = false;
+
+		// Recreate DDOL if scene does not exist.
+		if (scenes_.find(DDOL_SCENEID) == scenes_.end()) {
+			SceneAsset ddol{};
+			ddol.sceneIndex = DDOL_SCENEID;
+			ddol.name = DDOL_SCENENAME;
+			ddol.path = {};
+			ddol.isLoaded = false;
+			ddol.isPopulated = true;
+			scenes_.emplace(DDOL_SCENEID, ddol);
+		}
+
+		for (auto& [guid, scene] : scenes_) {
+			scene.isLoaded = false;
+		}
+
+		for (SceneGUID guid : loadedScenes_) {
+			if (SceneAsset* scene = GetSceneAssetMutable(guid)) {
+				scene->isLoaded = true;
+			}
+		}
+
+		// DDOL should not be loaded in edit mode.
+		auto it = std::find(loadedScenes_.begin(), loadedScenes_.end(), DDOL_SCENEID);
+		if (it != loadedScenes_.end()) {
+			loadedScenes_.erase(it);
+		}
+
+		if (SceneAsset* ddol = GetSceneAssetMutable(DDOL_SCENEID)) {
+			ddol->isLoaded = false;
+		}
+
+		RebuildActiveTags();
+	}
+#endif
+
 	// ---------------------------------------------------------------------------
 	// SceneManager Configuration
 	// ---------------------------------------------------------------------------
-	void SceneManager::SetEntityStorageRef(EntityStorage& entityStorageRef) {
-		entityStorageRef_ = &entityStorageRef;
-		Logger::Get().Info(DebugType::SceneManager) << "Successfully linked to Entity Storage" << std::endl;
+	//void SceneManager::SetEntityStorageRef(EntityStorage& entityStorageRef) {
+	//	entityStorageRef_ = &entityStorageRef;
+	//	Logger::Get().Info(DebugType::SceneManager) << "Successfully linked to Entity Storage" << std::endl;
 
-	}
+	//}
 
 	// ---------------------------------------------------------------------------
 	// Scene Management APIs
 	// ---------------------------------------------------------------------------
 	#pragma region Scene Asset Stuff
 	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path, const bool entitiesPopulated) {
-		CheckStorage();
 		// Check if scene with the same name already exists
 		if (CheckSceneNameExists(sceneName)) {
 			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' already exists. Creation failed." << std::endl;
@@ -109,240 +253,331 @@ namespace Framework {
 
 	const SceneAsset& SceneManager::GetSceneByName(const std::string& sceneName, bool silenceError) const {
 		for (const auto& [id, scene] : scenes_) {
+			if (id == DDOL_SCENEID) continue;
+
 			if (scene.name == sceneName) {
 				return scene;
 			}
 		}
 
-		if (!silenceError)
+		if (!silenceError) {
 			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' does not exist." << std::endl;
+		}
+
 		return invalidScene;
 	}
 
 	const SceneAsset& SceneManager::GetSceneAt(SceneGUID sceneIndex, bool silenceError) const {
-		for (const auto& [id, scene] : scenes_) {
-			if (scene.sceneIndex == sceneIndex) {
-				return scene;
-			}
+		if (sceneIndex == DDOL_SCENEID) {
+			return invalidScene;
 		}
 
-		if (!silenceError)
-			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist." << std::endl;
-		return invalidScene;
+		std::unordered_map<SceneGUID, SceneAsset>::const_iterator it = scenes_.find(sceneIndex);
+		if (it == scenes_.end()) {
+			if (!silenceError) {
+				Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist." << std::endl;
+			}
+			return invalidScene;
+		}
+
+		return it->second;
 	}
 
 	const SceneAsset& SceneManager::GetActiveScene() const {
 		return GetSceneAt(currentScene_);
 	}
 
-	void SceneManager::LoadScene(const std::string& sceneName) {
-		SceneAsset sceneToLoad = GetSceneByName(sceneName);
+	bool SceneManager::SetActiveScene(const SceneAsset& scene) {
+		SceneAsset* targetScene = GetSceneAssetMutable(scene.sceneIndex);
+		if (!targetScene || !targetScene->IsValid()) {
+			return false;
+		}
+
+		if (!targetScene->isLoaded) {
+			return false;
+		}
+
+		if (currentScene_ == targetScene->sceneIndex) {
+			return true;
+		}
+
+		currentScene_ = targetScene->sceneIndex;
+		return true;
+	}
+
+	void SceneManager::LoadScene(const std::string& sceneName, LoadSceneMode mode) {
+		const SceneAsset& sceneToLoad = GetSceneByName(sceneName);
 		if (!sceneToLoad.IsValid()) {
 			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << sceneName << "' does not exist. Aborting Load." << std::endl;
 			return;
 		}
 
-		UnloadScene(); // Unload current active scene first if any
-
-		// TODO: Remove scene exclusive logic in here.
-
-		bool isMenuRestartScene = (sceneName == "MainMenu" || sceneName == "RestartMenu");
-		EntityManager entityMgr(*entityStorageRef_);
-		// Deserialize and populate the scene's entities if not populated yet
-		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
-			std::vector<Entity> entitiesList;
-			EntitySerializer::DeserializeSceneData(*entityStorageRef_, sceneToLoad.path, sceneToLoad.name, entitiesList);
-
-			for (Entity en : entitiesList) {
-				AddEntityToScene(sceneToLoad, en);
-				if (isMenuRestartScene && entityMgr.HasComponent(en, PlayerTagType)) {
-					continue;
-				}
-				entityMgr.AddComponent(en, ActiveTag{});
-			}
-
-			// Maintain HUD Elements across scene changes (Persistent + GUI)
-			for (Entity entity : entityMgr.GetAllEntitiesWithComponents(PersistentTagType, GUITagType)) {
-				entityMgr.AddComponent(entity, ActiveTag{});
-			}
-
-			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
-		}
-		else {
-			for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
-				SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
-				if (sceneOwned.sceneName == sceneName) {
-					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
-						continue;
-					}
-					entityMgr.AddComponent(entity, ActiveTag{});
-				}
-				// Handle persistent entities
-				else if (entityMgr.HasComponent(entity, PersistentTagType)) {
-					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
-						continue;
-					}
-					entityMgr.AddComponent(entity, ActiveTag{});
-				}
-			}
-		}
-
-		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneName << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
-		currentScene_ = sceneToLoad.sceneIndex;
-		scenes_.at(currentScene_).isLoaded = true;
+		LoadScene(sceneToLoad.sceneIndex, mode);
 	}
 
-	// Also update the SceneGUID overload
-	void SceneManager::LoadScene(const SceneGUID sceneIndex) {
-		SceneAsset sceneToLoad = GetSceneAt(sceneIndex);
-		if (!sceneToLoad.IsValid()) {
+	void SceneManager::LoadScene(const SceneGUID sceneIndex, LoadSceneMode mode) {
+		SceneAsset* sceneToLoad = GetSceneAssetMutable(sceneIndex);
+		if (!sceneToLoad || !sceneToLoad->IsValid()) {
 			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist. Aborting Load." << std::endl;
 			return;
 		}
 
-		UnloadScene(); // Unload current active scene first if any
-		bool isMenuRestartScene = (sceneToLoad.name == "MainMenu" || sceneToLoad.name == "RestartMenu");
-		EntityManager entityMgr(*entityStorageRef_);
-		// Deserialize and populate the scene's entities if not populated yet
-		if (!sceneToLoad.isPopulated && !sceneToLoad.path.empty()) {
-			std::vector<Entity> entitiesList;
-			EntitySerializer::DeserializeSceneData(*entityStorageRef_, sceneToLoad.path, sceneToLoad.name, entitiesList);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		
+		// If single, unload all scenes.
+		if (mode == LoadSceneMode::Single) {
+			std::vector<SceneGUID> scenesToUnload;
+			scenesToUnload.reserve(loadedScenes_.size());
 
-			for (Entity en : entitiesList) {
-				AddEntityToScene(sceneToLoad, en);
-				if (isMenuRestartScene && entityMgr.HasComponent(en, PlayerTagType)) {
-					continue;
+			for (SceneGUID loadedScene : loadedScenes_) {
+				if (loadedScene != DDOL_SCENEID && loadedScene != sceneIndex) {
+					scenesToUnload.push_back(loadedScene);
 				}
-				entityMgr.AddComponent(en, ActiveTag{});
 			}
 
-			scenes_.at(sceneToLoad.sceneIndex).isPopulated = true;
-		}
-		// Else iterate through all entities
-		else {
-			for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
-				SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
-				if (sceneOwned.sceneName == sceneToLoad.name) {
-					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
-						continue;
-					}
-					entityMgr.AddComponent(entity, ActiveTag{});
-				}
-				else if (entityMgr.HasComponent(entity, PersistentTagType)) {
-					// Skip persistent players when loading menu/restart scenes
-					if (isMenuRestartScene && entityMgr.HasComponent(entity, PlayerTagType)) {
-						continue;
-					}
-					entityMgr.AddComponent(entity, ActiveTag{});
-				}
+			for (SceneGUID sceneToUnload : scenesToUnload) {
+				UnloadScene(sceneToUnload);
 			}
 		}
 
-		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneToLoad.name << " with GUID: " << sceneToLoad.sceneIndex << std::endl;
-		currentScene_ = sceneToLoad.sceneIndex;
-		scenes_.at(currentScene_).isLoaded = true;
-	}
+		if (!sceneToLoad->isLoaded) {
+			sceneToLoad->isLoaded = true;
 
-	void SceneManager::LoadScene(const SceneAsset& scene) {
-		LoadScene(scene.sceneIndex);
-	}
-
-	void SceneManager::UnloadScene() {
-		CheckStorage();
-
-		if (currentScene_ == 0) return; // No scene is currently loaded
-
-		EntityManager entityMgr(*entityStorageRef_);
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ActiveTagType)) {
-			entityMgr.RemoveComponent(entity, ActiveTagType);
+			if (std::find(loadedScenes_.begin(), loadedScenes_.end(), sceneIndex) == loadedScenes_.end()) {
+				loadedScenes_.push_back(sceneIndex);
+			}
 		}
 
-		GetSceneAssetMutable(currentScene_)->isLoaded = false;
-		prevScene_ = currentScene_;
-		currentScene_ = 0;
+		if (mode == LoadSceneMode::Single || currentScene_ == INVALID_SCENEID) {
+			prevScene_ = currentScene_;
+			currentScene_ = sceneIndex;
+		}
 
-		// For now it just hides the entities. Let me know if you want the entities to be destroyed instead. 
-		// By destroy I mean remove all components and tags associated with the entity and render their IDs stale.
-		// This is applicable to all UnloadScene Functions and their overloads.
+		EnsureScenePopulated(sceneIndex);
+		RebuildActiveTags();
+
+		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneToLoad->name << " with GUID: " << sceneToLoad->sceneIndex << std::endl;
+	}
+
+	void SceneManager::LoadScene(const SceneAsset& scene, LoadSceneMode mode) {
+		LoadScene(scene.sceneIndex, mode);
+	}
+
+	void SceneManager::UnloadScene(const std::string& sceneName) {
+		const SceneAsset& sceneToUnload = GetSceneByName(sceneName);
+		if (!sceneToUnload.IsValid()) {
+			Logger::Get().Info(DebugType::SceneManager) << "Scene is not loaded! Aborting unload!" << std::endl;
+			return;
+		}
+
+		UnloadScene(sceneToUnload.sceneIndex);
+	}
+
+	void SceneManager::UnloadScene(SceneGUID sceneIndex) {
+		// Disallow unloading of invalid/ddol scene.
+		if (sceneIndex == INVALID_SCENEID || sceneIndex == DDOL_SCENEID) return;
+
+		auto it = std::find(loadedScenes_.begin(), loadedScenes_.end(), sceneIndex);
+		if (it == loadedScenes_.end()) {
+			Logger::Get().Info(DebugType::SceneManager) << "Scene is not loaded! Aborting unload!" << std::endl;
+			return;
+		}
+
+		// Destroy all entities belonging to scene
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+		std::vector<Entity> toDestroy;
+		toDestroy.reserve(64);
+
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+			if (entityMgr.GetComponent<SceneOwned>(entity).sceneIndex == sceneIndex) {
+				toDestroy.push_back(entity);
+			}
+		}
+
+		for (Entity entity : toDestroy) {
+			entityMgr.DestroyEntity(entity);
+		}
+
+		loadedScenes_.erase(it);
+
+		if (SceneAsset* sceneToUnload = GetSceneAssetMutable(sceneIndex)) {
+			sceneToUnload->isLoaded = false;
+			sceneToUnload->isPopulated = false;
+		}
+
+		if (currentScene_ == sceneIndex) {
+			currentScene_ = INVALID_SCENEID;
+
+			for (auto rit = loadedScenes_.rbegin(); rit != loadedScenes_.rend(); ++rit) {
+				if (*rit != DDOL_SCENEID) {
+					currentScene_ = *rit;
+					break;
+				}
+			}
+		}
+
+		RebuildActiveTags();
+		Logger::Get().Info(DebugType::SceneManager) << "Unloaded Scene GUID: " << sceneIndex << std::endl;
+	}
+
+	void SceneManager::UnloadScene(const SceneAsset& scene) {
+		UnloadScene(scene.sceneIndex);
 	}
 
 	#pragma endregion
 
 	#pragma region Entity Scene Stuff
 	void SceneManager::AddEntityToScene(const std::string& sceneName, Entity entity) {
-		CheckStorage();
-
-		SceneAsset targetScene = GetSceneByName(sceneName);
+		const SceneAsset& targetScene = GetSceneByName(sceneName);
 		if (!targetScene.IsValid()) {
 			Logger::Get().Error(DebugType::SceneManager) << " Scene with name '" << sceneName << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
 			return;
 		}
 
-		EntityManager entityMgr(*entityStorageRef_);
-		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
-		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
-
-		// Immediately mark the entity to be displayed if the scene is currently loaded
-		if (targetScene.isLoaded) {
-			entityMgr.AddComponent(entity, ActiveTag{});
-		}
+		AddEntityToScene(targetScene.sceneIndex, entity);
 	}
 
 	void SceneManager::AddEntityToScene(const SceneGUID sceneIndex, Entity entity) {
-		CheckStorage();
-		SceneAsset targetScene = GetSceneAt(sceneIndex);
-		if (!targetScene.IsValid()) {
-			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist. Cannot add Entity[" << entity + "] to it." << std::endl;
+		SceneAsset* targetScene = GetSceneAssetMutable(sceneIndex);
+		if (!targetScene || !targetScene->IsValid()) {
+			Logger::Get().Error(DebugType::SceneManager) << "Scene with ID '" << sceneIndex << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
 			return;
 		}
 
-		EntityManager entityMgr(*entityStorageRef_);
-		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
-		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name << "]" << std::endl;
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-		// Immediately mark the entity to be displayed if the scene is currently loaded
-		if (targetScene.isLoaded) {
-			entityMgr.AddComponent(entity, ActiveTag{});
+		// Assign Scene Ownership
+		if (!entityMgr.HasComponent(entity, SceneOwnedType)) {
+			entityMgr.AddComponent(entity, SceneOwned{ sceneIndex, targetScene->name });
 		}
+		else {
+			entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ sceneIndex, targetScene->name };
+		}
+
+		bool shouldBeActive = targetScene->isLoaded;
+
+#ifdef BUILD_EDITOR
+		if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+#else
+		if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+#endif
+
+		if (shouldBeActive) {
+			if (!entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.AddComponent(entity, ActiveTag{});
+		}
+		else {
+			if (entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.RemoveComponent(entity, ActiveTagType);
+		}
+
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene->name << "]" << std::endl;
 	}
 
 	void SceneManager::AddEntityToScene(const SceneAsset& scene, Entity entity) {
-		CheckStorage();
-		SceneAsset targetScene = GetSceneAt(scene.sceneIndex);
-		if (!targetScene.IsValid()) {
-			Logger::Get().Error(DebugType::SceneManager) << "Scene with name '" << targetScene.name << "' does not exist. Cannot add Entity[" << entity << "] to it." << std::endl;
-			return;
-		}
-
-		EntityManager entityMgr(*entityStorageRef_);
-		entityMgr.AddComponent(entity, SceneOwned{ targetScene.name });
-		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene.name + "]" << std::endl;
-
-		// Immediately mark the entity to be displayed if the scene is currently loaded
-		if (targetScene.isLoaded) {
-			entityMgr.AddComponent(entity, ActiveTag{});
-		}
+		AddEntityToScene(scene.sceneIndex, entity);
 	}
 
 	void SceneManager::SetEntityAsPersistent(Entity entity, bool shouldPersist) {
-		CheckStorage();
-
-		EntityManager entityMgr(*entityStorageRef_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		
 		if (shouldPersist) {
-			entityMgr.AddComponent(entity, PersistentTag{});
+			if (!entityMgr.HasComponent(entity, PersistentTagType)) {
+				entityMgr.AddComponent(entity, PersistentTag{});
+			}
+#ifdef BUILD_EDITOR
+			// If called during play/runtime, entity gets added to DDOL scene as well.
+			if (isPlayMode_) {
+				// Ensure entity has the SceneOwned Component.
+				if (!entityMgr.HasComponent(entity, SceneOwnedType)) {
+					entityMgr.AddComponent(entity, SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME });
+				}
+				else {
+					entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME };
+				}
+
+				if (!entityMgr.HasComponent(entity, ActiveTagType)) {
+					entityMgr.AddComponent(entity, ActiveTag{});
+				}
+			}
+#else
+			// Engine Build: Always in runtime. Always move to DDOL.
+			if (!entityMgr.HasComponent(entity, SceneOwnedType)) {
+				entityMgr.AddComponent(entity, SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME });
+			}
+			else {
+				entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME };
+			}
+
+			if (!entityMgr.HasComponent(entity, ActiveTagType)) {
+				entityMgr.AddComponent(entity, ActiveTag{});
+			}
+#endif
 		}
-		else {
-			entityMgr.RemoveComponent(entity, PersistentTagType);
+		else { // shouldPersist = false
+			if (entityMgr.HasComponent(entity, PersistentTagType)) {
+				entityMgr.RemoveComponent(entity, PersistentTagType);
+			}
+#ifdef BUILD_EDITOR
+			// If persistence removed during play and currently in DDOL scene, move to current active scene.
+			if (isPlayMode_ && entityMgr.HasComponent(entity, SceneOwnedType)) {
+				SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
+				if (owned.sceneIndex == DDOL_SCENEID) {
+					const SceneAsset& activeScene = GetActiveScene();
+					if (activeScene.IsValid()) {
+						owned.sceneIndex = activeScene.sceneIndex;
+						owned.sceneName = activeScene.name;
+					}
+				}
+			}
+#endif
+			bool shouldBeActive = false;
+
+			if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+				const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
+				shouldBeActive = std::find(loadedScenes_.begin(), loadedScenes_.end(), owned.sceneIndex) != loadedScenes_.end();
+			}
+
+#ifdef BUILD_EDITOR
+			if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+#else
+			if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+#endif
+
+			if (shouldBeActive) {
+				if (!entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.AddComponent(entity, ActiveTag{});
+			}
+			else {
+				if (entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.RemoveComponent(entity, ActiveTagType);
+			}
 		}
 	}
 
-	std::vector<Entity> SceneManager::GetEntitiesInScene(const std::string& scene) const {
-		(void)scene; // Suppress unused parameter warning for now
-		CheckStorage();
+	std::vector<Entity> SceneManager::GetEntitiesInScene(const std::string& sceneName) const {
+		const SceneAsset& scene = GetSceneByName(sceneName);
+		if (!scene.IsValid()) {
+			Logger::Get().Info(DebugType::SceneManager) << "GetEntitiesInScene: Scene is not valid!" << std::endl;
+			return {};
+		}
 
-		EntityManager entityMgr(*entityStorageRef_);
+		return GetEntitiesInScene(scene.sceneIndex);
+	}
 
-		return entityMgr.GetAllEntitiesWithComponent(ActiveTagType);
+	std::vector<Entity> SceneManager::GetEntitiesInScene(SceneGUID sceneIndex) const {
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		std::vector<Entity> sceneEntities;
+
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+			const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
+			if (owned.sceneIndex == sceneIndex) {
+				sceneEntities.push_back(entity);
+			}
+		}
+
+		return sceneEntities;
+	}
+
+	std::vector<Entity> SceneManager::GetEntitiesInScene(const SceneAsset& scene) const {
+		return GetEntitiesInScene(scene.sceneIndex);
 	}
 
 	const std::unordered_map<SceneGUID, SceneAsset>& SceneManager::GetAllSceneAssets() const {
@@ -382,9 +617,7 @@ namespace Framework {
 	// DEBUG FUNCTIONS
 	// ---------------------------------------------------------------------------
 	void SceneManager::PrintAllScenesInfo() const {
-		CheckStorage();
-
-		EntityManager entityMgr(*entityStorageRef_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		std::unordered_map<std::string, std::vector<Entity>> scenes;
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
 			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
@@ -413,17 +646,15 @@ namespace Framework {
 	}
 
 	void SceneManager::PrintCurrentSceneInfo() const {
-		CheckStorage();
-
-		EntityManager entityMgr(*entityStorageRef_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		if (!GetSceneAt(currentScene_, true).IsValid()) {
 			Logger::Get().Info(DebugType::SceneManager) << "No active scene currently loaded." << std::endl;
 			return;
 		}
 		
 		Logger::Get().Info(DebugType::SceneManager) << "----- Current Scene Info -----" << std::endl;
-		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " + GetSceneAt(currentScene_).name << std::endl;
-		Logger::Get().Info(DebugType::SceneManager) << "Active Entities Count: " + entityMgr.GetAllEntitiesWithComponent(ActiveTagType).size() << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << GetSceneAt(currentScene_).name << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Active Entities Count: " << entityMgr.GetAllEntitiesWithComponent(ActiveTagType).size() << std::endl;
 
 		std::ostream& logStream = Logger::Get().Info(DebugType::SceneManager);
 		logStream << "Active Entities IDs: ";

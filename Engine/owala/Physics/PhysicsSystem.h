@@ -51,7 +51,7 @@ namespace Framework {
          * @brief Constructs the PhysicsSystem.
          * @param storage A reference to the central EntityStorage.
          */
-        explicit PhysicsSystem(EntityStorage& storage);
+        PhysicsSystem() = default;
 
 
         /**
@@ -195,7 +195,6 @@ namespace Framework {
         void EnforceViewportBounds();
 
         // --- Member Variables ---
-        EntityStorage* ecs_;
         float timeAccumulator_ = 0.0f; // Used to implement a fixed timestep loop.
         bool isPaused_ = false;
         bool stepModeActive_ = false;

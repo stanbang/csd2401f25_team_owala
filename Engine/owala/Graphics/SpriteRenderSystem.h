@@ -56,18 +56,10 @@ namespace Framework {
          * \param drawColliders Whether to draw collider outlines each frame.
          * \param clearColor    Background clear color (RGBA).
          */
-        SpriteRenderSystem(EntityStorage& ecs,
-            Graphics& gfx,
-			ResourceManager& resources, TransformationSystem* transformationSystem = nullptr,
-            bool drawColliders = false,
-            const Color& clearColor = { 0.08f, 0.10f, 0.14f, 1.0f })
-			: ecs_(ecs), gfx_(gfx), resources_(resources), transformationSystem_(transformationSystem),
-            drawColliders_(drawColliders), clearColor_(clearColor) {
+        SpriteRenderSystem(bool drawColliders = false, const Color& clearColor = { 0.08f, 0.10f, 0.14f, 1.0f })
+			: drawColliders_(drawColliders), clearColor_(clearColor) {
         }
 
-        void SetCameraSystem(CameraSystem* cameraSystem) {
-            cameraSystem_ = cameraSystem;
-        }
         /**
          * \brief Initialize the render system.
          * \details No-op here, provided for ISystem compliance.
@@ -123,13 +115,8 @@ namespace Framework {
         void RenderColliderOutlines();
 
     private:
-        EntityStorage& ecs_;          //!< ECS storage reference.
-        Graphics& gfx_;          //!< Graphics subsystem reference.
-        ResourceManager& resources_;    //!< Resource manager reference (textures).
         bool             drawColliders_ = false; //!< Flag for collider debug rendering.
         Color            clearColor_;   //!< Background clear color.
-        CameraSystem* cameraSystem_ = nullptr;
-		TransformationSystem* transformationSystem_ = nullptr;
     };
 
 } // namespace Framework

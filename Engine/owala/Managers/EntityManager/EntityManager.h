@@ -18,6 +18,7 @@
 #include "EntityStorage.h"
 #include <stdexcept>
 #include <bitset>
+#include <sstream>
 
 namespace Framework {
 
@@ -94,9 +95,18 @@ namespace Framework {
 			// Get the component type from the trait
 			constexpr ComponentType type = ComponentTypeTrait<T>::value;
 
+			// Validate Entity
+			if (!ValidateEntity(entity)) {
+				std::stringstream errorMsg;
+				errorMsg << "GetComponent: Invalid Entity ID: " << entity << " requested component with ID: " << static_cast<int>(type);
+				throw std::runtime_error(errorMsg.str());
+			}
+
 			// Ensure the entity actually has this component
 			if (!HasComponent(entity, type)) {
-				throw std::runtime_error("GetComponent: Entity does not have the requested component");
+				std::stringstream errorMsg;
+				errorMsg << "GetComponent: Entity: " << GetProperties(entity).name << " does not have the requested component with ID: " << static_cast<int>(type);
+				throw std::runtime_error(errorMsg.str());
 			}
 
 			// Return a reference to the component in the map

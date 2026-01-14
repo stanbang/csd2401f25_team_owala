@@ -32,12 +32,13 @@
 #include "FileUtility.h"
 #include "AnimationSystem.h"
 
-
 #ifdef BUILD_EDITOR
 #include "Editor.h"
+#include <memory>
 #endif
 
 #include <vector>
+#include <unordered_map>
 
 
 namespace Framework {
@@ -51,7 +52,7 @@ namespace Framework {
 		AUDIO_SYSTEM
 	};
 
-	// Might rename this to a GameSystem later on. Either that or need to figure out how to decouple from the engine.
+	// Might rename this to a GameSystem later on.
 	class GameManager : public ISystem {
 	public:
 		// Aliases
@@ -59,6 +60,9 @@ namespace Framework {
 	private:
 		static GameManager* instance;
 		std::string nextSceneToLoad_ = "";
+
+		bool queuedLevelLoad_ = false;
+		std::string queuedLevelName_;
 
 		struct SceneCallBacks {
 			SceneFunction fpInitialize = nullptr;
@@ -89,6 +93,12 @@ namespace Framework {
 		RegisteredSystems systems_;
 #ifdef BUILD_EDITOR
 		Editor::Editor* editor_ = nullptr; // ImGui Editor instance
+
+		/* Play State Management */
+		bool hasECSSnapshot = false;
+		EntityStorage* editorECS_ = nullptr;
+		std::unique_ptr<EntityStorage> runtimeECS_ = nullptr;
+		Entity nextEntityIDSnapshot = 1u;
 #endif
 
 		float deltaTime = 0.0f;
@@ -131,7 +141,10 @@ namespace Framework {
 		/* Getters & Setters */
 		// Retrieves the interval in seconds from the last frame to the current one (Read only).
 		float GetDeltaTime() const { return deltaTime; }
-		RegisteredSystems GetSystems() const { return systems_;  }
+		RegisteredSystems& GetSystems() { return systems_; }
+		const RegisteredSystems& GetSystems() const { return systems_; }
+		EntityStorage& GetECS() { return *systems_.ecs_; };
+		const EntityStorage& GetECS() const { return *systems_.ecs_; }
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 
@@ -148,6 +161,10 @@ namespace Framework {
 
 		// Getter for the ImGui Editor instance
 		Editor::Editor* GetEditor() const { return editor_; }
+
+		/* Play State Management */
+		void OnBeginPlay();
+		void OnEndPlay();
 #endif
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.

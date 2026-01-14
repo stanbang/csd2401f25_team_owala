@@ -24,13 +24,11 @@ namespace Framework {
     class TransformationSystem;
     class PlatformBehaviorSystem : public ISystem {
     private:
-        EntityStorage* ecs_;
-        TransformationSystem* transformSystem_;
         bool ShouldTrapFall(EntityManager& entityMgr, Entity entity, float worldRotation) const;
         void UpdateTrapPlatforms();
 
     public:
-        PlatformBehaviorSystem(EntityStorage& storage, TransformationSystem& transformSystem) : ecs_(&storage), transformSystem_(&transformSystem) {}
+        PlatformBehaviorSystem() = default;
 
         void Initialize() override {}
         void Update() override;

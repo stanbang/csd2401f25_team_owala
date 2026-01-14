@@ -31,8 +31,8 @@ namespace Framework{
 	class GuiSystem : public ISystem {
 	public:
 		// Constructor taking references to EntityStorage and ResourceManager
-		GuiSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, InputSystem& inputSystem, WindowsSystem& win, CoreEngine& engine, AudioSystem& audioSystem)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), inputSystem_(&inputSystem), windowsSystem_(&win), engine_(&engine), audioSystem_(&audioSystem) {
+		GuiSystem(CoreEngine& engine)
+			: engine_(&engine) {
 		}
 		void Initialize() override;
 		void Update() override;
@@ -49,13 +49,8 @@ namespace Framework{
 		//}
 
 	private:
-		// Pointer to the entity storage to access and modify entities and their components
-		EntityStorage* entityStorage_ = nullptr;
-		ResourceManager* resourceManager_ = nullptr;
-		InputSystem* inputSystem_ = nullptr;
-		WindowsSystem* windowsSystem_ = nullptr;
+		// Pointer to the engine
 		CoreEngine* engine_ = nullptr;
-		AudioSystem* audioSystem_ = nullptr;
 
 		//Vector2D viewportSizeEngine_ = { 1.0f, 1.0f };
 

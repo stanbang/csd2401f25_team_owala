@@ -16,10 +16,9 @@
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "GuiSystem.h"
-#include "CameraSystem.h" // For the camera
+#include "GameManager.h"
 #include "GameMessages.h" // For ButtonClickedEvent
 #include "MessageBus.h" // For MessageBus
-#include "WindowsSystem.h"
 
 namespace Framework {
 
@@ -34,7 +33,9 @@ namespace Framework {
 		}
 		#endif
 
-		EntityManager entityMgr(*entityStorage_);
+		GameManager& gm = GameManager::GetInstance();
+		InputSystem& inputSystem_ = *gm.GetSystems().input_;
+		EntityManager entityMgr(gm.GetECS());
 
 		// Get mouse position in world coordinates
 		double mouseX, mouseY;
@@ -52,12 +53,13 @@ namespace Framework {
 
 		// Engine build uses full window size
 		#ifdef BUILD_ENGINE
-		inputSystem_->GetMousePos(&mouseX, &mouseY); // Get mouse position in window coordinates
-		double mouseX_ndc = static_cast<double>((mouseX / windowsSystem_->getWidth()) * 2.0f - 1.0f);
-		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / windowsSystem_->getHeight()) * 2.0f);
+		WindowsSystem& windowsSystem_ = *gm.GetSystems().win_;
+		inputSystem_.GetMousePos(&mouseX, &mouseY); // Get mouse position in window coordinates
+		double mouseX_ndc = static_cast<double>((mouseX / windowsSystem_.getWidth()) * 2.0f - 1.0f);
+		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / windowsSystem_.getHeight()) * 2.0f);
 		#endif
 
-		bool mouseDown = inputSystem_->MouseDown(InputSystem::MouseButton::Left);
+		bool mouseDown = inputSystem_.MouseDown(InputSystem::MouseButton::Left);
 
 		// Loop through all active entities with Button, Position and AABB
 		for (const Entity& button : entityMgr.GetAllEntitiesWithComponents(ButtonType, TransformType, TextureComponentType, ActiveTagType)){
@@ -109,7 +111,7 @@ namespace Framework {
 			buttonComponent.wasHoveredLastFrame = isHovering;
 
 			// Check for mouse click release
-			bool mouseClicked = inputSystem_->MouseReleased(InputSystem::MouseButton::Left);
+			bool mouseClicked = inputSystem_.MouseReleased(InputSystem::MouseButton::Left);
 			// If mouse clicked while hovering, trigger button action
 			if (isHovering && mouseClicked) {
 				Logger::Get().Info(DebugType::GUISystem)
@@ -162,6 +164,10 @@ namespace Framework {
 
 	// Play button sounds
 	void GuiSystem::PlayButtonSound(const std::string& soundKey, float volume) {
+		GameManager& gm = GameManager::GetInstance();
+		AudioSystem* audioSystem_ = gm.GetSystems().audio_;
+		ResourceManager* resourceManager_ = gm.GetSystems().resourceManager_;
+
 		try {
 			// Get the audio system through the resource manager or message bus
 			// Assuming you have access to AudioSystem through a pointer
@@ -222,6 +228,7 @@ namespace Framework {
         }
 
         // Handle animation component
+		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
         if (shouldAnimate) {
             // Add AnimationComponent if it doesn't exist
             if (!entityMgr.HasComponent(button, AnimationComponentType)) {
@@ -231,8 +238,8 @@ namespace Framework {
             AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(button);
 
             // Load animation info BEFORE setting texture key to prevent seeing a whole spritesheet for like a single frame
-            if (resourceManager_->has<AnimationInfo>(newTextureKey)) {
-                AnimationInfo& animInfo = resourceManager_->get<AnimationInfo>(newTextureKey);
+            if (resourceManager_.has<AnimationInfo>(newTextureKey)) {
+                AnimationInfo& animInfo = resourceManager_.get<AnimationInfo>(newTextureKey);
 
                 // Set animation properties from loaded data
                 animComp.frameCount = animInfo.frameCount;
@@ -264,10 +271,10 @@ namespace Framework {
             else {
                 // Animation info not found, try to load it
                 try {
-                    resourceManager_->loadAnimationInfo(newTextureKey);
+                    resourceManager_.loadAnimationInfo(newTextureKey);
 
-                    if (resourceManager_->has<AnimationInfo>(newTextureKey)) {
-                        AnimationInfo& animInfo = resourceManager_->get<AnimationInfo>(newTextureKey);
+                    if (resourceManager_.has<AnimationInfo>(newTextureKey)) {
+                        AnimationInfo& animInfo = resourceManager_.get<AnimationInfo>(newTextureKey);
 
                         animComp.frameCount = animInfo.frameCount;
                         animComp.frameDuration = animInfo.frameDuration;

@@ -16,11 +16,12 @@
 
 #include "LevelResetSystem.h"
 #include "MessageBus.h"
+#include "GameManager.h"
 
 namespace Framework {
 
     // Constructor
-    LevelResetSystem::LevelResetSystem(EntityStorage& ecs, TransformationSystem& transSys) : ecs_(ecs), transformationSys_(transSys)
+    LevelResetSystem::LevelResetSystem()
     {
         // Player Signature
         playerSig.set(ActiveTagType);
@@ -58,7 +59,7 @@ namespace Framework {
         // Subscribe to ButtonClickedEvent for resetting player position
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
             if (event.action == ButtonAction::RESETPLAYERPOS) {
-                EntityManager entityMgr(ecs_);
+                EntityManager entityMgr(GameManager::GetInstance().GetECS());
                 for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
                     if (entityMgr.HasComponent(entity, TransformType)) {
                         ResetTransform(entityMgr, entity, Transform(GetPlayerSpawnPt(entityMgr)));
@@ -69,11 +70,14 @@ namespace Framework {
     }
 
     void LevelResetSystem::RunReset() {
+        GameManager& gm = GameManager::GetInstance();
+        TransformationSystem& transformationSys_ = *gm.GetSystems().transformation_;
+
         // Reset global rotation
         Logger::Get().Info(DebugType::LevelResetSystem) << "Reset global rotation variables" << std::endl;
         transformationSys_.ResetGlobalRotation();
 
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(gm.GetECS());
         
         // Delete all particles
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {

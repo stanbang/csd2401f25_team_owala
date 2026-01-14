@@ -16,7 +16,6 @@
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "VFXSystem.h"
-#include "Logger.h"
 #include "Components.h"
 #include "EntityManager.h"
 #include "GameManager.h"
@@ -43,14 +42,14 @@ namespace Framework {
 #endif
 
 		//Get Entity Manager
-		EntityManager entityMgr(*entityStorage_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		EmitParticles(entityMgr);
 		UpdateParticles(entityMgr);
 	}
 
 	// Event Handler
 	void VFXSystem::OnParticleBurst(const ParticleBurstEvent& event) {
-		EntityManager entityMgr(*entityStorage_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
 		// Create a temporary config based on the event data
 		// We reuse the ParticleEmitterComponent struct to hold the settings
@@ -422,6 +421,7 @@ namespace Framework {
 	}
 
 	Vector2D VFXSystem::WorldToScreenSpace(const Vector2D& worldPos) {
+		CameraSystem* cameraSystem_ = GameManager::GetInstance().GetSystems().camera_;
 		if (!cameraSystem_) return worldPos;
 
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
@@ -441,6 +441,7 @@ namespace Framework {
 	}
 
 	Vector2D VFXSystem::ScreenSpaceToWorld(const Vector2D& screenPos) {
+		CameraSystem* cameraSystem_ = GameManager::GetInstance().GetSystems().camera_;
 		if (!cameraSystem_) return screenPos;
 
 		Entity activeCamera = cameraSystem_->GetActiveCamera();

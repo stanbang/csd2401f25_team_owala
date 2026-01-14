@@ -31,13 +31,11 @@
  *********************************************************************/
 
 #include "SpriteRenderSystem.h"
+#include "GameManager.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
-#include "Matrix3x3.h"
-#include <cmath>
-#include <random>
-#include <algorithm>
 #include <tuple>
+#include <map>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -52,7 +50,7 @@ namespace Framework {
      * draws collider outlines if enabled.
      */
     void SpriteRenderSystem::Update() {
-        gfx_.beginFrame(clearColor_);
+        GameManager::GetInstance().GetSystems().gfx_->beginFrame(clearColor_);
         RenderSprites();
         if (drawColliders_) {
             RenderColliderOutlines();
@@ -67,7 +65,11 @@ namespace Framework {
      * sorts by render order and texture, and draws batched sprites.
      */
     void SpriteRenderSystem::RenderSprites() {
-        EntityManager entityMgr(ecs_);
+        GameManager& gm = GameManager::GetInstance();
+        CameraSystem* cameraSystem_ = gm.GetSystems().camera_;
+        ResourceManager& resources_ = *gm.GetSystems().resourceManager_;
+        Graphics& gfx_ = *gm.GetSystems().gfx_;
+        EntityManager entityMgr(gm.GetECS());
 
         // Retrieve active camera
         Entity activeCamera = 0;
@@ -267,7 +269,11 @@ namespace Framework {
      * to maintain visual alignment with world coordinates.
      */
     void SpriteRenderSystem::RenderColliderOutlines() {
-        EntityManager entityMgr(ecs_);
+        GameManager& gm = GameManager::GetInstance();
+        CameraSystem* cameraSystem_ = gm.GetSystems().camera_;
+        Graphics& gfx_ = *gm.GetSystems().gfx_;
+        EntityManager entityMgr(gm.GetECS());
+
         Entity activeCamera = 0;
         if (cameraSystem_) {
             activeCamera = cameraSystem_->GetActiveCamera();

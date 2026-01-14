@@ -127,7 +127,9 @@ namespace Framework {
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
-		return ecs.entitySignatures[entity].test(componentType);
+		std::unordered_map<Entity, ComponentSignature>::iterator it = ecs.entitySignatures.find(entity);
+		if (it == ecs.entitySignatures.end()) return false;
+		return it->second.test(componentType);
 	}
 
 	void EntityManager::AddComponent(Entity entity, ComponentType componentType) {

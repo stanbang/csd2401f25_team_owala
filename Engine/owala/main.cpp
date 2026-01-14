@@ -96,33 +96,35 @@ int main() {
         g_win = win; // Only needed for editor console handler
 #endif
 
-        InputSystem* input = new InputSystem(*win);
-        std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();
-        PhysicsSystem* phx = new PhysicsSystem(*ecs);
-        SceneManager::GetInstance().SetEntityStorageRef(*ecs);
-        TransformationSystem* transformation = new TransformationSystem(*ecs, *input, *phx);
-        PlatformBehaviorSystem* platform = new PlatformBehaviorSystem(*ecs, *transformation);
-        PlayerSystem* player = new PlayerSystem(*ecs, *input, *phx, *transformation);
-        AudioSystem* audio = new AudioSystem(*ecs);
-        Graphics* gfx = new Graphics(*win);
-        AISystem* aiSystem = new AISystem(*ecs, *gfx);
-        ResourceManager* rcm = new ResourceManager(*gfx, *audio);
-        audio->SetResourceManager(*rcm);
         GameManager* gm = &GameManager::GetInstance();
         gm->SetEngine(engine);
-        AnimationSystem* animation = new AnimationSystem(*ecs, *rcm);
-        GuiSystem* gui = new GuiSystem(*ecs, *rcm, *input, *win, engine, *audio);
-        CameraSystem* camera = new CameraSystem(*ecs);
-        VFXSystem* vfx = new VFXSystem(*ecs, *rcm, *camera);
-        SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, transformation, false);
-        TextRenderSystem* textRenderer = new TextRenderSystem(*ecs, *rcm, *gfx, *win);
-        LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
+        InputSystem* input = new InputSystem(*win);
+        std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();
+        PhysicsSystem* phx = new PhysicsSystem();
+        TransformationSystem* transformation = new TransformationSystem();
+        PlatformBehaviorSystem* platform = new PlatformBehaviorSystem();
+        PlayerSystem* player = new PlayerSystem();
+        AudioSystem* audio = new AudioSystem();
+        Graphics* gfx = new Graphics();
+        AISystem* aiSystem = new AISystem();
+        ResourceManager* rcm = new ResourceManager();
+        //audio->SetResourceManager(*rcm);
+        AnimationSystem* animation = new AnimationSystem();
+        GuiSystem* gui = new GuiSystem(engine);
+        CameraSystem* camera = new CameraSystem();
+        VFXSystem* vfx = new VFXSystem();
+        SpriteRenderSystem* renderer = new SpriteRenderSystem(false);
+        TextRenderSystem* textRenderer = new TextRenderSystem();
+        LevelResetSystem* levelResetter = new LevelResetSystem();
         gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter, *transformation, *animation);
+
+        // Lazy create SceneManager.
+        SceneManager::GetInstance();
 
         // Editor Registration
 #ifdef BUILD_EDITOR
         Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
-        Editor::GizmoSystem* gizmo = new Editor::GizmoSystem(*editor, *ecs, *camera);
+        Editor::GizmoSystem* gizmo = new Editor::GizmoSystem(*editor);
         editor->SetGizmoSystem(gizmo);
         gm->RegisterEditor(*editor);
 #endif

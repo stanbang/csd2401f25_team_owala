@@ -18,6 +18,7 @@
 #include "Editor.h"
 #include "EntityManager.h"
 #include "EntitySerializer.h"
+#include "GameManager.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -26,13 +27,12 @@
 using namespace Editor;
 using namespace Framework;
 
-GizmoSystem::GizmoSystem(Editor& editor, EntityStorage& ecs, CameraSystem& camera)
-    : editor_(&editor), ecs_(ecs), cameraSystem_(&camera) {}
+GizmoSystem::GizmoSystem(Editor& editor) : editor_(&editor) {}
 
 // --- Invisible Entities stuff ---
 void GizmoSystem::DrawInvisPlaceholders(ImDrawList* drawList) {
     // Draw placeholder green dot for SpawnPoint (invisible entities)
-    EntityManager entityMgr(ecs_);
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
     std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
     for (Entity en : spawnPts) {
         SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
@@ -44,7 +44,7 @@ void GizmoSystem::DrawInvisPlaceholders(ImDrawList* drawList) {
 Entity GizmoSystem::IsInvisEntityClicked() {
     ImVec2 mouseScreenPos = ImGui::GetMousePos();
 
-    EntityManager entityMgr(ecs_);
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
     std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
     for (Entity en : spawnPts)
     {
@@ -73,7 +73,7 @@ void GizmoSystem::DrawGizmos(ImDrawList* drawList, int selectedEntityIndex) {
     Entity entity = selectedEntityIndex - 1;
 
     // get position in IMGUI screen coords
-    EntityManager entityMgr(ecs_);
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
     Vector2D pos{};
 
     if (entityMgr.HasComponent(entity, TransformType)) {
@@ -238,7 +238,7 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
     drawList->AddCircle(origin, radius, color, 64, axisThickness_);
 
      // Draw a line indicating current rotation
-    EntityManager entityMgr(ecs_);
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
     if (entityMgr.HasComponent(entity, TransformType)) {
         //float currentRot = entityMgr.GetComponent<Rotation>(entity).angle;
         float currentRot = entityMgr.GetComponent<Transform>(entity).rotation.textureAngle;
@@ -300,6 +300,7 @@ void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
 
 void GizmoSystem::HandleStopDrag() {
     // save the current state of the relevant components AFTER transformation
+    EntityStorage& ecs_ = GameManager::GetInstance().GetECS();
     EntityManager entityMgr(ecs_);
     HistoryManager* historyMgr = editor_->GetHistoryMgr();
 
@@ -353,6 +354,7 @@ void GizmoSystem::HandleStopDrag() {
 }
 
 void GizmoSystem::HandleStartDrag() {
+    EntityStorage& ecs_ = GameManager::GetInstance().GetECS();
     EntityManager entityMgr(ecs_);
 
     gizmoAffectedComponents_.clear();
@@ -390,7 +392,7 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
     // Safety check: isDragging_ must be true, and draggedEntity_ must be valid
     if (!isDragging_ || draggedEntity_ == 0) return;
 
-    EntityManager entityMgr(ecs_);
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
     switch (currentMode_) {
     case GizmoMode::Translate:
@@ -503,7 +505,7 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             Vector2D& scale = entityMgr.GetComponent<Transform>(draggedEntity_).scale;
 
             // Get camera zoom for screen-to-world conversion
-            float cameraZoom = cameraSystem_->GetCamera(activeCamera).size.x / editor_->GetGameViewportSize().x;
+            float cameraZoom = GameManager::GetInstance().GetSystems().camera_->GetCamera(activeCamera).size.x / editor_->GetGameViewportSize().x;
 
             // Convert screen delta to world scale change
             float deltaWorldX = mouseDelta.x * cameraZoom * 0.01f; // Multiply by a small factor (e.g., 0.01) to slow down scale
