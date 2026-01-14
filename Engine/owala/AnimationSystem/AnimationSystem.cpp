@@ -26,6 +26,8 @@ namespace Framework {
     void AnimationSystem::Update() {
 		EntityManager entityMgr(*entityStorage_);
 		const auto& animationProfiles = resourceManager_->GetAnimationProfiles();
+		// Small padding to avoid texture bleeding
+		constexpr float UV_PADDING = 0.003f;
 
         // Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
@@ -200,8 +202,8 @@ namespace Framework {
 						// Note: Using sheet.frameCount, NOT animationComponent.frameCount (which is the total)
 						if (sheet.frameCount > 0) {
 							float frameUVWidth = 1.0f / (float)sheet.frameCount;
-							float u_min = (float)localFrame * frameUVWidth;
-							float u_max = u_min + frameUVWidth;
+							float u_min = ((float)localFrame * frameUVWidth) + UV_PADDING;
+							float u_max = (((float)localFrame + 1.0f) * frameUVWidth) - UV_PADDING;
 
 							if (isFacingRight) {
 								animationComponent.minUV.x = u_min;
@@ -229,8 +231,8 @@ namespace Framework {
 				textureComponent.textureKey = baseTextureKey;
 
 				float frameUVWidth = 1.0f / (float)animationComponent.frameCount;
-				float u_min = (float)animationComponent.currentFrame * frameUVWidth;
-				float u_max = u_min + frameUVWidth;
+				float u_min = ((float)animationComponent.currentFrame * frameUVWidth) + UV_PADDING;
+				float u_max = (((float)animationComponent.currentFrame + 1.0f) * frameUVWidth) - UV_PADDING;
 
 				if (isFacingRight) {
 					animationComponent.minUV.x = u_min;

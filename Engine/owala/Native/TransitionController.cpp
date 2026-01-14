@@ -337,10 +337,9 @@ namespace Framework {
 
                     if (rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
                         AnimationInfo& info = rsm->get<AnimationInfo>(OPEN_ANIM_TEXTURE);
-
                         anim.frameCount = info.frameCount;
                         anim.frameDuration = info.frameDuration;
-
+                        constexpr float UV_PADDING = 0.003f;
                         // Handle Multi-Spritesheet UVs
                         if (!info.sheets.empty()) {
                             const auto& firstSheet = info.sheets[0];
@@ -348,14 +347,14 @@ namespace Framework {
 
                             if (firstSheet.frameCount > 0) {
                                 float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
-                                anim.minUV = { 0.0f, 0.0f };
-                                anim.maxUV = { frameUVWidth, 1.0f };
+                                anim.minUV = { 0.0f + UV_PADDING, 0.0f };
+                                anim.maxUV = { frameUVWidth - UV_PADDING, 1.0f };
                             }
                         }
                         else if (info.frameCount > 0) {
                             float frameUVWidth = 1.0f / (float)info.frameCount;
-                            anim.minUV = { 0.0f, 0.0f };
-                            anim.maxUV = { frameUVWidth, 1.0f };
+                            anim.minUV = { 0.0f + UV_PADDING, 0.0f };
+                            anim.maxUV = { frameUVWidth - UV_PADDING, 1.0f };
                         }
                     }
                 }
