@@ -36,7 +36,7 @@ namespace Framework{
 		Platform,
 		Enemy,
 		Trigger,
-		Count // track the number of layers
+		Count = 32  // Maximum layers 
 	};
 
 	// Enum for defining rendering layers 
@@ -58,13 +58,21 @@ namespace Framework{
 		DEATH
 	};
 
+	// For particle emission modes
+	enum class ParticleEmissionMode {
+		CONTINUOUS,    // Emit constantly while active
+		BURST,         // Emit once on trigger
+		LOOP_BURST     // Emit multiple bursts on trigger
+	};
+
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
+		std::string collisionLayerName = "";
 		RenderLayer renderLayer = RenderLayer::Platform;
 		int customRenderOrder = 0; // Used when renderLayer is Custom
-
+		std::string renderLayerName = ""; // store name of dynamiclly created layers
 		bool isActive = true;
 	};
 
@@ -160,6 +168,7 @@ namespace Framework{
 	struct TextureComponent {
 		std::string textureKey; // Key to identify the texture resource
 		Vector2D HalfSize = { 50.f, 50.f };
+		bool flipHorizontal = false;
 	};
 
 	struct AudioComponent {
@@ -170,6 +179,7 @@ namespace Framework{
 	};
 
 	struct AnimationComponent {
+		std::string profileName; // Name of the animation profile to use(can be Player, BirdEnemy etc)
 		AnimationState currentState = AnimationState::IDLE; // Default animation state is IDLE
 
 		int currentFrame = 0;      // Frame index
@@ -469,6 +479,13 @@ namespace Framework{
 		bool isEmitting = true;
 		bool isParticleAnimated = false; // Is the particle texture animated
 		bool isScreenSpace = false;   // Are the particles rendered in screen space
+		ParticleEmissionMode emissionMode = ParticleEmissionMode::CONTINUOUS;
+
+		// For BURST/LOOP_BURST modes
+		std::string triggerEventName;  // Name of the event to listen for
+		int burstCount = 1;            // How many bursts to emit (for LOOP_BURST)
+		float burstInterval = 0.5f;    // Time between bursts (for LOOP_BURST)
+		float timeSinceBurst = 0.0f;   // Internal timer for burst spacing
 
 		std::string particleTextureKey; // Key to identify the texture resource for particles
 		float particleLifetime = 1.0f;	// Total lifetime of the particle

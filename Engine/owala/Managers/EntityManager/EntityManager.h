@@ -52,6 +52,12 @@ namespace Framework {
 		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
 		template <typename T>
 		void AddComponent(Entity entity, const T& component) {
+			if (!ValidateEntity(entity)) {
+				std::stringstream errorMsg;
+				errorMsg << "AddComponent: Invalid Entity ID: " << entity;
+				throw std::runtime_error(errorMsg.str());
+			}
+
 			constexpr ComponentType type = ComponentTypeTrait<T>::value;
 
 			if (HasComponent(entity, type)) return;
@@ -83,7 +89,7 @@ namespace Framework {
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
 			}
 
-			ecs.entitySignatures[entity].set(type);
+			ecs.entitySignatures.at(entity).set(type);
 		}
 		// Adds a empty component of specified ComponentType ID to the entity.
 		void AddComponent(Entity entity, ComponentType componentType);
@@ -214,6 +220,8 @@ namespace Framework {
 
 		std::vector<Entity> entities;
 		for (const auto& [entity, entitySignature] : ecs.entitySignatures) {
+
+			if (ecs.properties.find(entity) == ecs.properties.end()) continue;
 
 			// Check if the entity's signature includes all bits in the required signature
 			if ((entitySignature & requiredSignature) == requiredSignature) {

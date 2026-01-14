@@ -26,68 +26,60 @@ namespace Framework {
 
 		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
 
         // Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
 			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
 			if (!entityMgr.HasComponent(entity, TextureComponentType)) continue; // Skip if entity does not have TextureComponent
-			if (!entityMgr.HasComponent(entity, AnimationComponentType)) continue; // Skip if entity does not have AnimationComponent
 			
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 
 			if (textureComponent.textureKey.empty()) {
-				continue; // Don't try to load animation for empty texture
+				continue; // Don't load animation for empty textures
 			}
+
+			// Store previous texture key to detect changes
+			std::string previousTextureKey = textureComponent.textureKey;
 
 			// Default facing direction
 			bool isFacingRight = true;
-			// The last texture key used
-			std::string previousTextureKey = textureComponent.textureKey;
-			std::string baseTextureKey = textureComponent.textureKey;
-
-			// Handle Player Animation State to Texture Key mapping
-			if (entityMgr.HasComponent(entity, PlayerTagType)) {
-
-				// Get PlayerState to determine facing direction
-				if (entityMgr.HasComponent(entity, PlayerStateType)) {
-					PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
-					isFacingRight = state.isFacingRight;
-				}
-
-				// Map AnimationState to Texture Key
-				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    baseTextureKey = "SB_Eli_Idle_Spritesheet_1.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
-				case AnimationState::RUNNING: baseTextureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
-				case AnimationState::JUMPING: baseTextureKey = "Eli_Jump_Spritesheet.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
-				case AnimationState::FALLING: baseTextureKey = "Eli_Falling_Spritesheet.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
-				case AnimationState::DEATH:   baseTextureKey = "SB_Eli_Death_Spritesheet_1.png";/*std::cout << "Player State : DEATH \n";*/ break; // When dying, use death animation
-				}
-
+			if (entityMgr.HasComponent(entity, PlayerStateType)) {
+				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
 			}
-
-			else if (entityMgr.HasComponent(entity, FakePlayerTagType)) {
-				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    baseTextureKey = "SB_Eli_Idle_Spritesheet_1.png"; break; //When idle, use idle animation
-				case AnimationState::RUNNING: baseTextureKey = "Eli_Walk_Spritesheet.png"; break; //When running, use running animation
-				}
-			}
-
-			// Handle bird animations
 			else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
-				// Get BirdAIComponent to determine state
-				BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+				isFacingRight = entityMgr.GetComponent<BirdAIComponent>(entity).isFacingRight;
+			}
 
-				isFacingRight = birdAI.isFacingRight; // use bird facing direction
+			// Generic Texture Lookup
+			std::string newTextureKey = textureComponent.textureKey; // Default to current
 
-				switch (birdAI.state) {
-				case BirdState::IDLE: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::WAKING: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::CHASE: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
-				case BirdState::HOVER: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
-				case BirdState::ATTACK: baseTextureKey = "SB_BirdEnemy_DiveAttack_Spritesheet.png"; break;
+			// Check if this entity uses a profile (e.g "Player")
+			if (!animationComponent.profileName.empty()) {
+				// Find the profile in the map
+				if (animationProfiles.count(animationComponent.profileName)) {
+					const auto& stateMap = animationProfiles.at(animationComponent.profileName);
+
+					// Synchronize animation state with AI state for BirdEnemy
+					if (animationComponent.profileName == "BirdEnemy" &&
+						entityMgr.HasComponent(entity, BirdAIComponentType)) {
+						BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(entity);
+						// Map BirdState to AnimationState
+						// We use the stateMap keys from the JSON which are: IDLE, WAKING, CHASE, HOVER, ATTACK
+						int birdStateIndex = static_cast<int>(ai.state);
+						animationComponent.currentState = static_cast<AnimationState>(birdStateIndex);
+					}
+
+					// Find the texture for the current state (cast enum to int)
+					int stateIndex = static_cast<int>(animationComponent.currentState);
+					if (stateMap.count(stateIndex)) {
+						newTextureKey = stateMap.at(stateIndex);
+					}
 				}
 			}
+
+			std::string baseTextureKey = newTextureKey;
 
 			// Load animation info using base texture key
 			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
@@ -146,6 +138,20 @@ namespace Framework {
 
 			// If the animation state changed, reset the animation playback
 			if (animationStateChanged) {
+				try {
+					// Update animation component properties based on the retrieved AnimationInfo
+					animationComponent.frameCount = animationInfo.frameCount;
+					animationComponent.frameDuration = animationInfo.frameDuration;
+					animationComponent.isLooping = animationInfo.isLooping; // Only sets default on switch
+					animationComponent.startFrame = animationInfo.startFrame;
+				}
+				catch (const std::exception& e) {
+					Logger::Get().Error(DebugType::ResourceManager)
+						<< "Error updating AnimationComponent from AnimationInfo for texture key: "
+						<< textureComponent.textureKey << ". Exception: " << e.what() << std::endl;
+					continue; // Skip this entity if there's an error
+				}
+
 				animationComponent.isPlaying = true;
 				animationComponent.currentFrame = animationComponent.startFrame;
 				animationComponent.elapsedTime = 0.0f;

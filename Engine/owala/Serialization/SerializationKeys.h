@@ -14,6 +14,7 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #pragma once
+#include "SerializationKeys.h"
 
 namespace Framework::Serialization {
 	/* Generic Scene JSON Labels */
@@ -35,9 +36,20 @@ namespace Framework::Serialization {
 	/* Entity Properties JSON Labels */
 	inline constexpr const char* ENTITY_NAME = "name";
 	static constexpr const char* ENTITY_LAYER = "layer";
+	static constexpr const char* ENTITY_COLLISION_LAYER_NAME = "layer_collision_name";
 	static constexpr const char* ENTITY_RENDER_LAYER = "render_layer";          
 	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
 	static constexpr const char* ENTITY_IS_ACTIVE = "active";
+	static constexpr const char* ENTITY_RENDER_LAYER_NAME = "layer_render_name";
+
+	/* Layer Configuration Keys */
+	static constexpr const char* RENDER_LAYERS = "RenderLayers";
+	static constexpr const char* COLLISION_LAYERS = "CollisionLayers";
+	static constexpr const char* LAYER_NAME = "name";
+	static constexpr const char* LAYER_RENDER_ORDER = "renderOrder";
+	static constexpr const char* LAYER_ID = "id";
+	static constexpr const char* LAYER_IS_BUILTIN = "isBuiltIn";
+	static constexpr const char* LAYER_IS_VISIBLE = "isVisible";
 
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";
@@ -99,6 +111,7 @@ namespace Framework::Serialization {
 	static constexpr const char* TEXTURE_COMPONENT = "TextureComponent";
 	static constexpr const char* TEXTURE_KEY = "texture_key";
 	static constexpr const char* HALF_SIZE = "half_size";
+	static constexpr const char* TEXTURE_FLIP_X = "flip_x";
 	
 	static constexpr const char* AUDIO_COMPONENT = "AudioComponent";
 	static constexpr const char* SOUND_KEY = "sound_key";
@@ -107,6 +120,7 @@ namespace Framework::Serialization {
 	static constexpr const char* VOLUME = "volume";
 
 	static constexpr const char* ANIMATION_COMPONENT = "AnimationComponent";
+	static constexpr const char* ANIMATION_PROFILE = "profile_name";
 	static constexpr const char* CURRENT_STATE = "current_state";
 	static constexpr const char* CURRENT_FRAME = "current_frame";
 	static constexpr const char* FRAME_DURATION = "frame_duration";

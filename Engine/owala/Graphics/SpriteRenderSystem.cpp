@@ -234,6 +234,11 @@ namespace Framework {
                     batchedSprite.maxUV = { 1.0f, 1.0f };
                 }
 
+                // Swaps the U coordinates if the flipX flag is set on the texture component
+                if (sprite.flipHorizontal) {
+                    std::swap(batchedSprite.minUV.x, batchedSprite.maxUV.x);
+                }
+
 				// UV Inset to prevent texture bleeding
                 /*float uvInset = 0.005f;
                 batchedSprite.minUV.x += uvInset;

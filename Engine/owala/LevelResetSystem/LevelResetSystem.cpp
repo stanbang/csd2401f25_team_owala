@@ -56,6 +56,13 @@ namespace Framework {
         enemySig.set(ActiveTagType);
         enemySig.set(SceneOwnedType);
 
+        // Text signature
+        worldTextSig.set(TextComponentType);
+        worldTextSig.set(TransformType);
+        worldTextSig.set(RotationFlagType);
+        worldTextSig.set(ActiveTagType);
+        worldTextSig.set(SceneOwnedType);
+
         // Subscribe to ButtonClickedEvent for resetting player position
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
             if (event.action == ButtonAction::RESETPLAYERPOS) {
@@ -129,6 +136,13 @@ namespace Framework {
 
             // --- Portal Reset ---
             if (entityMgr.GetProperties(entity).name == "Portal") {
+                Vector2D originalPos = TransformationSystem::GetOriginalPos(entityMgr, entity);
+                ResetTransform(entityMgr, entity, Transform{ originalPos });
+                continue;
+            }
+
+            // --- World Text Reset ---
+            if (CmpSignatures(signature, worldTextSig)) {
                 Vector2D originalPos = TransformationSystem::GetOriginalPos(entityMgr, entity);
                 ResetTransform(entityMgr, entity, Transform{ originalPos });
                 continue;

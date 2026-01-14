@@ -62,6 +62,7 @@ namespace Framework {
 		std::string nextSceneToLoad_ = "";
 
 		bool queuedLevelLoad_ = false;
+		bool queuedLevelReset_ = false;
 		std::string queuedLevelName_;
 
 		struct SceneCallBacks {
@@ -174,7 +175,10 @@ namespace Framework {
 		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
 		std::string GetNextScene() const { return nextSceneToLoad_; }
 		void InitiateLevelLoad(const std::string& levelName);
-		
+
+		// Helper to check if a scene is a level scene
+		bool IsLevelScene(const std::string& name);
+
 		/* Game Cycle Functions */
 		void Initialize() override;
 		void Update() override;

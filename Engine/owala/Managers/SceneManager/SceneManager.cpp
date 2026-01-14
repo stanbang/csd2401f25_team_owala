@@ -470,7 +470,7 @@ namespace Framework {
 			if (entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.RemoveComponent(entity, ActiveTagType);
 		}
 
-		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] to Scene [" << targetScene->name << "]" << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] with name " << entityMgr.GetProperties(entity).name << " to Scene[" << targetScene->name << "]" << std::endl;
 	}
 
 	void SceneManager::AddEntityToScene(const SceneAsset& scene, Entity entity) {

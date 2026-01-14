@@ -30,6 +30,8 @@
 #include "AssetBrowser.h"
 #include "AISystem.h" // Include AISystem for debugging purposes
 #include "rapidjson/prettywriter.h"
+#include "FileUtility.h"
+#include <fstream>
 
 // Debug
 #include "Logger.h"
@@ -340,6 +342,14 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
+		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
+			Logger::Get().Info(DebugType::Editor)
+				<< "Using default layer configuration" << std::endl;
+
+			// Save defaults to file for next time
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+		}
+
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
 		firstUpdate = true;
@@ -477,6 +487,7 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
+			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
@@ -534,6 +545,18 @@ namespace Editor {
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
+
+		// To show animation editor beside asset viewer
+		if (settings.showAnimationEditor) {
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::BeginTabBar("BottomTabBar", ImGuiTabBarFlags_None)) {
+				if (ImGui::BeginTabItem("Animation Editor")) {
+					ShowAnimationEditor();
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
+		}
 
 		// Set editor play/edit mode
 		if (isTileEditorActive_ || !isGamePlaying || (gizmoSystem_ && gizmoSystem_->IsGizmosToggled())) {
@@ -1200,6 +1223,10 @@ namespace Editor {
 			if (ImGui::Button("Open Prefab Editor")) {
 				isPrefabEditorOpen_ = true;
 			}
+
+			if (ImGui::Button("Open Animation Editor")) {
+				settings.showAnimationEditor = true;
+			}
 		}
 
 		// --- Global Controls ---
@@ -1271,7 +1298,7 @@ namespace Editor {
 			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
 			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
 			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
-			entityMgr.AddComponent<AnimationComponent>(bird, {});
+			entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
 			entityMgr.AddComponent<RotationFlag>(bird, {});
 
 			RigidBody rb;	
@@ -2091,21 +2118,39 @@ namespace Editor {
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
+			const auto& collisionLayers = layerManager_.GetCollisionLayers();
+
 			// Create a list of layer names for the dropdown
-			std::string layerLabels[static_cast<int>(CollisionLayer::Count)]{};
-			const char* layerNames[static_cast<int>(CollisionLayer::Count)]{};
-			for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
-				std::string label = std::to_string(i) + ": " + LayerToString(static_cast<CollisionLayer>(i));
-				layerLabels[i] = label;
-				layerNames[i] = layerLabels[i].c_str();
+			std::vector<std::string> layerLabels;
+			std::vector<const char*> layerNames;
+
+			for (const auto& layer : collisionLayers) {
+				std::string label = std::to_string(layer.id) + ": " + layer.name;
+				layerLabels.push_back(label);
 			}
 
-			int currentLayer = static_cast<int>(entityLayer);
+			for (const auto& label : layerLabels) {
+				layerNames.push_back(label.c_str());
+			}
+
+			// Find current layer index
+			int currentLayer = -1;
+			for (size_t i = 0; i < collisionLayers.size(); ++i) {
+				if (collisionLayers[i].id == static_cast<uint8_t>(entityLayer)) {
+					currentLayer = static_cast<int>(i);
+
+					// Update name if not set
+					if (entityMgr.GetProperties(selectedEntity).collisionLayerName != collisionLayers[i].name) {
+						entityMgr.GetProperties(selectedEntity).collisionLayerName = collisionLayers[i].name;
+					}
+					break;
+				}
+			}
 			ImGui::AlignTextToFramePadding();
 			ImGui::TextUnformatted("Layer");
 			ImGui::SameLine(); // adjust offset spacing
 			ImGui::SetNextItemWidth(150);
-			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+			if (ImGui::Combo("##Layer", &currentLayer, layerNames.data(), static_cast<int>(layerNames.size()))) {
 				// If a new item was selected, it updates the component's layer
 				// with the new value.
 				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
@@ -3123,6 +3168,9 @@ namespace Editor {
 			if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
 				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 			}
+
+			// Bool flipHorizontal Input
+			ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
 			bool activeNow = ImGui::IsItemActive();
 
 			if (activeNow && !editSession.wasItemActive) {
@@ -3275,7 +3323,15 @@ namespace Editor {
 		}
 
 		case ComponentType::AnimationComponentType: {
-			ImGui::TextDisabled("Properties are Hidden");
+			AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(selectedEntity);
+
+			// Show the profile name for AnimationComponent
+			ImGui::InputText("Animation Profile", &animComp.profileName);
+			
+			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
+			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
+			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
+			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
 			break;
 		}
 		case ComponentType::TextComponentType: {
@@ -3814,6 +3870,52 @@ namespace Editor {
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("If enabled, particles emit in screen/UI space (fixed to screen)\n"
 					"If disabled, particles emit in world space (moves with camera)");
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Mode");
+
+			// Emission Mode Dropdown
+			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST" };
+			int currentModeIndex = static_cast<int>(emitter.emissionMode);
+
+			if (ImGui::Combo("Emission Mode##emitter", &currentModeIndex, emissionModeItems, IM_ARRAYSIZE(emissionModeItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.emissionMode = static_cast<ParticleEmissionMode>(currentModeIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Trigger Event Name (only show if not CONTINUOUS)
+			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS) {
+				ImGui::Text("Trigger Event Name:");
+				if (ImGui::InputText("##TriggerEventName", &emitter.triggerEventName)) {
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Name of the event that triggers this emitter\n"
+						"Examples: 'WorldRotation', 'PlayerDash', 'EnemyDeath'");
+				}
+			}
+
+			// BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::BURST) {
+				ImGui::Text("Burst Count (particles per burst):");
+				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+			}
+
+			// LOOP_BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::LOOP_BURST) {
+				ImGui::Text("Burst Count (particles per burst):");
+				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+
+				ImGui::Text("Burst Interval (seconds):");
+				ImGui::DragFloat("##BurstInterval", &emitter.burstInterval, 0.01f, 0.01f, 5.0f, "%.2f");
 			}
 
 			// Texture Key
@@ -4369,6 +4471,15 @@ namespace Editor {
 		
 	ImGui::Begin("Layer");
 
+	// Add button at the top to open layer configuration
+	if (ImGui::Button("Layer Settings", ImVec2(120, 0))) {
+		showLayerConfigWindow_ = true;
+	}
+	ImGui::SameLine();
+	ImGui::TextDisabled("Configure render and collision layers");
+
+	ImGui::Separator();
+
 	auto* physics = gameManager_->GetSystems().physics_;
 	if (!physics) {
 		ImGui::TextDisabled("Physics system not available");
@@ -4426,45 +4537,308 @@ namespace Editor {
 	}
 
 	ImGui::End();
+
+	ShowLayerConfigWindow();
 	
+	}
+
+	void Editor::ShowLayerConfigWindow() {
+		if (!showLayerConfigWindow_) return;
+
+		ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("Layer Configuration", &showLayerConfigWindow_)) {
+			ImGui::End();
+			return;
+		}
+
+		if (ImGui::BeginTabBar("LayerTabs")) {
+			// === RENDER LAYERS TAB ===
+			if (ImGui::BeginTabItem("Render Layers")) {
+				ShowRenderLayersTab();
+				ImGui::EndTabItem();
+			}
+
+			// === COLLISION LAYERS TAB ===
+			if (ImGui::BeginTabItem("Collision Layers")) {
+				ShowCollisionLayersTab();
+				ImGui::EndTabItem();
+			}
+
+			ImGui::EndTabBar();
+		}
+
+		ImGui::End();
+	}
+
+	void Editor::ShowRenderLayersTab() {
+		ImGui::TextWrapped("Render layers control the draw order of sprites. Lower values render first (behind).");
+		ImGui::Separator();
+
+		// === ADD NEW LAYER ===
+		if (ImGui::CollapsingHeader("Add New Render Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::InputText("Layer Name", newRenderLayerName_, IM_ARRAYSIZE(newRenderLayerName_));
+			ImGui::DragInt("Render Order", &newRenderLayerOrder_, 1.0f, -1000, 1000);
+
+			if (ImGui::Button("Add Layer", ImVec2(120, 0))) {
+				int idx = layerManager_.AddRenderLayer(newRenderLayerName_, newRenderLayerOrder_);
+				if (idx >= 0) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Added render layer: " << newRenderLayerName_ << std::endl;
+					// Reset fields
+					strcpy(newRenderLayerName_, "New Layer");
+					newRenderLayerOrder_ = 0;
+
+					// Save immediately
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+				}
+			}
+		}
+
+		ImGui::Separator();
+
+		// === EXISTING LAYERS LIST ===
+		ImGui::Text("Existing Render Layers:");
+
+		if (ImGui::BeginChild("RenderLayerList", ImVec2(0, 250), true)) {
+			const auto& layers = layerManager_.GetRenderLayers();
+
+			for (size_t i = 0; i < layers.size(); ++i) {
+				ImGui::PushID(static_cast<int>(i));
+
+				bool isSelected = (selectedRenderLayerIdx_ == static_cast<int>(i));
+
+				// Color built-in layers differently
+				if (layers[i].isBuiltIn) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 1.0f, 1.0f));
+				}
+
+				std::string label = layers[i].name + " (" + std::to_string(layers[i].renderOrder) + ")";
+				if (layers[i].isBuiltIn) {
+					label += " [Built-in]";
+				}
+
+				if (ImGui::Selectable(label.c_str(), isSelected)) {
+					selectedRenderLayerIdx_ = static_cast<int>(i);
+				}
+
+				if (layers[i].isBuiltIn) {
+					ImGui::PopStyleColor();
+				}
+
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+
+		// === EDIT SELECTED LAYER ===
+		if (selectedRenderLayerIdx_ >= 0 &&
+			selectedRenderLayerIdx_ < static_cast<int>(layerManager_.GetRenderLayers().size())) {
+
+			const auto& layer = layerManager_.GetRenderLayers()[selectedRenderLayerIdx_];
+
+			ImGui::Separator();
+			ImGui::Text("Edit Selected Layer:");
+
+			static char editName[128] = "";
+			static int editOrder = 0;
+			static bool firstEdit = true;
+
+			if (firstEdit) {
+				strcpy(editName, layer.name.c_str());
+				editOrder = layer.renderOrder;
+				firstEdit = false;
+			}
+
+			bool canEdit = !layer.isBuiltIn;
+
+			if (!canEdit) {
+				ImGui::BeginDisabled();
+			}
+
+			ImGui::InputText("Name##Edit", editName, IM_ARRAYSIZE(editName));
+			ImGui::DragInt("Order##Edit", &editOrder, 1.0f, -1000, 1000);
+
+			if (ImGui::Button("Update", ImVec2(100, 0))) {
+				if (layerManager_.UpdateRenderLayer(selectedRenderLayerIdx_, editName, editOrder)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Updated render layer: " << editName << std::endl;
+					firstEdit = true;
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Delete", ImVec2(100, 0))) {
+				if (layerManager_.RemoveRenderLayer(selectedRenderLayerIdx_)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Deleted render layer" << std::endl;
+					selectedRenderLayerIdx_ = -1;
+					firstEdit = true;
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+				}
+			}
+
+			if (!canEdit) {
+				ImGui::EndDisabled();
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
+					"Built-in layers cannot be edited or deleted");
+			}
+		}
+	}
+
+	void Editor::ShowCollisionLayersTab() {
+		ImGui::TextWrapped("Collision layers control which objects can collide with each other.");
+		ImGui::Separator();
+
+		// === ADD NEW LAYER ===
+		if (ImGui::CollapsingHeader("Add New Collision Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::InputText("Layer Name", newCollisionLayerName_, IM_ARRAYSIZE(newCollisionLayerName_));
+
+			if (ImGui::Button("Add Layer", ImVec2(120, 0))) {
+				int id = layerManager_.AddCollisionLayer(newCollisionLayerName_);
+				if (id >= 0) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Added collision layer: " << newCollisionLayerName_
+						<< " (ID: " << id << ")" << std::endl;
+					strcpy(newCollisionLayerName_, "New Layer");
+					layerManager_.SaveToFile();
+				}
+			}
+
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%d/32 layers used)",
+				static_cast<int>(layerManager_.GetCollisionLayers().size()));
+		}
+
+		ImGui::Separator();
+
+		// === EXISTING LAYERS LIST ===
+		ImGui::Text("Existing Collision Layers:");
+
+		if (ImGui::BeginChild("CollisionLayerList", ImVec2(0, 250), true)) {
+			const auto& layers = layerManager_.GetCollisionLayers();
+
+			for (size_t i = 0; i < layers.size(); ++i) {
+				ImGui::PushID(static_cast<int>(i));
+
+				bool isSelected = (selectedCollisionLayerIdx_ == static_cast<int>(i));
+
+				if (layers[i].isBuiltIn) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 1.0f, 1.0f));
+				}
+
+				std::string label = layers[i].name + " (ID: " + std::to_string(layers[i].id) + ")";
+				if (layers[i].isBuiltIn) {
+					label += " [Built-in]";
+				}
+
+				if (ImGui::Selectable(label.c_str(), isSelected)) {
+					selectedCollisionLayerIdx_ = static_cast<int>(i);
+				}
+
+				if (layers[i].isBuiltIn) {
+					ImGui::PopStyleColor();
+				}
+
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+
+		// === EDIT SELECTED LAYER ===
+		if (selectedCollisionLayerIdx_ >= 0 &&
+			selectedCollisionLayerIdx_ < static_cast<int>(layerManager_.GetCollisionLayers().size())) {
+
+			const auto& layer = layerManager_.GetCollisionLayers()[selectedCollisionLayerIdx_];
+
+			ImGui::Separator();
+			ImGui::Text("Edit Selected Layer:");
+
+			static char editColName[128] = "";
+			static bool firstColEdit = true;
+
+			if (firstColEdit) {
+				strcpy(editColName, layer.name.c_str());
+				firstColEdit = false;
+			}
+
+			bool canEdit = !layer.isBuiltIn;
+
+			if (!canEdit) {
+				ImGui::BeginDisabled();
+			}
+
+			ImGui::InputText("Name##ColEdit", editColName, IM_ARRAYSIZE(editColName));
+			ImGui::Text("ID: %d (Read-only)", layer.id);
+
+			if (ImGui::Button("Rename", ImVec2(100, 0))) {
+				if (layerManager_.RenameCollisionLayer(layer.id, editColName)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Renamed collision layer to: " << editColName << std::endl;
+					firstColEdit = true;
+					layerManager_.SaveToFile();
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Delete##Col", ImVec2(100, 0))) {
+				if (layerManager_.RemoveCollisionLayer(layer.id)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Deleted collision layer" << std::endl;
+					selectedCollisionLayerIdx_ = -1;
+					firstColEdit = true;
+					layerManager_.SaveToFile();
+				}
+			}
+
+			if (!canEdit) {
+				ImGui::EndDisabled();
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
+					"Built-in layers cannot be edited or deleted");
+			}
+		}
 	}
 
 	// Helper function to show collision matrix
 	void Editor::ShowCollisionMatrix(PhysicsSystem* physics) {
-		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		// Get actual collision layers from LayerManager instead of hardcoded enum
+		const auto& collisionLayers = layerManager_.GetCollisionLayers();
+		int layerCount = static_cast<int>(collisionLayers.size());
 
 		const float ROW_HEADER_WIDTH = 100.0f;
 		const float CELL_SIZE = 30.0f;
 
-		//ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
-
 		ImGui::NewLine();
 
-		// Draw Matrix Grid 
+		// Draw Matrix Grid using actual layers
 		for (int row = 0; row < layerCount; row++) {
-			Framework::CollisionLayer rowLayer = static_cast<Framework::CollisionLayer>(row);
-			std::string rowName = LayerToString(rowLayer);
+			const auto& rowLayer = collisionLayers[row];
+			Framework::CollisionLayer rowLayerEnum = static_cast<Framework::CollisionLayer>(rowLayer.id);
 
 			ImGui::AlignTextToFramePadding();
-			ImGui::Text("%s", rowName.c_str());
+			ImGui::Text("%s", rowLayer.name.c_str()); //  Use layer name
 			ImGui::SameLine(ROW_HEADER_WIDTH);
 
 			for (int col = 0; col < layerCount; col++) {
-				Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+				const auto& colLayer = collisionLayers[col];
+				Framework::CollisionLayer colLayerEnum = static_cast<Framework::CollisionLayer>(colLayer.id);
 
-				ImGui::PushID(row * layerCount + col);
-				bool canCollide = physics->GetLayerCollision(rowLayer, colLayer);
+				ImGui::PushID(row * 32 + col); // Use 32 instead of layerCount for unique IDs
+				bool canCollide = physics->GetLayerCollision(rowLayerEnum, colLayerEnum);
 
 				ImGui::SetCursorPosX(ROW_HEADER_WIDTH + (col * CELL_SIZE) +
 					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
 
 				if (ImGui::Checkbox("##cb", &canCollide)) {
-					physics->SetLayerCollision(rowLayer, colLayer, canCollide);
+					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
 				}
 
 				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("%s vs %s", rowName.c_str(), LayerToString(colLayer));
+					ImGui::SetTooltip("%s vs %s", rowLayer.name.c_str(), colLayer.name.c_str());
 				}
 
 				ImGui::SameLine();
@@ -4472,25 +4846,35 @@ namespace Editor {
 			}
 			ImGui::NewLine();
 		}
+		
 	}
 
 	// Helper function to show entity collision layer
 	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+
 		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
-		int currentLayerIndex = static_cast<int>(entityLayer);
-		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
 
-		// Create layer dropdown
-		std::vector<std::string> layerLabels;
-		std::vector<const char*> layerItems;
+		const auto& collisionLayers = layerManager_.GetCollisionLayers();
 
-		for (int i = 0; i < layerCount; i++) {
-			Framework::CollisionLayer layer = static_cast<Framework::CollisionLayer>(i);
-			layerLabels.push_back(LayerToString(layer));
+		// Find current layer index
+		int currentIdx = -1;
+		for (size_t i = 0; i < collisionLayers.size(); ++i) {
+			if (collisionLayers[i].id == static_cast<uint8_t>(entityLayer)) {
+				currentIdx = static_cast<int>(i);
+				break;
+			}
 		}
 
-		for (const auto& label : layerLabels) {
-			layerItems.push_back(label.c_str());
+		// Build dropdown
+		std::vector<std::string> layerNames;
+		std::vector<const char*> layerItems;
+
+		for (const auto& layer : collisionLayers) {
+			layerNames.push_back(layer.name);
+		}
+
+		for (const auto& name : layerNames) {
+			layerItems.push_back(name.c_str());
 		}
 
 		ImGui::AlignTextToFramePadding();
@@ -4498,15 +4882,17 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##CollisionLayer", &currentLayerIndex, layerItems.data(),
+		if (ImGui::Combo("##CollisionLayer", &currentIdx, layerItems.data(),
 			static_cast<int>(layerItems.size()))) {
-			entityLayer = static_cast<Framework::CollisionLayer>(currentLayerIndex);
+			if (currentIdx >= 0 && currentIdx < static_cast<int>(collisionLayers.size())) {
+				entityLayer = static_cast<Framework::CollisionLayer>(collisionLayers[currentIdx].id);
+			}
 		}
 
 		ImGui::Spacing();
 		ImGui::TextDisabled("This determines which objects can collide with this entity");
 
-		// Show collision info
+		// Show collision interactions
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Collision Interactions")) {
 			ImGui::Text("Can collide with:");
@@ -4514,10 +4900,11 @@ namespace Editor {
 
 			bool hasCollisions = false;
 			auto* physics = gameManager_->GetSystems().physics_;
-			for (int i = 0; i < layerCount; i++) {
-				Framework::CollisionLayer otherLayer = static_cast<Framework::CollisionLayer>(i);
-				if (physics->GetLayerCollision(entityLayer, otherLayer)) {
-					ImGui::BulletText("%s", LayerToString(otherLayer));
+
+			for (const auto& otherLayer : collisionLayers) {
+				Framework::CollisionLayer other = static_cast<Framework::CollisionLayer>(otherLayer.id);
+				if (physics->GetLayerCollision(entityLayer, other)) {
+					ImGui::BulletText("%s", otherLayer.name.c_str());
 					hasCollisions = true;
 				}
 			}
@@ -4529,43 +4916,48 @@ namespace Editor {
 			ImGui::Unindent();
 			ImGui::TreePop();
 		}
+		
 	}
 
 	// Helper function to show entity render layer
 	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
-		// Render Layer Dropdown
-		const char* renderLayerNames[] = {
-			"Background (-100)",
-			"Platform (50)",
-			"Enemy (75)",
-			"Player (100)",
-			"UI (200)",
-			"Custom"
-		};
+		const auto& renderLayers = layerManager_.GetRenderLayers();
 
-		// Determine dropdown index based on the actual enum value
-		int currentRenderLayerIndex = 5; // Default to Custom
+		// Build dropdown with custom option
+		std::vector<std::string> layerNames;
+		layerNames.push_back("Custom");
+		for (const auto& layer : renderLayers) {
+			layerNames.push_back(layer.name);
+		}
 
-		// Check the actual enum, not the numeric value
-		if (props.renderLayer == Framework::RenderLayer::Background) {
-			currentRenderLayerIndex = 0;
+		std::vector<const char*> layerItems;
+		for (const auto& name : layerNames) {
+			layerItems.push_back(name.c_str());
 		}
-		else if (props.renderLayer == Framework::RenderLayer::Platform) {
-			currentRenderLayerIndex = 1;
+
+		// Determine current selection
+		int currentIdx = 0; // Default to Custom
+		if (props.renderLayer != Framework::RenderLayer::Custom) {
+			// Try to find matching layer by render order
+			for (size_t i = 0; i < renderLayers.size(); ++i) {
+				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
+					currentIdx = static_cast<int>(i) + 1; // +1 because Custom is at 0
+					break;
+				}
+			}
 		}
-		else if (props.renderLayer == Framework::RenderLayer::Enemy) {
-			currentRenderLayerIndex = 2;
-		}
-		else if (props.renderLayer == Framework::RenderLayer::Player) {
-			currentRenderLayerIndex = 3;
-		}
-		else if (props.renderLayer == Framework::RenderLayer::UI) {
-			currentRenderLayerIndex = 4;
-		}
-		else if (props.renderLayer == Framework::RenderLayer::Custom) {
-			currentRenderLayerIndex = 5;
+		else {
+			// Check if using built-in enum value
+			for (size_t i = 0; i < renderLayers.size(); ++i) {
+				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
+					currentIdx = static_cast<int>(i) + 1;
+					props.renderLayerName = renderLayers[i].name; // Update to track the name
+					break;
+				}
+			}
 		}
 
 		ImGui::AlignTextToFramePadding();
@@ -4573,82 +4965,79 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
-			IM_ARRAYSIZE(renderLayerNames))) {
-			// Convert dropdown index back to enum
-			switch (currentRenderLayerIndex) {
-			case 0:
-				props.renderLayer = Framework::RenderLayer::Background;
-				props.customRenderOrder = -100;
-				break;
-			case 1:
-				props.renderLayer = Framework::RenderLayer::Platform;
-				props.customRenderOrder = 50;
-				break;
-			case 2:
-				props.renderLayer = Framework::RenderLayer::Enemy;
-				props.customRenderOrder = 75;
-				break;
-			case 3:
-				props.renderLayer = Framework::RenderLayer::Player;
-				props.customRenderOrder = 100;
-				break;
-			case 4:
-				props.renderLayer = Framework::RenderLayer::UI;
-				props.customRenderOrder = 200;
-				break;
-			case 5:
+		if (ImGui::Combo("##RenderLayer", &currentIdx, layerItems.data(),
+			static_cast<int>(layerItems.size()))) {
+
+			if (currentIdx == 0) {
+				// Custom selected
 				props.renderLayer = Framework::RenderLayer::Custom;
-				break;
+				props.renderLayerName = "Custom";
+			}
+			else {
+				// Predefined layer selected
+				int layerIdx = currentIdx - 1;
+				if (layerIdx >= 0 && layerIdx < static_cast<int>(renderLayers.size())) {
+					props.customRenderOrder = renderLayers[layerIdx].renderOrder;
+					props.renderLayer = Framework::RenderLayer::Custom;
+					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
+				}
 			}
 		}
 
 		ImGui::Spacing();
 		ImGui::TextDisabled("This controls when this entity is drawn relative to others");
 
-		// Custom Render Order (only shown if Custom is selected)
-		if (props.renderLayer == Framework::RenderLayer::Custom) {
+		// Custom render order
+		if (props.renderLayerName == "Custom" || props.renderLayerName.empty()) {
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing();
 
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
-			ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000);
+			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+				props.renderLayerName = "Custom"; // Mark as truly custom
+			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
 				props.customRenderOrder = 0;
+				props.renderLayerName = "Custom";
 			}
 
 			ImGui::Spacing();
 			ImGui::TextWrapped("Lower values render first (behind). Higher values render last (in front).");
 		}
+		else {
+			// Show which named layer is active
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+				"Using layer: %s (Order: %d)",
+				props.renderLayerName.c_str(),
+				props.customRenderOrder);
+		}
 
 		// Show render order info
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Render Order Info")) {
-			int effectiveRenderOrder;
-			if (props.renderLayer == Framework::RenderLayer::Custom) {
-				effectiveRenderOrder = props.customRenderOrder;
-			}
-			else {
-				effectiveRenderOrder = static_cast<int>(props.renderLayer);
-			}
+			int effectiveOrder = props.customRenderOrder;
 
-			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
-			ImGui::Text("Current Render Layer Enum: %d", static_cast<int>(props.renderLayer));
+			ImGui::Text("Effective Render Order: %d", effectiveOrder);
 			ImGui::Spacing();
 
 			ImGui::TextWrapped("Standard render order:");
 			ImGui::Indent();
-			ImGui::BulletText("Background: -100 (renders first)");
-			ImGui::BulletText("Platform: 50");
-			ImGui::BulletText("Enemy: 75");
-			ImGui::BulletText("Player: 100");
-			ImGui::BulletText("UI: 200 (renders last)");
+			for (const auto& layer : renderLayers) {
+				bool isCurrent = (layer.name == props.renderLayerName);
+				if (isCurrent) {
+					ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+						"► %s: %d (CURRENT)", layer.name.c_str(), layer.renderOrder);
+				}
+				else {
+					ImGui::BulletText("%s: %d", layer.name.c_str(), layer.renderOrder);
+				}
+			}
 			ImGui::Unindent();
 
-			ImGui::Unindent();
 			ImGui::TreePop();
 		}
 	}
@@ -4696,9 +5085,7 @@ namespace Editor {
 
 				const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
 
-				int effectiveOrder = props.renderLayer == Framework::RenderLayer::Custom
-					? props.customRenderOrder
-					: static_cast<int>(props.renderLayer);
+				int effectiveOrder = props.customRenderOrder;
 
 				ImGui::PushID(static_cast<int>(entity));
 				ImGui::TableNextRow();
@@ -4727,16 +5114,14 @@ namespace Editor {
 
 				// Render Layer Name
 				ImGui::TableNextColumn();
-				const char* layerName = "";
-				switch (props.renderLayer) {
-				case Framework::RenderLayer::Background: layerName = "Background"; break;
-				case Framework::RenderLayer::Platform:   layerName = "Platform"; break;
-				case Framework::RenderLayer::Enemy:      layerName = "Enemy"; break;
-				case Framework::RenderLayer::Player:     layerName = "Player"; break;
-				case Framework::RenderLayer::UI:         layerName = "UI"; break;
-				case Framework::RenderLayer::Custom:     layerName = "Custom"; break;
+				if (!props.renderLayerName.empty() && props.renderLayerName != "Custom") {
+					// Show the named layer
+					ImGui::Text("%s", props.renderLayerName.c_str());
 				}
-				ImGui::Text("%s", layerName);
+				else {
+					// Fallback to showing "Custom"
+					ImGui::Text("Custom");
+				}
 
 				//Effective Order
 				ImGui::TableNextColumn();
@@ -4749,7 +5134,14 @@ namespace Editor {
 
 				// Collision Layer 
 				ImGui::TableNextColumn();
-				ImGui::Text("%s", LayerToString(props.layer));
+				if (!props.collisionLayerName.empty()) {
+					// Show the named collision layer
+					ImGui::Text("%s", props.collisionLayerName.c_str());
+				}
+				else {
+					// Fallback to enum string
+					ImGui::Text("%s", LayerToString(props.layer));
+				}
 
 				ImGui::PopID();
 			}

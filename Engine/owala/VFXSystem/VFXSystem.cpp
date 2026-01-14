@@ -20,6 +20,7 @@
 #include "EntityManager.h"
 #include "GameManager.h"
 #include "OwalaTime.h"
+#include "ParticleEffectManager.h"
 
 namespace Framework {
 	void VFXSystem::Initialize() {
@@ -28,7 +29,119 @@ namespace Framework {
 			[this](const ParticleBurstEvent& e) {
 				this->OnParticleBurst(e);
 			});
+		
+		// Subscribe to world rotation event
+		MessageBus::Instance().Subscribe<WorldRotationEvent>(
+			[this](const WorldRotationEvent& e) {
+				// This single line now handles BOTH the dust (emitter) and any other effects
+				this->TriggerVFX("WorldRotationEvent");
+			});
+		
+		// Register all emitters that have triggers
+		RefreshTriggerRegistrations();
 	}
+
+	void VFXSystem::RefreshTriggerRegistrations() {
+		triggerToEmitters_.clear();
+		
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		int emittersFound = 0;
+		
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
+			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
+			
+			// Skip continuous emitters
+			if (emitter.emissionMode == ParticleEmissionMode::CONTINUOUS) {
+				continue;
+			}
+			
+			// Check if has trigger event name
+			if (!emitter.triggerEventName.empty()) {
+				RegisterEmitterForTrigger(entity, emitter.triggerEventName);
+				emittersFound++;
+				
+				Logger::Get().Info(DebugType::VFXSystem)
+					<< "Registered emitter (ID: " << entity << ") for trigger: '" << emitter.triggerEventName << "'" << std::endl;
+			} else {
+				// Log emitters without trigger names
+				if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS) {
+					Logger::Get().Error(DebugType::VFXSystem)
+						<< "Found non-continuous emitter (ID: " << entity << ") but no trigger event name set!" << std::endl;
+				}
+			}
+		}
+		
+		Logger::Get().Info(DebugType::VFXSystem)
+			<< "Trigger registration refresh complete. Registered " << emittersFound << " emitters" << std::endl;
+	}
+
+	void VFXSystem::RegisterEmitterForTrigger(Entity emitterEntity, const std::string& triggerName) {
+		triggerToEmitters_[triggerName].push_back(emitterEntity);
+	}
+
+	void VFXSystem::OnWorldRotation(const WorldRotationEvent& event) {
+	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+	
+	// First, refresh registrations to catch any newly created or reconfigured emitters
+	RefreshTriggerRegistrations();
+	
+	// Find all emitters registered for "WorldRotation" trigger
+	auto it = triggerToEmitters_.find("WorldRotationEvent");
+	if (it != triggerToEmitters_.end()) {
+		Logger::Get().Info(DebugType::VFXSystem)
+			<< "WorldRotation event triggered! Found " << it->second.size() << " emitters" << std::endl;
+		
+		for (Entity emitterEntity : it->second) {
+			if (entityMgr.HasComponent(emitterEntity, ParticleEmitterComponentType)) {
+				ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(emitterEntity);
+				
+				Logger::Get().Info(DebugType::VFXSystem)
+					<< "Activating burst emitter at position (" << (entityMgr.HasComponent(emitterEntity, TransformType) ? 
+					entityMgr.GetComponent<Transform>(emitterEntity).position.x : 0.0f) << ", "
+					<< (entityMgr.HasComponent(emitterEntity, TransformType) ? 
+					entityMgr.GetComponent<Transform>(emitterEntity).position.y : 0.0f) << ")" << std::endl;
+				
+				// Get emitter position
+				Vector2D emitterPos = { 0.0f, 0.0f };
+				if (entityMgr.HasComponent(emitterEntity, TransformType)) {
+					emitterPos = entityMgr.GetComponent<Transform>(emitterEntity).position;
+				}
+				
+				Vector2D calculationOrigin = emitterPos;
+				if (emitter.isScreenSpace) {
+					calculationOrigin = WorldToScreenSpace(emitterPos);
+				}
+				
+				// Emit particles based on mode
+				if (emitter.emissionMode == ParticleEmissionMode::BURST) {
+					Logger::Get().Info(DebugType::VFXSystem)
+						<< "Emitting " << emitter.burstCount << " particles in BURST mode" << std::endl;
+					
+					for (int i = 0; i < emitter.burstCount; ++i) {
+						SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
+					}
+				} else if (emitter.emissionMode == ParticleEmissionMode::LOOP_BURST) {
+					Logger::Get().Info(DebugType::VFXSystem)
+						<< "Starting LOOP_BURST mode with interval " << emitter.burstInterval << "s" << std::endl;
+					
+					emitter.isEmitting = true;
+					emitter.timeSinceBurst = 0.0f;
+				}
+			}
+		}
+	} else {
+		Logger::Get().Error(DebugType::VFXSystem)
+			<< "WorldRotation event received, but no emitters registered for 'WorldRotation' trigger!" << std::endl;
+		
+		// Debug: log all registered triggers
+		Logger::Get().Info(DebugType::VFXSystem)
+			<< "Available triggers: ";
+		for (const auto& pair : triggerToEmitters_) {
+			Logger::Get().Info(DebugType::VFXSystem) << "'" << pair.first << "' ";
+		}
+		Logger::Get().Info(DebugType::VFXSystem) << std::endl;
+	}
+}
 
 	void VFXSystem::Update() {
 #ifdef BUILD_EDITOR
@@ -47,12 +160,10 @@ namespace Framework {
 		UpdateParticles(entityMgr);
 	}
 
-	// Event Handler
+	// Event Handler for direct burst events
 	void VFXSystem::OnParticleBurst(const ParticleBurstEvent& event) {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-		// Create a temporary config based on the event data
-		// We reuse the ParticleEmitterComponent struct to hold the settings
 		ParticleEmitterComponent config;
 		config.isEmitting = true;
 		config.particleTextureKey = event.textureKey;
@@ -64,19 +175,12 @@ namespace Framework {
 		config.isScreenSpace = event.isScreenSpace;
 		config.isParticleAnimated = event.isAnimated;
 
-		// Handle Style
 		config.emissionStyle = event.style;
 		config.emissionRadius = event.radius;
 		config.circleRadius = event.radius;
-
-		// Define offset
 		config.emissionOffset = event.offset;
 
-		// Define origin
-		Vector2D origin;
-		origin = event.position;
-
-		// Handle Screen Space conversion for the origin if needed
+		Vector2D origin = event.position;
 		if (config.isScreenSpace) {
 			origin = WorldToScreenSpace(event.position);
 		}
@@ -87,94 +191,82 @@ namespace Framework {
 		}
 	}
 
-	// Helper to spawn a single particle based on emitter config and origin
-	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin) {
-		// Create new particle entity
-		Entity particleEntity = entityMgr.CreateEntity();
-
-		// Add ParticleComponent
-		ParticleComponent particleComp;
-		particleComp.effectType = emitter.particleEffectType;
-		particleComp.lifetime = emitter.particleLifetime;
-		particleComp.age = 0.0f;
-		particleComp.isScreenSpace = emitter.isScreenSpace;
-		entityMgr.AddComponent<ParticleComponent>(particleEntity, particleComp);
-
-		// Calculate emission position based on style
-		float rand01 = static_cast<float>(rand()) / RAND_MAX;
-		float rand02 = static_cast<float>(rand()) / RAND_MAX;
-
-		// Calculate Position
-		Vector2D emissionPos = CalculateEmissionPosition(emitter, origin, rand01, rand02, emitter.isScreenSpace);
-		entityMgr.AddComponent<Transform>(particleEntity, Transform(emissionPos));
-
-		// Calculate Velocity
-		Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, emitter.isScreenSpace);
-		Velocity velocityComp;
-		velocityComp.Vel = emissionVel;
-		entityMgr.AddComponent<Velocity>(particleEntity, velocityComp);
-
-		// Add Texture
-		if (!emitter.particleTextureKey.empty()) {
-			TextureComponent textureComp;
-			textureComp.textureKey = emitter.particleTextureKey;
-			textureComp.HalfSize = emitter.particleSize;
-			entityMgr.AddComponent<TextureComponent>(particleEntity, textureComp);
-		}
-
-		// Add Animation
-		if (emitter.isParticleAnimated) {
-			AnimationComponent animComp;
-			animComp.isPlaying = true;
-			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
-		}
-
-		// Add ActiveTag
-		entityMgr.AddComponent<ActiveTag>(particleEntity, ActiveTag{});
-	}
-
-
 	void VFXSystem::EmitParticles(EntityManager& entityMgr) {
 		// Loop through all particle emitters
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
-			if (!entityMgr.HasComponent(entity, ParticleEmitterComponentType)) continue; // Skip if entity does not have ParticleEmitterComponent
+			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+			if (!entityMgr.HasComponent(entity, ParticleEmitterComponentType)) continue;
+
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
 
-			// If emission rate is zero or negative, skip emission
-			if (emitter.emissionRate <= 0.0f) continue;
-			// If not emitting, skip
-			if (!emitter.isEmitting) continue;
+			// Handle different emission modes
+			switch (emitter.emissionMode) {
+			case ParticleEmissionMode::CONTINUOUS: {
+				// Original continuous emission logic
+				if (emitter.emissionRate <= 0.0f || !emitter.isEmitting) continue;
 
-			// Calculate emission interval
-			float emissionInterval = 1.0f / emitter.emissionRate;
-			// Update time since last emission
-			emitter.timeSinceLastEmission += Time::DeltaTime();
+				float emissionInterval = 1.0f / emitter.emissionRate;
+				emitter.timeSinceLastEmission += Time::DeltaTime();
 
-			// Get emitter position (needed for some emission styles)
-			Vector2D emitterPos = { 0.0f, 0.0f };
-			if (entityMgr.HasComponent(entity, TransformType)) {
-				emitterPos = entityMgr.GetComponent<Transform>(entity).position;
+				Vector2D emitterPos = { 0.0f, 0.0f };
+				if (entityMgr.HasComponent(entity, TransformType)) {
+					emitterPos = entityMgr.GetComponent<Transform>(entity).position;
+				}
+
+				Vector2D calculationOrigin = emitterPos;
+				if (emitter.isScreenSpace) {
+					calculationOrigin = WorldToScreenSpace(emitterPos);
+				}
+
+				while (emitter.timeSinceLastEmission >= emissionInterval) {
+					emitter.timeSinceLastEmission -= emissionInterval;
+					SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
+				}
+				break;
 			}
 
-			// Create a temporary origin for calculation. 
-			// If emitting in screen space, convert the World Position to Screen Space (0-1).
-			Vector2D calculationOrigin = emitterPos;
-			if (emitter.isScreenSpace) {
-				calculationOrigin = WorldToScreenSpace(emitterPos);
+			case ParticleEmissionMode::BURST: {
+				// This mode requires external trigger via MessageBus
+				// The emitter waits for an event and emits once
+				// Emission happens in separate event handler
+				break;
 			}
 
-			// Emit particles based on emission rate
-			while (emitter.timeSinceLastEmission >= emissionInterval) {
+			case ParticleEmissionMode::LOOP_BURST: {
+				// Emit multiple bursts at intervals when triggered
+				if (!emitter.isEmitting) {
+					emitter.timeSinceBurst = 0.0f;
+					break;
+				}
 
-				// Reset timer(but keep any small overflow for accuracy)
-				emitter.timeSinceLastEmission -= emissionInterval;
+				emitter.timeSinceBurst += Time::DeltaTime();
 
-				//  Spawn a single particle
-				SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
+				Vector2D emitterPos = { 0.0f, 0.0f };
+				if (entityMgr.HasComponent(entity, TransformType)) {
+					emitterPos = entityMgr.GetComponent<Transform>(entity).position;
+				}
+
+				Vector2D calculationOrigin = emitterPos;
+				if (emitter.isScreenSpace) {
+					calculationOrigin = WorldToScreenSpace(emitterPos);
+				}
+
+				// Check if it's time for the next burst
+				if (emitter.timeSinceBurst >= emitter.burstInterval) {
+					// Emit a burst
+					for (int i = 0; i < emitter.burstCount; ++i) {
+						SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
+					}
+
+					emitter.timeSinceBurst -= emitter.burstInterval;
+
+					// Auto-disable after bursting
+					emitter.isEmitting = false;
+				}
+				break;
+			}
 			}
 		}
-
 	}
 
 	void VFXSystem::UpdateParticles(EntityManager& entityMgr) {
@@ -190,14 +282,12 @@ namespace Framework {
 				continue;
 			}
 
-			// Screen space particles don't get affected by physics
 			if (entityMgr.HasComponent(entity, VelocityType)) {
 				Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
 
 				switch (particle.effectType) {
 				case EffectType::RANDOM: {
-					// Apply continuous random jitter to velocity
-					float jitterStrength = 2.0f; // Adjust this for more/less chaos
+					float jitterStrength = 2.0f;
 					float randomX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * jitterStrength;
 					float randomY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * jitterStrength;
 
@@ -207,8 +297,7 @@ namespace Framework {
 				}
 
 				case EffectType::DRIFT: {
-					// Gentle variation while maintaining general direction
-					float driftStrength = 0.5f; // Much gentler than RANDOM
+					float driftStrength = 0.5f;
 					float randomX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * driftStrength;
 					float randomY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * driftStrength;
 
@@ -225,12 +314,49 @@ namespace Framework {
 		}
 	}
 
+	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin) {
+		Entity particleEntity = entityMgr.CreateEntity();
+
+		ParticleComponent particleComp;
+		particleComp.effectType = emitter.particleEffectType;
+		particleComp.lifetime = emitter.particleLifetime;
+		particleComp.age = 0.0f;
+		particleComp.isScreenSpace = emitter.isScreenSpace;
+		entityMgr.AddComponent<ParticleComponent>(particleEntity, particleComp);
+
+		float rand01 = static_cast<float>(rand()) / RAND_MAX;
+		float rand02 = static_cast<float>(rand()) / RAND_MAX;
+
+		Vector2D emissionPos = CalculateEmissionPosition(emitter, origin, rand01, rand02, emitter.isScreenSpace);
+		entityMgr.AddComponent<Transform>(particleEntity, Transform(emissionPos));
+
+		Vector2D emissionVel = CalculateEmissionVelocity(emitter, emissionPos, rand01, emitter.isScreenSpace);
+		Velocity velocityComp;
+		velocityComp.Vel = emissionVel;
+		entityMgr.AddComponent<Velocity>(particleEntity, velocityComp);
+
+		if (!emitter.particleTextureKey.empty()) {
+			TextureComponent textureComp;
+			textureComp.textureKey = emitter.particleTextureKey;
+			textureComp.HalfSize = emitter.particleSize;
+			entityMgr.AddComponent<TextureComponent>(particleEntity, textureComp);
+		}
+
+		if (emitter.isParticleAnimated) {
+			AnimationComponent animComp;
+			animComp.isPlaying = true;
+			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
+		}
+
+		entityMgr.AddComponent<ActiveTag>(particleEntity, ActiveTag{});
+	}
+
 	void VFXSystem::Shutdown() {
 		// Cleanup if necessary
 	}
 
 	Vector2D VFXSystem::CalculateEmissionPosition(const ParticleEmitterComponent& emitter,
-	const Vector2D& emitterPos, float rand01, float rand02, bool isScreenSpace) {
+		const Vector2D& emitterPos, float rand01, float rand02, bool isScreenSpace) {
 
 	Vector2D result;
 
@@ -310,9 +436,9 @@ namespace Framework {
 	// Emit along a line defined by lineStart and lineEnd
 	case EmissionStyle::FROM_LINE: {
 		float t = rand01;
-		result = Vector2D{ 
-			emitter.lineStart.x + t * (emitter.lineEnd.x - emitter.lineStart.x), 
-			emitter.lineStart.y + t * (emitter.lineEnd.y - emitter.lineStart.y) 
+		result = Vector2D{
+			emitter.lineStart.x + t * (emitter.lineEnd.x - emitter.lineStart.x),
+			emitter.lineStart.y + t * (emitter.lineEnd.y - emitter.lineStart.y)
 		};
 		break;
 	}
@@ -460,4 +586,53 @@ namespace Framework {
 		return Vector2D{ worldX, worldY };
 	}
 
+	// Generic handler for all trigger events
+	void VFXSystem::TriggerVFX(const std::string& triggerName) {
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		RefreshTriggerRegistrations(); // Ensure registrations are up-to-date
+
+		Logger::Get().Info(DebugType::VFXSystem)
+			<< "TriggerVFX called for trigger: '" << triggerName << "'" << std::endl;
+
+		// Handle emitters (Entities existing in the level, e.g. Dust)
+		auto it = triggerToEmitters_.find(triggerName);
+		if (it != triggerToEmitters_.end()) {
+			Logger::Get().Info(DebugType::VFXSystem)
+				<< "Found " << it->second.size() << " emitters for trigger: '" << triggerName << "'" << std::endl;
+			for (Entity emitterEntity : it->second) {
+				if (!entityMgr.HasComponent(emitterEntity, ParticleEmitterComponentType)) continue;
+
+				ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(emitterEntity);
+
+				// Calculate origin (same as your original OnWorldRotation logic)
+				Vector2D emitterPos = { 0.0f, 0.0f };
+				if (entityMgr.HasComponent(emitterEntity, TransformType)) {
+					emitterPos = entityMgr.GetComponent<Transform>(emitterEntity).position;
+				}
+				Vector2D calculationOrigin = emitter.isScreenSpace ? WorldToScreenSpace(emitterPos) : emitterPos;
+
+				// Activate the Burst
+				if (emitter.emissionMode == ParticleEmissionMode::BURST) {
+					for (int i = 0; i < emitter.burstCount; ++i) {
+						SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
+					}
+				}
+				else if (emitter.emissionMode == ParticleEmissionMode::LOOP_BURST) {
+					emitter.isEmitting = true;
+					emitter.timeSinceBurst = 0.0f;
+				}
+			}
+		}
+
+		// Handle presets (defined in JSON, e.g. RockDebrisVFX)
+		std::vector<std::string> effects = ParticleEffectManager::GetInstance().GetEffectsByTrigger(triggerName);
+		for (const std::string& effectName : effects) {
+			ParticleBurstEvent burst;
+			if (ParticleEffectManager::GetInstance().GetEffectPreset(effectName, burst)) {
+				Logger::Get().Info(DebugType::VFXSystem)
+					<< "Triggering preset effect: '" << effectName << "' for trigger: '" << triggerName << "'" << std::endl;
+				this->OnParticleBurst(burst);
+			}
+		}
+	}
 } // namespace Framework

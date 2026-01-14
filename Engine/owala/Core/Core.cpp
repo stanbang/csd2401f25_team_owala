@@ -28,6 +28,7 @@
 #include "AudioSystem.h"
 #include "ResourceManager.h"
 #include "GameManager.h"
+#include "ParticleEffectManager.h"
 #include "Graphics.h"
 #include "OwalaTime.h"
 #include "GLFW/glfw3.h"
@@ -88,6 +89,7 @@ namespace Framework {
     void CoreEngine::Initialize() {
         for (auto* s : systems_)
             if (s) s->Initialize();
+        ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
         initialized_ = true;
     }
 

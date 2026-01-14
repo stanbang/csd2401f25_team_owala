@@ -75,8 +75,10 @@ namespace Framework {
 
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_NAME), rapidjson::StringRef(properties.name.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_LAYER), static_cast<int>(properties.layer), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_COLLISION_LAYER_NAME), rapidjson::StringRef(properties.collisionLayerName.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER), static_cast<int>(properties.renderLayer), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER_NAME), rapidjson::StringRef(properties.renderLayerName.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_IS_ACTIVE), properties.isActive, alloc);
 	}
 
@@ -753,6 +755,14 @@ namespace Framework {
 			out.layer = static_cast<CollisionLayer>(entityData[Serialization::ENTITY_LAYER].GetInt());
 		}
 
+		if (entityData.HasMember(Serialization::ENTITY_COLLISION_LAYER_NAME) && entityData[Serialization::ENTITY_COLLISION_LAYER_NAME].IsString()) {
+			out.collisionLayerName = entityData[Serialization::ENTITY_COLLISION_LAYER_NAME].GetString();
+		}
+		else {
+			// Backward compatibility
+			out.collisionLayerName = "";
+		}
+
 		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER) && entityData[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
 			out.renderLayer = static_cast<RenderLayer>(entityData[Serialization::ENTITY_RENDER_LAYER].GetInt());
 		}
@@ -766,6 +776,13 @@ namespace Framework {
 		}
 		else {
 			out.customRenderOrder = 0;
+		}
+		if (entityData.HasMember(Serialization::ENTITY_RENDER_LAYER_NAME) && entityData[Serialization::ENTITY_RENDER_LAYER_NAME].IsString()) {
+			out.renderLayerName = entityData[Serialization::ENTITY_RENDER_LAYER_NAME].GetString();
+		}
+		else {
+			// Backward compatibility
+			out.renderLayerName = "";
 		}
 
 		if (entityData.HasMember(Serialization::ENTITY_IS_ACTIVE) && entityData[Serialization::ENTITY_IS_ACTIVE].IsBool()) {
@@ -929,6 +946,7 @@ namespace Framework {
 		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_X), texComp.HalfSize.x, alloc);
 		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), texComp.HalfSize.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_SIZE), halfSize, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_FLIP_X), texComp.flipHorizontal, alloc);
 	}
 
 	// Audio Component
@@ -941,6 +959,12 @@ namespace Framework {
 
 	// Animation Component
 	void EntitySerializer::SerializeComponent(const AnimationComponent& animComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		rapidjson::Value profileNameVal;
+		// Handle empty string case
+		const char* pName = animComp.profileName.empty() ? "" : animComp.profileName.c_str();
+		profileNameVal.SetString(pName, static_cast<rapidjson::SizeType>(strlen(pName)), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ANIMATION_PROFILE), profileNameVal, alloc);
+
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_STATE), static_cast<int>(animComp.currentState), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FRAME), animComp.currentFrame, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::FRAME_DURATION), animComp.frameDuration, alloc);
@@ -1390,6 +1414,10 @@ namespace Framework {
 				out.HalfSize.y = halfSizeData[Serialization::VEC2_Y].GetFloat();
 			}
 		}
+
+		if (componentData.HasMember(Serialization::TEXTURE_FLIP_X) && componentData[Serialization::TEXTURE_FLIP_X].IsBool()) {
+			out.flipHorizontal = componentData[Serialization::TEXTURE_FLIP_X].GetBool();
+		}
 		return true;
 	}
 
@@ -1416,6 +1444,10 @@ namespace Framework {
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, AnimationComponent& out) {
 		if (!componentData.IsObject()) return false;
 
+		if (componentData.HasMember(Serialization::ANIMATION_PROFILE) && componentData[Serialization::ANIMATION_PROFILE].IsString()) {
+			out.profileName = componentData[Serialization::ANIMATION_PROFILE].GetString();
+		}
+
 		if (componentData.HasMember(Serialization::CURRENT_STATE) && componentData[Serialization::CURRENT_STATE].IsInt()) {
 			out.currentState = static_cast<AnimationState>(componentData[Serialization::CURRENT_STATE].GetInt());
 		}
@@ -1439,6 +1471,15 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::IS_LOOPING) && componentData[Serialization::IS_LOOPING].IsBool()) {
 			out.isLooping = componentData[Serialization::IS_LOOPING].GetBool();
+		}
+
+		if (out.frameCount > 0) {
+			float frameUVWidth = 1.0f / (float)out.frameCount;
+			float u_min = (float)out.currentFrame * frameUVWidth;
+			float u_max = u_min + frameUVWidth;
+
+			out.minUV = { u_min, 0.0f };
+			out.maxUV = { u_max, 1.0f };
 		}
 		return true;
 	}

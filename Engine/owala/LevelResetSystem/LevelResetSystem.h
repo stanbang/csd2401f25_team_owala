@@ -38,6 +38,9 @@ namespace Framework {
         // Enemy signatures
         ComponentSignature enemySig;
 
+        // Text signature
+        ComponentSignature worldTextSig;
+
     public:
         LevelResetSystem();
 

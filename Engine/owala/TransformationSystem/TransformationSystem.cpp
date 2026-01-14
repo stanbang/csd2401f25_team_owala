@@ -26,6 +26,7 @@
 #include <cmath>
 #include <iostream>
 #include "OwalaTime.h"
+#include "MessageBus.h"
 
 namespace Framework {
 
@@ -109,6 +110,7 @@ namespace Framework {
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "World rotating anticlockwise 90 degrees" << std::endl;
+                MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
             }
 
             if (input_.KeyPressed(InputSystem::Key::E)) {
@@ -118,6 +120,7 @@ namespace Framework {
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "World rotating clockwise 90 degrees" << std::endl;
+				MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
             }
         }
     }
@@ -293,9 +296,9 @@ namespace Framework {
             }
 
             // Apply scale to collider transform matrix
-            Vector2D& scale = entityMgr.GetComponent<Transform>(entity).scale;
-            colliderScale.x = scale.x;
-            colliderScale.y = scale.y;
+            Vector2D& newscale = entityMgr.GetComponent<Transform>(entity).scale;
+            colliderScale.x = newscale.x;
+            colliderScale.y = newscale.y;
 
             rotComp.colliderTransformMatrix = Transformation::CreateTransformationMatrix(position, colliderRotationDegrees, colliderScale);
         }
@@ -304,9 +307,9 @@ namespace Framework {
             RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
             float worldRotation = rotationFlag.currentRotation;
 
-            Vector2D scale = entityMgr.GetComponent<Transform>(entity).scale;
+            Vector2D newscale = entityMgr.GetComponent<Transform>(entity).scale;
 
-            rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix(position, worldRotation, scale);
+            rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix(position, worldRotation, newscale);
         }
     }
 

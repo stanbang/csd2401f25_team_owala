@@ -14,6 +14,7 @@
 #include "SplashScreen.h"
 #include "TestScene.h"
 #include "LoadingScreenController.h"
+#include "TransitionController.h"
 
 // ImGui headers
 #ifdef BUILD_EDITOR
@@ -213,7 +214,7 @@ namespace Framework {
 
 	void GameManager::Initialize() {
 		CheckSystems();
-
+		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
 
@@ -256,8 +257,12 @@ namespace Framework {
 			if (event.deathAnimationFinished) {
 				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
-					GetSystems().levelResetter_->RunReset();
-					SceneManager::GetInstance().LoadScene("RestartMenu");
+
+					if (!queuedLevelLoad_) {
+						queuedLevelName_ = "RestartMenu";
+						queuedLevelReset_ = true;
+						queuedLevelLoad_ = true;
+					}
 				}
 			}
 		});
@@ -304,9 +309,18 @@ namespace Framework {
 	void GameManager::Update() {
 		// --- GAME UPDATE HERE ---
 		if (queuedLevelLoad_) {
-			queuedLevelLoad_ = false;
-			InitiateLevelLoad(queuedLevelName_);
+			std::string targetSceneName = queuedLevelName_;
 			queuedLevelName_.clear();
+			queuedLevelLoad_ = false;
+
+			if (queuedLevelReset_) {
+				queuedLevelReset_ = false;
+				if (systems_.levelResetter_) {
+					systems_.levelResetter_->RunReset();
+				}
+			}
+
+			InitiateLevelLoad(targetSceneName);
 		}
 
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
@@ -375,11 +389,51 @@ namespace Framework {
 	}
 
 	// Helper to trigger the loading process
-	void GameManager::InitiateLevelLoad(const std::string& levelName) {
-		SetNextScene(levelName);
-		PreloadSceneAssets(levelName);
-		// Switch immediately to the loading screen
-		SceneManager::GetInstance().LoadScene("LoadingScreen");
+	void GameManager::InitiateLevelLoad(const std::string& targetSceneName) {
+
+		std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
+		bool currentIsLevel = IsLevelScene(currentSceneName);
+		bool targetIsLevel = IsLevelScene(targetSceneName);
+
+		// Level > Level (Direct Transition, No Loading Screen)
+		if (currentIsLevel && targetIsLevel) {
+			Logger::Get().Info(DebugType::GameManager) << "Level->Level Transition: " << targetSceneName << std::endl;
+
+			// Close Curtains
+			TransitionController::PlayAllClose([this, targetSceneName]() {
+				// Load Next Level Directly
+				SceneManager::GetInstance().LoadScene(targetSceneName);
+
+				// Tell TransitionController to start CLOSED in the new level, then OPEN
+				TransitionController::s_startNextSceneClosed = true;
+				});
+		}
+		// Menu > Level (Show Loading Screen)
+		else if (!currentIsLevel && targetIsLevel) {
+			Logger::Get().Info(DebugType::GameManager) << "Menu->Level Transition via Loading Screen" << std::endl;
+
+			SetNextScene(targetSceneName); // Store target for LoadingScreenController
+			PreloadSceneAssets(targetSceneName);
+
+			// Just load loading screen immediately
+			SceneManager::GetInstance().LoadScene("LoadingScreen");
+		}
+		// Level > Menu (Close Curtains, then Loading Screen, then Menu)
+		else if (currentIsLevel && !targetIsLevel) {
+			Logger::Get().Info(DebugType::GameManager) << "Level->Menu Transition" << std::endl;
+
+			SetNextScene(targetSceneName); // Store target (e.g., MainMenu)
+
+			// Close Curtains
+			TransitionController::PlayAllClose([this]() {
+				// Load Loading Screen
+				SceneManager::GetInstance().LoadScene("LoadingScreen");
+				});
+		}
+		// Menu -> Menu (Direct, no curtains)
+		else {
+			SceneManager::GetInstance().LoadScene(targetSceneName);
+		}
 	}
 
 	void GameManager::PreloadSceneAssets(const std::string& sceneName) {
@@ -409,7 +463,7 @@ namespace Framework {
 
 		if (!doc.IsObject() || !doc.HasMember("entities")) return;
 
-		// 3. Loop through entities and find textures
+		// Loop through entities and find textures
 		const rapidjson::Value& entities = doc["entities"];
 		for (const auto& entity : entities.GetArray()) {
 			if (!entity.HasMember("components")) continue;
@@ -441,6 +495,18 @@ namespace Framework {
 				}
 			}
 		}
+	}
+
+	// Function to check if a scene is a level scene
+	bool GameManager::IsLevelScene(const std::string& name) {
+		if (name == "MainMenu" || 
+			name == "LevelSelect" || 
+			name == "SplashScreen" || 
+			name == "RestartMenu" || 
+			name == "LoadingScreen" || 
+			name == "HowToPlay")
+			return false;
+		return true;
 	}
 
 }
