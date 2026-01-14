@@ -2,7 +2,7 @@
  * \file   AnimationSystem.cpp
  *
  * \primary_author
- *      Ng Jing Wen
+ * Ng Jing Wen
  * \secondary_author
  *
  *
@@ -23,17 +23,17 @@
 
 namespace Framework {
 
-    void AnimationSystem::Update() {
+	void AnimationSystem::Update() {
 		EntityManager entityMgr(*entityStorage_);
 		const auto& animationProfiles = resourceManager_->GetAnimationProfiles();
 		// Small padding to avoid texture bleeding
 		constexpr float UV_PADDING = 0.003f;
 
-        // Loop through each entity that with AnimationComponent
+		// Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
 			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
 			if (!entityMgr.HasComponent(entity, TextureComponentType)) continue; // Skip if entity does not have TextureComponent
-			
+
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 
@@ -100,13 +100,12 @@ namespace Framework {
 				animationComponent.isPlaying = false;
 				animationComponent.frameCount = 1;
 				animationComponent.currentFrame = 0;
-
 				// Force full image display
 				animationComponent.minUV = { 0.0f, 0.0f };
 				animationComponent.maxUV = { 1.0f, 1.0f };
-
 				continue;
 			}
+
 			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(baseTextureKey);
 
 			// Check if the texture key has changed
@@ -159,26 +158,27 @@ namespace Framework {
 			}
 
 			//	Check if animation is playing
-			if (!animationComponent.isPlaying) continue;
+			if (animationComponent.isPlaying) {
 
-			// Update elapsed time
-			animationComponent.elapsedTime += Framework::Time::DeltaTime();
+				// Update elapsed time
+				animationComponent.elapsedTime += Framework::Time::DeltaTime();
 
-			//	Check if it's time to switch to the next frame
-			if (animationComponent.elapsedTime >= animationComponent.frameDuration) {
-				animationComponent.elapsedTime -= animationComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
+				//	Check if it's time to switch to the next frame
+				if (animationComponent.elapsedTime >= animationComponent.frameDuration) {
+					animationComponent.elapsedTime -= animationComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
 
-				animationComponent.currentFrame++; // Move to the next frame
+					animationComponent.currentFrame++; // Move to the next frame
 
-				//Handle looping at the last frame
-				if (animationComponent.currentFrame >= animationComponent.frameCount) {
-					if (animationComponent.isLooping) {
-						animationComponent.currentFrame = 0; // Loop back to the first frame
-					}
+					//Handle looping at the last frame
+					if (animationComponent.currentFrame >= animationComponent.frameCount) {
+						if (animationComponent.isLooping) {
+							animationComponent.currentFrame = 0; // Loop back to the first frame
+						}
 
-					else {
-						animationComponent.currentFrame = animationComponent.frameCount - 1; // Stay on the last frame
-						animationComponent.isPlaying = false; // Stop the animation
+						else {
+							animationComponent.currentFrame = animationComponent.frameCount - 1; // Stay on the last frame
+							animationComponent.isPlaying = false; // Stop the animation
+						}
 					}
 				}
 			}
@@ -246,12 +246,12 @@ namespace Framework {
 				animationComponent.minUV.y = 0.0f;
 				animationComponent.maxUV.y = 1.0f;
 			}
-        }
-    }
+		}
+	}
 
 
-    void AnimationSystem::Shutdown() {
-        
-    }
+	void AnimationSystem::Shutdown() {
+
+	}
 
 } // namespace Framework
