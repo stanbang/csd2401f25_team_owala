@@ -214,9 +214,13 @@ namespace Framework {
 		MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
 			// Change to RestartMenu when death animation finishes
 			if (event.deathAnimationFinished) {
+				// If transitioning to another scene already, do nothing
+				if (!GetNextScene().empty()) return;
+
+				// Only change to RestartMenu if not already there
 				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
-					GetSystems().levelResetter_->RunReset();
+					//GetSystems().levelResetter_->RunReset(); // Don't reset the level before the curtains close, do it after inside InitiateLevelLoad
 					//SceneManager::GetInstance().LoadScene("RestartMenu"); //Old code without transitions
 					this->InitiateLevelLoad("RestartMenu"); // Correct way to load with transitions
 				}
@@ -353,25 +357,28 @@ namespace Framework {
 		// Menu > Level (Show Loading Screen)
 		else if (!currentIsLevel && targetIsLevel) {
 			Logger::Get().Info(DebugType::GameManager) << "Menu->Level Transition via Loading Screen" << std::endl;
-
 			SetNextScene(targetSceneName); // Store target for LoadingScreenController
 			PreloadSceneAssets(targetSceneName);
 
 			// Just load loading screen immediately
 			SceneManager::GetInstance().LoadScene("LoadingScreen");
 		}
+
 		// Level > Menu (Close Curtains, then Loading Screen, then Menu)
 		else if (currentIsLevel && !targetIsLevel) {
 			Logger::Get().Info(DebugType::GameManager) << "Level->Menu Transition" << std::endl;
-
 			SetNextScene(targetSceneName); // Store target (e.g., MainMenu)
 
 			// Close Curtains
 			TransitionController::PlayAllClose([this]() {
+				// Reset Level
+				this->GetSystems().levelResetter_->RunReset();
+
 				// Load Loading Screen
 				SceneManager::GetInstance().LoadScene("LoadingScreen");
 				});
 		}
+
 		// Menu -> Menu (Direct, no curtains)
 		else {
 			SceneManager::GetInstance().LoadScene(targetSceneName);

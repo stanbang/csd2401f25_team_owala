@@ -325,7 +325,8 @@ namespace Framework {
 
                     if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
                         MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
-						state.isDead = false; // Reset death state after handling
+                        /*Commented out because we dont want the player death animation to be looping as the curtains are closing*/
+						//state.isDead = false; // Reset death state after handling
                     }
                 }
             }
