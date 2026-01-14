@@ -86,7 +86,7 @@ namespace Framework {
 
         bool callbackAssigned = false;
 
-        for (auto* controller : allControllers) {
+        for (TransitionController* controller : allControllers) {
             // Only assign the callback to the FIRST controller found.
             // This prevents "LoadScene" from being called multiple times.
             if (!callbackAssigned) {
@@ -120,6 +120,30 @@ namespace Framework {
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
+                
+                ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+                if (rsm) {
+                    // Ensure data is loaded
+                    if (!rsm->has<AnimationInfo>(CLOSE_ANIM_TEXTURE)) {
+                        rsm->loadAnimationInfo(CLOSE_ANIM_TEXTURE);
+                    }
+
+                    if (rsm->has<AnimationInfo>(CLOSE_ANIM_TEXTURE)) {
+                        AnimationInfo& info = rsm->get<AnimationInfo>(CLOSE_ANIM_TEXTURE);
+
+                        // Update Component to match the texture (Fixes UVs/Frame Counts)
+                        anim.frameCount = info.frameCount;
+                        anim.frameDuration = info.frameDuration;
+
+                        // Set the Logic Timer to match the Visual Duration
+                        // If frameCount is 10 and duration is 0.2, total time is 2.0 seconds
+                        animDuration_ = (float)info.frameCount * info.frameDuration;
+
+                        // Safety check to prevent divide by zero later
+                        if (animDuration_ <= 0.0f) animDuration_ = 1.0f;
+                    }
+                }
+
                 anim.currentFrame = 0;
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = true;
@@ -142,6 +166,27 @@ namespace Framework {
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
+                
+				// Same logic for calculating duration as in PlayClose
+                ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+                if (rsm) {
+                    if (!rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
+                        rsm->loadAnimationInfo(OPEN_ANIM_TEXTURE);
+                    }
+
+                    if (rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
+                        AnimationInfo& info = rsm->get<AnimationInfo>(OPEN_ANIM_TEXTURE);
+
+                        anim.frameCount = info.frameCount;
+                        anim.frameDuration = info.frameDuration;
+
+                        // Sync logic timer to visual duration
+                        animDuration_ = (float)info.frameCount * info.frameDuration;
+
+                        if (animDuration_ <= 0.0f) animDuration_ = 1.0f;
+                    }
+                }
+                
                 anim.currentFrame = 0;
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = true;
@@ -158,12 +203,22 @@ namespace Framework {
 		CheckStartClosed(); // Check flag each update in case it was set later
 
         float dt = Framework::Time::UnscaledDeltaTime();
-
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         if (!entityMgr.HasComponent(GetEntity(), TextureComponentType)) return;
 
         TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
         
+		// Get current scene and check if it's a level
+        std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
+        bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
+
+        // If we are in a non-level scene like the menu and the curtain is stuck CLOSED,
+        // force it to hide immediately.
+        if (!isLevel && state_ == TransitionState::CLOSED) {
+            ForceHide();
+            return; // ForceHide changes state, return to avoid processing other logic this frame
+        }
+
         if (state_ == TransitionState::HIDDEN) {
             std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
             bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);

@@ -19,7 +19,7 @@
 	"style": "FROM_TOP_VIEWPORT",
 	"isScreenSpace": true,
 	"lifetime": 1.2,
-	"count": 1,
+	"count": 3,
 	"speed": 0.0,
 	"size": { "x": 0.1, "y": 1 },
 	"offset": { "x": 0.0, "y": -0.5 },

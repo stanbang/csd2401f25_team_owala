@@ -217,7 +217,8 @@ namespace Framework {
 				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
 					GetSystems().levelResetter_->RunReset();
-					SceneManager::GetInstance().LoadScene("RestartMenu");
+					//SceneManager::GetInstance().LoadScene("RestartMenu"); //Old code without transitions
+					this->InitiateLevelLoad("RestartMenu"); // Correct way to load with transitions
 				}
 			}
 		});
