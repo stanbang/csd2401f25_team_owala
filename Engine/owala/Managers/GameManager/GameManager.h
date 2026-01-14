@@ -39,6 +39,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 
 namespace Framework {
@@ -60,6 +61,7 @@ namespace Framework {
 	private:
 		static GameManager* instance;
 		std::string nextSceneToLoad_ = "";
+		std::function<void()> deferredTask_ = nullptr;
 
 		bool queuedLevelLoad_ = false;
 		bool queuedLevelReset_ = false;

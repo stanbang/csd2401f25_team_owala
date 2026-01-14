@@ -101,6 +101,10 @@ namespace Framework {
 		static int count = 0;
 		EntityManager entityMgr(*systems_.ecs_);
 		SceneManager& sceneMgr = SceneManager::GetInstance();
+		
+		// Get all entities with NativeScriptsComponent and ActiveTag to log them
+		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType);
+		
 		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
 
@@ -307,6 +311,12 @@ namespace Framework {
 	}
 
 	void GameManager::Update() {
+		// Execute any deferred tasks from previous frame
+		if (deferredTask_) {
+			deferredTask_();
+			deferredTask_ = nullptr;
+		}
+
 		// --- GAME UPDATE HERE ---
 		if (queuedLevelLoad_) {
 			std::string targetSceneName = queuedLevelName_;
@@ -401,11 +411,10 @@ namespace Framework {
 
 			// Close Curtains
 			TransitionController::PlayAllClose([this, targetSceneName]() {
-				// Load Next Level Directly
-				SceneManager::GetInstance().LoadScene(targetSceneName);
-
-				// Tell TransitionController to start CLOSED in the new level, then OPEN
-				TransitionController::s_startNextSceneClosed = true;
+				deferredTask_ = [targetSceneName]() {
+					SceneManager::GetInstance().LoadScene(targetSceneName);
+					TransitionController::s_startNextSceneClosed = true;
+					};
 				});
 		}
 		// Menu > Level (Show Loading Screen)
@@ -427,7 +436,9 @@ namespace Framework {
 			// Close Curtains
 			TransitionController::PlayAllClose([this]() {
 				// Load Loading Screen
-				SceneManager::GetInstance().LoadScene("LoadingScreen");
+				deferredTask_ = []() {
+					SceneManager::GetInstance().LoadScene("LoadingScreen");
+					};
 				});
 		}
 		// Menu -> Menu (Direct, no curtains)
