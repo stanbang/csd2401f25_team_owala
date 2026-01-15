@@ -4,19 +4,10 @@
 * \primary_author
 *       Sitara Anil
 *
-* \secondary_author
-*
-*
-* \brief   
+* \brief
 *       Implementation of the TransformationSystem. Handles global world
 *       rotation triggered by Q/E keys with smooth interpolation and cooldown.
-*       Computes and updates transformation matrices (T*R*S) for all entities.
-*       Rotates entity positions around world origin and manages physics
-*       pausing during rotation animations.
-*
-* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
-* Reproduction or disclosure of this file or its contents without the prior
-* written consent of DigiPen Institute of Technology is prohibited.
+*       Adds cinematic camera zoom: zoom out -> rotate -> zoom back in.
 *********************************************************************/
 #include "TransformationSystem.h"
 #include "EntityManager.h"
@@ -31,17 +22,29 @@
 
 namespace Framework {
 
-    TransformationSystem::TransformationSystem(EntityStorage& ecs, InputSystem& input,PhysicsSystem& physics)
-        : ecs_(&ecs), input_(&input), physics_(&physics),
-        globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false), rotationCooldown(0.0f), rotationCooldownDuration(0.5f) {
+    // NOTE:
+    // This file assumes TransformationSystem.h contains:
+    // enum class RotatePhase { Idle, ZoomingOut, Rotating, ZoomingIn };
+    // RotatePhase rotatePhase_ = RotatePhase::Idle;
+    // float cachedZoom_ = 1.0f;
+    // float wideZoom_ = 1.0f;
+    // float rotateZoomFactor_ = 1.25f;
+    // float zoomSpeed_ = 8.0f;
+    // float pendingDelta_ = 0.0f;
+    // bool zoomOutInitialized_ = false;
+
+    TransformationSystem::TransformationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics)
+        : ecs_(&ecs)
+        , input_(&input)
+        , physics_(&physics)
+        , globalRotation(0.0f)
+        , targetGlobalRotation(0.0f)
+        , isGlobalRotating(false)
+        , rotationCooldown(0.0f)
+        , rotationCooldownDuration(0.5f)
+    {
     }
 
-    /*!
-    @brief      Initializes the transformation system and computes initial
-                transformation matrices for all transformable entities
-    @param      void
-    @return     void
-*//*______________________________________________________________*/
     void TransformationSystem::Initialize() {
         EntityManager entityMgr(*ecs_);
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
@@ -51,122 +54,114 @@ namespace Framework {
         }
     }
 
-    /*!
-    @brief      Main update function that handles both world rotation and
-                entity transformation matrix updates
-    @param      dt Delta time in seconds since last frame
-    @return     void
-*//*______________________________________________________________*/
     void TransformationSystem::Update() {
-        ProcessRotationInput();
-        UpdateGlobalRotation();
-        UpdateRotationZoom();
+        ProcessRotationInput();     // queues rotation intent (Q/E)
+        UpdateRotateCinematic();    // drives zoom-out / hold / zoom-in phases
+        UpdateGlobalRotation();     // rotates world while isGlobalRotating == true
         UpdateAllTransforms();
     }
 
-    /*!
-    @brief      Processes Q/E key input to trigger global world rotation
-    @param      dt Delta time for cooldown updates
-    @return     void
-*//*______________________________________________________________*/
+    // Cinematic: zoom out first (wait until done) -> rotate (hold zoom) -> zoom back in
+    void TransformationSystem::UpdateRotateCinematic() {
+        CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
+        if (!cameraSystem) return;
+
+        EntityManager camMgr(*ecs_);
+        Entity camEnt = cameraSystem->GetActiveCamera();
+        if (camEnt == 0 || !camMgr.HasComponent(camEnt, CameraType)) return;
+
+        Camera& cam = camMgr.GetComponent<Camera>(camEnt);
+
+        float dt = Framework::Time::DeltaTime();
+        float t = 1.0f - std::exp(-zoomSpeed_ * dt);
+
+        switch (rotatePhase_) {
+        case RotatePhase::Idle:
+            return;
+
+        case RotatePhase::ZoomingOut: {
+            // cache original ONCE, not every frame
+            if (!zoomOutInitialized_) {
+                cachedZoom_ = cam.zoom;
+                wideZoom_ = cachedZoom_ * rotateZoomFactor_;
+                zoomOutInitialized_ = true;
+            }
+
+            float newZoom = cam.zoom + (wideZoom_ - cam.zoom) * t;
+            cameraSystem->SetZoom(camEnt, newZoom);
+
+            // wait until zoom-out completes, THEN start rotation
+            if (std::abs(newZoom - wideZoom_) < 0.001f) {
+                cameraSystem->SetZoom(camEnt, wideZoom_); // hold wide angle
+
+                targetGlobalRotation += pendingDelta_;
+                physics_->SetPaused(true);
+                isGlobalRotating = true;
+
+                MessageBus::Instance().Publish(WorldRotationEvent{});
+
+                rotatePhase_ = RotatePhase::Rotating;
+            }
+            break;
+        }
+
+        case RotatePhase::Rotating: {
+            // hold zoom wide during rotation
+            cameraSystem->SetZoom(camEnt, wideZoom_);
+            break;
+        }
+
+        case RotatePhase::ZoomingIn: {
+            float newZoom = cam.zoom + (cachedZoom_ - cam.zoom) * t;
+            cameraSystem->SetZoom(camEnt, newZoom);
+
+            if (std::abs(newZoom - cachedZoom_) < 0.001f) {
+                cameraSystem->SetZoom(camEnt, cachedZoom_);
+                rotatePhase_ = RotatePhase::Idle;
+                pendingDelta_ = 0.0f;
+                zoomOutInitialized_ = false;
+            }
+            break;
+        }
+        }
+    }
+
     void TransformationSystem::ProcessRotationInput() {
         // Update cooldown timer
         if (rotationCooldown > 0.0f) {
             rotationCooldown -= Framework::Time::DeltaTime();
-            if (rotationCooldown < 0.0f) {
-                rotationCooldown = 0.0f;
-            }
+            if (rotationCooldown < 0.0f) rotationCooldown = 0.0f;
         }
 
-        bool canRotate = false; // boolean for checking for rotation (for grounded player)
+        bool canRotate = false;
         EntityManager entityMgr(*ecs_);
 
-        // Find the player entity to check their state
+        // Find grounded active player
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
-            // Ensure we only check active players
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
-
-            // Get the player state updated by PhysicsSystem
             PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
-
-            // Only allow rotation if the player is grounded
-            if (state.isGrounded) {
-                canRotate = true;
-                break; // Found the player, we can proceed
-            }
+            if (state.isGrounded) { canRotate = true; break; }
         }
 
-        // If the player is in the air (not grounded), exit  function early
-        if (!canRotate) {
-            return;
-        }
+        if (!canRotate) return;
 
-        if (!isGlobalRotating && rotationCooldown <= 0.0f) {
+        // Only allow queueing when no active rotation cinematic is running
+        if (!isGlobalRotating && rotationCooldown <= 0.0f && rotatePhase_ == RotatePhase::Idle) {
             if (input_->KeyPressed(InputSystem::Key::Q)) {
-                // Q = anticlockwise = positive rotation
-                targetGlobalRotation += 90.0f;
-                physics_->SetPaused(true);
-                isGlobalRotating = true;
+                pendingDelta_ = +90.0f;
+                rotatePhase_ = RotatePhase::ZoomingOut;
                 rotationCooldown = rotationCooldownDuration;
-
-                // --- zoom out when rotation starts (same logic as X key) ---
-                CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
-                if (cameraSystem) {
-                    Entity activeCam = cameraSystem->GetActiveCamera();
-                    EntityManager camMgr(*ecs_);
-                    if (activeCam != 0 && camMgr.HasComponent(activeCam, CameraType)) {
-                        Camera& cam = camMgr.GetComponent<Camera>(activeCam);
-
-                        cachedZoom_ = cam.zoom;
-                        zoomCached_ = true;
-                        zoomReturning_ = false;
-
-                        cameraSystem->SetZoom(activeCam, cam.zoom * rotateZoomFactor_);
-                    }
-                }
-                // -----------------------------------------------------------
-
-                std::cout << "World rotating anticlockwise 90 degrees" << std::endl;
-                MessageBus::Instance().Publish(WorldRotationEvent{});
+                std::cout << "Queued anticlockwise rotation (zooming out first)\n";
             }
-
-            if (input_->KeyPressed(InputSystem::Key::E)) {
-                // E = clockwise = negative rotation
-                targetGlobalRotation -= 90.0f;
-                physics_->SetPaused(true);
-                isGlobalRotating = true;
+            else if (input_->KeyPressed(InputSystem::Key::E)) {
+                pendingDelta_ = -90.0f;
+                rotatePhase_ = RotatePhase::ZoomingOut;
                 rotationCooldown = rotationCooldownDuration;
-
-                // --- SAME zoom logic here ---
-                CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
-                if (cameraSystem) {
-                    Entity activeCam = cameraSystem->GetActiveCamera();
-                    EntityManager camMgr(*ecs_);
-                    if (activeCam != 0 && camMgr.HasComponent(activeCam, CameraType)) {
-                        Camera& cam = camMgr.GetComponent<Camera>(activeCam);
-
-                        cachedZoom_ = cam.zoom;
-                        zoomCached_ = true;
-                        zoomReturning_ = false;
-
-                        cameraSystem->SetZoom(activeCam, cam.zoom * rotateZoomFactor_);
-                    }
-                }
-                // --------------------------------
-
-                std::cout << "World rotating clockwise 90 degrees" << std::endl;
-                MessageBus::Instance().Publish(WorldRotationEvent{});
+                std::cout << "Queued clockwise rotation (zooming out first)\n";
             }
         }
-
     }
 
-/*!
-    @brief      Updates the global world rotation, smoothly interpolating
-                and rotating all entity positions around the world origin
-    @param      dt Delta time for smooth rotation speed
-    @return     void
-*//*______________________________________________________________*/
     void TransformationSystem::UpdateGlobalRotation() {
         if (!isGlobalRotating) return;
 
@@ -178,27 +173,25 @@ namespace Framework {
         float rotationIncrement = 0.0f;
 
         if (targetGlobalRotation > globalRotation) {
-            // Rotating counterclockwise (Q key)
             rotationIncrement = std::min(rotationThisFrame, targetGlobalRotation - globalRotation);
             globalRotation += rotationIncrement;
         }
         else if (targetGlobalRotation < globalRotation) {
-            // Rotating clockwise (E key)  
             rotationIncrement = -std::min(rotationThisFrame, globalRotation - targetGlobalRotation);
             globalRotation += rotationIncrement;
         }
 
-        // Check if rotation is complete
+        // Complete?
         if (std::abs(targetGlobalRotation - globalRotation) < 0.1f) {
             globalRotation = targetGlobalRotation;
             isGlobalRotating = false;
             physics_->SetPaused(false);
 
-            if (zoomCached_) zoomReturning_ = true;   // << add this
+            // trigger zoom back in
+            rotatePhase_ = RotatePhase::ZoomingIn;
 
-            std::cout << "World rotation complete at " << globalRotation << " degrees" << std::endl;
+            std::cout << "World rotation complete at " << globalRotation << " degrees\n";
         }
-
 
         if (std::abs(rotationIncrement) > 0.001f) {
             Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
@@ -211,7 +204,7 @@ namespace Framework {
                 Vector2D originalPos = entityMgr.GetComponent<Transform>(entity).position;
                 entityMgr.GetComponent<Transform>(entity).position = rotationMat * originalPos;
 
-                // Update entity's local rotation angle (except for players)
+                // Update entity's local rotation angle (except for players/enemies)
                 if (!entityMgr.HasComponent(entity, PlayerTagType) && !entityMgr.HasComponent(entity, EnemyTagType)) {
                     RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
                     rotationFlag.currentRotation += rotationIncrement;
@@ -219,7 +212,7 @@ namespace Framework {
                 }
             }
 
-            // Reset grounded state for player after rotation
+            // Keep player grounded after rotation
             for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
                 if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
@@ -234,11 +227,14 @@ namespace Framework {
         isGlobalRotating = false;
         rotationCooldown = 0.0f;
         rotationCooldownDuration = 0.5f;
+
+        // reset cinematic state too
+        rotatePhase_ = RotatePhase::Idle;
+        pendingDelta_ = 0.0f;
+        zoomOutInitialized_ = false;
     }
 
     Vector2D TransformationSystem::GetOriginalPos(EntityManager& entityMgr, Entity entity) {
-
-        // Check if the entity has the necessary components
         if (!entityMgr.HasComponent(entity, RotationFlagType) ||
             !entityMgr.HasComponent(entity, TransformType))
         {
@@ -246,41 +242,24 @@ namespace Framework {
         }
 
         Vector2D currentPos = entityMgr.GetComponent<Transform>(entity).position;
-        
         const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
-        float totalRotationAngle = rotationFlag.currentRotation;
 
-        float inverseAngle = -totalRotationAngle;
+        float inverseAngle = -rotationFlag.currentRotation;
         Matrix3x3 inverseRotationMat = Transformation::CreateRotationMatrix(inverseAngle);
 
-        Vector2D originalPos = inverseRotationMat * currentPos;
-
-        return originalPos;
+        return inverseRotationMat * currentPos;
     }
 
-    /*!
-    @brief      Updates transformation matrices for all entities
-    @param      dt Delta time
-    @return     void
-*//*______________________________________________________________*/
     void TransformationSystem::UpdateAllTransforms() {
         EntityManager entityMgr(*ecs_);
 
-        // Update standard entities with position and rotation
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
             if (!entityMgr.HasComponent(entity, RotationFlagType)) continue;
             UpdateEntityTransform(entity);
         }
-
     }
 
-/*!
-    @brief      Updates the transformation matrix for a specific entity
-                by computing T * R * S from its components
-    @param      entity Entity to update transformation for
-    @return     void
-*//*______________________________________________________________*/
     void TransformationSystem::UpdateEntityTransform(Entity entity) {
         EntityManager entityMgr(*ecs_);
 
@@ -302,7 +281,6 @@ namespace Framework {
             collider.HalfSize.y = originalColliderSizes_[entity].y * scale.y;
         }
 
-        // Handle Texture Rotation
         Transform::Rotation& rotComp = transform.rotation;
 
         float textureRotationDegrees = rotComp.textureAngle * (180.0f / 3.14159265359f);
@@ -318,13 +296,13 @@ namespace Framework {
         textureScale.x *= scale.x;
         textureScale.y *= scale.y;
 
-        rotComp.textureTransformMatrix = Transformation::CreateTransformationMatrix(position, textureRotationDegrees, textureScale);
+        rotComp.textureTransformMatrix =
+            Transformation::CreateTransformationMatrix(position, textureRotationDegrees, textureScale);
 
-        if (entityMgr.HasComponent(entity, AABBColliderType))
-        {
-            //AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+        if (entityMgr.HasComponent(entity, AABBColliderType)) {
             Vector2D colliderScale = Vector2D(1.0f, 1.0f);
             colliderRotationDegrees = 0.0f;
+
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
                 colliderRotationDegrees = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
@@ -332,12 +310,12 @@ namespace Framework {
                 colliderRotationDegrees = rotComp.colliderAngle * (180.0f / 3.14159265359f);
             }
 
-            // Apply scale to collider transform matrix
             Vector2D& newscale = entityMgr.GetComponent<Transform>(entity).scale;
             colliderScale.x = newscale.x;
             colliderScale.y = newscale.y;
 
-            rotComp.colliderTransformMatrix = Transformation::CreateTransformationMatrix(position, colliderRotationDegrees, colliderScale);
+            rotComp.colliderTransformMatrix =
+                Transformation::CreateTransformationMatrix(position, colliderRotationDegrees, colliderScale);
         }
 
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -345,37 +323,25 @@ namespace Framework {
             float worldRotation = rotationFlag.currentRotation;
 
             Vector2D newscale = entityMgr.GetComponent<Transform>(entity).scale;
-
-            rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix(position, worldRotation, newscale);
+            rotationFlag.transformMatrix =
+                Transformation::CreateTransformationMatrix(position, worldRotation, newscale);
         }
     }
 
-    /*!
-    @brief      Gets the transformation matrix for an entity
-    @param      entity Entity to retrieve transformation matrix for
-    @return     Matrix3x3 transformation matrix (identity if no transform)
-*//*______________________________________________________________*/
     Matrix3x3 TransformationSystem::GetTransformMatrix(Entity entity) const {
         EntityManager entityMgr(*ecs_);
 
-        // Standard entity transformation
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
             return entityMgr.GetComponent<RotationFlag>(entity).transformMatrix;
         }
-
         return Matrix3x3();
     }
 
-    /*!
-    @brief      Computes transformation matrix from entity components
-    @param      entity Entity to compute transformation for
-    @return     Matrix3x3 computed transformation matrix (T * R * S)
-*//*______________________________________________________________*/
     Matrix3x3 TransformationSystem::ComputeTransformMatrix(Entity entity) const {
         EntityManager entityMgr(*ecs_);
 
         if (!entityMgr.HasComponent(entity, TransformType)) {
-            return Matrix3x3(); // Identity matrix
+            return Matrix3x3();
         }
 
         Vector2D position = entityMgr.GetComponent<Transform>(entity).position;
@@ -388,45 +354,8 @@ namespace Framework {
 
         return Transformation::CreateTransformationMatrix(position, rotation, scale);
     }
-    void TransformationSystem::UpdateRotationZoom() {
-        CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
-        if (!cameraSystem) return;
 
-        EntityManager entityMgr(*ecs_);
-        Entity camEnt = cameraSystem->GetActiveCamera();
-        if (camEnt == 0 || !entityMgr.HasComponent(camEnt, CameraType)) return;
-
-        Camera& cam = entityMgr.GetComponent<Camera>(camEnt);
-
-        // While rotating: keep zoom-out locked (prevents other systems from fighting it)
-        if (isGlobalRotating && zoomCached_) {
-            cameraSystem->SetZoom(camEnt, cachedZoom_ * rotateZoomFactor_);
-            return;
-        }
-
-        // After rotating: smooth zoom back to cached value
-        if (zoomReturning_ && zoomCached_) {
-            float dt = Framework::Time::DeltaTime();
-            float t = 1.0f - std::exp(-zoomReturnSpeed_ * dt);
-
-            float desired = cachedZoom_;
-            float newZoom = cam.zoom + (desired - cam.zoom) * t;
-
-            cameraSystem->SetZoom(camEnt, newZoom);
-
-            if (std::abs(newZoom - desired) < 0.001f) {
-                cameraSystem->SetZoom(camEnt, desired);
-                zoomReturning_ = false;
-                zoomCached_ = false;
-            }
-        }
-    }
-
-    /*!
-    @brief      Shuts down the transformation system
-    @param      void
-    @return     void
-*//*______________________________________________________________*/
     void TransformationSystem::Shutdown() {
     }
-}
+
+} // namespace Framework
