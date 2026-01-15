@@ -40,12 +40,9 @@
 
 namespace Framework {
 
-    AISystem::AISystem(EntityStorage& storage, Graphics& gfx)
-        : ecs_(&storage), gfx_(&gfx) {}
-
     void AISystem::Initialize() {
         // Build the navigation grid 
-        navGrid_.BuildGrid(*ecs_);
+        navGrid_.BuildGrid();
         Logger::Get().Info(DebugType::AISystem) << "AISystem initialized. Navigation grid built." << std::endl;
     }
 
@@ -55,7 +52,7 @@ namespace Framework {
     }
 
     Entity AISystem::GetPlayer() {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         // get PlayerTagType component
         auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
         if (!players.empty()) {
@@ -65,7 +62,7 @@ namespace Framework {
     }
 
     void AISystem::Update() {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         std::vector<Entity> enemies = entityMgr.GetAllEntitiesWithComponent(EnemyTagType);
         if (enemies.empty()) return;
@@ -79,7 +76,7 @@ namespace Framework {
         // Rebuild grid on rotation
         static bool wasRotating = false;
         if (worldIsRotating && !wasRotating) {
-            navGrid_.BuildGrid(*ecs_); // Force rebuild
+            navGrid_.BuildGrid(); // Force rebuild
             Logger::Get().Info(DebugType::AISystem)
                 << "World rotation started - grid rebuilt" << std::endl;
         }
@@ -116,7 +113,7 @@ namespace Framework {
         // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
         if (gridRebuildTimer_ >= gridRebuildInterval_) {
-            navGrid_.BuildGrid(*ecs_);
+            navGrid_.BuildGrid();
             gridRebuildTimer_ = 0.0f;
 
             Logger::Get().Info(DebugType::AISystem) << "Navigation grid rebuilt." << std::endl;
@@ -139,7 +136,7 @@ namespace Framework {
                 if (!navGrid_.IsWalkable(static_cast<int>(gridPos.x), static_cast<int>(gridPos.y))) {
                     Logger::Get().Info(DebugType::AISystem)
                         << "Bird stuck in wall - forcing grid rebuild" << std::endl;
-                    navGrid_.BuildGrid(*ecs_);
+                    navGrid_.BuildGrid();
                     gridRebuildTimer_ = 0.0f;
                     break;
                 }
@@ -259,7 +256,7 @@ namespace Framework {
   
 
     void AISystem::HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         if (!entityMgr.HasComponent(bird, VelocityType)) {
             Logger::Get().Error(DebugType::AISystem) << "Bird Enemy is missing Velocity component!" << std::endl;
             return;
@@ -278,7 +275,7 @@ namespace Framework {
 
     void AISystem::HandleWakingState(Entity bird, BirdAIComponent& ai) {
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         // Stop moving during wake-up animation
         if (entityMgr.HasComponent(bird, VelocityType)) {
             entityMgr.GetComponent<Velocity>(bird).Vel = Vector2D::Zero();
@@ -295,7 +292,7 @@ namespace Framework {
         (void)playerHalfSize; 
         (void)birdHalfSize;
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         float dist = birdPos.Distance(playerPos);
 
@@ -340,7 +337,7 @@ namespace Framework {
         (void)playerHalfSize;
         (void)birdHalfSize;
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         float distToPlayer = birdPos.Distance(playerPos);
 
@@ -374,7 +371,7 @@ namespace Framework {
     }
 
     void AISystem::HandleAttackState(Entity bird, BirdAIComponent& ai) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(bird, TransformType) ||
             !entityMgr.HasComponent(bird, VelocityType)) {
@@ -450,7 +447,7 @@ namespace Framework {
     }
 
     void AISystem::HandleStunnedState(Entity bird, BirdAIComponent& ai) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Stay still
         if (entityMgr.HasComponent(bird, VelocityType)) {
@@ -466,7 +463,7 @@ namespace Framework {
     }
 
     void AISystem::FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         if (ai.currentPath.empty()) {
             // No path, just move towards player (dumb move)
             Entity player = GetPlayer();
@@ -510,7 +507,7 @@ namespace Framework {
     // ============================================================================
 
     void AISystem::HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(skeleton, VelocityType)) {
             Logger::Get().Error(DebugType::AISystem) << "Skeleton Enemy is missing Velocity component!" << std::endl;
@@ -530,7 +527,7 @@ namespace Framework {
     }
 
     void AISystem::HandleSkeletonChaseState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(skeleton, PlayerStateType)) {
             Logger::Get().Error(DebugType::AISystem) << "Skeleton Enemy is missing PlayerState component!" << std::endl;
@@ -581,7 +578,7 @@ namespace Framework {
 
     // HELPER FUNCTIONS FOR AI
     void AISystem::UpdateBirdFacingDirection(Entity bird, const Vector2D& targetPos) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(bird, BirdAIComponentType) ||
             !entityMgr.HasComponent(bird, TransformType)) {
@@ -625,7 +622,7 @@ namespace Framework {
             return;
         }
 
-        if (!gfx_) {
+        if (!GameManager::GetInstance().GetSystems().gfx_) {
             Logger::Get().Error(DebugType::AISystem) << "Graphics system is null!" << std::endl;
             return;
         }
@@ -645,7 +642,7 @@ namespace Framework {
             return;
         }
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         Entity player = GetPlayer();
 
         if (player == 0) {

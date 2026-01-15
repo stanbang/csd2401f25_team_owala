@@ -2,7 +2,7 @@
  * \file   AnimationSystem.cpp
  *
  * \primary_author
- *      Ng Jing Wen
+ * Ng Jing Wen
  * \secondary_author
  *
  *
@@ -17,82 +17,76 @@
 #include "EntityManager.h"
 #include "AnimationSystem.h"
 #include <iostream>
-#include "WindowsSystem.h" // Include for glfwGetKey
-#include <GLFW/glfw3.h>   // Include for key codes
+#include "GameManager.h"
 #include "OwalaTime.h"
 
 namespace Framework {
 
-    void AnimationSystem::Update() {
-		EntityManager entityMgr(*entityStorage_);
+	void AnimationSystem::Update() {
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
+		// Small padding to avoid texture bleeding
+		constexpr float UV_PADDING = 0.003f;
 
-        // Loop through each entity that with AnimationComponent
+		// Loop through each entity that with AnimationComponent
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
 			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
 			if (!entityMgr.HasComponent(entity, TextureComponentType)) continue; // Skip if entity does not have TextureComponent
-			if (!entityMgr.HasComponent(entity, AnimationComponentType)) continue; // Skip if entity does not have AnimationComponent
-			
+
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
 			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
 
 			if (textureComponent.textureKey.empty()) {
-				continue; // Don't try to load animation for empty texture
+				continue; // Don't load animation for empty textures
 			}
+
+			// Store previous texture key to detect changes
+			std::string previousTextureKey = textureComponent.textureKey;
 
 			// Default facing direction
 			bool isFacingRight = true;
-			// The last texture key used
-			std::string previousTextureKey = textureComponent.textureKey;
-			std::string baseTextureKey = textureComponent.textureKey;
-
-			// Handle Player Animation State to Texture Key mapping
-			if (entityMgr.HasComponent(entity, PlayerTagType)) {
-
-				// Get PlayerState to determine facing direction
-				if (entityMgr.HasComponent(entity, PlayerStateType)) {
-					PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
-					isFacingRight = state.isFacingRight;
-				}
-
-				// Map AnimationState to Texture Key
-				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    baseTextureKey = "SB_Eli_Idle_Spritesheet_1.png"; /*std::cout << "Player State : IDLE\n";*/ break; //When idle, use idle animation
-				case AnimationState::RUNNING: baseTextureKey = "Eli_Walk_Spritesheet.png"; /*std::cout << "Player State : RUN\n";*/ break; //When running, use running animation
-				case AnimationState::JUMPING: baseTextureKey = "Eli_Jump_Spritesheet.png"; /*std::cout << "Player State : JUMP\n";*/ break; //When jumping, use jumping animation
-				case AnimationState::FALLING: baseTextureKey = "Eli_Falling_Spritesheet.png"; /*std::cout << "Player State : FALL\n";*/ break; //When falling, use jumping animation
-				case AnimationState::DEATH:   baseTextureKey = "SB_Eli_Death_Spritesheet_1.png";/*std::cout << "Player State : DEATH \n";*/ break; // When dying, use death animation
-				}
-
+			if (entityMgr.HasComponent(entity, PlayerStateType)) {
+				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
 			}
-
-			else if (entityMgr.HasComponent(entity, FakePlayerTagType)) {
-				switch (animationComponent.currentState) {
-				case AnimationState::IDLE:    baseTextureKey = "SB_Eli_Idle_Spritesheet_1.png"; break; //When idle, use idle animation
-				case AnimationState::RUNNING: baseTextureKey = "Eli_Walk_Spritesheet.png"; break; //When running, use running animation
-				}
-			}
-
-			// Handle bird animations
 			else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
-				// Get BirdAIComponent to determine state
-				BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+				isFacingRight = entityMgr.GetComponent<BirdAIComponent>(entity).isFacingRight;
+			}
 
-				isFacingRight = birdAI.isFacingRight; // use bird facing direction
+			// Generic Texture Lookup
+			std::string newTextureKey = textureComponent.textureKey; // Default to current
 
-				switch (birdAI.state) {
-				case BirdState::IDLE: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::WAKING: baseTextureKey = "SB_BirdEnemy_SleepIdle_Spritesheet.png"; break;
-				case BirdState::CHASE: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
-				case BirdState::HOVER: baseTextureKey = "SB_BirdEnemy_Fly_Spritesheet_1.png"; break;
-				case BirdState::ATTACK: baseTextureKey = "SB_BirdEnemy_DiveAttack_Spritesheet.png"; break;
+			// Check if this entity uses a profile (e.g "Player")
+			if (!animationComponent.profileName.empty()) {
+				// Find the profile in the map
+				if (animationProfiles.count(animationComponent.profileName)) {
+					const auto& stateMap = animationProfiles.at(animationComponent.profileName);
+
+					// Synchronize animation state with AI state for BirdEnemy
+					if (animationComponent.profileName == "BirdEnemy" &&
+						entityMgr.HasComponent(entity, BirdAIComponentType)) {
+						BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(entity);
+						// Map BirdState to AnimationState
+						// We use the stateMap keys from the JSON which are: IDLE, WAKING, CHASE, HOVER, ATTACK
+						int birdStateIndex = static_cast<int>(ai.state);
+						animationComponent.currentState = static_cast<AnimationState>(birdStateIndex);
+					}
+
+					// Find the texture for the current state (cast enum to int)
+					int stateIndex = static_cast<int>(animationComponent.currentState);
+					if (stateMap.count(stateIndex)) {
+						newTextureKey = stateMap.at(stateIndex);
+					}
 				}
 			}
+
+			std::string baseTextureKey = newTextureKey;
 
 			// Load animation info using base texture key
-			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
+			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
 				// Try to load animation info if not already loaded
 				try {
-					resourceManager_->loadAnimationInfo(baseTextureKey);
+					resourceManager_.loadAnimationInfo(baseTextureKey);
 				}
 				catch (...) {
 					Logger::Get().Error(DebugType::ResourceManager)
@@ -100,20 +94,18 @@ namespace Framework {
 				}
 			}
 
-			if (!resourceManager_->has<AnimationInfo>(baseTextureKey)) {
+			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
 				// Fallback and treat as static image without animation
 				// Reset UVs here to show full image
 				animationComponent.isPlaying = false;
 				animationComponent.frameCount = 1;
 				animationComponent.currentFrame = 0;
-
 				// Force full image display
 				animationComponent.minUV = { 0.0f, 0.0f };
 				animationComponent.maxUV = { 1.0f, 1.0f };
-
 				continue;
 			}
-			AnimationInfo& animationInfo = resourceManager_->get<AnimationInfo>(baseTextureKey);
+			AnimationInfo& animationInfo = resourceManager_.get<AnimationInfo>(baseTextureKey);
 
 			// Check if the texture key has changed
 			bool animationStateChanged = (previousTextureKey != baseTextureKey);
@@ -145,32 +137,47 @@ namespace Framework {
 
 			// If the animation state changed, reset the animation playback
 			if (animationStateChanged) {
+				try {
+					// Update animation component properties based on the retrieved AnimationInfo
+					animationComponent.frameCount = animationInfo.frameCount;
+					animationComponent.frameDuration = animationInfo.frameDuration;
+					animationComponent.isLooping = animationInfo.isLooping; // Only sets default on switch
+					animationComponent.startFrame = animationInfo.startFrame;
+				}
+				catch (const std::exception& e) {
+					Logger::Get().Error(DebugType::ResourceManager)
+						<< "Error updating AnimationComponent from AnimationInfo for texture key: "
+						<< textureComponent.textureKey << ". Exception: " << e.what() << std::endl;
+					continue; // Skip this entity if there's an error
+				}
+
 				animationComponent.isPlaying = true;
 				animationComponent.currentFrame = animationComponent.startFrame;
 				animationComponent.elapsedTime = 0.0f;
 			}
 
 			//	Check if animation is playing
-			if (!animationComponent.isPlaying) continue;
+			if (animationComponent.isPlaying) {
 
-			// Update elapsed time
-			animationComponent.elapsedTime += Framework::Time::DeltaTime();
+				// Update elapsed time
+				animationComponent.elapsedTime += Framework::Time::DeltaTime();
 
-			//	Check if it's time to switch to the next frame
-			if (animationComponent.elapsedTime >= animationComponent.frameDuration) {
-				animationComponent.elapsedTime -= animationComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
+				//	Check if it's time to switch to the next frame
+				if (animationComponent.elapsedTime >= animationComponent.frameDuration) {
+					animationComponent.elapsedTime -= animationComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
 
-				animationComponent.currentFrame++; // Move to the next frame
+					animationComponent.currentFrame++; // Move to the next frame
 
-				//Handle looping at the last frame
-				if (animationComponent.currentFrame >= animationComponent.frameCount) {
-					if (animationComponent.isLooping) {
-						animationComponent.currentFrame = 0; // Loop back to the first frame
-					}
+					//Handle looping at the last frame
+					if (animationComponent.currentFrame >= animationComponent.frameCount) {
+						if (animationComponent.isLooping) {
+							animationComponent.currentFrame = 0; // Loop back to the first frame
+						}
 
-					else {
-						animationComponent.currentFrame = animationComponent.frameCount - 1; // Stay on the last frame
-						animationComponent.isPlaying = false; // Stop the animation
+						else {
+							animationComponent.currentFrame = animationComponent.frameCount - 1; // Stay on the last frame
+							animationComponent.isPlaying = false; // Stop the animation
+						}
 					}
 				}
 			}
@@ -194,8 +201,8 @@ namespace Framework {
 						// Note: Using sheet.frameCount, NOT animationComponent.frameCount (which is the total)
 						if (sheet.frameCount > 0) {
 							float frameUVWidth = 1.0f / (float)sheet.frameCount;
-							float u_min = (float)localFrame * frameUVWidth;
-							float u_max = u_min + frameUVWidth;
+							float u_min = ((float)localFrame * frameUVWidth) + UV_PADDING;
+							float u_max = (((float)localFrame + 1.0f) * frameUVWidth) - UV_PADDING;
 
 							if (isFacingRight) {
 								animationComponent.minUV.x = u_min;
@@ -223,8 +230,8 @@ namespace Framework {
 				textureComponent.textureKey = baseTextureKey;
 
 				float frameUVWidth = 1.0f / (float)animationComponent.frameCount;
-				float u_min = (float)animationComponent.currentFrame * frameUVWidth;
-				float u_max = u_min + frameUVWidth;
+				float u_min = ((float)animationComponent.currentFrame * frameUVWidth) + UV_PADDING;
+				float u_max = (((float)animationComponent.currentFrame + 1.0f) * frameUVWidth) - UV_PADDING;
 
 				if (isFacingRight) {
 					animationComponent.minUV.x = u_min;
@@ -238,12 +245,12 @@ namespace Framework {
 				animationComponent.minUV.y = 0.0f;
 				animationComponent.maxUV.y = 1.0f;
 			}
-        }
-    }
+		}
+	}
 
 
-    void AnimationSystem::Shutdown() {
-        
-    }
+	void AnimationSystem::Shutdown() {
+
+	}
 
 } // namespace Framework

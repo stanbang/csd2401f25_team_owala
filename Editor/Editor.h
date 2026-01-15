@@ -31,6 +31,7 @@
 #include "SceneManager.h"
 #include "PhysicsSystem.h"
 #include "TransformationSystem.h"
+#include "LayerManager.h"
 
 // Editor Modules
 #include "History.h"
@@ -69,7 +70,8 @@ namespace Editor {
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
 		bool showPrefabEditor = false;
-		bool showLayerManager = true; 
+		bool showLayerManager = true;
+		bool showAnimationEditor = false;
 	};
 
 	// enum to represent the different types of objects we can create
@@ -189,6 +191,18 @@ namespace Editor {
 		std::vector<DraggablePrefabInfo> tilePaletteItems_;
 		std::vector<TileData> tileDataList_;
 
+		//---layer manager variables ----//
+		Framework::LayerManager layerManager_;
+
+
+		// Layer editor state
+		bool showLayerConfigWindow_ = false;
+		int selectedRenderLayerIdx_ = -1;
+		int selectedCollisionLayerIdx_ = -1;
+		char newRenderLayerName_[128] = "New Layer";
+		int newRenderLayerOrder_ = 0;
+		char newCollisionLayerName_[128] = "New Layer";
+
 		// Game viewport tracking for proper mouse coordinate transformation
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
@@ -287,6 +301,13 @@ namespace Editor {
 		void SavePrefabToFile(const std::string& prefabName);
 		void ApplyAllPrefabChangesToCurrentScene();
 
+		// Animation Editor Helper functions
+		void ShowAnimationEditor();
+		void LoadAnimationFiles();
+		void SaveAnimationFile(const std::string& animationName);
+		void ReloadAnimationFromFile(const std::string& animationName);
+		void RefreshAnimationInResourceManager(const std::string& animationName);
+
 		// Scene Management Helper functions
 		void SaveScene();
 
@@ -322,6 +343,26 @@ namespace Editor {
 		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowSceneEntityTracker(Framework::EntityManager& entityMgr);
+		void ShowLayerConfigWindow();
+		void ShowRenderLayersTab();
+		void ShowCollisionLayersTab();
+
+
+		// --- Animation Editor State ---
+		struct AnimationFileData {
+			std::string name;
+			int frameCount = 0;
+			float frameDuration = 0.1f;
+			bool isLooping = true;
+			int startFrame = 0;
+			std::vector<std::pair<std::string, int>> spritesheets; // texture, frameCount pairs
+		};
+
+		std::vector<AnimationFileData> loadedAnimations_;
+		int selectedAnimationIndex_ = 0;
+		std::string selectedAnimationName_;
+		std::vector<const char*> animationNames_;
+		bool isAnimationEditorInitialized_ = false;
 
 		bool ShowPrefabComponentEditor(Framework::ComponentData& compData);
 

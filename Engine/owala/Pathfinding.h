@@ -52,9 +52,8 @@ namespace Framework {
 
         /**
          * @brief Scans all static colliders (PlatformTag) in the ECS to build a grid of "walls".
-         * @param ecs The EntityStorage to scan.
          */
-        void BuildGrid(EntityStorage& ecs);
+        void BuildGrid();
 
         /**
          * @brief Checks if a grid cell is walkable (i.e., not a wall).

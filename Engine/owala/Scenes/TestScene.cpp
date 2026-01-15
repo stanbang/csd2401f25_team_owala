@@ -74,9 +74,6 @@ namespace TestScene {
         if (playerEntity && mainCamera) {
             cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
         }
-
-        spriteRenderer->SetCameraSystem(cameraSystem);
-        textRenderer->SetCameraSystem(cameraSystem);
 	}
 
 	void Update() {

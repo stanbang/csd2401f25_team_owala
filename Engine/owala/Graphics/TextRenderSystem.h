@@ -16,25 +16,21 @@
 
 #pragma once
 #include "ISystem.h"
-#include "ResourceManager.h"
-#include "EntityManager.h"
+
+// Forward Declarations
+namespace Framework {
+    using Entity = unsigned int;
+    class EntityManager;
+    struct TextComponent;
+}
 
 namespace Framework {
     class TextRenderSystem : public ISystem {
     public:
         /**
          * \brief Construct the text renderer.
-         * \param ecs          Reference to ECS storage for entities/components.
-         * \param rcm          Reference to ResourceManager for assets access.
-         * \param gfx          Reference to Graphics subsystem for drawing.
          */
-        TextRenderSystem(EntityStorage& ecs, ResourceManager& rcm, Graphics& gfx, WindowsSystem& win)
-            : ecs_(ecs), rcm_(rcm), gfx_(gfx), win_(win) {}
-
-        // Camera setter
-        void SetCameraSystem(CameraSystem* cameraSystem) {
-            cameraSystem_ = cameraSystem;
-        }
+        TextRenderSystem() = default;
 
         /**
          * \brief Initialize the render system.
@@ -55,21 +51,13 @@ namespace Framework {
     private:
 
         // Main text rendering function. calls graphics system to draw each line of text
-        void RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp/*, const Entity camera*/);
+        void RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp, const Entity camera);
 
         // Calculate and update text halfsize if needed
         void UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp);
 
         // Calculate and update wrapped lines if needed
         void UpdateWrappedText(TextComponent& textComp);
-
-
-    private:
-        EntityStorage& ecs_;          //!< ECS storage reference.
-        Graphics& gfx_;          //!< Graphics subsystem reference.
-        ResourceManager& rcm_;    //!< Resource manager reference.
-        WindowsSystem& win_;
-        CameraSystem* cameraSystem_ = nullptr;
     };
 
 } // namespace Framework

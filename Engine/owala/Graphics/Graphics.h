@@ -67,7 +67,7 @@ namespace Framework {
     // ------------------------------------------------------------------
     class Graphics : public ISystem {
     public:
-        explicit Graphics(WindowsSystem& win) : win_(&win) {}
+        Graphics() = default;
 
         // -------- ISystem interface --------
         void Initialize() override;
@@ -176,7 +176,6 @@ namespace Framework {
         unsigned GetGameTexture() const { return gameFramebuffer_ ? gameFramebuffer_->GetColorAttachment() : 0; };
 
     private:
-        WindowsSystem* win_ = nullptr;
         int screenWidth = 1920;
         int screenHeight = 1080;
 

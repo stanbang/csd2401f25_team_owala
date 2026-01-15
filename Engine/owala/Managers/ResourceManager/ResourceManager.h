@@ -67,8 +67,8 @@ namespace Framework {
         float GetLoadingProgress() const;
         bool IsLoadingComplete() const;
 
-		// Constructor requires Graphics and AudioSystem instances for loading resources
-        ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};
+		// Constructor
+        ResourceManager() = default;
 
         // Add a copyable resource (like Texture)
         template<typename ResourceType>
@@ -144,20 +144,24 @@ namespace Framework {
         bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
         std::string GetAssetPath(const std::string& key) const;
 
+        using AnimationProfileMap = std::unordered_map<std::string, std::unordered_map<int, std::string>>;
+		const AnimationProfileMap& GetAnimationProfiles() const { return animationProfiles_; } // Getter for animation profiles, used by AnimationSystem
+		bool LoadAnimationProfiles(const std::string& filepath); // Load animation profiles from JSON file
+
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map
         std::unordered_map<std::string, std::unique_ptr<Font>>& getFontMap(); // Get the font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& getAnimationMap(); // Get the animation map
 
     private:
+		// Map of animation profiles
+        AnimationProfileMap animationProfiles_;
+
         std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>> textureMap; // Texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>> soundMap; // Sound map with custom deleter
         std::unordered_map<std::string, std::unique_ptr<Font>> fontMap; // font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>> animationMap; // Animation map
 		std::unordered_map<std::string, fs::path> assetPathMap_; // Map of asset names to file paths
-
-		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
-        AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
 
         // Structure to transfer data between threads
         struct AsyncTextureData {

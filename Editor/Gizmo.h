@@ -16,7 +16,6 @@
 #include <imgui.h>
 #include <string>
 #include <vector>
-#include "Vector2D.h"
 #include "Entity.h"
 
 // forward declarations
@@ -36,7 +35,7 @@ namespace Editor {
     public:
         GizmoMode currentMode_ = GizmoMode::None;
 
-        explicit GizmoSystem(Editor& editor, Framework::EntityStorage& ecs, Framework::CameraSystem& camera);
+        explicit GizmoSystem(Editor& editor);
 
         // --- Invisible Entities stuff ---
         // Draw a small green dot placeholder for invisible entities to make them selectable.
@@ -47,6 +46,7 @@ namespace Editor {
         // --- Gizmos Drawing ---
         void DrawGizmos(ImDrawList* drawList, int selectedEntityIndex);
 
+        void DrawOutline(ImDrawList* drawList, Entity entity);
         void DrawTranslateGizmo(ImDrawList* drawList, ImVec2 origin);
         void DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity entity);
         void DrawScaleGizmo(ImDrawList* drawList, ImVec2 origin);
@@ -74,8 +74,6 @@ namespace Editor {
 
     private:
         Editor* editor_ = nullptr;
-        Framework::EntityStorage& ecs_;
-        Framework::CameraSystem* cameraSystem_ = nullptr;
 
         // Circle radius for placeholder for invisible entities
         const float invisCircleRad_ = 8.0f;

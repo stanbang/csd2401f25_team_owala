@@ -1,0 +1,30 @@
+{
+  "PlayerLandingEffect": {
+    "textureKey": "SB_PlayerLand_VFX_Spritesheet_1.png",
+    "isAnimated": true,
+    "style": "FROM_POINT",
+    "isScreenSpace": false,
+    "lifetime": 0.7,
+    "count": 1,
+    "speed": 0.0,
+    "size": { "x": 100, "y": 100 },
+    "offset": { "x": 0.0, "y": 38.0 },
+    "effect": "NONE",
+    "effectStrength": 1.0,
+    "triggerEvent": "PlayerLandedEvent"
+  },
+  "DustRotationEffect":{
+	"textureKey": "SB_FallingDust_Spritesheet.png",
+	"isAnimated": true,
+	"style": "FROM_TOP_VIEWPORT",
+	"isScreenSpace": true,
+	"lifetime": 1.2,
+	"count": 3,
+	"speed": 0.0,
+	"size": { "x": 0.1, "y": 1 },
+	"offset": { "x": 0.0, "y": -0.5 },
+	"effect": "DRIFT",
+	"effectStrength": 1.0,
+	"triggerEvent": "WorldRotationEvent"
+  }
+}

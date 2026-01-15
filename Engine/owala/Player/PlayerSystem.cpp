@@ -16,32 +16,35 @@
 #include "EntityStorage.h"
 #include "PlayerSystem.h"
 #include <iostream>
-#include "WindowsSystem.h" // Include for glfwGetKey
-#include <GLFW/glfw3.h>   // Include for key codes
+#include "GameManager.h"
 #include "InputSystem.h" // Include for Input System
 #include "PhysicsSystem.h"
 #include "FileUtility.h" // Include to write player data on Shutdown
 #include "EntityManager.h"
 #include "MessageBus.h"
 #include "GameMessages.h"
+#include "ParticleEffectManager.h"
 #include <cmath>
-#include <OwalaTime.h>
-#include "TransformationSystem.h"
 
 namespace Framework {
     void PlayerSystem::Initialize() {
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight);
+		ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
     }
 
 	void PlayerSystem::Update() {
+        GameManager& gm = GameManager::GetInstance();
+        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        InputSystem& input_ = *gm.GetSystems().input_;
+        EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
+
         CheckPlayerDeathFromTraps();
         CheckPlayerDeathFromEnemies();
         HandlePlayerDeath();
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
-        const float gravity = std::abs(physics_->gravity_.y);
+        const float gravity = std::abs(physics_.gravity_.y);
         const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
 
-		EntityManager entityMgr(*entityStorage_); // To access entity creation/destruction if needed
 		// Loop through each entity that is in the playerTag map
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
             // Check if Player Entity is active in the scene. Handle player controller if active.
@@ -83,12 +86,12 @@ namespace Framework {
                 // Horizontal Movement 
                 if (!state.isDead) {
                     float targetVelX = 0.0f;
-                    if (input_->KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
-                    if (input_->KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
+                    if (input_.KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
+                    if (input_.KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
                     vel.Vel.x = targetVelX;
 
 				    // Apply Jumping
-                    if (state.isGrounded && (input_->KeyPressed(InputSystem::Key::W) || input_->KeyPressed(InputSystem::Key::Space))) {
+                    if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
                         vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
 
                         float jumpVolume = 0.3f;
@@ -131,7 +134,7 @@ namespace Framework {
     // ========== PLAYER DEATH LOGIC ==========
 
     void PlayerSystem::CheckPlayerDeathFromTraps() {
-        EntityManager entityMgr(*entityStorage_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Get player
         Entity playerEntity = 0;
@@ -186,7 +189,7 @@ namespace Framework {
     }
 
     void PlayerSystem::CheckPlayerDeathFromEnemies() {
-        EntityManager entityMgr(*entityStorage_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Get player
         Entity playerEntity{};
@@ -242,7 +245,7 @@ namespace Framework {
     }
 
     bool PlayerSystem::IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius) {
-        EntityManager entityMgr(*entityStorage_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(playerEntity, TransformType) ||
             !entityMgr.HasComponent(enemyEntity, TransformType)) {
@@ -257,7 +260,7 @@ namespace Framework {
     }
 
     void PlayerSystem::KillPlayer(Entity playerEntity, const std::string& killerType) {
-        EntityManager entityMgr(*entityStorage_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(playerEntity, PlayerStateType)) {
             return;
@@ -289,7 +292,7 @@ namespace Framework {
 	// Publish particle burst event when player lands
     void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
 
-        EntityManager entityMgr(*entityStorage_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         Vector2D playerHalfSize = { 0.1f, 0.1f };
 
         if (entityMgr.HasComponent(player, AABBColliderType)) {
@@ -297,22 +300,26 @@ namespace Framework {
         }
 
         ParticleBurstEvent burst;
-        burst.position = position;  // Player center
-        burst.offset = { 0.0f, 38.0f };  // Shift to feet
-        burst.textureKey = "SB_PlayerLand_VFX_Spritesheet_1.png";
-        burst.isAnimated = true;
-        burst.style = EmissionStyle::FROM_POINT;
-        burst.isScreenSpace = false;
-        burst.lifetime = 0.7f;
-        burst.count = 1;
-        burst.speed = 0.0f;
-        burst.size = { 100, 100 };
+        if (!ParticleEffectManager::GetInstance().GetEffectPreset("PlayerLanding", burst)) {
+            // Fallback if preset not found
+            burst.position = position;
+            burst.offset = { 0.0f, 38.0f };
+            burst.textureKey = "SB_PlayerLand_VFX_Spritesheet_1.png";
+            burst.isAnimated = true;
+            burst.style = EmissionStyle::FROM_POINT;
+            burst.isScreenSpace = false;
+            burst.lifetime = 0.7f;
+            burst.count = 1;
+            burst.speed = 0.0f;
+            burst.size = { 100, 100 };
+        }
 
+        burst.position = position;  // Always set position at runtime
         MessageBus::Instance().Publish(burst);
     }
 
     void PlayerSystem::HandlePlayerDeath() {
-        EntityManager entityMgr(*entityStorage_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
@@ -325,7 +332,8 @@ namespace Framework {
 
                     if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
                         MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
-						state.isDead = false; // Reset death state after handling
+                        /*Commented out because we dont want the player death animation to be looping as the curtains are closing*/
+						//state.isDead = false; // Reset death state after handling
                     }
                 }
             }

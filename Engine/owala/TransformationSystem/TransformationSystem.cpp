@@ -19,18 +19,19 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #include "TransformationSystem.h"
+#include "GameManager.h"
 #include "EntityManager.h"
 #include "Components.h"
 #include "Transformation.h"
 #include <cmath>
 #include <iostream>
 #include "OwalaTime.h"
+#include "MessageBus.h"
 
 namespace Framework {
 
-    TransformationSystem::TransformationSystem(EntityStorage& ecs, InputSystem& input,PhysicsSystem& physics)
-        : ecs_(&ecs), input_(&input), physics_(&physics),
-        globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false), rotationCooldown(0.0f), rotationCooldownDuration(0.5f) {
+    TransformationSystem::TransformationSystem()
+        : globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false), rotationCooldown(0.0f), rotationCooldownDuration(0.5f) {
     }
 
     /*!
@@ -40,7 +41,7 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void TransformationSystem::Initialize() {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
                 UpdateEntityTransform(entity);
@@ -66,6 +67,11 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void TransformationSystem::ProcessRotationInput() {
+        GameManager& gm = GameManager::GetInstance();
+        InputSystem& input_ = *gm.GetSystems().input_;
+        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        EntityManager entityMgr(gm.GetECS());
+
         // Update cooldown timer
         if (rotationCooldown > 0.0f) {
             rotationCooldown -= Framework::Time::DeltaTime();
@@ -75,7 +81,6 @@ namespace Framework {
         }
 
         bool canRotate = false; // boolean for checking for rotation (for grounded player)
-        EntityManager entityMgr(*ecs_);
 
         // Find the player entity to check their state
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
@@ -98,22 +103,24 @@ namespace Framework {
         }
 
         if (!isGlobalRotating && rotationCooldown <= 0.0f) {
-            if (input_->KeyPressed(InputSystem::Key::Q)) {
+            if (input_.KeyPressed(InputSystem::Key::Q)) {
                 // Q = anticlockwise = positive rotation
                 targetGlobalRotation += 90.0f;
-                physics_->SetPaused(true);
+                physics_.SetPaused(true);
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "World rotating anticlockwise 90 degrees" << std::endl;
+                MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
             }
 
-            if (input_->KeyPressed(InputSystem::Key::E)) {
+            if (input_.KeyPressed(InputSystem::Key::E)) {
                 // E = clockwise = negative rotation
                 targetGlobalRotation -= 90.0f;
-                physics_->SetPaused(true);
+                physics_.SetPaused(true);
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "World rotating clockwise 90 degrees" << std::endl;
+				MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
             }
         }
     }
@@ -127,7 +134,10 @@ namespace Framework {
     void TransformationSystem::UpdateGlobalRotation() {
         if (!isGlobalRotating) return;
 
-        EntityManager entityMgr(*ecs_);
+        GameManager& gm = GameManager::GetInstance();
+        InputSystem& input_ = *gm.GetSystems().input_;
+        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        EntityManager entityMgr(gm.GetECS());
 
         float rotationSpeed = 270.0f; // Degrees per second
         float rotationThisFrame = rotationSpeed * Framework::Time::DeltaTime();
@@ -149,7 +159,7 @@ namespace Framework {
         if (std::abs(targetGlobalRotation - globalRotation) < 0.1f) {
             globalRotation = targetGlobalRotation;
             isGlobalRotating = false;
-            physics_->SetPaused(false);
+            physics_.SetPaused(false);
             std::cout << "World rotation complete at " << globalRotation << " degrees" << std::endl;
         }
 
@@ -217,7 +227,7 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void TransformationSystem::UpdateAllTransforms() {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Update standard entities with position and rotation
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
@@ -235,7 +245,7 @@ namespace Framework {
     @return     void
 *//*______________________________________________________________*/
     void TransformationSystem::UpdateEntityTransform(Entity entity) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(entity, TransformType) ||
             !entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -303,9 +313,9 @@ namespace Framework {
             }
 
             // Apply scale to collider transform matrix
-            Vector2D& scale = entityMgr.GetComponent<Transform>(entity).scale;
-            colliderScale.x = scale.x;
-            colliderScale.y = scale.y;
+            Vector2D& newscale = entityMgr.GetComponent<Transform>(entity).scale;
+            colliderScale.x = newscale.x;
+            colliderScale.y = newscale.y;
 
             rotComp.colliderTransformMatrix = Transformation::CreateTransformationMatrix(position, colliderRotationDegrees, colliderScale);
         }
@@ -314,9 +324,9 @@ namespace Framework {
             RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
             float worldRotation = rotationFlag.currentRotation;
 
-            Vector2D scale = entityMgr.GetComponent<Transform>(entity).scale;
+            Vector2D newscale = entityMgr.GetComponent<Transform>(entity).scale;
 
-            rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix(position, worldRotation, scale);
+            rotationFlag.transformMatrix = Transformation::CreateTransformationMatrix(position, worldRotation, newscale);
         }
     }
 
@@ -326,7 +336,7 @@ namespace Framework {
     @return     Matrix3x3 transformation matrix (identity if no transform)
 *//*______________________________________________________________*/
     Matrix3x3 TransformationSystem::GetTransformMatrix(Entity entity) const {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Standard entity transformation
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -342,7 +352,7 @@ namespace Framework {
     @return     Matrix3x3 computed transformation matrix (T * R * S)
 *//*______________________________________________________________*/
     Matrix3x3 TransformationSystem::ComputeTransformMatrix(Entity entity) const {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(entity, TransformType)) {
             return Matrix3x3(); // Identity matrix
