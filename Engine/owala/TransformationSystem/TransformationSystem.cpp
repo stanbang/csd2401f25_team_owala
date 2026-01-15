@@ -26,6 +26,8 @@
 #include <iostream>
 #include "OwalaTime.h"
 #include "MessageBus.h"
+#include "GameManager.h"
+#include "CameraSystem.h"
 
 namespace Framework {
 
@@ -58,6 +60,7 @@ namespace Framework {
     void TransformationSystem::Update() {
         ProcessRotationInput();
         UpdateGlobalRotation();
+        UpdateRotationZoom();
         UpdateAllTransforms();
     }
 
@@ -105,8 +108,26 @@ namespace Framework {
                 physics_->SetPaused(true);
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
+
+                // --- zoom out when rotation starts (same logic as X key) ---
+                CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
+                if (cameraSystem) {
+                    Entity activeCam = cameraSystem->GetActiveCamera();
+                    EntityManager camMgr(*ecs_);
+                    if (activeCam != 0 && camMgr.HasComponent(activeCam, CameraType)) {
+                        Camera& cam = camMgr.GetComponent<Camera>(activeCam);
+
+                        cachedZoom_ = cam.zoom;
+                        zoomCached_ = true;
+                        zoomReturning_ = false;
+
+                        cameraSystem->SetZoom(activeCam, cam.zoom * rotateZoomFactor_);
+                    }
+                }
+                // -----------------------------------------------------------
+
                 std::cout << "World rotating anticlockwise 90 degrees" << std::endl;
-                MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
+                MessageBus::Instance().Publish(WorldRotationEvent{});
             }
 
             if (input_->KeyPressed(InputSystem::Key::E)) {
@@ -115,10 +136,29 @@ namespace Framework {
                 physics_->SetPaused(true);
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
+
+                // --- SAME zoom logic here ---
+                CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
+                if (cameraSystem) {
+                    Entity activeCam = cameraSystem->GetActiveCamera();
+                    EntityManager camMgr(*ecs_);
+                    if (activeCam != 0 && camMgr.HasComponent(activeCam, CameraType)) {
+                        Camera& cam = camMgr.GetComponent<Camera>(activeCam);
+
+                        cachedZoom_ = cam.zoom;
+                        zoomCached_ = true;
+                        zoomReturning_ = false;
+
+                        cameraSystem->SetZoom(activeCam, cam.zoom * rotateZoomFactor_);
+                    }
+                }
+                // --------------------------------
+
                 std::cout << "World rotating clockwise 90 degrees" << std::endl;
-				MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
+                MessageBus::Instance().Publish(WorldRotationEvent{});
             }
         }
+
     }
 
 /*!
@@ -153,8 +193,12 @@ namespace Framework {
             globalRotation = targetGlobalRotation;
             isGlobalRotating = false;
             physics_->SetPaused(false);
+
+            if (zoomCached_) zoomReturning_ = true;   // << add this
+
             std::cout << "World rotation complete at " << globalRotation << " degrees" << std::endl;
         }
+
 
         if (std::abs(rotationIncrement) > 0.001f) {
             Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
@@ -343,6 +387,39 @@ namespace Framework {
         }
 
         return Transformation::CreateTransformationMatrix(position, rotation, scale);
+    }
+    void TransformationSystem::UpdateRotationZoom() {
+        CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
+        if (!cameraSystem) return;
+
+        EntityManager entityMgr(*ecs_);
+        Entity camEnt = cameraSystem->GetActiveCamera();
+        if (camEnt == 0 || !entityMgr.HasComponent(camEnt, CameraType)) return;
+
+        Camera& cam = entityMgr.GetComponent<Camera>(camEnt);
+
+        // While rotating: keep zoom-out locked (prevents other systems from fighting it)
+        if (isGlobalRotating && zoomCached_) {
+            cameraSystem->SetZoom(camEnt, cachedZoom_ * rotateZoomFactor_);
+            return;
+        }
+
+        // After rotating: smooth zoom back to cached value
+        if (zoomReturning_ && zoomCached_) {
+            float dt = Framework::Time::DeltaTime();
+            float t = 1.0f - std::exp(-zoomReturnSpeed_ * dt);
+
+            float desired = cachedZoom_;
+            float newZoom = cam.zoom + (desired - cam.zoom) * t;
+
+            cameraSystem->SetZoom(camEnt, newZoom);
+
+            if (std::abs(newZoom - desired) < 0.001f) {
+                cameraSystem->SetZoom(camEnt, desired);
+                zoomReturning_ = false;
+                zoomCached_ = false;
+            }
+        }
     }
 
     /*!

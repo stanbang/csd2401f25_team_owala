@@ -100,6 +100,13 @@ namespace Framework {
         float rotationCooldown;
         float rotationCooldownDuration;
 
+        float cachedZoom_ = 1.0f;
+        bool zoomCached_ = false;
+        bool zoomReturning_ = false;
+        float rotateZoomFactor_ = 1.25f;   // same idea as X (zoom out)
+        float zoomReturnSpeed_ = 10.0f;    // smooth return strength
+        void UpdateRotationZoom(); //private helper declaration
+
         /*!
         * \brief Handles input and triggers for world rotation
         * \param dt Delta time for input processing
