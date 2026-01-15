@@ -65,6 +65,7 @@ namespace TestScene {
         if (cameras.size() > 0) {
             mainCamera = cameras[0];
             cameraSystem->SetActiveCamera(mainCamera);
+            SceneManager::GetInstance().SetEntityAsPersistent(mainCamera);
 
             // Ensure game camera is NOT editor-controlled
             Camera& gameCam = cameraSystem->GetCamera(mainCamera);
