@@ -258,13 +258,30 @@ namespace Framework {
         if (entityMgr.HasComponent(entity, AABBColliderType)) {
             Vector2D& scale = entityMgr.GetComponent<Transform>(entity).scale;
             AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
-            if (originalColliderSizes_.find(entity) == originalColliderSizes_.end()) {
-                originalColliderSizes_[entity] = collider.HalfSize;
+
+            if (originalColliderSizes_.find(entity) != originalColliderSizes_.end()) {
+                Vector2D expectedSize = Vector2D(
+                    originalColliderSizes_[entity].x * scale.x,
+                    originalColliderSizes_[entity].y * scale.y
+                );
+
+                if (std::abs(collider.HalfSize.x - expectedSize.x) > 0.01f ||
+                    std::abs(collider.HalfSize.y - expectedSize.y) > 0.01f) {
+                    originalColliderSizes_.erase(entity);
+                }
             }
+
+            if (originalColliderSizes_.find(entity) == originalColliderSizes_.end()) {
+                Vector2D baseSize = collider.HalfSize;
+                if (scale.x != 0) baseSize.x /= scale.x;
+                if (scale.y != 0) baseSize.y /= scale.y;
+                originalColliderSizes_[entity] = baseSize;
+            }
+
             collider.HalfSize.x = originalColliderSizes_[entity].x * scale.x;
             collider.HalfSize.y = originalColliderSizes_[entity].y * scale.y;
         }
-
+    
         // Handle Texture Rotation
         Transform::Rotation& rotComp = transform.rotation;
 
