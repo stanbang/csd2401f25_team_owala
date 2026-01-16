@@ -56,7 +56,7 @@ namespace Framework {
 		static constexpr SceneGUID INVALID_SCENEID = 0;
 		static constexpr const char* INVALID_SCENENAME = "InvalidScene";
 		static constexpr SceneGUID DDOL_SCENEID = 0xFFFFFFFFu;
-		static constexpr const char* DDOL_SCENENAME = "DontDestroyOnLoad";
+		static constexpr const char* DDOL_SCENENAME = "Persistent";
 
 		SceneManager(); // Private so no one can construct the SceneManager, only the getInstance function will create the one and only one.
 		~SceneManager() = default;
