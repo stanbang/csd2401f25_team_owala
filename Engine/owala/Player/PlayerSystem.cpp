@@ -291,7 +291,8 @@ namespace Framework {
 
 	// Publish particle burst event when player lands
     void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
-		// Publish VFX Trigger Event for Player Landed, with position override true, and the player's position to tell the event where to spawn the VFX
+        MessageBus::Instance().Publish(PlatformLandEvent());
+        // Publish VFX Trigger Event for Player Landed, with position override true, and the player's position to tell the event where to spawn the VFX
         MessageBus::Instance().Publish(VFXTriggerEvent{ "PlayerLandedEvent", true, position });
     }
 
