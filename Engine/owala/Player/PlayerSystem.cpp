@@ -291,32 +291,8 @@ namespace Framework {
 
 	// Publish particle burst event when player lands
     void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
-
-        EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        Vector2D playerHalfSize = { 0.1f, 0.1f };
-
-        if (entityMgr.HasComponent(player, AABBColliderType)) {
-            playerHalfSize = entityMgr.GetComponent<AABBCollider>(player).HalfSize;
-        }
-
-        ParticleBurstEvent burst;
-        if (!ParticleEffectManager::GetInstance().GetEffectPreset("PlayerLanding", burst)) {
-            // Fallback if preset not found
-            burst.position = position;
-            burst.offset = { 0.0f, 38.0f };
-            burst.textureKey = "SB_PlayerLand_VFX_Spritesheet_1.png";
-            burst.isAnimated = true;
-            burst.style = EmissionStyle::FROM_POINT;
-            burst.isScreenSpace = false;
-            burst.lifetime = 0.7f;
-            burst.count = 1;
-            burst.speed = 0.0f;
-            burst.size = { 100, 100 };
-        }
-
-        burst.position = position;  // Always set position at runtime
-        MessageBus::Instance().Publish(burst);
-        MessageBus::Instance().Publish(PlatformLandEvent());
+		// Publish VFX Trigger Event for Player Landed, with position override true, and the player's position to tell the event where to spawn the VFX
+        MessageBus::Instance().Publish(VFXTriggerEvent{ "PlayerLandedEvent", true, position });
     }
 
     void PlayerSystem::HandlePlayerDeath() {

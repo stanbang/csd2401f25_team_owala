@@ -110,7 +110,7 @@ namespace Framework {
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "World rotating anticlockwise 90 degrees" << std::endl;
-                MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
+                MessageBus::Instance().Publish(VFXTriggerEvent{ "WorldRotationEvent" }); // Publish world rotation event
             }
 
             if (input_.KeyPressed(InputSystem::Key::E)) {
@@ -120,7 +120,7 @@ namespace Framework {
                 isGlobalRotating = true;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "World rotating clockwise 90 degrees" << std::endl;
-				MessageBus::Instance().Publish(WorldRotationEvent{}); // Publish world rotation event
+                MessageBus::Instance().Publish(VFXTriggerEvent{ "WorldRotationEvent" }); // Publish world rotation event
             }
         }
     }
