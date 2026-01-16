@@ -1406,17 +1406,19 @@ namespace Editor {
 		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
-		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Save")) {
 			SaveScene();
 		}
-		if (!isCurrentSceneValid) ImGui::EndDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Create New Scene --- 
 		ImGui::SameLine();
+		if (IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("New Scene")) {
 			ImGui::OpenPopup("Create New Scene");
 		}
+		if (IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Unload Current Scene ---
 		ImGui::SameLine();
@@ -1428,12 +1430,12 @@ namespace Editor {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoverColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
 
-		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Unload Scene")) {
 			ImGui::OpenPopup("Save");
 		}
 		ImGui::PopStyleColor(3);
-		if (!isCurrentSceneValid) ImGui::EndDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// Save Scene Modal (pop up before unloading current scene)
 		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))

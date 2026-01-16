@@ -195,6 +195,7 @@ namespace Framework {
 		nextEntityID = nextEntityIDSnapshot;
 
 		systems_.physics_->SetPaused(true);
+		systems_.audio_->stopAll();
 		SceneManager::GetInstance().OnExitPlay();
 
 		// Cleaning

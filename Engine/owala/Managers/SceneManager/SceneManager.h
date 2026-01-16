@@ -52,7 +52,7 @@ namespace Framework {
 
 		std::vector<SceneGUID> loadedScenes_;
 
-		/* Predefined Scenes */
+		/* Reserved Scenes */
 		static constexpr SceneGUID INVALID_SCENEID = 0;
 		static constexpr const char* INVALID_SCENENAME = "InvalidScene";
 		static constexpr SceneGUID DDOL_SCENEID = 0xFFFFFFFFu;
@@ -147,6 +147,10 @@ namespace Framework {
 		std::vector<Entity> GetEntitiesInScene(const SceneAsset& scene) const;
 		// scenes_ map getter
 		const std::unordered_map<SceneGUID, SceneAsset>& GetAllSceneAssets() const;
+
+		/* Reserved Scene Getters */
+		static constexpr SceneGUID GetDDOLSceneID() { return DDOL_SCENEID; };
+		static constexpr const char* GetDDOLSceneName() { return DDOL_SCENENAME; };
 
 		// Checker for duplicate scene names. Return true if scene name exists, false otherwise.
 		bool CheckSceneNameExists(const std::string& sceneName);
