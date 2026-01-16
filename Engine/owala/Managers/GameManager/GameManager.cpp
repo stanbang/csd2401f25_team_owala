@@ -368,8 +368,8 @@ namespace Framework {
 
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
-		systems_.spriteRenderer_->Update();
 		systems_.textRenderer_->Update();
+		systems_.spriteRenderer_->Update();
 		#endif
 
 		// --- END GAME UPDATE ---

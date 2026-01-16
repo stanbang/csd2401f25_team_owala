@@ -4430,9 +4430,9 @@ namespace Editor {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// ===  RENDER SPRITES ===
-				spriteRenderer_->Update();
+				// ===  RENDER TEXTS & SPRITES ===
 				textRenderer_->Update();
+				spriteRenderer_->Update();
 
 				// ===  RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
@@ -4996,23 +4996,19 @@ namespace Editor {
 
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
-		const auto& renderLayers = layerManager_.GetRenderLayers();
+		const std::vector<RenderLayerData>& renderLayers = layerManager_.GetRenderLayers();
 
 		// Build dropdown with custom option
-		std::vector<std::string> layerNames;
-		layerNames.push_back("Custom");
-		for (const auto& layer : renderLayers) {
-			layerNames.push_back(layer.name);
-		}
-
 		std::vector<const char*> layerItems;
-		for (const auto& name : layerNames) {
-			layerItems.push_back(name.c_str());
+		layerItems.push_back("Custom");
+		for (const RenderLayerData& layer : renderLayers) {
+			layerItems.push_back(layer.name.c_str());
 		}
 
 		// Determine current selection
-		int currentIdx = 0; // Default to Custom
-		if (props.renderLayer != Framework::RenderLayer::Custom) {
+		static int currentIdx = 0; // Default to Custom
+
+		if (props.renderLayer != RenderLayer::Custom) {
 			// Try to find matching layer by render order
 			for (size_t i = 0; i < renderLayers.size(); ++i) {
 				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
@@ -5022,14 +5018,7 @@ namespace Editor {
 			}
 		}
 		else {
-			// Check if using built-in enum value
-			for (size_t i = 0; i < renderLayers.size(); ++i) {
-				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
-					currentIdx = static_cast<int>(i) + 1;
-					props.renderLayerName = renderLayers[i].name; // Update to track the name
-					break;
-				}
-			}
+			currentIdx = 0;
 		}
 
 		ImGui::AlignTextToFramePadding();
@@ -5050,7 +5039,7 @@ namespace Editor {
 				int layerIdx = currentIdx - 1;
 				if (layerIdx >= 0 && layerIdx < static_cast<int>(renderLayers.size())) {
 					props.customRenderOrder = renderLayers[layerIdx].renderOrder;
-					props.renderLayer = Framework::RenderLayer::Custom;
+					props.renderLayer = static_cast<RenderLayer>(renderLayers[layerIdx].renderOrder);
 					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
 				}
 			}
@@ -5068,11 +5057,13 @@ namespace Editor {
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
 			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom"; // Mark as truly custom
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
 				props.customRenderOrder = 0;
+				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom";
 			}
 
@@ -5137,7 +5128,8 @@ namespace Editor {
 		ImGui::Spacing();
 		ImGui::Separator();
 
-		SortEntitiesByRenderLayer(sceneEntities, entityMgr);
+		std::vector<Entity> sortedEntities = sceneEntities;
+		SortEntitiesByRenderLayer(sortedEntities, entityMgr);
 
 		// Display in a table	
 		if (ImGui::BeginTable("EntityLayerTable", 4,
@@ -5152,7 +5144,7 @@ namespace Editor {
 			ImGui::TableHeadersRow();
 
 			//  Iterate through entity list
-			for (const Entity& entity : sceneEntities) {
+			for (const Entity& entity : sortedEntities) {
 				if (!entityMgr.ValidateEntity(entity)) continue;
 
 				const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
