@@ -316,6 +316,7 @@ namespace Framework {
 
         burst.position = position;  // Always set position at runtime
         MessageBus::Instance().Publish(burst);
+        MessageBus::Instance().Publish(PlatformLandEvent());
     }
 
     void PlayerSystem::HandlePlayerDeath() {

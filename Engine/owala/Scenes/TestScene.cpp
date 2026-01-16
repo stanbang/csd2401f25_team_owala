@@ -24,8 +24,8 @@ namespace TestScene {
 		//WindowsSystem* win_ = gm.GetSystems().win_;
 		//ResourceManager* rcm_ = gm.GetSystems().resourceManager_;
         CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
-        SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
-        TextRenderSystem* textRenderer = gm.GetSystems().textRenderer_; // Get text renderer
+        //SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
+        //TextRenderSystem* textRenderer = gm.GetSystems().textRenderer_; // Get text renderer
         PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		//(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
