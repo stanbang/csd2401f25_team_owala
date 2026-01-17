@@ -26,7 +26,7 @@
 #include <vector> 
 #include <map>
 #include "ScriptableEntity.h"
-#include "FSM/FSM.h"
+#include "FSM.h"
 
 namespace Framework{
 
@@ -353,53 +353,53 @@ namespace Framework{
 	 * @enum BirdState
 	 * @brief Defines the possible states for the Bird AI.
 	 */
-	enum class BirdState {
-		IDLE,    // Sleeping, not aware of the player
-		WAKING,  // Alerted, playing "wake up" animation
-		CHASE,   // Using A* to navigate to the player
-		HOVER,   // Close to the player, hovering erratically
-		ATTACK   // Diving at the player's last known position
-	};
+	//enum class BirdState {
+	//	IDLE,    // Sleeping, not aware of the player
+	//	WAKING,  // Alerted, playing "wake up" animation
+	//	CHASE,   // Using A* to navigate to the player
+	//	HOVER,   // Close to the player, hovering erratically
+	//	ATTACK   // Diving at the player's last known position
+	//};
 
-	 /**
-	 * @struct BirdAIComponent
-	 * @brief Contains all data for the Bird's state machine and pathfinding.
-	 */
-	struct BirdAIComponent {
+	// /**
+	// * @struct BirdAIComponent
+	// * @brief Contains all data for the Bird's state machine and pathfinding.
+	// */
+	//struct BirdAIComponent {
 
-		BirdState state = BirdState::IDLE;
-		
-		// Timers
-		float stateTimer = 0.0f;     // General purpose timer for states
-		float attackCooldown = 3.0f; // Time between attacks
-		float attackTimer = 3.0f;    // Countdown for next attack
+	//	BirdState state = BirdState::IDLE;
+	//	
+	//	// Timers
+	//	float stateTimer = 0.0f;     // General purpose timer for states
+	//	float attackCooldown = 3.0f; // Time between attacks
+	//	float attackTimer = 3.0f;    // Countdown for next attack
 
-		// Radii
-		float wakeUpRadius = 288.0f;   // Distance to spot the player
-		float hoverRadius = 48.0f;    // "Close enough" distance to stop chasing
-		float attackRadius = 96.f;   // Max distance from which to launch an attack
+	//	// Radii
+	//	float wakeUpRadius = 288.0f;   // Distance to spot the player
+	//	float hoverRadius = 48.0f;    // "Close enough" distance to stop chasing
+	//	float attackRadius = 96.f;   // Max distance from which to launch an attack
 
-		// Config
-		float moveSpeed = 200.0f;
-		float attackSpeed = 300.0f;
-		float wakeUpTime = 1.0f;     // Duration of WAKING state
+	//	// Config
+	//	float moveSpeed = 200.0f;
+	//	float attackSpeed = 300.0f;
+	//	float wakeUpTime = 1.0f;     // Duration of WAKING state
 
-		// Pathfinding
-		std::vector<Vector2D> currentPath{};
-		float pathRecalculateTimer = 0.0f;
-		float pathRecalculateInterval = 0.5f; // How often to find a new path
+	//	// Pathfinding
+	//	std::vector<Vector2D> currentPath{};
+	//	float pathRecalculateTimer = 0.0f;
+	//	float pathRecalculateInterval = 0.5f; // How often to find a new path
 
-		// Attack
-		Vector2D attackTargetPosition; // Where the bird is diving towards
-		float attackDuration = 1.0f;
+	//	// Attack
+	//	Vector2D attackTargetPosition; // Where the bird is diving towards
+	//	float attackDuration = 1.0f;
 
-		// --- Hover Behavior  ---
-		float hoverHeight = 648.f;       // How far above player to hover
-		float hoverRadius_Circle = 324.f; // Radius of the circle above player
-		int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)
-		float hoverNodeReachedDist = 54.f; // How close to get before moving to next node
-		float hoverSpeed = 162.f;         // Speed when moving between hover nodes
-	};
+	//	// --- Hover Behavior  ---
+	//	float hoverHeight = 648.f;       // How far above player to hover
+	//	float hoverRadius_Circle = 324.f; // Radius of the circle above player
+	//	int currentHoverNode = 0;        // Which of the 5 nodes we're moving to (0-4)
+	//	float hoverNodeReachedDist = 54.f; // How close to get before moving to next node
+	//	float hoverSpeed = 162.f;         // Speed when moving between hover nodes
+	//};
 
 	/**
 	 * @enum SkeletonState

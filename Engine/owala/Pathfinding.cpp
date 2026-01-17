@@ -155,6 +155,11 @@ namespace Framework {
         Vector2D startGrid = navGrid.WorldToGrid(startWorld);
         Vector2D endGrid = navGrid.WorldToGrid(endWorld);
 
+        if (static_cast<int>(startGrid.x) == static_cast<int>(endGrid.x) &&
+            static_cast<int>(startGrid.y) == static_cast<int>(endGrid.y)) {
+            return {};
+        }
+
         std::unique_ptr<Framework::PathNode> startNode = std::make_unique<PathNode>(static_cast<int>(startGrid.x), static_cast<int>(startGrid.y));
         std::unique_ptr<Framework::PathNode> endNode = std::make_unique<PathNode>(static_cast<int>(endGrid.x), static_cast<int>(endGrid.y));
 

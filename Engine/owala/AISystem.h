@@ -15,88 +15,66 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
 #include "Pathfinding.h"
-#include "Components.h" // Includes the BirdAIComponent and Skeleton Component
-#include "Graphics.h" 
-#include <vector>     
-#include <map> // For tracking state changes
+#include "Graphics.h"
+#include "FSMFactory.h"
+#include <memory>
+#include "TransformationSystem.h" 
 
-// Forward declarations - only needed in editor build
 #ifdef BUILD_EDITOR
 struct ImDrawList;
-namespace Editor { 
-    class Editor; // forward declaration for editor
+namespace Editor {
+    class Editor;
 }
-
 namespace Framework {
-    class CameraSystem; // forward declare camera system
+    class CameraSystem;
 }
 #endif
 
 namespace Framework {
 
-    struct SkeletonAIComponent;
-
     class AISystem : public ISystem {
     public:
-        AISystem(EntityStorage& storage, Graphics& gfx);
+        AISystem(EntityStorage& storage, Graphics& gfx, TransformationSystem& transform);
 
         void Initialize() override;
         void Update() override;
         void Shutdown() override;
 
-        #ifdef BUILD_EDITOR
-        // Debug drawing - ONLY available in editor build
-        void DrawDebug(CameraSystem* cameraSystem, ImDrawList* drawList, Editor::Editor* editor, Entity cameraToUse);
+        NavigationGrid& GetNavGrid() { return navGrid_; }
 
-        // Public Toggles for the Editor for debug visualization
+#ifdef BUILD_EDITOR
+        // Debug drawing
+        void DrawDebug(CameraSystem* cameraSystem, ImDrawList* drawList,
+            Editor::Editor* editor, Entity cameraToUse);
+
         bool debugVisualization = false;
         bool showNavigationGrid = false;
-        bool showBirdDebug = false;
         bool showPaths = false;
         bool showColliders = false;
-        #endif
+#endif
 
     private:
         EntityStorage* ecs_;
         NavigationGrid navGrid_;
-        AStarPather pather_;
-        Graphics* gfx_; // Pointer to the graphics system
+        Graphics* gfx_;
+        TransformationSystem* transformSystem_; 
+
+        std::unique_ptr<FSMFactory> fsmFactory_;
 
         float gridRebuildTimer_ = 0.0f;
         const float gridRebuildInterval_ = 2.0f;
 
-        /**
-         * @brief Finds the player entity (using PlayerTagType). Returns 0 if not found.
-         */
-        Entity GetPlayer();
+        float rotationPauseTimer_ = 0.0f; 
+        bool wasPaused_ = false;          
 
-        // --- State Machine Handlers for bird AI ---
-        void HandleIdleState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D playerPos);
-        void HandleWakingState(Entity bird, BirdAIComponent& ai);
-        void HandleChaseState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize);
-        void HandleHoverState(Entity bird, BirdAIComponent& ai, Vector2D birdPos, Vector2D birdHalfSize, Vector2D playerPos, Vector2D playerHalfSize);
-        void HandleAttackState(Entity bird, BirdAIComponent& ai);
-
-        // --- Skeleton State Machine Handlers ---
-        void HandleSkeletonIdleState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);
-        void HandleSkeletonChaseState(Entity skeleton, SkeletonAIComponent& ai, Vector2D skeletonPos, Vector2D playerPos);
-
-        /**
-         * @brief Moves the bird along its calculated path.
-         */
-        void FollowPath(Entity bird, BirdAIComponent& ai, Vector2D birdPos);
-
-       
-         #ifdef BUILD_EDITOR
-        // ---- Private debug drawing helpers ---
-         // Debug drawing helpers - ONLY compiled in editor build
+#ifdef BUILD_EDITOR
+        // Debug drawing helpers
         void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop,
-            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
-        void DrawBirdDebug(const Vector2D& birdPos, const BirdAIComponent& ai, const Vector2D& playerPos,
             ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
         void DrawPath(const std::vector<Vector2D>& path, const Color& color,
             ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
@@ -104,10 +82,7 @@ namespace Framework {
             ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
         void DrawCircle(const Vector2D& center, float radius, const Color& color,
             ImDrawList* drawList, Editor::Editor* editor, Entity cameraID, int segments = 32);
-        void DrawArrow(const Vector2D& start, const Vector2D& end, const Color& color,
-            ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
-        #endif
+#endif
     };
 
 } // namespace Framework
-

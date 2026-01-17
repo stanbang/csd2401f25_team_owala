@@ -33,6 +33,7 @@ namespace Framework {
 
     void BirdIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         // Just wait - transition will handle waking up
+        (void)entity; (void)ecs; (void)dt;
     }
 
     // ============================================================================
@@ -40,17 +41,20 @@ namespace Framework {
     // ============================================================================
 
     void BirdWakingState::OnEnter(Entity entity, EntityStorage& ecs) {
+        (void)entity; (void)ecs; // Silence warnings
         timer_ = 0.0f;
         Logger::Get().Info(DebugType::AISystem)
             << "Bird [" << entity << "] entered WAKING state" << std::endl;
     }
 
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs; // Silence warnings
         timer_ += dt;
         // Transition will check if timer >= wakeUpTime
     }
 
     void BirdWakingState::OnExit(Entity entity, EntityStorage& ecs) {
+        (void)entity; (void)ecs; // Silence warnings
         timer_ = 0.0f;
     }
 
@@ -59,6 +63,7 @@ namespace Framework {
     // ============================================================================
 
     void BirdChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
+        (void)entity; (void)ecs; // Silence warnings
         currentPath_.clear();
         pathRecalculateTimer_ = 0.0f;
         Logger::Get().Info(DebugType::AISystem)
@@ -99,10 +104,20 @@ namespace Framework {
             Vector2D direction = (targetPoint - birdPos).Normalized();
             mgr.GetComponent<Velocity>(entity).Vel = direction * moveSpeed_;
 
+            float reachThreshold = 10.0f; // Default fallback
+            if (navGrid_) {
+                reachThreshold = navGrid_->cellSize * 0.5f;
+            }
+
             // Check if reached waypoint
-            if (birdPos.Distance(targetPoint) < navGrid_->cellSize * 0.5f) {
+            if (birdPos.Distance(targetPoint) < reachThreshold) {
                 currentPath_.erase(currentPath_.begin());
             }
+
+            //// Check if reached waypoint
+            //if (birdPos.Distance(targetPoint) < navGrid_->cellSize * 0.5f) {
+            //    currentPath_.erase(currentPath_.begin());
+            //}
         }
         else {
             // No path, move directly to player
@@ -112,6 +127,7 @@ namespace Framework {
     }
 
     void BirdChaseState::OnExit(Entity entity, EntityStorage& ecs) {
+        (void)entity; (void)ecs; // Silence warnings
         currentPath_.clear();
     }
 
@@ -178,36 +194,58 @@ namespace Framework {
 
     void BirdAttackState::OnEnter(Entity entity, EntityStorage& ecs) {
         EntityManager mgr(ecs);
-        timer_ = 0.0f;
 
-        // Store player's current position as attack target
-        Entity player = GetPlayer(ecs);
-        if (player != 0 && mgr.HasComponent(player, PositionType)) {
-            attackTargetPosition_ = mgr.GetComponent<Position>(player).Pos;
+        Vector2D birdPos = Vector2D::Zero();
+        if (mgr.HasComponent(entity, PositionType)) {
+            birdPos = mgr.GetComponent<Position>(entity).Pos;
         }
 
+        Entity player = GetPlayer(ecs);
+        Vector2D targetPos = birdPos; // Default to self if no player
+
+        if (player != 0 && mgr.HasComponent(player, PositionType)) {
+            targetPos = mgr.GetComponent<Position>(player).Pos;
+        }
+
+        // [LOGIC CHANGE] Snapshot the direction ONCE.
+        // This creates the "straight line" behavior.
+        diveDirection_ = (targetPos - birdPos).Normalized();
+
         Logger::Get().Info(DebugType::AISystem)
-            << "Bird [" << entity << "] entered ATTACK state" << std::endl;
+            << "Bird [" << entity << "] DIVING! Dir: " << diveDirection_.x << ", " << diveDirection_.y << std::endl;
     }
 
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)dt; // Unused
         EntityManager mgr(ecs);
-        timer_ += dt;
 
-        if (!mgr.HasComponent(entity, PositionType) ||
-            !mgr.HasComponent(entity, VelocityType)) {
-            return;
-        }
+        if (!mgr.HasComponent(entity, VelocityType)) return;
 
-        Vector2D birdPos = mgr.GetComponent<Position>(entity).Pos;
-
-        // Dive at target
-        Vector2D direction = (attackTargetPosition_ - birdPos).Normalized();
-        mgr.GetComponent<Velocity>(entity).Vel = direction * attackSpeed_;
+        // [LOGIC CHANGE] Apply velocity strictly in the snapshotted direction.
+        // We rely on the PhysicsSystem to stop us if we hit a wall.
+        mgr.GetComponent<Velocity>(entity).Vel = diveDirection_ * attackSpeed_;
     }
 
     void BirdAttackState::OnExit(Entity entity, EntityStorage& ecs) {
+        /*timer_ = 0.0f;*/
+    }
+
+    void BirdRecoveryState::OnEnter(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
         timer_ = 0.0f;
+
+        // Stop moving immediately
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
+        }
+
+        Logger::Get().Info(DebugType::AISystem)
+            << "Bird [" << entity << "] hit wall! Recovering..." << std::endl;
+    }
+
+    void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs;
+        timer_ += dt;
     }
 
 } // namespace Framework

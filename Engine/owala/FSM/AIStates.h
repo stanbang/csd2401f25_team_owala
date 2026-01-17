@@ -7,6 +7,7 @@
 #pragma once
 #include "FSM.h"
 #include "Pathfinding.h"
+#include "EntityStorage.h"
 
 namespace Framework {
 
@@ -125,9 +126,10 @@ namespace Framework {
     class BirdAttackState : public State {
     private:
         float attackSpeed_ = 300.0f;
-        float attackDuration_ = 1.0f;
+       /* float attackDuration_ = 1.0f;
         float timer_ = 0.0f;
-        Vector2D attackTargetPosition_;
+        Vector2D attackTargetPosition_;*/
+        Vector2D diveDirection_ = { 0.0f, 0.0f }; // Fixed direction
 
     public:
         void OnEnter(Entity entity, EntityStorage& ecs) override;
@@ -137,8 +139,30 @@ namespace Framework {
 
         void SetParameter(const std::string& key, float value) override {
             if (key == "attackSpeed") attackSpeed_ = value;
-            else if (key == "attackDuration") attackDuration_ = value;
+           // else if (key == "attackDuration") attackDuration_ = value;
         }
+    };
+
+    /**
+     * @class BirdRecoveryState
+     * @brief A buffer state where the bird is stunned/recovering after hitting a wall.
+     */
+    class BirdRecoveryState : public State {
+    private:
+        float recoveryDuration_ = 2.0f;
+        float timer_ = 0.0f;
+
+    public:
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        const char* GetName() const override { return "Recovery"; }
+
+        void SetParameter(const std::string& key, float value) override {
+            if (key == "recoveryDuration") recoveryDuration_ = value;
+        }
+
+        float GetTimer() const { return timer_; }
+        float GetDuration() const { return recoveryDuration_; }
     };
 
 } // namespace Framework

@@ -5,16 +5,18 @@
 *********************************************************************/
 #include "FSM.h"
 #include "Logger.h"
+#include "EntityStorage.h"
 
 namespace Framework {
 
-    void FSM::AddState(const std::string& name, std::unique_ptr<State> state) {
+    void FSM::AddState(const std::string& name, std::shared_ptr<State> state) {
         if (states_.find(name) != states_.end()) {
             Logger::Get().Error(DebugType::AISystem)
                 << "FSM: State '" << name << "' already exists!" << std::endl;
             return;
         }
-        states_[name] = std::move(state);
+        states_[name] = state; 
+
     }
 
     void FSM::AddTransition(const std::string& fromState,
@@ -35,7 +37,7 @@ namespace Framework {
         }
 
         transitions_[fromState].push_back(
-            std::make_unique<Transition>(toState, condition)
+            std::make_shared<Transition>(toState, condition)
         );
     }
 

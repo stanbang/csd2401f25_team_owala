@@ -315,7 +315,7 @@ namespace Editor {
 				}
 				break;
 			}
-			case ComponentType::BirdAIComponentType: {
+			/*case ComponentType::BirdAIComponentType: {
 				BirdAIComponent newBirdAIComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newBirdAIComponent)) {
 					if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
@@ -324,8 +324,8 @@ namespace Editor {
 					entityMgr.AddComponent<BirdAIComponent>(entity, newBirdAIComponent);
 				}
 				break;
-			}
-			case ComponentType::SkeletonAIComponentType: {
+			}*/
+			/*case ComponentType::SkeletonAIComponentType: {
 				SkeletonAIComponent newSkeletonAIComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newSkeletonAIComponent)) {
 					if (entityMgr.HasComponent(entity, ComponentType::SkeletonAIComponentType)) {
@@ -334,7 +334,7 @@ namespace Editor {
 					entityMgr.AddComponent<SkeletonAIComponent>(entity, newSkeletonAIComponent);
 				}
 				break;
-			}
+			}*/
 			default:
 				Logger::Info(DebugType::Editor) << "HistoryManager::ApplyComponentSnapshot: Unsupported component type. No Changes applied" << std::endl;
 		}

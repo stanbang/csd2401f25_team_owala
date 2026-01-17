@@ -13,7 +13,6 @@
 *********************************************************************/
 #pragma once
 #include "Entity.h"
-#include "EntityStorage.h"
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -26,6 +25,7 @@ namespace Framework {
     class FSM;
     class State;
     class Transition;
+    class EntityStorage;
 
     /**
      * @class State
@@ -36,20 +36,26 @@ namespace Framework {
         virtual ~State() = default;
 
         // Called once when entering this state
-        virtual void OnEnter(Entity entity, EntityStorage& ecs) {}
+        virtual void OnEnter(Entity entity, EntityStorage& ecs) { 
+            (void)entity; (void)ecs; // Silence warnings
+        }
 
         // Called every frame while in this state
-        virtual void OnUpdate(Entity entity, EntityStorage& ecs, float dt) {}
+        virtual void OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+            (void)entity; (void)ecs; (void)dt; // Silence warnings
+        }
 
         // Called once when exiting this state
-        virtual void OnExit(Entity entity, EntityStorage& ecs) {}
+        virtual void OnExit(Entity entity, EntityStorage& ecs) {
+            (void)entity; (void)ecs; // Silence warnings
+        }
 
         // Returns the name of this state
         virtual const char* GetName() const = 0;
 
         // Set parameters from JSON (override if your state needs config)
-        virtual void SetParameter(const std::string& key, float value) {}
-        virtual void SetParameter(const std::string& key, const std::string& value) {}
+        virtual void SetParameter(const std::string& key, float value) { (void)key; (void)value; }
+        virtual void SetParameter(const std::string& key, const std::string& value){ (void)key; (void)value; }
     };
 
     /**
@@ -79,8 +85,8 @@ namespace Framework {
      */
     class FSM {
     private:
-        std::unordered_map<std::string, std::unique_ptr<State>> states_;
-        std::unordered_map<std::string, std::vector<std::unique_ptr<Transition>>> transitions_;
+        std::unordered_map<std::string, std::shared_ptr<State>> states_;
+        std::unordered_map<std::string, std::vector<std::shared_ptr<Transition>>> transitions_;
 
         std::string initialState_;
         std::string currentState_;
@@ -89,8 +95,14 @@ namespace Framework {
     public:
         FSM() = default;
 
+        FSM(const FSM&) = default;
+        FSM& operator=(const FSM&) = default;
+        FSM(FSM&&) = default;
+        FSM& operator=(FSM&&) = default;
+        ~FSM() = default;
+
         // Add a state to the FSM
-        void AddState(const std::string& name, std::unique_ptr<State> state);
+        void AddState(const std::string& name, std::shared_ptr<State> state);
 
         // Add a transition from one state to another
         void AddTransition(const std::string& fromState,

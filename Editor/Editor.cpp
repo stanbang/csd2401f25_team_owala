@@ -84,7 +84,8 @@ namespace {
 		case ComponentType::CameraType:						return "Camera";
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
-		case ComponentType::BirdAIComponentType:			return "BirdAI";
+		//case ComponentType::BirdAIComponentType:			return "BirdAI";
+		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
@@ -1218,43 +1219,40 @@ namespace Editor {
 		}
 		//ImGui::SameLine();
 		if (ImGui::Button("Spawn Test Bird")) {
-			// Get the systems we need
 			SceneManager& sceneMgr = SceneManager::GetInstance();
 			const SceneAsset& currScene = sceneMgr.GetActiveScene();
 
-			//  Create entity
 			Entity bird = entityMgr.CreateEntity();
-
-			//  Set properties
 			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
 
-			// Add components required for the AI
-			entityMgr.AddComponent<Position>(bird, { {0.0f, 200.0f} }); // 200 pixels above ground
+			// PIXEL-SCALE POSITIONS
+			entityMgr.AddComponent<Position>(bird, { {0.0f, 200.0f} });
 			entityMgr.AddComponent<Velocity>(bird, {});
 			entityMgr.AddComponent<EnemyTag>(bird, {});
-			entityMgr.AddComponent<BirdAIComponent>(bird, {});
+			entityMgr.AddComponent<RotationFlag>(bird, {});
+
+			// Add FSM component instead of BirdAIComponent
+			FSMComponent fsmComp;
+			fsmComp.fsmType = "bird"; // Will load Data/FSM/BirdAI.json
+			fsmComp.initialized = false;
+			entityMgr.AddComponent<FSMComponent>(bird, fsmComp);
+
 			entityMgr.AddComponent<AnimationComponent>(bird, {});
 
 			RigidBody rb;
-			rb.SetMass(0.0f); // Give it some mass
-			rb.isAffectedByGravity = false; // Make sure it doesn't fall
+			rb.SetMass(1.0f);
+			rb.isAffectedByGravity = false;
 			entityMgr.AddComponent<RigidBody>(bird, rb);
 
-			
-			Vector2D texHalfSize = { 96.0f, 108.0f };   // Was 0.1 x 0.2 → 96 x 108 pixels
-			Vector2D aabbHalfSize = { 9.6f, 5.4f };     // Was 0.01 x 0.01 → 9.6 x 5.4 pixels
+			Vector2D texHalfSize = { 96.0f, 108.0f };
+			Vector2D aabbHalfSize = { 40.6f, 40.4f };
 
-			// texture is loaded in TestScene.cpp
-			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
 			entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
-			
-		    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
+			entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
 
-			// Add it to the active scene
 			sceneMgr.AddEntityToScene(currScene, bird);
 
-			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
-				<< bird << ")";
+			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: " << bird << ")";
 		}
 
 		//ImGui::SameLine();
@@ -2583,56 +2581,56 @@ namespace Editor {
 			break;
 		}
 
-		case ComponentType::BirdAIComponentType: {
-			BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
+		//case ComponentType::BirdAIComponentType: {
+		//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
 
-			// --- State (Read-only) ---
-			int state = static_cast<int>(ai.state);
-			const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK" };
-			ImGui::Text("Current State: %s", stateNames[state]);
+		//	// --- State (Read-only) ---
+		//	int state = static_cast<int>(ai.state);
+		//	const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK" };
+		//	ImGui::Text("Current State: %s", stateNames[state]);
 
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2);
+		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		//	ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::InputFloat("Attack Timer", &ai.attackTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::InputInt("Current Hover Node", &ai.currentHoverNode, 0, 0, ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::PopStyleColor(2);
 
-			ImGui::Separator();
+		//	ImGui::Separator();
 
-			// --- Config ---
-			ImGui::Text("Configurable Stats");
-			ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
+		//	// --- Config ---
+		//	ImGui::Text("Configurable Stats");
+		//	ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
 
-			// --- Hover Config ---
-			ImGui::Separator();
-			ImGui::Text("Hover Behavior");
-			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
-			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");
-			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
+		//	// --- Hover Config ---
+		//	ImGui::Separator();
+		//	ImGui::Text("Hover Behavior");
+		//	ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+		//	ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");
+		//	ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
 
-			// --- Pathfinding ---
-			ImGui::Separator();
-			ImGui::Text("Pathfinding");
-			ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
+		//	// --- Pathfinding ---
+		//	ImGui::Separator();
+		//	ImGui::Text("Pathfinding");
+		//	ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
 
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2);
-			ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
+		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		//	ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::PopStyleColor(2);
+		//	ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
 
-			break;
-		}
+		//	break;
+		//}
 
 		case ComponentType::SkeletonAIComponentType: {
 			SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
@@ -3962,7 +3960,7 @@ namespace Editor {
 
 		ImGui::Text("Visualization Options:");
 		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
-		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		//ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
 		ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
 		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);
 

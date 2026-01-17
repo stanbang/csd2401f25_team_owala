@@ -1,0 +1,120 @@
+{
+    "fsmType": "BirdAI",
+    "initialState": "Idle",
+    "states": [
+        {
+            "name": "Idle",
+            "type": "Idle",
+            "parameters": {
+                "wakeUpRadius": 288.0
+            }
+        },
+        {
+            "name": "Waking",
+            "type": "Waking",
+            "parameters": {
+                "wakeUpTime": 1.0
+            }
+        },
+        {
+            "name": "Chase",
+            "type": "Chase",
+            "parameters": {
+                "moveSpeed": 200.0,
+                "hoverRadius": 200.0,
+                "pathRecalculateInterval": 0.5
+            }
+        },
+        {
+            "name": "Hover",
+            "type": "Hover",
+            "parameters": {
+                "hoverHeight": 648.0,
+                "hoverRadius": 324.0,
+                "hoverSpeed": 162.0,
+                "hoverNodeReachedDist": 54.0,
+                "attackRadius": 96.0,
+                "attackCooldown": 5.0
+            }
+        },
+        {
+            "name": "Attack",
+            "type": "Attack",
+            "parameters": {
+                "attackSpeed": 300.0,
+            }
+        },
+        {
+            "name": "Recovery",
+            "type": "Recovery",
+            "parameters": { "recoveryDuration": 2.0 }
+        }
+    ],
+    "transitions": [
+        {
+            "from": "Idle",
+            "to": "Waking",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 288.0
+            }
+        },
+        {
+            "from": "Waking",
+            "to": "Chase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Waking"
+            }
+        },
+        {
+            "from": "Chase",
+            "to": "Hover",
+            "condition": {
+                "type": "ReachedHoverDistance",
+                "radius": 48.0
+            }
+        },
+        {
+            "from": "Hover",
+            "to": "Chase",
+            "condition": {
+                "type": "PlayerEscaped",
+                "baseRadius": 200.0,
+                "escapeMultiplier": 1.5
+            }
+        },
+        {
+            "from": "Hover",
+            "to": "Attack",
+            "condition": {
+                "type": "AttackReady"
+            }
+        },
+        {
+            "from": "Attack",
+            "to": "Hover",
+            "condition": {
+                "type": "AttackComplete",
+                "duration": 1.0
+            }
+        },
+        {
+            "from": "Attack",
+            "to": "Chase",
+            "condition": {
+                "type": "PlayerEscaped",
+                "baseRadius": 48.0,
+                "escapeMultiplier": 2.0
+            }
+        },
+        {
+            "from": "Recovery",
+            "to": "Chase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Recovery"
+            }
+        }
+    ]
+}
