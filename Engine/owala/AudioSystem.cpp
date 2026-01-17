@@ -26,7 +26,8 @@ namespace Framework {
         // Optional: get a master channel group to control overall volume
         r = system_->getMasterChannelGroup(&masterGroup_);
         check(r, "System::getMasterChannelGroup");
-        //MessageBus
+
+        // Subscribe to Player Jump Event
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
             std::string jumpSoundFile = "jump.wav";
             try {
@@ -36,7 +37,31 @@ namespace Framework {
             catch (...) {
                 Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << jumpSoundFile << std::endl;
             }
-            });
+        });
+
+        // Subscribe to Platform Land Event
+        MessageBus::Instance().Subscribe<PlatformLandEvent>([this](const PlatformLandEvent& e) { //no information used from the struct cause it is just for testing
+            std::string landSoundFile = "player_land.wav";
+            try {
+                FMOD::Sound& landSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(landSoundFile);
+                this->play(landSound, 1.0f, false);
+            }
+            catch (...) {
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << landSoundFile << std::endl;
+            }
+        });
+
+        // Subscribe to World Rotation Event
+        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) { //no information used from the struct cause it is just for testing
+            std::string rotationSoundFile = "stage_rotation.wav";
+            try {
+                FMOD::Sound& rotationSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(rotationSoundFile);
+                this->play(rotationSound, 0.7f, false);
+            }
+            catch (...) {
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << rotationSoundFile << std::endl;
+            }
+        });
 
 		// Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event);});

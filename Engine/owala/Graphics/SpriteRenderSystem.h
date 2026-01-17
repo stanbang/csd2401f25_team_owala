@@ -108,6 +108,41 @@ namespace Framework {
          */
         void RenderSprites();
 
+        struct RenderItem {
+            int renderOrder = 0;
+            bool isText = false;
+
+            // Sprite Data
+            Texture texture;
+            BatchedSprite spriteData;
+
+            // Text Data
+            Font* font = nullptr;
+            std::string textLine; // Single line text
+            Vector2D screenPos;
+            float scale;
+            Color color;
+
+            // Sorting Operator: Sort primarily by Order. 
+            // For Sprites in the same layer, we want to group by Texture to optimize batching.
+            bool operator<(const RenderItem& other) const {
+                if (renderOrder != other.renderOrder)
+                    return renderOrder < other.renderOrder;
+
+                // If both are sprites, sort by texture to allow batching
+                if (!isText && !other.isText)
+                    return texture < other.texture;
+
+                return isText < other.isText;
+            }
+        };
+
+        /**
+         * \brief Collect sprite and text entities for rendering.
+         */
+        void CollectSprites(Entity activeCamera, std::vector<RenderItem>& queue);
+        void CollectText(Entity activeCamera, std::vector<RenderItem>& queue);
+
         /**
          * \brief Render collider outlines for debugging.
          * \details Draws axis-aligned rectangles around entities with colliders.

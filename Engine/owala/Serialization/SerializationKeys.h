@@ -200,6 +200,10 @@ namespace Framework::Serialization {
 	static constexpr const char* VIEWPORT_MAX = "viewport_max";
 	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
 	static constexpr const char* EMISSION_OFFSET = "emission_offset";
+	static constexpr const char* TRIGGER_EVENT_NAME = "trigger_event_name";
+	static constexpr const char* EMISSION_MODE = "emission_mode";
+	static constexpr const char* BURST_COUNT = "burst_count";
+	static constexpr const char* BURST_INTERVAL = "burst_interval";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";

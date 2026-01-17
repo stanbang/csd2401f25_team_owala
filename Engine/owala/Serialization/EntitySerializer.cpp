@@ -1171,6 +1171,15 @@ namespace Framework {
 		emitOffset.AddMember(rapidjson::StringRef(Serialization::VEC2_X), particleEmitter.emissionOffset.x, alloc);
 		emitOffset.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), particleEmitter.emissionOffset.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_OFFSET), emitOffset, alloc);
+		
+		outData.AddMember(rapidjson::StringRef(Serialization::EMISSION_MODE), static_cast<int>(particleEmitter.emissionMode), alloc);
+		rapidjson::Value triggerNameVal;
+		const char* tName = particleEmitter.triggerEventName.empty() ? "" : particleEmitter.triggerEventName.c_str();
+		triggerNameVal.SetString(tName, static_cast<rapidjson::SizeType>(strlen(tName)), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::TRIGGER_EVENT_NAME), triggerNameVal, alloc);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::BURST_COUNT), particleEmitter.burstCount, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BURST_INTERVAL), particleEmitter.burstInterval, alloc);
 	}
 #pragma endregion
 
@@ -1907,6 +1916,23 @@ namespace Framework {
 			out.emissionOffset = { 0.0f, 0.0f };
 		}
 
+		// Emission Mode
+		if (componentData.HasMember(Serialization::EMISSION_MODE) && componentData[Serialization::EMISSION_MODE].IsInt()) {
+			out.emissionMode = static_cast<ParticleEmissionMode>(componentData[Serialization::EMISSION_MODE].GetInt());
+		}
+
+		// Trigger Name
+		if (componentData.HasMember(Serialization::TRIGGER_EVENT_NAME) && componentData[Serialization::TRIGGER_EVENT_NAME].IsString()) {
+			out.triggerEventName = componentData[Serialization::TRIGGER_EVENT_NAME].GetString();
+		}
+
+		// Burst Params
+		if (componentData.HasMember(Serialization::BURST_COUNT) && componentData[Serialization::BURST_COUNT].IsInt()) {
+			out.burstCount = componentData[Serialization::BURST_COUNT].GetInt();
+		}
+		if (componentData.HasMember(Serialization::BURST_INTERVAL) && componentData[Serialization::BURST_INTERVAL].IsFloat()) {
+			out.burstInterval = componentData[Serialization::BURST_INTERVAL].GetFloat();
+		}
 		return true;
 	}
 
