@@ -35,7 +35,7 @@ namespace Framework {
          * \brief Construct the audio system bound to the ECS storage.
          * \param storage Reference to the entity storage (kept as a raw pointer internally).
          */
-        AudioSystem(EntityStorage& storage);
+        AudioSystem() = default;
 
         /// \brief Default virtual destructor.
         ~AudioSystem() override = default;
@@ -68,7 +68,7 @@ namespace Framework {
          * \brief Provide a ResourceManager for resolving paths/handles if needed.
          * \param rcm Resource manager reference stored internally (no ownership).
          */
-        void SetResourceManager(ResourceManager& rcm);
+//        void SetResourceManager(ResourceManager& rcm);
 
         // -------------- Simple API --------------
 
@@ -153,17 +153,24 @@ namespace Framework {
          */
         void OnButtonClicked(const ButtonClickedEvent& event);
 
+        // For Interupption Handling
+        /**
+         * \brief Suspends audio
+         * \details Iterates known channels and stops them; safe to call anytime.
+         */
+        void SuspendAudio();
+
+        /**
+           * \brief Resumes Audio
+           * \details Iterates known channels and stops them; safe to call anytime.
+           */
+        void ResumeAudio();
+
     private:
         /// \name FMOD Core Pointers
         ///@{
         FMOD::System* system_ = nullptr;  //!< Owned FMOD system (created in Initialize()).
         FMOD::ChannelGroup* masterGroup_ = nullptr;  //!< Master channel group used for global control.
-        ///@}
-
-        /// \name Engine Integration
-        ///@{
-        ResourceManager* resourceManager_ = nullptr; //!< Non-owning; may be null if not set.
-        EntityStorage* entityStorage_ = nullptr; //!< Non-owning pointer to ECS storage.
         ///@}
 
         /// \name Caches

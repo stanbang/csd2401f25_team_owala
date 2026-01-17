@@ -53,14 +53,41 @@ file(GLOB_RECURSE EDITOR_SRC
    "${EDITOR_DIR}/*.hpp"
 )
 
+
+# Add this section right after your executable creation sections
 # ======================= Engine Executable =========================
 add_executable(${CMAKE_PROJECT_NAME}_Engine ${ENGINE_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Engine PRIVATE -DBUILD_ENGINE)
-set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES FOLDER "")
+set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES 
+    FOLDER ""
+    OUTPUT_NAME "StageBound"
+)
+
+# Hide console window for Engine builds (Windows only)
+if(WIN32)
+    set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+    target_link_options(${CMAKE_PROJECT_NAME}_Engine PRIVATE 
+        "/SUBSYSTEM:WINDOWS"
+        "/ENTRY:mainCRTStartup"
+    )
+endif()
 
 # ======================= Editor Executable =========================
 add_executable(${CMAKE_PROJECT_NAME}_Editor ${ENGINE_SRC} ${EDITOR_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Editor PRIVATE -DBUILD_EDITOR)
+set_target_properties(${CMAKE_PROJECT_NAME}_Editor PROPERTIES 
+    FOLDER ""
+    OUTPUT_NAME "StageBound_Editor"
+)
+
+# Keep console window for Editor builds (explicitly set to FALSE for clarity)
+if(WIN32)
+    set_target_properties(${CMAKE_PROJECT_NAME}_Editor PROPERTIES
+        WIN32_EXECUTABLE FALSE
+    )
+endif()
 
 # ======================= File Organization for Visual Studio =========================
 foreach(source IN LISTS ENGINE_SRC)

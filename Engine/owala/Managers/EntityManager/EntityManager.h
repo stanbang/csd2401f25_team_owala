@@ -18,6 +18,7 @@
 #include "EntityStorage.h"
 #include <stdexcept>
 #include <bitset>
+#include <sstream>
 
 namespace Framework {
 
@@ -51,11 +52,17 @@ namespace Framework {
 		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
 		template <typename T>
 		void AddComponent(Entity entity, const T& component) {
+			if (!ValidateEntity(entity)) {
+				std::stringstream errorMsg;
+				errorMsg << "AddComponent: Invalid Entity ID: " << entity;
+				throw std::runtime_error(errorMsg.str());
+			}
+
 			constexpr ComponentType type = ComponentTypeTrait<T>::value;
 
 			if (HasComponent(entity, type)) return;
 
-			if constexpr (std::is_same_v<T, Position>) ecs.position[entity] = component;
+			if constexpr (std::is_same_v<T, Transform>) ecs.transform[entity] = component;
 			else if constexpr (std::is_same_v<T, SpawnPoint>) ecs.spawnPoint[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
@@ -65,7 +72,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
 			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
-			else if constexpr (std::is_same_v<T, ScalingPlatformComponent>) ecs.scalingPlatform[entity] = component;
 			else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
 			else if constexpr (std::is_same_v<T, AudioComponent>) ecs.audio[entity] = component;
 			else if constexpr (std::is_same_v<T, AnimationComponent>) ecs.animatedTex[entity] = component;
@@ -79,14 +85,12 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) ecs.skeletonAIComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, ParticleComponent>) ecs.particleComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) ecs.particleEmitterComponent[entity] = component;
-			else if constexpr (std::is_same_v<T, Rotation>) ecs.rotation[entity] = component;
-			else if constexpr (std::is_same_v<T, Scale>) ecs.scale[entity] = component;
 			else {
 				// If this is a tag-only type, no storage is necessary.
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
 			}
 
-			ecs.entitySignatures[entity].set(type);
+			ecs.entitySignatures.at(entity).set(type);
 		}
 		// Adds a empty component of specified ComponentType ID to the entity.
 		void AddComponent(Entity entity, ComponentType componentType);
@@ -98,13 +102,22 @@ namespace Framework {
 			// Get the component type from the trait
 			constexpr ComponentType type = ComponentTypeTrait<T>::value;
 
+			// Validate Entity
+			if (!ValidateEntity(entity)) {
+				std::stringstream errorMsg;
+				errorMsg << "GetComponent: Invalid Entity ID: " << entity << " requested component with ID: " << static_cast<int>(type);
+				throw std::runtime_error(errorMsg.str());
+			}
+
 			// Ensure the entity actually has this component
 			if (!HasComponent(entity, type)) {
-				throw std::runtime_error("GetComponent: Entity does not have the requested component");
+				std::stringstream errorMsg;
+				errorMsg << "GetComponent: Entity: " << GetProperties(entity).name << " does not have the requested component with ID: " << static_cast<int>(type);
+				throw std::runtime_error(errorMsg.str());
 			}
 
 			// Return a reference to the component in the map
-			if constexpr (std::is_same_v<T, Position>) return ecs.position.at(entity);
+			if constexpr (std::is_same_v<T, Transform>) return ecs.transform.at(entity);
 			else if constexpr (std::is_same_v<T, SpawnPoint>) return ecs.spawnPoint.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
@@ -114,7 +127,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
 			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
 			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);
-			else if constexpr (std::is_same_v<T, ScalingPlatformComponent>) return ecs.scalingPlatform.at(entity);
 			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
 			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
 			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
@@ -128,8 +140,6 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) return ecs.skeletonAIComponent.at(entity);
 			else if constexpr (std::is_same_v<T, ParticleComponent>) return ecs.particleComponent.at(entity);
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) return ecs.particleEmitterComponent.at(entity);
-			else if constexpr (std::is_same_v<T, Rotation>) return ecs.rotation.at(entity);
-			else if constexpr (std::is_same_v<T, Scale>) return ecs.scale.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}
@@ -212,6 +222,8 @@ namespace Framework {
 
 		std::vector<Entity> entities;
 		for (const auto& [entity, entitySignature] : ecs.entitySignatures) {
+
+			if (ecs.properties.find(entity) == ecs.properties.end()) continue;
 
 			// Check if the entity's signature includes all bits in the required signature
 			if ((entitySignature & requiredSignature) == requiredSignature) {

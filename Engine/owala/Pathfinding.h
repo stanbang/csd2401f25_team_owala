@@ -48,13 +48,12 @@ namespace Framework {
     public:
         // Size of one grid cell in world coordinates
         // (editor already has a grid built in, but we want to make sure editor and game logic is seperate)
-        const float cellSize = 200.0f;
+        const float cellSize = 20.f; // smaller the size, higher precision, but lower performance!!!
 
         /**
          * @brief Scans all static colliders (PlatformTag) in the ECS to build a grid of "walls".
-         * @param ecs The EntityStorage to scan.
          */
-        void BuildGrid(EntityStorage& ecs);
+        void BuildGrid();
 
         /**
          * @brief Checks if a grid cell is walkable (i.e., not a wall).

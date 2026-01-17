@@ -59,7 +59,6 @@ namespace Framework {
 #endif
 
     private:
-        EntityStorage* ecs_;
         NavigationGrid navGrid_;
         Graphics* gfx_;
         TransformationSystem* transformSystem_; 

@@ -37,7 +37,7 @@ namespace Framework{
 		Platform,
 		Enemy,
 		Trigger,
-		Count // track the number of layers
+		Count = 32  // Maximum layers 
 	};
 
 	// Enum for defining rendering layers 
@@ -55,27 +55,48 @@ namespace Framework{
 		IDLE,
 		RUNNING,
 		JUMPING,
-		FALLING
+		FALLING,
+		DEATH
 	};
 
-	enum class EffectType {
-		NONE,
-		RANDOM,
-		RANDOM_UP
+	// For particle emission modes
+	enum class ParticleEmissionMode {
+		CONTINUOUS,    // Emit constantly while active
+		BURST,         // Emit once on trigger
+		LOOP_BURST     // Emit multiple bursts on trigger
 	};
 
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
 		CollisionLayer layer = CollisionLayer::Default;
-		RenderLayer renderLayer = RenderLayer::Custom;
+		std::string collisionLayerName = "";
+		RenderLayer renderLayer = RenderLayer::Platform;
 		int customRenderOrder = 0; // Used when renderLayer is Custom
+		std::string renderLayerName = ""; // store name of dynamiclly created layers
+		bool isActive = true;
 	};
 
-	/*	Position component to store x and y 
-		coordinates of an entity.*/
-	struct Position {
-		Vector2D Pos;
+	/* Transform Component indicating data relating to the entity's Position, Rotation and Scale */
+	struct Transform {
+		struct Rotation {
+			float angle = 0.0f;
+			float textureAngle = 0.0f; // Texture rotation angle
+			float colliderAngle = 0.0f; // Collider rotation angle
+			Matrix3x3 textureTransformMatrix; // For texture
+			Matrix3x3 colliderTransformMatrix; // For collider
+
+			Rotation() : textureAngle(0.0f), colliderAngle(0.0f), textureTransformMatrix(), colliderTransformMatrix() {}
+			Rotation(float texAngle, float colAngle = 0.0f) : textureAngle(texAngle), colliderAngle(colAngle), textureTransformMatrix(), colliderTransformMatrix() {}
+		};
+
+		Vector2D position{ 0.f, 0.f };
+		Rotation rotation;
+		Vector2D scale{ 1.f, 1.f };
+
+		// Parameterized Constructor
+		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
+			: position(pos), rotation(angle), scale(scl) {}
 	};
 
 	/*	SpawnPoint component to store initial x and y
@@ -105,9 +126,15 @@ namespace Framework{
 
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
-		Vector2D HalfSize; // Half-width and half-height of the box
-	};
+		Vector2D HalfSize{ 50.0f, 50.0f }; // Half-width and half-height of the box
+		Vector2D Offset{ 0.0f, 0.0f };     // Offset from entity position
+		float rotation = 0.0f;
+		Matrix3x3 transformMatrix;
 
+		AABBCollider() : HalfSize(0.0f, 0.0f), Offset(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size) : HalfSize(size), Offset(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size, const Vector2D& offset) : HalfSize(size), Offset(offset), rotation(0.0f), transformMatrix() {}
+	};
 	
 
 	/*	Acceleration component to store x and y 
@@ -120,6 +147,8 @@ namespace Framework{
 	struct PlayerState {
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
+		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
+		bool isDead = false;
 	};
 
 	struct Triangle { 
@@ -136,11 +165,13 @@ namespace Framework{
 		uint32_t targetEntity = 0;        // Use uint32_t instead
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
+		bool isEditorControlled = false;   // NEW: Prevent game from moving this camera
 	};
 
 	struct TextureComponent {
 		std::string textureKey; // Key to identify the texture resource
-		Vector2D HalfSize = {};
+		Vector2D HalfSize = { 50.f, 50.f };
+		bool flipHorizontal = false;
 	};
 
 	struct AudioComponent {
@@ -151,6 +182,7 @@ namespace Framework{
 	};
 
 	struct AnimationComponent {
+		std::string profileName; // Name of the animation profile to use(can be Player, BirdEnemy etc)
 		AnimationState currentState = AnimationState::IDLE; // Default animation state is IDLE
 
 		int currentFrame = 0;      // Frame index
@@ -167,9 +199,15 @@ namespace Framework{
 
 	struct TextComponent {
 		std::string textToDraw{};
-		std::string fontKey;
+		std::string fontKey{};
 		Color color = { 1,1,1,1 };
 		float scale = 1.0f;
+		float maxWidth = 10.0f;
+
+		// no need to serialize, calculated by text render system 
+		Vector2D halfSize = { 0.0f, 0.0f };
+		std::vector<std::string> wrappedLines;
+		bool isDirty = true;
 	};
 
 	/* TAG SECTION */
@@ -189,15 +227,6 @@ namespace Framework{
 		Matrix3x3 transformMatrix;
 	};
 
-	struct Rotation { //for selected entities
-		float angle = 0.0f; // Rotation angle in degrees
-	};
-
-	struct Scale {
-		Vector2D axes{ 1.0f, 1.0f }; // Scale factors for X and Y axes
-	};
-
-
 	// Component to track trap platform state
 	struct TrapPlatformComponent {
 		bool isTriggered = false;
@@ -209,22 +238,41 @@ namespace Framework{
 		float currentFallDistance{ 0.0f };
 	};
 
-	struct ScalingPlatformComponent {
-		Vector2D baseHalfSize;
-		float currentScaleX{ 0.0f };
-		float currentScaleY{ 0.0f };
-		float scaleSpeed{ 0.0f };
-		float minScale{ 0.0f };
-		float maxScale{ 0.0f };
-		float time{ 0.0f };
-		Matrix3x3 transformMatrix;
-	};
-
 	struct Button {
 		bool isHovered = false; // Mouse is over the button
 		bool isPressed = false; // Button is clicked
 		bool isReleased = false; // Button click is released
 		ButtonAction action = ButtonAction::DEFAULT; // Action to perform on click
+
+		// Data to customize the action
+		std::string targetString = ""; // Stores Scene Name or Sound File
+		float targetValue = 0.0f;      // Stores specific numbers if needed
+	
+		// Sound effects
+		std::string hoverSoundKey = "";   // Sound to play when hovering
+		float hoverSoundVolume = 0.5f;    // Volume for hover sound
+		std::string clickSoundKey = "";   // Sound to play when clicked
+		float clickSoundVolume = 0.5f;    // Volume for click sound
+
+		bool wasHoveredLastFrame = false; // Track hover state changes
+	
+		// Texture keys for different button states
+		std::string defaultTextureKey = "";   // Default/idle state
+		std::string hoverTextureKey = "";     // When hovering
+		std::string pressedTextureKey = "";   // When pressed
+
+		// Track which textures are animated
+		bool defaultIsAnimated = false;
+		bool hoverIsAnimated = false;
+		bool pressedIsAnimated = false;
+
+		// NEW: Track current state for texture switching
+		enum class ButtonVisualState {
+			DEFAULT,
+			HOVER,
+			PRESSED
+		};
+		ButtonVisualState currentVisualState = ButtonVisualState::DEFAULT;
 	};
 
 	struct NativeScriptsComponent {
@@ -430,11 +478,20 @@ namespace Framework{
 		EffectType effectType = EffectType::NONE; // Type of effect the particle will have
 		float lifetime = 1.0f;      // Total lifetime of the particle
 		float age = 0.0f;           // Current age of the particle
+		bool isScreenSpace = false; // Is the particle rendered in screen space
 	};
 
 	struct ParticleEmitterComponent {
 		bool isEmitting = true;
 		bool isParticleAnimated = false; // Is the particle texture animated
+		bool isScreenSpace = false;   // Are the particles rendered in screen space
+		ParticleEmissionMode emissionMode = ParticleEmissionMode::CONTINUOUS;
+
+		// For BURST/LOOP_BURST modes
+		std::string triggerEventName;  // Name of the event to listen for
+		int burstCount = 1;            // How many bursts to emit (for LOOP_BURST)
+		float burstInterval = 0.5f;    // Time between bursts (for LOOP_BURST)
+		float timeSinceBurst = 0.0f;   // Internal timer for burst spacing
 
 		std::string particleTextureKey; // Key to identify the texture resource for particles
 		float particleLifetime = 1.0f;	// Total lifetime of the particle
@@ -442,12 +499,35 @@ namespace Framework{
 		float emissionInterval = 0.0f;	// Time between emissions (calculated from emissionRate)
 		float timeSinceLastEmission = 0.0f; // Time since the last particle was emitted
 		EffectType particleEffectType = EffectType::NONE; // Type of effect for emitted particles
+		float effectStrength = 1.0f; // Strength of the effect
 		float particleSpeed = 1.0f;	// Speed of emitted particles
 		Vector2D particleSize = { 1.0f, 1.0f }; // Size of emitted particles
 
 		Vector2D particleStartVelocity = { 0.0f, 0.0f };// Initial velocity of emitted particles
 		Vector2D particleAcceleration = { 0.0f, 0.0f }; // For moving particles
 		bool isAffectedByGravity = false;				// Should particles be affected by gravity
+
+		EmissionStyle emissionStyle = EmissionStyle::FROM_POINT; // Style of emission
+		Vector2D emissionOffset = { 0.0f, 0.0f }; // Offset from emitter position
+
+		// For FROM_RADIUS style
+		float emissionRadius = 0.5f;		// Radius around position to emit particles
+
+		// For FROM_LINE style
+		Vector2D lineStart = { -1.0f, 0.0f };   // Start point of emission line
+		Vector2D lineEnd = { 1.0f, 0.0f };     // End point of emission line
+
+		// For FROM_CIRCLE_EDGE style
+		float circleRadius = 0.5f;              // Radius of the circle
+
+		// For screen space: use normalized coordinates (0 to 1)
+		// For world space: use world coordinates
+		Vector2D viewportMin = { 0.0f, 0.0f };
+		Vector2D viewportMax = { 1.0f, 1.0f };
+
+
+		// Direction override
+		Vector2D emissionDirection = { 0.0f, -1.0f }; // Default downward for top emission
 	};
 
 }

@@ -1,0 +1,53 @@
+{
+    "name": "StaticPlatform_05",
+    "components": [
+        {
+            "type": "Position",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "Velocity",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "RigidBody",
+            "data": {
+                "mass": 0.0,
+                "forceX": 0.0,
+                "forceY": 0.0
+            }
+        },
+        {
+            "type": "AABBCollider",
+            "data": {
+                "halfSizeX": 50.0,
+                "halfSizeY": 50.0
+            }
+        },
+        {
+            "type": "TextureComponent",
+            "data": {
+                "textureID": "SB_StaticPlatform_05.png",
+                "halfSizeX": 50.0,
+                "halfSizeY": 50.0
+            }
+        },
+        {
+            "type": "RotationFlag",
+            "data": {}
+        }
+    ],
+    "tags": [
+        "PlatformTag"
+    ],
+    "properties": {
+        "layer": "Platform",
+        "render_layer": 50
+    }
+}

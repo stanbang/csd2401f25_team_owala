@@ -1,27 +1,37 @@
+/*****************************************************************//**
+* \file   History.cpp
+*
+* \primary_author
+*       Jason Lou
+* \secondary_author
+*
+*
+* \brief    This file defines the HistoryManager class. History is a Editor-Only
+*			system. The History system stores ECS changes in the Editor to the
+*			Undo stack. Undo operation recording API is defined here.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "History.h"
 #include "EntityManager.h"
 #include "EntitySerializer.h"
-#include "SerializationKeys.h"
-#include "ScriptRegistry.h"
+#include "GameManager.h"
 
 // Debugging
 #include "Logger.h"
 
 namespace Editor {
 	using namespace Framework;
-	HistoryManager::HistoryManager(Framework::EntityStorage& ecs) : ecs_(&ecs) {}
 
 	void HistoryManager::Apply(const Operation& op, bool isUndo) {
-		if (!ecs_) {
-			Logger::Info(DebugType::Editor) << "HistoryManager::Apply: ECS is null, cannot apply operation." << std::endl;
-			return;
-		}
-
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		const std::string& dataToUse = isUndo ? op.data.memento.beforeJSON : op.data.memento.afterJSON;
 		std::cout << "Before Data: " << op.data.memento.beforeJSON << std::endl;
 		std::cout << "After Data: " << op.data.memento.afterJSON << std::endl;
 		std::cout << "Undo or Redo?: " << (isUndo ? "Undo" : "Redo") << std::endl;
+		std::cout << op.description << std::endl;
 
 		switch (op.opType) {
 		case OpType::Create:
@@ -51,6 +61,7 @@ namespace Editor {
 	}
 
 	void HistoryManager::RestoreEntityFromSnapshot(Entity entity, const std::string& json) {
+		EntityStorage* ecs_ = &GameManager::GetInstance().GetECS();
 		EntityManager entityMgr(*ecs_);
 
 		// Empty JSON means "entity does not exist". Destroy entity instead.
@@ -73,7 +84,7 @@ namespace Editor {
 	}
 
 	void HistoryManager::ApplyComponentSnapshot(Entity entity, ComponentType type, const std::string& json) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
 		// Empty JSON means "component does not exist". Remove component instead.
 		if (json.empty()) {
@@ -99,15 +110,7 @@ namespace Editor {
 		if (type == ComponentType::MAX_COMPONENTS) { // Using MAX_COMPONENTS for Entity Properties, its intentional.
 			EntityProperties& properties = entityMgr.GetProperties(entity);
 
-			if (doc.HasMember(Serialization::ENTITY_NAME) &&
-				doc[Serialization::ENTITY_NAME].IsString()) {
-				properties.name = doc[Serialization::ENTITY_NAME].GetString();
-			}
-
-			if (doc.HasMember(Serialization::ENTITY_LAYER) &&
-				doc[Serialization::ENTITY_LAYER].IsInt()) {
-				properties.layer = static_cast<CollisionLayer>(doc[Serialization::ENTITY_LAYER].GetInt());
-			}
+			EntitySerializer::DeserializeEntityProperties(doc, properties);
 			return;
 		}
 
@@ -125,13 +128,13 @@ namespace Editor {
 		}
 
 		switch (type) {
-			case ComponentType::PositionType: {
-				Position newPosition;
-				if (EntitySerializer::DeserializeComponent(doc, newPosition)) {
-					if (entityMgr.HasComponent(entity, ComponentType::PositionType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::PositionType);
+			case ComponentType::TransformType: {
+				Transform newTransform;
+				if (EntitySerializer::DeserializeComponent(doc, newTransform)) {
+					if (entityMgr.HasComponent(entity, ComponentType::TransformType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::TransformType);
 					}
-					entityMgr.AddComponent<Position>(entity, newPosition);
+					entityMgr.AddComponent<Transform>(entity, newTransform);
 				}
 				break;
 			}
@@ -222,16 +225,6 @@ namespace Editor {
 						entityMgr.RemoveComponent(entity, ComponentType::TrapPlatformComponentType);
 					}
 					entityMgr.AddComponent<TrapPlatformComponent>(entity, newTrapPlatform);
-				}
-				break;
-			}
-			case ComponentType::ScalingPlatformComponentType: {
-				ScalingPlatformComponent newScalingPlatform;
-				if (EntitySerializer::DeserializeComponent(doc, newScalingPlatform)) {
-					if (entityMgr.HasComponent(entity, ComponentType::ScalingPlatformComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::ScalingPlatformComponentType);
-					}
-					entityMgr.AddComponent<ScalingPlatformComponent>(entity, newScalingPlatform);
 				}
 				break;
 			}
@@ -335,25 +328,20 @@ namespace Editor {
 				}
 				break;
 			}*/
+			}
+			case ComponentType::ParticleEmitterComponentType: {
+				ParticleEmitterComponent newParticleEmitterComponent;
+				if (EntitySerializer::DeserializeComponent(doc, newParticleEmitterComponent)) {
+					if (entityMgr.HasComponent(entity, ComponentType::ParticleEmitterComponentType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::ParticleEmitterComponentType);
+					}
+					entityMgr.AddComponent<ParticleEmitterComponent>(entity, newParticleEmitterComponent);
+				}
+				break;
+			}
 			default:
 				Logger::Info(DebugType::Editor) << "HistoryManager::ApplyComponentSnapshot: Unsupported component type. No Changes applied" << std::endl;
 		}
-	}
-
-	std::string HistoryManager::SerializeEntityToString(Entity entity) {
-		rapidjson::Document doc;
-		doc.SetObject();
-		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
-
-		rapidjson::Value entityData(rapidjson::kObjectType);
-		EntitySerializer::SerializeEntity(entity, *ecs_, entityData, alloc);
-		doc.CopyFrom(entityData, alloc);
-
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		doc.Accept(writer);
-
-		return std::string(buffer.GetString());
 	}
 
 	void HistoryManager::PruneHistoryToLimit() {
@@ -362,12 +350,32 @@ namespace Editor {
 			maxHistorySteps = 20;
 		}
 
-		if (undoStack.size() > static_cast<size_t>(maxHistorySteps)) {
-			undoStack.erase(undoStack.begin(), undoStack.begin() + (undoStack.size() - maxHistorySteps));
+		if (undoStack.empty()) return;
+
+		int steps = 0;
+		std::size_t index = undoStack.size();
+
+		// Calculate Number of History Steps consumed
+		while (index > 0 && steps < maxHistorySteps) {
+			const Operation& op = undoStack[index - 1];
+
+			if (op.groupID == 0) { // Single Operation
+				++steps;
+				--index;
+			}
+			else { // Operation belongs to a group.
+				const int groupID = op.groupID;
+				++steps;
+
+				while (index > 0 && undoStack[index - 1].groupID == groupID) {
+					--index;
+				}
+			}
 		}
 
-		if (redoStack.size() > static_cast<size_t>(maxHistorySteps)) {
-			redoStack.erase(redoStack.begin(), redoStack.begin() + (redoStack.size() - maxHistorySteps));
+		// Prune everything after recorded index.
+		if (index > 0) {
+			undoStack.erase(undoStack.begin(), undoStack.begin() + index);
 		}
 	}
 
@@ -385,6 +393,45 @@ namespace Editor {
 	}
 
 	// ---------------------------------------------------------------------------
+	// Accessors
+	// ---------------------------------------------------------------------------
+	std::string HistoryManager::GetLatestUndoDescription() const {
+		if (undoStack.empty()) {
+			return {};
+		}
+		return undoStack.back().description;
+	}
+
+	std::string HistoryManager::GetLatestRedoDescription() const {
+		if (redoStack.empty()) {
+			return {};
+		}
+		return redoStack.back().description;
+	}
+
+	std::vector<std::string> HistoryManager::GetUndoHistoryDescriptions() const {
+		std::vector<std::string> descriptions;
+		descriptions.reserve(undoStack.size());
+
+		for (const Operation& operation : undoStack) {
+			descriptions.push_back(operation.description);
+		}
+
+		return descriptions;
+	}
+
+	std::vector<std::string> HistoryManager::GetRedoHistoryDescriptions() const {
+		std::vector<std::string> descriptions;
+		descriptions.reserve(redoStack.size());
+
+		for (const Operation& operation : redoStack) {
+			descriptions.push_back(operation.description);
+		}
+
+		return descriptions;
+	}
+
+	// ---------------------------------------------------------------------------
 	// APIs
 	// ---------------------------------------------------------------------------
 	void HistoryManager::ClearHistory() {
@@ -392,8 +439,12 @@ namespace Editor {
 		redoStack.clear();
 	}
 
-	void HistoryManager::Record(OpType opType, Entity entity, std::string description) {
+	void HistoryManager::Record(OpType opType, Entity entity, const std::string& description) {
+		// Do not record any operations during Play Mode.
+		if (GameManager::GetInstance().GetEditor()->IsGamePlaying()) return;
+
 		Operation op;
+		EntityStorage& ecs_ = GameManager::GetInstance().GetECS();
 
 		op.opType = opType;
 		op.description = description;
@@ -403,29 +454,47 @@ namespace Editor {
 		case OpType::Create:
 			op.data.mode = PayloadMode::Entity;
 			op.data.memento.beforeJSON.clear();
-			op.data.memento.afterJSON = SerializeEntityToString(entity);
+			op.data.memento.afterJSON = EntitySerializer::SerializeEntityToString(entity, ecs_);
 			break;
 		case OpType::Delete:
 			op.data.mode = PayloadMode::Entity;
-			op.data.memento.beforeJSON = SerializeEntityToString(entity);
+			op.data.memento.beforeJSON = EntitySerializer::SerializeEntityToString(entity, ecs_);
 			op.data.memento.afterJSON.clear();
 			break;
-		default:
+		default: // Components should be handled via the dedicated function.
 			return;
 		}
 
 		Push(op);
 	}
 
-	void HistoryManager::Push(const Operation& op) {
-		if (!ecs_) {
-			Logger::Info(DebugType::Editor) << "HistoryManager::Push: ECS is null, cannot push to history." << std::endl;
-			return;
-		}
+	void HistoryManager::RecordModifyComponent(Entity entity, const std::string& description, const std::string& beforeJSON, const std::string& afterJSON, ComponentType compType) {
+		// Do not record any operations during Play Mode.
+		if (GameManager::GetInstance().GetEditor()->IsGamePlaying()) return;
 
+		Operation op;
+
+		op.opType = OpType::ModifyComponent;
+		op.description = description;
+		op.data.entity = entity;
+		op.data.componentType = compType;
+
+		op.data.mode = PayloadMode::Component;
+		op.data.memento.beforeJSON = beforeJSON;
+		op.data.memento.afterJSON = afterJSON;
+
+		Push(op);
+	}
+
+	void HistoryManager::Push(Operation& op) {
 		if (op.opType == OpType::None) {
 			Logger::Info(DebugType::Editor) << "HistoryManager::Push: Invalid operation type, cannot push to history." << std::endl;
 			return;
+		}
+
+		// If operation being pushed is currently being recorded as a grouped operation
+		if (activeGroupID != 0) {
+			op.groupID = activeGroupID;
 		}
 
 		undoStack.push_back(op);
@@ -447,10 +516,30 @@ namespace Editor {
 			return;
 		}
 
-		const Operation op = undoStack.back(); // Get the latest operation
-		Apply(op, true); // Apply the operation as an undo
-		undoStack.pop_back(); // Remove it from the undo stack
-		redoStack.push_back(op); // Push it to the redo stack
+		int groupID = undoStack.back().groupID;
+
+		// If operation does not belong to a group
+		if (groupID == 0) {
+			const Operation op = undoStack.back(); // Get the latest operation
+			Apply(op, true); // Apply the operation as an undo
+			undoStack.pop_back(); // Remove it from the undo stack
+			redoStack.push_back(op); // Push it to the redo stack
+			return;
+		}
+
+		// Grouped Operations
+		std::vector<Operation> groupOps;
+		while (!undoStack.empty() && undoStack.back().groupID == groupID) {
+			Operation op = undoStack.back();
+			undoStack.pop_back();
+
+			Apply(op, true);
+			groupOps.push_back(std::move(op));
+		}
+
+		for (std::vector<Operation>::reverse_iterator it = groupOps.rbegin(); it != groupOps.rend(); ++it) {
+			redoStack.push_back(*it);
+		}
 	}
 
 	void HistoryManager::Redo() {
@@ -458,9 +547,54 @@ namespace Editor {
 			return;
 		}
 
-		const Operation op = redoStack.back(); // Get the operation preceding the last undone operation
-		Apply(op, false); // Apply the operation as a redo
-		redoStack.pop_back(); // Remove it from the redo stack
-		undoStack.push_back(op); // Push it to the undo stack
+		int groupID = redoStack.back().groupID;
+
+		// If operation does not belong to a group
+		if (groupID == 0) {
+			const Operation op = redoStack.back(); // Get the operation preceding the last undone operation
+			Apply(op, false); // Apply the operation as a redo
+			redoStack.pop_back(); // Remove it from the redo stack
+			undoStack.push_back(op); // Push it to the undo stack
+			return;
+		}
+
+		// Grouped Operations
+		std::vector<Operation> groupOps;
+		while (!redoStack.empty() && redoStack.back().groupID == groupID) {
+			groupOps.push_back(redoStack.back());
+			redoStack.pop_back();
+		}
+
+		// Reapply in reverse order
+		for (std::vector<Operation>::reverse_iterator it = groupOps.rbegin(); it != groupOps.rend(); ++it) {
+			Apply(*it, false);
+			undoStack.push_back(*it);
+		}
+	}
+
+	// ---------------------------------------------------------------------------
+	// Grouping APIs
+	// ---------------------------------------------------------------------------
+	void HistoryManager::BeginGroup() {
+		if (groupDepth == 0) {
+			activeGroupID = nextGroupID++;
+		}
+		++groupDepth;
+	}
+
+	void HistoryManager::EndGroup() {
+		if (groupDepth == 0) {
+			Logger::Info(DebugType::Editor) << "History::EndGroup: Unmatched Endgroup! Did you forget to call BeginGroup?" << std::endl;
+			return;
+		}
+
+		--groupDepth;
+		if (groupDepth == 0) {
+			activeGroupID = 0;
+		}
+	}
+
+	bool HistoryManager::IsGroupActive() const noexcept {
+		return activeGroupID != 0;
 	}
 }

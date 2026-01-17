@@ -67,7 +67,7 @@ namespace Framework {
     // ------------------------------------------------------------------
     class Graphics : public ISystem {
     public:
-        explicit Graphics(WindowsSystem& win) : win_(&win) {}
+        Graphics() = default;
 
         // -------- ISystem interface --------
         void Initialize() override;
@@ -91,6 +91,23 @@ namespace Framework {
         Texture loadTextureFromTex(const char* path);
         void    setWrap(Texture tex, int wrapS, int wrapT);
         void    setAlphaBlend(bool on);
+
+		// Structure to hold raw image data loaded on CPU
+        struct ImageRawData {
+            unsigned char* pixels = nullptr;
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+        };
+
+        // Run this on Background Thread
+        ImageRawData LoadImageToCPU(const char* path, bool flipY = true);
+
+        // Run this on Main Thread
+        Texture CreateTextureFromRawData(const ImageRawData& data, bool srgb = false);
+
+        // Helper to free memory
+        void FreeImageRawData(ImageRawData& data);
 
         // -------- Sprite rendering (single) --------
         void drawSprite(Texture& tex, const Vector2D& center,
@@ -121,9 +138,6 @@ namespace Framework {
         // -------- Text --------
         void drawText(Font& font, const std::string& text,
             const Vector2D& pos, float scale, const Color& color);
-
-        std::vector<std::string> WrapText(Font& font, const std::string& text,
-            float scale, float maxWidth);
 
         // ----- Frame Buffer stuff (For Game Viewport) -----
         struct FramebufferSpecs {
@@ -162,7 +176,6 @@ namespace Framework {
         unsigned GetGameTexture() const { return gameFramebuffer_ ? gameFramebuffer_->GetColorAttachment() : 0; };
 
     private:
-        WindowsSystem* win_ = nullptr;
         int screenWidth = 1920;
         int screenHeight = 1080;
 

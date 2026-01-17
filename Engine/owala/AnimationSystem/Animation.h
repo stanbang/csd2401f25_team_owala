@@ -14,9 +14,19 @@
  *********************************************************************/
 #pragma once
 
+using stateToTextureMap = std::unordered_map<int, std::string>; // Map AnimationState (int) to texture key (string)
+using animationProfileMap = std::unordered_map<std::string, stateToTextureMap>; // Map entity type (string) to stateToTextureMap
+
+struct SpriteSheetSegment {
+    std::string textureKey;
+    int frameCount;
+};
+
 struct AnimationInfo {
     int frameCount = 0;
     float frameDuration = 0;
     bool isLooping = false;
     int startFrame = 0;
+
+    std::vector<SpriteSheetSegment> sheets; // Store relevant spritesheets
 };

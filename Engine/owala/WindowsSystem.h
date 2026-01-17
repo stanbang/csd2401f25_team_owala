@@ -2,8 +2,10 @@
  * \file   WindowsSystem.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (40%)
  * \secondary_author
+ *		Yar Xuan (50%)
+ *		Ng Jing Wen (10%)
  *
  * \brief
  *   Window/context management system. Wraps GLFW window creation and
@@ -17,6 +19,7 @@
  *********************************************************************/
 #pragma once
 #include "ISystem.h"
+#include "Vector2D.h"
 struct GLFWwindow;
 
 namespace Framework {
@@ -52,8 +55,8 @@ namespace Framework {
          * \param w     Initial window width in pixels.
          * \param h     Initial window height in pixels.
          */
-        WindowsSystem(CoreEngine& core, const char* title, int w, int h)
-            : core_(&core), title_(title), w_(w), h_(h) {
+        WindowsSystem(CoreEngine& core, const char* title, int w, int h, bool fullScreen)
+            : core_(&core), title_(title), windowedW_(w), windowedH_(h), fullScreen_(fullScreen) {
         }
 
         /**
@@ -76,6 +79,17 @@ namespace Framework {
          */
         void Shutdown() override;
 
+        // Callback to be called by GLFW
+        static void WindowFocusCallback(GLFWwindow* window, int focused);
+
+        bool IsFocused() const { return isFocused_; }
+
+#ifdef BUILD_ENGINE
+        /**
+         * \brief Toggle between full screen and windowed mode.
+         */
+        void ToggleFullScreen();
+#endif
         /**
          * \brief Accessor for the raw GLFW window pointer.
          * \return Pointer to the underlying GLFWwindow.
@@ -83,14 +97,30 @@ namespace Framework {
         GLFWwindow* window() const { return win_; }
 
         //getter for width
-        int getWidth() const { return w_; }
+        int getWidth() const { return currentW_; }
+        int getHeight() const { return currentH_; }
+        Vector2D getWindowSize() const { return Vector2D(static_cast<float>(currentW_), static_cast<float>(currentH_)); }
 
-        int getHeight() const { return h_; }
+        /**
+         * \brief Sets the window close flag.
+         * \param shouldClose If true, the window will close on the next update.
+         */
+        void setWindowShouldClose(bool shouldClose);
 
     private:
         CoreEngine* core_ = nullptr;   //!< Owning engine (used for quit handling).
         const char* title_;            //!< Window title string.
-        int w_, h_;                    //!< Window width and height in pixels.
         GLFWwindow* win_ = nullptr;    //!< Raw GLFW window handle.
+
+        // Set defaults as fallback
+        int currentW_ = 1920, currentH_ = 1080;      //!< Current Window width and height in pixels.
+        int windowedW_ = 1920, windowedH_ = 1080;
+
+        bool isFocused_ = true; // Windows Focus Loss Event
+#ifdef BUILD_ENGINE
+        int fullW_ = 1920, fullH_ = 1080;
+        int x_{}, y_{};                    //!< Window top left x and y positions (0,0 will be top left of monitor)
+#endif
+        bool fullScreen_ = true;       //!< boolean to toggle between fullscreen and windowed mode. 
     };
 } // namespace Framework

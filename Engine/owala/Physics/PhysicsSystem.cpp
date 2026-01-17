@@ -21,13 +21,13 @@
 #include <vector>
 #include <set> // Include for duplicate pair checking
 #include "OwalaTime.h"
+#include "GameManager.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 namespace Framework {
-
-    PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
+    // ----- Layer Collision Functions ------- //
 
     void PhysicsSystem::InitializeCollisionMatrix() {
         // Resize the matrix to fit all layers
@@ -37,8 +37,6 @@ namespace Framework {
             row.set(); // Sets all bits to true
         }
     }
-
-    // ----- Layer Collision Functions ------- //
 
     bool PhysicsSystem::GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const {
         size_t l1 = static_cast<size_t>(layer1);
@@ -61,6 +59,8 @@ namespace Framework {
         }
     }
 
+
+
     void PhysicsSystem::Initialize() {
         InitializeCollisionMatrix();
         FileIOSystem::LoadWorldConfig(gravity_.y);
@@ -76,6 +76,15 @@ namespace Framework {
     // This accumulates delta time and runs the simulation
     // ----------------------------------------------------------------------------
     void PhysicsSystem::Update() {
+        static bool debugOnce = true;
+        if (debugOnce) {
+            debugOnce = false;
+            Logger::Get().Info(DebugType::PhysicsSystem)
+                << "Player-Platform collision enabled: "
+                << GetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform)
+                << std::endl;
+        }
+
         if (isPaused_ || stepModeActive_) {
             return; // If paused or in step mode, do not automatically advance time.
         }
@@ -94,7 +103,7 @@ namespace Framework {
     void PhysicsSystem::Step(float dt) {
         contacts_.clear();
 
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Reset player state (assume not grounded until a collision)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
@@ -137,15 +146,15 @@ namespace Framework {
     // Updates position and velocity using Semi-Implicit Euler integration.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::Integrate(float dt) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType)) {
+            if (entityMgr.HasComponent(entity, TransformType) && entityMgr.HasComponent(entity, VelocityType)) {
 				RigidBody& body = entityMgr.GetComponent<RigidBody>(entity);
-				Position& pos = entityMgr.GetComponent<Position>(entity);
+				//Position& pos = entityMgr.GetComponent<Position>(entity);
 				Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
 
                 vel.Vel += (body.Force * body.InverseMass) * dt;
@@ -153,14 +162,14 @@ namespace Framework {
         }
 
         //Update positions of everything
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(PositionType, VelocityType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TransformType, VelocityType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
 
-			Position& pos = entityMgr.GetComponent<Position>(entity);
+			Transform& transform = entityMgr.GetComponent<Transform>(entity);
 			Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
 
-			pos.Pos += vel.Vel *  dt;
+			transform.position += vel.Vel *  dt;
         }
     }
 
@@ -175,7 +184,7 @@ namespace Framework {
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         std::vector<Entity> constrainedEntities;
 
         auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
@@ -185,9 +194,9 @@ namespace Framework {
         constrainedEntities.insert(constrainedEntities.end(), trapPlatforms.begin(), trapPlatforms.end());
 
         for (const Entity& entity : constrainedEntities) {
-            if (entityMgr.HasComponent(entity, PositionType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
+            if (entityMgr.HasComponent(entity, TransformType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
 
-                Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+                Vector2D& pos = entityMgr.GetComponent<Transform>(entity).position;
                 Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
                 const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 
@@ -215,53 +224,75 @@ namespace Framework {
     }
 
     AABB_Bounds PhysicsSystem::GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees) {
-        if (std::abs(rotationDegrees) < 0.001f) {
-            return {
-                {center.x - halfSize.x, center.y - halfSize.y},
-                {center.x + halfSize.x, center.y + halfSize.y}
-            };
+        float snappedRotation = std::round(rotationDegrees / 90.0f) * 90.0f;
+        snappedRotation = std::fmod(snappedRotation + 360.0f, 360.0f);
+        bool swapDimensions = (std::abs(snappedRotation - 90.0f) < 1.0f) || (std::abs(snappedRotation - 270.0f) < 1.0f);
+        Vector2D newHalfSize = halfSize;
+        if (swapDimensions) {
+            newHalfSize = { halfSize.y, halfSize.x };
         }
-
-        float rotationRad = static_cast<float>(rotationDegrees * M_PI / 180.0f);
-        float cos_r = std::cos(rotationRad);
-        float sin_r = std::sin(rotationRad);
-
-        Vector2D corners[4] = {
-            {-halfSize.x, -halfSize.y},  
-            { halfSize.x, -halfSize.y},  
-            { halfSize.x,  halfSize.y},  
-            {-halfSize.x,  halfSize.y}   
+        return {
+            {center.x - newHalfSize.x, center.y - newHalfSize.y},
+            {center.x + newHalfSize.x, center.y + newHalfSize.y}
         };
+    }
 
-        // Rotate each corner and find the new min/max bounds
-        float minX = INFINITY, maxX = -INFINITY;
-        float minY = INFINITY, maxY = -INFINITY;
+    bool PhysicsSystem::CheckTriggerOverlap(Entity e1, Entity e2) {
 
-        for (int i = 0; i < 4; i++) {
-            // Rotate the corner
-            float rotatedX = corners[i].x * cos_r - corners[i].y * sin_r;
-            float rotatedY = corners[i].x * sin_r + corners[i].y * cos_r;
+        GameManager& gm = GameManager::GetInstance();
 
-            // Translate to world position
-            rotatedX += center.x;
-            rotatedY += center.y;
+     
+        // We use the pointer *gm.GetSystems().ecs_ to get the reference
+        if (!gm.GetSystems().ecs_) return false; // Safety check
+        EntityManager entityMgr(*gm.GetSystems().ecs_);
 
-            // Update bounds
-            minX = std::min(minX, rotatedX);
-            maxX = std::max(maxX, rotatedX);
-            minY = std::min(minY, rotatedY);
-            maxY = std::max(maxY, rotatedY);
+        // check for correct entity
+        if (!entityMgr.ValidateEntity(e1) || !entityMgr.ValidateEntity(e2)) return false;
+
+        //Safety Check for ONLY pos and AABB , not RIGIDBODY
+        if (!entityMgr.HasComponent(e1, Framework::TransformType) ||
+            !entityMgr.HasComponent(e1, Framework::AABBColliderType)) return false;
+        if (!entityMgr.HasComponent(e2, Framework::TransformType) ||
+            !entityMgr.HasComponent(e2, Framework::AABBColliderType)) return false;
+
+        // entity 1 data
+        const Vector2D& pos1 = entityMgr.GetComponent<Framework::Transform>(e1).position;
+        const Vector2D& halfSize1 = entityMgr.GetComponent<Framework::AABBCollider>(e1).HalfSize;
+        const AABBCollider& collider1 = entityMgr.GetComponent<Framework::AABBCollider>(e1);
+
+        Vector2D colliderPos1 = pos1 + collider1.Offset;
+        float rot1 = 0.0f;
+        if (entityMgr.HasComponent(e1, Framework::RotationFlagType)) {
+            rot1 = entityMgr.GetComponent<Framework::RotationFlag>(e1).currentRotation;
         }
 
-        return { {minX, minY}, {maxX, maxY} };
+        // entity 2 data
+        const Vector2D& pos2 = entityMgr.GetComponent<Framework::Transform>(e2).position;
+        const Vector2D& halfSize2 = entityMgr.GetComponent<Framework::AABBCollider>(e2).HalfSize;
+        const AABBCollider& collider2 = entityMgr.GetComponent<Framework::AABBCollider>(e2);
+        float rot2 = 0.0f;
+        Vector2D colliderPos2 = pos2 + collider2.Offset;
+        if (entityMgr.HasComponent(e2, Framework::RotationFlagType)) {
+            rot2 = entityMgr.GetComponent<Framework::RotationFlag>(e2).currentRotation;
+        }
+
+        //Calculate Bounds 
+        Framework::AABB_Bounds bounds1 = PhysicsSystem::GetRotatedAABB(colliderPos1, halfSize1, rot1);
+        Framework::AABB_Bounds bounds2 = PhysicsSystem::GetRotatedAABB(colliderPos2, halfSize2, rot2);
+
+        
+        bool collisionX = bounds1.max.x >= bounds2.min.x && bounds2.max.x >= bounds1.min.x;
+        bool collisionY = bounds1.max.y >= bounds2.min.y && bounds2.max.y >= bounds1.min.y;
+
+        return collisionX && collisionY;
     }
 
     // ----------------------------------------------------------------------------
     // Detects and resolves collisions using direct positional correction.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
-		EntityManager entityMgr(*ecs_);
-        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, PositionType);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+        std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, TransformType);
 
         // --- Check Entity Count OR DEBUG TOGGLE ---
         if (forceNarrowPhase_ || allColliders.size() > maxCollidableEntities) {
@@ -301,18 +332,24 @@ namespace Framework {
         for (std::vector<std::bitset<maxCollidableEntities>>::iterator::value_type& cell : grid_) {
             cell.reset();
         }
-
         for (int i = 0; i < colliderEntities_.size(); ++i) {
             Entity entity = colliderEntities_[i];
 
             // Get the AABB_Bounds for insertion
-            const Vector2D& pos = entityMgr.GetComponent<Position>(entity).Pos;
+            const Vector2D& pos = entityMgr.GetComponent<Transform>(entity).position;
             const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
-            float rotation = 0.0f;
+            const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+            Vector2D colliderPos = pos + collider.Offset;
+
+            float colliderRotation = 0.0f;
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
-                rotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+                colliderRotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
-            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, rotation);
+            if (entityMgr.HasComponent(entity, TransformType)) {
+                colliderRotation += entityMgr.GetComponent<Transform>(entity).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
+            }
+
+            AABB_Bounds bounds = GetRotatedAABB(colliderPos, halfSize, colliderRotation);
 
             GridInsert(i, bounds); // Insert the bitset index 'i'
         }
@@ -326,7 +363,7 @@ namespace Framework {
             Entity e1 = colliderEntities_[i];
 
             // Get the AABB for e1 to query the grid
-            const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
+            const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
             const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
             float rotation1 = 0.0f;
             if (entityMgr.HasComponent(e1, RotationFlagType)) {
@@ -338,9 +375,8 @@ namespace Framework {
             GridQuery(bounds1, potentialPartners);
 
             // potentialPartners has a '1' for the index of
-            // every entity that could be colliding with e1.
+            // every entity that could be colliding with e1
 
-            // Iterate only over potential partners
             for (int j = 0; j < colliderEntities_.size(); ++j) {
                 if (i == j) continue; // Don't check against self
 
@@ -351,10 +387,9 @@ namespace Framework {
                     Entity first = std::min(e1, e2);
                     Entity second = std::max(e1, e2);
 
-                    // .insert returns a pair. .second is true if insertion
-                    // was successful (i.e., the pair was new).
+
                     if (checkedPairs.insert({ first, second }).second) {
-                        // This is a new pair. Perform the narrow-phase check.
+                        // This is a new pair, use the narrow-phase check
                         CheckCollisionPair(first, second, dt);
                     }
                 }
@@ -368,16 +403,16 @@ namespace Framework {
     // Previous Implementation of resolve collisions
     // ----------------------------------------------------------------------------
     void PhysicsSystem::CheckCollisionPair(Entity e1, Entity e2, float dt) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Check entities have RigidBody component
         if (!entityMgr.HasComponent(e1, RigidBodyType) || !entityMgr.HasComponent(e2, RigidBodyType)) {
-            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing RigidBody component. Unable to CheckCollisionPair" << std::endl;
+            //Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing RigidBody component. Unable to CheckCollisionPair" << std::endl;
             return;
         }
         // Check entities have Position component
-        if (!entityMgr.HasComponent(e1, PositionType) || !entityMgr.HasComponent(e2, PositionType)) {
-            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing Position component. Unable to CheckCollisionPair" << std::endl;
+        if (!entityMgr.HasComponent(e1, TransformType) || !entityMgr.HasComponent(e2, TransformType)) {
+            Logger::Get().Error(DebugType::PhysicsSystem) << "Entities are missing Transform component. Unable to CheckCollisionPair" << std::endl;
             return;
         }
         // Check entities have AABBCollider component
@@ -405,25 +440,49 @@ namespace Framework {
             return; // Skip static-vs-static
         }
 
-        // --- Get rotation for each entity ---
+        // --- Get rotation for e1 ---
         float rotation1 = 0.0f;
         if (entityMgr.HasComponent(e1, RotationFlagType)) {
             rotation1 = entityMgr.GetComponent<RotationFlag>(e1).currentRotation;
         }
+        if (entityMgr.HasComponent(e1, TransformType)) {
+            rotation1 += entityMgr.GetComponent<Transform>(e1).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
+        }
 
+        // --- Get rotation for e2 ---
         float rotation2 = 0.0f;
         if (entityMgr.HasComponent(e2, RotationFlagType)) {
             rotation2 = entityMgr.GetComponent<RotationFlag>(e2).currentRotation;
         }
+        if (entityMgr.HasComponent(e2, TransformType)) {
+            rotation2 += entityMgr.GetComponent<Transform>(e2).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
+        }
+
 
         // --- Convert to min/max format for the collision functions ---
-        const Vector2D& pos1 = entityMgr.GetComponent<Position>(e1).Pos;
-        const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
-        AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+        const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
+        const AABBCollider& collider1 = entityMgr.GetComponent<AABBCollider>(e1);
+        Vector2D rotatedOffset1 = collider1.Offset;
+        if (std::abs(rotation1) > 0.01f) {
+            float rotRad = rotation1 * (static_cast<float>(M_PI) / 180.0f);
+            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+            rotatedOffset1 = rotMat * collider1.Offset;
+        }
+        Vector2D colliderPos1 = pos1 + rotatedOffset1;
+        AABB_Bounds bounds1 = GetRotatedAABB(colliderPos1, collider1.HalfSize, rotation1);
 
-        const Vector2D& pos2 = entityMgr.GetComponent<Position>(e2).Pos;
-        const Vector2D& halfSize2 = entityMgr.GetComponent<AABBCollider>(e2).HalfSize;
-        AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
+        const Vector2D& pos2 = entityMgr.GetComponent<Transform>(e2).position;
+        const AABBCollider& collider2 = entityMgr.GetComponent<AABBCollider>(e2);
+        Vector2D rotatedOffset2 = collider2.Offset;
+        if (std::abs(rotation2) > 0.01f) {
+            float rotRad = rotation2 * (static_cast<float>(M_PI) / 180.0f);
+            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+            rotatedOffset2 = rotMat * collider2.Offset;
+        }
+        Vector2D colliderPos2 = pos2 + rotatedOffset2;
+        AABB_Bounds bounds2 = GetRotatedAABB(colliderPos2, collider2.HalfSize, rotation2);
+
+
 
         // --- Determine Collision State ---
         Contact contact = { e1, e2, CollisionState::NoCollision };
@@ -450,7 +509,7 @@ namespace Framework {
                 return;
             }
 
-            Vector2D& dynPos = entityMgr.GetComponent<Position>(dynE).Pos;
+            Vector2D& dynPos = entityMgr.GetComponent<Transform>(dynE).position;
             const auto& dynBounds = (dynE == e1) ? bounds1 : bounds2;
             const auto& staticBounds = (dynE == e1) ? bounds2 : bounds1;
 

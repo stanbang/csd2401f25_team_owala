@@ -141,7 +141,7 @@ namespace Framework {
 
                 if (KeyPressed(Key::Z)) cameraSystem->SetZoom(activeCam, cam.zoom * 0.8f);
                 if (KeyPressed(Key::X)) cameraSystem->SetZoom(activeCam, cam.zoom * 1.2f);
-                if (KeyPressed(Key::R)) cameraSystem->SetZoom(activeCam, 1.0f);
+                if (KeyPressed(Key::R)) cameraSystem->SetZoom(activeCam, 540.0f);
             }
         }
 
@@ -171,6 +171,24 @@ namespace Framework {
             }
         }
 
+#ifdef BUILD_ENGINE
+        // Toggle between full screen and windowed mode
+        if (KeyPressed(Key::F11)) {
+            winSys_->ToggleFullScreen();
+        }
+#endif
+
+    }
+
+    void InputSystem::ResetInputState() {
+        // Clear current and previous states to prevent stuck keys
+        std::memset(keyNow_, 0, sizeof(keyNow_));
+        std::memset(keyPrev_, 0, sizeof(keyPrev_));
+        std::memset(btnNow_, 0, sizeof(btnNow_));
+        std::memset(btnPrev_, 0, sizeof(btnPrev_));
+
+        // Unlock cursor so user can click other windows
+        SetCursorLocked(false);
     }
 
     // ---------------------- integer queries ----------------------

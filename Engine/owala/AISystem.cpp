@@ -20,6 +20,8 @@
 #include "AIStates.h"
 #include "Logger.h"
 #include "OwalaTime.h"
+#include "GameManager.h"
+
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
@@ -76,9 +78,26 @@ namespace Framework {
         }
 
         // Rebuild grid periodically
+        if (!entityMgr.HasComponent(player, TransformType)) {
+            Logger::Get().Error(DebugType::AISystem) << "Player doesn't have Transform component!" << std::endl;
+            return;
+        }
+
+        Vector2D playerPos = entityMgr.GetComponent<Transform>(player).position;
+        
+
+        // Get players collision halfsize
+        Vector2D playerHalfSize = Vector2D::Zero();
+        if (entityMgr.HasComponent(player, TextureComponentType)) { // Get visual size
+            playerHalfSize = entityMgr.GetComponent<TextureComponent>(player).HalfSize;
+        }
+
+
+
+        // Rebuild grid periodically in case platforms move
         gridRebuildTimer_ += Framework::Time::DeltaTime();
         if (gridRebuildTimer_ >= gridRebuildInterval_) {
-            navGrid_.BuildGrid(*ecs_);
+            navGrid_.BuildGrid();
             gridRebuildTimer_ = 0.0f;
         }
 
@@ -117,6 +136,8 @@ namespace Framework {
             fsmComp.stateMachine.Update(entity, *ecs_, Framework::Time::DeltaTime());
         }
     }
+
+                
 
 #ifdef BUILD_EDITOR
     // Debug drawing implementation stays the same but references FSMComponent

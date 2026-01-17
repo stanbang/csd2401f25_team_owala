@@ -51,7 +51,7 @@ namespace Framework {
          * @brief Constructs the PhysicsSystem.
          * @param storage A reference to the central EntityStorage.
          */
-        explicit PhysicsSystem(EntityStorage& storage);
+        PhysicsSystem() = default;
 
 
         /**
@@ -75,12 +75,22 @@ namespace Framework {
         Vector2D gravity_ = { 0.0f, -5297.4f }; // Public for easy access/modification (e.g., world rotation)
         static AABB_Bounds GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees);
 
+
+        // Checks for overlapping collision triggers (wincons)
+        static bool CheckTriggerOverlap(Entity e1, Entity e2);
+
         // --- Layer-Based Collision API ---
 
-        //Get the collision state for the Editor
+       /**
+        * @brief Gets layer collision for the Editor
+        * @param layer1 The first collision layer.
+        * @param layer2 The second collision layer.
+        * 
+        */
         bool GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const;
 
 
+        // Returns layer count of collision layers
         static size_t GetLayerCount() { return static_cast<size_t>(CollisionLayer::Count); }
 
         /**
@@ -185,7 +195,6 @@ namespace Framework {
         void EnforceViewportBounds();
 
         // --- Member Variables ---
-        EntityStorage* ecs_;
         float timeAccumulator_ = 0.0f; // Used to implement a fixed timestep loop.
         bool isPaused_ = false;
         bool stepModeActive_ = false;
@@ -213,7 +222,7 @@ namespace Framework {
         // The grid using vector of bitsets. One bitset per cell
         std::vector<std::bitset<maxCollidableEntities>> grid_;
 
-        // Mapping from Entity ID -> bitset index (0 to MaxCollidableEntities-1)
+        // Mapping from Entity ID to bitset index (0 to MaxCollidableEntities-1)
         std::unordered_map<Entity, int> entityToColliderIndex_;
         // Mapping from bitset index -> Entity ID
         std::vector<Entity> colliderEntities_;

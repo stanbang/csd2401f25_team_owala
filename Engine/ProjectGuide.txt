@@ -35,10 +35,3 @@ RUNNING THE PROJECT IN EDITOR / ENGINE MODE
 --------------------------------------------------
 1. Right click "owala_Editor" project > Set as Startup Project   // To start in Editor mode
 2. Right click "owala_Engine" project > Set as Startup Project   // To start in Engine mode
-
---------------------------------------------------
-IMGUI
---------------------------------------------------
-1. IMGUI is visible/on by default.
-2. If IMGUI is closed/collapsed, re-enable it by going 
-   to "Engine/Debug/imgui.ini"(Can be "Debug" or "Release" based on where you build) and setting all "Collapsed" fields to 0.

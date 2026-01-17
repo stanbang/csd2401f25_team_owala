@@ -39,7 +39,7 @@ FreeTypeManager::~FreeTypeManager() {
 }
 
 // Font Class
-Font::Font() : m_textureAtlas(0), m_characters(), m_face() {}
+Font::Font() : m_textureAtlas(0), m_characters(), m_face(), m_rawLineHeight(0.f), m_rawAscent(0.f), m_size(0){}
 
 Font::~Font() {
     if (m_textureAtlas) {
@@ -62,6 +62,8 @@ bool Font::Load(FT_Library library, const std::string& fontPath, unsigned int si
         m_face = nullptr;
         return false;
     }
+
+    m_size = size;
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -130,6 +132,12 @@ bool Font::Load(FT_Library library, const std::string& fontPath, unsigned int si
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    // store raw line height
+    FT_Size_Metrics& metrics = m_face->size->metrics;
+    m_rawLineHeight = static_cast<float>(metrics.height >> 6);
+    m_rawAscent = static_cast<float>(metrics.ascender >> 6);
+
     return true;
 }
 
@@ -155,3 +163,14 @@ float Font::GetStringWidth(const std::string& text, float scale) const {
     return width;
 }
 
+float Font::GetLineHeight(float scale) const {
+    return m_rawLineHeight * scale;
+}
+
+unsigned int Font::GetPixelSize() const {
+    return m_size;
+}
+
+float Font::GetAscent(float scale) const {
+    return m_rawAscent * scale;
+}

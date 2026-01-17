@@ -1,0 +1,128 @@
+{
+	"animations": [
+		{
+			"texture_keys": [
+				"SB_Eli_Idle_Spritesheet_1.png",
+				"SB_Eli_Idle_Spritesheet_2.png"
+			],
+			"animation_path": "Data/AnimationData/playerIdleAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"Eli_Walk_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/playerRunningAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"player_Jump_Anim.png"
+			],
+			"animation_path": "Data/AnimationData/playerJumpingAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"Eli_Jump_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/playerJumpingAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"Eli_Falling_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/playerFallingAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_LightOrb.png"
+			],
+			"animation_path": "Data/AnimationData/lightOrbAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_PlayerLand_VFX_Spritesheet_1.png",
+				"SB_PlayerLand_VFX_Spritesheet_2.png"
+			],
+			"animation_path": "Data/AnimationData/playerLandEffect.json"
+		},
+		{
+			"texture_keys": [
+				"SB_FallingDust_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/fallingDustAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Eli_Death_Spritesheet_1.png",
+				"SB_Eli_Death_Spritesheet_2.png",
+				"SB_Eli_Death_Spritesheet_3.png",
+				"SB_Eli_Death_Spritesheet_4.png"
+			],
+			"animation_path": "Data/AnimationData/playerDeathAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_BirdEnemy_SleepIdle_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/birdIdleAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_BirdEnemy_Fly_Spritesheet_1.png",
+				"SB_BirdEnemy_Fly_Spritesheet_2.png"
+			],
+			"animation_path": "Data/AnimationData/birdFlyingAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_BirdEnemy_DiveAttack_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/birdDivingAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Door_Spritesheet.png"
+			],
+			"animation_path": "Data/AnimationData/portalAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_HoverButton_SpriteSheet.png"
+			],
+			"animation_path": "Data/AnimationData/buttonHoverAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Curtain_Open_Spritesheet_01.png",
+				"SB_Curtain_Open_Spritesheet_02.png",
+				"SB_Curtain_Open_Spritesheet_03.png",
+				"SB_Curtain_Open_Spritesheet_04.png",
+				"SB_Curtain_Open_Spritesheet_05.png",
+				"SB_Curtain_Open_Spritesheet_06.png",
+				"SB_Curtain_Open_Spritesheet_07.png",
+				"SB_Curtain_Open_Spritesheet_08.png",
+				"SB_Curtain_Open_Spritesheet_09.png"
+			],
+			"animation_path": "Data/AnimationData/curtainOpen.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Curtain_Close_Spritesheet_01.png",
+				"SB_Curtain_Close_Spritesheet_02.png",
+				"SB_Curtain_Close_Spritesheet_03.png",
+				"SB_Curtain_Close_Spritesheet_04.png",
+				"SB_Curtain_Close_Spritesheet_05.png",
+				"SB_Curtain_Close_Spritesheet_06.png",
+				"SB_Curtain_Close_Spritesheet_07.png",
+				"SB_Curtain_Close_Spritesheet_08.png",
+				"SB_Curtain_Close_Spritesheet_09.png",
+				"SB_Curtain_Close_Spritesheet_10.png",
+				"SB_Curtain_Close_Spritesheet_11.png",
+				"SB_Curtain_Close_Spritesheet_12.png",
+				"SB_Curtain_Close_Spritesheet_13.png",
+				"SB_Curtain_Close_Spritesheet_14.png",
+				"SB_Curtain_Close_Spritesheet_15.png"
+			],
+			"animation_path": "Data/AnimationData/curtainClose.json"
+		}
+	]
+}

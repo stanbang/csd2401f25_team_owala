@@ -28,6 +28,7 @@
 #include "CameraSystem.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
+#include "GameManager.h"
 #include <cmath>
 #include <stdexcept>
 #include "OwalaTime.h"
@@ -39,9 +40,9 @@ namespace Framework {
      * \brief Constructs a CameraSystem and binds it to an ECS storage.
      * \param ecs Reference to the ECS storage used for entity-component management.
      */
-    CameraSystem::CameraSystem(EntityStorage& ecs) : ecs_(ecs) {
-        // Constructor
-    }
+    //CameraSystem::CameraSystem(EntityStorage& ecs) : ecs_(ecs) {
+    //    // Constructor
+    //}
 
     /**
      * \brief Updates all camera entities.
@@ -51,17 +52,22 @@ namespace Framework {
      * the target’s position using an exponential decay function.
      */
     void CameraSystem::Update() {
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
+
+            // Skip cameras that are controlled by the editor
+            if (camera.isEditorControlled) {
+                continue;
+            }
 
             // Keep square coordinates — no aspect ratio scaling
             camera.size.x = 2.0f * camera.zoom * camera.aspectRatio;
             camera.size.y = 2.0f * camera.zoom;
 
-            if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, PositionType)) {
-                const auto& targetPos = entityMgr.GetComponent<Position>(camera.targetEntity).Pos;
+            if (camera.targetEntity != 0 && entityMgr.HasComponent(camera.targetEntity, TransformType)) {
+                const Vector2D& targetPos = entityMgr.GetComponent<Transform>(camera.targetEntity).position;
 
                 if (camera.followSpeed <= 0.0f) {
                     camera.position = targetPos;
@@ -73,12 +79,11 @@ namespace Framework {
                 }
             }
 
-            // Print camera position
-			//Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
-			//	<< " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
+            // Print camera position (optional debug)
+            // Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
+            //     << " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
         }
     }
-
     /**
      * \brief Converts a world-space position to normalized screen-space coordinates.
      * \param worldPos Position in world coordinates.
@@ -136,7 +141,7 @@ namespace Framework {
      * \param cameraEntity The entity to activate as the current camera.
      */
     void CameraSystem::SetActiveCamera(Entity cameraEntity) {
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (activeCamera_ != 0 && entityMgr.HasComponent(activeCamera_, CameraType)) {
             entityMgr.GetComponent<Camera>(activeCamera_).isActive = false;
@@ -160,7 +165,7 @@ namespace Framework {
      * \param top Output reference for top bound.
      */
     void CameraSystem::GetViewBounds(Entity camera, float& left, float& right, float& bottom, float& top) {
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (entityMgr.HasComponent(camera, CameraType)) {
             Camera& cam = entityMgr.GetComponent<Camera>(camera);
@@ -183,7 +188,7 @@ namespace Framework {
      * \return The newly created camera entity.
      */
     Entity CameraSystem::CreateCamera(const Vector2D& position, Entity targetEntity, bool isActive) {
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         Entity cameraEntity = entityMgr.CreateEntity();
 
         Camera camera;
@@ -239,8 +244,8 @@ namespace Framework {
      * \return Reference to the camera component.
      * \throws std::runtime_error if the camera does not exist.
      */
-    Camera& CameraSystem::GetCamera(Entity cameraEntity) {
-        EntityManager entityMgr(ecs_);
+    Camera& CameraSystem::GetCamera(Entity cameraEntity) const {
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (cameraEntity == 0) {
             cameraEntity = activeCamera_;
@@ -259,7 +264,7 @@ namespace Framework {
      * \return World-space position of the camera.
      */
     Vector2D CameraSystem::GetCameraPosition(Entity cameraEntity) const {
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         if (cameraEntity == 0)
             cameraEntity = activeCamera_;
         if (cameraEntity == 0 || !entityMgr.HasComponent(cameraEntity, CameraType))
@@ -276,7 +281,7 @@ namespace Framework {
         if (screenHeight == 0) return;
         float aspect = screenWidth / screenHeight;
 
-        EntityManager entityMgr(ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
             Camera& cam = entityMgr.GetComponent<Camera>(e);
             cam.aspectRatio = aspect;

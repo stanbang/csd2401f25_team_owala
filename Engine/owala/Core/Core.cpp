@@ -28,8 +28,13 @@
 #include "AudioSystem.h"
 #include "ResourceManager.h"
 #include "GameManager.h"
+#include "ParticleEffectManager.h"
 #include "Graphics.h"
 #include "OwalaTime.h"
+#include "GLFW/glfw3.h"
+#include "PlatformBehaviorSystem.h" 
+#include "VFXSystem.h"
+
 #ifdef BUILD_EDITOR
 #include "Editor.h"
 #endif
@@ -49,8 +54,18 @@ namespace Framework {
         if (info == typeid(Framework::AudioSystem))     return "Audio System";
         if (info == typeid(Framework::ResourceManager)) return "Resource Manager";
         if (info == typeid(Framework::GameManager))     return "Game Manager";
+        if (info == typeid(Framework::FileIOSystem))    return "File IO";
         if (info == typeid(Framework::Graphics))        return "Graphics";
-        if (info == typeid(Framework::AISystem))         return "AI System";
+        if (info == typeid(Framework::AISystem))        return "AI System";
+        if (info == typeid(Framework::AnimationSystem)) return "Animation System";
+        if (info == typeid(Framework::CameraSystem))    return "Camera System";
+        if (info == typeid(Framework::GuiSystem))       return "GUI";
+        if (info == typeid(Framework::LevelResetSystem))       return "Level Reset";
+        if (info == typeid(Framework::SpriteRenderSystem))       return "Sprite Render System";
+        if (info == typeid(Framework::TextRenderSystem))       return "Text Render";
+        if (info == typeid(Framework::PlatformBehaviorSystem)) return "Platform Behavior";
+        if (info == typeid(Framework::VFXSystem))              return "VFX System";
+
 	#ifdef BUILD_EDITOR
         if (info == typeid(Editor::Editor))             return "Editor";
     #endif
@@ -74,6 +89,7 @@ namespace Framework {
     void CoreEngine::Initialize() {
         for (auto* s : systems_)
             if (s) s->Initialize();
+        ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
         initialized_ = true;
     }
 
@@ -89,6 +105,62 @@ namespace Framework {
         systemTimes_.resize(systems_.size());
 
         while (running_) {
+            WindowsSystem* winSys = nullptr;
+            InputSystem* inputSys = nullptr;
+            AudioSystem* audioSys = nullptr;
+            PhysicsSystem* physSys = nullptr;
+
+            // Quick lookup for affected systems
+            for (auto* s : systems_) {
+                if (auto* w = dynamic_cast<WindowsSystem*>(s)) winSys = w;
+                if (auto* i = dynamic_cast<InputSystem*>(s)) inputSys = i;
+                if (auto* a = dynamic_cast<AudioSystem*>(s)) audioSys = a;
+                if (auto* p = dynamic_cast<PhysicsSystem*>(s)) physSys = p;
+            }
+
+            bool isFocused = true;
+            if (winSys) isFocused = winSys->IsFocused();
+
+            //HANDLE INTERRUPTION LOGIC
+            if (!isFocused) {
+                // --- WE ARE INTERRUPTED (MINIMIZED / ALT-TABBED) ---
+
+                if (!wasPaused_) {
+                    // Just lost focus: Execute "Going to Sleep" logic
+                    if (inputSys) inputSys->ResetInputState();
+                    if (audioSys) audioSys->SuspendAudio();
+                    if (physSys) physSys->SetPaused(true);
+
+                    // Optional: Minimize frame rate to save battery while in background
+                    // but keep the loop running slowly to catch the "resume" event.
+                    wasPaused_ = true;
+                }
+
+                glfwWaitEvents(); // Efficiently sleep until OS sends an event (like clicking back)
+
+                // Update ONLY WindowsSystem to keep polling for the focus-regain event
+                if (winSys) winSys->Update();
+
+                continue; // SKIP the rest of the frame 
+            }
+            else {
+                // --- WE ARE ACTIVE ---
+
+                if (wasPaused_) {
+                    // wake up logic
+                    if (audioSys) audioSys->ResumeAudio();
+                    if (physSys) physSys->SetPaused(false);
+
+           
+
+                    // Reset delta time so we don't have a huge jump after sleeping
+                    Framework::Time::BeginFrame();
+                    prev = clock::now();
+
+                    wasPaused_ = false;
+                }
+            }
+
             // --- Time step calculation ---
             auto now = clock::now();
             Framework::Time::BeginFrame();

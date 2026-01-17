@@ -35,6 +35,7 @@
 #include "Logger.h"
 #include "GameManager.h"
 #include "SpriteRenderSystem.h"
+#include "TextRenderSystem.h"
 #include "AnimationSystem.h"
 #include "GLFW/glfw3.h"
 #include "CameraSystem.h"
@@ -45,35 +46,44 @@
 #ifdef BUILD_EDITOR
 // Imgui Editor
 #include "Editor.h"
+#include "Gizmo.h"
 #endif
+
+// Only include Windows.h and console handler for Editor builds
+#ifdef BUILD_EDITOR
+#include <Windows.h>
 
 // Global pointer to WindowsSystem for console handler
 Framework::WindowsSystem* g_win = nullptr;
 
-// Console control handler to catch close events from the console window(aka pressing the 'X' button)
+// Console control handler to catch close events from the console window
 BOOL WINAPI ConsoleHandler(DWORD signal) {
     if (signal == CTRL_CLOSE_EVENT || signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT) {
         std::cout << "[ConsoleHandler] Console is closing. Triggering clean shutdown..." << std::endl;
         if (g_win) {
-            glfwSetWindowShouldClose(g_win->window(), GLFW_TRUE); // triggers game loop exit
+            glfwSetWindowShouldClose(g_win->window(), GLFW_TRUE);
         }
         return TRUE;
     }
     return FALSE;
 }
+#endif
 
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Set the console control handler
+
+    // Only set up console handler for Editor builds
+#ifdef BUILD_EDITOR
+    SetConsoleCtrlHandler(ConsoleHandler, TRUE);
+#endif
 
     using namespace Framework;
 
-    Logger::InitSymbols(); // need this to resolve the symbols in stack trace on Windows
-    backward::SignalHandling sh; // setup global crash handler for segfaults, access violations, etc.
+    Logger::InitSymbols();
+    backward::SignalHandling sh;
 
     CoreEngine engine;
-
-    engine.SetMode(EngineMode::Play);  // Start directly in game mode
+    engine.SetMode(EngineMode::Play);
 
     try {
 	Vector2D windowConfig = FileIOSystem::LoadWindowConfig();
@@ -100,38 +110,77 @@ int main() {
     SpriteRenderSystem* renderer = new SpriteRenderSystem(*ecs, *gfx, *rcm, /*drawColliders*/false);
     LevelResetSystem* levelResetter = new LevelResetSystem(*ecs, *transformation);
 	gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *camera, *aiSystem, *gui, *levelResetter,*transformation); // Register all core systems to the GameManager
+        WindowConfig windowConfig = FileIOSystem::LoadWindowConfig();
+        WindowsSystem* win = new WindowsSystem(engine, "Owala Engine",
+            (int)windowConfig.windowSize.x,
+            (int)windowConfig.windowSize.y,
+            windowConfig.fullScreen);
 
-	// Editor Registration
-    #ifdef BUILD_EDITOR
-	Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
-	gm->RegisterEditor(*editor); // Register the ImGui Editor to the GameManager
-    #endif
+#ifdef BUILD_EDITOR
+        g_win = win; // Only needed for editor console handler
+#endif
 
-    //    This is the core logic loop: Input -> Physics -> Gameplay -> Rendering.
-    engine.AddSystem(win);                 // creates GLFW window + context
-    engine.AddSystem(input);               // MUST come before GameSystem
-    engine.AddSystem(transformation);
-    engine.AddSystem(player);              // PlayerSystem processes input after InputSystem.
-    engine.AddSystem(phx);                 // Physics comes after input
-    engine.AddSystem(audio);               //audio 
-	engine.AddSystem(rcm);                // Resource manager MUST COME AFTER audio
-    engine.AddSystem(platform);
-    engine.AddSystem(aiSystem); 
-	engine.AddSystem(vfx);                // VFX System to handle particle effects
-	engine.AddSystem(gm);                  // GameManager for executing Game Logic
-    engine.AddSystem(camera);              //ADD CAMERA SYSTEM TO ENGINE (before animation)
-    engine.AddSystem(animation);          // AnimationSystem updates UVs after Physics and before rendering
-    engine.AddSystem(gui);
-    #ifdef BUILD_EDITOR
-    engine.AddSystem(editor);              // Editor
-    #endif
-    engine.AddSystem(gfx);                 // swaps buffers last
+        GameManager* gm = &GameManager::GetInstance();
+        gm->SetEngine(engine);
+        InputSystem* input = new InputSystem(*win);
+        std::unique_ptr<Framework::EntityStorage> ecs = std::make_unique<Framework::EntityStorage>();
+        PhysicsSystem* phx = new PhysicsSystem();
+        TransformationSystem* transformation = new TransformationSystem();
+        PlatformBehaviorSystem* platform = new PlatformBehaviorSystem();
+        PlayerSystem* player = new PlayerSystem();
+        AudioSystem* audio = new AudioSystem();
+        Graphics* gfx = new Graphics();
+        AISystem* aiSystem = new AISystem();
+        ResourceManager* rcm = new ResourceManager();
+        //audio->SetResourceManager(*rcm);
+        AnimationSystem* animation = new AnimationSystem();
+        GuiSystem* gui = new GuiSystem(engine);
+        CameraSystem* camera = new CameraSystem();
+        VFXSystem* vfx = new VFXSystem();
+        SpriteRenderSystem* renderer = new SpriteRenderSystem(false);
+        TextRenderSystem* textRenderer = new TextRenderSystem();
+        LevelResetSystem* levelResetter = new LevelResetSystem();
+        gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter, *transformation, *animation);
 
-    engine.Initialize();
-    engine.GameLoop();
-    engine.DestroySystems();
-	SceneManager::DestroyInstance(); // Destroys the SceneManager instance at the end of the program.
-    return 0;
+        // Lazy create SceneManager.
+        SceneManager::GetInstance();
+
+        // Editor Registration
+#ifdef BUILD_EDITOR
+        Editor::Editor* editor = new Editor::Editor(engine, *gm, *rcm);
+        Editor::GizmoSystem* gizmo = new Editor::GizmoSystem(*editor);
+        editor->SetGizmoSystem(gizmo);
+        gm->RegisterEditor(*editor);
+#endif
+
+        engine.AddSystem(win);
+        engine.AddSystem(input);
+        engine.AddSystem(transformation);
+        engine.AddSystem(player);
+        engine.AddSystem(phx);
+        engine.AddSystem(audio);
+        engine.AddSystem(rcm);
+        engine.AddSystem(platform);
+        engine.AddSystem(aiSystem);
+        engine.AddSystem(vfx);
+        engine.AddSystem(gm);
+        engine.AddSystem(camera);
+        engine.AddSystem(animation);
+        engine.AddSystem(gui);
+#ifdef BUILD_EDITOR
+        engine.AddSystem(editor);
+#endif
+        engine.AddSystem(gfx);
+
+        engine.Initialize();
+        engine.GameLoop();
+        engine.DestroySystems();
+        SceneManager::DestroyInstance();
+#ifdef BUILD_EDITOR
+        delete gizmo;
+        gizmo = nullptr;
+#endif
+        return 0;
     }
     catch (const GameException& e) {
         Logger::Get().LogCrash(e.type, e.what(), e.stack_trace);

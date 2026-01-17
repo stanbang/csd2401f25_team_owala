@@ -2,13 +2,13 @@
 * \file   Editor.h
 *
 * \primary_author
-*		Jason Lou (19%)
+*		Jason Lou (16.66%)
 * \secondary_author
-*		Lur Pei Hao Stanley (19%)
-*		Sitara Anil (19%)
-*		Ng Jordain Ying Zhe (19%)
-*		Yar Xuan (19%)
-*		Ng Jing Wen (5%)
+*		Lur Pei Hao Stanley (16.66%)
+*		Sitara Anil (16.66%)
+*		Ng Jordain Ying Zhe (16.66%)
+*		Yar Xuan (16.66%)
+*		Ng Jing Wen (16.66%)
 *
 *
 * \brief	Declares the Editor system for in-game level editing and
@@ -31,9 +31,11 @@
 #include "SceneManager.h"
 #include "PhysicsSystem.h"
 #include "TransformationSystem.h"
+#include "LayerManager.h"
 
 // Editor Modules
 #include "History.h"
+#include "Gizmo.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -55,6 +57,9 @@ namespace Framework {
 }
 
 namespace Editor {
+	// Helper function to convert component type to string
+	std::string ComponentToString(Framework::ComponentType componentType);
+
 
 	struct EditorSettings {
 		bool showDebugInfo = true;
@@ -65,7 +70,8 @@ namespace Editor {
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
 		bool showPrefabEditor = false;
-		bool showLayerManager = true; 
+		bool showLayerManager = true;
+		bool showAnimationEditor = false;
 	};
 
 	// enum to represent the different types of objects we can create
@@ -74,7 +80,6 @@ namespace Editor {
 		Eraser,
 		Platform,
 		TrapPlatform,
-		ScalingPlatform,
 		Tile
 	};
 
@@ -88,9 +93,26 @@ namespace Editor {
 		ImVec2 uv1{ 1.0f, 1.0f };
 	};
 
+	// Helper Struct for Tile Data
 	struct TileData {
 		std::string name;
 		std::string textureID;
+	};
+
+	// Struct for handling Editing Session of the Inspector Window for the HistoryManager.
+	struct EditSession {
+		bool active = false;
+		bool wasItemActive = false;
+		Entity entityInEdit = 0;
+		Framework::ComponentType compInEdit = Framework::ComponentType::MAX_COMPONENTS;
+		std::string beforeJSON;
+
+		// Marks the beginning of the editing session for a component, saving it's initial state.
+		void Begin(Entity entity, Framework::ComponentType compType);
+		// Marks the end of the editing session for a component, saving it's post modification state.
+		void End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManagerRef);
+		// Clears Session Data.
+		void Flush();
 	};
 
 	class Editor : public Framework::ISystem {
@@ -105,6 +127,7 @@ namespace Editor {
 
 		// --- Codependent Systems ---
 		HistoryManager historyManager_; // HistoryManager for Undo/Redo System.
+		GizmoSystem* gizmoSystem_ = nullptr;
 
 		// --- Internal Properties ---
 		Entity editorCamera_ = 0;
@@ -124,6 +147,7 @@ namespace Editor {
 		std::vector<Framework::SystemTime> profilerDisplayData_;
 
 		// Entity Inspector
+		EditSession editSession;
 		int selectedEntityIndex = 0;
 		std::vector<std::string> componentNames;
 		std::vector<const char*> componentItems;
@@ -140,7 +164,7 @@ namespace Editor {
 		// --- Tilemap Editor State ---
 		bool isTileEditorActive_ = false; //  Flag to control tile editor mode
 		bool showGrid_ = false;
-		float baseGridCellSize_ = 0.1f;   // NEW: World-space size of a cell at zoom 1.0
+		float baseGridCellSize_ = 100.f;   // NEW: World-space size of a cell at zoom 1.0
 
 
 		//Drag and Drop State
@@ -150,6 +174,12 @@ namespace Editor {
 
 		// Tracks whether move game object mode is activated. Toggled by Toggle Move button on the toolbar, for in world game obj drag and drop
 		bool isDraggingGameObj_ = false; 
+
+		// Brush mode for continous placement
+		bool isBrushMode_ = false;
+		DraggablePrefabInfo brushPayload_; // Stores the item selected for brushing
+		Vector2D brushPreviewPos_;         // World position for brush preview
+		Vector2D lastPlacedPos_ = { -99999.0f, -99999.0f }; // To prevent stacking duplicates on same frame
 
 		//Palette Info storage (prefabs)
 		bool palettePrepared_ = false; // flag for storing palette items
@@ -161,11 +191,22 @@ namespace Editor {
 		std::vector<DraggablePrefabInfo> tilePaletteItems_;
 		std::vector<TileData> tileDataList_;
 
+		//---layer manager variables ----//
+		Framework::LayerManager layerManager_;
+
+
+		// Layer editor state
+		bool showLayerConfigWindow_ = false;
+		int selectedRenderLayerIdx_ = -1;
+		int selectedCollisionLayerIdx_ = -1;
+		char newRenderLayerName_[128] = "New Layer";
+		int newRenderLayerOrder_ = 0;
+		char newCollisionLayerName_[128] = "New Layer";
+
 		// Game viewport tracking for proper mouse coordinate transformation
 		ImVec2 gameViewportPos_ = { 0, 0 };    // Top-left position of game viewport in screen space
 		ImVec2 gameViewportSize_ = { 0, 0 };   // Size of game viewport
 		bool isMouseOverGameViewport_ = false;
-		const float gizmoCircleRad = 8.0f;
 		//void DrawEditorGridGfx();
 
 		// Entity factory System members
@@ -191,6 +232,7 @@ namespace Editor {
 		CameraState currentEditorCameraState_;
 		bool editorCameraNeedsReset_ = false;
 
+		// Camera state functions
 		void ResetEditorCamera();
 		void SaveEditorCameraState();
 		void RestoreEditorCameraState();
@@ -200,42 +242,26 @@ namespace Editor {
 		// Internal Checkers
 		void SanityCheck();
 
-		/**
-		 * @brief Converts the current mouse position from screen coordinates to world coordinates.
-		 * @return A Vector2D representing the mouse's position in the game world's normalized device coordinates (-1 to 1).
-		 */
-		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
-
-		/**
-		 * @brief Handles placing the dragged prefab when the mouse is released.
-		 */
+		// Handles placing the dragged prefab when the mouse is released.
 		void HandleDragDropPlacement(); // Renamed from HandleTilePlacement	
 
+		//  Renders a preview of the tile being dragged.
+		void DrawDragDropPreview(ImDrawList* drawList);
 
-		/**
-		* @brief Renders a preview of the tile being dragged.
-		*/
-		void DrawDragDropPreview(ImDrawList* drawList); //  Function to draw preview
-
-		/**
-		 * @brief Handles logic for erasing a tile from the grid.
-		 */
+		// Handles logic for erasing a tile from the grid.
 		void HandleTileErasing();
 
-
-		/**
-		 * @brief Handles the logic for spawning a selected prefab at the mouse cursor position.
-		 */
+		//  Handles the logic for spawning a selected prefab at the mouse cursor position.
 		void HandleSpawning();
-
-		/**
-		 * @brief Handles the logic for selecting an entity by clicking on it in the game world.
-		 */
+		
+		// Handles the logic for selecting an entity by clicking on it in the game world.
 		void HandleSelection();
+
+		// Handles the logic for deleting an entity by clicking on it in the game world.
 		void HandleDeletion();
 
-		// Handles In World dragging and dropping of game objects
-		void HandleInWorldDragDrop();
+		// Handle input keys when game viewport is active
+		void HandleGameViewportInput();
 
 		/* Entity Copy & Pasting APIs */
 		void CopyEntityToClipboard(const Entity entity);
@@ -256,6 +282,7 @@ namespace Editor {
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
+		//void ShowRestartMenu(); //when player dies
 		void ShowLayerManager();
 
 		// Popup Related
@@ -263,28 +290,44 @@ namespace Editor {
 
 		// --- Grid Helper Functions ---
 		void DrawEditorGrid(ImDrawList* drawList); //uses imgui drawlist to draw onto screen
-		Vector2D SnapToGrid(const Vector2D& worldPos);
 		//void ResetPlayerToDefaultPosition();
 
 		std::string selectedPrefabForEditing_;
 		PrefabType selectedPrefabTypeForEditing_ = PrefabType::None;
 		bool isPrefabEditorOpen_ = false;
 
-		// Helper functions
-
+		// Helper functions for prefabs 
 		void ApplyPrefabChangesToEntities(const std::string& prefabName);
 		void SavePrefabToFile(const std::string& prefabName);
+		void ApplyAllPrefabChangesToCurrentScene();
+
+		// Animation Editor Helper functions
+		void ShowAnimationEditor();
+		void LoadAnimationFiles();
+		void SaveAnimationFile(const std::string& animationName);
+		void ReloadAnimationFromFile(const std::string& animationName);
+		void RefreshAnimationInResourceManager(const std::string& animationName);
+
+		// Scene Management Helper functions
+		void SaveScene();
 
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();
 
-		/**
-		* @brief Loads textures and prepares palette items.
-		*/
+		// Loads textures and prepares palette items.
 		void PreparePaletteItems();
 
-		void LoadTilesFromFile();
+		//void LoadTilesFromFile();
 		void PrepareTilePaletteItems();
+
+		// Function for placing items in world
+		void PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position);
+
+		// Helper to get the HalfSize of a prefab or tile BEFORE creating it
+		Vector2D GetPrefabHalfSize(const std::string& name, PrefabType type);
+
+		// Handle the continuous clicking input
+		void HandleBrushInput();
 
 		//ImVec2 WorldToImGuiScreen_Absolute(const Vector2D& worldPos);
 
@@ -292,11 +335,36 @@ namespace Editor {
 		void UpdateViewportData();
 
 
+		// Sort a list of entities by descending render layer
+		void SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr);
+
 		// Layer viewport data for IMGUI
 		void ShowCollisionMatrix(Framework::PhysicsSystem* physics);
-
 		void ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
 		void ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity);
+		void ShowSceneEntityTracker(Framework::EntityManager& entityMgr);
+		void ShowLayerConfigWindow();
+		void ShowRenderLayersTab();
+		void ShowCollisionLayersTab();
+
+
+		// --- Animation Editor State ---
+		struct AnimationFileData {
+			std::string name;
+			int frameCount = 0;
+			float frameDuration = 0.1f;
+			bool isLooping = true;
+			int startFrame = 0;
+			std::vector<std::pair<std::string, int>> spritesheets; // texture, frameCount pairs
+		};
+
+		std::vector<AnimationFileData> loadedAnimations_;
+		int selectedAnimationIndex_ = 0;
+		std::string selectedAnimationName_;
+		std::vector<const char*> animationNames_;
+		bool isAnimationEditorInitialized_ = false;
+
+		bool ShowPrefabComponentEditor(Framework::ComponentData& compData);
 
 	public:
 		bool isEnabled = true;
@@ -309,17 +377,24 @@ namespace Editor {
 
 		Editor(Framework::CoreEngine& engine, Framework::GameManager& gameManager, Framework::ResourceManager& rcm);
 
-		/**
-		 * @brief Initializes the Editor system.
-		 * @details Loads prefabs from file and sets up the ImGui context and backends.
-		 */
+		// Editor loop functions
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
 
-		/* Helper Functions */
+		/* Helper Functions for playing / pausing state */
 		const bool IsGamePlaying() const { return isGamePlaying; };
 		const bool IsGamePaused() const { return isGamePaused; };
+		const ImVec2 GetGameViewportSize() const { return gameViewportSize_; }
+		const ImVec2 GetGameViewportPos() const { return gameViewportPos_; }
+
+		Vector2D SnapToGrid(const Vector2D& worldPos, bool normalized = false) const;
+
+		
+		//Converts the current mouse position from screen coordinates to world coordinates.
+		Vector2D GetMouseWorldPosition(); // maybe can be in inputsystem.h in the future
+
+		Vector2D GetNormalizedMousePos() const;
 
 		// Converts world - space coordinates to ImGui screen - space
 		// function that accepts a specific camera ID for movement
@@ -327,5 +402,15 @@ namespace Editor {
 
 		// Converts world-space coordinates to ImGui screen-space
 		ImVec2 WorldToImGuiScreen(const Vector2D& worldPos);
+		// Converts normalized coordinates to ImGui screen-space
+		ImVec2 NormalizedToImGuiScreen(const Vector2D& normalizedPos) const;
+
+		// Setter for GizmosSystem
+		void SetGizmoSystem(GizmoSystem* gizmo) {
+			gizmoSystem_ = gizmo;
+		}
+
+		// Getter for historyManager_
+		HistoryManager* GetHistoryMgr() { return &historyManager_; }
 	};
 }

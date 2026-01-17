@@ -14,6 +14,7 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #pragma once
+#include "SerializationKeys.h"
 
 namespace Framework::Serialization {
 	/* Generic Scene JSON Labels */
@@ -35,13 +36,34 @@ namespace Framework::Serialization {
 	/* Entity Properties JSON Labels */
 	inline constexpr const char* ENTITY_NAME = "name";
 	static constexpr const char* ENTITY_LAYER = "layer";
+	static constexpr const char* ENTITY_COLLISION_LAYER_NAME = "layer_collision_name";
 	static constexpr const char* ENTITY_RENDER_LAYER = "render_layer";          
 	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
+	static constexpr const char* ENTITY_IS_ACTIVE = "active";
+	static constexpr const char* ENTITY_RENDER_LAYER_NAME = "layer_render_name";
+
+	/* Layer Configuration Keys */
+	static constexpr const char* RENDER_LAYERS = "RenderLayers";
+	static constexpr const char* COLLISION_LAYERS = "CollisionLayers";
+	static constexpr const char* LAYER_NAME = "name";
+	static constexpr const char* LAYER_RENDER_ORDER = "renderOrder";
+	static constexpr const char* LAYER_ID = "id";
+	static constexpr const char* LAYER_IS_BUILTIN = "isBuiltIn";
+	static constexpr const char* LAYER_IS_VISIBLE = "isVisible";
 
 	/* Component JSON Labels */
 	static constexpr const char* COMPONENTS = "components";
 
-	static constexpr const char* POSITION_COMPONENT = "Position";
+	static constexpr const char* TRANSFORM_COMPONENT = "Transform";
+	static constexpr const char* TRANSFORM_POSITION = "Position";
+	static constexpr const char* TRANSFORM_ROTATION = "Rotation";
+	static constexpr const char* ROTATION_ANGLE = "angle";
+	static constexpr const char* ROTATION_TEXTURE_ANGLE = "texture_angle";
+	static constexpr const char* ROTATION_COLLIDER_ANGLE = "collider_angle";
+	static constexpr const char* ROTATION_TEXTURE_MTX = "texture_matrix";
+	static constexpr const char* ROTATION_COLLIDER_MTX = "collider_matrix";
+	static constexpr const char* TRANSFORM_SCALE = "Scale";
+
 	static constexpr const char* SPAWN_PT_COMPONENT = "SpawnPoint";
 	static constexpr const char* VELOCITY_COMPONENT = "Velocity";
 	static constexpr const char* ACCELERATION_COMPONENT = "Acceleration";
@@ -59,6 +81,8 @@ namespace Framework::Serialization {
 	static constexpr const char* AABB_COLLIDER_COMPONENT = "AABBCollider";
 	static constexpr const char* HALF_WIDTH = "half_width";
 	static constexpr const char* HALF_HEIGHT = "half_height";
+	static constexpr const char* OFFSET_X = "offset_x";
+	static constexpr const char* OFFSET_Y = "offset_y";
 
 	static constexpr const char* PLAYER_STATE_COMPONENT = "PlayerState";
 	static constexpr const char* PLAYER_IS_FACING_RIGHT = "is_facing_right";
@@ -89,6 +113,7 @@ namespace Framework::Serialization {
 	static constexpr const char* TEXTURE_COMPONENT = "TextureComponent";
 	static constexpr const char* TEXTURE_KEY = "texture_key";
 	static constexpr const char* HALF_SIZE = "half_size";
+	static constexpr const char* TEXTURE_FLIP_X = "flip_x";
 	
 	static constexpr const char* AUDIO_COMPONENT = "AudioComponent";
 	static constexpr const char* SOUND_KEY = "sound_key";
@@ -97,6 +122,7 @@ namespace Framework::Serialization {
 	static constexpr const char* VOLUME = "volume";
 
 	static constexpr const char* ANIMATION_COMPONENT = "AnimationComponent";
+	static constexpr const char* ANIMATION_PROFILE = "profile_name";
 	static constexpr const char* CURRENT_STATE = "current_state";
 	static constexpr const char* CURRENT_FRAME = "current_frame";
 	static constexpr const char* FRAME_DURATION = "frame_duration";
@@ -110,6 +136,7 @@ namespace Framework::Serialization {
 	static constexpr const char* FONT_KEY = "font_key";
 	static constexpr const char* FONT_COLOR = "font_color";
 	static constexpr const char* FONT_SIZE = "font_size";
+	static constexpr const char* MAX_WIDTH = "max_width";
 
 	static constexpr const char* CAMERA_COMPONENT = "Camera";
 	static constexpr const char* POSITION = "position";
@@ -132,21 +159,51 @@ namespace Framework::Serialization {
 	static constexpr const char* IS_PRESSED = "is_pressed";
 	static constexpr const char* IS_RELEASED = "is_released";
 	static constexpr const char* ACTION = "action";
+	static constexpr const char* TARGET_STRING = "target_string";
+	static constexpr const char* TARGET_VALUE = "target_value";
+	static constexpr const char* HOVER_SOUND_KEY = "hover_sound_key";
+	static constexpr const char* HOVER_SOUND_VOLUME = "hover_sound_volume";
+	static constexpr const char* CLICK_SOUND_KEY = "click_sound_key";
+	static constexpr const char* CLICK_SOUND_VOLUME = "click_sound_volume";
+	static constexpr const char* BUTTON_DEFAULT_TEXTURE = "default_texture_key";
+	static constexpr const char* BUTTON_HOVER_TEXTURE = "hover_texture_key";
+	static constexpr const char* BUTTON_PRESSED_TEXTURE = "pressed_texture_key";
+	static constexpr const char* BUTTON_DEFAULT_ANIMATED = "default_is_animated";
+	static constexpr const char* BUTTON_HOVER_ANIMATED = "hover_is_animated";
+	static constexpr const char* BUTTON_PRESSED_ANIMATED = "pressed_is_animated";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
+	static constexpr const char* COMP_SCENE_ID = "scene_id";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";
 
 	static constexpr const char* PARTICLE_EMITTER_COMPONENT = "ParticleEmitterComponent";
 	static constexpr const char* IS_EMITTING = "is_emitting";
 	static constexpr const char* IS_PARTICLE_ANIMATED = "is_particle_animated";
+	static constexpr const char* IS_SCREEN_SPACE = "is_screen_space";
 	static constexpr const char* PARTICLE_TEXTURE_KEY = "particle_texture_key";
 	static constexpr const char* PARTICLE_LIFETIME = "particle_lifetime";
 	static constexpr const char* EMISSION_RATE = "emit_rate";
 	static constexpr const char* EMISSION_INTERVAL = "emit_interval";
 	static constexpr const char* PARTICLE_EFFECT_TYPE = "particle_effect_type";
+	static constexpr const char* EFFECT_STRENGTH = "effect_strength";
 	static constexpr const char* PARTICLE_SPEED = "particle_speed";
 	static constexpr const char* PARTICLE_SIZE = "particle_size";
 	static constexpr const char* IS_AFFECTED_BY_GRAVITY = "is_affected_by_gravity";
+	static constexpr const char* EMISSION_STYLE = "emission_style";
+	static constexpr const char* EMISSION_RADIUS = "emission_radius";
+	static constexpr const char* PARTICLE_START_VELOCITY = "particle_start_velocity";
+	static constexpr const char* PARTICLE_ACCELERATION = "particle_acceleration";
+	static constexpr const char* LINE_START = "line_start";
+	static constexpr const char* LINE_END = "line_end";
+	static constexpr const char* CIRCLE_RADIUS = "circle_radius";
+	static constexpr const char* VIEWPORT_MIN = "viewport_min";
+	static constexpr const char* VIEWPORT_MAX = "viewport_max";
+	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
+	static constexpr const char* EMISSION_OFFSET = "emission_offset";
+	static constexpr const char* TRIGGER_EVENT_NAME = "trigger_event_name";
+	static constexpr const char* EMISSION_MODE = "emission_mode";
+	static constexpr const char* BURST_COUNT = "burst_count";
+	static constexpr const char* BURST_INTERVAL = "burst_interval";
 
 	// state machine keys
 	static constexpr const char* FSM_COMPONENT = "FSMComponent";

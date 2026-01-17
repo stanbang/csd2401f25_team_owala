@@ -30,6 +30,13 @@
 #include "Animation.h"
 #include <filesystem>
 
+// For threading
+#include <queue>
+#include <mutex>
+#include <thread>
+#include <atomic>
+
+
 namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
@@ -50,11 +57,18 @@ namespace Framework {
     public:
 
         void Initialize() override;
-        void Update();
+        void Update() override;
         void Shutdown();
 
-		// Constructor requires Graphics and AudioSystem instances for loading resources
-        ResourceManager(Graphics& gfx, AudioSystem& audio) : gfx_(&gfx), audiosystem_(&audio) {};
+		// Queue a texture to be loaded asynchronously
+        void LoadTextureAsync(const std::string& filepath);
+
+		// Check how many items are left to load for progress tracking
+        float GetLoadingProgress() const;
+        bool IsLoadingComplete() const;
+
+		// Constructor
+        ResourceManager() = default;
 
         // Add a copyable resource (like Texture)
         template<typename ResourceType>
@@ -127,21 +141,44 @@ namespace Framework {
         bool loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size = 48);
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
 
+        bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
+        std::string GetAssetPath(const std::string& key) const;
+
+        using AnimationProfileMap = std::unordered_map<std::string, std::unordered_map<int, std::string>>;
+		const AnimationProfileMap& GetAnimationProfiles() const { return animationProfiles_; } // Getter for animation profiles, used by AnimationSystem
+		bool LoadAnimationProfiles(const std::string& filepath); // Load animation profiles from JSON file
+
 		std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>>& getTextureMap(); // Get the texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map
         std::unordered_map<std::string, std::unique_ptr<Font>>& getFontMap(); // Get the font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& getAnimationMap(); // Get the animation map
 
     private:
+		// Map of animation profiles
+        AnimationProfileMap animationProfiles_;
+
         std::unordered_map<std::string, std::unique_ptr<Texture, TextureDeleter>> textureMap; // Texture map
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>> soundMap; // Sound map with custom deleter
         std::unordered_map<std::string, std::unique_ptr<Font>> fontMap; // font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>> animationMap; // Animation map
 		std::unordered_map<std::string, fs::path> assetPathMap_; // Map of asset names to file paths
 
-		Graphics* gfx_ = nullptr; // Graphics instance for loading textures
+        // Structure to transfer data between threads
+        struct AsyncTextureData {
+            std::string name;
+            Graphics::ImageRawData rawData;
+        };
 
-        AudioSystem* audiosystem_ = nullptr; // FMOD system instance for loading sounds
+        std::queue<std::string> m_filesToLoad;      // Files waiting to be read
+        std::mutex m_queueMutex;                    // Lock for the queues
+        std::queue<AsyncTextureData> m_dataReadyToUpload; // Decoded data waiting for OpenGL
+
+        std::thread m_workerThread;
+        std::atomic<bool> m_isLoading{ false };
+        std::atomic<int> m_totalItemsToLoad{ 0 };
+        std::atomic<int> m_itemsProcessed{ 0 };
+
+        void WorkerThreadLoop();
     };
 
 	// Getter for resources, with automatic loading if missing
@@ -158,8 +195,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Texture: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Texture: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Texture: " + key);
             }
             return *it->second;
@@ -176,8 +212,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Audio: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Audio: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Audio: " + key);
             }
             return *it->second;
@@ -194,8 +229,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Font: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Font: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Font: " + key);
             }
             return *it->second;
@@ -212,8 +246,7 @@ namespace Framework {
                     if (it != map.end()) return *it->second;
                 }
 
-                Logger::Get().Error(DebugType::ResourceManager)
-                    << "[ResourceManager] Missing Animation: \"" << key << "\"\n";
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Animation: \"" << key << "\"\n";
                 throw std::runtime_error("Missing Animation: " + key);
             }
             return *it->second;

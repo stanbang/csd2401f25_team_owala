@@ -23,17 +23,23 @@
 #include "AudioSystem.h"
 #include "WindowsSystem.h"
 #include "SpriteRenderSystem.h"
+#include "TextRenderSystem.h"
 #include "LevelResetSystem.h"
 #include "GuiSystem.h"
 #include "Graphics.h"
 #include "Core.h"
 #include "AISystem.h"
 #include "FileUtility.h"
+#include "AnimationSystem.h"
+
 #ifdef BUILD_EDITOR
 #include "Editor.h"
+#include <memory>
 #endif
 
 #include <vector>
+#include <unordered_map>
+#include <functional>
 
 
 namespace Framework {
@@ -47,13 +53,19 @@ namespace Framework {
 		AUDIO_SYSTEM
 	};
 
-	// Might rename this to a GameSystem later on. Either that or need to figure out how to decouple from the engine.
+	// Might rename this to a GameSystem later on.
 	class GameManager : public ISystem {
 	public:
 		// Aliases
 		using SceneFunction = void(*)(void);
 	private:
 		static GameManager* instance;
+		std::string nextSceneToLoad_ = "";
+		std::function<void()> deferredTask_ = nullptr;
+
+		bool queuedLevelLoad_ = false;
+		bool queuedLevelReset_ = false;
+		std::string queuedLevelName_;
 
 		struct SceneCallBacks {
 			SceneFunction fpInitialize = nullptr;
@@ -61,6 +73,7 @@ namespace Framework {
 			SceneFunction fpFree = nullptr;
 		};
 		std::unordered_map<SceneGUID, SceneCallBacks> sceneCallbacks_;
+		SceneGUID lastInitializedScene_ = 0;
 
 		struct RegisteredSystems {
 			EntityStorage* ecs_ = nullptr;
@@ -71,16 +84,24 @@ namespace Framework {
 			ResourceManager* resourceManager_ = nullptr;
 			AudioSystem* audio_ = nullptr;   // <-- store it
 			SpriteRenderSystem* spriteRenderer_ = nullptr; // <-- store it if needed later
+			TextRenderSystem* textRenderer_ = nullptr;
 			AISystem* aiSystem_ = nullptr;
 			GuiSystem* guiSystem_ = nullptr;
 			CameraSystem* camera_ = nullptr;  
 			LevelResetSystem* levelResetter_ = nullptr;
 			TransformationSystem* transformation_ = nullptr;
+			AnimationSystem* animationSystem_ = nullptr;
 		};
 
 		RegisteredSystems systems_;
 #ifdef BUILD_EDITOR
 		Editor::Editor* editor_ = nullptr; // ImGui Editor instance
+
+		/* Play State Management */
+		bool hasECSSnapshot = false;
+		EntityStorage* editorECS_ = nullptr;
+		std::unique_ptr<EntityStorage> runtimeECS_ = nullptr;
+		Entity nextEntityIDSnapshot = 1u;
 #endif
 
 		float deltaTime = 0.0f;
@@ -100,6 +121,11 @@ namespace Framework {
 		// Internal Helpers
 		void UpdateNativeScripts();
 
+		// Preload all assets for a scene
+		void PreloadSceneAssets(const std::string& sceneName);
+
+		bool restartMenuInitialized = false;
+
 	public:
 		// GLOBAL STATES
 		int testState = 0;
@@ -118,7 +144,10 @@ namespace Framework {
 		/* Getters & Setters */
 		// Retrieves the interval in seconds from the last frame to the current one (Read only).
 		float GetDeltaTime() const { return deltaTime; }
-		RegisteredSystems GetSystems() const { return systems_;  }
+		RegisteredSystems& GetSystems() { return systems_; }
+		const RegisteredSystems& GetSystems() const { return systems_; }
+		EntityStorage& GetECS() { return *systems_.ecs_; };
+		const EntityStorage& GetECS() const { return *systems_.ecs_; }
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 
@@ -126,19 +155,31 @@ namespace Framework {
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
 		void RegisterSystemsToUse(ResourceManager& rcm, EntityStorage& ecs, Graphics& gfx,
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
-			AudioSystem& audio, SpriteRenderSystem& renderer,
-			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation);
+			AudioSystem& audio, SpriteRenderSystem& renderer, TextRenderSystem& textRenderer,
+			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation,
+			AnimationSystem& animSys);
 				
 #ifdef BUILD_EDITOR
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager
 
 		// Getter for the ImGui Editor instance
 		Editor::Editor* GetEditor() const { return editor_; }
+
+		/* Play State Management */
+		void OnBeginPlay();
+		void OnEndPlay();
 #endif
 		/* GameManager APIs */
 		// Sets the function pointers for the current scene's lifecycle callbacks.
 		void RegisterScriptToScene(SceneGUID sceneIndex, SceneFunction initFunction, SceneFunction updateFunction, SceneFunction freeFunction);
 		void UnregisterScriptFromScene(SceneGUID sceneIndex);
+
+		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
+		std::string GetNextScene() const { return nextSceneToLoad_; }
+		void InitiateLevelLoad(const std::string& levelName);
+
+		// Helper to check if a scene is a level scene
+		bool IsLevelScene(const std::string& name);
 
 		/* Game Cycle Functions */
 		void Initialize() override;

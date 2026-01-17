@@ -62,7 +62,8 @@ namespace Framework {
 
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
-					case ComponentType::PositionType: AddComponent<Position>(newEntity, GetComponent<Position>(entity)); break;
+					case ComponentType::TransformType: AddComponent<Transform>(newEntity, GetComponent<Transform>(entity)); break;
+					case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(newEntity, GetComponent<SpawnPoint>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
 					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
 					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
@@ -71,20 +72,19 @@ namespace Framework {
 					case ComponentType::PlayerStateType: AddComponent<PlayerState>(newEntity, GetComponent<PlayerState>(entity)); break;
 					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
 					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
-					case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(newEntity, GetComponent<ScalingPlatformComponent>(entity)); break;
 					case ComponentType::ButtonType: AddComponent<Button>(newEntity, GetComponent<Button>(entity)); break;
 					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
 					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
 					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
-					case ComponentType::TextComponentType: 	AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
+					case ComponentType::TextComponentType: AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
+					case ComponentType::CameraType: AddComponent<Camera>(newEntity, GetComponent<Camera>(entity)); break;
+					case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(newEntity, GetComponent<NativeScriptsComponent>(entity)); break;
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
 					//case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
 					case ComponentType::FSMComponentType:AddComponent<FSMComponent>(newEntity, GetComponent<FSMComponent>(entity));break;
 					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; 
 					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
 					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
-					case ComponentType::RotationType: AddComponent<Rotation>(newEntity, GetComponent<Rotation>(entity)); break;
-					case ComponentType::ScaleType: AddComponent<Scale>(newEntity, GetComponent<Scale>(entity)); break;
 					default:
 						break;
 				}
@@ -108,6 +108,8 @@ namespace Framework {
 
 		ecs.entitySignatures.erase(entity);
 		ecs.properties.erase(entity);
+
+		Logger::Get().Info(DebugType::GameManager) << "Destroyed Entity with ID: " << entity << std::endl;
 	}
 
 	EntityProperties& EntityManager::GetProperties(Entity entity) { 
@@ -128,15 +130,23 @@ namespace Framework {
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
-		return ecs.entitySignatures[entity].test(componentType);
+		std::unordered_map<Entity, ComponentSignature>::iterator it = ecs.entitySignatures.find(entity);
+		if (it == ecs.entitySignatures.end()) return false;
+		return it->second.test(componentType);
 	}
 
 	void EntityManager::AddComponent(Entity entity, ComponentType componentType) {
+		if (!ValidateEntity(entity)) {
+			std::stringstream errorMsg;
+			errorMsg << "AddComponent: Invalid Entity ID: " << entity;
+			throw std::runtime_error(errorMsg.str());
+		}
+
 		if (HasComponent(entity, componentType)) return;
 
 		switch (componentType)
 		{
-		case ComponentType::PositionType: AddComponent<Position>(entity, Position{}); break;
+		case ComponentType::TransformType: AddComponent<Transform>(entity, Transform{}); break;
 		case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(entity, SpawnPoint{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
 		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
@@ -146,7 +156,6 @@ namespace Framework {
 		case ComponentType::PlayerStateType: AddComponent<PlayerState>(entity, PlayerState{}); break;
 		case ComponentType::RotationFlagType: AddComponent<RotationFlag>(entity, RotationFlag{}); break;
 		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
-		case ComponentType::ScalingPlatformComponentType: AddComponent<ScalingPlatformComponent>(entity, ScalingPlatformComponent{}); break;
 		case ComponentType::TextureComponentType: AddComponent<TextureComponent>(entity, TextureComponent{}); break;
 		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
 		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
@@ -167,22 +176,20 @@ namespace Framework {
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
 		case ComponentType::GUITagType: break;
-		case ComponentType::RotationType: AddComponent<Rotation>(entity, Rotation{}); break;
-		case ComponentType::ScaleType: AddComponent<Scale>(entity, Scale{}); break;
 
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 			return;
 		}
 
-		ecs.entitySignatures[entity].set(componentType);
+		ecs.entitySignatures.at(entity).set(componentType);
 	}
 
 	void EntityManager::RemoveComponent(Entity entity, ComponentType componentType) {
 		if (!HasComponent(entity, componentType)) return;
 
 		switch (componentType) {
-			case PositionType:      ecs.position.erase(entity); break;
+			case TransformType:		ecs.transform.erase(entity); break;
 			case SpawnPointType:    ecs.spawnPoint.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
@@ -192,7 +199,6 @@ namespace Framework {
 			case PlayerStateType:   ecs.playerState.erase(entity); break;
 			case RotationFlagType:  ecs.rotationFlag.erase(entity); break;
 			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;
-			case ScalingPlatformComponentType: ecs.scalingPlatform.erase(entity); break;
 			case TextureComponentType: ecs.tex.erase(entity); break;
 			case AudioComponentType: ecs.audio.erase(entity); break;
 			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
@@ -224,8 +230,6 @@ namespace Framework {
 			case PersistentTagType:
 			case ActiveTagType: break;
 			case GUITagType: break;
-			case RotationType: ecs.rotation.erase(entity); break;
-			case ScaleType: ecs.scale.erase(entity); break;
 			default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
 				return;

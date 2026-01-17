@@ -2,13 +2,13 @@
 * \file   Editor.cpp
 *
 * \primary_author
-*		Jason Lou (19%)
+*		Jason Lou (16.66%)
 * \secondary_author
-*		Lur Pei Hao Stanley (19%)
-*		Sitara Anil (19%)
-*		Ng Jordain Ying Zhe (19%)
-*		Yar Xuan (19%)
-*		Ng Jing Wen (5%)
+*		Lur Pei Hao Stanley (16.66%)
+*		Sitara Anil (16.66%)
+*		Ng Jordain Ying Zhe (16.66%)
+*		Yar Xuan (16.66%)
+*		Ng Jing Wen (16.66%)
 *		
 *
 *
@@ -30,6 +30,8 @@
 #include "AssetBrowser.h"
 #include "AISystem.h" // Include AISystem for debugging purposes
 #include "rapidjson/prettywriter.h"
+#include "FileUtility.h"
+#include <fstream>
 
 // Debug
 #include "Logger.h"
@@ -59,14 +61,23 @@
 #include "ScriptRegistry.h"
 #include "NativeScriptMaker.h"
 
+#include <unordered_set>
+// Standard Libraries
+#include <sstream>
+#include <iomanip>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // Internal Helpers
-namespace {
+namespace Editor {
 	using namespace Framework;
 
 	std::string ComponentToString(ComponentType componentType) {
 		switch (componentType)
 		{
-		case ComponentType::PositionType:					return "Position";
+		case ComponentType::TransformType:					return "Transform";
 		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
@@ -76,7 +87,6 @@ namespace {
 		case ComponentType::PlayerStateType:				return "PlayerState";
 		case ComponentType::RotationFlagType:				return "RotationFlag";
 		case ComponentType::TrapPlatformComponentType:		return "TrapPlatform";
-		case ComponentType::ScalingPlatformComponentType:	return "ScalingPlatform";
 		case ComponentType::TextureComponentType:			return "Texture";
 		case ComponentType::AudioComponentType:				return "Audio";
 		case ComponentType::AnimationComponentType:			return "Animation";
@@ -97,8 +107,6 @@ namespace {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		case ComponentType::RotationType:                   return "Rotation";
-		case ComponentType::ScaleType:                      return "Scale";
 		
 		default:											return "Unknown";
 		}
@@ -118,6 +126,50 @@ namespace {
 }
 
 namespace Editor {
+	void EditSession::Begin(Entity entity, Framework::ComponentType compType) {
+		using namespace Framework;
+		EntityStorage* ecs = GameManager::GetInstance().GetSystems().ecs_;
+
+		active = true;
+		entityInEdit = entity;
+		compInEdit = compType;
+
+		beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+	}
+
+	void EditSession::End(Entity entity, Framework::ComponentType compType, const std::string& description, HistoryManager& historyManager_) {
+		if (active && entityInEdit == entity && compInEdit == compType) {
+			EntityStorage* ecs = GameManager::GetInstance().GetSystems().ecs_;
+			EntityManager entityMgr(*ecs);
+
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+			if (beforeJSON != afterJSON) {
+				historyManager_.RecordModifyComponent(entity, description, beforeJSON, afterJSON, compType);
+			}
+
+			*this = {};
+		}
+	}
+
+	void EditSession::Flush() {
+		using namespace Framework;
+
+		if (!active) return;
+
+		EntityStorage* ecs = GameManager::GetInstance().GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
+		if (!entityMgr.ValidateEntity(entityInEdit)) {
+			*this = {};
+			return;
+		}
+
+		std::stringstream ss;
+		ss << "Modified " << ComponentToString(compInEdit) << " in " << entityMgr.GetProperties(entityInEdit).name << std::endl;
+		End(entityInEdit, compInEdit, ss.str(), *GameManager::GetInstance().GetEditor()->GetHistoryMgr());
+	}
+
 	// Add these member variable definitions at the top of your Editor class implementation
 	// (or wherever you have other member variable initializations)
 
@@ -130,7 +182,7 @@ namespace Editor {
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		editorCameraNeedsReset_(false),
-		historyManager_(*gameManager_->GetSystems().ecs_) {
+		historyManager_() {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -159,10 +211,6 @@ namespace Editor {
 			currentEditorCameraState_.position = cam.position;
 			currentEditorCameraState_.zoom = cam.zoom;
 
-			/*Framework::Logger::Get().Info(DebugType::Editor)
-				<< "Saved editor camera state: position ("
-				<< currentEditorCameraState_.position.x << ", " << currentEditorCameraState_.position.y
-				<< ") zoom: " << currentEditorCameraState_.zoom << std::endl;*/
 		}
 	}
 
@@ -173,10 +221,6 @@ namespace Editor {
 			cam.zoom = currentEditorCameraState_.zoom;
 			cameraSystem_->SetZoom(editorCamera_, currentEditorCameraState_.zoom);
 
-			Framework::Logger::Get().Info(DebugType::Editor)
-				<< "Restored editor camera state: position ("
-				<< cam.position.x << ", " << cam.position.y
-				<< ") zoom: " << cam.zoom << std::endl;
 		}
 	}
 
@@ -285,11 +329,28 @@ namespace Editor {
 		}
 
 		// Load all prefabs from the data file when the editor starts
-		if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to load prefabs from Data/platformPrefab.json" << std::endl;
+		if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
+			Framework::Logger::Get().Error(DebugType::Editor)
+				<< "Failed to load prefabs from Data/prefabs/" << std::endl;
+		}
+		else {
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "Successfully loaded prefabs from folder" << std::endl;
+
+			if (Framework::SceneManager::GetInstance().GetActiveScene().IsValid()) {
+				ApplyAllPrefabChangesToCurrentScene();
+			}
 		}
 
-		LoadTilesFromFile();
+		//LoadTilesFromFile();
+		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
+			Logger::Get().Info(DebugType::Editor)
+				<< "Using default layer configuration" << std::endl;
+
+			// Save defaults to file for next time
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+		}
+
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
 		firstUpdate = true;
@@ -340,6 +401,22 @@ namespace Editor {
 		}
 	}
 	void Editor::Update() {
+		if (!isEnabled) return;
+
+		SanityCheck();
+
+		// SAFETY BLOCK FOR CONTEXT SWITCH (ALT TAB OR WTV) 
+		if (gameManager_) {
+			cameraSystem_ = gameManager_->GetSystems().camera_;
+			graphicsSystem_ = gameManager_->GetSystems().gfx_;
+			transformationSystem_ = gameManager_->GetSystems().transformation_;
+			if (!transformationSystem_) {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not available" << std::endl;
+			}
+			// Tell the InputSystem whether to lock gameplay input
+			Framework::InputSystem* input = gameManager_->GetSystems().input_;
+			input->SetCursorLocked(false);
+		}
 
 		if (!palettePrepared_ && resourceManager_) {
 			Framework::Logger::Get().Info(DebugType::Editor) << "Running PreparePaletteItems..." << std::endl;
@@ -355,18 +432,8 @@ namespace Editor {
 			Framework::Logger::Get().Info(DebugType::Editor)<< "PrepareTilePaletteItems finished. tilePaletteItems_ size: "<< tilePaletteItems_.size() << std::endl;
 		}
 
-		//for IMGUI INPUT
-		//ImGuiIO& io = ImGui::GetIO();
-
-		// Determine if ImGui currently "owns" the input
-		//bool imguiHasFocus = io.WantCaptureKeyboard || io.WantCaptureMouse;
-
-		// Tell the InputSystem whether to lock gameplay input
-		Framework::InputSystem* input = gameManager_->GetSystems().input_;
-		input->SetCursorLocked(false);
-
-		if (!isEnabled) return;
-		SanityCheck();
+		/*if (!isEnabled) return;
+		SanityCheck();*/
 
 		// --- START IMGUI FRAME ---
 		ImGui_ImplOpenGL3_NewFrame();
@@ -411,9 +478,6 @@ namespace Editor {
 			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Inspector", dock_right);
 			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Prefab Palette", dock_right);
-			ImGui::DockBuilderDockWindow("Prefab Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Tile Palette", dock_right);
 			ImGui::DockBuilderDockWindow("Layer", dock_right);
 
 			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
@@ -421,6 +485,10 @@ namespace Editor {
 
 			ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
 			ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
+			ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
+			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
+			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
+			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
@@ -439,63 +507,9 @@ namespace Editor {
 
 		gameManager_->GetSystems().input_->SetCursorLocked(false);
 
-		// === EDITOR CAMERA CONTROLS ===
-		//{
-		//	Framework::InputSystem* input = gameManager_->GetSystems().input_;
-
-		//	if (editorCamera_ != 0) {
-		//		Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-		//		
-		//		// Only allow editor camera input when ImGui is focused
-		//		if (imguiHasFocus)
-		//		{
-		//			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-		//			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += dt * 2.0f;
-		//			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= dt * 2.0f;
-		//			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= dt * 2.0f;
-		//			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += dt * 2.0f;
-
-		//			if (input->KeyPressed(Framework::InputSystem::Key::Z)) cam.zoom *= 0.8f;
-		//			if (input->KeyPressed(Framework::InputSystem::Key::X)) cam.zoom *= 1.25f;
-		//		}
-
-		//	}
-		//}
-		// === END EDITOR CAMERA CONTROLS ===
-
-		const float dt = Framework::Time::UnscaledDeltaTime();
-
-		if (editorCamera_ != 0)
-		{
-			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
-
-			// Move camera with WASD
-			if (input->KeyDown(Framework::InputSystem::Key::W)) cam.position.y += 5.0f * dt;
-			if (input->KeyDown(Framework::InputSystem::Key::S)) cam.position.y -= 5.0f * dt;
-			if (input->KeyDown(Framework::InputSystem::Key::A)) cam.position.x -= 5.0f * dt;
-			if (input->KeyDown(Framework::InputSystem::Key::D)) cam.position.x += 5.0f * dt;
-
-			// Zoom in/out using Up / Down arrow keys
-			if (input->KeyDown(Framework::InputSystem::Key::Up)) {
-				cam.zoom *= 0.98f; // zoom in
-				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-			}
-			if (input->KeyDown(Framework::InputSystem::Key::Down)) {
-				cam.zoom *= 1.02f; // zoom out
-				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-			}
-
-			// Optional: reset zoom with R
-			if (input->KeyPressed(Framework::InputSystem::Key::R)) {
-				cam.zoom = 1.0f;
-				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
-			}
-		}
-
-
 		// --- Handle Editor Logic ---
 		HandleSpawning();
+		HandleBrushInput();
 		HandleSelection();
 		HandleDeletion();
 		
@@ -505,7 +519,7 @@ namespace Editor {
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
 			HandleTileErasing();
 		}
-		if (!isDraggingPrefab_ && dragDropPayload_.type != PrefabType::Eraser) {
+		if (!isDraggingPrefab_ && dragDropPayload_.type != PrefabType::Eraser && !isBrushMode_) {
 			HandleSelection();
 		}
 		HandleDeletion();
@@ -533,8 +547,20 @@ namespace Editor {
 		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
 
+		// To show animation editor beside asset viewer
+		if (settings.showAnimationEditor) {
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::BeginTabBar("BottomTabBar", ImGuiTabBarFlags_None)) {
+				if (ImGui::BeginTabItem("Animation Editor")) {
+					ShowAnimationEditor();
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
+		}
+
 		// Set editor play/edit mode
-		if (isTileEditorActive_ || isDraggingGameObj_ || !isGamePlaying) {
+		if (isTileEditorActive_ || !isGamePlaying || (gizmoSystem_ && gizmoSystem_->IsGizmosToggled())) {
 			engine_->SetMode(EngineMode::Editor);
 		}
 		else if (isGamePlaying) {
@@ -576,6 +602,11 @@ namespace Editor {
 
 		// Helper lambda to add an item if texture is found
 		auto AddPaletteItem = [&](const std::string& name, PrefabType type, const std::string& textureKey) {
+			// Skip tiles - they should only appear in tile palette
+			if (name.find("StagePlatform") != std::string::npos ||
+				name.find("StaticPlatform") != std::string::npos) {
+				return;
+			}
 			if (textureKey.empty()) {
 				Framework::Logger::Get().Error(DebugType::Editor) << "Skipping palette item '" << name << "' due to empty texture key." << std::endl;
 				return; // Don't try to add if key is empty
@@ -614,8 +645,6 @@ namespace Editor {
 			}
 			};
 
-		// Add Eraser (no texture needed, or use a placeholder if desired)
-		// paletteItems_.push_back({"Eraser", PrefabType::Eraser, 0}); // Add eraser without texture
 
 		// Add items for each prefab type
 		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
@@ -624,9 +653,7 @@ namespace Editor {
 		for (const auto& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
 			AddPaletteItem(pair.first, PrefabType::TrapPlatform, pair.second.textureID);
 		}
-		for (const auto& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-			AddPaletteItem(pair.first, PrefabType::ScalingPlatform, pair.second.textureID);
-		}
+
 		Framework::Logger::Get().Info(DebugType::Editor) << "Prepared " << paletteItems_.size() << " palette items." << std::endl;
 	}
 
@@ -656,6 +683,14 @@ namespace Editor {
 		return { worldX, worldY };
 	}
 
+	Vector2D Editor::GetNormalizedMousePos() const {
+		ImVec2 absoluteMousePos = ImGui::GetIO().MousePos;
+		double mouseX = static_cast<double>(absoluteMousePos.x - gameViewportPos_.x);
+		double mouseY = static_cast<double>(absoluteMousePos.y - gameViewportPos_.y);
+		double mouseX_ndc = static_cast<double>((mouseX / gameViewportSize_.x) * 2.0f - 1.0f);
+		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / gameViewportSize_.y) * 2.0f);
+		return Vector2D(static_cast<float>(mouseX_ndc), static_cast<float>(mouseY_ndc));
+	}
 
 
 	void Editor::HandleDragDropPlacement()
@@ -664,10 +699,8 @@ namespace Editor {
 			isDraggingPrefab_ = false;
 			return;
 		}
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return;
 
-		const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+		//const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
 
 		// --- MOUSE POSITION (ImGui → World) ---
 		ImVec2 mousePos = ImGui::GetMousePos();
@@ -682,127 +715,222 @@ namespace Editor {
 		Vector2D worldMousePos = cameraSystem_->ScreenToWorld(screenPos, editorCamera_);
 
 
-		// --- SNAP TO GRID ---
+		
 		Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-		Framework::EntityManager entityMgr(*ecs);
-		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
-
-		// Prevent duplicates
-		const float tolerance = baseGridCellSize_ * 0.1f;
-		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
-			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				if (fabs(pos.x - snappedPos.x) < tolerance && fabs(pos.y - snappedPos.y) < tolerance) {
-					isDraggingPrefab_ = false;
-					return;
-				}
-			}
-		}
-
-		Entity newEntity = 0;
-
-		if (dragDropPayload_.type == PrefabType::Tile) {
-			newEntity = entityMgr.CreateEntity(); //for tile pallette
-
-			//float aspect = gameViewportSize_.x / gameViewportSize_.y;
-			Vector2D tileHalfSize = { baseGridCellSize_, baseGridCellSize_ };
-
-			if (newEntity != 0) {
-				entityMgr.GetProperties(newEntity).name = dragDropPayload_.name;
-				entityMgr.GetProperties(newEntity).layer = CollisionLayer::Platform;
-
-				// Add basic components for tiles
-				entityMgr.AddComponent(newEntity, Framework::Position{ snappedPos });
-				entityMgr.AddComponent(newEntity, Framework::Velocity{ {0.0f, 0.0f} });
-				entityMgr.AddComponent(newEntity, Framework::RigidBody{ {0.0f, 0.0f}, false, 0.0f, 0.0f });
-				entityMgr.AddComponent(newEntity, Framework::AABBCollider{ tileHalfSize });
-				std::string textureKey = dragDropPayload_.name;
-				for (const auto& tile : tileDataList_) {
-					if (tile.name == dragDropPayload_.name) {
-						textureKey = tile.textureID;
-						break;
-					}
-				}
-				entityMgr.AddComponent(newEntity, Framework::TextureComponent{ textureKey, tileHalfSize });
-				entityMgr.AddComponent(newEntity, Framework::RotationFlag{});
-				entityMgr.AddComponent(newEntity, Framework::PlatformTag{});
-
-				sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-
-				Framework::Logger::Get().Info(DebugType::Editor) << "Placed tile: " << dragDropPayload_.name << " at (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-			}
-		}
-		else {
-			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, dragDropPayload_.name, snappedPos);//for prefab pallette
-
-			if (newEntity == 0) {
-				Framework::Logger::Get().Error(DebugType::Editor) << "Failed to create entity from prefab: " << dragDropPayload_.name << std::endl;
-				isDraggingPrefab_ = false;
-				return;	
-			}
-
-			if (entityMgr.HasComponent(newEntity, TextureComponentType)) {
-				TextureComponent textComp = entityMgr.GetComponent<TextureComponent>(newEntity);
-				if (textComp.textureKey.empty()) {
-					Framework::Logger::Get().Error(DebugType::Editor)
-						<< "Empty texture key assigned for placed prefab: " << dragDropPayload_.name << std::endl;
-				}
-				else {
-					sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-				}
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "No texture component added for placed prefab: " << dragDropPayload_.name << std::endl;
-			}
-		}
+		
+		PlaceObjectInWorld(dragDropPayload_, snappedPos);
 
 		isDraggingPrefab_ = false;
+
 	}
 
 
 	void Editor::DrawDragDropPreview(ImDrawList* drawList)
 	{
-		if (!isDraggingPrefab_ ||
-			dragDropPayload_.type == PrefabType::None ||
-			dragDropPayload_.type == PrefabType::Eraser)
-			return;
 
-		if (!cameraSystem_ || editorCamera_ == 0)
-			return;
+		//Check Visibility
+		bool showPreview = (isDraggingPrefab_ || isBrushMode_) && isMouseOverGameViewport_;
+		if (!showPreview) return;
 
+		// Get Payload
+		const DraggablePrefabInfo& currentPayload = dragDropPayload_;//isDraggingPrefab_ ? dragDropPayload_ : brushPayload_;
+		if (currentPayload.type == PrefabType::None || currentPayload.type == PrefabType::Eraser) return;
+
+		
+		static int debugCounter = 0;
+		if (debugCounter++ % 60 == 0) { // Log once per second at 60fps
+			Framework::Logger::Get().Info(DebugType::Editor)
+				<< "PREVIEW: " << currentPayload.name
+				<< " | TexID: " << currentPayload.textureID
+				<< " | UV0: (" << currentPayload.uv0.x << "," << currentPayload.uv0.y << ")"
+				<< " | UV1: (" << currentPayload.uv1.x << "," << currentPayload.uv1.y << ")" << std::endl;
+		}
+
+
+		
+
+		if (!cameraSystem_ || editorCamera_ == 0) return;
+
+		//  Calculate Position 
 		Vector2D worldMousePos = GetMouseWorldPosition();
-		dragDropPreviewPos_ = SnapToGrid(worldMousePos);
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
 
-		Texture previewTextureID = dragDropPayload_.textureID;
-		if (previewTextureID == 0)
-			return;
+		// Update internal state vars for logic elsewhere
+		if (isDraggingPrefab_) dragDropPreviewPos_ = snappedPos;
+		else brushPreviewPos_ = snappedPos;
 
-		// Use consistent world space sizing
-		Vector2D previewHalfSize = { baseGridCellSize_, baseGridCellSize_ };
+		// Calculate Screen Rect
+		Vector2D halfSize = { baseGridCellSize_/2, baseGridCellSize_/2 };
 
-		// Calculate world space corners
-		Vector2D worldMin = { dragDropPreviewPos_.x - previewHalfSize.x, dragDropPreviewPos_.y - previewHalfSize.y };
-		Vector2D worldMax = { dragDropPreviewPos_.x + previewHalfSize.x, dragDropPreviewPos_.y + previewHalfSize.y };
+		Vector2D worldMin = { snappedPos.x - halfSize.x, snappedPos.y - halfSize.y };
+		Vector2D worldMax = { snappedPos.x + halfSize.x, snappedPos.y + halfSize.y };
 
-		// Convert to screen space
-		ImVec2 screenMin = WorldToImGuiScreen(worldMin);
-		ImVec2 screenMax = WorldToImGuiScreen(worldMax);
+		ImVec2 p1 = WorldToImGuiScreen(worldMin);
+		ImVec2 p2 = WorldToImGuiScreen(worldMax);
 
-		ImVec2 uv0 = dragDropPayload_.uv0;
-		ImVec2 uv1 = dragDropPayload_.uv1;
-		ImU32 tintColor = IM_COL32(255, 255, 255, 150);
+		// Normalize Min/Max to prevent negative width/height
+		ImVec2 rectMin = ImVec2(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
+		ImVec2 rectMax = ImVec2(std::max(p1.x, p2.x), std::max(p1.y, p2.y));
 
-		ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
-		drawList->AddImage(texID, screenMin, screenMax, uv0, uv1, tintColor);
+		// Draw with proper clipping
+		ImVec2 clipMin = gameViewportPos_;
+		ImVec2 clipMax = ImVec2(gameViewportPos_.x + gameViewportSize_.x,
+			gameViewportPos_.y + gameViewportSize_.y);
+
+		// Only draw if within viewport bounds
+		if (rectMin.x < clipMax.x && rectMax.x > clipMin.x &&
+			rectMin.y < clipMax.y && rectMax.y > clipMin.y) {
+
+			ImU32 tint = isBrushMode_ ? IM_COL32(255, 255, 255, 200) : IM_COL32(255, 255, 255, 128);
+
+			// Cast texture ID properly for ImGui
+			ImTextureID texID = (ImTextureID)(intptr_t)currentPayload.textureID;
+
+			//ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
+
+			// Draw the image
+			drawList->AddImage(
+				texID,
+				rectMin,
+				rectMax,
+				currentPayload.uv0,
+				currentPayload.uv1,
+				tint
+			);
+
+		}
+		
 	}
 
+	Vector2D Editor::GetPrefabHalfSize(const std::string& name, PrefabType type)
+	{
+		// Default size if nothing is found (e.g. 1 grid cell)
+		Vector2D defaultSize = { baseGridCellSize_, baseGridCellSize_ };
 
+		if (type == PrefabType::Tile) {
+			// Tiles usually fit exactly in the grid
+			return defaultSize;
+		}
 
+		const EntityPrefab* prefab = prefabSystem_.GetPrefab(name);
+		if (!prefab) return defaultSize;
 
+		// find AABBCollider data
+		for (const auto& comp : prefab->components) {
+			if (comp.type == "AABBCollider") {
+				if (comp.data.HasMember("halfSizeX") && comp.data.HasMember("halfSizeY")) {
+					return Vector2D{
+						comp.data["halfSizeX"].GetFloat(),
+						comp.data["halfSizeY"].GetFloat()
+					};
+				}
+			}
+		}
+
+		// TextureComponent data if no collider
+		for (const auto& comp : prefab->components) {
+			if (comp.type == "TextureComponent") {
+				if (comp.data.HasMember("halfSizeX") && comp.data.HasMember("halfSizeY")) {
+					return Vector2D{
+						comp.data["halfSizeX"].GetFloat(),
+						comp.data["halfSizeY"].GetFloat()
+					};
+				}
+			}
+		}
+
+		return defaultSize;
+	}
+
+	
+
+	void Editor::PlaceObjectInWorld(const DraggablePrefabInfo& info, Vector2D position)
+	{
+		// Force Snap
+		Vector2D snappedPos = SnapToGrid(position);
+
+		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityManager entityMgr(*ecs);
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+
+		// Overlap Check
+		const float epsilon = 0.05f;
+		const std::vector<Entity>& entities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+		for (const auto& entity : entities) {
+			if (entityMgr.HasComponent(entity, Framework::TransformType)) {
+				const Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
+
+				// Check intersection
+				if (std::abs(pos.x - snappedPos.x) < epsilon &&
+					std::abs(pos.y - snappedPos.y) < epsilon) {
+
+					// Allow replacing if in Eraser mode, otherwise BLOCK placement
+					if (info.type != PrefabType::Eraser) {
+						return; 
+					}
+				}
+			}
+		}
+
+		// Create Entity
+		Entity newEntity = 0;
+
+		if (info.type == PrefabType::Tile) {
+			// Tiles created from prefabs too
+			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, info.name, snappedPos);
+		}
+		else if (info.type != PrefabType::Eraser) {
+			newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, info.name, snappedPos);
+		}
+
+		if (newEntity != 0) {
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+			historyManager_.Record(OpType::Create, newEntity, "Brush Place");
+		}
+	}
+
+	void Editor::HandleBrushInput()
+	{
+		
+		if (!isBrushMode_ || isDraggingPrefab_) return;
+
+		//Right Click in viewport or ESC to leave brushmode
+		Framework::InputSystem* input = gameManager_->GetSystems().input_;
+		if (input->MousePressed(Framework::InputSystem::MouseButton::Right) ||
+			input->KeyPressed(Framework::InputSystem::Key::Escape) || !isTileEditorActive_){
+			isBrushMode_ = false;
+			lastPlacedPos_ = { -99999.0f, -99999.0f };
+			return;
+		}
+
+		//Painting Logic (Left Mouse Held)
+		if (input->MouseDown(Framework::InputSystem::MouseButton::Left) && isMouseOverGameViewport_) {
+
+			Vector2D worldMousePos = GetMouseWorldPosition();
+			Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+			// check if we already placed at this exact grid spot this stroke
+			if (snappedPos.x != lastPlacedPos_.x || snappedPos.y != lastPlacedPos_.y) {
+
+				if (brushPayload_.type == PrefabType::Eraser) {
+					// Set payload for existing eraser logic 
+					dragDropPayload_ = brushPayload_;
+					HandleTileErasing();
+				}
+				else {
+					PlaceObjectInWorld(brushPayload_, snappedPos);
+				}
+
+				lastPlacedPos_ = snappedPos;
+			}
+		}
+		else if (input->MouseReleased(Framework::InputSystem::MouseButton::Left)) {
+			// Reset last placed when mouse is let go 
+			lastPlacedPos_ = { -99999.0f, -99999.0f };
+		}
+	}
 
 
 	void Editor::HandleTileErasing() {
@@ -825,8 +953,8 @@ namespace Editor {
 
 		for (const auto& entity : sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name)) {
 			if (!entityMgr.HasComponent(entity, Framework::PlatformTagType)) continue;
-			if (entityMgr.HasComponent(entity, Framework::PositionType)) {
-				const auto& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
+			if (entityMgr.HasComponent(entity, Framework::TransformType)) {
+				const Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
 				if (std::abs(pos.x - snappedPos.x) < eraseTolerance && std::abs(pos.y - snappedPos.y) < eraseTolerance) {
 					entityToErase = entity;
 					break;
@@ -853,19 +981,6 @@ namespace Editor {
 				Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 				Entity newEntity = 0;
 
-				/*	switch (selectedPrefabType_) {
-					case PrefabType::Platform:
-						newEntity = prefabSystem_.CreatePlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-						break;
-					case PrefabType::TrapPlatform:
-						newEntity = prefabSystem_.CreateTrapPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-						break;
-					case PrefabType::ScalingPlatform:
-						newEntity = prefabSystem_.CreateScalingPlatformFromPrefab(*ecs, selectedPrefabName_, spawnPos);
-						break;
-					case PrefabType::None: // Should not happen
-						break;
-					}*/
 
 				newEntity = prefabSystem_.CreateEntityFromPrefab(*ecs, selectedPrefabName_, spawnPos);
 				if (newEntity != 0) {
@@ -896,22 +1011,38 @@ namespace Editor {
 			return;
 		}
 
-		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Vector2D mouseWorldPos = GetMouseWorldPosition();
-		Entity bestCandidate = GetObjAtMousePos();
+		// If mouse over game viewport & not dragging prefab & not hovering on gizmos
+		// check for mouse click on invisible entity placeholders / visible entities
+		// and update the editor's selection state
+		if (!isDraggingPrefab_ && gizmoSystem_ && !gizmoSystem_->IsGizmosHover()
+			&& ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			// check if clicked on invisible entity
+			Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
 
-		// Update the editor's selection state
-		if (bestCandidate > 0) {
-			selectedEntityIndex = bestCandidate + 1;
-			isEntitySelected_ = true;
-			selectedComponentIndex = 0;
-			selectedTagIndex = 0;
-		}
-		else {
-			selectedEntityIndex = 0;
-			isEntitySelected_ = false;
-			selectedComponentIndex = 0;
-			selectedTagIndex = 0;
+			// an invisible entity was clicked
+			if (invisEntityClicked > 0) {
+				selectedEntityIndex = invisEntityClicked + 1;
+				isEntitySelected_ = true;
+				selectedComponentIndex = 0;
+				selectedTagIndex = 0;
+			}
+			// else check entity clicked
+			else {
+				Entity bestCandidate = GetObjAtMousePos();
+				if (bestCandidate > 0) {
+					selectedEntityIndex = bestCandidate + 1;
+					isEntitySelected_ = true;
+					selectedComponentIndex = 0;
+					selectedTagIndex = 0;
+				}
+				else {
+					selectedEntityIndex = 0;
+					isEntitySelected_ = false;
+					selectedComponentIndex = 0;
+					selectedTagIndex = 0;
+				}
+			}
+			editSession.Flush();
 		}
 	}
 
@@ -931,73 +1062,10 @@ namespace Editor {
 		}
 	}
 
-	void Editor::HandleInWorldDragDrop() {
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		static bool gizmoClicked = false;
-		if (isDraggingPrefab_) return;
-
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			// check if clicked on gizmo
-			ImVec2 mouseScreenPos = ImGui::GetMousePos();
-			std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
-			for (Entity en : spawnPts)
-			{
-				SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
-				ImVec2 gizmoScreenPos = WorldToImGuiScreen(spawnPt.Pos);
-
-				float dx = mouseScreenPos.x - gizmoScreenPos.x;
-				float dy = mouseScreenPos.y - gizmoScreenPos.y;
-				float distSq = dx * dx + dy * dy;
-
-				if (distSq <= (gizmoCircleRad * gizmoCircleRad))
-				{
-					selectedEntityIndex = en + 1;
-					isEntitySelected_ = true;
-					gizmoClicked = true;
-					break;
-				}
-			}
-
-			// else check entity clicked
-			if (!gizmoClicked) {
-				Entity bestCandidate = GetObjAtMousePos();
-				if (bestCandidate > 0) {
-					selectedEntityIndex = bestCandidate + 1;
-					isEntitySelected_ = true;
-				}
-			}
-		}
-
-		// Handle dragging. Updates respective components with snapped position
-		if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && selectedEntityIndex > 1 && isEntitySelected_) {
-			Vector2D currentWorldMousePos = GetMouseWorldPosition();
-			Vector2D snappedPos = SnapToGrid(currentWorldMousePos);
-			Entity index = selectedEntityIndex - 1;
-		
-			if (entityMgr.HasComponent(index, PositionType)) {
-				Position& pos = entityMgr.GetComponent<Position>(index);
-				pos.Pos = snappedPos;
-			}
-			if (entityMgr.HasComponent(index, TrapPlatformComponentType)) {
-				TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(index);
-				trap.originalPosition = snappedPos;
-			}
-			if (entityMgr.HasComponent(index, SpawnPointType)) {
-				SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(index);
-				spawnPt.Pos = snappedPos;
-			}
-		}
-
-		// Reset gizmoClicked bool on mouse release
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-			gizmoClicked = false;
-		}
-	}
-
 #pragma region COPY AND PASTING APIs
 
 	void Editor::CopyEntityToClipboard(const Entity entity) {
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 		doc.SetObject();
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
@@ -1019,7 +1087,7 @@ namespace Editor {
 			return;
 		}
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 
 		doc.Parse(entityClipboard->c_str());
@@ -1063,17 +1131,6 @@ namespace Editor {
 
 		ImGui::Begin("Performance Profiler");
 		{
-			/*Framework::PhysicsSystem* physics = gameManager_->GetSystems().physics_;
-			if (physics) {
-				bool isForced = physics->IsForcingNarrowPhase();
-				if (ImGui::Checkbox("Force Narrow-Phase (O(n^2))", &isForced)) {
-					physics->SetNarrowPhase(isForced);
-				}
-				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("Disables broad-phase grid to show performance difference.");
-				}
-				ImGui::Separator();
-			}*/
 
 			// Add a slider to control how often the profiler updates
 			static float updateInterval = 1.0f; // Default to updating once per second
@@ -1125,6 +1182,7 @@ namespace Editor {
 		// --- Scene Info ---
 		if (!currentScene.IsValid()) {
 			ImGui::TextDisabled("No Scene Loaded!");
+			SaveAndLoadSection();
 		}
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
@@ -1138,6 +1196,9 @@ namespace Editor {
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+				if (!IsGamePlaying()) {
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				}
 			}
 
 			ImGui::SameLine();
@@ -1145,6 +1206,7 @@ namespace Editor {
 				Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 				Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
 				SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
+				historyManager_.Record(OpType::Create, clonedEntity, "Clone Entity");
 			}
 
 			// --- Entity Inspector ---
@@ -1163,6 +1225,10 @@ namespace Editor {
 
 			if (ImGui::Button("Open Prefab Editor")) {
 				isPrefabEditorOpen_ = true;
+			}
+
+			if (ImGui::Button("Open Animation Editor")) {
+				settings.showAnimationEditor = true;
 			}
 		}
 
@@ -1256,84 +1322,138 @@ namespace Editor {
 		}
 
 		//ImGui::SameLine();
-		if (ImGui::Button("Spawn Test Skeleton")) {
-			
-			SceneManager& sceneMgr = SceneManager::GetInstance();
-			//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		
+		// SKELETON AI NOT IN USE CURRENTLY
+		//if (ImGui::Button("Spawn Test Skeleton")) {
+		//	
+		//	SceneManager& sceneMgr = SceneManager::GetInstance();
+		//	//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
 
-			// Create entity
-			Entity skeleton = entityMgr.CreateEntity();
+		//	// Create entity
+		//	Entity skeleton = entityMgr.CreateEntity();
 
-			// Set properties
-			entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
+		//	// Set properties
+		//	entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
 
-			// Add components required for the AI
-			entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
-			entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
-			entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
-			entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
-			
+		//	// Add components required for the AI
+		//	entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
+		//	entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
+		//	entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
+		//	entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
+		//	entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
+		//	
 
-			// Add physics, but make it affected by gravity
-			RigidBody rb;
-			rb.SetMass(1.0f); // Give it some mass
-			rb.isAffectedByGravity = true; // Make it fall
-			entityMgr.AddComponent<RigidBody>(skeleton, rb);
+		//	// Add physics, but make it affected by gravity
+		//	RigidBody rb;
+		//	rb.SetMass(1.0f); // Give it some mass
+		//	rb.isAffectedByGravity = true; // Make it fall
+		//	entityMgr.AddComponent<RigidBody>(skeleton, rb);
 
-			// Add components to make it visible and selectable
-			Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
-			entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
-			entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
+		//	// Add components to make it visible and selectable
+		//	Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
+		//	entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
+		//	entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
 
-			// Add it to the active scene
-			sceneMgr.AddEntityToScene(currentScene, skeleton);
+		//	// Add it to the active scene
+		//	sceneMgr.AddEntityToScene(currentScene, skeleton);
 
-			Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
-				<< skeleton << ")";
-		}
+		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
+		//		<< skeleton << ")";
+		//}
 		
 
 		ImGui::End(); // End "Level Editor" window
+	}
+	
+	void Editor::SaveScene() {
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
+		if (!currentScene.IsValid()) return;
+
+		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		// Reset entity states & stop game on save 
+		isGamePlaying = false;
+		gameManager_->GetSystems().levelResetter_->RunReset();
+		std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
+		std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
+
+		// If its a newly created scene, create new filepath for it based on scene name.
+		if (currentScene.path.empty()) {
+			sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
+		}
+
+		// Serialize Scene name and entities to its own json file in local Data folder
+		EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+
+		// Check if root Data folder exists and serialize scene data to root folder
+		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+			std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
+			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
+		}
+
+		// Save scene asset to json file that stores all scene assets
+		FileIOSystem::SaveSceneAsset(currentScene);
 	}
 
 	void Editor::SaveAndLoadSection() {
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		const SceneAsset& currentScene = sceneMgr.GetActiveScene();
-		const std::vector<Entity>& entitiesLoaded = sceneMgr.GetEntitiesInScene(currentScene.name);
+		bool isCurrentSceneValid = currentScene.IsValid();
 
 		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Save")) {
-			// Reset entity states & stop game on save 
-			isGamePlaying = false;
-			gameManager_->GetSystems().levelResetter_->RunReset();
-			std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
-			std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
-
-			// If its a newly created scene, create new filepath for it based on scene name.
-			if (currentScene.path.empty()) {
-				sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
-			}
-
-			// Serialize Scene name and entities to its own json file in local Data folder
-			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
-
-			// Check if root Data folder exists and serialize scene data to root folder
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
-				EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
-			}
-
-			// Save scene asset to json file that stores all scene assets
-			FileIOSystem::SaveSceneAsset(currentScene);
+			SaveScene();
 		}
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Create New Scene --- 
 		ImGui::SameLine();
+		if (IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("New Scene")) {
 			ImGui::OpenPopup("Create New Scene");
+		}
+		if (IsGamePlaying()) ImGui::EndDisabled();
+
+		// --- Unload Current Scene ---
+		ImGui::SameLine();
+		ImU32 buttonColor = IM_COL32(150, 50, 50, 255);
+		ImU32 buttonHoverColor = IM_COL32(200, 50, 50, 255);
+		ImU32 buttonActiveColor = IM_COL32(215, 50, 50, 255);
+
+		ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoverColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
+
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
+		if (ImGui::Button("Unload Scene")) {
+			ImGui::OpenPopup("Save");
+		}
+		ImGui::PopStyleColor(3);
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
+
+		// Save Scene Modal (pop up before unloading current scene)
+		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Save the current scene before unloading?");
+
+			if (ImGui::Button("Confirm", ImVec2(120, 0)))
+			{
+				SaveScene();
+				ImGui::CloseCurrentPopup();
+				sceneMgr.UnloadScene(sceneMgr.GetActiveScene());
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+			{
+				ImGui::CloseCurrentPopup();
+				sceneMgr.UnloadScene(sceneMgr.GetActiveScene());;
+			}
+
+			ImGui::EndPopup();
 		}
 
 		// Create New Scene Modal
@@ -1388,7 +1508,7 @@ namespace Editor {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene) {
+				if (isCurrentScene || !scene.IsValid()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1397,12 +1517,53 @@ namespace Editor {
 					if (!isCurrentScene) {
 						isGamePlaying = false;
 						gameManager_->GetSystems().levelResetter_->RunReset();
-						ResetEditorCamera();
+						//ResetEditorCamera();
+						if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
+							Framework::Logger::Get().Error(DebugType::Editor)
+								<< "Failed to reload prefabs before scene load!" << std::endl;
+						}
+						else {
+							Framework::Logger::Get().Info(DebugType::Editor)
+								<< "Successfully reloaded prefabs before scene load" << std::endl;
+						}
 						sceneMgr.LoadScene(id);
+
+						editorCamera_ = 0;
+						if (cameraSystem_) {
+							// Create a new independent camera entity
+							editorCamera_ = cameraSystem_->CreateCamera({ 0.0f, 0.0f }, 0, false);
+
+							// Re-apply default editor settings
+							Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+							cam.size = { 20.0f, 20.0f };
+							cam.zoom = 1.0f;
+
+							// Set Zoom/Aspect Ratio
+							cameraSystem_->SetZoom(editorCamera_, 540.0f);
+							float aspect = (gameViewportSize_.y > 0) ? gameViewportSize_.x / gameViewportSize_.y : 16.0f / 9.0f;
+							cameraSystem_->SetAspectRatio(editorCamera_, aspect);
+
+							// Update state trackers
+							defaultEditorCameraState_.position = { 0.0f, 0.0f };
+							defaultEditorCameraState_.zoom = 1.0f;
+							currentEditorCameraState_ = defaultEditorCameraState_;
+
+							// Log for verification
+							Framework::Logger::Get().Info(DebugType::Editor) << "Re-created Editor Camera with ID: " << editorCamera_ << std::endl;
+						}
+
+						ApplyAllPrefabChangesToCurrentScene();
+
+						palettePrepared_ = false;
+						tilePalettePrepared_ = false;
+
+						// reset entity selection
+						selectedEntityIndex = 0;
+						isEntitySelected_ = false;
 					}
 				}
 
-				if (isCurrentScene) {
+				if (isCurrentScene || !scene.IsValid()) {
 					ImGui::EndDisabled();
 				}
 			}
@@ -1418,6 +1579,9 @@ namespace Editor {
 			if (!wasTilePaletteOpen) {
 				wasTilePaletteOpen = true;
 			}
+
+			ImGui::Text("Left Click to drag and drop, Right click to select item for Brush Mode");
+			ImGui::Separator();
 
 			showGrid_ = true;
 
@@ -1444,6 +1608,10 @@ namespace Editor {
 				ImGui::PushID(item.name.c_str());
 				ImTextureID textureID = item.textureID;
 
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 1, 0, 0.5f)); // Green tint
+				}
+
 				if (ImGui::ImageButton(item.name.c_str(),
 					textureID,
 					buttonSize,
@@ -1456,23 +1624,41 @@ namespace Editor {
 						<< "Clicked tile: " << item.name << std::endl;
 				}
 
-				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("%s", item.name.c_str());
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PopStyleColor();
+					// Draw border around selected
+					ImVec2 p_min = ImGui::GetItemRectMin();
+					ImVec2 p_max = ImGui::GetItemRectMax();
+					ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(0, 255, 0, 255), 0, 0, 2.0f);
+				}
+
 
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					isBrushMode_ = false; // Cancel brush if we start dragging
 					ImGui::SetDragDropPayload("TILE_DND", &item, sizeof(DraggablePrefabInfo));
 					ImGui::Text("Placing: %s", item.name.c_str());
 					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
-
 					isDraggingPrefab_ = true;
 					dragDropPayload_ = item;
-
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Begin Dragging Tile: " << item.name << std::endl;
-
 					ImGui::EndDragDropSource();
 				}
 
+				// Right Click (Brush Mode)
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					isBrushMode_ = true;
+					brushPayload_ = item; // Copy item info to brush
+					isDraggingPrefab_ = false; // Stop dragging if active
+
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Entered Brush Mode with: " << item.name << std::endl;
+				}
+
+				
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", item.name.c_str());
+
+				
 				ImGui::PopID();
 
 				itemsPerRow++;
@@ -1494,14 +1680,10 @@ namespace Editor {
 			showGrid_ = false;
 			isDraggingPrefab_ = false;
 		}
-		//if (engine_ && engine_->IsEditorMode()) {
-		//	engine_->SetMode(Framework::EngineMode::Play);
-		//	Framework::Logger::Get().Info(DebugType::Editor)
-		//		<< "[Editor] Switched back to PLAY mode (Tilemap closed)" << std::endl;
-		//}
+		
 	}
 
-	void Editor::LoadTilesFromFile() {
+	/*void Editor::LoadTilesFromFile() {
 		using namespace Framework;
 
 		std::ifstream fileIn("Data/tiles.json");
@@ -1543,52 +1725,68 @@ namespace Editor {
 
 		Logger::Get().Info(DebugType::Editor)
 			<< "Loaded " << tileDataList_.size() << " tiles from tiles.json" << std::endl;
-	}
+	}*/
 
 
 	void Editor::PrepareTilePaletteItems() {
 		tilePaletteItems_.clear();
 
-		for (const auto& tile : tileDataList_) {
-			if (tile.textureID.empty()) {
+		auto AddTileItem = [&](const std::string& name, const std::string& textureKey) {
+			if (name.find("StagePlatform") == std::string::npos &&
+				name.find("StaticPlatform") == std::string::npos) {
+				return;
+			}
+
+			if (textureKey.empty()) {
 				Framework::Logger::Get().Error(DebugType::Editor)
-					<< "Skipping tile '" << tile.name << "' due to empty texture key." << std::endl;
-				continue;
+					<< "Skipping tile '" << name << "' due to empty texture key." << std::endl;
+				return;
 			}
 
 			try {
 				Framework::Logger::Get().Info(DebugType::Editor)
-					<< "Attempting to get texture for tile: '" << tile.name	<< "' with key: '" << tile.textureID << "'" << std::endl;
+					<< "Attempting to get texture for tile: '" << name
+					<< "' with key: '" << textureKey << "'" << std::endl;
 
 				if (!resourceManager_) {
 					Framework::Logger::Get().Error(DebugType::Editor)<< "ResourceManager pointer is null in PrepareTilePaletteItems!" << std::endl;
 					return;
 				}
 
-				Texture texID = resourceManager_->get<Texture>(tile.textureID);
+				Texture texID = resourceManager_->get<Texture>(textureKey);
 
 				if (texID != 0) {
-					tilePaletteItems_.push_back({ tile.name, PrefabType::Tile, texID ,ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
-					Framework::Logger::Get().Info(DebugType::Editor)<< " -> Success! Added tile: '" << tile.name
+					tilePaletteItems_.push_back({ name, PrefabType::Tile, texID, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< " -> Success! Added tile: '" << name
 						<< "' (ID: " << texID << ")" << std::endl;
 				}
 				else {
-					Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Texture ID is 0 for tile: '" << tile.name
-						<< "' (Key: '" << tile.textureID << "')" << std::endl;
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< " -> Failed! Texture ID is 0 for tile: '" << name
+						<< "' (Key: '" << textureKey << "')" << std::endl;
 				}
 			}
 			catch (const std::out_of_range&) {
-				Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Texture key '" << tile.textureID
-					<< "' not found in ResourceManager for tile: '" << tile.name << "'" << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< " -> Failed! Texture key '" << textureKey
+					<< "' not found in ResourceManager for tile: '" << name << "'" << std::endl;
 			}
 			catch (const std::exception& e) {
-				Framework::Logger::Get().Error(DebugType::Editor)<< " -> Failed! Exception getting texture for tile '" << tile.name
-					<< "' (Key: '" << tile.textureID << "'): " << e.what() << std::endl;
+				Framework::Logger::Get().Error(DebugType::Editor)
+					<< " -> Failed! Exception getting texture for tile '" << name
+					<< "' (Key: '" << textureKey << "'): " << e.what() << std::endl;
 			}
 			catch (...) {
 				Framework::Logger::Get().Error(DebugType::Editor)
-					<< " -> Failed! Unknown error getting texture for tile: '" << tile.name<< "' (Key: '" << tile.textureID << "')" << std::endl;
+					<< " -> Failed! Unknown error getting texture for tile: '" << name
+					<< "' (Key: '" << textureKey << "')" << std::endl;
 			}
+			};
+
+		// Load tiles from platform prefabs
+		for (const auto& pair : prefabSystem_.GetPlatformPrefabs()) {
+			AddTileItem(pair.first, pair.second.textureID);
 		}
 
 		Framework::Logger::Get().Info(DebugType::Editor)
@@ -1619,6 +1817,9 @@ namespace Editor {
 				}
 			}
 
+			ImGui::Text("Left Click to drag and drop, Right click to select item for Brush Mode");
+			ImGui::Separator();
+
 			showGrid_ = true; // Keep grid visible
 
 			ImVec2 buttonSize(64, 64);
@@ -1626,10 +1827,14 @@ namespace Editor {
 			ImVec4 tintCol(1, 1, 1, 1);
 
 			// --- Eraser Tool ---
-			if (ImGui::Selectable("Eraser", dragDropPayload_.type == PrefabType::Eraser && isDraggingPrefab_)) {
-				isDraggingPrefab_ = true;
-				dragDropPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+			bool isEraserActive = (isBrushMode_ && brushPayload_.type == PrefabType::Eraser);
+			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1));
+			if (ImGui::Selectable("Eraser", isEraserActive)) {
+				isBrushMode_ = true;
+				brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+				isDraggingPrefab_ = false;
 			}
+			if (isEraserActive) ImGui::PopStyleColor();
 			ImGui::Separator();
 
 			// --- Prefab Tiles ---
@@ -1644,6 +1849,11 @@ namespace Editor {
 				ImGui::PushID(item.name.c_str());
 				ImTextureID textureID = item.textureID;
 
+				// Highlight if active brush
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 1, 0, 0.5f));
+				}
+
 				if (ImGui::ImageButton(item.name.c_str(),
 					textureID,
 					buttonSize,
@@ -1656,22 +1866,32 @@ namespace Editor {
 						<< "Clicked palette item: " << item.name << std::endl;
 				}
 
-				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("%s", item.name.c_str());
-
+				if (isBrushMode_ && brushPayload_.name == item.name) {
+					ImGui::PopStyleColor();
+					ImVec2 p_min = ImGui::GetItemRectMin();
+					ImVec2 p_max = ImGui::GetItemRectMax();
+					ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(0, 255, 0, 255), 0, 0, 2.0f);
+				}
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					isBrushMode_ = false;
 					ImGui::SetDragDropPayload("PREFAB_TILE_DND", &item, sizeof(DraggablePrefabInfo));
 					ImGui::Text("Placing: %s", item.name.c_str());
 					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
-
 					isDraggingPrefab_ = true;
 					dragDropPayload_ = item;
-
-					Framework::Logger::Get().Info(DebugType::Editor)
-						<< "Begin Dragging: " << item.name << std::endl;
-
 					ImGui::EndDragDropSource();
 				}
+
+				// Brush Mode (Right Click)
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					isBrushMode_ = true;
+					brushPayload_ = item;
+					isDraggingPrefab_ = false;
+				}
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", item.name.c_str());
+
 
 				ImGui::PopID();
 
@@ -1719,88 +1939,147 @@ namespace Editor {
 
 		ImGui::Begin("Hierarchy");
 
-		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& activeScene = sceneMgr.GetActiveScene();
 
 		// --- Scene Info ---
-		if (!currentScene.IsValid()) {
+		if (!activeScene.IsValid()) {
 			ImGui::TextDisabled("No Scene Loaded!");
 			ImGui::End();
 			return;
 		}
 
-		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
 		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
-			int localWidgetID = 0;
 
-			// Clipper for large list optimization(This only process entities in view in the list)
-			ImGuiListClipper clipper;
-			clipper.Begin(static_cast<int>(entitiesLoaded.size()));
+			auto drawEntityItem = [&](Entity entity) {
+				if (!entityMgr.ValidateEntity(entity)) return;
 
-			while (clipper.Step()) {
-				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
-					const Entity entity = entitiesLoaded[i];
+				const std::string& name = entityMgr.GetProperties(entity).name;
 
-					std::string name = entityMgr.GetProperties(entity).name;
-					ImGui::PushID(localWidgetID++);
-					bool selected = (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity);
-					if (ImGui::Selectable(name.c_str(), &selected)) {
-						selectedTagIndex = selectedComponentIndex = 0;
-						selectedEntityIndex = entity + 1;
-						isEntitySelected_ = true;
+				ImGui::PushID(static_cast<int>(entity));
+
+				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+				if (ImGui::Selectable(name.c_str(), &selected)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Allows right-click selection
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Selectable Context Menu
+				if (ImGui::BeginPopupContextItem("##EntityContext")) {
+					// Copy
+					if (ImGui::MenuItem("Copy")) {
+						CopyEntityToClipboard(entity);
 					}
-					ImGui::PopID();
-
-					// Allows right-click selection
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-						selectedTagIndex = selectedComponentIndex = 0;
-						selectedEntityIndex = entity + 1;
-						isEntitySelected_ = true;
-					}
-
-					// Selectable Context Menu
-					if (ImGui::BeginPopupContextItem()) {
-						// Copy
-						if (ImGui::MenuItem("Copy")) {
-							CopyEntityToClipboard(entity);
+					// Paste
+					if (entityClipboard) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
 						}
-						// Paste
-						if (entityClipboard) {
-							if (ImGui::MenuItem("Paste")) {
-								PasteEntityFromClipboard();
+					}
+					else {
+						ImGui::TextDisabled("Paste");
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItem("Duplicate")) {
+						SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
+						if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+							ownerSceneID = entityMgr.GetComponent<SceneOwned>(entity).sceneIndex;
+						}
+
+						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
+						Entity clonedEntity = entityMgr.CloneEntity(entity);
+						sceneMgr.AddEntityToScene(activeScene, clonedEntity);
+						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
+					}
+					if (ImGui::MenuItem("Delete")) {
+						historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+						entityMgr.DestroyEntity(entity);
+						if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+							isEntitySelected_ = false;
+						}
+					}
+					ImGui::EndPopup();
+				}
+				ImGui::PopID();
+			}; // End lambda: drawEntityItem
+
+			auto drawSceneDropdown = [&](const SceneManagement::SceneGUID sceneID, const std::string& sceneName) {
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
+				flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+				ImGui::PushID(static_cast<int>(sceneID));
+
+				bool open = ImGui::CollapsingHeader(sceneName.c_str(), flags);
+
+				if (ImGui::BeginPopupContextItem("##SceneHeaderContext")) {
+					// Paste
+					if (entityClipboard.has_value()) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
+						}
+					}
+					else {
+						ImGui::TextDisabled("Paste");
+					}
+
+					ImGui::Separator();
+
+					// Create Empty Entity
+					if (ImGui::MenuItem("Create Empty")) {
+						Entity newEntity = entityMgr.CreateEntity();
+						SceneManager::GetInstance().AddEntityToScene(sceneID, newEntity);
+						historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+					}
+
+					ImGui::EndPopup();
+				} // End SceneHeaderContext
+
+				if (open) {
+					std::vector<Entity> list = sceneMgr.GetEntitiesInScene(sceneID);
+
+					if (list.empty()) {
+						ImGui::TextDisabled("(Empty)");
+					}
+					else {
+						// Clipper for large list optimization(This only process entities in view in the list)
+						ImGuiListClipper clipper;
+						clipper.Begin(static_cast<int>(list.size()));
+						while (clipper.Step()) {
+							for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+								drawEntityItem(list[i]);
 							}
 						}
-						else {
-							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-							ImGui::Text("Paste");
-							ImGui::PopStyleColor(1);
-						}
-
-						ImGui::Separator();
-
-						if (ImGui::MenuItem("Duplicate")) {
-							Entity clonedEntity = entityMgr.CloneEntity(entity);
-							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
-							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
-						}
-						if (ImGui::MenuItem("Delete")) {
-							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
-							entityMgr.DestroyEntity(entity);
-							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
-								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
-								isEntitySelected_ = false;
-							}
-						}
-						ImGui::EndPopup();
+						clipper.End();
 					}
 				}
+				ImGui::PopID();
+				}; // End lambda: drawSceneDropdown
+
+			drawSceneDropdown(activeScene.sceneIndex, std::string("Scene: ") + activeScene.name);
+			if (activeScene.sceneIndex != SceneManager::GetDDOLSceneID() && IsGamePlaying()) {
+				drawSceneDropdown(SceneManager::GetDDOLSceneID(), SceneManager::GetDDOLSceneName());
 			}
-			// End clipper
-			clipper.End();
+		}
 
-			// Child Window Context Menu
-			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+		// Ensure Empty Space in Hierarchy List
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+		if (avail.y > 0.f) {
+			ImGui::InvisibleButton("##HierarchyEmptySpace", avail, ImGuiButtonFlags_MouseButtonRight);
 
+			if (ImGui::BeginPopupContextItem("##HierarchyEmptyContext")) {
 				// Paste
 				if (entityClipboard) {
 					if (ImGui::MenuItem("Paste")) {
@@ -1808,46 +2087,7 @@ namespace Editor {
 					}
 				}
 				else {
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-					ImGui::Text("Paste");
-					ImGui::PopStyleColor(1);
-				}
-
-				ImGui::Separator();
-
-				// Prefabs
-				if (ImGui::BeginMenu("Prefabs")) {
-					// Platforms
-					if (ImGui::BeginMenu("Platforms")) {
-						for (const std::pair<std::string, PlatformPrefab>& pair : prefabSystem_.GetPlatformPrefabs()) {
-							if (ImGui::MenuItem(pair.first.c_str())) {
-								selectedPrefabType_ = PrefabType::Platform;
-								selectedPrefabName_ = pair.first;
-							}
-						}
-						ImGui::EndMenu();
-					}
-					// Trap Platforms
-					if (ImGui::BeginMenu("Trap Platforms")) {
-						for (const std::pair<std::string, TrapPlatformPrefab>& pair : prefabSystem_.GetTrapPlatformPrefabs()) {
-							if (ImGui::MenuItem(pair.first.c_str())) {
-								selectedPrefabType_ = PrefabType::TrapPlatform;
-								selectedPrefabName_ = pair.first;
-							}
-						}
-						ImGui::EndMenu();
-					}
-					// Scaling Platforms
-					if (ImGui::BeginMenu("Scaling Platforms")) {
-						for (const std::pair<std::string, ScalingPlatformPrefab>& pair : prefabSystem_.GetScalingPlatformPrefabs()) {
-							if (ImGui::MenuItem(pair.first.c_str())) {
-								selectedPrefabType_ = PrefabType::ScalingPlatform;
-								selectedPrefabName_ = pair.first;
-							}
-						}
-						ImGui::EndMenu();
-					}
-					ImGui::EndMenu(); // End Prefabs Menu
+					ImGui::TextDisabled("Paste");
 				}
 
 				ImGui::Separator();
@@ -1855,10 +2095,12 @@ namespace Editor {
 				// Create Empty Entity
 				if (ImGui::MenuItem("Create Empty")) {
 					Entity newEntity = entityMgr.CreateEntity();
-					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+					SceneManager::GetInstance().AddEntityToScene(activeScene, newEntity);
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 				}
+
 				ImGui::EndPopup();
-			}
+			} // End HierarchyEmptyContext
 		}
 
 		ImGui::EndChild();
@@ -1872,12 +2114,10 @@ namespace Editor {
 	void Editor::ShowInspector() {
 		using namespace Framework;
 
-		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 400, 20), ImGuiCond_FirstUseEver);
-		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 100), ImGuiCond_FirstUseEver);
-
 		ImGui::Begin("Inspector");
 		if (isEntitySelected_) {
-			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			EntityStorage& ecs = *(gameManager_->GetSystems().ecs_);
+			EntityManager entityMgr(ecs);
 			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
 
 			// Check if Entity is alive before accessing properties.
@@ -1893,43 +2133,92 @@ namespace Editor {
 
 			static Entity lastSelectedEntity = 0;
 			static char nameBuffer[128] = "";
+			static std::string lastRecordedName;
+			static bool editingName = false;
+
 			if (selectedEntity != lastSelectedEntity) {
 				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
 				nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // ensure null-termination
 				lastSelectedEntity = selectedEntity;
+				lastRecordedName = entityName;
+				editingName = false;
 			}
 
-			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer)));
+			// Check if got mismatch between buffer and name when not editing
+			if (!editingName && lastRecordedName != entityName) {
+				lastRecordedName = entityName;
+
+				strncpy(nameBuffer, entityName.c_str(), sizeof(nameBuffer));
+			}
+
+			if (ImGui::InputText("##Entity Name", nameBuffer, sizeof(nameBuffer))) {
+
+			}
+			if (ImGui::IsItemActivated()) editingName = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newName = nameBuffer;
 
 				if (newName != entityName) {
+					std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 					entityName = newName;
+					std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+					std::stringstream ss;
+					ss << "Modified name in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
 				}
+
+				editingName = false;
 			}
 			// --- End Name Field ---
 
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
+			const auto& collisionLayers = layerManager_.GetCollisionLayers();
+
 			// Create a list of layer names for the dropdown
-			std::string layerLabels[static_cast<int>(CollisionLayer::Count)]{};
-			const char* layerNames[static_cast<int>(CollisionLayer::Count)]{};
-			for (int i = 0; i < static_cast<int>(CollisionLayer::Count); ++i) {
-				std::string label = std::to_string(i) + ": " + LayerToString(static_cast<CollisionLayer>(i));
-				layerLabels[i] = label;
-				layerNames[i] = layerLabels[i].c_str();
+			std::vector<std::string> layerLabels;
+			std::vector<const char*> layerNames;
+
+			for (const auto& layer : collisionLayers) {
+				std::string label = std::to_string(layer.id) + ": " + layer.name;
+				layerLabels.push_back(label);
 			}
 
-			int currentLayer = static_cast<int>(entityLayer);
+			for (const auto& label : layerLabels) {
+				layerNames.push_back(label.c_str());
+			}
+
+			// Find current layer index
+			int currentLayer = -1;
+			for (size_t i = 0; i < collisionLayers.size(); ++i) {
+				if (collisionLayers[i].id == static_cast<uint8_t>(entityLayer)) {
+					currentLayer = static_cast<int>(i);
+
+					// Update name if not set
+					if (entityMgr.GetProperties(selectedEntity).collisionLayerName != collisionLayers[i].name) {
+						entityMgr.GetProperties(selectedEntity).collisionLayerName = collisionLayers[i].name;
+					}
+					break;
+				}
+			}
 			ImGui::AlignTextToFramePadding();
 			ImGui::TextUnformatted("Layer");
 			ImGui::SameLine(); // adjust offset spacing
 			ImGui::SetNextItemWidth(150);
-			if (ImGui::Combo("##Layer", &currentLayer, layerNames, IM_ARRAYSIZE(layerNames))) {
+			if (ImGui::Combo("##Layer", &currentLayer, layerNames.data(), static_cast<int>(layerNames.size()))) {
 				// If a new item was selected, it updates the component's layer
 				// with the new value.
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 				entityLayer = static_cast<CollisionLayer>(currentLayer);
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
 			// -- End Layer Dropdown ---
 
@@ -1970,14 +2259,44 @@ namespace Editor {
 
 						if (ImGui::Button("Add Component")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
-								entityMgr.AddComponent(selectedEntity, selectedComponent);
+								std::string beforeJSON;
+
+								// auto calculate aabb halfsize using tex halfsize
+								if (selectedComponent == ComponentType::AABBColliderType) {
+									AABBCollider newCollider;
+
+									// If we have a texture, use its size automatically
+									if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
+										const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+										newCollider.HalfSize = tex.HalfSize;
+									}
+									else {
+										newCollider.HalfSize = { 50.0f, 50.0f }; // Default fallback
+									}
+
+									entityMgr.AddComponent(selectedEntity, newCollider);
+								}
+								else {
+									// Standard addition for other components
+									entityMgr.AddComponent(selectedEntity, selectedComponent);
+								}
+
+								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+								std::string description = "Add " + ComponentToString(selectedComponent);
+								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
 
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Component")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+								std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+
 								entityMgr.RemoveComponent(selectedEntity, selectedComponent);
+
+								std::string afterJSON;
+								std::string description = "Remove " + ComponentToString(selectedComponent);
+								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
 					}
@@ -2023,14 +2342,29 @@ namespace Editor {
 
 						if (ImGui::Button("Add Tag")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedTag)) {
+								std::string beforeJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+
 								entityMgr.AddComponent(selectedEntity, selectedTag);
+
+								std::string afterJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+								std::string description = "Add " + ComponentToString(selectedTag);
+								if (beforeJSON != afterJSON) {
+									historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedTag);
+								}
 							}
 						}
 
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Tag")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedTag)) {
+								std::string beforeJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+
 								entityMgr.RemoveComponent(selectedEntity, selectedTag);
+								std::string afterJSON = EntitySerializer::SerializeTagsToString(selectedEntity, ecs);
+								std::string description = "Remove " + ComponentToString(selectedTag);
+								if (beforeJSON != afterJSON) {
+									historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedTag);
+								}
 							}
 						}
 					}
@@ -2044,84 +2378,219 @@ namespace Editor {
 	void Editor::ShowComponentSections(const Entity& selectedEntity, const Framework::ComponentType& selectedComponent) {
 		using namespace Framework;
 
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
 		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
 		switch (selectedComponent) {
-		case ComponentType::PositionType: {
-			Position& position = entityMgr.GetComponent<Position>(selectedEntity);
+		case ComponentType::TransformType: {
+			Transform& transform = entityMgr.GetComponent<Transform>(selectedEntity);
 
-			ImGui::InputFloat2("Position", &position.Pos.x, "%.2f");
-			break;
-		}
-		case ComponentType::RotationType: {
-			Rotation& rotation = entityMgr.GetComponent<Rotation>(selectedEntity);
-			float degrees = rotation.angle * (180.0f / 3.14159265359f);
-			if (transformationSystem_) {
-				if (ImGui::SliderFloat("Rotation (Degrees)", &degrees, -180.0f, 180.0f, "%.1f")) {
-					rotation.angle = degrees * (3.14159265359f / 180.0f);
-					if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
-						RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
-						rotationFlag.currentRotation = degrees; 
+			bool nowActive = false;
+			// Position
+			ImGui::InputFloat2("Position", &transform.position.x, "%.2f");
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			// Rotation
+			static bool unifiedTransformRotation = true;
+			ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedTransformRotation);
+			ImGui::Separator();
+
+			if (unifiedTransformRotation) {
+				float unifiedDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
+
+				// Unified Rotation Slider
+				ImGui::SetNextItemWidth(100.f);
+				if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
+					transform.rotation.textureAngle = newRadians;
+					transform.rotation.colliderAngle = newRadians;
+					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
+					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 				}
-				//checking
-				/*if (ImGui::TreeNode("Transformation Matrix")) {
-					Matrix3x3 transform = transformationSystem_->GetTransformMatrix(selectedEntity);
-					ImGui::Text("Matrix:");
-					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[0], transform.m[1], transform.m[2]);
-					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[3], transform.m[4], transform.m[5]);
-					ImGui::Text("[%.2f, %.2f, %.2f]", transform.m[6], transform.m[7], transform.m[8]);
-					ImGui::TreePop();
-				}*/
+				if (ImGui::IsItemActive()) nowActive = true;
+
+				if (ImGui::Button("Reset Rotation")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.textureAngle = 0.0f;
+					transform.rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::Text("Current: %.1f°", unifiedDegrees);
 			}
 			else {
-				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
-			}
-
-			if (ImGui::Button("Reset Rotation")) {
-				rotation.angle = 0.0f;
-				if (entityMgr.HasComponent(selectedEntity, RotationFlagType)) {
-					RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
-					rotationFlag.currentRotation = 0.0f;
+				// Texture Rotation Slider
+				ImGui::Text("Texture Rotation");
+				float textureDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
+				if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+					transform.rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
 					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
 				}
-			}
-			break;
-		}
+				if (ImGui::IsItemActive()) nowActive = true;
 
-		case ComponentType::ScaleType: {
-			Scale& scale = entityMgr.GetComponent<Scale>(selectedEntity);
-			if (transformationSystem_) {
-				Vector2D originalScale = scale.axes;
+				ImGui::Separator();
 
-				if (ImGui::InputFloat2("Scale Factors (X, Y)", &scale.axes.x, "%.2f")) {
-					scale.axes.x = std::max(0.01f, scale.axes.x);
-					scale.axes.y = std::max(0.01f, scale.axes.y);
-					transformationSystem_->UpdateEntityTransform(selectedEntity);
-				}
-
-				static bool uniformScaling = false;
-				ImGui::Checkbox("Uniform Scaling", &uniformScaling);
-
-				if (uniformScaling) {
-					float uniformScale = (scale.axes.x + scale.axes.y) * 0.5f;
-					if (ImGui::SliderFloat("Uniform Scale", &uniformScale, 0.1f, 5.0f, "%.2f")) {
-						scale.axes.x = uniformScale;
-						scale.axes.y = uniformScale;
+				// Collider Rotation Slider
+				ImGui::Text("Collider Rotation");
+				float colliderDegrees = static_cast<float>(transform.rotation.colliderAngle * (180.0f / M_PI));
+				if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+					transform.rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
+					if (transformationSystem_) {
 						transformationSystem_->UpdateEntityTransform(selectedEntity);
 					}
 				}
-				if (ImGui::Button("Reset Scale (1,1)")) {
-					scale.axes = { 1.0f, 1.0f };
-					transformationSystem_->UpdateEntityTransform(selectedEntity);
+				if (ImGui::IsItemActive()) nowActive = true;
+
+				ImGui::Separator();
+
+				// Reset Texture Button
+				if (ImGui::Button("Reset Texture")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.textureAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Texture Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Collider")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Collider Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Both")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					transform.rotation.textureAngle = 0.0f;
+					transform.rotation.colliderAngle = 0.0f;
+					if (transformationSystem_) {
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+					}
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Reset Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::Text("Texture: %.1f° | Collider: %.1f°", textureDegrees, colliderDegrees);
+			}
+
+			// Scale
+			if (transformationSystem_) {
+				static std::unordered_map<Entity, Vector2D> defaultSizes;
+
+				if (defaultSizes.find(selectedEntity) == defaultSizes.end()) {
+					if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
+						defaultSizes[selectedEntity] = entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize;
+					}
+				}
+
+				// ===========================================================
+				// SCALING
+				// ===========================================================
+				if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(selectedEntity);
+					Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
+
+					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
+						transform.scale.x = ScaleFactor.x;
+						transform.scale.y = ScaleFactor.y;
+
+						if (defaultSizes.count(selectedEntity)) {
+							collider.HalfSize.x = defaultSizes[selectedEntity].x * ScaleFactor.x;
+							collider.HalfSize.y = defaultSizes[selectedEntity].y * ScaleFactor.y;
+						}
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild(); // force grid to rebuild instantly 
+					}
+					if (ImGui::IsItemActive()) nowActive = true;
+
+					static bool uniformTransformScale = false;
+					ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
+
+					if (uniformTransformScale) {
+						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
+						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
+							transform.scale.x = uniformValue;
+							transform.scale.y = uniformValue;
+
+							if (defaultSizes.count(selectedEntity)) {
+								collider.HalfSize.x = defaultSizes[selectedEntity].x * uniformValue;
+								collider.HalfSize.y = defaultSizes[selectedEntity].y * uniformValue;
+							}
+							transformationSystem_->UpdateEntityTransform(selectedEntity);
+							if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+						}
+						if (ImGui::IsItemActive()) nowActive = true;
+					}
+					if (ImGui::Button("Reset Scale")) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						transform.scale = { 1.0f, 1.0f };
+						if (defaultSizes.count(selectedEntity)) {
+							collider.HalfSize = defaultSizes[selectedEntity];
+						}
+						transformationSystem_->UpdateEntityTransform(selectedEntity);
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Reset Scale in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+					}
+				}
+				else {
+					ImGui::TextDisabled("No AABBCollider attached");
 				}
 			}
 			else {
 				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
 			}
+
+			if (nowActive && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+			if (!nowActive && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Set Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+			editSession.wasItemActive = nowActive;
 			break;
 		}
 		case ComponentType::SpawnPointType: {
@@ -2151,10 +2620,28 @@ namespace Editor {
 		case ComponentType::TriangleType: {
 			Triangle& triangle = entityMgr.GetComponent<Triangle>(selectedEntity);
 
+			bool activeNow = false;
+
 			ImGui::InputFloat2("A", &triangle.a.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat2("B", &triangle.b.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat2("C", &triangle.c.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::ColorEdit4("RGBA", &triangle.color.r);
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(ComponentType::TriangleType) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::RigidBodyType: {
@@ -2169,27 +2656,443 @@ namespace Editor {
 			if (ImGui::InputFloat("Mass", &localMass, 0.1f, 1.0f, "%.2f")) {
 				rb.SetMass(localMass);
 			}
+
+			bool activeNow = ImGui::IsItemActive();
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified Mass in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("Inverse Mass", &rb.InverseMass, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::AABBColliderType: {
 			AABBCollider& col = entityMgr.GetComponent<AABBCollider>(selectedEntity);
 
-			//ImGui::InputFloat("HalfSize", &col.HalfSize.x, 0.f, 0.f, "%.2f");
 			ImGui::InputFloat2("HalfSize (X),(Y)", &col.HalfSize.x, "%.3f");
+			bool activeNow = ImGui::IsItemActive();
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+			ImGui::InputFloat2("Offset (X),(Y)", &col.Offset.x, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Offset the collider from the entity's center position.\nPositive X = right, Positive Y = up");
+			}
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << std::setprecision(2) << std::fixed;
+				ss << "Set " << ComponentToString(ComponentType::AABBColliderType) << " to (" << col.HalfSize.x << ", " << col.HalfSize.y << ") in "
+					<< entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
+				ImGui::NewLine();
+				if (ImGui::Button("Auto-Fit to Sprite")) {
+					const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
+
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					col.HalfSize = tex.HalfSize;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					historyManager_.RecordModifyComponent(selectedEntity, "Auto-Fit Collider", beforeJSON, afterJSON, selectedComponent);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Automatically sets the AABB bounds to match the Texture dimensions.");
+				}
+			}
+			if (col.Offset.x != 0.0f || col.Offset.y != 0.0f) {
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Offset")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					col.Offset = { 0.0f, 0.0f };
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					historyManager_.RecordModifyComponent(selectedEntity, "Reset Collider Offset", beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::ButtonType: {
 			Button& buttonComp = entityMgr.GetComponent<Button>(selectedEntity);
-			ImGui::Checkbox("Is Pressed?", &buttonComp.isPressed);
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS" };
+
+			bool isPressedLocal = buttonComp.isPressed;
+			if (ImGui::Checkbox("Is Pressed?", &isPressedLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				buttonComp.isPressed = isPressedLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Button Visual States");
+
+			bool visualStatesChanged = false;
+			std::string visualStatesBeforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+			// Default State
+			if (ImGui::TreeNodeEx("Default State", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Default Texture Key:");
+				if (ImGui::InputText("##DefaultTexture", &buttonComp.defaultTextureKey)) {
+					visualStatesChanged = true;
+				}
+
+				// Drag & Drop for Default Texture
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+							buttonComp.defaultTextureKey = dropped_file.filename().string();
+							visualStatesChanged = true;
+
+							// Load texture if not already loaded
+							resourceManager_->unload<Texture>(buttonComp.defaultTextureKey);
+							resourceManager_->loadTexture(buttonComp.defaultTextureKey, dropped_file.string());
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::Checkbox("Is Animated##default", &buttonComp.defaultIsAnimated)) {
+					visualStatesChanged = true;
+				}
+
+				if (buttonComp.defaultIsAnimated) {
+					ImGui::Indent();
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+						"Ensure animation data exists in textureToAnimationMapping.json");
+					ImGui::Unindent();
+				}
+
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			// Hover State
+			if (ImGui::TreeNodeEx("Hover State", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Hover Texture Key:");
+				if (ImGui::InputText("##HoverTexture", &buttonComp.hoverTextureKey)) {
+					visualStatesChanged = true;
+				}
+
+				// Drag & Drop for Hover Texture
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+							buttonComp.hoverTextureKey = dropped_file.filename().string();
+							visualStatesChanged = true;
+
+							resourceManager_->unload<Texture>(buttonComp.hoverTextureKey);
+							resourceManager_->loadTexture(buttonComp.hoverTextureKey, dropped_file.string());
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::Checkbox("Is Animated##hover", &buttonComp.hoverIsAnimated)) {
+					visualStatesChanged = true;
+				}
+
+				if (buttonComp.hoverIsAnimated) {
+					ImGui::Indent();
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+						"Ensure animation data exists in textureToAnimationMapping.json");
+					ImGui::Unindent();
+				}
+
+				ImGui::TextDisabled("(Leave empty to use default texture)");
+				ImGui::TreePop();
+			}
+
+			ImGui::Spacing();
+
+			// Pressed State
+			if (ImGui::TreeNodeEx("Pressed State", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Pressed Texture Key:");
+				if (ImGui::InputText("##PressedTexture", &buttonComp.pressedTextureKey)) {
+					visualStatesChanged = true;
+				}
+
+				// Drag & Drop for Pressed Texture
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
+							buttonComp.pressedTextureKey = dropped_file.filename().string();
+							visualStatesChanged = true;
+
+							resourceManager_->unload<Texture>(buttonComp.pressedTextureKey);
+							resourceManager_->loadTexture(buttonComp.pressedTextureKey, dropped_file.string());
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::Checkbox("Is Animated##pressed", &buttonComp.pressedIsAnimated)) {
+					visualStatesChanged = true;
+				}
+
+				if (buttonComp.pressedIsAnimated) {
+					ImGui::Indent();
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+						"Ensure animation data exists in textureToAnimationMapping.json");
+					ImGui::Unindent();
+				}
+
+				ImGui::TextDisabled("(Leave empty to use default texture)");
+				ImGui::TreePop();
+			}
+
+			// Save changes if any texture data was modified
+			if (visualStatesChanged) {
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				if (visualStatesBeforeJSON != afterJSON) {
+					historyManager_.RecordModifyComponent(selectedEntity, "Modified Button Visual States", visualStatesBeforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Button Actions");
+
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME" };
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Context Sensitive Inputs for Button Actions
+			// Only show relevant fields based on the selected action
+			bool dataChanged = false;
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+			if (buttonComp.action == ButtonAction::SWITCH_SCENE) {
+				ImGui::Text("Target Scene Name:");
+				if (ImGui::InputText("##SceneName", &buttonComp.targetString)) {
+					dataChanged = true;
+				}
+				
+				// Drag & Drop Support for Scene Files
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload)
+					{
+						// CORRECT way to extract the string from payload
+						// payload->Data is the raw bytes, payload->DataSize is the size in bytes
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
+						fs::path dropped_file(dropped_path);
+						// Validate the file extension
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
+						if (ext == ".json") // Assuming scene files are .json
+						{
+							// Update the target string with the new scene's filename without extension
+							std::string newSceneName = dropped_file.stem().string();
+							buttonComp.targetString = newSceneName;
+							Framework::Logger::Get().Info(DebugType::Editor)
+								<< "Scene name updated via Drag & Drop to: " << newSceneName << std::endl;
+						}
+						else
+						{
+							Framework::Logger::Get().Error(DebugType::Editor)
+								<< "Dropped file is not a valid scene file: " << ext << std::endl;
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Type the exact name of the scene to load (e.g., 'Level1')");
+			}
+			else if (buttonComp.action == ButtonAction::PLAYSOUND) {
+				ImGui::Text("Sound Key:");
+				if (ImGui::InputText("##SoundKey", &buttonComp.targetString)) {
+					dataChanged = true;
+				}
+				
+				// Drag & Drop Support for Audio Files
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload)
+					{
+						// CORRECT way to extract the string from payload
+						// payload->Data is the raw bytes, payload->DataSize is the size in bytes
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
+
+						fs::path dropped_file(dropped_path);
+
+						// Validate the file extension
+						std::string ext = dropped_file.extension().string();
+						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
+
+						// Check for common audio formats
+						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+						{
+							// Update the sound key with the new file's filename
+							std::string newKey = dropped_file.filename().string();
+							beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							buttonComp.targetString = newKey;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+
+							Framework::Logger::Get().Info(DebugType::Editor)
+								<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
+						}
+						else
+						{
+							Framework::Logger::Get().Error(DebugType::Editor)
+								<< "Dropped file is not a supported audio format: " << ext << std::endl;
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+			}
+			else if (buttonComp.action == ButtonAction::DEFAULT) {
+				// Maybe default buttons trigger generic events with a value?
+				ImGui::Text("Event Value:");
+				if (ImGui::DragFloat("##Val", &buttonComp.targetValue)) {
+					dataChanged = true;
+				}
+			}
+
+			// Sound Effects
+			ImGui::Separator();
+			ImGui::SeparatorText("Sound Effects");
+
+			// Hover Sound
+			ImGui::Text("Hover Sound:");
+			if (ImGui::InputText("##HoverSound", &buttonComp.hoverSoundKey)) {
+				dataChanged = true;
+			}
+
+			// Drag & Drop Support for Hover Sound
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+						buttonComp.hoverSoundKey = dropped_file.filename().string();
+						dataChanged = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			if (ImGui::SliderFloat("Hover Volume", &buttonComp.hoverSoundVolume, 0.0f, 1.0f)) {
+				dataChanged = true;
+			}
+
+			// Test button for hover sound
+			if (ImGui::Button("Test Hover Sound") && !buttonComp.hoverSoundKey.empty()) {
+				try {
+					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.hoverSoundKey);
+					gameManager_->GetSystems().audio_->play(sound, buttonComp.hoverSoundVolume, false);
+				}
+				catch (...) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Failed to play hover sound: " << buttonComp.hoverSoundKey << std::endl;
+				}
+			}
+
+			ImGui::Spacing();
+
+			// Click Sound
+			ImGui::Text("Click Sound:");
+			if (ImGui::InputText("##ClickSound", &buttonComp.clickSoundKey)) {
+				dataChanged = true;
+			}
+			// Drag & Drop Support for Click Sound
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+						buttonComp.clickSoundKey = dropped_file.filename().string();
+						dataChanged = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			if (ImGui::SliderFloat("Click Volume", &buttonComp.clickSoundVolume, 0.0f, 1.0f)) {
+				dataChanged = true;
+			}
+
+			// Test button for click sound
+			if (ImGui::Button("Test Click Sound") && !buttonComp.clickSoundKey.empty()) {
+				try {
+					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.clickSoundKey);
+					gameManager_->GetSystems().audio_->play(sound, buttonComp.clickSoundVolume, false);
+				}
+				catch (...) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Failed to play click sound: " << buttonComp.clickSoundKey << std::endl;
+				}
+			}
+
+			// Save History if data changed
+			if (dataChanged) {
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				// Check equality before recording to prevent spam
+				if (beforeJSON != afterJSON) {
+					historyManager_.RecordModifyComponent(selectedEntity, "Modified Button Data", beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			break;
@@ -2203,7 +3106,19 @@ namespace Editor {
 		case ComponentType::RotationFlagType: {
 			RotationFlag& rFlag = entityMgr.GetComponent<RotationFlag>(selectedEntity);
 
-			ImGui::Checkbox("Is Rotating?", &rFlag.isRotating);
+			bool isRotatingLocal = rFlag.isRotating;
+			if (ImGui::Checkbox("Is Rotating?", &isRotatingLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				rFlag.isRotating = isRotatingLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			};
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("Current Rotation", &rFlag.currentRotation, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
@@ -2216,24 +3131,42 @@ namespace Editor {
 
 			ImGui::Checkbox("Is Triggered?", &trapComp.isTriggered);
 			ImGui::Checkbox("Has Fallen?", &trapComp.hasFallen);
+
+			bool activeNow = false;
+
 			ImGui::InputFloat("Trigger Delay", &trapComp.triggerDelay, 0.1f, 1.f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
 			ImGui::InputFloat("Current Delay", &trapComp.currentDelay, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+
 			ImGui::InputFloat("Fall Speed", &trapComp.fallSpeed, 0.1f, 1.f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			ImGui::InputFloat2("Original Position", &trapComp.originalPosition.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat2("Original Position", &trapComp.originalPosition.x, "%.2f");
 			ImGui::InputFloat("Current Fall Distance", &trapComp.currentFallDistance, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
-		case ComponentType::ScalingPlatformComponentType: {
-			// I'm lazy to do this man
-			ImGui::TextDisabled("Properties are Hidden");
-			break;
-		}
+
 		case ComponentType::TextureComponentType: {
 			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 
@@ -2252,13 +3185,21 @@ namespace Editor {
 
 					// Validate the file extension
 					std::string ext = dropped_path.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
 					{
 						// Update the texture key with the new file's filename
 						std::string newKey = dropped_path.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						tex.textureKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						// Reload the texture resource
 						resourceManager_->unload<Texture>(newKey);
@@ -2281,13 +3222,38 @@ namespace Editor {
 			//Button to update texture key
 			if (ImGui::Button("Update Texture")) {
 				if (!newTextureKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					tex.textureKey = newTextureKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
 				}
 			}
 
 			// Vector2D HalfSize Input
-			ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f");
+			if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
+				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+			}
 
+			// Bool flipHorizontal Input
+			ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
+			bool activeNow = ImGui::IsItemActive();
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		case ComponentType::AudioComponentType: {
@@ -2308,20 +3274,29 @@ namespace Editor {
 
 					// Validate the file extension
 					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					// Check for common audio formats
 					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
 					{
 						// Update the sound key with the new file's filename
 						std::string newKey = dropped_file.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						audioComp.soundKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						Framework::Logger::Get().Info(DebugType::Editor)
 							<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
 					}
 					else
 					{
+						ImGui::OpenPopup("Invalid Audio File");
 						Framework::Logger::Get().Error(DebugType::Editor)
 							<< "Dropped file is not a supported audio format: " << ext << std::endl;
 					}
@@ -2334,55 +3309,161 @@ namespace Editor {
 			//Button to update audio key
 			if (ImGui::Button("Update Audio")) {
 				if (!newSoundKey.empty()) {
-					audioComp.soundKey = newSoundKey;
+					fs::path filePath(newSoundKey);
+
+					if (filePath.has_extension()) {
+						std::string ext = filePath.extension().string();
+
+						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							audioComp.soundKey = newSoundKey;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+						}
+						else {
+							ImGui::OpenPopup("Invalid Audio File");
+						}
+					}
+
 				}
 			}
-			ImGui::Checkbox("Looping", &audioComp.loop);
-			ImGui::Checkbox("Stream", &audioComp.stream);
+
+			// Invalid Audio File Popup
+			if (ImGui::BeginPopupModal("Invalid Audio File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Error: An invalid audio file was uploaded!");
+
+				if (ImGui::Button("Ok", ImVec2(120, 0)))
+				{
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
+			// Looping Checkbox
+			bool loopLocal = audioComp.loop;
+			if (ImGui::Checkbox("Looping", &loopLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				audioComp.loop = loopLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Stream Checkbox
+			bool streamLocal = audioComp.stream;
+			if (ImGui::Checkbox("Stream", &streamLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				audioComp.stream = streamLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Volume Slider
 			ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
+			bool activeNow = ImGui::IsItemActive();
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
 		case ComponentType::AnimationComponentType: {
-			ImGui::TextDisabled("Properties are Hidden");
+			AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(selectedEntity);
+
+			// Show the profile name for AnimationComponent
+			ImGui::InputText("Animation Profile", &animComp.profileName);
+			
+			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
+			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
+			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
+			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
 			break;
 		}
 		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
-			char textBuffer[256] = "";
+			static char textBuffer[256] = "";
+			static Entity text_LastSelectedEntity;
+			static std::string text_lastRecordedText;
+			static bool text_editingText = false;
 
-			// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
-			if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
-				std::strncpy(
-					textBuffer,
-					textComp.textToDraw.c_str(),
-					IM_ARRAYSIZE(textBuffer) - 1
-				);
-				textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+			if (text_LastSelectedEntity != selectedEntity) {
+				text_LastSelectedEntity = selectedEntity;
+				text_editingText = false;
+				text_lastRecordedText = textComp.textToDraw;
+
+				// Copy textToDraw to textBuffer if !empty() && textBuffer != textToDraw
+				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+					std::strncpy(
+						textBuffer,
+						textComp.textToDraw.c_str(),
+						IM_ARRAYSIZE(textBuffer) - 1
+					);
+					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+				}
 			}
 
-			if (ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer))) {
-				textComp.textToDraw = textBuffer;
+			if (!text_editingText && textComp.textToDraw != text_lastRecordedText) {
+				text_lastRecordedText = textComp.textToDraw;
+
+				if (!textComp.textToDraw.empty() && std::strcmp(textBuffer, textComp.textToDraw.c_str()) != 0) {
+					std::strncpy(
+						textBuffer,
+						textComp.textToDraw.c_str(),
+						IM_ARRAYSIZE(textBuffer) - 1
+					);
+					textBuffer[IM_ARRAYSIZE(textBuffer) - 1] = '\0';
+				}
 			}
 
-			// Font Selection
-			char fontKeyBuffer[256] = "";
+			// Text Inputfield
+			ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer));
+			if (ImGui::IsItemActivated()) text_editingText = true;
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string newText = textBuffer;
 
-			// Copy fontKey to fontKeyBuffer if !empty() && fontKeyBuffer != textToDraw
-			if (!textComp.fontKey.empty() && std::strcmp(fontKeyBuffer, textComp.fontKey.c_str()) != 0) {
-				std::strncpy(
-					fontKeyBuffer,
-					textComp.fontKey.c_str(),
-					IM_ARRAYSIZE(fontKeyBuffer) - 1
-				);
-				fontKeyBuffer[IM_ARRAYSIZE(fontKeyBuffer) - 1] = '\0';
+				if (newText != textComp.textToDraw) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					textComp.textToDraw = newText;
+					textComp.isDirty = true;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+
+				text_editingText = false;
 			}
 
-			if (ImGui::InputText("Font", fontKeyBuffer, IM_ARRAYSIZE(fontKeyBuffer))) {
-				textComp.fontKey = fontKeyBuffer;
-			}
+			// Fontkey read-only Inputfield
+			ImGui::InputText("Font Key", &textComp.fontKey, ImGuiInputTextFlags_ReadOnly);
 
 			// Drag and Drop Target for Font Key
 			if (ImGui::BeginDragDropTarget())
@@ -2396,13 +3477,22 @@ namespace Editor {
 
 					// Validate extension
 					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
 					if (ext == ".ttf" || ext == ".otf")
 					{
 						// Set font key to filename
 						std::string newFontKey = dropped_file.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						textComp.fontKey = newFontKey;
+						textComp.isDirty = true;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						// Optionally reload font resource
 						if (resourceManager_)
@@ -2423,16 +3513,64 @@ namespace Editor {
 				ImGui::EndDragDropTarget();
 			}
 
+			static std::string newFontKey = "";
+			ImGui::InputText("New Font Key", &newFontKey);
+
+			//Button to update Font key
+			if (ImGui::Button("Update Font")) {
+				if (!newFontKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					textComp.fontKey = newFontKey;
+					textComp.isDirty = true;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+			}
+
+			bool activeNow = false;
+
 			// Color Input
 			ImGui::Text("Color RGBA: ");
 			ImGui::InputFloat("R", &textComp.color.r, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("G", &textComp.color.g, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("B", &textComp.color.b, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("A", &textComp.color.a, 0.f, 0.f, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			// Font Size Input
-			ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f");
+			if (ImGui::InputFloat("Font Size", &textComp.scale, 0.f, 0.f, "%.3f")) {
+				textComp.isDirty = true;
+			}
+			if (ImGui::IsItemActive()) activeNow = true;
 
+			// Max Width Input
+			if (ImGui::InputFloat("Max Width", &textComp.maxWidth, 0.f, 0.f, "%.3f")) {
+				textComp.isDirty = true;
+			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Read Only HalfSize
+			ImGui::InputFloat2("Half Size", &textComp.halfSize.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2480,10 +3618,18 @@ namespace Editor {
 			ImGui::Combo("##addScriptChoice", &selectedScriptIndex, labels.data(), static_cast<int>(labels.size()));
 			ImGui::SameLine();
 			if (ImGui::Button("Add Script") && selectedScriptIndex > 0) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				const std::string& pick = names[selectedScriptIndex];
 				std::size_t idx = entityMgr.AttachScriptByName(selectedEntity, pick, true);
-				if (idx == (std::size_t)-1) {
+				if (idx == (std::size_t) -1) {
 					Logger::Get().Error(DebugType::Editor) << "AttachScriptByName failed for '" << pick << "'";
+				}
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Added " << pick << " Native Script to " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 				selectedScriptIndex = 0;
 			}
@@ -2517,7 +3663,17 @@ namespace Editor {
 						ImGui::EndDisabled();
 					}
 					else {
-						if (ImGui::Checkbox("Enabled", &enabled)) script.enabled = enabled;
+						if (ImGui::Checkbox("Enabled", &enabled)) {
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							script.enabled = enabled;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+						}
 					}
 
 					ImGui::SameLine();
@@ -2530,7 +3686,17 @@ namespace Editor {
 						ImGui::EndDisabled();
 					}
 					else {
-						if (ImGui::Checkbox("Execute In Edit?", &executeInEditMode)) script.executeInEditMode = executeInEditMode;
+						if (ImGui::Checkbox("Execute In Edit?", &executeInEditMode)) {
+							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+							script.executeInEditMode = executeInEditMode;
+							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+							if (beforeJSON != afterJSON) {
+								std::stringstream ss;
+								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+							}
+						}
 					}
 
 					// Replace Script Button
@@ -2539,6 +3705,7 @@ namespace Editor {
 					ImGui::SameLine();
 					if (ImGui::Button("Replace") && selectedReplaceScriptIndex > 0) {
 						const std::string& newType = names[selectedReplaceScriptIndex];
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
 						std::size_t newIndex = entityMgr.AttachScriptByName(selectedEntity, newType, script.enabled);
 						if (newIndex == (std::size_t)-1) {
@@ -2548,22 +3715,54 @@ namespace Editor {
 							if (newIndex != i) entityMgr.SwapScripts(selectedEntity, newIndex, i);
 							entityMgr.RemoveScriptAt(selectedEntity, newIndex, true);
 						}
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Replaced Native Script in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 						selectedReplaceScriptIndex = 0;
 					}
 
 					// Reordering Buttons
 					if (ImGui::SmallButton("Up") && i > 0) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						entityMgr.SwapScripts(selectedEntity, i, i - 1);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 					}
 					ImGui::SameLine();
 					if (ImGui::SmallButton("Down") && i + 1 < comp.scripts.size()) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						entityMgr.SwapScripts(selectedEntity, i, i + 1);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 					}
 
 					// Remove Script Button
 					ImGui::SameLine();
 					if (ImGui::SmallButton("Remove")) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						entityMgr.RemoveScriptAt(selectedEntity, i, true);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Removed " << scriptName <<" Native Script from " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 						ImGui::PopID();
 						break;
 					}
@@ -2631,6 +3830,19 @@ namespace Editor {
 
 		//	break;
 		//}
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
+			break;
+		}
 
 		case ComponentType::SkeletonAIComponentType: {
 			SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
@@ -2639,8 +3851,23 @@ namespace Editor {
 			int state = static_cast<int>(skelAI.state);
 			ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
 
+			bool activeNow = false;
 			ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -2660,74 +3887,358 @@ namespace Editor {
 			break;
 		}
 
-		case ComponentType::ParticleEmitterComponentType:{
+		case ComponentType::ParticleEmitterComponentType: {
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
-			ImGui::Checkbox("Is Emitting?", &emitter.isEmitting);
-			ImGui::Checkbox("Is Particle Animated?", &emitter.isParticleAnimated);
+			bool isEmittingLocal = emitter.isEmitting;
+			bool isParticleAnimatedLocal = emitter.isParticleAnimated;
 
-			//Show text but make it read-only
-			ImGui::InputText("Texture Key", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
+			// Is Emitting Checkbox
+			if (ImGui::Checkbox("Is Emitting?", &isEmittingLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isEmitting = isEmittingLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
-			// Drag and Drop Target for Texture Key
-			if (ImGui::BeginDragDropTarget())
-			{
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Animated Particle Checkbox
+			if (ImGui::Checkbox("Is Particle Animated?", &isParticleAnimatedLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isParticleAnimated = isParticleAnimatedLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Screen space toggle
+			ImGui::Checkbox("Screen Space##screenspace", &emitter.isScreenSpace);
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("If enabled, particles emit in screen/UI space (fixed to screen)\n"
+					"If disabled, particles emit in world space (moves with camera)");
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Mode");
+
+			// Emission Mode Dropdown
+			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST" };
+			int currentModeIndex = static_cast<int>(emitter.emissionMode);
+
+			if (ImGui::Combo("Emission Mode##emitter", &currentModeIndex, emissionModeItems, IM_ARRAYSIZE(emissionModeItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.emissionMode = static_cast<ParticleEmissionMode>(currentModeIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Trigger Event Name (only show if not CONTINUOUS)
+			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS) {
+				ImGui::Text("Trigger Event Name:");
+				if (ImGui::InputText("##TriggerEventName", &emitter.triggerEventName)) {
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Name of the event that triggers this emitter\n"
+						"Examples: 'WorldRotation', 'PlayerDash', 'EnemyDeath'");
+				}
+			}
+
+			// BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::BURST) {
+				ImGui::Text("Burst Count (particles per burst):");
+				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+			}
+
+			// LOOP_BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::LOOP_BURST) {
+				ImGui::Text("Burst Count (particles per burst):");
+				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+
+				ImGui::Text("Burst Interval (seconds):");
+				ImGui::DragFloat("##BurstInterval", &emitter.burstInterval, 0.01f, 0.01f, 5.0f, "%.2f");
+			}
+
+			// Texture Key
+			ImGui::InputText("Texture Key##particle", &emitter.particleTextureKey, ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::BeginDragDropTarget()) {
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-				if (payload)
-				{
-					// Process the dropped file path
+				if (payload) {
 					const char* dropped_path_c_str = (const char*)payload->Data;
 					fs::path dropped_path(dropped_path_c_str);
 
-					// Validate the file extension
 					std::string ext = dropped_path.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
 
-					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
-					{
-						// Update the texture key with the new file's filename
+					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
 						std::string newKey = dropped_path.filename().string();
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 						emitter.particleTextureKey = newKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
 
 						// Reload the texture resource
 						resourceManager_->unload<Texture>(newKey);
 						resourceManager_->loadTexture(newKey, dropped_path.string());
-
-						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
-					}
-					else
-					{
-						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
+						Logger::Get().Info(DebugType::Editor) << "Texture key updated to: " << newKey << std::endl;
 					}
 				}
 				ImGui::EndDragDropTarget();
 			}
 
 			static std::string newParticleTextureKey = "";
-			ImGui::InputText("New Texture Key", &newParticleTextureKey);
+			ImGui::InputText("New Texture Key##particle", &newParticleTextureKey);
 
-			//Button to update texture key
-			if (ImGui::Button("Update Texture")) {
+			if (ImGui::Button("Update Texture##particle")) {
 				if (!newParticleTextureKey.empty()) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 					emitter.particleTextureKey = newParticleTextureKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
 				}
 			}
 
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Properties");
+
+			bool activeNow = false;
 			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
-			ImGui::InputFloat("Emission Interval", &emitter.emissionInterval);
-			ImGui::InputFloat("Time Since Last Emission", &emitter.timeSinceLastEmission);
-
-			const char* items[] = { "NONE", "RANDOM"};
-			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
-
-			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, items, IM_ARRAYSIZE(items))) {
-				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+			// Speed with tooltip based on space
+			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) {
+				if (emitter.isScreenSpace) {
+					ImGui::SetTooltip("Screen space speed (0-1 range recommended)\n"
+						"Typical range: 0.1 - 1.0 for screen effects");
+				}
+				else {
+					ImGui::SetTooltip("World space speed\n"
+						"Typical range: 0.5 - 5.0 for world effects");
+				}
 			}
 
-			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
 			ImGui::InputFloat2("Particle Size", &emitter.particleSize.x);
+			if (ImGui::IsItemActive()) activeNow = true;
 
-			ImGui::Checkbox("Is Affected by Gravity?", &emitter.isAffectedByGravity);
+			bool isAffectedByGravityLocal = emitter.isAffectedByGravity;
+			if (ImGui::Checkbox("Is Affected by Gravity?", &isAffectedByGravityLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isAffectedByGravity = isAffectedByGravityLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			// Effect Type
+			const char* effectItems[] = { "NONE", "DRIFT", "RANDOM" };
+			int currentEffectIndex = static_cast<int>(emitter.particleEffectType);
+
+			if (ImGui::Combo("Particle Effect Type", &currentEffectIndex, effectItems, IM_ARRAYSIZE(effectItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.particleEffectType = static_cast<EffectType>(currentEffectIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::BeginTooltip();
+				ImGui::Text("NONE: Particles move in straight lines");
+				ImGui::Text("DRIFT: Gentle variation (recommended for rain/snow)");
+				ImGui::Text("RANDOM: Chaotic erratic movement");
+				ImGui::EndTooltip();
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Emission Style");
+
+			// Emission Style Combo
+			const char* styleItems[] = {
+				"From Point",
+				"From Radius",
+				"From Top Viewport",
+				"From Left Viewport",
+				"From Right Viewport",
+				"From Bottom Viewport",
+				"From Line",
+				"From Circle Edge"
+			};
+
+			int currentStyleIndex = static_cast<int>(emitter.emissionStyle);
+
+			if (ImGui::Combo("Emission Style", &currentStyleIndex, styleItems, IM_ARRAYSIZE(styleItems))) {
+				emitter.emissionStyle = static_cast<EmissionStyle>(currentStyleIndex);
+			}
+
+			// Emission Offset
+			ImGui::Spacing();
+			ImGui::Text("Emission Offset:");
+			ImGui::SetNextItemWidth(200.0f);
+			ImGui::DragFloat2("Offset (X, Y)", &emitter.emissionOffset.x, 0.01f, -10.0f, 10.0f, "%.2f");
+
+			if (ImGui::IsItemHovered()) {
+				if (emitter.isScreenSpace) {
+					ImGui::SetTooltip("Screen space offset (0-1 normalized coordinates)\n"
+						"Example: X=0, Y=-0.5 shifts down by half screen");
+				}
+				else {
+					ImGui::SetTooltip("World space offset\n"
+						"Shifts emission position by this amount in world units");
+				}
+			}
+
+			// Add quick reset button
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Reset##offset")) {
+				emitter.emissionOffset = { 0.0f, 0.0f };
+			}
+
+			ImGui::Spacing();
+
+			switch (emitter.emissionStyle) {
+			case EmissionStyle::FROM_POINT:
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("Emits from screen position");
+				}
+				else {
+					ImGui::TextDisabled("Emits from entity position");
+				}
+				break;
+
+			case EmissionStyle::FROM_RADIUS:
+				ImGui::InputFloat("Emission Radius##fromradius", &emitter.emissionRadius, 0.05f, 0.1f);
+				if (emitter.isScreenSpace) {
+					ImGui::TextWrapped("Particles spawn randomly within a radius (normalized screen coords 0-1)");
+				}
+				else {
+					ImGui::TextWrapped("Particles spawn randomly within a radius around the entity position");
+				}
+				break;
+
+			case EmissionStyle::FROM_TOP_VIEWPORT:
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
+				ImGui::TextWrapped("Particles spawn at the top and fall down");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
+				break;
+
+			case EmissionStyle::FROM_LEFT_VIEWPORT:
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
+				ImGui::TextWrapped("Particles spawn at the left edge and move right");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
+				break;
+
+			case EmissionStyle::FROM_RIGHT_VIEWPORT:
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
+				ImGui::TextWrapped("Particles spawn at the right edge and move left");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
+				break;
+
+			case EmissionStyle::FROM_BOTTOM_VIEWPORT:
+				if (!emitter.isScreenSpace) {
+					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+				}
+				ImGui::TextWrapped("Particles spawn at the bottom and move up");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
+				break;
+
+			case EmissionStyle::FROM_LINE:
+				ImGui::InputFloat2("Line Start", &emitter.lineStart.x, "%.2f");
+				ImGui::InputFloat2("Line End", &emitter.lineEnd.x, "%.2f");
+				ImGui::TextWrapped("Particles spawn randomly along a line");
+				if (emitter.isScreenSpace) {
+					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
+				}
+				break;
+
+			case EmissionStyle::FROM_CIRCLE_EDGE:
+				ImGui::InputFloat("Circle Radius##circleradius", &emitter.circleRadius, 0.05f, 0.1f);
+				if (emitter.isScreenSpace) {
+					ImGui::TextWrapped("Particles spawn on circle edge (normalized screen coords 0-1)");
+				}
+				else {
+					ImGui::TextWrapped("Particles spawn on the edge of a circle around the entity position");
+				}
+				break;
+
+			default:
+				break;
+			}
+
+			// Direction for viewport-based emissions
+			if (emitter.emissionStyle >= EmissionStyle::FROM_TOP_VIEWPORT &&
+				emitter.emissionStyle <= EmissionStyle::FROM_BOTTOM_VIEWPORT) {
+				ImGui::Separator();
+				ImGui::InputFloat2("Emission Direction", &emitter.emissionDirection.x, "%.2f");
+				ImGui::TextWrapped("Direction vector for particle movement (normalize for consistent speed)");
+			}
+
+			ImGui::Separator();
+			ImGui::SeparatorText("Advanced");
+			ImGui::InputFloat2("Particle Start Velocity", &emitter.particleStartVelocity.x, "%.2f");
+			ImGui::InputFloat2("Particle Acceleration", &emitter.particleAcceleration.x, "%.2f");
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
 			break;
 		}
 		default:
@@ -2773,6 +4284,74 @@ namespace Editor {
 			gameManager_->GetSystems().guiSystem_->SetViewportContext(gameViewportPos_, gameViewportSize_);
 		}
 	}
+
+	void Editor::HandleGameViewportInput() {
+
+		// Handle inputs for gizmos (QTYU)
+		if (gizmoSystem_) {
+			// Q: Select/View Mode (No Gizmo)
+			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::None);
+			}
+			// T: Translate
+			else if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::Translate);
+			}
+			// Y: Rotate
+			else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::Rotate);
+			}
+			// U: Scale
+			else if (ImGui::IsKeyPressed(ImGuiKey_U)) {
+				gizmoSystem_->SetGizmoMode(GizmoMode::Scale);
+			}
+		}
+
+		// Camera Controls (WASD, Up/Down Arrows, R)
+		if (editorCamera_ != 0) {
+			Framework::Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+
+			// Mark this camera as editor-controlled
+			cam.isEditorControlled = true;
+
+			const float dt = Framework::Time::UnscaledDeltaTime();
+			const float camSpeed = 2000.0f;
+
+			if (ImGui::IsKeyDown(ImGuiKey_W)) cam.position.y += camSpeed * dt;
+			if (ImGui::IsKeyDown(ImGuiKey_S)) cam.position.y -= camSpeed * dt;
+			if (ImGui::IsKeyDown(ImGuiKey_A)) cam.position.x -= camSpeed * dt;
+			if (ImGui::IsKeyDown(ImGuiKey_D)) cam.position.x += camSpeed * dt;
+			// Zoom in/out using Up / Down arrow keys
+			if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+				cam.zoom *= 0.8f; // zoom in
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+			if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+				cam.zoom *= 1.2f; // zoom out
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+
+			// Optional: reset zoom with R
+			if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+				ResetEditorCamera();
+			}
+		}
+
+		// Delete selected entity with Delete key
+		if (isEntitySelected_ && selectedEntityIndex > 1) {
+			if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+				Entity entity = selectedEntityIndex - 1;
+				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+				historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+				entityMgr.DestroyEntity(entity);
+				if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+					selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+					isEntitySelected_ = false;
+				}
+			}
+		}
+	}
+
 	void Editor::ShowGameViewport() {
 		using namespace Framework;
 
@@ -2783,19 +4362,35 @@ namespace Editor {
 		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0) {
 			Graphics* gfx = gameManager_->GetSystems().gfx_;
 			SpriteRenderSystem* spriteRenderer_ = gameManager_->GetSystems().spriteRenderer_;
+			TextRenderSystem* textRenderer_ = gameManager_->GetSystems().textRenderer_;
 			CameraSystem* camSystem = gameManager_->GetSystems().camera_;
 
 			if (gfx && spriteRenderer_ && camSystem) {
 
-				// === STEP 0: UPDATE CAMERA ASPECT RATIO ===
-				//camSystem->UpdateAspectRatio(viewportPanelSize.x, viewportPanelSize.y);
+				// Calculate the aspect ratio of the specific ImGui Window
+				float viewportAspect = viewportPanelSize.x / viewportPanelSize.y;
 
-				// === STEP 1: PREPARE FRAMEBUFFER ===
+				// Determine which camera is currently being used
+				Entity cameraInUse = 0;
+				if (engine_->IsEditorMode() && editorCamera_ != 0) {
+					cameraInUse = editorCamera_;
+				}
+				else {
+					// If in Play Mode, we are using the Game's active camera
+					cameraInUse = camSystem->GetActiveCamera();
+				}
+
+				// Force that camera to match the ImGui window dimensions
+				if (cameraInUse != 0) {
+					camSystem->SetAspectRatio(cameraInUse, viewportAspect);
+				}
+
+				// === PREPARE FRAMEBUFFER ===
 				gfx->ResizeGameFramebuffer(static_cast<unsigned int>(viewportPanelSize.x), static_cast<unsigned int>(viewportPanelSize.y));
 				gfx->BindGameFramebuffer();
 				gfx->beginFrame({ 0.1f, 0.1f, 0.12f, 1.0f }); // clear frame buffer first
 
-				// === STEP 2: TEMPORARILY SWITCH TO EDITOR CAMERA ===
+				// ===  TEMPORARILY SWITCH TO EDITOR CAMERA ===
 				Entity prevCamera = camSystem->GetActiveCamera();
 
 				// Save current editor camera state before any rendering
@@ -2804,11 +4399,11 @@ namespace Editor {
 				}
 
 				if (engine_->IsEditorMode() && editorCamera_ != 0) {
-					// 1. Update Aspect Ratio based on the actual ImGui Window size
+					//  Update Aspect Ratio based on the actual ImGui Window size
 					float aspect = (viewportPanelSize.y > 0) ? (viewportPanelSize.x / viewportPanelSize.y) : 1.0f;
 					camSystem->SetAspectRatio(editorCamera_, aspect);
 
-					// 2. Manually update the camera.size. 
+					//  Manually update the camera.size. 
 					Framework::Camera& cam = camSystem->GetCamera(editorCamera_);
 					cam.size.x = 2.0f * cam.zoom * cam.aspectRatio;
 					cam.size.y = 2.0f * cam.zoom;
@@ -2816,10 +4411,11 @@ namespace Editor {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// === STEP 3: RENDER SPRITES ===
+				// ===  RENDER TEXTS & SPRITES ===
+				textRenderer_->Update();
 				spriteRenderer_->Update();
 
-				// === STEP 4: RESTORE ORIGINAL CAMERA ===
+				// ===  RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
 					camSystem->SetActiveCamera(prevCamera);
 
@@ -2829,15 +4425,15 @@ namespace Editor {
 					}
 				}
 
-				// === STEP 5: UNBIND FRAMEBUFFER ===
+				// ===  UNBIND FRAMEBUFFER ===
 				gfx->UnbindGameFramebuffer();
 
-				// === STEP 6: DRAW GAME TEXTURE ===
+				// === DRAW GAME TEXTURE ===
 				ImGui::Image((void*)(intptr_t)gfx->GetGameTexture(),
 					viewportPanelSize,
 					ImVec2(0, 1), ImVec2(1, 0));
 
-				// === STEP 7: DRAW OVERLAYS (GRID, GIZMOS, DEBUG) ===
+				// ===  DRAW OVERLAYS (GRID, DEBUG) ===
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 				ImVec2 clipMin = gameViewportPos_;
@@ -2845,28 +4441,33 @@ namespace Editor {
 					gameViewportPos_.y + gameViewportSize_.y);
 				drawList->PushClipRect(clipMin, clipMax, true);
 
-			/*	if (showGrid_) {
+				if (showGrid_) {
 					DrawEditorGrid(drawList);
-				}*/
+				}
 
 				if (isDraggingPrefab_ && isMouseOverGameViewport_) {
 					DrawDragDropPreview(drawList);
 				}
 
-				// Draw gizmos for SpawnPoint
 				if (engine_->IsEditorMode()) {
-					EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-					std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
-					for (Entity en : spawnPts) {
-						SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
-						ImVec2 gizmoScreenPos = WorldToImGuiScreen(spawnPt.Pos);
-						drawList->AddCircleFilled(gizmoScreenPos, gizmoCircleRad, IM_COL32(0, 255, 0, 255), 12);
-					}
-				}
 
-				// In world dragging and dropping of game objects
-				if (isDraggingGameObj_ && isMouseOverGameViewport_) {
-					HandleInWorldDragDrop();
+					// Draw placeholders for invisible entities (e.g. SpawnPoint)
+					if (gizmoSystem_) {
+						gizmoSystem_->DrawInvisPlaceholders(drawList);
+					}
+
+					if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused()) {
+						HandleGameViewportInput();
+					}
+
+					if (isEntitySelected_ && selectedEntityIndex > 1) {
+						if (gizmoSystem_) {
+							// draw transform gizmos on selected entity
+							gizmoSystem_->DrawGizmos(drawList, selectedEntityIndex);
+							// run gizmos update function to check for any gizmos dragging & apply transformations accordingly
+							gizmoSystem_->Update(selectedEntityIndex, editorCamera_);
+						}
+					}
 				}
 
 				AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
@@ -2921,13 +4522,27 @@ namespace Editor {
 	void Editor::ShowLayerManager() {
 
 		
-	ImGui::Begin("Layer", &settings.showLayerManager);
+	ImGui::Begin("Layer");
+
+	// Add button at the top to open layer configuration
+	if (ImGui::Button("Layer Settings", ImVec2(120, 0))) {
+		showLayerConfigWindow_ = true;
+	}
+	ImGui::SameLine();
+	ImGui::TextDisabled("Configure render and collision layers");
+
+	ImGui::Separator();
 
 	auto* physics = gameManager_->GetSystems().physics_;
 	if (!physics) {
 		ImGui::TextDisabled("Physics system not available");
 		ImGui::End();
 		return;
+	}
+
+	if (ImGui::CollapsingHeader("Scene Entity Layer Tracker", ImGuiTreeNodeFlags_DefaultOpen)) {
+		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		ShowSceneEntityTracker(entityMgr);
 	}
 
 	//collision matrix section
@@ -2938,7 +4553,6 @@ namespace Editor {
 		ShowCollisionMatrix(physics);
 	}
 
-	ImGui::Spacing();
 	ImGui::Separator();
 	ImGui::Spacing();
 
@@ -2976,82 +4590,308 @@ namespace Editor {
 	}
 
 	ImGui::End();
+
+	ShowLayerConfigWindow();
 	
+	}
+
+	void Editor::ShowLayerConfigWindow() {
+		if (!showLayerConfigWindow_) return;
+
+		ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("Layer Configuration", &showLayerConfigWindow_)) {
+			ImGui::End();
+			return;
+		}
+
+		if (ImGui::BeginTabBar("LayerTabs")) {
+			// === RENDER LAYERS TAB ===
+			if (ImGui::BeginTabItem("Render Layers")) {
+				ShowRenderLayersTab();
+				ImGui::EndTabItem();
+			}
+
+			// === COLLISION LAYERS TAB ===
+			if (ImGui::BeginTabItem("Collision Layers")) {
+				ShowCollisionLayersTab();
+				ImGui::EndTabItem();
+			}
+
+			ImGui::EndTabBar();
+		}
+
+		ImGui::End();
+	}
+
+	void Editor::ShowRenderLayersTab() {
+		ImGui::TextWrapped("Render layers control the draw order of sprites. Lower values render first (behind).");
+		ImGui::Separator();
+
+		// === ADD NEW LAYER ===
+		if (ImGui::CollapsingHeader("Add New Render Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::InputText("Layer Name", newRenderLayerName_, IM_ARRAYSIZE(newRenderLayerName_));
+			ImGui::DragInt("Render Order", &newRenderLayerOrder_, 1.0f, -1000, 1000);
+
+			if (ImGui::Button("Add Layer", ImVec2(120, 0))) {
+				int idx = layerManager_.AddRenderLayer(newRenderLayerName_, newRenderLayerOrder_);
+				if (idx >= 0) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Added render layer: " << newRenderLayerName_ << std::endl;
+					// Reset fields
+					strcpy(newRenderLayerName_, "New Layer");
+					newRenderLayerOrder_ = 0;
+
+					// Save immediately
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+				}
+			}
+		}
+
+		ImGui::Separator();
+
+		// === EXISTING LAYERS LIST ===
+		ImGui::Text("Existing Render Layers:");
+
+		if (ImGui::BeginChild("RenderLayerList", ImVec2(0, 250), true)) {
+			const auto& layers = layerManager_.GetRenderLayers();
+
+			for (size_t i = 0; i < layers.size(); ++i) {
+				ImGui::PushID(static_cast<int>(i));
+
+				bool isSelected = (selectedRenderLayerIdx_ == static_cast<int>(i));
+
+				// Color built-in layers differently
+				if (layers[i].isBuiltIn) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 1.0f, 1.0f));
+				}
+
+				std::string label = layers[i].name + " (" + std::to_string(layers[i].renderOrder) + ")";
+				if (layers[i].isBuiltIn) {
+					label += " [Built-in]";
+				}
+
+				if (ImGui::Selectable(label.c_str(), isSelected)) {
+					selectedRenderLayerIdx_ = static_cast<int>(i);
+				}
+
+				if (layers[i].isBuiltIn) {
+					ImGui::PopStyleColor();
+				}
+
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+
+		// === EDIT SELECTED LAYER ===
+		if (selectedRenderLayerIdx_ >= 0 &&
+			selectedRenderLayerIdx_ < static_cast<int>(layerManager_.GetRenderLayers().size())) {
+
+			const auto& layer = layerManager_.GetRenderLayers()[selectedRenderLayerIdx_];
+
+			ImGui::Separator();
+			ImGui::Text("Edit Selected Layer:");
+
+			static char editName[128] = "";
+			static int editOrder = 0;
+			static bool firstEdit = true;
+
+			if (firstEdit) {
+				strcpy(editName, layer.name.c_str());
+				editOrder = layer.renderOrder;
+				firstEdit = false;
+			}
+
+			bool canEdit = !layer.isBuiltIn;
+
+			if (!canEdit) {
+				ImGui::BeginDisabled();
+			}
+
+			ImGui::InputText("Name##Edit", editName, IM_ARRAYSIZE(editName));
+			ImGui::DragInt("Order##Edit", &editOrder, 1.0f, -1000, 1000);
+
+			if (ImGui::Button("Update", ImVec2(100, 0))) {
+				if (layerManager_.UpdateRenderLayer(selectedRenderLayerIdx_, editName, editOrder)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Updated render layer: " << editName << std::endl;
+					firstEdit = true;
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Delete", ImVec2(100, 0))) {
+				if (layerManager_.RemoveRenderLayer(selectedRenderLayerIdx_)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Deleted render layer" << std::endl;
+					selectedRenderLayerIdx_ = -1;
+					firstEdit = true;
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+				}
+			}
+
+			if (!canEdit) {
+				ImGui::EndDisabled();
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
+					"Built-in layers cannot be edited or deleted");
+			}
+		}
+	}
+
+	void Editor::ShowCollisionLayersTab() {
+		ImGui::TextWrapped("Collision layers control which objects can collide with each other.");
+		ImGui::Separator();
+
+		// === ADD NEW LAYER ===
+		if (ImGui::CollapsingHeader("Add New Collision Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::InputText("Layer Name", newCollisionLayerName_, IM_ARRAYSIZE(newCollisionLayerName_));
+
+			if (ImGui::Button("Add Layer", ImVec2(120, 0))) {
+				int id = layerManager_.AddCollisionLayer(newCollisionLayerName_);
+				if (id >= 0) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Added collision layer: " << newCollisionLayerName_
+						<< " (ID: " << id << ")" << std::endl;
+					strcpy(newCollisionLayerName_, "New Layer");
+					layerManager_.SaveToFile();
+				}
+			}
+
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%d/32 layers used)",
+				static_cast<int>(layerManager_.GetCollisionLayers().size()));
+		}
+
+		ImGui::Separator();
+
+		// === EXISTING LAYERS LIST ===
+		ImGui::Text("Existing Collision Layers:");
+
+		if (ImGui::BeginChild("CollisionLayerList", ImVec2(0, 250), true)) {
+			const auto& layers = layerManager_.GetCollisionLayers();
+
+			for (size_t i = 0; i < layers.size(); ++i) {
+				ImGui::PushID(static_cast<int>(i));
+
+				bool isSelected = (selectedCollisionLayerIdx_ == static_cast<int>(i));
+
+				if (layers[i].isBuiltIn) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 1.0f, 1.0f));
+				}
+
+				std::string label = layers[i].name + " (ID: " + std::to_string(layers[i].id) + ")";
+				if (layers[i].isBuiltIn) {
+					label += " [Built-in]";
+				}
+
+				if (ImGui::Selectable(label.c_str(), isSelected)) {
+					selectedCollisionLayerIdx_ = static_cast<int>(i);
+				}
+
+				if (layers[i].isBuiltIn) {
+					ImGui::PopStyleColor();
+				}
+
+				ImGui::PopID();
+			}
+		}
+		ImGui::EndChild();
+
+		// === EDIT SELECTED LAYER ===
+		if (selectedCollisionLayerIdx_ >= 0 &&
+			selectedCollisionLayerIdx_ < static_cast<int>(layerManager_.GetCollisionLayers().size())) {
+
+			const auto& layer = layerManager_.GetCollisionLayers()[selectedCollisionLayerIdx_];
+
+			ImGui::Separator();
+			ImGui::Text("Edit Selected Layer:");
+
+			static char editColName[128] = "";
+			static bool firstColEdit = true;
+
+			if (firstColEdit) {
+				strcpy(editColName, layer.name.c_str());
+				firstColEdit = false;
+			}
+
+			bool canEdit = !layer.isBuiltIn;
+
+			if (!canEdit) {
+				ImGui::BeginDisabled();
+			}
+
+			ImGui::InputText("Name##ColEdit", editColName, IM_ARRAYSIZE(editColName));
+			ImGui::Text("ID: %d (Read-only)", layer.id);
+
+			if (ImGui::Button("Rename", ImVec2(100, 0))) {
+				if (layerManager_.RenameCollisionLayer(layer.id, editColName)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Renamed collision layer to: " << editColName << std::endl;
+					firstColEdit = true;
+					layerManager_.SaveToFile();
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Delete##Col", ImVec2(100, 0))) {
+				if (layerManager_.RemoveCollisionLayer(layer.id)) {
+					Logger::Get().Info(DebugType::Editor)
+						<< "Deleted collision layer" << std::endl;
+					selectedCollisionLayerIdx_ = -1;
+					firstColEdit = true;
+					layerManager_.SaveToFile();
+				}
+			}
+
+			if (!canEdit) {
+				ImGui::EndDisabled();
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
+					"Built-in layers cannot be edited or deleted");
+			}
+		}
 	}
 
 	// Helper function to show collision matrix
 	void Editor::ShowCollisionMatrix(PhysicsSystem* physics) {
-		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
+
+		// Get actual collision layers from LayerManager instead of hardcoded enum
+		const auto& collisionLayers = layerManager_.GetCollisionLayers();
+		int layerCount = static_cast<int>(collisionLayers.size());
 
 		const float ROW_HEADER_WIDTH = 100.0f;
 		const float CELL_SIZE = 30.0f;
 
-		// Calculate column header height
-		float maxLabelWidth = 0.0f;
-		for (int i = 0; i < layerCount; i++) {
-			std::string name = LayerToString(static_cast<Framework::CollisionLayer>(i));
-			maxLabelWidth = std::max(maxLabelWidth, ImGui::CalcTextSize(name.c_str()).x);
-		}
-
-		const float COLUMN_HEADER_HEIGHT = maxLabelWidth + ImGui::GetStyle().ItemSpacing.y * 2;
-
-		// --- Draw Column Headers (Vertical Text) ---
-		ImGui::Dummy(ImVec2(ROW_HEADER_WIDTH, COLUMN_HEADER_HEIGHT));
-		ImGui::SameLine();
-
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
-
-		for (int col = 0; col < layerCount; col++) {
-			Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
-			std::string colName = LayerToString(colLayer);
-
-			float colCenterX = headerStartPos.x + (col * CELL_SIZE) + (CELL_SIZE * 0.5f);
-			float textBottom = headerStartPos.y + COLUMN_HEADER_HEIGHT - ImGui::GetStyle().ItemSpacing.y - 0.5f;
-
-			// Draw vertical text
-			for (size_t i = 0; i < colName.length(); i++) {
-				char c[2] = { colName[i], '\0' };
-				ImVec2 charSize = ImGui::CalcTextSize(c);
-				ImVec2 charPos(colCenterX - charSize.x * 0.5f, textBottom - (i + 1) * charSize.y);
-				drawList->AddText(charPos, ImGui::GetColorU32(ImGuiCol_Text), c);
-			}
-
-			ImGui::SetCursorScreenPos(ImVec2(colCenterX - CELL_SIZE * 0.5f, headerStartPos.y));
-			ImGui::InvisibleButton(("##colheader" + std::to_string(col)).c_str(),
-				ImVec2(CELL_SIZE, COLUMN_HEADER_HEIGHT));
-			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("%s", colName.c_str());
-			}
-		}
-
-		ImGui::SetCursorScreenPos(ImVec2(headerStartPos.x, headerStartPos.y + COLUMN_HEADER_HEIGHT));
 		ImGui::NewLine();
 
-		// Draw Matrix Grid 
+		// Draw Matrix Grid using actual layers
 		for (int row = 0; row < layerCount; row++) {
-			Framework::CollisionLayer rowLayer = static_cast<Framework::CollisionLayer>(row);
-			std::string rowName = LayerToString(rowLayer);
+			const auto& rowLayer = collisionLayers[row];
+			Framework::CollisionLayer rowLayerEnum = static_cast<Framework::CollisionLayer>(rowLayer.id);
 
 			ImGui::AlignTextToFramePadding();
-			ImGui::Text("%s", rowName.c_str());
+			ImGui::Text("%s", rowLayer.name.c_str()); //  Use layer name
 			ImGui::SameLine(ROW_HEADER_WIDTH);
 
 			for (int col = 0; col < layerCount; col++) {
-				Framework::CollisionLayer colLayer = static_cast<Framework::CollisionLayer>(col);
+				const auto& colLayer = collisionLayers[col];
+				Framework::CollisionLayer colLayerEnum = static_cast<Framework::CollisionLayer>(colLayer.id);
 
-				ImGui::PushID(row * layerCount + col);
-				bool canCollide = physics->GetLayerCollision(rowLayer, colLayer);
+				ImGui::PushID(row * 32 + col); // Use 32 instead of layerCount for unique IDs
+				bool canCollide = physics->GetLayerCollision(rowLayerEnum, colLayerEnum);
 
 				ImGui::SetCursorPosX(ROW_HEADER_WIDTH + (col * CELL_SIZE) +
 					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
 
 				if (ImGui::Checkbox("##cb", &canCollide)) {
-					physics->SetLayerCollision(rowLayer, colLayer, canCollide);
+					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
 				}
 
 				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("%s vs %s", rowName.c_str(), LayerToString(colLayer));
+					ImGui::SetTooltip("%s vs %s", rowLayer.name.c_str(), colLayer.name.c_str());
 				}
 
 				ImGui::SameLine();
@@ -3059,25 +4899,35 @@ namespace Editor {
 			}
 			ImGui::NewLine();
 		}
+		
 	}
 
 	// Helper function to show entity collision layer
 	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+
 		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
-		int currentLayerIndex = static_cast<int>(entityLayer);
-		int layerCount = static_cast<int>(Framework::CollisionLayer::Count);
 
-		// Create layer dropdown
-		std::vector<std::string> layerLabels;
-		std::vector<const char*> layerItems;
+		const auto& collisionLayers = layerManager_.GetCollisionLayers();
 
-		for (int i = 0; i < layerCount; i++) {
-			Framework::CollisionLayer layer = static_cast<Framework::CollisionLayer>(i);
-			layerLabels.push_back(LayerToString(layer));
+		// Find current layer index
+		int currentIdx = -1;
+		for (size_t i = 0; i < collisionLayers.size(); ++i) {
+			if (collisionLayers[i].id == static_cast<uint8_t>(entityLayer)) {
+				currentIdx = static_cast<int>(i);
+				break;
+			}
 		}
 
-		for (const auto& label : layerLabels) {
-			layerItems.push_back(label.c_str());
+		// Build dropdown
+		std::vector<std::string> layerNames;
+		std::vector<const char*> layerItems;
+
+		for (const auto& layer : collisionLayers) {
+			layerNames.push_back(layer.name);
+		}
+
+		for (const auto& name : layerNames) {
+			layerItems.push_back(name.c_str());
 		}
 
 		ImGui::AlignTextToFramePadding();
@@ -3085,15 +4935,17 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##CollisionLayer", &currentLayerIndex, layerItems.data(),
+		if (ImGui::Combo("##CollisionLayer", &currentIdx, layerItems.data(),
 			static_cast<int>(layerItems.size()))) {
-			entityLayer = static_cast<Framework::CollisionLayer>(currentLayerIndex);
+			if (currentIdx >= 0 && currentIdx < static_cast<int>(collisionLayers.size())) {
+				entityLayer = static_cast<Framework::CollisionLayer>(collisionLayers[currentIdx].id);
+			}
 		}
 
 		ImGui::Spacing();
 		ImGui::TextDisabled("This determines which objects can collide with this entity");
 
-		// Show collision info
+		// Show collision interactions
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Collision Interactions")) {
 			ImGui::Text("Can collide with:");
@@ -3101,10 +4953,11 @@ namespace Editor {
 
 			bool hasCollisions = false;
 			auto* physics = gameManager_->GetSystems().physics_;
-			for (int i = 0; i < layerCount; i++) {
-				Framework::CollisionLayer otherLayer = static_cast<Framework::CollisionLayer>(i);
-				if (physics->GetLayerCollision(entityLayer, otherLayer)) {
-					ImGui::BulletText("%s", LayerToString(otherLayer));
+
+			for (const auto& otherLayer : collisionLayers) {
+				Framework::CollisionLayer other = static_cast<Framework::CollisionLayer>(otherLayer.id);
+				if (physics->GetLayerCollision(entityLayer, other)) {
+					ImGui::BulletText("%s", otherLayer.name.c_str());
 					hasCollisions = true;
 				}
 			}
@@ -3116,77 +4969,234 @@ namespace Editor {
 			ImGui::Unindent();
 			ImGui::TreePop();
 		}
+		
 	}
 
 	// Helper function to show entity render layer
 	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
+
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
-		// Render Layer Dropdown
-		const char* renderLayerNames[] = {
-			"Background (-100)",
-			"Platform (50)",
-			"Enemy (75)",
-			"Player (100)",
-			"UI (200)",
-			"Custom"
-		};
+		const std::vector<RenderLayerData>& renderLayers = layerManager_.GetRenderLayers();
 
-		int currentRenderLayerIndex = static_cast<int>(props.renderLayer);
+		// Build dropdown with custom option
+		std::vector<const char*> layerItems;
+		layerItems.push_back("Custom");
+		for (const RenderLayerData& layer : renderLayers) {
+			layerItems.push_back(layer.name.c_str());
+		}
+
+		// Determine current selection
+		static int currentIdx = 0; // Default to Custom
+
+		if (props.renderLayer != RenderLayer::Custom) {
+			// Try to find matching layer by render order
+			for (size_t i = 0; i < renderLayers.size(); ++i) {
+				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
+					currentIdx = static_cast<int>(i) + 1; // +1 because Custom is at 0
+					break;
+				}
+			}
+		}
+		else {
+			currentIdx = 0;
+		}
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Render Layer:");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##RenderLayer", &currentRenderLayerIndex, renderLayerNames,
-			IM_ARRAYSIZE(renderLayerNames))) {
-			props.renderLayer = static_cast<Framework::RenderLayer>(currentRenderLayerIndex);
+		if (ImGui::Combo("##RenderLayer", &currentIdx, layerItems.data(),
+			static_cast<int>(layerItems.size()))) {
+
+			if (currentIdx == 0) {
+				// Custom selected
+				props.renderLayer = Framework::RenderLayer::Custom;
+				props.renderLayerName = "Custom";
+			}
+			else {
+				// Predefined layer selected
+				int layerIdx = currentIdx - 1;
+				if (layerIdx >= 0 && layerIdx < static_cast<int>(renderLayers.size())) {
+					props.customRenderOrder = renderLayers[layerIdx].renderOrder;
+					props.renderLayer = static_cast<RenderLayer>(renderLayers[layerIdx].renderOrder);
+					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
+				}
+			}
 		}
 
 		ImGui::Spacing();
 		ImGui::TextDisabled("This controls when this entity is drawn relative to others");
 
-		// Custom Render Order (only shown if Custom is selected)
-		if (props.renderLayer == Framework::RenderLayer::Custom) {
+		// Custom render order
+		if (props.renderLayerName == "Custom" || props.renderLayerName.empty()) {
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing();
 
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
-			ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000);
+			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+				props.renderLayer = RenderLayer::Custom;
+				props.renderLayerName = "Custom"; // Mark as truly custom
+			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
 				props.customRenderOrder = 0;
+				props.renderLayer = RenderLayer::Custom;
+				props.renderLayerName = "Custom";
 			}
 
 			ImGui::Spacing();
 			ImGui::TextWrapped("Lower values render first (behind). Higher values render last (in front).");
 		}
+		else {
+			// Show which named layer is active
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+				"Using layer: %s (Order: %d)",
+				props.renderLayerName.c_str(),
+				props.customRenderOrder);
+		}
 
 		// Show render order info
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Render Order Info")) {
-			int effectiveRenderOrder = props.renderLayer == Framework::RenderLayer::Custom
-				? props.customRenderOrder
-				: static_cast<int>(props.renderLayer);
+			int effectiveOrder = props.customRenderOrder;
 
-			ImGui::Text("Effective Render Order: %d", effectiveRenderOrder);
+			ImGui::Text("Effective Render Order: %d", effectiveOrder);
 			ImGui::Spacing();
 
 			ImGui::TextWrapped("Standard render order:");
 			ImGui::Indent();
-			ImGui::BulletText("Background: -100 (renders first)");
-			ImGui::BulletText("Platform: 50");
-			ImGui::BulletText("Enemy: 75");
-			ImGui::BulletText("Player: 100");
-			ImGui::BulletText("UI: 200 (renders last)");
+			for (const auto& layer : renderLayers) {
+				bool isCurrent = (layer.name == props.renderLayerName);
+				if (isCurrent) {
+					ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+						"► %s: %d (CURRENT)", layer.name.c_str(), layer.renderOrder);
+				}
+				else {
+					ImGui::BulletText("%s: %d", layer.name.c_str(), layer.renderOrder);
+				}
+			}
 			ImGui::Unindent();
 
-			ImGui::Unindent();
 			ImGui::TreePop();
 		}
+	}
+
+	// Helper function to show scene entity layer tracker
+	void Editor::ShowSceneEntityTracker(Framework::EntityManager& entityMgr) {
+		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+		const Framework::SceneAsset& currentScene = sceneMgr.GetActiveScene();
+
+		if (!currentScene.IsValid()) {
+			ImGui::TextDisabled("No active scene loaded");
+			return;
+		}
+
+		//const std::vector<Entity>& sceneEntities = sceneMgr.GetEntitiesInScene(currentScene.name);
+		std::vector<Entity> sceneEntities = sceneMgr.GetEntitiesInScene(currentScene.name);
+
+		if (sceneEntities.empty()) {
+			ImGui::TextDisabled("No entities in current scene");
+			return;
+		}
+
+		ImGui::Text("Scene: %s", currentScene.name.c_str());
+		ImGui::Text("Total Entities: %zu", sceneEntities.size());
+		ImGui::Spacing();
+		ImGui::Separator();
+
+		std::vector<Entity> sortedEntities = sceneEntities;
+		SortEntitiesByRenderLayer(sortedEntities, entityMgr);
+
+		// Display in a table	
+		if (ImGui::BeginTable("EntityLayerTable", 4,
+			ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY,
+			ImVec2(0.0f, 300.0f))) {
+
+			ImGui::TableSetupColumn("Entity", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Render Layer", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+			ImGui::TableSetupColumn("Order", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+			ImGui::TableSetupColumn("Collision", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+			ImGui::TableSetupScrollFreeze(0, 1); // Freeze header row
+			ImGui::TableHeadersRow();
+
+			//  Iterate through entity list
+			for (const Entity& entity : sortedEntities) {
+				if (!entityMgr.ValidateEntity(entity)) continue;
+
+				const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
+
+				int effectiveOrder = props.customRenderOrder;
+
+				ImGui::PushID(static_cast<int>(entity));
+				ImGui::TableNextRow();
+
+				//  Entity Name 
+				ImGui::TableNextColumn();
+
+				// Highlight if this is the selected entity
+				bool isSelected = (selectedEntityIndex > 0 &&
+					static_cast<Entity>(selectedEntityIndex - 1) == entity);
+
+				if (isSelected) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+				}
+
+				if (ImGui::Selectable(props.name.c_str(), isSelected, ImGuiSelectableFlags_SpanAllColumns)) {
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+					selectedComponentIndex = 0;
+					selectedTagIndex = 0;
+				}
+
+				if (isSelected) {
+					ImGui::PopStyleColor();
+				}
+
+				// Render Layer Name
+				ImGui::TableNextColumn();
+				if (!props.renderLayerName.empty() && props.renderLayerName != "Custom") {
+					// Show the named layer
+					ImGui::Text("%s", props.renderLayerName.c_str());
+				}
+				else {
+					// Fallback to showing "Custom"
+					ImGui::Text("Custom");
+				}
+
+				//Effective Order
+				ImGui::TableNextColumn();
+				if (props.renderLayer == Framework::RenderLayer::Custom) {
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "%d", effectiveOrder);
+				}
+				else {
+					ImGui::Text("%d", effectiveOrder);
+				}
+
+				// Collision Layer 
+				ImGui::TableNextColumn();
+				if (!props.collisionLayerName.empty()) {
+					// Show the named collision layer
+					ImGui::Text("%s", props.collisionLayerName.c_str());
+				}
+				else {
+					// Fallback to enum string
+					ImGui::Text("%s", LayerToString(props.layer));
+				}
+
+				ImGui::PopID();
+			}
+
+			ImGui::EndTable();
+		}
+
+		ImGui::Spacing();
+		ImGui::TextDisabled("Sorted by Render Order (Highest on Top). Click to select.");
+
 	}
 
 #pragma endregion
@@ -3219,36 +5229,24 @@ namespace Editor {
 			const float spacing = 10.0f;
 			const float totalWidth = (buttonWidth * 3) + (spacing * 2);
 
-			// Align to left of center
-			float offsetX = (regionWidth - totalWidth - 300.0f) * 0.5f;
-			if (offsetX > 0.0f) {
-				ImGui::SetCursorPosX(offsetX);
+			// Gizmos keyboard shortcuts
+			if (gizmoSystem_) {
+				ImVec4 selectedModeClr = ImVec4(0.0f, 1.0f, 1.0f, 1.0f); // cyan
+				ImVec4 greyClr = ImVec4(0.9f, 0.9f, 0.9f, 1.0f); // grey
+
+				ImGui::TextColored(gizmoSystem_->IsGizmosToggled() ? greyClr : selectedModeClr, "Q - Select Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Translate) ? selectedModeClr : greyClr, "T - Tranlate/Move Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Rotate) ? selectedModeClr : greyClr, "Y - Rotate Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Scale) ? selectedModeClr : greyClr, "U - Scale Mode");
 			}
 
-			// Move game object button
-			bool was_moving = isDraggingGameObj_;
-			if (was_moving)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-			}
-			if (ImGui::Button("Toggle Move"))
-			{
-				isDraggingGameObj_ = !isDraggingGameObj_;
-
-				if (isDraggingGameObj_) {
-					ResetEditorCamera();
-					isGamePlaying = false;
-				}
-			}
-			if (was_moving)
-			{
-				ImGui::PopStyleColor();
-			}
-
-			ImGui::SameLine(0, spacing * 2);
+			ImGui::SameLine();
 
 			// Align Center the Toolbar buttons
-			offsetX = (regionWidth - totalWidth) * 0.5f;
+			float offsetX = (regionWidth - totalWidth) * 0.5f;
 			if (offsetX > 0.0f) {
 				ImGui::SetCursorPosX(offsetX);
 			}
@@ -3268,16 +5266,20 @@ namespace Editor {
 
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
+				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
+
 				if (isGamePlaying) {
-					gameManager_->GetSystems().levelResetter_->RunReset();
+					gameManager_->OnEndPlay();
 					ResetEditorCamera();
+				}
+				else {
+					gameManager_->OnBeginPlay();
 				}
 
 				isGamePlaying = !isGamePlaying;
 				isGamePaused = false;
 
-				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
-				if (physics_->IsPaused()) physics_->SetPaused(false);
+				if (gizmoSystem_) gizmoSystem_->SetGizmoMode(GizmoMode::None);
 			}
 			ImGui::PopStyleColor();
 
@@ -3335,9 +5337,18 @@ namespace Editor {
 			ImGui::SetCursorPosX(historyStartX);
 
 			// Undo Button
-			if (historyManager_.CanUndo()) {
+			if (historyManager_.CanUndo() && !IsGamePlaying()) {
 				if (ImGui::Button("Undo", historyControlBtnSize)) {
 					historyManager_.Undo();
+				}
+
+				if (ImGui::IsItemHovered()) {
+					std::string desc = historyManager_.GetLatestUndoDescription();
+					if (!desc.empty()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(desc.c_str());
+						ImGui::EndTooltip();
+					}
 				}
 			}
 			else {
@@ -3349,9 +5360,18 @@ namespace Editor {
 			ImGui::SameLine(0.f, historySpacing);
 
 			// Redo Button
-			if (historyManager_.CanRedo()) {
+			if (historyManager_.CanRedo() && !IsGamePlaying()) {
 				if (ImGui::Button("Redo", historyControlBtnSize)) {
 					historyManager_.Redo();
+				}
+
+				if (ImGui::IsItemHovered()) {
+					std::string desc = historyManager_.GetLatestRedoDescription();
+					if (!desc.empty()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(desc.c_str());
+						ImGui::EndTooltip();
+					}
 				}
 			}
 			else {
@@ -3429,9 +5449,9 @@ namespace Editor {
 
 
 
-	Vector2D Editor::SnapToGrid(const Vector2D& worldPos)
+	Vector2D Editor::SnapToGrid(const Vector2D& worldPos, bool normalized) const
 	{
-		const float cell = baseGridCellSize_; // world units
+		const float cell = normalized ? 0.1f : baseGridCellSize_/2; // world units
 		float snappedX = std::round(worldPos.x / cell) * cell;
 		float snappedY = std::round(worldPos.y / cell) * cell;
 		return { snappedX, snappedY };
@@ -3461,7 +5481,6 @@ namespace Editor {
 		std::vector<std::string> prefabNames;
 		std::vector<const char*> prefabItems;
 
-		// Gather all prefab names from the ACTUAL loaded prefabs
 		prefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
 			prefabNames.push_back(pair.first);
@@ -3479,15 +5498,13 @@ namespace Editor {
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
 				if (prefab) {
 					bool hasTrap = false;
-					bool hasScaling = false;
+					//bool hasScaling = false;
 
 					for (const auto& compData : prefab->components) {
 						if (compData.type == "TrapPlatformComponent") hasTrap = true;
-						if (compData.type == "ScalingPlatformComponent") hasScaling = true;
 					}
 
 					if (hasTrap) selectedPrefabTypeForEditing_ = PrefabType::TrapPlatform;
-					else if (hasScaling) selectedPrefabTypeForEditing_ = PrefabType::ScalingPlatform;
 					else selectedPrefabTypeForEditing_ = PrefabType::Platform;
 				}
 			}
@@ -3522,7 +5539,7 @@ namespace Editor {
 					if (compData.type == "RigidBody") {
 						if (compData.data.HasMember("mass")) {
 							float mass = compData.data["mass"].GetFloat();
-							if (ImGui::DragFloat("Mass", &mass, 0.1f, 0.0f, 1.0f)) {
+							if (ImGui::DragFloat("Mass", &mass, 0.0f, 0.0f, 1.0f)) {
 								compData.data["mass"].SetFloat(mass);
 								prefabModified = true;
 							}
@@ -3530,33 +5547,36 @@ namespace Editor {
 					}
 					else if (compData.type == "AABBCollider") {
 						ImGui::Text("Collider Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float halfX = compData.data["halfSizeX"].GetFloat();
-							float halfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
+							float halfX = compData.data["half_width"].GetFloat();
+							float halfY = compData.data["half_height"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeX"].SetFloat(halfX);
+							if (ImGui::DragFloat("Collider Half Width", &halfX, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["half_width"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeY"].SetFloat(halfY);
+							if (ImGui::DragFloat("Collider Half Height", &halfY, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["half_height"].SetFloat(halfY);
 								prefabModified = true;
 							}
 						}
 					}
 					else if (compData.type == "TextureComponent") {
 						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float texHalfX = compData.data["halfSizeX"].GetFloat();
-							float texHalfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_size")) {
+							const rapidjson::Value& halfSize = compData.data["half_size"];
+							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
+								float texHalfX = halfSize["x"].GetFloat();
+								float texHalfY = halfSize["y"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeX"].SetFloat(texHalfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeY"].SetFloat(texHalfY);
-								prefabModified = true;
+								if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 1.0f, 0.0f, 10000.0f)) {
+									compData.data["half_size"]["x"].SetFloat(texHalfX);
+									prefabModified = true;
+								}
+								if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 1.0f, 0.0f, 10000.0f)) {
+									compData.data["half_size"]["y"].SetFloat(texHalfY);
+									prefabModified = true;
+								}
 							}
 						}
 					}
@@ -3571,14 +5591,14 @@ namespace Editor {
 					if (compData.type == "TrapPlatformComponent") {
 						if (compData.data.HasMember("fallSpeed")) {
 							float fallSpeed = compData.data["fallSpeed"].GetFloat();
-							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.1f, 0.1f, 20.0f)) {
+							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["fallSpeed"].SetFloat(fallSpeed);
 								prefabModified = true;
 							}
 						}
 						if (compData.data.HasMember("triggerDelay")) {
 							float triggerDelay = compData.data["triggerDelay"].GetFloat();
-							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.1f, 0.0f, 10.0f)) {
+							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.0f, 0.0f, 5.0f)) {
 								compData.data["triggerDelay"].SetFloat(triggerDelay);
 								prefabModified = true;
 							}
@@ -3590,11 +5610,11 @@ namespace Editor {
 							float halfX = compData.data["halfSizeX"].GetFloat();
 							float halfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(halfY);
 								prefabModified = true;
 							}
@@ -3606,11 +5626,11 @@ namespace Editor {
 							float texHalfX = compData.data["halfSizeX"].GetFloat();
 							float texHalfY = compData.data["halfSizeY"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeX"].SetFloat(texHalfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
+							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
 								compData.data["halfSizeY"].SetFloat(texHalfY);
 								prefabModified = true;
 							}
@@ -3619,70 +5639,6 @@ namespace Editor {
 				}
 				break;
 			}
-
-			case PrefabType::ScalingPlatform: {
-				ImGui::SeparatorText("Scaling Platform Properties");
-
-				for (auto& compData : prefab->components) {
-					if (compData.type == "ScalingPlatformComponent") {
-						if (compData.data.HasMember("scaleSpeed")) {
-							float scaleSpeed = compData.data["scaleSpeed"].GetFloat();
-							if (ImGui::DragFloat("Scale Speed", &scaleSpeed, 0.1f, 0.1f, 10.0f)) {
-								compData.data["scaleSpeed"].SetFloat(scaleSpeed);
-								prefabModified = true;
-							}
-						}
-						if (compData.data.HasMember("minScale")) {
-							float minScale = compData.data["minScale"].GetFloat();
-							if (ImGui::DragFloat("Min Scale", &minScale, 0.01f, 0.01f, 5.0f)) {
-								compData.data["minScale"].SetFloat(minScale);
-								prefabModified = true;
-							}
-						}
-						if (compData.data.HasMember("maxScale")) {
-							float maxScale = compData.data["maxScale"].GetFloat();
-							if (ImGui::DragFloat("Max Scale", &maxScale, 0.01f, 0.1f, 10.0f)) {
-								compData.data["maxScale"].SetFloat(maxScale);
-								prefabModified = true;
-							}
-						}
-					}
-					else if (compData.type == "AABBCollider") {
-						ImGui::Text("Collider Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float halfX = compData.data["halfSizeX"].GetFloat();
-							float halfY = compData.data["halfSizeY"].GetFloat();
-
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeX"].SetFloat(halfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeY"].SetFloat(halfY);
-								prefabModified = true;
-							}
-						}
-					}
-					/*else if (compData.type == "TextureComponent") {
-						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float texHalfX = compData.data["halfSizeX"].GetFloat();
-							float texHalfY = compData.data["halfSizeY"].GetFloat();
-
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeX"].SetFloat(texHalfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.01f, 0.01f, 10.0f)) {
-								compData.data["halfSizeY"].SetFloat(texHalfY);
-								prefabModified = true;
-							}
-						}
-					}*/
-				}
-				break;
-			}
-
 			default:
 				break;
 			}
@@ -3700,26 +5656,21 @@ namespace Editor {
 			// Save button
 			if (ImGui::Button("Save Prefab to File")) {
 				SavePrefabToFile(selectedPrefabForEditing_);
-
-				// Reload to ensure everything is synchronized
-				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-					std::cout << "Failed to reload prefabs after save!" << std::endl;
-				}
-				else {
-					std::cout << "Reloaded prefabs after save" << std::endl;
-				}
-
 				palettePrepared_ = false;
 			}
 
-			ImGui::SameLine();
 			if (ImGui::Button("Reload from File")) {
+				// Clear current prefabs
 				prefabSystem_ = Framework::PrefabSystem();
-				if (!prefabSystem_.LoadPrefabsFromFile("Data/platformPrefab.json")) {
-					Framework::Logger::Get().Error(DebugType::Editor) << "Failed to reload prefabs from file!" << std::endl;
+
+				// Reload from folder
+				if (!prefabSystem_.LoadPrefabsFromFolder("Data/prefabs/")) {
+					Framework::Logger::Get().Error(DebugType::Editor)
+						<< "Failed to reload prefabs from folder!" << std::endl;
 				}
 				else {
-					Framework::Logger::Get().Info(DebugType::Editor) << "Successfully reloaded prefabs from file" << std::endl;
+					Framework::Logger::Get().Info(DebugType::Editor)
+						<< "Successfully reloaded prefabs from folder" << std::endl;
 				}
 
 				if (!selectedPrefabForEditing_.empty()) {
@@ -3764,53 +5715,32 @@ namespace Editor {
 				else if (compData.type == "AABBCollider") {
 					if (entityMgr.HasComponent(entity, AABBColliderType)) {
 						AABBCollider& col = entityMgr.GetComponent<AABBCollider>(entity);
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							col.HalfSize.x = compData.data["halfSizeX"].GetFloat();
-							col.HalfSize.y = compData.data["halfSizeY"].GetFloat();
-
-							if (entityMgr.HasComponent(entity, TextureComponentType)) {
-								TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
-								tex.HalfSize = col.HalfSize;
-							}
-
-							if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-								ScalingPlatformComponent& scaleComp = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-								scaleComp.baseHalfSize = col.HalfSize;
-							}
+						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
+							col.HalfSize.x = compData.data["half_width"].GetFloat();
+							col.HalfSize.y = compData.data["half_height"].GetFloat();
 						}
 					}
 				}
 				else if (compData.type == "TextureComponent") {
 					if (entityMgr.HasComponent(entity, TextureComponentType)) {
 						TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							tex.HalfSize.x = compData.data["halfSizeX"].GetFloat();
-							tex.HalfSize.y = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_size")) {
+							const rapidjson::Value& halfSize = compData.data["half_size"];
+							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
+								tex.HalfSize.x = halfSize["x"].GetFloat();
+								tex.HalfSize.y = halfSize["y"].GetFloat();
+							}
 						}
 					}
 				}
 				else if (compData.type == "TrapPlatformComponent") {
 					if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
 						TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
-						if (compData.data.HasMember("fallSpeed")) {
-							trap.fallSpeed = compData.data["fallSpeed"].GetFloat();
+						if (compData.data.HasMember("fall_speed")) {
+							trap.fallSpeed = compData.data["fall_speed"].GetFloat();
 						}
-						if (compData.data.HasMember("triggerDelay")) {
-							trap.triggerDelay = compData.data["triggerDelay"].GetFloat();
-						}
-					}
-				}
-				else if (compData.type == "ScalingPlatformComponent") {
-					if (entityMgr.HasComponent(entity, ScalingPlatformComponentType)) {
-						ScalingPlatformComponent& scale = entityMgr.GetComponent<ScalingPlatformComponent>(entity);
-						if (compData.data.HasMember("scaleSpeed")) {
-							scale.scaleSpeed = compData.data["scaleSpeed"].GetFloat();
-						}
-						if (compData.data.HasMember("minScale")) {
-							scale.minScale = compData.data["minScale"].GetFloat();
-						}
-						if (compData.data.HasMember("maxScale")) {
-							scale.maxScale = compData.data["maxScale"].GetFloat();
+						if (compData.data.HasMember("trigger_delay")) {
+							trap.triggerDelay = compData.data["trigger_delay"].GetFloat();
 						}
 					}
 				}
@@ -3822,95 +5752,46 @@ namespace Editor {
 	void Editor::SavePrefabToFile(const std::string& prefabName) {
 		using namespace Framework;
 
-		EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(prefabName);
-		if (!prefab) {
-			Logger::Get().Error(DebugType::Editor) << "Prefab not found: " << prefabName << std::endl;
-			return;
+		if (prefabSystem_.SavePrefabToFile(prefabName)) {
+			Logger::Get().Info(DebugType::Editor)<< "Successfully saved prefab: " << prefabName << std::endl;
+
+			// Apply changes to existing entities
+			ApplyPrefabChangesToEntities(prefabName);
+
+			// Force palette reload
+			palettePrepared_ = false;
 		}
-
-		// Read existing file
-		std::ifstream fileIn("Data/platformPrefab.json");
-		if (!fileIn.is_open()) {
-			Logger::Get().Error(DebugType::Editor) << "Failed to open prefab file for reading" << std::endl;
-			return;
+		else {
+			Logger::Get().Error(DebugType::Editor)<< "Failed to save prefab: " << prefabName << std::endl;
 		}
+	}
 
-		rapidjson::IStreamWrapper isw(fileIn);
-		rapidjson::Document doc;
-		doc.ParseStream(isw);
-		fileIn.close();
 
-		if (!doc.IsObject() || !doc.HasMember("prefabs") || !doc["prefabs"].IsArray()) {
-			Logger::Get().Error(DebugType::Editor) << "Invalid prefab file format" << std::endl;
-			return;
-		}
+	void Editor::ApplyAllPrefabChangesToCurrentScene() {
+		using namespace Framework;
 
-		// Find and update the prefab in the JSON
-		rapidjson::Value& prefabsArray = doc["prefabs"];
-		bool found = false;
+		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const std::vector<Entity>& entities =
+			sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
 
-		for (rapidjson::SizeType i = 0; i < prefabsArray.Size(); ++i) {
-			rapidjson::Value& prefabObj = prefabsArray[i];
-
-			if (prefabObj.HasMember("name") && std::string(prefabObj["name"].GetString()) == prefabName) {
-				// Update components
-				if (prefabObj.HasMember("components") && prefabObj["components"].IsArray()) {
-					rapidjson::Value& compsArray = prefabObj["components"];
-
-					// Update each component in the JSON
-					for (const auto& updatedComp : prefab->components) {
-						for (rapidjson::SizeType j = 0; j < compsArray.Size(); ++j) {
-							rapidjson::Value& compObj = compsArray[j];
-
-							if (compObj.HasMember("type") &&
-								std::string(compObj["type"].GetString()) == updatedComp.type) {
-								compObj["data"].CopyFrom(updatedComp.data, doc.GetAllocator());
-								break;
-							}
-						}
-					}
-				}
-				found = true;
-				break;
+		// Get all unique prefab names used in this scene
+		std::unordered_set<std::string> usedPrefabs;
+		for (const Entity& entity : entities) {
+			std::string prefabName = entityMgr.GetProperties(entity).name;
+			if (prefabSystem_.HasPrefab(prefabName)) {
+				usedPrefabs.insert(prefabName);
 			}
 		}
 
-		if (!found) {
-			std::cout << "Prefab not found in file: " << prefabName << std::endl;
-			return;
+		// Apply updates for each prefab
+		for (const std::string& prefabName : usedPrefabs) {
+			ApplyPrefabChangesToEntities(prefabName);
 		}
 
-		// Write the updated JSON back to file
-		rapidjson::StringBuffer buffer;
-		rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWriter(buffer);
-		doc.Accept(prettyWriter);
-
-		auto writeToFile = [&](const std::string& path) {
-			std::ofstream out(path);
-			if (!out.is_open()) {
-				Logger::Get().Error(DebugType::Editor) << "Failed to open " << path << " for writing" << std::endl;
-				return false;
-			}
-			out << buffer.GetString();
-			out.close();
-			Logger::Get().Info(DebugType::Editor) << "Saved prefab to: " << path << std::endl;
-			return true;
-			};
-
-		// Save to local data folder
-		writeToFile(FileIOKeys::PLATFORM_PREFABS_FILEPATH);
-
-		// Check if root Data folder exists and write to it as well
-		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-			std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::PLATFORM_PREFABS_FILEPATH;
-			writeToFile(rootFilePath);
-		}
-
-		ApplyPrefabChangesToEntities(prefabName);
-
-		palettePrepared_ = false;
-
-		Logger::Get().Info(DebugType::Editor) << "Prefab changes applied to existing entities: " << prefabName << std::endl;
+		Logger::Get().Info(DebugType::Editor)
+			<< "Applied prefab updates to " << usedPrefabs.size()
+			<< " prefab types in current scene" << std::endl;
 	}
 
 #pragma endregion
@@ -3933,6 +5814,20 @@ namespace Editor {
 	{
 		// use overloaded function, defaulting to the editor camera
 		return WorldToImGuiScreen(worldPos, editorCamera_);
+	}
+
+	ImVec2 Editor::NormalizedToImGuiScreen(const Vector2D& normalizedPos) const {
+		// X-Axis (Maps -1 to 1)
+		float normalizedX = (normalizedPos.x + 1.0f) / 2.0f;
+		float screenX = normalizedX * gameViewportSize_.x + gameViewportPos_.x;
+
+		// Y-Axis (Maps -1 to 1)
+		float normalizedY = (normalizedPos.y + 1.0f) / 2.0f;
+		// Invert Y for IMGUI screen
+		float invertedY = 1.0f - normalizedY;
+		float screenY = invertedY * gameViewportSize_.y + gameViewportPos_.y;
+
+		return ImVec2(screenX, screenY);
 	}
 
 
@@ -4013,27 +5908,40 @@ namespace Editor {
 
 	Entity Editor::GetObjAtMousePos() {
 		Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-		Vector2D mouseWorldPos = GetMouseWorldPosition();
 		Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
 
+		Vector2D mouseWorldPos = GetMouseWorldPosition();
 		Entity bestCandidate = 0;
 
 		// Get the list of entities from the active scene 
 		const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+		std::vector<Entity> sortedByRenderLayer = activeEntities;
+
+		// sort entities by descending render layer
+		SortEntitiesByRenderLayer(sortedByRenderLayer, entityMgr);
 
 		// Iterate through entities to find which one was clicked.
-		// iterate in reverse to correctly select the entity that is rendered on top.
-		for (std::vector<Entity>::const_reverse_iterator it = activeEntities.rbegin(); it != activeEntities.rend(); ++it) {
-			const Entity& entity = *it;
-			if (entityMgr.HasComponent(entity, Framework::ComponentType::PositionType) &&
-				entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType))
+		for (Entity& entity : sortedByRenderLayer) {
+			if (entityMgr.HasComponent(entity, Framework::ComponentType::TransformType))
 			{
-				Vector2D& pos = entityMgr.GetComponent<Framework::Position>(entity).Pos;
-				Vector2D& halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
+				Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
+				bool isGUI = entityMgr.HasComponent(entity, GUITagType);
+				Vector2D checkPos = isGUI ? GetNormalizedMousePos() : mouseWorldPos;
 
-				// check using AABB.
-				if (mouseWorldPos.x >= pos.x - halfSize.x && mouseWorldPos.x <= pos.x + halfSize.x &&
-					mouseWorldPos.y >= pos.y - halfSize.y && mouseWorldPos.y <= pos.y + halfSize.y)
+				Vector2D halfSize{};
+				if (entityMgr.HasComponent(entity, Framework::ComponentType::TextComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextComponent>(entity).halfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::TextureComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextureComponent>(entity).HalfSize;
+				}
+				else {
+					continue;
+				}
+
+				// check using halfsize.
+				if (checkPos.x >= pos.x - halfSize.x && checkPos.x <= pos.x + halfSize.x &&
+					checkPos.y >= pos.y - halfSize.y && checkPos.y <= pos.y + halfSize.y)
 				{
 					bestCandidate = entity;
 					break; // Stop after finding the top-most one
@@ -4042,6 +5950,33 @@ namespace Editor {
 		}
 
 		return bestCandidate;
+	}
+
+	void Editor::SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr) {
+		std::sort(entities.begin(), entities.end(),
+			[&](const Entity& a, const Entity& b) {
+				// Get properties for both entities
+				EntityProperties propsA = entityMgr.GetProperties(a);
+				EntityProperties propsB = entityMgr.GetProperties(b);
+				
+				// sort by custom render layer if both are custom
+				if (propsA.renderLayer == RenderLayer::Custom && propsB.renderLayer == RenderLayer::Custom) {
+					return propsA.customRenderOrder > propsB.customRenderOrder;
+				}
+				// compare custom render order with normal render layer if only one is custom
+				if (propsA.renderLayer == RenderLayer::Custom) {
+					return (int)propsA.customRenderOrder > (int)propsB.renderLayer;
+				}
+				if (propsB.renderLayer == RenderLayer::Custom) {
+					return (int)propsA.renderLayer > (int)propsB.customRenderOrder;
+				}
+				// if neither are custom render layer, sort by renderLayer
+				if (propsA.renderLayer != propsB.renderLayer) {
+					return propsA.renderLayer > propsB.renderLayer;
+				}
+				return propsA.renderLayer > propsB.renderLayer;
+			}
+		);
 	}
 
 }

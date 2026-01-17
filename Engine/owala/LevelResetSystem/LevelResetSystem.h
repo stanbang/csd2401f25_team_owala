@@ -15,16 +15,16 @@
  *********************************************************************/
 #pragma once
 #include "EntityStorage.h"
-#include "EntityManager.h"
-#include "TransformationSystem.h"
-#include "Logger.h"
+#include "Vector2D.h"
+
+// Forward Declaration
+namespace Framework {
+    class EntityManager;
+}
 
 namespace Framework {
     class LevelResetSystem {
     private:
-        // Reference to the EntityStorage to access entities and components
-        EntityStorage& ecs_;
-        TransformationSystem& transformationSys_;
 
         // Store the signatures required for quick checking (built in the constructor)
         ComponentSignature playerSig;
@@ -35,9 +35,14 @@ namespace Framework {
         ComponentSignature trapPlatformSig;
         ComponentSignature scalingPlatformSig;
 
+        // Enemy signatures
+        ComponentSignature enemySig;
+
+        // Text signature
+        ComponentSignature worldTextSig;
+
     public:
-        // Constructor initializes the system with necessary references/masks
-        LevelResetSystem(EntityStorage& ecs, TransformationSystem& transSys);
+        LevelResetSystem();
 
         // Reset current scene
         void RunReset();
@@ -46,17 +51,15 @@ namespace Framework {
         void ResetPlayer(EntityManager& entityMgr, Entity entity);
         
         // --- Reset Helpers ---
-        // Reset Position to given position, defaults to 0,0 if no Position provided
-        void ResetPosition(EntityManager& entityMgr, Entity entity, Position pos = Position(Vector2D{}));
+        // Reset Transform of a Entity, uses default transform if no Transform provided
+        void ResetTransform(EntityManager& entityMgr, Entity entity, Transform transform = Transform());
         // Reset Velocity to given velocity, default to 0,0 if no Velocity provided
         void ResetVelocity(EntityManager& entityMgr, Entity entity, Velocity vel = Velocity());
-        // Reset RotationFlag component
-        void ResetRotation(EntityManager& entityMgr, Entity entity);
         
         // Helper function to compare signatures
         bool CmpSignatures(ComponentSignature sigToTest, ComponentSignature sigToMatch);
 
-        Position GetPlayerSpawnPt(EntityManager& entityMgr) const;
+        Vector2D GetPlayerSpawnPt(EntityManager& entityMgr) const;
     };
 
 } // namespace Framework

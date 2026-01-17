@@ -1,0 +1,66 @@
+{
+    "name": "MultiAxisFallingTrap",
+    "components": [
+        {
+            "type": "Position",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "Velocity",
+            "data": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "type": "RigidBody",
+            "data": {
+                "mass": 0.0,
+                "forceX": 0.0,
+                "forceY": 0.0
+            }
+        },
+        {
+            "type": "AABBCollider",
+            "data": {
+                "halfSizeX": 90.0,
+                "halfSizeY": 50.0
+            }
+        },
+        {
+            "type": "TextureComponent",
+            "data": {
+                "textureID": "SB_TrapPlatform_MultiAxis.png",
+                "halfSizeX": 100,
+                "halfSizeY": 100
+            }
+        },
+        {
+            "type": "RotationFlag",
+            "data": {}
+        },
+        {
+            "type": "TrapPlatformComponent",
+            "data": {
+                "originalPositionX": 0.0,
+                "originalPositionY": 0.0,
+                "isTriggered": false,
+                "hasFallen": false,
+                "currentDelay": 0.0,
+                "currentFallDistance": 0.0,
+                "fallSpeed": 702.0,
+                "triggerDelay": 0.0
+            }
+        }
+    ],
+    "tags": [
+        "PlatformTag"
+    ],
+    "properties": {
+        "layer": "Platform",
+	"render_layer": 50
+    }
+}

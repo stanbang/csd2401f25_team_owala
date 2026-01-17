@@ -15,8 +15,7 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #include "ResourceManager.h"
-#include "AudioSystem.h"
-#include "Graphics.h"
+#include "GameManager.h"
 #include "GL/glew.h"
 #include "FileIO/FileUtility.h"
 
@@ -45,14 +44,49 @@ void ResourceManager::Initialize() {
 		ScanAssetDirectory("Assets/Audio");
 		ScanAssetDirectory("Assets/Fonts");
 		ScanAssetDirectory("Data/AnimationData");
+		LoadTextureAnimationMappings("Data/textureToAnimationMapping.json");
+		LoadAnimationProfiles("Data/stateToAnimationMapping.json");
 	}
 	catch (const fs::filesystem_error& e) {
 		Logger::Get().Error(DebugType::ResourceManager) << "Failed to scan assets: " << e.what();
 	}
+
+	// Start worker thread for asynchronous loading if needed
+	m_isLoading = true;
+	m_workerThread = std::thread(&ResourceManager::WorkerThreadLoop, this);
 }
 
 void ResourceManager::Update() {
-	// Intentionally left empty
+	// Systems used by ResourceManager
+	Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+
+	// Upload a limited number of textures per frame to maintain high FPS
+	int uploadsThisFrame = 0;
+	const int MAX_UPLOADS_PER_FRAME = 2;
+
+	std::lock_guard<std::mutex> lock(m_queueMutex);
+
+	while (!m_dataReadyToUpload.empty() && uploadsThisFrame < MAX_UPLOADS_PER_FRAME) {
+		AsyncTextureData item = m_dataReadyToUpload.front();
+		m_dataReadyToUpload.pop();
+
+		// GPU Upload (Fast, Main Thread)
+		Texture tex = gfx_.CreateTextureFromRawData(item.rawData);
+
+		// Add to the map
+		if (tex != 0) {
+			std::stringstream ss;
+			ss << "[Main Thread   " << std::this_thread::get_id() << "] Uploaded to GPU: " << item.name;
+			Logger::Get().Info(DebugType::ResourceManager) << ss.str() << "\n";
+			add<Texture>(item.name, tex);
+		}
+
+		// Free CPU memory
+		gfx_.FreeImageRawData(item.rawData);
+
+		m_itemsProcessed++;
+		uploadsThisFrame++;
+	}
 }
 
 // Clear all resources
@@ -88,22 +122,22 @@ void ResourceManager::ScanAssetDirectory(const fs::path& directoryPath) {
 
 // Loads a texture by name using the scanned asset paths
 bool ResourceManager::loadTexture(const std::string& name) {
-	// 1. Check if we scanned this asset
+	// Check if we scanned this asset
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?";
+			<< "Cannot auto-load texture: Key '" << name << "' not found. Was the directory scanned?\n";
 		return false;
 	}
 
-	// 2. We found it, now call the original loadTexture with the full path
+	// We found it, now call the original loadTexture with the full path
 	const std::string& fullPath = it->second.string();
 	return loadTexture(name, fullPath); // Calls your existing function
 }
 
 // OVERLOAD Loads a texture from file and stores it inside the resource manager
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
-	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
+	Texture tex = GameManager::GetInstance().GetSystems().gfx_->loadTextureFromFile(filepath.c_str());
 
 	if (tex == 0) {
 		Logger::Get().Info(DebugType::ResourceManager) << "Failed to load texture from '" << filepath << "'" << std::endl;
@@ -120,7 +154,7 @@ bool ResourceManager::loadSound(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load sound: Key '" << name << "' not found.";
+			<< "Cannot auto-load sound: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -133,7 +167,9 @@ bool ResourceManager::loadSound(const std::string& id,
     bool loop,
     bool stream) {
 
-	FMOD::System* system_ = audiosystem_->getFMODSystem();
+	AudioSystem& audiosystem_ = *GameManager::GetInstance().GetSystems().audio_;
+
+	FMOD::System* system_ = audiosystem_.getFMODSystem();
 
     if (!system_) return false;
     if (!path)     return false;
@@ -161,7 +197,7 @@ bool ResourceManager::loadSound(const std::string& id,
 
 	Audio* snd = nullptr;
     FMOD_RESULT r = system_->createSound(path, mode, nullptr, &snd);
-    audiosystem_->check(r, "System::createSound");
+    audiosystem_.check(r, "System::createSound");
     if (r != FMOD_OK || !snd) return false;
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded sound '" <<  path << "'" << std::endl;
@@ -194,7 +230,7 @@ bool ResourceManager::loadFont(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load font: Key '" << name << "' not found.";
+			<< "Cannot auto-load font: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -236,7 +272,7 @@ bool ResourceManager::loadAnimationInfo(const std::string& name) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
-			<< "Cannot auto-load animation: Key '" << name << "' not found.";
+			<< "Cannot auto-load animation: Key '" << name << "' not found.\n";
 		return false;
 	}
 
@@ -262,6 +298,223 @@ bool ResourceManager::loadAnimationInfo(const std::string& name, const std::stri
 void ResourceManager::Shutdown() {
 	Logger::Get().Info(DebugType::ResourceManager) << "ResourceManager shutdown: freeing all resources." << std::endl;
 
+	// Stop thread
+	m_isLoading = false;
+	if (m_workerThread.joinable()) {
+		m_workerThread.join();
+	}
+
     // Clear all maps
 	clearAll();
+}
+
+bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFilePath) {
+	try {
+		rapidjson::Document doc;
+		if (!FileIOSystem::ReadFile(mappingFilePath, doc)) {
+			Logger::Get().Error(DebugType::ResourceManager)
+				<< "Cannot open texture-animation mapping file: " << mappingFilePath;
+			return false;
+		}
+
+		if (!doc.IsObject() || !doc.HasMember("animations") || !doc["animations"].IsArray()) {
+			Logger::Get().Error(DebugType::ResourceManager)
+				<< "Invalid mapping file structure. Expected 'animations' array.";
+			return false;
+		}
+
+		const rapidjson::Value& animations = doc["animations"];
+		int loadedCount = 0;
+
+		for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) {
+			const rapidjson::Value& entry = animations[i];
+
+			// Validate 'animation_path'
+			if (!entry.HasMember("animation_path") || !entry["animation_path"].IsString()) {
+				Logger::Get().Info(DebugType::ResourceManager) << "Skipping entry " << i << ": Missing 'animation_path'";
+				continue;
+			}
+			std::string animationPath = entry["animation_path"].GetString();
+
+			// Load the animation info once to validate
+			AnimationInfo cachedInfo = FileIOSystem::LoadAnimationInfo(animationPath);
+			if (cachedInfo.frameCount == 0) {
+				Logger::Get().Error(DebugType::ResourceManager) << "Failed to load animation info from '" << animationPath << "'";
+				continue;
+			}
+
+			// Check for 'texture_keys' (Array)
+			if (entry.HasMember("texture_keys") && entry["texture_keys"].IsArray()) {
+				const rapidjson::Value& keys = entry["texture_keys"];
+
+				// Loop through every texture key in the list
+				for (rapidjson::SizeType j = 0; j < keys.Size(); ++j) {
+					if (keys[j].IsString()) {
+						std::string textureKey = keys[j].GetString();
+
+						// Load the SAME animation file for THIS texture key
+						add<AnimationInfo>(textureKey, std::make_unique<AnimationInfo>(cachedInfo));
+						loadedCount++;
+					}
+				}
+			}
+			// Backward Compatibility for old "texture_key" (String)
+			else if (entry.HasMember("texture_key") && entry["texture_key"].IsString()) {
+				std::string textureKey = entry["texture_key"].GetString();
+				add<AnimationInfo>(textureKey, std::make_unique<AnimationInfo>(cachedInfo));
+				loadedCount++;
+			}
+		}
+
+		Logger::Get().Info(DebugType::ResourceManager)
+			<< "Mapped " << loadedCount << " textures to animations from " << mappingFilePath;
+
+		return loadedCount > 0;
+	}
+	catch (const std::exception& e) {
+		Logger::Get().Error(DebugType::ResourceManager)
+			<< "Exception loading mappings: " << e.what();
+		return false;
+	}
+}
+
+// Adds a texture file to the async loading queue eg. when loading big assets
+void ResourceManager::LoadTextureAsync(const std::string& filepath) {
+	std::lock_guard<std::mutex> lock(m_queueMutex);
+	m_filesToLoad.push(filepath);
+
+	m_totalItemsToLoad++;
+}
+
+// Background worker thread loop for loading resources asynchronously
+void ResourceManager::WorkerThreadLoop() {
+	Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+
+	while (m_isLoading) {
+		std::string filePath;
+		bool hasWork = false;
+
+		// Check for work
+		{
+			std::lock_guard<std::mutex> lock(m_queueMutex);
+			if (!m_filesToLoad.empty()) {
+				filePath = m_filesToLoad.front();
+				m_filesToLoad.pop();
+				hasWork = true;
+			}
+		}
+
+		if (hasWork) {
+			// Heavy lifting (Disk I/O + Decode)
+			std::stringstream ss;
+			ss << "[Worker Thread " << std::this_thread::get_id() << "] Loading from Disk: " << filePath;
+			Logger::Get().Info(DebugType::ResourceManager) << ss.str() << "\n";
+
+			std::string name = fs::path(filePath).filename().string();
+
+			Graphics::ImageRawData raw = gfx_.LoadImageToCPU(filePath.c_str());
+
+			// Push result to Upload Queue
+			{
+				std::lock_guard<std::mutex> lock(m_queueMutex);
+				m_dataReadyToUpload.push({ name, raw });
+			}
+		}
+		else {
+			// Sleep to save CPU if no work
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+	}
+}
+
+float ResourceManager::GetLoadingProgress() const {
+	if (m_totalItemsToLoad == 0) return 1.0f;
+	return (float)m_itemsProcessed / (float)m_totalItemsToLoad;
+}
+
+bool ResourceManager::IsLoadingComplete() const {
+	return m_itemsProcessed >= m_totalItemsToLoad;
+}
+
+std::string ResourceManager::GetAssetPath(const std::string& key) const {
+	auto it = assetPathMap_.find(key);
+	if (it != assetPathMap_.end()) {
+		return it->second.string();
+	}
+	return ""; // Not found
+}
+
+// Resolves a state key to its corresponding integer ID based on the profile name
+int ResolveStateID(const std::string& profileName, const std::string& stateKey) {
+
+	// BIRD ENEMY MAPPING (Matches BirdState Enum)
+	if (profileName == "BirdEnemy") {
+		if (stateKey == "IDLE")    return 0; // BirdState::IDLE
+		if (stateKey == "WAKING")  return 1; // BirdState::WAKING
+		if (stateKey == "CHASE")   return 2; // BirdState::CHASE
+		if (stateKey == "HOVER")   return 3; // BirdState::HOVER
+		if (stateKey == "STUNNED") return 4; // BirdState::STUNNED
+		if (stateKey == "ATTACK")  return 5; // BirdState::ATTACK
+	}
+
+	// SKELETON ENEMY MAPPING (Matches SkeletonState Enum)
+	else if (profileName == "SkeletonEnemy") {
+		if (stateKey == "IDLE")    return 0; // SkeletonState::IDLE
+		if (stateKey == "CHASE")   return 1; // SkeletonState::CHASE
+	}
+
+	// DEFAULT / PLAYER MAPPING (Matches AnimationState Enum)
+	// Applies to "Player", "FakePlayer", and anyone else
+	else {
+		if (stateKey == "IDLE")    return 0; // AnimationState::IDLE
+		if (stateKey == "RUNNING") return 1; // AnimationState::RUNNING
+		if (stateKey == "JUMPING") return 2; // AnimationState::JUMPING
+		if (stateKey == "FALLING") return 3; // AnimationState::FALLING
+		if (stateKey == "DEATH")   return 4; // AnimationState::DEATH
+	}
+
+	return 0; // Default safe fallback
+}
+
+// Undefine GetObject macro if defined (to avoid conflicts with RapidJSON)
+#ifdef GetObject
+#undef GetObject
+#endif
+
+bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
+	rapidjson::Document doc;
+	if (!FileIOSystem::ReadFile(filepath, doc)) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Failed to load animation profiles: " << filepath;
+		return false;
+	}
+
+	if (!doc.IsObject()) return false;
+
+	int profilesLoaded = 0;
+
+	// Iterate over profiles: "Player", "BirdEnemy", "FakePlayer"
+	const auto& docObj = doc.GetObject();
+	for (auto it = docObj.MemberBegin(); it != docObj.MemberEnd(); ++it) {
+		std::string profileName = it->name.GetString();
+
+		if (!it->value.IsObject()) continue;
+
+		// Iterate over states: "IDLE", "RUNNING", "CHASE"
+		const auto& stateObj = it->value.GetObject();
+		for (auto stateIt = stateObj.MemberBegin(); stateIt != stateObj.MemberEnd(); ++stateIt) {
+
+			std::string stateKey = stateIt->name.GetString();   // e.g. "CHASE"
+			std::string textureKey = stateIt->value.GetString(); // e.g. "Bird_Chase.png"
+
+			// Convert string "CHASE" to int 2 (if Bird) or int 1 (if Skeleton)
+			int stateIndex = ResolveStateID(profileName, stateKey);
+
+			// Store in the map
+			animationProfiles_[profileName][stateIndex] = textureKey;
+		}
+		profilesLoaded++;
+	}
+
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded " << profilesLoaded << " animation profiles.";
+	return true;
 }
