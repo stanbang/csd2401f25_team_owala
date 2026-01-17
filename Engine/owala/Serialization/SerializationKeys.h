@@ -173,6 +173,7 @@ namespace Framework::Serialization {
 	static constexpr const char* BUTTON_PRESSED_ANIMATED = "pressed_is_animated";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
+	static constexpr const char* COMP_SCENE_ID = "scene_id";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";
 
 	static constexpr const char* PARTICLE_EMITTER_COMPONENT = "ParticleEmitterComponent";

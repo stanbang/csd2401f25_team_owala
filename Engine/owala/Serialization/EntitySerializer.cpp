@@ -1103,6 +1103,7 @@ namespace Framework {
 
 	// SceneOwned Component
 	void EntitySerializer::SerializeComponent(const SceneOwned& sceneOwnedComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
+		outData.AddMember(rapidjson::StringRef(Serialization::COMP_SCENE_ID), sceneOwnedComp.sceneIndex, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::COMP_SCENE_NAME), rapidjson::StringRef(sceneOwnedComp.sceneName.c_str()), alloc);
 	}
 
@@ -1773,6 +1774,10 @@ namespace Framework {
 	// SceneOwned Component
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, SceneOwned& out) {
 		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::COMP_SCENE_ID) && componentData[Serialization::COMP_SCENE_ID].IsUint()) {
+			out.sceneIndex = componentData[Serialization::COMP_SCENE_ID].GetUint();
+		}
 
 		if (componentData.HasMember(Serialization::COMP_SCENE_NAME) && componentData[Serialization::COMP_SCENE_NAME].IsString()) {
 			out.sceneName = componentData[Serialization::COMP_SCENE_NAME].GetString();

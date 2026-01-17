@@ -181,7 +181,7 @@ namespace Editor {
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		editorCameraNeedsReset_(false),
-		historyManager_(*gameManager_->GetSystems().ecs_) {
+		historyManager_() {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -1064,7 +1064,7 @@ namespace Editor {
 #pragma region COPY AND PASTING APIs
 
 	void Editor::CopyEntityToClipboard(const Entity entity) {
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 		doc.SetObject();
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
@@ -1086,7 +1086,7 @@ namespace Editor {
 			return;
 		}
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 
 		doc.Parse(entityClipboard->c_str());
@@ -1195,7 +1195,9 @@ namespace Editor {
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
-				historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				if (!IsGamePlaying()) {
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				}
 			}
 
 			ImGui::SameLine();
