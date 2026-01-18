@@ -45,7 +45,7 @@ namespace Framework {
         }
 
         int loadedCount = 0;
-        for (const auto& entry : fs::directory_iterator(folderPath)) {
+        for (const auto& entry : fs::recursive_directory_iterator(folderPath)) {
             if (entry.is_regular_file() && entry.path().extension() == ".json") {
                 if (LoadSinglePrefabFile(entry.path().string())) {
                     loadedCount++;
@@ -141,7 +141,7 @@ namespace Framework {
         if (prefabFolderPath_.empty() || !fs::exists(prefabFolderPath_)) {
             return files;
         }
-        for (const auto& entry : fs::directory_iterator(prefabFolderPath_)) {
+        for (const auto& entry : fs::recursive_directory_iterator(prefabFolderPath_)) {
             if (entry.is_regular_file() && entry.path().extension() == ".json") {
                 files.push_back(entry.path().string());
             }

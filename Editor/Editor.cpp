@@ -886,7 +886,7 @@ namespace Editor {
 
 		if (newEntity != 0) {
 			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-			historyManager_.Record(OpType::Create, newEntity, "Brush Place");
+//			historyManager_.Record(OpType::Create, newEntity, "Brush Place"); //CRASH
 		}
 	}
 
