@@ -49,8 +49,36 @@ namespace Framework {
 			if (entityMgr.HasComponent(entity, PlayerStateType)) {
 				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
 			}
-			else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
+			/*else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
 				isFacingRight = entityMgr.GetComponent<BirdAIComponent>(entity).isFacingRight;
+			}*/
+			else if (entityMgr.HasComponent(entity, VelocityType)) {
+				const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
+				if (vel.x > 0.1f) isFacingRight = true;
+				else if (vel.x < -0.1f) isFacingRight = false;
+			}
+			
+
+			if (entityMgr.HasComponent(entity, FSMComponentType)) {
+				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
+				std::string stateName = fsm.fsm.GetCurrentState();
+
+				// Map FSM Strings to AnimationState Enum
+				// You can customize this mapping based on your specific animation profiles
+				if (stateName == "Idle") {
+					animationComponent.currentState = AnimationState::IDLE;
+				}
+				else if (stateName == "Waking" || stateName == "Chase" || stateName == "Hover") {
+					// Map movement-heavy states to RUNNING
+					animationComponent.currentState = AnimationState::RUNNING;
+				}
+				else if (stateName == "Attack") {
+					// Map attack to JUMPING or another state if you add ATTACK to the enum
+					animationComponent.currentState = AnimationState::JUMPING;
+				}
+				else if (stateName == "Recovery" || stateName == "Stunned") {
+					animationComponent.currentState = AnimationState::DEATH; // Or IDLE/FALLING
+				}
 			}
 
 			// Generic Texture Lookup
@@ -62,15 +90,15 @@ namespace Framework {
 				if (animationProfiles.count(animationComponent.profileName)) {
 					const auto& stateMap = animationProfiles.at(animationComponent.profileName);
 
-					// Synchronize animation state with AI state for BirdEnemy
-					if (animationComponent.profileName == "BirdEnemy" &&
-						entityMgr.HasComponent(entity, BirdAIComponentType)) {
-						BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(entity);
-						// Map BirdState to AnimationState
-						// We use the stateMap keys from the JSON which are: IDLE, WAKING, CHASE, HOVER, ATTACK
-						int birdStateIndex = static_cast<int>(ai.state);
-						animationComponent.currentState = static_cast<AnimationState>(birdStateIndex);
-					}
+					//// Synchronize animation state with AI state for BirdEnemy
+					//if (animationComponent.profileName == "BirdEnemy" &&
+					//	entityMgr.HasComponent(entity, BirdAIComponentType)) {
+					//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(entity);
+					//	// Map BirdState to AnimationState
+					//	// We use the stateMap keys from the JSON which are: IDLE, WAKING, CHASE, HOVER, ATTACK
+					//	int birdStateIndex = static_cast<int>(ai.state);
+					//	animationComponent.currentState = static_cast<AnimationState>(birdStateIndex);
+					//}
 
 					// Find the texture for the current state (cast enum to int)
 					int stateIndex = static_cast<int>(animationComponent.currentState);

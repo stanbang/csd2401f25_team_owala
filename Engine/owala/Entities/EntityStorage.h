@@ -67,8 +67,9 @@ namespace Framework {
 		SceneOwnedType,
 		PersistentTagType,
 		ActiveTagType,     
-		BirdAIComponentType, 
-		SkeletonAIComponentType, 
+		/*BirdAIComponentType, 
+		SkeletonAIComponentType, */
+		FSMComponentType,
 		GUITagType,
 		ParticleComponentType,
 		ParticleEmitterComponentType,
@@ -112,8 +113,9 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<SceneOwned> { static constexpr ComponentType value = SceneOwnedType; };
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
 	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };  
-	template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
-	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; 
+	/*template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
+	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; */
+	template <> struct ComponentTypeTrait<FSMComponent> { static constexpr ComponentType value = FSMComponentType; };
 	template <> struct ComponentTypeTrait<ParticleComponent> { static constexpr ComponentType value = ParticleComponentType; };
 	template <> struct ComponentTypeTrait<ParticleEmitterComponent> { static constexpr ComponentType value = ParticleEmitterComponentType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
@@ -146,8 +148,11 @@ namespace Framework {
 		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
 
-		std::unordered_map<Entity, BirdAIComponent> birdAIComponent;
-		std::unordered_map<Entity, SkeletonAIComponent> skeletonAIComponent; 
+	/*	std::unordered_map<Entity, BirdAIComponent> birdAIComponent;
+		std::unordered_map<Entity, SkeletonAIComponent> skeletonAIComponent; */
+
+		std::unordered_map<Entity, FSMComponent> fsmComponent; //fsm compoenent
+
 		std::unordered_map<Entity, ParticleComponent> particleComponent;
 		std::unordered_map<Entity, ParticleEmitterComponent> particleEmitterComponent;
 

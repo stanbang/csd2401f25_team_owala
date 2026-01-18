@@ -380,7 +380,7 @@ namespace Framework {
                 entityMgr.AddComponent(entity, std::move(scripts));
             }
         }
-        else if (compData.type == Serialization::BIRD_AI_COMPONENT) {
+        /*else if (compData.type == Serialization::BIRD_AI_COMPONENT) {
             BirdAIComponent birdAI;
             if (EntitySerializer::DeserializeComponent(data, birdAI)) {
                 entityMgr.AddComponent(entity, birdAI);
@@ -391,7 +391,7 @@ namespace Framework {
             if (EntitySerializer::DeserializeComponent(data, skelAI)) {
                 entityMgr.AddComponent(entity, skelAI);
             }
-        }
+        }*/
         else if (compData.type == Serialization::BUTTON_COMPONENT) {
             Button button;
             if (EntitySerializer::DeserializeComponent(data, button)) {

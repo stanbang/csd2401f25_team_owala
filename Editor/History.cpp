@@ -308,7 +308,7 @@ namespace Editor {
 				}
 				break;
 			}
-			case ComponentType::BirdAIComponentType: {
+			/*case ComponentType::BirdAIComponentType: {
 				BirdAIComponent newBirdAIComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newBirdAIComponent)) {
 					if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
@@ -327,7 +327,17 @@ namespace Editor {
 					entityMgr.AddComponent<SkeletonAIComponent>(entity, newSkeletonAIComponent);
 				}
 				break;
+			}*/
+			case ComponentType::FSMComponentType:
+			{
+				/*FSMComponent& oldComp = entityMgr.GetComponent<FSMComponent>(entity);
+				FSMComponent& newComp = entityMgr.GetComponent<FSMComponent>(entity); */
+				//wait
+				// Create memento... (Use your existing pattern for creating mementos)
+				// For FSM, you primarily care about saving the 'fsmDefinitionPath'
+				break;
 			}
+
 			case ComponentType::ParticleEmitterComponentType: {
 				ParticleEmitterComponent newParticleEmitterComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newParticleEmitterComponent)) {
