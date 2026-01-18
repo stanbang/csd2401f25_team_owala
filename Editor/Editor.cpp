@@ -489,6 +489,8 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
 			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
+			ImGui::DockBuilderDockWindow("FSM Enemy Editor", dock_bottom);
+
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 

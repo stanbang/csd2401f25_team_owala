@@ -1,0 +1,107 @@
+{
+    "initialState": "Idle",
+    "previewTexture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
+    "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
+    "animationProfile": "BirdEnemy",
+    "halfSize": {
+        "x": 50.0,
+        "y": 50.0
+    },
+    "states": [
+        {
+            "name": "Idle",
+            "type": "Idle",
+            "parameters": {
+                "wakeUpRadius": 300.0
+            }
+        },
+        {
+            "name": "Waking",
+            "type": "Waking",
+            "parameters": {
+                "wakeUpTime": 1.0
+            }
+        },
+        {
+            "name": "Chase",
+            "type": "Chase",
+            "parameters": {
+                "moveSpeed": 100.0
+            }
+        },
+        {
+            "name": "Hover",
+            "type": "Hover",
+            "parameters": {
+                "hoverRadius": 200.0,
+                "hoverSpeed": 50.0,
+                "attackCooldown": 3.0
+            }
+        },
+        {
+            "name": "Attack",
+            "type": "Attack",
+            "parameters": {
+                "attackSpeed": 400.0,
+                "duration": 2.0
+            }
+        },
+        {
+            "name": "Recovery",
+            "type": "Recovery",
+            "parameters": {
+                "duration": 1.5
+            }
+        }
+    ],
+    "transitions": [
+        {
+            "from": "Idle",
+            "to": "Waking",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 300.0
+            }
+        },
+        {
+            "from": "Waking",
+            "to": "Chase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Waking"
+            }
+        },
+        {
+            "from": "Chase",
+            "to": "Hover",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 200.0
+            }
+        },
+        {
+            "from": "Hover",
+            "to": "Attack",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 100.0
+            }
+        },
+        {
+            "from": "Attack",
+            "to": "Recovery",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Attack"
+            }
+        },
+        {
+            "from": "Recovery",
+            "to": "Chase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Recovery"
+            }
+        }
+    ]
+}
