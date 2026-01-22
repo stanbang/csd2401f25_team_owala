@@ -46,6 +46,20 @@ namespace Framework {
         float wakeUpTime_ = 1.0f;
     };
 
+    // --- SIMPLE CHASE STATE (No Pathfinding) ---
+    class BirdSimpleChaseState : public State {
+    public:
+        const char* GetName() const override { return "SimpleChase"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+    private:
+        float moveSpeed_ = 150.0f;
+        float bounceForce_ = 200.0f;
+        float verticalBias_ = 0.3f; // How much to favor upward movement when hitting walls
+    };
+
     // --- CHASE STATE (Pathfinding) ---
     class BirdChaseState : public NavState {
     public:
@@ -59,6 +73,23 @@ namespace Framework {
         float moveSpeed_ = 100.0f;
         float repathTimer_ = 0.0f;
         float repathInterval_ = 0.5f;
+    };
+
+    // --- BOUNCE STATE (After hitting wall) --- previous hover state
+    class BirdBounceState : public State {
+    public:
+        const char* GetName() const override { return "Bounce"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetDuration() const { return bounceDuration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float bounceDuration_ = 0.3f;
+        Vector2D bounceDirection_;
     };
 
     // --- HOVER STATE ---

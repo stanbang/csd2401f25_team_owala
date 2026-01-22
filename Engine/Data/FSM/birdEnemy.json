@@ -23,19 +23,19 @@
             }
         },
         {
-            "name": "Chase",
-            "type": "Chase",
+            "name": "SimpleChase",
+            "type": "SimpleChase",
             "parameters": {
-                "moveSpeed": 100.0
+                "moveSpeed": 150.0,
+                "bounceForce": 200.0,
+                "verticalBias": 0.3
             }
         },
         {
-            "name": "Hover",
-            "type": "Hover",
+            "name": "Bounce",
+            "type": "Bounce",
             "parameters": {
-                "hoverRadius": 200.0,
-                "hoverSpeed": 50.0,
-                "attackCooldown": 3.0
+                "duration": 0.3
             }
         },
         {
@@ -50,7 +50,7 @@
             "name": "Recovery",
             "type": "Recovery",
             "parameters": {
-                "duration": 1.5
+                "duration": 1.0
             }
         }
     ],
@@ -65,26 +65,33 @@
         },
         {
             "from": "Waking",
-            "to": "Chase",
+            "to": "SimpleChase",
             "condition": {
                 "type": "TimerExpired",
                 "state": "Waking"
             }
         },
         {
-            "from": "Chase",
-            "to": "Hover",
+            "from": "SimpleChase",
+            "to": "Bounce",
             "condition": {
-                "type": "PlayerInRange",
-                "radius": 200.0
+                "type": "HitWall"
             }
         },
         {
-            "from": "Hover",
+            "from": "Bounce",
+            "to": "SimpleChase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Bounce"
+            }
+        },
+        {
+            "from": "SimpleChase",
             "to": "Attack",
             "condition": {
                 "type": "PlayerInRange",
-                "radius": 100.0
+                "radius": 80.0
             }
         },
         {
@@ -97,7 +104,7 @@
         },
         {
             "from": "Recovery",
-            "to": "Chase",
+            "to": "SimpleChase",
             "condition": {
                 "type": "TimerExpired",
                 "state": "Recovery"

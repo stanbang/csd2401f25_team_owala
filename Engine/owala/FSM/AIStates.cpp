@@ -4,6 +4,8 @@
 #include "FSMFactory.h" // Needed for Macros
 #include <cmath>
 #include "Vector2D.h"
+#include "GameManager.h" // Required for HitWall condition
+#include "PhysicsSystem.h"
 
 namespace Framework {
 
@@ -38,6 +40,36 @@ namespace Framework {
     }
     void BirdWakingState::SetParameter(const std::string& key, float value) {
         if (key == "wakeUpTime") wakeUpTime_ = value;
+    }
+
+    // --- SIMPLE CHASE ---
+    void BirdSimpleChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
+        // Just started chasing - no special setup needed
+    }
+
+    void BirdSimpleChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        EntityManager mgr(ecs);
+        Entity player = GetPlayer(ecs);
+
+        if (player == 0 || !mgr.HasComponent(entity, TransformType) ||
+            !mgr.HasComponent(player, TransformType)) return;
+
+        Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
+        Vector2D targetPos = mgr.GetComponent<Transform>(player).position;
+
+        // Simple: just fly straight toward player
+        Vector2D direction = targetPos - myPos;
+        direction.Normalize();
+
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = direction * moveSpeed_;
+        }
+    }
+
+    void BirdSimpleChaseState::SetParameter(const std::string& key, float value) {
+        if (key == "moveSpeed") moveSpeed_ = value;
+        if (key == "bounceForce") bounceForce_ = value;
+        if (key == "verticalBias") verticalBias_ = value;
     }
 
     // --- CHASE ---
@@ -86,6 +118,39 @@ namespace Framework {
     }
     void BirdChaseState::SetParameter(const std::string& key, float value) {
         if (key == "moveSpeed") moveSpeed_ = value;
+    }
+
+    // --- BOUNCE ---
+    void BirdBounceState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        if (!mgr.HasComponent(entity, VelocityType)) return;
+
+        // Get current velocity to determine bounce direction
+        Vector2D currentVel = mgr.GetComponent<Velocity>(entity).Vel;
+
+        // Bounce upward and slightly away from wall
+        // Favor upward movement (like Demon Eye)
+        bounceDirection_ = Vector2D(-currentVel.x * 0.5f, std::abs(currentVel.y) + 100.0f);
+        bounceDirection_.Normalize();
+
+        mgr.GetComponent<Velocity>(entity).Vel = bounceDirection_ * 250.0f;
+    }
+
+    void BirdBounceState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+
+        // Gradually reduce bounce velocity
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, VelocityType)) {
+            Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
+            vel = vel * 0.95f; // Damping
+        }
+    }
+
+    void BirdBounceState::SetParameter(const std::string& key, float value) {
+        if (key == "duration") bounceDuration_ = value;
     }
 
     // --- HOVER ---
@@ -168,9 +233,11 @@ namespace Framework {
     REGISTER_STATE("Hover", BirdHoverState);
     REGISTER_STATE("Attack", BirdAttackState);
     REGISTER_STATE("Recovery", BirdRecoveryState);
+    REGISTER_STATE("SimpleChase", BirdSimpleChaseState)
+        REGISTER_STATE("Bounce", BirdBounceState)
 
-    // Common Condition Helpers
-    REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
+        // Common Condition Helpers
+        REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
         float r = data.HasMember("radius") ? data["radius"].GetFloat() : 300.0f;
         return [r](Entity e, EntityStorage& ecs) {
             EntityManager mgr(ecs);
@@ -180,7 +247,7 @@ namespace Framework {
             Vector2D posB = mgr.GetComponent<Transform>(p).position;
             return posA.Distance(posB) < r;
             };
-        });
+            });
 
     REGISTER_CONDITION(TimerExpired, [](const rapidjson::Value& data) {
         std::string sName = data["state"].GetString();
@@ -188,11 +255,63 @@ namespace Framework {
             EntityManager mgr(ecs);
             FSMComponent& fsm = mgr.GetComponent<FSMComponent>(e);
             State* s = fsm.fsm.GetState(sName);
-
             // Check specific state timers
             if (auto* ws = dynamic_cast<BirdWakingState*>(s)) return ws->GetTimer() >= ws->GetWakeUpTime();
             if (auto* rs = dynamic_cast<BirdRecoveryState*>(s)) return rs->GetTimer() >= rs->GetDuration();
+            if (auto* bs = dynamic_cast<BirdBounceState*>(s)) return bs->GetTimer() >= bs->GetDuration();
             return false;
             };
         });
+
+        //// Add collision detection condition
+        //REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
+        //    return [](Entity e, EntityStorage& ecs) {
+        //        EntityManager mgr(ecs);
+
+        //        // Check if entity hit a platform this frame
+        //        if (!mgr.HasComponent(e, PlayerStateType)) return false;
+
+        //        // You can use collision flags or check if velocity was blocked
+        //        // For now, simple approach: check if stuck against wall
+        //        if (!mgr.HasComponent(e, VelocityType)) return false;
+
+        //        Vector2D vel = mgr.GetComponent<Velocity>(e).Vel;
+
+        //        // If velocity is very low but we're trying to move, we hit something
+        //        return vel.Magnitude() < 10.0f;
+        //        };
+        //    });
+
+        // AIStates.cpp, improved collision detection
+    REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
+        return [](Entity e, EntityStorage& ecs) {
+            EntityManager mgr(ecs);
+
+            if (!mgr.HasComponent(e, VelocityType) ||
+                !mgr.HasComponent(e, TransformType) ||
+                !mgr.HasComponent(e, AABBColliderType)) {
+                return false;
+            }
+
+            // Get physics system to check if we hit something
+            auto* physics = GameManager::GetInstance().GetSystems().physics_;
+            if (!physics) return false;
+
+            // Get all platform entities
+            auto platforms = mgr.GetAllEntitiesWithComponent(PlatformTagType);
+
+            // Check if we're overlapping with any platform
+            for (Entity platform : platforms) {
+                if (physics->CheckTriggerOverlap(e, platform)) {
+                    // We hit a wall/platform!
+                    return true;
+                }
+            }
+
+            return false;
+            };
+        });
+
+
+
 }

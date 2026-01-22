@@ -52,32 +52,33 @@ namespace Framework {
 			/*else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
 				isFacingRight = entityMgr.GetComponent<BirdAIComponent>(entity).isFacingRight;
 			}*/
-			else if (entityMgr.HasComponent(entity, VelocityType)) {
-				const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
-				if (vel.x > 0.1f) isFacingRight = true;
-				else if (vel.x < -0.1f) isFacingRight = false;
+			if (entityMgr.HasComponent(entity, FSMComponentType)) {
+				if (entityMgr.HasComponent(entity, VelocityType)) {
+					const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
+					if (vel.x > 0.1f) isFacingRight = true;
+					else if (vel.x < -0.1f) isFacingRight = false;
+				}
 			}
-			
 
 			if (entityMgr.HasComponent(entity, FSMComponentType)) {
 				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
 				std::string stateName = fsm.fsm.GetCurrentState();
 
-				// Map FSM Strings to AnimationState Enum
-				// You can customize this mapping based on your specific animation profiles
+				// Map FSM States to Animation States for Bird Enemy
 				if (stateName == "Idle") {
 					animationComponent.currentState = AnimationState::IDLE;
 				}
-				else if (stateName == "Waking" || stateName == "Chase" || stateName == "Hover") {
-					// Map movement-heavy states to RUNNING
-					animationComponent.currentState = AnimationState::RUNNING;
+				else if (stateName == "Waking") {
+					animationComponent.currentState = AnimationState::IDLE; // Use idle while waking
+				}
+				else if (stateName == "SimpleChase" || stateName == "Bounce" || stateName == "Hover") {
+					animationComponent.currentState = AnimationState::RUNNING; // "Fly" animation
 				}
 				else if (stateName == "Attack") {
-					// Map attack to JUMPING or another state if you add ATTACK to the enum
-					animationComponent.currentState = AnimationState::JUMPING;
+					animationComponent.currentState = AnimationState::JUMPING; // "Dive" animation
 				}
-				else if (stateName == "Recovery" || stateName == "Stunned") {
-					animationComponent.currentState = AnimationState::DEATH; // Or IDLE/FALLING
+				else if (stateName == "Recovery") {
+					animationComponent.currentState = AnimationState::RUNNING; // Back to "Fly" after missing
 				}
 			}
 

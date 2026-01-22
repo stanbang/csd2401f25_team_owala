@@ -308,33 +308,19 @@ namespace Editor {
 				}
 				break;
 			}
-			/*case ComponentType::BirdAIComponentType: {
-				BirdAIComponent newBirdAIComponent;
-				if (EntitySerializer::DeserializeComponent(doc, newBirdAIComponent)) {
-					if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::BirdAIComponentType);
-					}
-					entityMgr.AddComponent<BirdAIComponent>(entity, newBirdAIComponent);
-				}
-				break;
-			}
-			case ComponentType::SkeletonAIComponentType: {
-				SkeletonAIComponent newSkeletonAIComponent;
-				if (EntitySerializer::DeserializeComponent(doc, newSkeletonAIComponent)) {
-					if (entityMgr.HasComponent(entity, ComponentType::SkeletonAIComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::SkeletonAIComponentType);
-					}
-					entityMgr.AddComponent<SkeletonAIComponent>(entity, newSkeletonAIComponent);
-				}
-				break;
-			}*/
+		
 			case ComponentType::FSMComponentType:
 			{
-				/*FSMComponent& oldComp = entityMgr.GetComponent<FSMComponent>(entity);
-				FSMComponent& newComp = entityMgr.GetComponent<FSMComponent>(entity); */
-				//wait
-				// Create memento... (Use your existing pattern for creating mementos)
-				// For FSM, you primarily care about saving the 'fsmDefinitionPath'
+				FSMComponent newFSM;
+				// Deserialize data from the JSON snapshot
+				if (EntitySerializer::DeserializeComponent(doc, newFSM)) {
+					// Remove existing if present to ensure clean state
+					if (entityMgr.HasComponent(entity, ComponentType::FSMComponentType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::FSMComponentType);
+					}
+					// Add the restored component
+					entityMgr.AddComponent<FSMComponent>(entity, newFSM);
+				}
 				break;
 			}
 
