@@ -1,5 +1,5 @@
 {
-    "name": "BasicGround",
+    "name": "Props_Skulls_01",
     "components": {
         "Transform": {
             "Position": {
@@ -29,16 +29,16 @@
             }
         },
         "AABBCollider": {
-            "half_width": 1100.0,
-            "half_height": 100.0,
+            "half_width": 50.0,
+            "half_height": 50.0,
             "offset_x": 0.0,
             "offset_y": 0.0
         },
         "TextureComponent": {
-            "texture_key": "Platform.png",
+            "texture_key": "SB_Props_Skulls_01.png",
             "half_size": {
-                "x": 1100.0,
-                "y": 100.0
+                "x": 50.0,
+                "y": 50.0
             }
         },
         "RotationFlag": {

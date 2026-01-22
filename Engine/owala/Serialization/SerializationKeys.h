@@ -100,7 +100,7 @@ namespace Framework::Serialization {
 	static constexpr const char* CURRENT_DELAY = "current_delay";
 	static constexpr const char* FALL_SPEED = "fall_speed";
 	static constexpr const char* ORIGINAL_POSITION = "original_position";
-	static constexpr const char* CURRENT_FALL_DISTANCE = "current_fall_distance";
+	//static constexpr const char* CURRENT_FALL_DISTANCE = "current_fall_distance";
 
 	static constexpr const char* SCALING_PLATFORM_COMPONENT = "ScalingPlatform";
 	static constexpr const char* BASE_HALFSIZE = "base_half_size";
