@@ -50,9 +50,6 @@ namespace Framework {
         void Shutdown() override {}
     private:
 
-        // Main text rendering function. calls graphics system to draw each line of text
-        void RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp, const Entity camera);
-
         // Calculate and update text halfsize if needed
         void UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp);
 
