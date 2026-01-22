@@ -956,7 +956,7 @@ namespace Framework {
 		originalPos.AddMember(rapidjson::StringRef(Serialization::VEC2_X), trap.originalPosition.x, alloc);
 		originalPos.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), trap.originalPosition.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ORIGINAL_POSITION), originalPos, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FALL_DISTANCE), trap.currentFallDistance, alloc);
+		//outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FALL_DISTANCE), trap.currentFallDistance, alloc);
 	}
 
 	// Texture Component
@@ -1446,10 +1446,10 @@ namespace Framework {
 			if (originalPosData.HasMember(Serialization::VEC2_Y) && originalPosData[Serialization::VEC2_Y].IsFloat()) {
 				out.originalPosition.y = originalPosData[Serialization::VEC2_Y].GetFloat();
 			}
-		}
+		}/*
 		if (componentData.HasMember(Serialization::CURRENT_FALL_DISTANCE) && componentData[Serialization::CURRENT_FALL_DISTANCE].IsFloat()) {
 			out.currentFallDistance = componentData[Serialization::CURRENT_FALL_DISTANCE].GetFloat();
-		}
+		}*/
 		return true;
 	}
 

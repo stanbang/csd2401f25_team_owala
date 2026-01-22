@@ -235,7 +235,7 @@ namespace Framework{
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };
 		Vector2D originalPosition;
-		float currentFallDistance{ 0.0f };
+		//float currentFallDistance{ 0.0f };
 	};
 
 	struct Button {
