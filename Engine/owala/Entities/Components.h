@@ -126,11 +126,13 @@ namespace Framework{
 	/* AABB (Axis-Aligned Bounding Box) for collision detection. */
 	struct AABBCollider {
 		Vector2D HalfSize{ 50.0f, 50.0f }; // Half-width and half-height of the box
+		Vector2D Offset{ 0.0f, 0.0f };     // Offset from entity position
 		float rotation = 0.0f;
 		Matrix3x3 transformMatrix;
 
-		AABBCollider() : HalfSize(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
-		AABBCollider(const Vector2D& size) : HalfSize(size), rotation(0.0f), transformMatrix() {}
+		AABBCollider() : HalfSize(0.0f, 0.0f), Offset(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size) : HalfSize(size), Offset(0.0f, 0.0f), rotation(0.0f), transformMatrix() {}
+		AABBCollider(const Vector2D& size, const Vector2D& offset) : HalfSize(size), Offset(offset), rotation(0.0f), transformMatrix() {}
 	};
 	
 

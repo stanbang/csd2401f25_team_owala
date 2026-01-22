@@ -17,7 +17,7 @@
 #include "Entity.h"
 #include "Components.h"
 #include "SceneComponents.h"
-#include "CameraSystem.h"  
+#include "CameraSystem.h"
 #include <bitset> //For a bitset to track which components an entity has
 #include <unordered_map> //For a hash map to store entity-component pairs
 
@@ -127,7 +127,7 @@ namespace Framework {
 		std::unordered_map<Entity, ComponentSignature> entitySignatures; // Track components of each entity
 		friend class EntityManager; // Allow EntityManager to access private members
 	private:
-		//Basic Components
+		/* Basic Components */
 		std::unordered_map<Entity, EntityProperties> properties;
 		std::unordered_map<Entity, Transform>	 transform;
 		std::unordered_map<Entity, SpawnPoint>   spawnPoint;
@@ -155,8 +155,18 @@ namespace Framework {
 
 		std::unordered_map<Entity, NativeScriptsComponent> nativeScripts; // Native Scripts
 
-		// Scene Components
+		/* Scene Components */
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
+	public:
+		/* Constructors */
+		EntityStorage() = default;
+		EntityStorage(const EntityStorage& other); // Copy Constructor
+		EntityStorage& operator=(const EntityStorage & other); // Copy Assignment
+		EntityStorage(EntityStorage&& other) noexcept = default; // Move Constructor
+		EntityStorage& operator=(EntityStorage&& other) noexcept = default; // Move Assignment
+		~EntityStorage();
+
+		void SwapWith(EntityStorage& other) noexcept;
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.

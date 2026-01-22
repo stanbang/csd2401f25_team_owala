@@ -17,10 +17,9 @@
 *********************************************************************/
 #include "Pathfinding.h"
 #include "EntityManager.h" 
-#include "EntityStorage.h" // For ComponentType enums
 #include "Components.h"     
 #include <cmath>            
-#include "PhysicsSystem.h"  
+#include "GameManager.h"
 #include <algorithm>
 #include <queue>
 #include <map>
@@ -221,9 +220,9 @@ namespace Framework {
 
 // In Pathfinding.cpp
 
-void NavigationGrid::BuildGrid(EntityStorage& ecs) {
+void NavigationGrid::BuildGrid() {
     wallNodes_.clear();
-    EntityManager entityMgr(ecs);
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
     // Find all entities that are platforms
     for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {

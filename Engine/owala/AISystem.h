@@ -43,7 +43,7 @@ namespace Framework {
 
     class AISystem : public ISystem {
     public:
-        AISystem(EntityStorage& storage, Graphics& gfx);
+        AISystem() = default;
 
         void Initialize() override;
         void Update() override;
@@ -51,7 +51,7 @@ namespace Framework {
 
         // Forces the grid to rebuild instantly
         inline void ForceGridRebuild() {
-            navGrid_.BuildGrid(*ecs_);
+            navGrid_.BuildGrid();
         }
 
         #ifdef BUILD_EDITOR
@@ -67,10 +67,8 @@ namespace Framework {
         #endif
 
     private:
-        EntityStorage* ecs_;
         NavigationGrid navGrid_;
         AStarPather pather_;
-        Graphics* gfx_; // Pointer to the graphics system
        // GameManager* gameManager_;
 
         float gridRebuildTimer_ = 0.0f;

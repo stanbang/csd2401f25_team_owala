@@ -16,33 +16,20 @@
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
-#include "ResourceManager.h"
-#include "CameraSystem.h"
 #include "GameMessages.h"
-#include "ParticleEffectManager.h"
-#include <functional>
 #include <unordered_map>
 
 namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
 	class VFXSystem : public ISystem {
 	public:
-		// Constructor taking references to EntityStorage and ResourceManager
-		VFXSystem(EntityStorage& entityStorage, ResourceManager& resourceManager, CameraSystem& cameraSystem)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager), cameraSystem_(&cameraSystem) {
-		}
+		// Constructor
+		VFXSystem() = default;
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
 
 	private:
-		// Pointer to the entity storage to access and modify entities and their components
-		EntityStorage* entityStorage_ = nullptr;
-		ResourceManager* resourceManager_ = nullptr;
-		WindowsSystem* win_ = nullptr;
-		CameraSystem* cameraSystem_ = nullptr;
-		ParticleEffectManager* particleEffectManager_ = nullptr;
-
 		// Emission methods
 		void EmitParticles(EntityManager& entityMgr);
 		void UpdateParticles(EntityManager& entityMgr);
@@ -58,7 +45,7 @@ namespace Framework {
 		void OnWorldRotation(const WorldRotationEvent& event);
 
 		// Generic handler for all trigger events
-		void TriggerVFX(const std::string& triggerName);
+		void TriggerVFX(const std::string& triggerName, bool hasPositionOverride = false, Vector2D overridePos = { 0.0f, 0.0f });
 		void OnTriggerEvent(const std::string& triggerEventName, const Vector2D& position);
 
 		// Helper function to calculate emission position based on style

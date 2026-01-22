@@ -15,8 +15,7 @@
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #include "ResourceManager.h"
-#include "AudioSystem.h"
-#include "Graphics.h"
+#include "GameManager.h"
 #include "GL/glew.h"
 #include "FileIO/FileUtility.h"
 
@@ -58,6 +57,9 @@ void ResourceManager::Initialize() {
 }
 
 void ResourceManager::Update() {
+	// Systems used by ResourceManager
+	Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+
 	// Upload a limited number of textures per frame to maintain high FPS
 	int uploadsThisFrame = 0;
 	const int MAX_UPLOADS_PER_FRAME = 2;
@@ -69,7 +71,7 @@ void ResourceManager::Update() {
 		m_dataReadyToUpload.pop();
 
 		// GPU Upload (Fast, Main Thread)
-		Texture tex = gfx_->CreateTextureFromRawData(item.rawData);
+		Texture tex = gfx_.CreateTextureFromRawData(item.rawData);
 
 		// Add to the map
 		if (tex != 0) {
@@ -80,7 +82,7 @@ void ResourceManager::Update() {
 		}
 
 		// Free CPU memory
-		gfx_->FreeImageRawData(item.rawData);
+		gfx_.FreeImageRawData(item.rawData);
 
 		m_itemsProcessed++;
 		uploadsThisFrame++;
@@ -135,7 +137,7 @@ bool ResourceManager::loadTexture(const std::string& name) {
 
 // OVERLOAD Loads a texture from file and stores it inside the resource manager
 bool ResourceManager::loadTexture(const std::string& name, const std::string& filepath) {
-	Texture tex = gfx_->loadTextureFromFile(filepath.c_str());
+	Texture tex = GameManager::GetInstance().GetSystems().gfx_->loadTextureFromFile(filepath.c_str());
 
 	if (tex == 0) {
 		Logger::Get().Info(DebugType::ResourceManager) << "Failed to load texture from '" << filepath << "'" << std::endl;
@@ -165,7 +167,9 @@ bool ResourceManager::loadSound(const std::string& id,
     bool loop,
     bool stream) {
 
-	FMOD::System* system_ = audiosystem_->getFMODSystem();
+	AudioSystem& audiosystem_ = *GameManager::GetInstance().GetSystems().audio_;
+
+	FMOD::System* system_ = audiosystem_.getFMODSystem();
 
     if (!system_) return false;
     if (!path)     return false;
@@ -193,7 +197,7 @@ bool ResourceManager::loadSound(const std::string& id,
 
 	Audio* snd = nullptr;
     FMOD_RESULT r = system_->createSound(path, mode, nullptr, &snd);
-    audiosystem_->check(r, "System::createSound");
+    audiosystem_.check(r, "System::createSound");
     if (r != FMOD_OK || !snd) return false;
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded sound '" <<  path << "'" << std::endl;
@@ -384,6 +388,8 @@ void ResourceManager::LoadTextureAsync(const std::string& filepath) {
 
 // Background worker thread loop for loading resources asynchronously
 void ResourceManager::WorkerThreadLoop() {
+	Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+
 	while (m_isLoading) {
 		std::string filePath;
 		bool hasWork = false;
@@ -406,7 +412,7 @@ void ResourceManager::WorkerThreadLoop() {
 
 			std::string name = fs::path(filePath).filename().string();
 
-			Graphics::ImageRawData raw = gfx_->LoadImageToCPU(filePath.c_str());
+			Graphics::ImageRawData raw = gfx_.LoadImageToCPU(filePath.c_str());
 
 			// Push result to Upload Queue
 			{

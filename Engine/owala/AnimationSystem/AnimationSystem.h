@@ -22,17 +22,10 @@ namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
 	class AnimationSystem : public ISystem {
 	public:
-		// Constructor taking references to EntityStorage and ResourceManager
-		AnimationSystem(EntityStorage& entityStorage, ResourceManager& resourceManager)
-			: entityStorage_(&entityStorage), resourceManager_(&resourceManager) {}
+		// Constructor
+		AnimationSystem() = default;
 		void Initialize() override {}
 		void Update() override;
 		void Shutdown() override;
-
-	private:
-		// Pointer to the entity storage to access and modify entities and their components
-		EntityStorage* entityStorage_ = nullptr;
-		ResourceManager* resourceManager_ = nullptr;
-		WindowsSystem* win_ = nullptr;
 	};
 } // namespace Framework

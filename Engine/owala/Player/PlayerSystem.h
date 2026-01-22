@@ -25,21 +25,13 @@ namespace Framework {
 	class WindowsSystem; // Forward declare to get window handle for input
 	class PlayerSystem : public ISystem {
 	public:
-		
-		PlayerSystem(EntityStorage& entityStorage, InputSystem& input, PhysicsSystem& physics, TransformationSystem& transformation)
-			: entityStorage_(&entityStorage), input_(&input), physics_(&physics), transformationSystem_(&transformation) {}
+	
+		PlayerSystem() = default;
 		void Initialize() override;
 		void Update() override;
 		void Shutdown() override;
 
 	private:
-		// Pointer to the entity storage to access and modify entities and their components
-		EntityStorage* entityStorage_ = nullptr;
-		WindowsSystem* win_ = nullptr;
-		InputSystem* input_ = nullptr; // use our own input system
-		PhysicsSystem* physics_ = nullptr; // use physics sytems
-		TransformationSystem* transformationSystem_ = nullptr;
-
 		// Player landed event handler
 		void OnPlayerLanded(Entity player, const Vector2D& position);
 

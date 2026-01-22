@@ -17,23 +17,16 @@
 #include "History.h"
 #include "EntityManager.h"
 #include "EntitySerializer.h"
-#include "SerializationKeys.h"
-#include "ScriptRegistry.h"
+#include "GameManager.h"
 
 // Debugging
 #include "Logger.h"
 
 namespace Editor {
 	using namespace Framework;
-	HistoryManager::HistoryManager(Framework::EntityStorage& ecs) : ecs_(&ecs) {}
 
 	void HistoryManager::Apply(const Operation& op, bool isUndo) {
-		if (!ecs_) {
-			Logger::Info(DebugType::Editor) << "HistoryManager::Apply: ECS is null, cannot apply operation." << std::endl;
-			return;
-		}
-
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		const std::string& dataToUse = isUndo ? op.data.memento.beforeJSON : op.data.memento.afterJSON;
 		std::cout << "Before Data: " << op.data.memento.beforeJSON << std::endl;
 		std::cout << "After Data: " << op.data.memento.afterJSON << std::endl;
@@ -68,6 +61,7 @@ namespace Editor {
 	}
 
 	void HistoryManager::RestoreEntityFromSnapshot(Entity entity, const std::string& json) {
+		EntityStorage* ecs_ = &GameManager::GetInstance().GetECS();
 		EntityManager entityMgr(*ecs_);
 
 		// Empty JSON means "entity does not exist". Destroy entity instead.
@@ -90,7 +84,7 @@ namespace Editor {
 	}
 
 	void HistoryManager::ApplyComponentSnapshot(Entity entity, ComponentType type, const std::string& json) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
 		// Empty JSON means "component does not exist". Remove component instead.
 		if (json.empty()) {
@@ -445,7 +439,11 @@ namespace Editor {
 	}
 
 	void HistoryManager::Record(OpType opType, Entity entity, const std::string& description) {
+		// Do not record any operations during Play Mode.
+		if (GameManager::GetInstance().GetEditor()->IsGamePlaying()) return;
+
 		Operation op;
+		EntityStorage& ecs_ = GameManager::GetInstance().GetECS();
 
 		op.opType = opType;
 		op.description = description;
@@ -455,11 +453,11 @@ namespace Editor {
 		case OpType::Create:
 			op.data.mode = PayloadMode::Entity;
 			op.data.memento.beforeJSON.clear();
-			op.data.memento.afterJSON = EntitySerializer::SerializeEntityToString(entity, *ecs_);
+			op.data.memento.afterJSON = EntitySerializer::SerializeEntityToString(entity, ecs_);
 			break;
 		case OpType::Delete:
 			op.data.mode = PayloadMode::Entity;
-			op.data.memento.beforeJSON = EntitySerializer::SerializeEntityToString(entity, *ecs_);
+			op.data.memento.beforeJSON = EntitySerializer::SerializeEntityToString(entity, ecs_);
 			op.data.memento.afterJSON.clear();
 			break;
 		default: // Components should be handled via the dedicated function.
@@ -470,6 +468,9 @@ namespace Editor {
 	}
 
 	void HistoryManager::RecordModifyComponent(Entity entity, const std::string& description, const std::string& beforeJSON, const std::string& afterJSON, ComponentType compType) {
+		// Do not record any operations during Play Mode.
+		if (GameManager::GetInstance().GetEditor()->IsGamePlaying()) return;
+
 		Operation op;
 
 		op.opType = OpType::ModifyComponent;
@@ -485,11 +486,6 @@ namespace Editor {
 	}
 
 	void HistoryManager::Push(Operation& op) {
-		if (!ecs_) {
-			Logger::Info(DebugType::Editor) << "HistoryManager::Push: ECS is null, cannot push to history." << std::endl;
-			return;
-		}
-
 		if (op.opType == OpType::None) {
 			Logger::Info(DebugType::Editor) << "HistoryManager::Push: Invalid operation type, cannot push to history." << std::endl;
 			return;

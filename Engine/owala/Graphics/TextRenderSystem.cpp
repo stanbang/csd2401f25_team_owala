@@ -16,7 +16,9 @@
 
 #include "TextRenderSystem.h"
 #include <cmath>
+#include "GameManager.h"
 #include "GuiSystem.h"
+#include "EntityManager.h"
 #include "WindowsSystem.h"
 
 namespace Framework {
@@ -25,18 +27,7 @@ namespace Framework {
      * \brief Main per-frame update function for text rendering.
      */
     void TextRenderSystem::Update() {
-        EntityManager entityMgr(ecs_);
-
-        // Retrieve active camera
-        Entity activeCamera = 0;
-        if (cameraSystem_) {
-            activeCamera = cameraSystem_->GetActiveCamera();
-        }
-
-        //float left = -1.0f, right = 1.0f, bottom = -1.0f, top = 1.0f;
-        //if (activeCamera != 0 && cameraSystem_) {
-        //    cameraSystem_->GetViewBounds(activeCamera, left, right, bottom, top);
-        //}
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Loop through all text components
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
@@ -49,73 +40,6 @@ namespace Framework {
                 UpdateTextBounds(entity, entityMgr, textComp);
                 textComp.isDirty = false;
             }
-
-            RenderText(entity, entityMgr, textComp, activeCamera);
-        }
-    }
-
-    /**
-     * \brief Renders all visible text components.
-     */
-    void TextRenderSystem::RenderText(const Entity en, EntityManager& entityMgr, const TextComponent& textComp, const Entity camera) {
-        try {
-            Font& font = rcm_.get<Font>(textComp.fontKey);
-            const Vector2D& textPos = entityMgr.GetComponent<Transform>(en).position;
-            bool isUIElement = entityMgr.HasComponent(en, GUITagType);
-
-            float screenW = static_cast<float>(gfx_.getScreenWidth());
-            float screenH = static_cast<float>(gfx_.getScreenHeight());
-            
-            float zoom = 1.0f;
-            Vector2D camPos = { 0.0f, 0.0f };
-            Vector2D camSize = { screenW, screenH };
-
-            if (camera != 0 && cameraSystem_ && !isUIElement) {
-                const Camera& cam = cameraSystem_->GetCamera(camera);
-                //zoom = cam.zoom;
-                camPos = cam.position;
-                camSize = cam.size;
-            }
-
-            Vector2D screenTextPos = textPos;
-
-            // Texts without GUI Tag need to convert to screen space
-            if (!isUIElement) {
-                // Subtract Camera Position from Text Position
-                float relativeX = textPos.x - camPos.x;
-                float relativeY = textPos.y - camPos.y;
-
-                // offset so that pos is the middle of the text
-                relativeX -= textComp.halfSize.x;
-                relativeY += textComp.halfSize.y;
-
-                // Convert Relative Position to NDC
-                screenTextPos = Vector2D(
-                    (relativeX / camSize.x) * 2.0f / zoom,
-                    (relativeY / camSize.y) * 2.0f / zoom
-                );
-            }
-            else {
-                // Texts with GUI tag already use screen coords
-                // offset so that pos is the middle of the text
-                screenTextPos.x -= textComp.halfSize.x;
-                screenTextPos.y += textComp.halfSize.y;
-            }
-
-            // get line height for offsetting the y when rendering multiple lines of text
-            const float line_height_px = font.GetLineHeight(textComp.scale);
-            float line_height_ndc = (line_height_px / screenH) * 2.0f;
-
-            // draw each line of text
-            for (const std::string& line : textComp.wrappedLines) {
-                gfx_.drawText(font, line, screenTextPos, textComp.scale / zoom, textComp.color);
-                screenTextPos.y -= line_height_ndc / zoom;
-            }
-        }
-        catch (const std::exception& e) {
-            Logger::Get().Error(DebugType::TextRenderSystem)
-                << "Failed to render text for entity " << en
-                << " (Bad font key: " << textComp.fontKey << "): " << e.what() << std::endl;
         }
     }
 
@@ -123,6 +47,9 @@ namespace Framework {
      * \brief Calculate and update text halfsize 
      */
     void TextRenderSystem::UpdateTextBounds(Entity entity, EntityManager& entityMgr, TextComponent& textComp) {
+        ResourceManager& rcm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+        WindowsSystem& win_ = *GameManager::GetInstance().GetSystems().win_;
+
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
 
@@ -166,6 +93,7 @@ namespace Framework {
      * \brief Calculate and update text wrappedLines
      */
     void TextRenderSystem::UpdateWrappedText(TextComponent& textComp) {
+        ResourceManager& rcm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
 

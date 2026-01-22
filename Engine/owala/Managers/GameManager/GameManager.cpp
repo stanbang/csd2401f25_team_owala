@@ -85,7 +85,7 @@ namespace Framework {
 		if (!systems_.camera_) {
 			throw GameException(DebugType::GameManager, "CameraSystem not registered!");
 		}
-		if (!systems_.audio_) {
+		if (!systems_.levelResetter_) {
 			throw GameException(DebugType::GameManager, "LevelResetSystem not registered!");
 		}
 		if (!SceneManager::Exists()) {
@@ -98,24 +98,27 @@ namespace Framework {
 	}
 
 	void GameManager::UpdateNativeScripts() {
+		static int count = 0;
 		EntityManager entityMgr(*systems_.ecs_);
 		SceneManager& sceneMgr = SceneManager::GetInstance();
+		
+		// Get all entities with NativeScriptsComponent and ActiveTag to log them
+		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType);
+		
 		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
-			if (entityMgr.GetComponent<SceneOwned>(scriptableEntity).sceneName != sceneMgr.GetActiveScene().name) {
-				if (!entityMgr.HasComponent(scriptableEntity, PersistentTagType)) continue;
-			}
-
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
+
 			if (nativeScripts.empty()) continue;
 			
 			for (NativeScriptsComponent::NativeScript& script : nativeScripts) {
 				if (!script.enabled) continue;
 
 #ifdef BUILD_EDITOR
-				if (!script.executeInEditMode && !editor_->IsGamePlaying()) continue;
+				const bool isPlaying = (editor_ != nullptr) ? editor_->IsGamePlaying() : true;
+				if (!script.executeInEditMode && !isPlaying) continue;
 #endif
 
-				if (!script.Instance) {
+				if (!script.Instance && script.InstantiateScript) {
 					// Create and Bind Entity
 					script.Instance = script.InstantiateScript();
 					script.Instance->SetEntity(scriptableEntity);
@@ -125,7 +128,9 @@ namespace Framework {
 				}
 
 				// Call Script's OnUpdate
-				script.Instance->OnUpdate();
+				if (script.Instance) {
+					script.Instance->OnUpdate();
+				}
 			}
 		}
 	}
@@ -154,11 +159,51 @@ namespace Framework {
 		std::cout << "[GameManager] Successfully linked to all core systems" << std::endl;
 		Logger::Get().Info(DebugType::GameManager) << "Successfully linked to all core systems" << std::endl;
 	}
-	#ifdef BUILD_EDITOR
+
+#ifdef BUILD_EDITOR
+	// ---------------------------------------------------------------------------
+	// Play State Management
+	// ---------------------------------------------------------------------------
 	void GameManager::RegisterEditor(Editor::Editor& editor) {
 		editor_ = &editor;
 	}
-	#endif
+
+	void GameManager::OnBeginPlay() {
+		CheckSystems();
+		if (hasECSSnapshot) return;
+
+		// Snapshot editor world.
+		editorECS_ = systems_.ecs_;
+		nextEntityIDSnapshot = nextEntityID;
+
+		// Create runtime world.
+		runtimeECS_ = std::make_unique<EntityStorage>(*editorECS_);
+
+		systems_.ecs_ = runtimeECS_.get();
+
+		hasECSSnapshot = true;
+
+		systems_.physics_->SetPaused(false);
+		SceneManager::GetInstance().OnEnterPlay();
+	}
+
+	void GameManager::OnEndPlay() {
+		CheckSystems();
+		if (!hasECSSnapshot) return;
+
+		systems_.ecs_ = editorECS_;
+		nextEntityID = nextEntityIDSnapshot;
+
+		systems_.physics_->SetPaused(true);
+		systems_.audio_->stopAll();
+		SceneManager::GetInstance().OnExitPlay();
+
+		// Cleaning
+		runtimeECS_.reset();
+		editorECS_ = nullptr;
+		hasECSSnapshot = false;
+	}
+#endif
 
 
 	// ---------------------------------------------------------------------------
@@ -189,7 +234,8 @@ namespace Framework {
 					//SceneManager::GetInstance().LoadScene(event.stringParam);
 
 					// Use GameManager to initiate async level load with loading screen
-					this->InitiateLevelLoad(event.stringParam);
+					queuedLevelName_ = event.stringParam;
+					queuedLevelLoad_ = true;
 				}
 				else {
 					Logger::Get().Error(DebugType::GameManager)
@@ -214,10 +260,15 @@ namespace Framework {
 		MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
 			// Change to RestartMenu when death animation finishes
 			if (event.deathAnimationFinished) {
+				// If transitioning to another scene already, do nothing
+				if (!GetNextScene().empty()) return;
+
+				// Only change to RestartMenu if not already there
 				if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
-					GetSystems().levelResetter_->RunReset();
-					SceneManager::GetInstance().LoadScene("RestartMenu");
+					//GetSystems().levelResetter_->RunReset(); // Don't reset the level before the curtains close, do it after inside InitiateLevelLoad
+					//SceneManager::GetInstance().LoadScene("RestartMenu"); //Old code without transitions
+					this->InitiateLevelLoad("RestartMenu"); // Correct way to load with transitions
 				}
 			}
 		});
@@ -262,7 +313,27 @@ namespace Framework {
 	}
 
 	void GameManager::Update() {
+		// Execute any deferred tasks from previous frame
+		if (deferredTask_) {
+			deferredTask_();
+			deferredTask_ = nullptr;
+		}
+
 		// --- GAME UPDATE HERE ---
+		if (queuedLevelLoad_) {
+			std::string targetSceneName = queuedLevelName_;
+			queuedLevelName_.clear();
+			queuedLevelLoad_ = false;
+
+			if (queuedLevelReset_) {
+				queuedLevelReset_ = false;
+				if (systems_.levelResetter_) {
+					systems_.levelResetter_->RunReset();
+				}
+			}
+
+			InitiateLevelLoad(targetSceneName);
+		}
 
 		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
 
@@ -295,10 +366,23 @@ namespace Framework {
 		// Always update native scripts
 		UpdateNativeScripts();
 
+		if (systems_.input_->KeyPressed(InputSystem::Key::F2)) {
+			EntityManager entityMgr(GetECS());
+			std::vector<Entity> persistentEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
+			std::cout << persistentEntities.size() << std::endl;
+			std::cout << "Persistent Entities: " << std::endl;
+			for (Entity entity : persistentEntities) {
+				if (entityMgr.ValidateEntity(entity)) {
+					std::cout << "Entity ID: " << entity << " | Entity Name: " << entityMgr.GetProperties(entity).name << std::endl;
+;				}
+			}
+			std::cout << "== End Persistent Entities == " << std::endl;
+		}
+
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
-		systems_.spriteRenderer_->Update();
 		systems_.textRenderer_->Update();
+		systems_.spriteRenderer_->Update();
 		#endif
 
 		// --- END GAME UPDATE ---
@@ -342,35 +426,39 @@ namespace Framework {
 
 			// Close Curtains
 			TransitionController::PlayAllClose([this, targetSceneName]() {
-				// Load Next Level Directly
-				SceneManager::GetInstance().LoadScene(targetSceneName);
-
-				// Tell TransitionController to start CLOSED in the new level, then OPEN
-				TransitionController::s_startNextSceneClosed = true;
+				deferredTask_ = [targetSceneName]() {
+					SceneManager::GetInstance().LoadScene(targetSceneName);
+					TransitionController::s_startNextSceneClosed = true;
+					};
 				});
 		}
 		// Menu > Level (Show Loading Screen)
 		else if (!currentIsLevel && targetIsLevel) {
 			Logger::Get().Info(DebugType::GameManager) << "Menu->Level Transition via Loading Screen" << std::endl;
-
 			SetNextScene(targetSceneName); // Store target for LoadingScreenController
 			PreloadSceneAssets(targetSceneName);
 
 			// Just load loading screen immediately
 			SceneManager::GetInstance().LoadScene("LoadingScreen");
 		}
+
 		// Level > Menu (Close Curtains, then Loading Screen, then Menu)
 		else if (currentIsLevel && !targetIsLevel) {
 			Logger::Get().Info(DebugType::GameManager) << "Level->Menu Transition" << std::endl;
-
 			SetNextScene(targetSceneName); // Store target (e.g., MainMenu)
 
 			// Close Curtains
 			TransitionController::PlayAllClose([this]() {
+				// Reset Level
+				this->GetSystems().levelResetter_->RunReset();
+
 				// Load Loading Screen
-				SceneManager::GetInstance().LoadScene("LoadingScreen");
+				deferredTask_ = []() {
+					SceneManager::GetInstance().LoadScene("LoadingScreen");
+					};
 				});
 		}
+
 		// Menu -> Menu (Direct, no curtains)
 		else {
 			SceneManager::GetInstance().LoadScene(targetSceneName);

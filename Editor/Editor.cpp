@@ -181,7 +181,7 @@ namespace Editor {
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		editorCameraNeedsReset_(false),
-		historyManager_(*gameManager_->GetSystems().ecs_) {
+		historyManager_() {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -1064,7 +1064,7 @@ namespace Editor {
 #pragma region COPY AND PASTING APIs
 
 	void Editor::CopyEntityToClipboard(const Entity entity) {
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 		doc.SetObject();
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
@@ -1086,7 +1086,7 @@ namespace Editor {
 			return;
 		}
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 
 		doc.Parse(entityClipboard->c_str());
@@ -1195,7 +1195,9 @@ namespace Editor {
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
-				historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				if (!IsGamePlaying()) {
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				}
 			}
 
 			ImGui::SameLine();
@@ -1406,17 +1408,19 @@ namespace Editor {
 		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
-		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Save")) {
 			SaveScene();
 		}
-		if (!isCurrentSceneValid) ImGui::EndDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Create New Scene --- 
 		ImGui::SameLine();
+		if (IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("New Scene")) {
 			ImGui::OpenPopup("Create New Scene");
 		}
+		if (IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Unload Current Scene ---
 		ImGui::SameLine();
@@ -1428,12 +1432,12 @@ namespace Editor {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoverColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
 
-		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Unload Scene")) {
 			ImGui::OpenPopup("Save");
 		}
 		ImGui::PopStyleColor(3);
-		if (!isCurrentSceneValid) ImGui::EndDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// Save Scene Modal (pop up before unloading current scene)
 		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -1444,13 +1448,13 @@ namespace Editor {
 			{
 				SaveScene();
 				ImGui::CloseCurrentPopup();
-				sceneMgr.UnloadScene();
+				sceneMgr.UnloadScene(sceneMgr.GetActiveScene());
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Cancel", ImVec2(120, 0)))
 			{
 				ImGui::CloseCurrentPopup();
-				sceneMgr.UnloadScene();
+				sceneMgr.UnloadScene(sceneMgr.GetActiveScene());;
 			}
 
 			ImGui::EndPopup();
@@ -1939,88 +1943,147 @@ namespace Editor {
 
 		ImGui::Begin("Hierarchy");
 
-		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& activeScene = sceneMgr.GetActiveScene();
 
 		// --- Scene Info ---
-		if (!currentScene.IsValid()) {
+		if (!activeScene.IsValid()) {
 			ImGui::TextDisabled("No Scene Loaded!");
 			ImGui::End();
 			return;
 		}
 
-		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
 		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
-			int localWidgetID = 0;
 
-			// Clipper for large list optimization(This only process entities in view in the list)
-			ImGuiListClipper clipper;
-			clipper.Begin(static_cast<int>(entitiesLoaded.size()));
+			auto drawEntityItem = [&](Entity entity) {
+				if (!entityMgr.ValidateEntity(entity)) return;
 
-			while (clipper.Step()) {
-				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
-					const Entity entity = entitiesLoaded[i];
+				const std::string& name = entityMgr.GetProperties(entity).name;
 
-					std::string name = entityMgr.GetProperties(entity).name;
-					ImGui::PushID(localWidgetID++);
-					bool selected = (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity);
-					if (ImGui::Selectable(name.c_str(), &selected)) {
-						selectedTagIndex = selectedComponentIndex = 0;
-						selectedEntityIndex = entity + 1;
-						isEntitySelected_ = true;
+				ImGui::PushID(static_cast<int>(entity));
+
+				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+				if (ImGui::Selectable(name.c_str(), &selected)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Allows right-click selection
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Selectable Context Menu
+				if (ImGui::BeginPopupContextItem("##EntityContext")) {
+					// Copy
+					if (ImGui::MenuItem("Copy")) {
+						CopyEntityToClipboard(entity);
 					}
-					ImGui::PopID();
-
-					// Allows right-click selection
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-						selectedTagIndex = selectedComponentIndex = 0;
-						selectedEntityIndex = entity + 1;
-						isEntitySelected_ = true;
-					}
-
-					// Selectable Context Menu
-					if (ImGui::BeginPopupContextItem()) {
-						// Copy
-						if (ImGui::MenuItem("Copy")) {
-							CopyEntityToClipboard(entity);
+					// Paste
+					if (entityClipboard) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
 						}
-						// Paste
-						if (entityClipboard) {
-							if (ImGui::MenuItem("Paste")) {
-								PasteEntityFromClipboard();
+					}
+					else {
+						ImGui::TextDisabled("Paste");
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItem("Duplicate")) {
+						SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
+						if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+							ownerSceneID = entityMgr.GetComponent<SceneOwned>(entity).sceneIndex;
+						}
+
+						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
+						Entity clonedEntity = entityMgr.CloneEntity(entity);
+						sceneMgr.AddEntityToScene(activeScene, clonedEntity);
+						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
+					}
+					if (ImGui::MenuItem("Delete")) {
+						historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+						entityMgr.DestroyEntity(entity);
+						if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+							isEntitySelected_ = false;
+						}
+					}
+					ImGui::EndPopup();
+				}
+				ImGui::PopID();
+			}; // End lambda: drawEntityItem
+
+			auto drawSceneDropdown = [&](const SceneManagement::SceneGUID sceneID, const std::string& sceneName) {
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
+				flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+				ImGui::PushID(static_cast<int>(sceneID));
+
+				bool open = ImGui::CollapsingHeader(sceneName.c_str(), flags);
+
+				if (ImGui::BeginPopupContextItem("##SceneHeaderContext")) {
+					// Paste
+					if (entityClipboard.has_value()) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
+						}
+					}
+					else {
+						ImGui::TextDisabled("Paste");
+					}
+
+					ImGui::Separator();
+
+					// Create Empty Entity
+					if (ImGui::MenuItem("Create Empty")) {
+						Entity newEntity = entityMgr.CreateEntity();
+						SceneManager::GetInstance().AddEntityToScene(sceneID, newEntity);
+						historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+					}
+
+					ImGui::EndPopup();
+				} // End SceneHeaderContext
+
+				if (open) {
+					std::vector<Entity> list = sceneMgr.GetEntitiesInScene(sceneID);
+
+					if (list.empty()) {
+						ImGui::TextDisabled("(Empty)");
+					}
+					else {
+						// Clipper for large list optimization(This only process entities in view in the list)
+						ImGuiListClipper clipper;
+						clipper.Begin(static_cast<int>(list.size()));
+						while (clipper.Step()) {
+							for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+								drawEntityItem(list[i]);
 							}
 						}
-						else {
-							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-							ImGui::Text("Paste");
-							ImGui::PopStyleColor(1);
-						}
-
-						ImGui::Separator();
-
-						if (ImGui::MenuItem("Duplicate")) {
-							Entity clonedEntity = entityMgr.CloneEntity(entity);
-							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
-							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
-						}
-						if (ImGui::MenuItem("Delete")) {
-							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
-							entityMgr.DestroyEntity(entity);
-							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
-								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
-								isEntitySelected_ = false;
-							}
-						}
-						ImGui::EndPopup();
+						clipper.End();
 					}
 				}
+				ImGui::PopID();
+				}; // End lambda: drawSceneDropdown
+
+			drawSceneDropdown(activeScene.sceneIndex, std::string("Scene: ") + activeScene.name);
+			if (activeScene.sceneIndex != SceneManager::GetDDOLSceneID() && IsGamePlaying()) {
+				drawSceneDropdown(SceneManager::GetDDOLSceneID(), SceneManager::GetDDOLSceneName());
 			}
-			// End clipper
-			clipper.End();
+		}
 
-			// Child Window Context Menu
-			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+		// Ensure Empty Space in Hierarchy List
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+		if (avail.y > 0.f) {
+			ImGui::InvisibleButton("##HierarchyEmptySpace", avail, ImGuiButtonFlags_MouseButtonRight);
 
+			if (ImGui::BeginPopupContextItem("##HierarchyEmptyContext")) {
 				// Paste
 				if (entityClipboard) {
 					if (ImGui::MenuItem("Paste")) {
@@ -2028,22 +2091,20 @@ namespace Editor {
 					}
 				}
 				else {
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-					ImGui::Text("Paste");
-					ImGui::PopStyleColor(1);
+					ImGui::TextDisabled("Paste");
 				}
 
 				ImGui::Separator();
 
-
 				// Create Empty Entity
 				if (ImGui::MenuItem("Create Empty")) {
 					Entity newEntity = entityMgr.CreateEntity();
-					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+					SceneManager::GetInstance().AddEntityToScene(activeScene, newEntity);
 					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 				}
+
 				ImGui::EndPopup();
-			}
+			} // End HierarchyEmptyContext
 		}
 
 		ImGui::EndChild();
@@ -2627,7 +2688,11 @@ namespace Editor {
 			if (activeNow && !editSession.wasItemActive) {
 				editSession.Begin(selectedEntity, selectedComponent);
 			}
-
+			ImGui::InputFloat2("Offset (X),(Y)", &col.Offset.x, "%.3f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Offset the collider from the entity's center position.\nPositive X = right, Positive Y = up");
+			}
 			if (!activeNow && editSession.wasItemActive) {
 				std::stringstream ss;
 				ss << std::setprecision(2) << std::fixed;
@@ -2648,6 +2713,15 @@ namespace Editor {
 				}
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Automatically sets the AABB bounds to match the Texture dimensions.");
+				}
+			}
+			if (col.Offset.x != 0.0f || col.Offset.y != 0.0f) {
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Offset")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					col.Offset = { 0.0f, 0.0f };
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					historyManager_.RecordModifyComponent(selectedEntity, "Reset Collider Offset", beforeJSON, afterJSON, selectedComponent);
 				}
 			}
 
@@ -4358,9 +4432,9 @@ namespace Editor {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// ===  RENDER SPRITES ===
-				spriteRenderer_->Update();
+				// ===  RENDER TEXTS & SPRITES ===
 				textRenderer_->Update();
+				spriteRenderer_->Update();
 
 				// ===  RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
@@ -4924,23 +4998,19 @@ namespace Editor {
 
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
-		const auto& renderLayers = layerManager_.GetRenderLayers();
+		const std::vector<RenderLayerData>& renderLayers = layerManager_.GetRenderLayers();
 
 		// Build dropdown with custom option
-		std::vector<std::string> layerNames;
-		layerNames.push_back("Custom");
-		for (const auto& layer : renderLayers) {
-			layerNames.push_back(layer.name);
-		}
-
 		std::vector<const char*> layerItems;
-		for (const auto& name : layerNames) {
-			layerItems.push_back(name.c_str());
+		layerItems.push_back("Custom");
+		for (const RenderLayerData& layer : renderLayers) {
+			layerItems.push_back(layer.name.c_str());
 		}
 
 		// Determine current selection
-		int currentIdx = 0; // Default to Custom
-		if (props.renderLayer != Framework::RenderLayer::Custom) {
+		static int currentIdx = 0; // Default to Custom
+
+		if (props.renderLayer != RenderLayer::Custom) {
 			// Try to find matching layer by render order
 			for (size_t i = 0; i < renderLayers.size(); ++i) {
 				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
@@ -4950,14 +5020,7 @@ namespace Editor {
 			}
 		}
 		else {
-			// Check if using built-in enum value
-			for (size_t i = 0; i < renderLayers.size(); ++i) {
-				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
-					currentIdx = static_cast<int>(i) + 1;
-					props.renderLayerName = renderLayers[i].name; // Update to track the name
-					break;
-				}
-			}
+			currentIdx = 0;
 		}
 
 		ImGui::AlignTextToFramePadding();
@@ -4978,7 +5041,7 @@ namespace Editor {
 				int layerIdx = currentIdx - 1;
 				if (layerIdx >= 0 && layerIdx < static_cast<int>(renderLayers.size())) {
 					props.customRenderOrder = renderLayers[layerIdx].renderOrder;
-					props.renderLayer = Framework::RenderLayer::Custom;
+					props.renderLayer = static_cast<RenderLayer>(renderLayers[layerIdx].renderOrder);
 					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
 				}
 			}
@@ -4996,11 +5059,13 @@ namespace Editor {
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
 			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom"; // Mark as truly custom
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
 				props.customRenderOrder = 0;
+				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom";
 			}
 
@@ -5065,7 +5130,8 @@ namespace Editor {
 		ImGui::Spacing();
 		ImGui::Separator();
 
-		SortEntitiesByRenderLayer(sceneEntities, entityMgr);
+		std::vector<Entity> sortedEntities = sceneEntities;
+		SortEntitiesByRenderLayer(sortedEntities, entityMgr);
 
 		// Display in a table	
 		if (ImGui::BeginTable("EntityLayerTable", 4,
@@ -5080,7 +5146,7 @@ namespace Editor {
 			ImGui::TableHeadersRow();
 
 			//  Iterate through entity list
-			for (const Entity& entity : sceneEntities) {
+			for (const Entity& entity : sortedEntities) {
 				if (!entityMgr.ValidateEntity(entity)) continue;
 
 				const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
@@ -5221,20 +5287,20 @@ namespace Editor {
 
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
+				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
+
 				if (isGamePlaying) {
-					// on pressing Stop
-					gameManager_->GetSystems().levelResetter_->RunReset();
+					gameManager_->OnEndPlay();
 					ResetEditorCamera();
+				}
+				else {
+					gameManager_->OnBeginPlay();
 				}
 
 				isGamePlaying = !isGamePlaying;
 				isGamePaused = false;
 
-				if (physics_->IsInStepMode()) physics_->ToggleStepMode();
-				if (physics_->IsPaused()) physics_->SetPaused(false);
-
 				if (gizmoSystem_) gizmoSystem_->SetGizmoMode(GizmoMode::None);
-
 			}
 			ImGui::PopStyleColor();
 
@@ -5502,33 +5568,36 @@ namespace Editor {
 					}
 					else if (compData.type == "AABBCollider") {
 						ImGui::Text("Collider Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float halfX = compData.data["halfSizeX"].GetFloat();
-							float halfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
+							float halfX = compData.data["half_width"].GetFloat();
+							float halfY = compData.data["half_height"].GetFloat();
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeX"].SetFloat(halfX);
+							if (ImGui::DragFloat("Collider Half Width", &halfX, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["half_width"].SetFloat(halfX);
 								prefabModified = true;
 							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeY"].SetFloat(halfY);
+							if (ImGui::DragFloat("Collider Half Height", &halfY, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["half_height"].SetFloat(halfY);
 								prefabModified = true;
 							}
 						}
 					}
 					else if (compData.type == "TextureComponent") {
 						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float texHalfX = compData.data["halfSizeX"].GetFloat();
-							float texHalfY = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_size")) {
+							const rapidjson::Value& halfSize = compData.data["half_size"];
+							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
+								float texHalfX = halfSize["x"].GetFloat();
+								float texHalfY = halfSize["y"].GetFloat();
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeX"].SetFloat(texHalfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeY"].SetFloat(texHalfY);
-								prefabModified = true;
+								if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 1.0f, 0.0f, 10000.0f)) {
+									compData.data["half_size"]["x"].SetFloat(texHalfX);
+									prefabModified = true;
+								}
+								if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 1.0f, 0.0f, 10000.0f)) {
+									compData.data["half_size"]["y"].SetFloat(texHalfY);
+									prefabModified = true;
+								}
 							}
 						}
 					}
@@ -5667,34 +5736,32 @@ namespace Editor {
 				else if (compData.type == "AABBCollider") {
 					if (entityMgr.HasComponent(entity, AABBColliderType)) {
 						AABBCollider& col = entityMgr.GetComponent<AABBCollider>(entity);
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							col.HalfSize.x = compData.data["halfSizeX"].GetFloat();
-							col.HalfSize.y = compData.data["halfSizeY"].GetFloat();
-
-							if (entityMgr.HasComponent(entity, TextureComponentType)) {
-								TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
-								tex.HalfSize = col.HalfSize;
-							}
+						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
+							col.HalfSize.x = compData.data["half_width"].GetFloat();
+							col.HalfSize.y = compData.data["half_height"].GetFloat();
 						}
 					}
 				}
 				else if (compData.type == "TextureComponent") {
 					if (entityMgr.HasComponent(entity, TextureComponentType)) {
 						TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							tex.HalfSize.x = compData.data["halfSizeX"].GetFloat();
-							tex.HalfSize.y = compData.data["halfSizeY"].GetFloat();
+						if (compData.data.HasMember("half_size")) {
+							const rapidjson::Value& halfSize = compData.data["half_size"];
+							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
+								tex.HalfSize.x = halfSize["x"].GetFloat();
+								tex.HalfSize.y = halfSize["y"].GetFloat();
+							}
 						}
 					}
 				}
 				else if (compData.type == "TrapPlatformComponent") {
 					if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
 						TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
-						if (compData.data.HasMember("fallSpeed")) {
-							trap.fallSpeed = compData.data["fallSpeed"].GetFloat();
+						if (compData.data.HasMember("fall_speed")) {
+							trap.fallSpeed = compData.data["fall_speed"].GetFloat();
 						}
-						if (compData.data.HasMember("triggerDelay")) {
-							trap.triggerDelay = compData.data["triggerDelay"].GetFloat();
+						if (compData.data.HasMember("trigger_delay")) {
+							trap.triggerDelay = compData.data["trigger_delay"].GetFloat();
 						}
 					}
 				}

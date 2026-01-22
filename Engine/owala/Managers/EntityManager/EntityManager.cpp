@@ -107,6 +107,8 @@ namespace Framework {
 
 		ecs.entitySignatures.erase(entity);
 		ecs.properties.erase(entity);
+
+		Logger::Get().Info(DebugType::GameManager) << "Destroyed Entity with ID: " << entity << std::endl;
 	}
 
 	EntityProperties& EntityManager::GetProperties(Entity entity) { 
@@ -127,10 +129,18 @@ namespace Framework {
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
-		return ecs.entitySignatures[entity].test(componentType);
+		std::unordered_map<Entity, ComponentSignature>::iterator it = ecs.entitySignatures.find(entity);
+		if (it == ecs.entitySignatures.end()) return false;
+		return it->second.test(componentType);
 	}
 
 	void EntityManager::AddComponent(Entity entity, ComponentType componentType) {
+		if (!ValidateEntity(entity)) {
+			std::stringstream errorMsg;
+			errorMsg << "AddComponent: Invalid Entity ID: " << entity;
+			throw std::runtime_error(errorMsg.str());
+		}
+
 		if (HasComponent(entity, componentType)) return;
 
 		switch (componentType)
@@ -170,7 +180,7 @@ namespace Framework {
 			return;
 		}
 
-		ecs.entitySignatures[entity].set(componentType);
+		ecs.entitySignatures.at(entity).set(componentType);
 	}
 
 	void EntityManager::RemoveComponent(Entity entity, ComponentType componentType) {

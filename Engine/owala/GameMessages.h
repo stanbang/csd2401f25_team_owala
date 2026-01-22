@@ -83,10 +83,19 @@ namespace Framework {
 		EmissionStyle style = EmissionStyle::FROM_POINT;
 		float radius = 0.5f; // Used if style is FROM_RADIUS or CIRCLE_EDGE
 		Vector2D offset = { 0.0f, 0.0f };
+
+		bool isGlobal = true;
 	};
 
-	struct WorldRotationEvent {
-		//Empty struct to signal world rotation
+	struct VFXTriggerEvent {
+		std::string triggerName; 
+
+		bool overridePosition = false; // If true, use position below
+		Vector2D position = { 0.0f, 0.0f };
 	};
+
+	// Empty structs for signalling
+	struct WorldRotationEvent {};
+	struct PlatformLandEvent {};
 
 } // namespace Framework

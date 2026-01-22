@@ -16,11 +16,11 @@
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "VFXSystem.h"
-#include "Logger.h"
 #include "Components.h"
 #include "EntityManager.h"
 #include "GameManager.h"
 #include "OwalaTime.h"
+#include "ParticleEffectManager.h"
 
 namespace Framework {
 	void VFXSystem::Initialize() {
@@ -31,12 +31,20 @@ namespace Framework {
 			});
 		
 		// Subscribe to world rotation event
-		MessageBus::Instance().Subscribe<WorldRotationEvent>(
-			[this](const WorldRotationEvent& e) {
-				// This single line now handles BOTH the dust (emitter) and any other effects
-				this->TriggerVFX("WorldRotationEvent");
-			});
+		//MessageBus::Instance().Subscribe<WorldRotationEvent>(
+		//	[this](const WorldRotationEvent& e) {
+		//		// This handles BOTH the dust (emitter) and any other effects
+		//		this->TriggerVFX("WorldRotationEvent");
+		//	});
 		
+		MessageBus::Instance().Subscribe<VFXTriggerEvent>(
+			[this](const VFXTriggerEvent& event) {
+				Logger::Get().Info(DebugType::VFXSystem)
+					<< "Received Generic VFX Trigger: " << event.triggerName << std::endl;
+
+				this->TriggerVFX(event.triggerName, event.overridePosition, event.position);
+			});
+
 		// Register all emitters that have triggers
 		RefreshTriggerRegistrations();
 	}
@@ -44,7 +52,7 @@ namespace Framework {
 	void VFXSystem::RefreshTriggerRegistrations() {
 		triggerToEmitters_.clear();
 		
-		EntityManager entityMgr(*entityStorage_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		int emittersFound = 0;
 		
 		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
@@ -80,7 +88,7 @@ namespace Framework {
 	}
 
 	void VFXSystem::OnWorldRotation(const WorldRotationEvent& event) {
-	EntityManager entityMgr(*entityStorage_);
+	EntityManager entityMgr(GameManager::GetInstance().GetECS());
 	
 	// First, refresh registrations to catch any newly created or reconfigured emitters
 	RefreshTriggerRegistrations();
@@ -154,14 +162,15 @@ namespace Framework {
 		}
 #endif
 
-		EntityManager entityMgr(*entityStorage_);
+		//Get Entity Manager
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		EmitParticles(entityMgr);
 		UpdateParticles(entityMgr);
 	}
 
 	// Event Handler for direct burst events
 	void VFXSystem::OnParticleBurst(const ParticleBurstEvent& event) {
-		EntityManager entityMgr(*entityStorage_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
 		ParticleEmitterComponent config;
 		config.isEmitting = true;
@@ -546,6 +555,7 @@ namespace Framework {
 	}
 
 	Vector2D VFXSystem::WorldToScreenSpace(const Vector2D& worldPos) {
+		CameraSystem* cameraSystem_ = GameManager::GetInstance().GetSystems().camera_;
 		if (!cameraSystem_) return worldPos;
 
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
@@ -565,6 +575,7 @@ namespace Framework {
 	}
 
 	Vector2D VFXSystem::ScreenSpaceToWorld(const Vector2D& screenPos) {
+		CameraSystem* cameraSystem_ = GameManager::GetInstance().GetSystems().camera_;
 		if (!cameraSystem_) return screenPos;
 
 		Entity activeCamera = cameraSystem_->GetActiveCamera();
@@ -584,8 +595,8 @@ namespace Framework {
 	}
 
 	// Generic handler for all trigger events
-	void VFXSystem::TriggerVFX(const std::string& triggerName) {
-		EntityManager entityMgr(*entityStorage_);
+	void VFXSystem::TriggerVFX(const std::string& triggerName, bool hasPositionOverride, Vector2D overridePos) {
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		RefreshTriggerRegistrations(); // Ensure registrations are up-to-date
 
 		Logger::Get().Info(DebugType::VFXSystem)
@@ -598,17 +609,58 @@ namespace Framework {
 				<< "Found " << it->second.size() << " emitters for trigger: '" << triggerName << "'" << std::endl;
 			for (Entity emitterEntity : it->second) {
 				if (!entityMgr.HasComponent(emitterEntity, ParticleEmitterComponentType)) continue;
-
 				ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(emitterEntity);
 
-				// Calculate origin (same as your original OnWorldRotation logic)
+				// Check if this trigger has a JSON definition
+				std::vector<std::string> jsonEffects = ParticleEffectManager::GetInstance().GetEffectsByTrigger(triggerName);
+
+				if (!jsonEffects.empty()) {
+					// If JSON exists, use its data instead of the component's raw data
+					ParticleBurstEvent preset;
+					// Just use the first mapped effect for this trigger
+					if (ParticleEffectManager::GetInstance().GetEffectPreset(jsonEffects[0], preset)) {
+
+						// Create a temporary emitter config using JSON data
+						ParticleEmitterComponent overrideEmitter = emitter;
+						overrideEmitter.particleTextureKey = preset.textureKey;
+						overrideEmitter.particleLifetime = preset.lifetime;
+						overrideEmitter.particleSpeed = preset.speed;
+						overrideEmitter.particleSize = preset.size;
+						overrideEmitter.particleEffectType = preset.effect;
+						overrideEmitter.effectStrength = preset.effectStrength;
+						overrideEmitter.isScreenSpace = preset.isScreenSpace;
+						overrideEmitter.isParticleAnimated = preset.isAnimated;
+						overrideEmitter.emissionStyle = preset.style;
+						overrideEmitter.emissionRadius = preset.radius;
+						overrideEmitter.emissionOffset = preset.offset;
+						overrideEmitter.burstCount = preset.count;
+
+						// Calculate Position based on the entity
+						Vector2D emitterPos = { 0.0f, 0.0f };
+						if (entityMgr.HasComponent(emitterEntity, TransformType)) {
+							emitterPos = entityMgr.GetComponent<Transform>(emitterEntity).position;
+						}
+						Vector2D calculationOrigin = overrideEmitter.isScreenSpace ? WorldToScreenSpace(emitterPos) : emitterPos;
+
+						// Spawn using JSON settings and Entity Position
+						for (int i = 0; i < overrideEmitter.burstCount; ++i) {
+							SpawnSingleParticle(entityMgr, overrideEmitter, calculationOrigin);
+						}
+						continue; // Skip the default behavior below
+					}
+				}
+
+				// Fallback: If no JSON found, use the Component's raw inspector values
 				Vector2D emitterPos = { 0.0f, 0.0f };
+				// Get emitter position
 				if (entityMgr.HasComponent(emitterEntity, TransformType)) {
 					emitterPos = entityMgr.GetComponent<Transform>(emitterEntity).position;
 				}
+
+				// Calculate origin
 				Vector2D calculationOrigin = emitter.isScreenSpace ? WorldToScreenSpace(emitterPos) : emitterPos;
 
-				// Activate the Burst
+				// Emit particles based on mode
 				if (emitter.emissionMode == ParticleEmissionMode::BURST) {
 					for (int i = 0; i < emitter.burstCount; ++i) {
 						SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
@@ -621,13 +673,23 @@ namespace Framework {
 			}
 		}
 
-		// Handle presets (defined in JSON, e.g. RockDebrisVFX)
+		// Handle presets (defined in JSON, e.g. WorldRotationEvent)
 		std::vector<std::string> effects = ParticleEffectManager::GetInstance().GetEffectsByTrigger(triggerName);
 		for (const std::string& effectName : effects) {
 			ParticleBurstEvent burst;
 			if (ParticleEffectManager::GetInstance().GetEffectPreset(effectName, burst)) {
+				if (burst.isGlobal == false) {
+					continue; // Do NOT spawn globally. Wait for a component to pick it up.
+				}
+
 				Logger::Get().Info(DebugType::VFXSystem)
 					<< "Triggering preset effect: '" << effectName << "' for trigger: '" << triggerName << "'" << std::endl;
+				
+				// Apply position override if specified
+				if (hasPositionOverride) {
+					burst.position = overridePos;
+				}
+
 				this->OnParticleBurst(burst);
 			}
 		}

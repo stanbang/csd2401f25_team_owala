@@ -364,6 +364,8 @@ namespace Editor {
 		std::vector<const char*> animationNames_;
 		bool isAnimationEditorInitialized_ = false;
 
+		bool ShowPrefabComponentEditor(Framework::ComponentData& compData);
+
 	public:
 		bool isEnabled = true;
 		EditorSettings settings;

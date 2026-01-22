@@ -30,7 +30,13 @@ namespace Framework {
 
     class TransformationSystem : public ISystem {
     public:
-        TransformationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics);
+        /*!
+        * \brief Constructs the transformation system with required subsystems
+        * \param ecs Reference to entity storage containing all game objects
+        * \param input Reference to input system for key detection (Q/E for rotation)
+        * \param physics Reference to physics system for pause control during rotation
+        */
+        TransformationSystem();
 
         void Initialize() override;
         void Update() override;
@@ -50,11 +56,6 @@ namespace Framework {
         void UpdateRotateCinematic();
 
     private:
-        EntityStorage* ecs_{ nullptr };
-        InputSystem* input_{ nullptr };
-        PhysicsSystem* physics_{ nullptr };
-
-        // -------------------------
         // Global rotation state
         // -------------------------
         float globalRotation{ 0.0f };

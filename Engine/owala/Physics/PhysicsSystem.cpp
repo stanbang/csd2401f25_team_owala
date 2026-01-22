@@ -27,9 +27,6 @@
 #endif
 
 namespace Framework {
-
-    PhysicsSystem::PhysicsSystem(EntityStorage& storage) : ecs_(&storage) {}
-
     // ----- Layer Collision Functions ------- //
 
     void PhysicsSystem::InitializeCollisionMatrix() {
@@ -79,6 +76,15 @@ namespace Framework {
     // This accumulates delta time and runs the simulation
     // ----------------------------------------------------------------------------
     void PhysicsSystem::Update() {
+        static bool debugOnce = true;
+        if (debugOnce) {
+            debugOnce = false;
+            Logger::Get().Info(DebugType::PhysicsSystem)
+                << "Player-Platform collision enabled: "
+                << GetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform)
+                << std::endl;
+        }
+
         if (isPaused_ || stepModeActive_) {
             return; // If paused or in step mode, do not automatically advance time.
         }
@@ -97,7 +103,7 @@ namespace Framework {
     void PhysicsSystem::Step(float dt) {
         contacts_.clear();
 
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Reset player state (assume not grounded until a collision)
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
@@ -140,7 +146,7 @@ namespace Framework {
     // Updates position and velocity using Semi-Implicit Euler integration.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::Integrate(float dt) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RigidBodyType)) {
             // Check if Entity is active in the scene. Handle Physics if active.
@@ -178,7 +184,7 @@ namespace Framework {
         const float minY = -1.0f;
         const float maxY = 1.0f;
 
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         std::vector<Entity> constrainedEntities;
 
         auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
@@ -252,6 +258,9 @@ namespace Framework {
         // entity 1 data
         const Vector2D& pos1 = entityMgr.GetComponent<Framework::Transform>(e1).position;
         const Vector2D& halfSize1 = entityMgr.GetComponent<Framework::AABBCollider>(e1).HalfSize;
+        const AABBCollider& collider1 = entityMgr.GetComponent<Framework::AABBCollider>(e1);
+
+        Vector2D colliderPos1 = pos1 + collider1.Offset;
         float rot1 = 0.0f;
         if (entityMgr.HasComponent(e1, Framework::RotationFlagType)) {
             rot1 = entityMgr.GetComponent<Framework::RotationFlag>(e1).currentRotation;
@@ -260,14 +269,16 @@ namespace Framework {
         // entity 2 data
         const Vector2D& pos2 = entityMgr.GetComponent<Framework::Transform>(e2).position;
         const Vector2D& halfSize2 = entityMgr.GetComponent<Framework::AABBCollider>(e2).HalfSize;
+        const AABBCollider& collider2 = entityMgr.GetComponent<Framework::AABBCollider>(e2);
         float rot2 = 0.0f;
+        Vector2D colliderPos2 = pos2 + collider2.Offset;
         if (entityMgr.HasComponent(e2, Framework::RotationFlagType)) {
             rot2 = entityMgr.GetComponent<Framework::RotationFlag>(e2).currentRotation;
         }
 
         //Calculate Bounds 
-        Framework::AABB_Bounds bounds1 = PhysicsSystem::GetRotatedAABB(pos1, halfSize1, rot1);
-        Framework::AABB_Bounds bounds2 = PhysicsSystem::GetRotatedAABB(pos2, halfSize2, rot2);
+        Framework::AABB_Bounds bounds1 = PhysicsSystem::GetRotatedAABB(colliderPos1, halfSize1, rot1);
+        Framework::AABB_Bounds bounds2 = PhysicsSystem::GetRotatedAABB(colliderPos2, halfSize2, rot2);
 
         
         bool collisionX = bounds1.max.x >= bounds2.min.x && bounds2.max.x >= bounds1.min.x;
@@ -280,7 +291,7 @@ namespace Framework {
     // Detects and resolves collisions using direct positional correction.
     // ----------------------------------------------------------------------------
     void PhysicsSystem::ResolveCollisions(float dt) {
-		EntityManager entityMgr(*ecs_);
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
         std::vector<Entity> allColliders = entityMgr.GetAllEntitiesWithComponents(AABBColliderType, ActiveTagType, TransformType);
 
         // --- Check Entity Count OR DEBUG TOGGLE ---
@@ -327,6 +338,8 @@ namespace Framework {
             // Get the AABB_Bounds for insertion
             const Vector2D& pos = entityMgr.GetComponent<Transform>(entity).position;
             const Vector2D& halfSize = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+            const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+            Vector2D colliderPos = pos + collider.Offset;
 
             float colliderRotation = 0.0f;
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -336,7 +349,7 @@ namespace Framework {
                 colliderRotation += entityMgr.GetComponent<Transform>(entity).rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
             }
 
-            AABB_Bounds bounds = GetRotatedAABB(pos, halfSize, colliderRotation);
+            AABB_Bounds bounds = GetRotatedAABB(colliderPos, halfSize, colliderRotation);
 
             GridInsert(i, bounds); // Insert the bitset index 'i'
         }
@@ -390,7 +403,7 @@ namespace Framework {
     // Previous Implementation of resolve collisions
     // ----------------------------------------------------------------------------
     void PhysicsSystem::CheckCollisionPair(Entity e1, Entity e2, float dt) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Check entities have RigidBody component
         if (!entityMgr.HasComponent(e1, RigidBodyType) || !entityMgr.HasComponent(e2, RigidBodyType)) {
@@ -448,12 +461,28 @@ namespace Framework {
 
         // --- Convert to min/max format for the collision functions ---
         const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
-        const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(e1).HalfSize;
-        AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+        const AABBCollider& collider1 = entityMgr.GetComponent<AABBCollider>(e1);
+        Vector2D rotatedOffset1 = collider1.Offset;
+        if (std::abs(rotation1) > 0.01f) {
+            float rotRad = rotation1 * (static_cast<float>(M_PI) / 180.0f);
+            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+            rotatedOffset1 = rotMat * collider1.Offset;
+        }
+        Vector2D colliderPos1 = pos1 + rotatedOffset1;
+        AABB_Bounds bounds1 = GetRotatedAABB(colliderPos1, collider1.HalfSize, rotation1);
 
         const Vector2D& pos2 = entityMgr.GetComponent<Transform>(e2).position;
-        const Vector2D& halfSize2 = entityMgr.GetComponent<AABBCollider>(e2).HalfSize;
-        AABB_Bounds bounds2 = GetRotatedAABB(pos2, halfSize2, rotation2);
+        const AABBCollider& collider2 = entityMgr.GetComponent<AABBCollider>(e2);
+        Vector2D rotatedOffset2 = collider2.Offset;
+        if (std::abs(rotation2) > 0.01f) {
+            float rotRad = rotation2 * (static_cast<float>(M_PI) / 180.0f);
+            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+            rotatedOffset2 = rotMat * collider2.Offset;
+        }
+        Vector2D colliderPos2 = pos2 + rotatedOffset2;
+        AABB_Bounds bounds2 = GetRotatedAABB(colliderPos2, collider2.HalfSize, rotation2);
+
+
 
         // --- Determine Collision State ---
         Contact contact = { e1, e2, CollisionState::NoCollision };

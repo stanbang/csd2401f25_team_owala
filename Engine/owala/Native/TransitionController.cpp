@@ -12,8 +12,8 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-    // Replace single instance with a list of all active controllers
-    std::vector<TransitionController*> TransitionController::allControllers;
+        // Replace single instance with a list of all active controllers
+        std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
 
     const std::string CLOSE_ANIM_TEXTURE = "SB_Curtain_Close_Spritesheet_01.png";
@@ -23,8 +23,8 @@ namespace Framework {
         // Add this new entity to the global list
         allControllers.push_back(this);
 
-		// Preload textures for open/close animations to make it smooth
-		// Or else it will lag like hell the first time!!!
+        // Preload textures for open/close animations to make it smooth
+        // Or else it will lag like hell the first time!!!
         ResourceManager* systems = GameManager::GetInstance().GetSystems().resourceManager_;
         if (!systems) return;
         ResourceManager& rcm = *systems;
@@ -51,7 +51,7 @@ namespace Framework {
                     const auto& keys = entry["texture_keys"];
                     for (const auto& keyVal : keys.GetArray()) {
                         std::string texKey = keyVal.GetString();
-                        
+
                         // Extract just the filename for asset path lookup
                         fs::path keyPath(texKey);
                         std::string filename = keyPath.filename().string();
@@ -86,7 +86,7 @@ namespace Framework {
 
         bool callbackAssigned = false;
 
-        for (auto* controller : allControllers) {
+        for (TransitionController* controller : allControllers) {
             // Only assign the callback to the FIRST controller found.
             // This prevents "LoadScene" from being called multiple times.
             if (!callbackAssigned) {
@@ -120,6 +120,30 @@ namespace Framework {
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
+
+                ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+                if (rsm) {
+                    // Ensure data is loaded
+                    if (!rsm->has<AnimationInfo>(CLOSE_ANIM_TEXTURE)) {
+                        rsm->loadAnimationInfo(CLOSE_ANIM_TEXTURE);
+                    }
+
+                    if (rsm->has<AnimationInfo>(CLOSE_ANIM_TEXTURE)) {
+                        AnimationInfo& info = rsm->get<AnimationInfo>(CLOSE_ANIM_TEXTURE);
+
+                        // Update Component to match the texture (Fixes UVs/Frame Counts)
+                        anim.frameCount = info.frameCount;
+                        anim.frameDuration = info.frameDuration;
+
+                        // Set the Logic Timer to match the Visual Duration
+                        // If frameCount is 10 and duration is 0.2, total time is 2.0 seconds
+                        animDuration_ = (float)info.frameCount * info.frameDuration;
+
+                        // Safety check to prevent divide by zero later
+                        if (animDuration_ <= 0.0f) animDuration_ = 1.0f;
+                    }
+                }
+
                 anim.currentFrame = 0;
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = true;
@@ -142,6 +166,27 @@ namespace Framework {
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
+
+                // Same logic for calculating duration as in PlayClose
+                ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+                if (rsm) {
+                    if (!rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
+                        rsm->loadAnimationInfo(OPEN_ANIM_TEXTURE);
+                    }
+
+                    if (rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
+                        AnimationInfo& info = rsm->get<AnimationInfo>(OPEN_ANIM_TEXTURE);
+
+                        anim.frameCount = info.frameCount;
+                        anim.frameDuration = info.frameDuration;
+
+                        // Sync logic timer to visual duration
+                        animDuration_ = (float)info.frameCount * info.frameDuration;
+
+                        if (animDuration_ <= 0.0f) animDuration_ = 1.0f;
+                    }
+                }
+
                 anim.currentFrame = 0;
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = true;
@@ -155,15 +200,25 @@ namespace Framework {
     }
 
     void TransitionController::OnUpdate() {
-		CheckStartClosed(); // Check flag each update in case it was set later
+        CheckStartClosed(); // Check flag each update in case it was set later
 
         float dt = Framework::Time::UnscaledDeltaTime();
-
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         if (!entityMgr.HasComponent(GetEntity(), TextureComponentType)) return;
 
         TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
-        
+
+        // Get current scene and check if it's a level
+        std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
+        bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
+
+        // If we are in a non-level scene like the menu and the curtain is stuck CLOSED,
+        // force it to hide immediately.
+        if (!isLevel && state_ == TransitionState::CLOSED) {
+            ForceHide();
+            return; // ForceHide changes state, return to avoid processing other logic this frame
+        }
+
         if (state_ == TransitionState::HIDDEN) {
             std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
             bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
@@ -175,7 +230,7 @@ namespace Framework {
             }
         }
 
-		// If in WAITING state, increment timer, then transition to OPENING after delay
+        // If in WAITING state, increment timer, then transition to OPENING after delay
         if (state_ == TransitionState::WAITING) {
             waitTimer_ += dt;
 
@@ -203,7 +258,7 @@ namespace Framework {
                 }
             }
         }
-		// If in OPENING state, play open animation
+        // If in OPENING state, play open animation
         else if (state_ == TransitionState::OPENING) {
             if (animTimer_ == 0.0f) {
                 tex.textureKey = OPEN_ANIM_TEXTURE;
@@ -272,38 +327,6 @@ namespace Framework {
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = false; // Pause
                 anim.isLooping = false;
-
-                // Manual UV Calculation
-                ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
-                if (rsm) {
-                    if (!rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
-                        rsm->loadAnimationInfo(OPEN_ANIM_TEXTURE);
-                    }
-
-                    if (rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
-                        AnimationInfo& info = rsm->get<AnimationInfo>(OPEN_ANIM_TEXTURE);
-
-                        anim.frameCount = info.frameCount;
-                        anim.frameDuration = info.frameDuration;
-
-                        // Handle Multi-Spritesheet UVs
-                        if (!info.sheets.empty()) {
-                            const auto& firstSheet = info.sheets[0];
-                            tex.textureKey = firstSheet.textureKey; // Ensure we use the correct sheet
-
-                            if (firstSheet.frameCount > 0) {
-                                float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
-                                anim.minUV = { 0.0f, 0.0f };
-                                anim.maxUV = { frameUVWidth, 1.0f };
-                            }
-                        }
-                        else if (info.frameCount > 0) {
-                            float frameUVWidth = 1.0f / (float)info.frameCount;
-                            anim.minUV = { 0.0f, 0.0f };
-                            anim.maxUV = { frameUVWidth, 1.0f };
-                        }
-                    }
-                }
             }
 
             // Set State

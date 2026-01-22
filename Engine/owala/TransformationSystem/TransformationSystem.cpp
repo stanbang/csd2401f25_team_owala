@@ -10,6 +10,7 @@
 *       Adds cinematic camera zoom: zoom out -> rotate -> zoom back in.
 *********************************************************************/
 #include "TransformationSystem.h"
+#include "GameManager.h"
 #include "EntityManager.h"
 #include "Components.h"
 #include "Transformation.h"
@@ -22,31 +23,12 @@
 
 namespace Framework {
 
-    // NOTE:
-    // This file assumes TransformationSystem.h contains:
-    // enum class RotatePhase { Idle, ZoomingOut, Rotating, ZoomingIn };
-    // RotatePhase rotatePhase_ = RotatePhase::Idle;
-    // float cachedZoom_ = 1.0f;
-    // float wideZoom_ = 1.0f;
-    // float rotateZoomFactor_ = 1.25f;
-    // float zoomSpeed_ = 8.0f;
-    // float pendingDelta_ = 0.0f;
-    // bool zoomOutInitialized_ = false;
-
-    TransformationSystem::TransformationSystem(EntityStorage& ecs, InputSystem& input, PhysicsSystem& physics)
-        : ecs_(&ecs)
-        , input_(&input)
-        , physics_(&physics)
-        , globalRotation(0.0f)
-        , targetGlobalRotation(0.0f)
-        , isGlobalRotating(false)
-        , rotationCooldown(0.0f)
-        , rotationCooldownDuration(0.5f)
-    {
+    TransformationSystem::TransformationSystem()
+        : globalRotation(0.0f), targetGlobalRotation(0.0f), isGlobalRotating(false), rotationCooldown(0.0f), rotationCooldownDuration(0.5f) {
     }
 
     void TransformationSystem::Initialize() {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
                 UpdateEntityTransform(entity);
@@ -63,10 +45,12 @@ namespace Framework {
 
     // Cinematic: zoom out first (wait until done) -> rotate (hold zoom) -> zoom back in
     void TransformationSystem::UpdateRotateCinematic() {
-        CameraSystem* cameraSystem = GameManager::GetInstance().GetSystems().camera_;
+        GameManager& gm = GameManager::GetInstance();
+        CameraSystem* cameraSystem = gm.GetSystems().camera_;
         if (!cameraSystem) return;
 
-        EntityManager camMgr(*ecs_);
+        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        EntityManager camMgr(gm.GetECS());
         Entity camEnt = cameraSystem->GetActiveCamera();
         if (camEnt == 0 || !camMgr.HasComponent(camEnt, CameraType)) return;
 
@@ -95,7 +79,7 @@ namespace Framework {
                 cameraSystem->SetZoom(camEnt, wideZoom_); // hold wide angle
 
                 targetGlobalRotation += pendingDelta_;
-                physics_->SetPaused(true);
+                physics_.SetPaused(true);
                 isGlobalRotating = true;
 
                 MessageBus::Instance().Publish(WorldRotationEvent{});
@@ -127,14 +111,18 @@ namespace Framework {
     }
 
     void TransformationSystem::ProcessRotationInput() {
+        GameManager& gm = GameManager::GetInstance();
+        InputSystem& input_ = *gm.GetSystems().input_;
+        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        EntityManager entityMgr(gm.GetECS());
+
         // Update cooldown timer
         if (rotationCooldown > 0.0f) {
             rotationCooldown -= Framework::Time::DeltaTime();
             if (rotationCooldown < 0.0f) rotationCooldown = 0.0f;
         }
 
-        bool canRotate = false;
-        EntityManager entityMgr(*ecs_);
+        bool canRotate = false; // boolean for checking for rotation (for grounded player)
 
         // Find grounded active player
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
@@ -147,13 +135,13 @@ namespace Framework {
 
         // Only allow queueing when no active rotation cinematic is running
         if (!isGlobalRotating && rotationCooldown <= 0.0f && rotatePhase_ == RotatePhase::Idle) {
-            if (input_->KeyPressed(InputSystem::Key::Q)) {
+            if (input_.KeyPressed(InputSystem::Key::Q)) {
                 pendingDelta_ = +90.0f;
                 rotatePhase_ = RotatePhase::ZoomingOut;
                 rotationCooldown = rotationCooldownDuration;
                 std::cout << "Queued anticlockwise rotation (zooming out first)\n";
             }
-            else if (input_->KeyPressed(InputSystem::Key::E)) {
+            else if (input_.KeyPressed(InputSystem::Key::E)) {
                 pendingDelta_ = -90.0f;
                 rotatePhase_ = RotatePhase::ZoomingOut;
                 rotationCooldown = rotationCooldownDuration;
@@ -165,7 +153,10 @@ namespace Framework {
     void TransformationSystem::UpdateGlobalRotation() {
         if (!isGlobalRotating) return;
 
-        EntityManager entityMgr(*ecs_);
+        GameManager& gm = GameManager::GetInstance();
+        InputSystem& input_ = *gm.GetSystems().input_;
+        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        EntityManager entityMgr(gm.GetECS());
 
         float rotationSpeed = 270.0f; // Degrees per second
         float rotationThisFrame = rotationSpeed * Framework::Time::DeltaTime();
@@ -185,7 +176,7 @@ namespace Framework {
         if (std::abs(targetGlobalRotation - globalRotation) < 0.1f) {
             globalRotation = targetGlobalRotation;
             isGlobalRotating = false;
-            physics_->SetPaused(false);
+            physics_.SetPaused(false);
 
             // trigger zoom back in
             rotatePhase_ = RotatePhase::ZoomingIn;
@@ -251,7 +242,7 @@ namespace Framework {
     }
 
     void TransformationSystem::UpdateAllTransforms() {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
             if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
@@ -261,7 +252,7 @@ namespace Framework {
     }
 
     void TransformationSystem::UpdateEntityTransform(Entity entity) {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(entity, TransformType) ||
             !entityMgr.HasComponent(entity, RotationFlagType)) {
@@ -274,13 +265,29 @@ namespace Framework {
         if (entityMgr.HasComponent(entity, AABBColliderType)) {
             Vector2D& scale = entityMgr.GetComponent<Transform>(entity).scale;
             AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
-            if (originalColliderSizes_.find(entity) == originalColliderSizes_.end()) {
-                originalColliderSizes_[entity] = collider.HalfSize;
+
+            if (originalColliderSizes_.find(entity) != originalColliderSizes_.end()) {
+                Vector2D expectedSize = Vector2D(
+                    originalColliderSizes_[entity].x * scale.x,
+                    originalColliderSizes_[entity].y * scale.y
+                );
+
+                if (std::abs(collider.HalfSize.x - expectedSize.x) > 0.01f ||
+                    std::abs(collider.HalfSize.y - expectedSize.y) > 0.01f) {
+                    originalColliderSizes_.erase(entity);
+                }
             }
+
+            if (originalColliderSizes_.find(entity) == originalColliderSizes_.end()) {
+                Vector2D baseSize = collider.HalfSize;
+                if (scale.x != 0) baseSize.x /= scale.x;
+                if (scale.y != 0) baseSize.y /= scale.y;
+                originalColliderSizes_[entity] = baseSize;
+            }
+
             collider.HalfSize.x = originalColliderSizes_[entity].x * scale.x;
             collider.HalfSize.y = originalColliderSizes_[entity].y * scale.y;
         }
-
         Transform::Rotation& rotComp = transform.rotation;
 
         float textureRotationDegrees = rotComp.textureAngle * (180.0f / 3.14159265359f);
@@ -329,7 +336,7 @@ namespace Framework {
     }
 
     Matrix3x3 TransformationSystem::GetTransformMatrix(Entity entity) const {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (entityMgr.HasComponent(entity, RotationFlagType)) {
             return entityMgr.GetComponent<RotationFlag>(entity).transformMatrix;
@@ -338,7 +345,7 @@ namespace Framework {
     }
 
     Matrix3x3 TransformationSystem::ComputeTransformMatrix(Entity entity) const {
-        EntityManager entityMgr(*ecs_);
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(entity, TransformType)) {
             return Matrix3x3();

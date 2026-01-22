@@ -15,16 +15,16 @@
  *********************************************************************/
 #pragma once
 #include "EntityStorage.h"
-#include "EntityManager.h"
-#include "TransformationSystem.h"
-#include "Logger.h"
+#include "Vector2D.h"
+
+// Forward Declaration
+namespace Framework {
+    class EntityManager;
+}
 
 namespace Framework {
     class LevelResetSystem {
     private:
-        // Reference to the EntityStorage to access entities and components
-        EntityStorage& ecs_;
-        TransformationSystem& transformationSys_;
 
         // Store the signatures required for quick checking (built in the constructor)
         ComponentSignature playerSig;
@@ -42,8 +42,7 @@ namespace Framework {
         ComponentSignature worldTextSig;
 
     public:
-        // Constructor initializes the system with necessary references/masks
-        LevelResetSystem(EntityStorage& ecs, TransformationSystem& transSys);
+        LevelResetSystem();
 
         // Reset current scene
         void RunReset();

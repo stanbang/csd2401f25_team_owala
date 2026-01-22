@@ -56,18 +56,10 @@ namespace Framework {
          * \param drawColliders Whether to draw collider outlines each frame.
          * \param clearColor    Background clear color (RGBA).
          */
-        SpriteRenderSystem(EntityStorage& ecs,
-            Graphics& gfx,
-			ResourceManager& resources, TransformationSystem* transformationSystem = nullptr,
-            bool drawColliders = false,
-            const Color& clearColor = { 0.08f, 0.10f, 0.14f, 1.0f })
-			: ecs_(ecs), gfx_(gfx), resources_(resources), transformationSystem_(transformationSystem),
-            drawColliders_(drawColliders), clearColor_(clearColor) {
+        SpriteRenderSystem(bool drawColliders = false, const Color& clearColor = { 0.08f, 0.10f, 0.14f, 1.0f })
+			: drawColliders_(drawColliders), clearColor_(clearColor) {
         }
 
-        void SetCameraSystem(CameraSystem* cameraSystem) {
-            cameraSystem_ = cameraSystem;
-        }
         /**
          * \brief Initialize the render system.
          * \details No-op here, provided for ISystem compliance.
@@ -116,6 +108,41 @@ namespace Framework {
          */
         void RenderSprites();
 
+        struct RenderItem {
+            int renderOrder = 0;
+            bool isText = false;
+
+            // Sprite Data
+            Texture texture;
+            BatchedSprite spriteData;
+
+            // Text Data
+            Font* font = nullptr;
+            std::string textLine; // Single line text
+            Vector2D screenPos;
+            float scale;
+            Color color;
+
+            // Sorting Operator: Sort primarily by Order. 
+            // For Sprites in the same layer, we want to group by Texture to optimize batching.
+            bool operator<(const RenderItem& other) const {
+                if (renderOrder != other.renderOrder)
+                    return renderOrder < other.renderOrder;
+
+                // If both are sprites, sort by texture to allow batching
+                if (!isText && !other.isText)
+                    return texture < other.texture;
+
+                return isText < other.isText;
+            }
+        };
+
+        /**
+         * \brief Collect sprite and text entities for rendering.
+         */
+        void CollectSprites(Entity activeCamera, std::vector<RenderItem>& queue);
+        void CollectText(Entity activeCamera, std::vector<RenderItem>& queue);
+
         /**
          * \brief Render collider outlines for debugging.
          * \details Draws axis-aligned rectangles around entities with colliders.
@@ -123,13 +150,8 @@ namespace Framework {
         void RenderColliderOutlines();
 
     private:
-        EntityStorage& ecs_;          //!< ECS storage reference.
-        Graphics& gfx_;          //!< Graphics subsystem reference.
-        ResourceManager& resources_;    //!< Resource manager reference (textures).
         bool             drawColliders_ = false; //!< Flag for collider debug rendering.
         Color            clearColor_;   //!< Background clear color.
-        CameraSystem* cameraSystem_ = nullptr;
-		TransformationSystem* transformationSystem_ = nullptr;
     };
 
 } // namespace Framework

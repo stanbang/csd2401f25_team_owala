@@ -28,6 +28,7 @@
 #include "AudioSystem.h"
 #include "ResourceManager.h"
 #include "GameManager.h"
+#include "ParticleEffectManager.h"
 #include "Graphics.h"
 #include "OwalaTime.h"
 #include "GLFW/glfw3.h"

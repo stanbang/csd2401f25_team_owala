@@ -1,12 +1,10 @@
 #include "AudioSystem.h"
 #include "EntityManager.h"
-#include "SceneManager.h"
+#include "GameManager.h"
 #include <cstdio>   // fprintf
 #include "Logger.h"
 
 namespace Framework {
-
-    AudioSystem::AudioSystem(EntityStorage& storage) : entityStorage_(&storage) {}
 
     void AudioSystem::check(FMOD_RESULT r, const char* where) {
         if (r != FMOD_OK) {
@@ -28,24 +26,51 @@ namespace Framework {
         // Optional: get a master channel group to control overall volume
         r = system_->getMasterChannelGroup(&masterGroup_);
         check(r, "System::getMasterChannelGroup");
-        //MessageBus
+
+        // Subscribe to Player Jump Event
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
             std::string jumpSoundFile = "jump.wav";
             try {
-                FMOD::Sound& jumpSound = resourceManager_->get<FMOD::Sound>(jumpSoundFile);
+                FMOD::Sound& jumpSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(jumpSoundFile);
                 this->play(jumpSound, e.volume, false);
             }
             catch (...) {
                 Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << jumpSoundFile << std::endl;
             }
-            });
+        });
+
+        // Subscribe to Platform Land Event
+        MessageBus::Instance().Subscribe<PlatformLandEvent>([this](const PlatformLandEvent& e) { //no information used from the struct cause it is just for testing
+            std::string landSoundFile = "player_land.wav";
+            try {
+                FMOD::Sound& landSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(landSoundFile);
+                this->play(landSound, 1.0f, false);
+            }
+            catch (...) {
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << landSoundFile << std::endl;
+            }
+        });
+
+        // Subscribe to World Rotation Event
+        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) { //no information used from the struct cause it is just for testing
+            std::string rotationSoundFile = "stage_rotation.wav";
+            try {
+                FMOD::Sound& rotationSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(rotationSoundFile);
+                this->play(rotationSound, 0.7f, false);
+            }
+            catch (...) {
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << rotationSoundFile << std::endl;
+            }
+        });
 
 		// Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event);});
     }
 
     void AudioSystem::Update() {
-		EntityManager entityMgr(*entityStorage_);
+        GameManager& gm = GameManager::GetInstance();
+        ResourceManager& resourceManager_ = *gm.GetSystems().resourceManager_;
+		EntityManager entityMgr(gm.GetECS());
         if (system_) {
             FMOD_RESULT r = system_->update();
             check(r, "System::update");
@@ -64,7 +89,7 @@ namespace Framework {
             if (comp.soundKey.empty()) continue;
 
             try {
-                FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(comp.soundKey);
+                FMOD::Sound& sound = resourceManager_.get<FMOD::Sound>(comp.soundKey);
 
                 // check if sound is already playing
                 bool isPlaying = false;
@@ -113,9 +138,9 @@ namespace Framework {
         }
     }
 
-	void AudioSystem::SetResourceManager(ResourceManager& rcm) {
-		resourceManager_ = &rcm;
-	}
+	//void AudioSystem::SetResourceManager(ResourceManager& rcm) {
+	//	resourceManager_ = &rcm;
+	//}
 
 	// Access the underlying FMOD system (for advanced use)
     FMOD::System* AudioSystem::getFMODSystem() const { return system_; }
@@ -250,7 +275,7 @@ namespace Framework {
 
         try {
             // Retrieve sound from ResourceManager using the string parameter from the button
-            FMOD::Sound& sfx = resourceManager_->get<FMOD::Sound>(event.stringParam);
+            FMOD::Sound& sfx = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(event.stringParam);
             this->play(sfx, volume, false);
         }
         catch (...) {
