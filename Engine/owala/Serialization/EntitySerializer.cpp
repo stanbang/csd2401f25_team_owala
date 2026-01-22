@@ -917,6 +917,7 @@ namespace Framework {
 	void EntitySerializer::SerializeComponent(const RigidBody& rb, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
 		outData.AddMember(rapidjson::StringRef(Serialization::MASS), rb.Mass, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::INVERSE_MASS), rb.InverseMass, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::IS_AFFECTED_BY_GRAVITY), rb.isAffectedByGravity, alloc);
 		rapidjson::Value force(rapidjson::kObjectType);
 		force.AddMember(rapidjson::StringRef(Serialization::VEC2_X), rb.Force.x, alloc);
 		force.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), rb.Force.y, alloc);

@@ -234,11 +234,14 @@ namespace Framework {
     REGISTER_STATE("Attack", BirdAttackState);
     REGISTER_STATE("Recovery", BirdRecoveryState);
     REGISTER_STATE("SimpleChase", BirdSimpleChaseState)
-        REGISTER_STATE("Bounce", BirdBounceState)
+    REGISTER_STATE("Bounce", BirdBounceState)
 
-        // Common Condition Helpers
-        REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
+    // Common Condition Helpers
+    REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
         float r = data.HasMember("radius") ? data["radius"].GetFloat() : 300.0f;
+        //float r = 300.0f;
+        std::cout << "radius: " << r << std::endl;
+
         return [r](Entity e, EntityStorage& ecs) {
             EntityManager mgr(ecs);
             Entity p = GetPlayer(ecs);
@@ -246,8 +249,8 @@ namespace Framework {
             Vector2D posA = mgr.GetComponent<Transform>(e).position;
             Vector2D posB = mgr.GetComponent<Transform>(p).position;
             return posA.Distance(posB) < r;
-            };
-            });
+        };
+    });
 
     REGISTER_CONDITION(TimerExpired, [](const rapidjson::Value& data) {
         std::string sName = data["state"].GetString();
