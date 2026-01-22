@@ -410,6 +410,13 @@ namespace Framework {
                 entityMgr.AddComponent(entity, particleEmitter);
             }
         }
+        else if (compData.type == Serialization::TRIANGLE_COMPONENT) {
+            Triangle triangle;
+            if (EntitySerializer::DeserializeComponent(data, triangle)) {
+                entityMgr.AddComponent(entity, triangle);
+            }
+        }
+        
         else {
             Logger::Get().Error(DebugType::FileIOSystem) << "Unknown component type: " << compData.type << std::endl;
         }

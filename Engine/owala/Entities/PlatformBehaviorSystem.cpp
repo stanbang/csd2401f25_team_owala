@@ -192,7 +192,7 @@ namespace Framework {
         trapComp.isTriggered = false;
         trapComp.hasFallen = false;
         trapComp.currentDelay = 0.0f;
-        trapComp.currentFallDistance = 0.0f;
+        //trapComp.currentFallDistance = 0.0f;
 
         // Reset position to original
         entityMgr.GetComponent<Transform>(trapPlatform).position = trapComp.originalPosition;
