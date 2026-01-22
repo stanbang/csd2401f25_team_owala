@@ -6897,7 +6897,7 @@ namespace Editor {
 				}
 
 				// BIRDAI COMPONENT
-				else if (compData.type == "BirdAIComponent") {
+			/*	else if (compData.type == "BirdAIComponent") {
 					if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
 						BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
 						if (compData.data.HasMember("wakeup_radius"))
@@ -6917,18 +6917,18 @@ namespace Editor {
 						if (compData.data.HasMember("hover_speed"))
 							birdAI.hoverSpeed = compData.data["hover_speed"].GetFloat();
 					}
-				}
+				}*/
 
-				// SKELETONAI COMPONENT
-				else if (compData.type == "SkeletonAIComponent") {
-					if (entityMgr.HasComponent(entity, SkeletonAIComponentType)) {
-						SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
-						if (compData.data.HasMember("detection_radius"))
-							skelAI.detectionRadius = compData.data["detection_radius"].GetFloat();
-						if (compData.data.HasMember("move_speed"))
-							skelAI.moveSpeed = compData.data["move_speed"].GetFloat();
-					}
-				}
+				//// SKELETONAI COMPONENT
+				//else if (compData.type == "SkeletonAIComponent") {
+				//	if (entityMgr.HasComponent(entity, SkeletonAIComponentType)) {
+				//		SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
+				//		if (compData.data.HasMember("detection_radius"))
+				//			skelAI.detectionRadius = compData.data["detection_radius"].GetFloat();
+				//		if (compData.data.HasMember("move_speed"))
+				//			skelAI.moveSpeed = compData.data["move_speed"].GetFloat();
+				//	}
+				//}
 
 				// TRAPPED PLATFORM COMPONENT
 				else if (compData.type == "TrapPlatformComponent") {
