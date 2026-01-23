@@ -33,7 +33,6 @@ namespace Framework {
     // --- WAKING ---
     void BirdWakingState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
-        // Play "Wake" animation here if needed
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
@@ -239,8 +238,6 @@ namespace Framework {
     // Common Condition Helpers
     REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
         float r = data.HasMember("radius") ? data["radius"].GetFloat() : 300.0f;
-        //float r = 300.0f;
-        std::cout << "radius: " << r << std::endl;
 
         return [r](Entity e, EntityStorage& ecs) {
             EntityManager mgr(ecs);
@@ -258,13 +255,26 @@ namespace Framework {
             EntityManager mgr(ecs);
             FSMComponent& fsm = mgr.GetComponent<FSMComponent>(e);
             State* s = fsm.fsm.GetState(sName);
-            // Check specific state timers
-            if (auto* ws = dynamic_cast<BirdWakingState*>(s)) return ws->GetTimer() >= ws->GetWakeUpTime();
-            if (auto* rs = dynamic_cast<BirdRecoveryState*>(s)) return rs->GetTimer() >= rs->GetDuration();
-            if (auto* bs = dynamic_cast<BirdBounceState*>(s)) return bs->GetTimer() >= bs->GetDuration();
+
+            // 1. Check Waking State
+            if (auto* ws = dynamic_cast<BirdWakingState*>(s))
+                return ws->GetTimer() >= ws->GetWakeUpTime();
+
+            // 2. Check Bounce State
+            if (auto* bs = dynamic_cast<BirdBounceState*>(s))
+                return bs->GetTimer() >= bs->GetDuration();
+
+            // 3. Check Attack State
+            if (auto* as = dynamic_cast<BirdAttackState*>(s))
+                return as->GetTimer() >= as->GetDuration();
+
+            // 4. Check Recovery State
+            if (auto* rs = dynamic_cast<BirdRecoveryState*>(s))
+                return rs->GetTimer() >= rs->GetDuration();
+
             return false;
-            };
-        });
+        };
+    });
 
         //// Add collision detection condition
         //REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {

@@ -1360,6 +1360,10 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::INVERSE_MASS) && componentData[Serialization::INVERSE_MASS].IsFloat()) {
 			out.InverseMass = componentData[Serialization::INVERSE_MASS].GetFloat();
 		}
+		if (componentData.HasMember(Serialization::IS_AFFECTED_BY_GRAVITY) && componentData[Serialization::IS_AFFECTED_BY_GRAVITY].IsBool()) {
+			out.isAffectedByGravity = componentData[Serialization::IS_AFFECTED_BY_GRAVITY].GetBool();
+		}
+
 		if (componentData.HasMember(Serialization::FORCE) && componentData[Serialization::FORCE].IsObject()) {
 			const rapidjson::Value& forceData = componentData[Serialization::FORCE];
 			if (forceData.HasMember(Serialization::VEC2_X) && forceData[Serialization::VEC2_X].IsFloat()) {

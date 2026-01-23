@@ -115,6 +115,8 @@ namespace Framework {
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
         void SetParameter(const std::string& key, float value) override;
+        float GetTimer() const { return timer_; }
+        float GetDuration() const { return duration_; }
 
     private:
         Vector2D direction_;

@@ -4,8 +4,8 @@
     "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
     "animationProfile": "BirdEnemy",
     "halfSize": {
-        "x": 50.0,
-        "y": 50.0
+        "x": 25.0,
+        "y": 25.0
     },
     "states": [
         {
@@ -42,7 +42,7 @@
             "name": "Attack",
             "type": "Attack",
             "parameters": {
-                "attackSpeed": 400.0,
+                "attackSpeed": 300.0,
                 "duration": 2.0
             }
         },
@@ -73,6 +73,14 @@
         },
         {
             "from": "SimpleChase",
+            "to": "Attack",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 150.0
+            }
+        },
+        {
+            "from": "SimpleChase",
             "to": "Bounce",
             "condition": {
                 "type": "HitWall"
@@ -84,14 +92,6 @@
             "condition": {
                 "type": "TimerExpired",
                 "state": "Bounce"
-            }
-        },
-        {
-            "from": "SimpleChase",
-            "to": "Attack",
-            "condition": {
-                "type": "PlayerInRange",
-                "radius": 80.0
             }
         },
         {
