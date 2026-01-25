@@ -231,9 +231,11 @@ namespace Framework{
 	struct TrapPlatformComponent {
 		bool isTriggered = false;
 		bool hasFallen = false;
+		bool isGrounded = false;
 		float triggerDelay{ 0.0f };
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };
+		float airTime{ 0.0f };
 		Vector2D originalPosition;
 		//float currentFallDistance{ 0.0f };
 	};

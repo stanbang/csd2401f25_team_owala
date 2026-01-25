@@ -535,6 +535,22 @@ namespace Framework {
                     dynPos.y += overlapBottom; // Push up (landed)
                     if (dynVel.y < 0) dynVel.y = 0;
                     if (entityMgr.HasComponent(dynE, PlayerStateType)) entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
+                    // Check if the entity landing is a Trap Platform
+                    if (entityMgr.HasComponent(dynE, TrapPlatformComponentType)) {
+                        TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(dynE);
+
+                        // Only trigger if it was actually in 'falling mode'
+                        if (trap.hasFallen) {
+                            // for edge case where platforms are in a corner and "falls" for only 1 frame
+                            if (trap.airTime > 0.1f) {
+                                Vector2D pos = entityMgr.GetComponent<Transform>(dynE).position;
+                                MessageBus::Instance().Publish(TrapPlatformLandEvent(pos));
+                            }
+
+                            trap.hasFallen = false;
+                            trap.isGrounded = true;
+                        }
+                    }
                 }
             }
             else {

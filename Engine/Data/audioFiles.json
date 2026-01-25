@@ -1,0 +1,16 @@
+{
+    "Player_Jump": [
+        "player_jump.wav",
+        "player_jump2.wav"
+    ],
+    "Player_Land": [
+        "player_land.wav",
+        "player_land2.wav"
+    ],
+    "Platform_Land": [
+        "platform_land.wav"
+    ],
+    "Stage_Rotate": [
+        "stage_rotation.wav"
+    ]
+}

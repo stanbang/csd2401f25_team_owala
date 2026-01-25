@@ -27,42 +27,17 @@ namespace Framework {
         r = system_->getMasterChannelGroup(&masterGroup_);
         check(r, "System::getMasterChannelGroup");
 
+        // Load in audio file names
+        FileIOSystem::LoadAudioFileNames(soundPaths_);
+
         // Subscribe to Player Jump Event
-        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) { //no information used from the struct cause it is just for testing
-            std::string jumpSoundFile = "jump.wav";
-            try {
-                FMOD::Sound& jumpSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(jumpSoundFile);
-                this->play(jumpSound, e.volume, false);
-            }
-            catch (...) {
-                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << jumpSoundFile << std::endl;
-            }
-        });
-
-        // Subscribe to Platform Land Event
-        MessageBus::Instance().Subscribe<PlatformLandEvent>([this](const PlatformLandEvent& e) { //no information used from the struct cause it is just for testing
-            std::string landSoundFile = "player_land.wav";
-            try {
-                FMOD::Sound& landSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(landSoundFile);
-                this->play(landSound, 1.0f, false);
-            }
-            catch (...) {
-                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << landSoundFile << std::endl;
-            }
-        });
-
+        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {this->PlayRandomSound("Player_Jump", e.volume); });
+        // Subscribe to Player Land Event
+        MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent& e) {this->PlayRandomSound("Player_Land", 1.0f); });
         // Subscribe to World Rotation Event
-        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) { //no information used from the struct cause it is just for testing
-            std::string rotationSoundFile = "stage_rotation.wav";
-            try {
-                FMOD::Sound& rotationSound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(rotationSoundFile);
-                this->play(rotationSound, 0.7f, false);
-            }
-            catch (...) {
-                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << rotationSoundFile << std::endl;
-            }
-        });
-
+        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) {this->PlayRandomSound("Stage_Rotate", 0.6f); });
+        // Subscribe to Trap Platform Land Event
+        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& event) {this->OnTrapPlatformLand(event); });
 		// Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event);});
     }
@@ -284,6 +259,36 @@ namespace Framework {
         }
     }
 
+    void AudioSystem::OnTrapPlatformLand(const TrapPlatformLandEvent& event) {
+        // Get Player Position
+        Vector2D playerPos;
+        EntityManager entityMgr = EntityManager(GameManager::GetInstance().GetECS());
+        std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+
+        if (!playerEntities.empty()) {
+            Entity playerID = playerEntities[0];
+            playerPos = entityMgr.GetComponent<Transform>(playerID).position;
+        }
+        else {
+            return;
+        }
+
+        // Calculate Distance
+        float distance = (event.position - playerPos).Magnitude();
+
+        // Calculate Volume (Linear Falloff)
+        float maxHearingRange = 700.0f; // TODO: move this hardcoded value to player.json
+        float volume = 0.0f;
+
+        if (distance < maxHearingRange) {
+            volume = 1.0f - (distance / maxHearingRange);
+        }
+
+        // Play Sound
+        if (volume > 0.05f) {
+            this->PlayRandomSound("Platform_Land", volume);
+        }
+    }
     void AudioSystem::SuspendAudio() {
         if (masterGroup_) {
             masterGroup_->setPaused(true);
@@ -295,6 +300,27 @@ namespace Framework {
         if (masterGroup_) {
             masterGroup_->setPaused(false);
             if (system_) system_->update(); // Force an update to resume instantly
+        }
+    }
+
+    void AudioSystem::PlayRandomSound(std::string eventKey, float volume) {
+        if (soundPaths_.find(eventKey) != soundPaths_.end()) {
+            const std::vector<std::string>& files = soundPaths_[eventKey];
+
+            if (!files.empty()) {
+                // Pick a random index
+                int randomIndex = rand() % files.size();
+                std::string path = files[randomIndex];
+
+                // Load and Play
+                try {
+                    FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(path);
+                    this->play(sound, volume, false);
+                }
+                catch (...) { 
+                    Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << path << std::endl;
+                }
+            }
         }
     }
 
