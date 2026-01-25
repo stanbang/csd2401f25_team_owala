@@ -101,5 +101,6 @@ namespace Framework {
 	// Empty structs for signalling
 	struct WorldRotationEvent {};
 	struct PlayerLandEvent {};
+	struct CurtainsOpenEvent {};
 
 } // namespace Framework

@@ -157,6 +157,8 @@ namespace Framework {
         animTimer_ = 0.0f;
         onTransitionComplete_ = onComplete;
 
+        MessageBus::Instance().Publish(CurtainsOpenEvent());
+
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
 

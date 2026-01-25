@@ -12,5 +12,8 @@
     ],
     "Stage_Rotate": [
         "stage_rotation.wav"
+    ],
+    "Curtains_Open": [
+        "curtains_open.wav"
     ]
 }

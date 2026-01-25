@@ -38,8 +38,10 @@ namespace Framework {
         MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) {this->PlayRandomSound("Stage_Rotate", 0.6f); });
         // Subscribe to Trap Platform Land Event
         MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& event) {this->OnTrapPlatformLand(event); });
+        // Subscribe to Curtains Open Event
+        MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent& event) {this->PlayRandomSound("Curtains_Open", 0.15f);});
 		// Subscribe to ButtonClickedEvent
-        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event);});
+        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event); });
     }
 
     void AudioSystem::Update() {
