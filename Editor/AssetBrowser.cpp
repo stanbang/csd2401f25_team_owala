@@ -470,6 +470,17 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 }
             }
 
+			// Delete Button
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 1.0f)); // Red button for delete
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+            if (ImGui::Button("Delete Asset", ImVec2(150, 30)))
+            {
+                showDeleteConfirmation_ = true;
+            }
+            ImGui::PopStyleColor(3);
+
             // Drop zone for replacement
             if (isReplaceModeActive_)
             {
@@ -522,13 +533,19 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 }
             }
 
-            // Confirmation Popup
+            // Replace Confirmation Popup
             if (showReplaceConfirmation_)
             {
                 ImGui::OpenPopup("Confirm Replace");
             }
 
-            // Confirmation Modal
+			// Delete Confirmation Popup
+            if (showDeleteConfirmation_)
+            {
+                ImGui::OpenPopup("Confirm Delete");
+            }
+
+            // Replace Confirmation Modal
             if (ImGui::BeginPopupModal("Confirm Replace", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 ImGui::Text("Are you sure you want to replace:");
@@ -643,6 +660,93 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 {
                     showReplaceConfirmation_ = false;
                     replacementFilePath_.clear();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+
+			// Delete Confirmation Modal
+            if (ImGui::BeginPopupModal("Confirm Delete", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Are you sure you want to PERMANENTLY delete:");
+                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%s", selectedAsset_.filename().string().c_str());
+                ImGui::Separator();
+                ImGui::TextWrapped("This will remove the file from your disk and unload it from memory. This cannot be undone!");
+
+                ImGui::Separator();
+
+                if (ImGui::Button("Delete", ImVec2(120, 0)))
+                {
+                    try
+                    {
+                        std::string filename = selectedAsset_.filename().string();
+
+                        // Unload from Resource Manager
+                        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tex") {
+                            resourceManager_->unload<Texture>(filename);
+                        }
+                        else if (ext == ".ttf") {
+                            resourceManager_->unload<Font>(filename);
+                        }
+                        else if (ext == ".wav" || ext == ".ogg" || ext == ".mp3") {
+                            resourceManager_->unload<FMOD::Sound>(filename); 
+                        }
+                        else if (ext == ".json") {
+                            // Check if it is a loaded Prefab
+                            if (resourceManager_->has<EntityPrefab>(filename)) {
+                                resourceManager_->unload<EntityPrefab>(filename);
+                                Logger::Get().Info(DebugType::Editor) << "Unloaded Prefab: " << filename << std::endl;
+                            }
+                            // Check if it is a loaded Animation
+                            else if (resourceManager_->has<AnimationInfo>(filename)) {
+                                resourceManager_->unload<AnimationInfo>(filename);
+                                Logger::Get().Info(DebugType::Editor) << "Unloaded Animation: " << filename << std::endl;
+                            }
+                        }
+
+                        // Repo Sync: Delete from repository if syncing is enabled
+                        if (syncToRepo_)
+                        {
+                            fs::path repoDestinationPath;
+                            std::string selectedAssetStr = fs::absolute(selectedAsset_).string();
+
+                            if (selectedAssetStr.find(localAssetsPath_.string()) == 0) {
+                                repoDestinationPath = repoAssetsPath_ / fs::relative(selectedAsset_, localAssetsPath_);
+                            }
+                            else if (selectedAssetStr.find(localDataPath_.string()) == 0) {
+                                repoDestinationPath = repoDataPath_ / fs::relative(selectedAsset_, localDataPath_);
+                            }
+
+                            if (!repoDestinationPath.empty() && fs::exists(repoDestinationPath)) {
+                                fs::remove(repoDestinationPath);
+                                Logger::Get().Info(DebugType::Editor) << "Deleted file from Repo: " << repoDestinationPath.string() << std::endl;
+                            }
+                        }
+
+                        // Delete local file
+                        if (fs::remove(selectedAsset_)) {
+                            Logger::Get().Info(DebugType::Editor) << "Successfully deleted local file: " << selectedAsset_.string() << std::endl;
+                        }
+
+                        // Reset state and refresh browser
+                        selectedAsset_.clear();
+                        ScanDirectory(currentPath_);
+                    }
+                    catch (const fs::filesystem_error& e)
+                    {
+                        Logger::Get().Error(DebugType::Editor) << "Failed to delete file: " << e.what() << std::endl;
+                    }
+
+                    showDeleteConfirmation_ = false;
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                {
+                    showDeleteConfirmation_ = false;
                     ImGui::CloseCurrentPopup();
                 }
 

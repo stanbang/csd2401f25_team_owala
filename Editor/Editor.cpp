@@ -94,8 +94,9 @@ namespace Editor {
 		case ComponentType::CameraType:						return "Camera";
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
-		case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";
+	/*	case ComponentType::BirdAIComponentType:			return "BirdAI";
+		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";*/
+		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
@@ -488,6 +489,8 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
 			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
+			ImGui::DockBuilderDockWindow("FSM Enemy Editor", dock_bottom);
+
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
@@ -515,6 +518,30 @@ namespace Editor {
 		if (isTileEditorActive_ && isDraggingPrefab_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			HandleDragDropPlacement();
 		}
+		if (isFSMEditorOpen_ && isDraggingFSM_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			HandleFSMDragDropPlacement();
+		}
+		if (isDraggingFSM_ && isMouseOverGameViewport_) { // fsm preview shld prolly be in a function
+			ImDrawList* drawList = ImGui::GetForegroundDrawList();
+			Vector2D worldMousePos = GetMouseWorldPosition();
+			Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+			ImVec2 screenPos = WorldToImGuiScreen(snappedPos);
+
+			// Draw preview
+			ImVec2 rectMin = ImVec2(screenPos.x - 25, screenPos.y - 25);
+			ImVec2 rectMax = ImVec2(screenPos.x + 25, screenPos.y + 25);
+
+			drawList->AddImage(
+				fsmDragDropPayload_.textureID,
+				rectMin,
+				rectMax,
+				fsmDragDropPayload_.uv0,
+				fsmDragDropPayload_.uv1,
+				IM_COL32(255, 255, 255, 150)
+			);
+		}
+
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
 			HandleTileErasing();
 		}
@@ -541,6 +568,7 @@ namespace Editor {
 				ShowTilePalette(); // Tile palette
 			}
 		}
+		if (isFSMEditorOpen_) ShowFSMEditor();
 
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowDebugVisualizationPanel(); 
@@ -886,7 +914,7 @@ namespace Editor {
 
 		if (newEntity != 0) {
 			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-			historyManager_.Record(OpType::Create, newEntity, "Brush Place");
+//			historyManager_.Record(OpType::Create, newEntity, "Brush Place"); //CRASH
 		}
 	}
 
@@ -1282,48 +1310,52 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
-		//ImGui::SameLine();
-		if (ImGui::Button("Spawn Test Bird")) {
-			// Get the systems we need
-			SceneManager& sceneMgr = SceneManager::GetInstance();
-			const SceneAsset& currScene = sceneMgr.GetActiveScene();
 
-			//  Create entity
-			Entity bird = entityMgr.CreateEntity();
-
-			//  Set properties
-			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
-
-			// Add components required for the AI
-			entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Transform>(bird, Transform({ 0.f, 0.5f }, 0.f)); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
-			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
-			entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
-			entityMgr.AddComponent<RotationFlag>(bird, {});
-
-			RigidBody rb;	
-			rb.SetMass(1.0f); // Give it some mass
-			rb.isAffectedByGravity = false; // Make sure it doesn't fall
-			entityMgr.AddComponent<RigidBody>(bird, rb);
-
-			//  Add components to make it visible and selectable
-			Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
-			Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
-
-			// texture is loaded in TestScene.cpp
-			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
-			entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
-			
-		    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
-
-			// Add it to the active scene
-			sceneMgr.AddEntityToScene(currScene, bird);
-
-			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
-				<< bird << ")";
+		if (ImGui::Button("Open FSM Editor")) {
+			isFSMEditorOpen_ = true;
 		}
+		//ImGui::SameLine();
+		//if (ImGui::Button("Spawn Test Bird")) {
+		//	// Get the systems we need
+		//	SceneManager& sceneMgr = SceneManager::GetInstance();
+		//	const SceneAsset& currScene = sceneMgr.GetActiveScene();
+
+		//	//  Create entity
+		//	Entity bird = entityMgr.CreateEntity();
+
+		//	//  Set properties
+		//	entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
+
+		//	// Add components required for the AI
+		//	entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
+		//	entityMgr.AddComponent<Transform>(bird, Transform({ 0.f, 0.5f }, 0.f)); // Spawn at (0, 0.5)
+		//	entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
+		//	entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
+		//	entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+		//	entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
+		//	entityMgr.AddComponent<RotationFlag>(bird, {});
+
+		//	RigidBody rb;	
+		//	rb.SetMass(1.0f); // Give it some mass
+		//	rb.isAffectedByGravity = false; // Make sure it doesn't fall
+		//	entityMgr.AddComponent<RigidBody>(bird, rb);
+
+		//	//  Add components to make it visible and selectable
+		//	Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
+		//	Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
+
+		//	// texture is loaded in TestScene.cpp
+		//	//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
+		//	entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
+		//	
+		//    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
+
+		//	// Add it to the active scene
+		//	sceneMgr.AddEntityToScene(currScene, bird);
+
+		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
+		//		<< bird << ")";
+		//}
 
 		//ImGui::SameLine();
 		
@@ -3154,7 +3186,7 @@ namespace Editor {
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("Current Fall Distance", &trapComp.currentFallDistance, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+			//ImGui::InputFloat("Current Fall Distance", &trapComp.currentFallDistance, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor(2);
 
 			if (activeNow && !editSession.wasItemActive) {
@@ -3784,111 +3816,166 @@ namespace Editor {
 			break;
 		}
 
-		case ComponentType::BirdAIComponentType: {
+		//case ComponentType::BirdAIComponentType: {
 
-			if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
-				break;
+		//	if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
+		//		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
+		//		break;
+		//	}
+
+		//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
+
+		//	// --- State (Read-only) ---
+		//	int state = static_cast<int>(ai.state);
+		//	const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
+		//	ImGui::Text("Current State: %s", stateNames[state]);
+
+		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		//	ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//
+		//	ImGui::PopStyleColor(2);
+
+		//	ImGui::Separator();
+
+		//	bool activeNow = false;
+		//	// --- Config ---
+		//	ImGui::Text("Configurable Stats");
+		//	ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		///*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	// --- Hover Config ---
+		//	ImGui::Separator();
+		//	ImGui::Text("Hover Behavior");
+		//	ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	// --- Pathfinding ---
+		//	ImGui::Separator();
+		//	ImGui::Text("Pathfinding");
+		//	ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		//	ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::PopStyleColor(2);
+		//	ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
+
+		//	if (activeNow && !editSession.wasItemActive) {
+		//		editSession.Begin(selectedEntity, selectedComponent);
+		//	}
+
+		//	if (!activeNow && editSession.wasItemActive) {
+		//		std::stringstream ss;
+		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+		//	}
+
+		//	editSession.wasItemActive = activeNow;
+		//	break;
+		//}
+
+		//case ComponentType::SkeletonAIComponentType: {
+		//	SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
+
+		//	// for now just show state
+		//	int state = static_cast<int>(skelAI.state);
+		//	ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
+
+		//	bool activeNow = false;
+		//	ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	if (activeNow && !editSession.wasItemActive) {
+		//		editSession.Begin(selectedEntity, selectedComponent);
+		//	}
+
+		//	if (!activeNow && editSession.wasItemActive) {
+		//		std::stringstream ss;
+		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+		//	}
+
+		//	editSession.wasItemActive = activeNow;
+		//	break;
+		//}
+
+		case ComponentType::FSMComponentType:
+		{
+			if (ImGui::CollapsingHeader("FSM Component", ImGuiTreeNodeFlags_DefaultOpen)) {
+				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+
+				// 1. Definition Path Input
+				char buffer[256];
+				strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
+				if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
+					fsm.fsmDefinitionPath = buffer;
+					fsm.initialized = false; // Force rebuild
+				}
+
+				// --- DRAG AND DROP TARGET ---
+				// Allows dragging a .json file from the Asset Browser into this field
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+						const char* path = (const char*)payload->Data;
+						std::string pathStr = path;
+
+						// Simple check for JSON extension
+						if (pathStr.find(".json") != std::string::npos) {
+							fsm.fsmDefinitionPath = pathStr;
+							fsm.initialized = false; // Force rebuild
+							Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << pathStr << std::endl;
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+				// -----------------------------
+
+				// 2. Initial State Override (Optional)
+				char initBuffer[256];
+				strcpy_s(initBuffer, fsm.initialStateOverride.c_str());
+				if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
+					fsm.initialStateOverride = initBuffer;
+				}
+
+				// 3. Current State Display (Read-Only)
+				std::string currentState = fsm.fsm.GetCurrentState();
+				ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
+
+				// 4. Reload Button
+				if (ImGui::Button("Reload FSM")) {
+					fsm.initialized = false;
+				}
+
+				// 5. Remove Component Button
+				if (ImGui::Button("Remove Component")) {
+					entityMgr.RemoveComponent(selectedEntity, ComponentType::FSMComponentType);
+				}
 			}
-
-			BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
-
-			// --- State (Read-only) ---
-			int state = static_cast<int>(ai.state);
-			const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
-			ImGui::Text("Current State: %s", stateNames[state]);
-
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		
-			ImGui::PopStyleColor(2);
-
-			ImGui::Separator();
-
-			bool activeNow = false;
-			// --- Config ---
-			ImGui::Text("Configurable Stats");
-			ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-		/*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			// --- Hover Config ---
-			ImGui::Separator();
-			ImGui::Text("Hover Behavior");
-			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			// --- Pathfinding ---
-			ImGui::Separator();
-			ImGui::Text("Pathfinding");
-			ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2);
-			ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
-
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			editSession.wasItemActive = activeNow;
-			break;
-		}
-
-		case ComponentType::SkeletonAIComponentType: {
-			SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
-
-			// for now just show state
-			int state = static_cast<int>(skelAI.state);
-			ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
-
-			bool activeNow = false;
-			ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -4535,6 +4622,301 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+#pragma endregion
+
+#pragma region FSM
+	void Editor::LoadFSMDefinitionsFromFolder(const std::string& folderPath) {
+		using namespace Framework;
+
+		availableFSMDefinitions_.clear();
+
+		if (!std::filesystem::exists(folderPath)) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "FSM definitions folder not found: " << folderPath << std::endl;
+			return;
+		}
+
+		for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+			if (entry.is_regular_file() && entry.path().extension() == ".json") {
+				availableFSMDefinitions_.push_back(entry.path().string());
+				Logger::Get().Info(DebugType::Editor)
+					<< "Found FSM definition: " << entry.path().filename().string() << std::endl;
+			}
+		}
+	}
+
+	void Editor::PrepareFSMPaletteItems() {
+		using namespace Framework;
+
+		fsmPaletteItems_.clear();
+
+		// Load FSM definitions from folder
+		LoadFSMDefinitionsFromFolder("Data/FSM/");
+
+		for (const std::string& fsmPath : availableFSMDefinitions_) {
+			// Parse the JSON to get display info
+			rapidjson::Document doc;
+			if (!FileIOSystem::ReadFile(fsmPath, doc)) {
+				Logger::Get().Error(DebugType::Editor)
+					<< "Failed to read FSM definition: " << fsmPath << std::endl;
+				continue;
+			}
+
+			std::string displayName = std::filesystem::path(fsmPath).stem().string();
+			std::string textureKey = "default_enemy.png"; // Default texture
+
+			// Try to extract texture from the definition
+			if (doc.HasMember("previewTexture") && doc["previewTexture"].IsString()) {
+				textureKey = doc["previewTexture"].GetString();
+			}
+
+			// Get texture ID
+			try {
+				Texture texID = resourceManager_->get<Texture>(textureKey);
+
+				if (texID != 0) {
+					fsmPaletteItems_.push_back({
+						displayName,
+						fsmPath,
+						textureKey,
+						(ImTextureID)(intptr_t)texID,
+						ImVec2(0.0f, 1.0f),
+						ImVec2(1.0f, 0.0f)
+						});
+
+					Logger::Get().Info(DebugType::Editor)
+						<< "Added FSM palette item: " << displayName << std::endl;
+				}
+			}
+			catch (const std::exception& e) {
+				Logger::Get().Error(DebugType::Editor)
+					<< "Failed to load texture for FSM: " << displayName
+					<< " - " << e.what() << std::endl;
+			}
+		}
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Prepared " << fsmPaletteItems_.size() << " FSM palette items." << std::endl;
+	}
+
+	void Editor::ShowFSMEditor() {
+		using namespace Framework;
+
+		static bool wasOpen = false;
+
+		if (ImGui::Begin("FSM Enemy Editor", &isFSMEditorOpen_)) {
+			if (!wasOpen) {
+				wasOpen = true;
+				// Prepare palette when opening
+				if (!fsmPalettePrepared_) {
+					PrepareFSMPaletteItems();
+					fsmPalettePrepared_ = true;
+				}
+			}
+
+			ImGui::Text("Drag and drop FSM enemies into the scene");
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+				"Left Click to drag, or select and click in scene");
+			ImGui::Separator();
+
+			// Reload button
+			if (ImGui::Button("Reload FSM Definitions")) {
+				fsmPalettePrepared_ = false;
+				PrepareFSMPaletteItems();
+				fsmPalettePrepared_ = true;
+			}
+
+			ImGui::Separator();
+
+			// Display FSM palette items
+			ImVec2 buttonSize(96, 96);
+			ImVec4 bgCol(0, 0, 0, 0);
+			ImVec4 tintCol(1, 1, 1, 1);
+
+			int itemsPerRow = 0;
+			const int maxItemsPerRow = 4;
+
+			if (fsmPaletteItems_.empty()) {
+				ImGui::TextDisabled("No FSM definitions found in Data/FSM/");
+				ImGui::TextDisabled("Create .json files with FSM definitions");
+			}
+
+			for (const auto& item : fsmPaletteItems_) {
+				ImGui::PushID(item.name.c_str());
+
+				// Button with preview image
+				if (ImGui::ImageButton(
+					item.name.c_str(),
+					item.textureID,
+					buttonSize,
+					item.uv0,
+					item.uv1,
+					bgCol,
+					tintCol))
+				{
+					selectedFSMDefinition_ = item.fsmPath;
+					Logger::Get().Info(DebugType::Editor)
+						<< "Selected FSM: " << item.name << std::endl;
+				}
+
+				// Drag and drop source
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					ImGui::SetDragDropPayload("FSM_ENEMY_DND", &item, sizeof(DraggableFSMInfo));
+					ImGui::Text("Placing: %s", item.name.c_str());
+					ImGui::Image(item.textureID, ImVec2(48, 48), item.uv0, item.uv1);
+
+					isDraggingFSM_ = true;
+					fsmDragDropPayload_ = item;
+					ImGui::EndDragDropSource();
+				}
+
+				// Show tooltip
+				if (ImGui::IsItemHovered()) {
+					ImGui::BeginTooltip();
+					ImGui::Text("%s", item.name.c_str());
+					ImGui::TextDisabled("Path: %s", item.fsmPath.c_str());
+					ImGui::EndTooltip();
+				}
+
+				// Display name below button
+				ImGui::Text("%s", item.name.c_str());
+
+				ImGui::PopID();
+
+				itemsPerRow++;
+				if (itemsPerRow < maxItemsPerRow) {
+					ImGui::SameLine();
+				}
+				else {
+					itemsPerRow = 0;
+				}
+			}
+
+			if (itemsPerRow != 0) {
+				ImGui::NewLine();
+			}
+
+			ImGui::Separator();
+
+			// Instructions
+			if (ImGui::CollapsingHeader("Instructions", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::BulletText("Click an FSM enemy to select it");
+				ImGui::BulletText("Drag and drop into the game viewport to place");
+				ImGui::BulletText("Or click in viewport after selection");
+				ImGui::BulletText("FSM definitions are loaded from Data/FSM/");
+			}
+
+		}
+		ImGui::End();
+
+		if (!isFSMEditorOpen_ && wasOpen) {
+			wasOpen = false;
+			isDraggingFSM_ = false;
+			selectedFSMDefinition_.clear();
+		}
+	}
+
+
+	Entity Editor::CreateFSMEntityAtPosition(const std::string& fsmPath, const Vector2D& position) {
+		using namespace Framework;
+
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
+		// Create entity
+		Entity enemy = entityMgr.CreateEntity();
+
+		// Parse FSM definition to get initial setup
+		rapidjson::Document doc;
+		if (!FileIOSystem::ReadFile(fsmPath, doc)) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Failed to load FSM definition: " << fsmPath << std::endl;
+			entityMgr.DestroyEntity(enemy);
+			return 0;
+		}
+
+		// Set basic properties
+		std::string enemyName = std::filesystem::path(fsmPath).stem().string();
+		entityMgr.GetProperties(enemy).name = enemyName;
+		entityMgr.GetProperties(enemy).layer = CollisionLayer::Enemy;
+
+		// Add required components for FSM
+		entityMgr.AddComponent<Transform>(enemy, Transform(position, 0.f));
+		entityMgr.AddComponent<Velocity>(enemy, Velocity{});
+		entityMgr.AddComponent<EnemyTag>(enemy, EnemyTag{});
+
+		// Add FSM Component
+		FSMComponent fsmComp;
+		fsmComp.fsmDefinitionPath = fsmPath;
+		fsmComp.initialized = false; // Will be initialized by AISystem
+
+		// Check for initial state override in JSON
+		if (doc.HasMember("initialState") && doc["initialState"].IsString()) {
+			fsmComp.initialStateOverride = doc["initialState"].GetString();
+		}
+
+		entityMgr.AddComponent(enemy, fsmComp);
+
+		// Add visual components if specified in JSON
+		std::string textureKey = "default_enemy.png";
+		Vector2D halfSize = { 50.f, 50.f };
+
+		if (doc.HasMember("texture") && doc["texture"].IsString()) {
+			textureKey = doc["texture"].GetString();
+		}
+		if (doc.HasMember("halfSize") && doc["halfSize"].IsObject()) {
+			const auto& sizeObj = doc["halfSize"];
+			if (sizeObj.HasMember("x")) halfSize.x = sizeObj["x"].GetFloat();
+			if (sizeObj.HasMember("y")) halfSize.y = sizeObj["y"].GetFloat();
+		}
+
+		entityMgr.AddComponent<TextureComponent>(enemy, TextureComponent{ textureKey, halfSize });
+		entityMgr.AddComponent<AABBCollider>(enemy, AABBCollider{ halfSize });
+
+		// Add physics
+		RigidBody rb;
+		rb.SetMass(1.0f);
+		rb.isAffectedByGravity = false; // Most AI enemies float/fly
+		entityMgr.AddComponent(enemy, rb);
+
+		// Add animation if specified
+		if (doc.HasMember("animationProfile") && doc["animationProfile"].IsString()) {
+			std::string animProfile = doc["animationProfile"].GetString();
+			entityMgr.AddComponent<AnimationComponent>(enemy, AnimationComponent{ animProfile });
+		}
+
+		// Add rotation flag if needed
+		entityMgr.AddComponent<RotationFlag>(enemy, RotationFlag{});
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Created FSM enemy: " << enemyName
+			<< " at (" << position.x << ", " << position.y << ")" << std::endl;
+
+		return enemy;
+	}
+
+	void Editor::HandleFSMDragDropPlacement() {
+		if (!isDraggingFSM_ || !isMouseOverGameViewport_) {
+			isDraggingFSM_ = false;
+			return;
+		}
+
+		Vector2D worldMousePos = GetMouseWorldPosition();
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+		// Create the FSM enemy
+		Entity newEnemy = CreateFSMEntityAtPosition(fsmDragDropPayload_.fsmPath, snappedPos);
+
+		if (newEnemy != 0) {
+			Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEnemy);
+
+			historyManager_.Record(OpType::Create, newEnemy, "Created FSM Enemy");
+		}
+
+		isDraggingFSM_ = false;
 	}
 
 #pragma endregion
@@ -5519,7 +5901,6 @@ namespace Editor {
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
 				if (prefab) {
 					bool hasTrap = false;
-					//bool hasScaling = false;
 
 					for (const auto& compData : prefab->components) {
 						if (compData.type == "TrapPlatformComponent") hasTrap = true;
@@ -5550,24 +5931,73 @@ namespace Editor {
 
 			bool prefabModified = false;
 
-			// Edit based on type
-			switch (selectedPrefabTypeForEditing_) {
-			case PrefabType::Platform: {
-				ImGui::SeparatorText("Platform Properties");
+			// === COMPONENT EDITOR ===
+			ImGui::SeparatorText("Components");
 
-				// Find and edit components
-				for (auto& compData : prefab->components) {
-					if (compData.type == "RigidBody") {
+			for (auto& compData : prefab->components) {
+
+				if (ImGui::CollapsingHeader(compData.type.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+
+					// === TRANSFORM COMPONENT ===
+					if (compData.type == "Transform") {
+					
+						// Add Rotation Section
+						if (compData.data.HasMember("Rotation") && compData.data["Rotation"].IsObject()) {
+							auto& rot = compData.data["Rotation"];
+
+							ImGui::Text("Rotation:");
+
+							// Texture Angle
+							if (rot.HasMember("texture_angle")) {
+								float textureAngleDeg = rot["texture_angle"].GetFloat() * (180.0f / M_PI);
+								if (ImGui::DragFloat("Texture Angle (degrees)", &textureAngleDeg, 1.0f, -180.0f, 180.0f)) {
+									rot["texture_angle"].SetFloat(textureAngleDeg * (M_PI / 180.0f));
+									prefabModified = true;
+								}
+							}
+
+							// Collider Angle
+							if (rot.HasMember("collider_angle")) {
+								float colliderAngleDeg = rot["collider_angle"].GetFloat() * (180.0f / M_PI);
+								if (ImGui::DragFloat("Collider Angle (degrees)", &colliderAngleDeg, 1.0f, -180.0f, 180.0f)) {
+									rot["collider_angle"].SetFloat(colliderAngleDeg * (M_PI / 180.0f));
+									prefabModified = true;
+								}
+							}
+
+							// Quick reset button
+							if (ImGui::Button("Reset Rotation")) {
+								if (rot.HasMember("texture_angle")) rot["texture_angle"].SetFloat(0.0f);
+								if (rot.HasMember("collider_angle")) rot["collider_angle"].SetFloat(0.0f);
+								if (rot.HasMember("angle")) rot["angle"].SetFloat(0.0f);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("Scale") && compData.data["Scale"].IsObject()) {
+							auto& scale = compData.data["Scale"];
+							float scaleValues[2] = { scale["x"].GetFloat(), scale["y"].GetFloat() };
+
+							if (ImGui::DragFloat2("Scale", scaleValues, 0.1f, 0.1f, 10.0f)) {
+								scale["x"].SetFloat(scaleValues[0]);
+								scale["y"].SetFloat(scaleValues[1]);
+								prefabModified = true;
+							}
+						}
+					}
+					// === RIGIDBODY COMPONENT ===
+					else if (compData.type == "RigidBody") {
 						if (compData.data.HasMember("mass")) {
 							float mass = compData.data["mass"].GetFloat();
-							if (ImGui::DragFloat("Mass", &mass, 0.0f, 0.0f, 1.0f)) {
+							if (ImGui::DragFloat("Mass", &mass, 0.1f, 0.0f, 1.0f)) {
 								compData.data["mass"].SetFloat(mass);
 								prefabModified = true;
 							}
 						}
 					}
+
+					// === AABBCOLLIDER COMPONENT ===
 					else if (compData.type == "AABBCollider") {
-						ImGui::Text("Collider Size:");
 						if (compData.data.HasMember("half_width") && compData.data.HasMember("half_height")) {
 							float halfX = compData.data["half_width"].GetFloat();
 							float halfY = compData.data["half_height"].GetFloat();
@@ -5581,87 +6011,682 @@ namespace Editor {
 								prefabModified = true;
 							}
 						}
-					}
-					else if (compData.type == "TextureComponent") {
-						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("half_size")) {
-							const rapidjson::Value& halfSize = compData.data["half_size"];
-							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
-								float texHalfX = halfSize["x"].GetFloat();
-								float texHalfY = halfSize["y"].GetFloat();
 
-								if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 1.0f, 0.0f, 10000.0f)) {
-									compData.data["half_size"]["x"].SetFloat(texHalfX);
+						if (compData.data.HasMember("offset_x") && compData.data.HasMember("offset_y")) {
+							float offsetX = compData.data["offset_x"].GetFloat();
+							float offsetY = compData.data["offset_y"].GetFloat();
+
+							if (ImGui::DragFloat("Offset X", &offsetX, 1.0f, -1000.0f, 1000.0f)) {
+								compData.data["offset_x"].SetFloat(offsetX);
+								prefabModified = true;
+							}
+							if (ImGui::DragFloat("Offset Y", &offsetY, 1.0f, -1000.0f, 1000.0f)) {
+								compData.data["offset_y"].SetFloat(offsetY);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === TEXTURECOMPONENT ===
+					else if (compData.type == "TextureComponent") {
+						if (compData.data.HasMember("texture_key")) {
+							static char textureKeyBuffer[256] = "";
+							std::string currentKey = compData.data["texture_key"].GetString();
+							strncpy(textureKeyBuffer, currentKey.c_str(), 255);
+
+							if (ImGui::InputText("Texture Key", textureKeyBuffer, 256)) {
+								rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+								compData.data["texture_key"].SetString(textureKeyBuffer, alloc);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("half_size") && compData.data["half_size"].IsObject()) {
+							auto& halfSize = compData.data["half_size"];
+							float texHalfX = halfSize["x"].GetFloat();
+							float texHalfY = halfSize["y"].GetFloat();
+
+							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 1.0f, 0.0f, 10000.0f)) {
+								halfSize["x"].SetFloat(texHalfX);
+								prefabModified = true;
+							}
+							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 1.0f, 0.0f, 10000.0f)) {
+								halfSize["y"].SetFloat(texHalfY);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("flip_x")) {
+							bool flipX = compData.data["flip_x"].GetBool();
+							if (ImGui::Checkbox("Flip Horizontal", &flipX)) {
+								compData.data["flip_x"].SetBool(flipX);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === VELOCITY COMPONENT ===
+					else if (compData.type == "Velocity") {
+						if (compData.data.HasMember("x") && compData.data.HasMember("y")) {
+							float velValues[2] = { compData.data["x"].GetFloat(), compData.data["y"].GetFloat() };
+
+							if (ImGui::DragFloat2("Velocity", velValues, 1.0f)) {
+								compData.data["x"].SetFloat(velValues[0]);
+								compData.data["y"].SetFloat(velValues[1]);
+								prefabModified = true;
+							}
+						}
+}
+
+					// === ACCELERATION COMPONENT ===
+					else if (compData.type == "Acceleration") {
+						if (compData.data.HasMember("x") && compData.data.HasMember("y")) {
+							float accelValues[2] = { compData.data["x"].GetFloat(), compData.data["y"].GetFloat() };
+
+							if (ImGui::DragFloat2("Acceleration", accelValues, 1.0f)) {
+								compData.data["x"].SetFloat(accelValues[0]);
+								compData.data["y"].SetFloat(accelValues[1]);
+								prefabModified = true;
+							}
+						}
+					}
+						
+
+					// === ROTATIONFLAG COMPONENT ===
+					else if (compData.type == "RotationFlag") {
+						if (compData.data.HasMember("is_rotating")) {
+							bool isRotating = compData.data["is_rotating"].GetBool();
+							if (ImGui::Checkbox("Is Rotating", &isRotating)) {
+								compData.data["is_rotating"].SetBool(isRotating);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("target_rotation")) {
+							float targetRot = compData.data["target_rotation"].GetFloat();
+							if (ImGui::DragFloat("Target Rotation", &targetRot, 1.0f, -360.0f, 360.0f)) {
+								compData.data["target_rotation"].SetFloat(targetRot);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === TRAPPLATFORM COMPONENT ===
+					else if (compData.type == "TrapPlatformComponent") {
+						if (compData.data.HasMember("fall_speed")) {
+							float fallSpeed = compData.data["fall_speed"].GetFloat();
+							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 1.0f, 0.0f, 10000.0f)) {
+								compData.data["fall_speed"].SetFloat(fallSpeed);
+								prefabModified = true;
+							}
+						}
+						if (compData.data.HasMember("trigger_delay")) {
+							float triggerDelay = compData.data["trigger_delay"].GetFloat();
+							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.1f, 0.0f, 5.0f)) {
+								compData.data["trigger_delay"].SetFloat(triggerDelay);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === AUDIOCOMPONENT ===
+					else if (compData.type == "AudioComponent") {
+						if (compData.data.HasMember("sound_key")) {
+							static char soundKeyBuffer[256] = "";
+							std::string currentKey = compData.data["sound_key"].GetString();
+							strncpy(soundKeyBuffer, currentKey.c_str(), 255);
+
+							if (ImGui::InputText("Sound Key", soundKeyBuffer, 256)) {
+								rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+								compData.data["sound_key"].SetString(soundKeyBuffer, alloc);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("should_loop")) {
+							bool loop = compData.data["should_loop"].GetBool();
+							if (ImGui::Checkbox("Loop", &loop)) {
+								compData.data["should_loop"].SetBool(loop);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("volume")) {
+							float volume = compData.data["volume"].GetFloat();
+							if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f)) {
+								compData.data["volume"].SetFloat(volume);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === ANIMATIONCOMPONENT ===
+					else if (compData.type == "AnimationComponent") {
+						if (compData.data.HasMember("profile_name")) {
+							static char profileBuffer[256] = "";
+							std::string currentProfile = compData.data["profile_name"].GetString();
+							strncpy(profileBuffer, currentProfile.c_str(), 255);
+
+							if (ImGui::InputText("Animation Profile", profileBuffer, 256)) {
+								rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+								compData.data["profile_name"].SetString(profileBuffer, alloc);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("current_state")) {
+							int currentState = compData.data["current_state"].GetInt();
+							if (ImGui::DragInt("Current State", &currentState, 1, 0, 10)) {
+								compData.data["current_state"].SetInt(currentState);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("current_frame")) {
+							int currentFrame = compData.data["current_frame"].GetInt();
+							if (ImGui::DragInt("Current Frame", &currentFrame, 1, 0, 100)) {
+								compData.data["current_frame"].SetInt(currentFrame);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("frame_duration")) {
+							float frameDuration = compData.data["frame_duration"].GetFloat();
+							if (ImGui::DragFloat("Frame Duration", &frameDuration, 0.01f, 0.01f, 1.0f)) {
+								compData.data["frame_duration"].SetFloat(frameDuration);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("start_frame")) {
+							int startFrame = compData.data["start_frame"].GetInt();
+							if (ImGui::DragInt("Start Frame", &startFrame, 1, 0, 100)) {
+								compData.data["start_frame"].SetInt(startFrame);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("frame_count")) {
+							int frameCount = compData.data["frame_count"].GetInt();
+							if (ImGui::DragInt("Frame Count", &frameCount, 1, 1, 100)) {
+								compData.data["frame_count"].SetInt(frameCount);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("elapsed_time")) {
+							float elapsedTime = compData.data["elapsed_time"].GetFloat();
+							if (ImGui::DragFloat("Elapsed Time", &elapsedTime, 0.01f, 0.0f, 10.0f)) {
+								compData.data["elapsed_time"].SetFloat(elapsedTime);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("is_playing")) {
+							bool isPlaying = compData.data["is_playing"].GetBool();
+							if (ImGui::Checkbox("Is Playing", &isPlaying)) {
+								compData.data["is_playing"].SetBool(isPlaying);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("is_looping")) {
+							bool isLooping = compData.data["is_looping"].GetBool();
+							if (ImGui::Checkbox("Is Looping", &isLooping)) {
+								compData.data["is_looping"].SetBool(isLooping);
+								prefabModified = true;
+							}
+						}
+					}
+					// === TEXT COMPONENT ===
+					else if (compData.type == "TextComponent") {
+						if (compData.data.HasMember("text")) {
+							static char textBuffer[256] = "";
+							std::string currentText = compData.data["text"].GetString();
+							strncpy(textBuffer, currentText.c_str(), 255);
+
+							if (ImGui::InputText("Text", textBuffer, 256)) {
+								rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+								compData.data["text"].SetString(textBuffer, alloc);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("font_key")) {
+							static char fontBuffer[256] = "";
+							std::string currentFont = compData.data["font_key"].GetString();
+							strncpy(fontBuffer, currentFont.c_str(), 255);
+
+							if (ImGui::InputText("Font Key", fontBuffer, 256)) {
+								rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+								compData.data["font_key"].SetString(fontBuffer, alloc);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("font_size")) {
+							float fontSize = compData.data["font_size"].GetFloat();
+							if (ImGui::DragFloat("Font Size", &fontSize, 0.1f, 0.1f, 10.0f)) {
+								compData.data["font_size"].SetFloat(fontSize);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("max_width")) {
+							float maxWidth = compData.data["max_width"].GetFloat();
+							if (ImGui::DragFloat("Max Width", &maxWidth, 1.0f, 0.0f, 1000.0f)) {
+								compData.data["max_width"].SetFloat(maxWidth);
+								prefabModified = true;
+							}
+						}
+
+						// Color editing
+						if (compData.data.HasMember("font_color") && compData.data["font_color"].IsArray()) {
+							auto& colorArray = compData.data["font_color"];
+							if (colorArray.Size() >= 4) {
+								float color[4] = {
+									colorArray[0].GetFloat(),
+									colorArray[1].GetFloat(),
+									colorArray[2].GetFloat(),
+									colorArray[3].GetFloat()
+								};
+
+								if (ImGui::ColorEdit4("Font Color", color)) {
+									colorArray[0].SetFloat(color[0]);
+									colorArray[1].SetFloat(color[1]);
+									colorArray[2].SetFloat(color[2]);
+									colorArray[3].SetFloat(color[3]);
 									prefabModified = true;
 								}
-								if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 1.0f, 0.0f, 10000.0f)) {
-									compData.data["half_size"]["y"].SetFloat(texHalfY);
-									prefabModified = true;
-								}
+							}
+						}
+						}
+
+					// === CAMERA COMPONENT ===
+					else if (compData.type == "Camera") {
+						if (compData.data.HasMember("position") && compData.data["position"].IsObject()) {
+							auto& pos = compData.data["position"];
+							float x = pos["x"].GetFloat();
+							float y = pos["y"].GetFloat();
+
+							if (ImGui::DragFloat2("Position", &x, 1.0f)) {
+								pos["x"].SetFloat(x);
+								pos["y"].SetFloat(y);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("size") && compData.data["size"].IsObject()) {
+							auto& size = compData.data["size"];
+							float width = size["width"].GetFloat();
+							float height = size["height"].GetFloat();
+
+							if (ImGui::DragFloat2("Size", &width, 1.0f, 1.0f, 10000.0f)) {
+								size["width"].SetFloat(width);
+								size["height"].SetFloat(height);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("zoom")) {
+							float zoom = compData.data["zoom"].GetFloat();
+							if (ImGui::DragFloat("Zoom", &zoom, 0.1f, 0.1f, 10.0f)) {
+								compData.data["zoom"].SetFloat(zoom);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("target_entity")) {
+							int targetEntity = compData.data["target_entity"].GetInt();
+							if (ImGui::InputInt("Target Entity", &targetEntity)) {
+								compData.data["target_entity"].SetInt(targetEntity);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("follow_speed")) {
+							float followSpeed = compData.data["follow_speed"].GetFloat();
+							if (ImGui::DragFloat("Follow Speed", &followSpeed, 0.1f, 0.0f, 100.0f)) {
+								compData.data["follow_speed"].SetFloat(followSpeed);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("is_active")) {
+							bool isActive = compData.data["is_active"].GetBool();
+							if (ImGui::Checkbox("Is Active", &isActive)) {
+								compData.data["is_active"].SetBool(isActive);
+								prefabModified = true;
 							}
 						}
 					}
+						
+
+
+					// === PLAYERSTATE COMPONENT ===
+					else if (compData.type == "PlayerState") {
+						if (compData.data.HasMember("is_facing_right")) {
+							bool facingRight = compData.data["is_facing_right"].GetBool();
+							if (ImGui::Checkbox("Is Facing Right", &facingRight)) {
+								compData.data["is_facing_right"].SetBool(facingRight);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("is_grounded")) {
+							bool isGrounded = compData.data["is_grounded"].GetBool();
+							if (ImGui::Checkbox("Is Grounded", &isGrounded)) {
+								compData.data["is_grounded"].SetBool(isGrounded);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === BIRDAI COMPONENT ===
+					else if (compData.type == "BirdAIComponent") {
+						if (compData.data.HasMember("wakeup_radius")) {
+							float wakeupRadius = compData.data["wakeup_radius"].GetFloat();
+							if (ImGui::DragFloat("Wakeup Radius", &wakeupRadius, 0.1f, 0.0f, 100.0f)) {
+								compData.data["wakeup_radius"].SetFloat(wakeupRadius);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("move_speed")) {
+							float moveSpeed = compData.data["move_speed"].GetFloat();
+							if (ImGui::DragFloat("Move Speed", &moveSpeed, 0.1f, 0.0f, 100.0f)) {
+								compData.data["move_speed"].SetFloat(moveSpeed);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("attack_radius")) {
+							float attackRadius = compData.data["attack_radius"].GetFloat();
+							if (ImGui::DragFloat("Attack Radius", &attackRadius, 0.1f, 0.0f, 100.0f)) {
+								compData.data["attack_radius"].SetFloat(attackRadius);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("attack_speed")) {
+							float attackSpeed = compData.data["attack_speed"].GetFloat();
+							if (ImGui::DragFloat("Attack Speed", &attackSpeed, 0.1f, 0.0f, 100.0f)) {
+								compData.data["attack_speed"].SetFloat(attackSpeed);
+								prefabModified = true;
+							}
+						}
+					}
+
+					// === SKELETONAI COMPONENT ===
+					else if (compData.type == "SkeletonAIComponent") {
+						if (compData.data.HasMember("detection_radius")) {
+							float detectionRadius = compData.data["detection_radius"].GetFloat();
+							if (ImGui::DragFloat("Detection Radius", &detectionRadius, 0.1f, 0.0f, 100.0f)) {
+								compData.data["detection_radius"].SetFloat(detectionRadius);
+								prefabModified = true;
+							}
+						}
+
+						if (compData.data.HasMember("move_speed")) {
+							float moveSpeed = compData.data["move_speed"].GetFloat();
+							if (ImGui::DragFloat("Move Speed", &moveSpeed, 0.1f, 0.0f, 100.0f)) {
+								compData.data["move_speed"].SetFloat(moveSpeed);
+								prefabModified = true;
+							}
+						}
+					}
+
+					ImGui::Separator();
 				}
-				break;
 			}
 
-			case PrefabType::TrapPlatform: {
-				ImGui::SeparatorText("Trap Platform Properties");
+			// === ADD/REMOVE COMPONENTS SECTION ===
+			ImGui::Separator();
+			ImGui::SeparatorText("Add/Remove Components");
 
-				for (auto& compData : prefab->components) {
-					if (compData.type == "TrapPlatformComponent") {
-						if (compData.data.HasMember("fallSpeed")) {
-							float fallSpeed = compData.data["fallSpeed"].GetFloat();
-							if (ImGui::DragFloat("Fall Speed", &fallSpeed, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["fallSpeed"].SetFloat(fallSpeed);
-								prefabModified = true;
-							}
-						}
-						if (compData.data.HasMember("triggerDelay")) {
-							float triggerDelay = compData.data["triggerDelay"].GetFloat();
-							if (ImGui::DragFloat("Trigger Delay", &triggerDelay, 0.0f, 0.0f, 5.0f)) {
-								compData.data["triggerDelay"].SetFloat(triggerDelay);
-								prefabModified = true;
-							}
-						}
-					}
-					else if (compData.type == "AABBCollider") {
-						ImGui::Text("Collider Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float halfX = compData.data["halfSizeX"].GetFloat();
-							float halfY = compData.data["halfSizeY"].GetFloat();
+			// Component dropdown for adding
+			static int selectedAddComponentIndex = 0;
+			static std::vector<std::string> availableComponents = {
+				"None", "Velocity", "Acceleration", "PlayerState",
+				"RotationFlag", "AudioComponent", "AnimationComponent",
+				"TextComponent", "Camera", "ButtonComponent",
+				"ParticleEmitterComponent", "BirdAIComponent",
+				"SkeletonAIComponent", "NativeScripts", "TrapPlatformComponent"
+			};
 
-							if (ImGui::DragFloat("Collider Half Size X", &halfX, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeX"].SetFloat(halfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Collider Half Size Y", &halfY, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeY"].SetFloat(halfY);
-								prefabModified = true;
-							}
-						}
-					}
-					else if (compData.type == "TextureComponent") {
-						ImGui::Text("Texture Size:");
-						if (compData.data.HasMember("halfSizeX") && compData.data.HasMember("halfSizeY")) {
-							float texHalfX = compData.data["halfSizeX"].GetFloat();
-							float texHalfY = compData.data["halfSizeY"].GetFloat();
+			std::vector<const char*> componentItems;
+			for (const auto& comp : availableComponents) {
+				componentItems.push_back(comp.c_str());
+			}
 
-							if (ImGui::DragFloat("Texture Half Size X", &texHalfX, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeX"].SetFloat(texHalfX);
-								prefabModified = true;
-							}
-							if (ImGui::DragFloat("Texture Half Size Y", &texHalfY, 0.0f, 0.0f, 10000.0f)) {
-								compData.data["halfSizeY"].SetFloat(texHalfY);
-								prefabModified = true;
-							}
-						}
+			ImGui::Combo("Component to Add", &selectedAddComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
+
+			ImGui::SameLine();
+			if (ImGui::Button("Add Component") && selectedAddComponentIndex > 0) {
+				std::string compType = availableComponents[selectedAddComponentIndex];
+
+				// Check if component already exists
+				bool alreadyExists = false;
+				for (const auto& comp : prefab->components) {
+					if (comp.type == compType) {
+						alreadyExists = true;
+						break;
 					}
 				}
-				break;
+
+				if (!alreadyExists) {
+					ComponentData newComp;
+					newComp.type = compType;
+					newComp.data.SetObject();
+					rapidjson::Document::AllocatorType& alloc = newComp.data.GetAllocator();
+
+					if (compType == "Velocity" || compType == "Acceleration") {
+						newComp.data.AddMember("x", 0.0f, alloc);
+						newComp.data.AddMember("y", 0.0f, alloc);
+					}
+					else if (compType == "PlayerState") {
+						newComp.data.AddMember("is_facing_right", true, alloc);
+						newComp.data.AddMember("is_grounded", false, alloc);
+					}
+					else if (compType == "RotationFlag") {
+						newComp.data.AddMember("is_rotating", false, alloc);
+						newComp.data.AddMember("current_rotation", 0.0f, alloc);
+						newComp.data.AddMember("target_rotation", 0.0f, alloc);
+					}
+					else if (compType == "AudioComponent") {
+						rapidjson::Value soundKey;
+						soundKey.SetString("", alloc);
+						newComp.data.AddMember("sound_key", soundKey, alloc);
+						newComp.data.AddMember("should_loop", false, alloc);
+						newComp.data.AddMember("is_streaming", false, alloc);
+						newComp.data.AddMember("volume", 0.5f, alloc);
+					}
+					else if (compType == "AnimationComponent") {
+						rapidjson::Value profileName;
+						profileName.SetString("", alloc);
+						newComp.data.AddMember("profile_name", profileName, alloc);
+						newComp.data.AddMember("current_state", 0, alloc);
+						newComp.data.AddMember("current_frame", 0, alloc);
+						newComp.data.AddMember("frame_duration", 0.1f, alloc);
+						newComp.data.AddMember("start_frame", 0, alloc);
+						newComp.data.AddMember("frame_count", 1, alloc);
+						newComp.data.AddMember("elapsed_time", 0.0f, alloc);
+						newComp.data.AddMember("is_playing", true, alloc);
+						newComp.data.AddMember("is_looping", true, alloc);
+					}
+					else if (compType == "TextComponent") {
+						rapidjson::Value textVal, fontKeyVal;
+						textVal.SetString("Text", alloc);
+						fontKeyVal.SetString("", alloc);
+						newComp.data.AddMember("text", textVal, alloc);
+						newComp.data.AddMember("font_key", fontKeyVal, alloc);
+						newComp.data.AddMember("font_size", 1.0f, alloc);
+						newComp.data.AddMember("max_width", 100.0f, alloc);
+
+						// Color
+						rapidjson::Value colorArray(rapidjson::kArrayType);
+						colorArray.PushBack(1.0f, alloc); // r
+						colorArray.PushBack(1.0f, alloc); // g
+						colorArray.PushBack(1.0f, alloc); // b
+						colorArray.PushBack(1.0f, alloc); // a
+						newComp.data.AddMember("font_color", colorArray, alloc);
+					}
+					else if (compType == "Camera") {
+						rapidjson::Value posObj(rapidjson::kObjectType);
+						posObj.AddMember("x", 0.0f, alloc);
+						posObj.AddMember("y", 0.0f, alloc);
+						newComp.data.AddMember("position", posObj, alloc);
+
+						rapidjson::Value sizeObj(rapidjson::kObjectType);
+						sizeObj.AddMember("width", 800.0f, alloc);
+						sizeObj.AddMember("height", 600.0f, alloc);
+						newComp.data.AddMember("size", sizeObj, alloc);
+
+						newComp.data.AddMember("zoom", 1.0f, alloc);
+						newComp.data.AddMember("target_entity", 0, alloc);
+						newComp.data.AddMember("follow_speed", 5.0f, alloc);
+						newComp.data.AddMember("is_active", true, alloc);
+					}
+					else if (compType == "ButtonComponent") {
+						rapidjson::Value defaultTex, hoverTex, pressedTex;
+						defaultTex.SetString("", alloc);
+						hoverTex.SetString("", alloc);
+						pressedTex.SetString("", alloc);
+
+						newComp.data.AddMember("default_texture_key", defaultTex, alloc);
+						newComp.data.AddMember("hover_texture_key", hoverTex, alloc);
+						newComp.data.AddMember("pressed_texture_key", pressedTex, alloc);
+						newComp.data.AddMember("default_is_animated", false, alloc);
+						newComp.data.AddMember("hover_is_animated", false, alloc);
+						newComp.data.AddMember("pressed_is_animated", false, alloc);
+
+						newComp.data.AddMember("is_hovered", false, alloc);
+						newComp.data.AddMember("is_pressed", false, alloc);
+						newComp.data.AddMember("is_released", false, alloc);
+						newComp.data.AddMember("action", 0, alloc);
+
+						rapidjson::Value targetStr;
+						targetStr.SetString("", alloc);
+						newComp.data.AddMember("target_string", targetStr, alloc);
+						newComp.data.AddMember("target_value", 0.0f, alloc);
+
+						rapidjson::Value hoverSound, clickSound;
+						hoverSound.SetString("", alloc);
+						clickSound.SetString("", alloc);
+						newComp.data.AddMember("hover_sound_key", hoverSound, alloc);
+						newComp.data.AddMember("click_sound_key", clickSound, alloc);
+						newComp.data.AddMember("hover_sound_volume", 0.5f, alloc);
+						newComp.data.AddMember("click_sound_volume", 0.5f, alloc);
+					}
+					else if (compType == "ParticleEmitterComponent") {
+						rapidjson::Value texKey;
+						texKey.SetString("", alloc);
+						newComp.data.AddMember("particle_texture_key", texKey, alloc);
+						newComp.data.AddMember("is_emitting", true, alloc);
+						newComp.data.AddMember("is_particle_animated", false, alloc);
+						newComp.data.AddMember("is_screen_space", false, alloc);
+						newComp.data.AddMember("particle_lifetime", 2.0f, alloc);
+						newComp.data.AddMember("emit_rate", 10.0f, alloc);
+						newComp.data.AddMember("emit_interval", 0.1f, alloc);
+						newComp.data.AddMember("particle_effect_type", 0, alloc); // NONE
+						newComp.data.AddMember("effect_strength", 1.0f, alloc);
+						newComp.data.AddMember("particle_speed", 1.0f, alloc);
+						newComp.data.AddMember("is_affected_by_gravity", false, alloc);
+						newComp.data.AddMember("emission_style", 0, alloc); // FROM_POINT
+
+						// Size
+						rapidjson::Value sizeObj(rapidjson::kObjectType);
+						sizeObj.AddMember("x", 10.0f, alloc);
+						sizeObj.AddMember("y", 10.0f, alloc);
+						newComp.data.AddMember("particle_size", sizeObj, alloc);
+					}
+					else if (compType == "BirdAIComponent") {
+						newComp.data.AddMember("state", 0, alloc); // IDLE
+						newComp.data.AddMember("is_facing_right", true, alloc);
+						newComp.data.AddMember("state_timer", 0.0f, alloc);
+						newComp.data.AddMember("wakeup_radius", 100.0f, alloc);
+						newComp.data.AddMember("wakeup_time", 1.0f, alloc);
+						newComp.data.AddMember("move_speed", 2.0f, alloc);
+						newComp.data.AddMember("chase_radius", 200.0f, alloc);
+						newComp.data.AddMember("hover_radius", 50.0f, alloc);
+						newComp.data.AddMember("hover_height", 20.0f, alloc);
+						newComp.data.AddMember("hover_speed", 1.0f, alloc);
+						newComp.data.AddMember("attack_radius", 50.0f, alloc);
+						newComp.data.AddMember("attack_speed", 5.0f, alloc);
+						newComp.data.AddMember("attack_duration", 0.5f, alloc);
+						newComp.data.AddMember("stun_duration", 1.0f, alloc);
+						newComp.data.AddMember("path_recalculate_interval", 0.5f, alloc);
+						newComp.data.AddMember("path_recalculate_timer", 0.0f, alloc);
+
+						// Attack target position
+						rapidjson::Value attackPos(rapidjson::kObjectType);
+						attackPos.AddMember("x", 0.0f, alloc);
+						attackPos.AddMember("y", 0.0f, alloc);
+						newComp.data.AddMember("attack_target_position", attackPos, alloc);
+					}
+					else if (compType == "SkeletonAIComponent") {
+						newComp.data.AddMember("state", 0, alloc); // IDLE
+						newComp.data.AddMember("detection_radius", 100.0f, alloc);
+						newComp.data.AddMember("move_speed", 2.0f, alloc);
+					}
+					else if (compType == "NativeScripts") {
+						// Empty scripts array
+						rapidjson::Value scriptsArray(rapidjson::kArrayType);
+						newComp.data.AddMember("scripts", scriptsArray, alloc);
+					}
+					else if (compType == "TrapPlatformComponent") {
+						newComp.data.AddMember("is_triggered", false, alloc);
+						newComp.data.AddMember("has_fallen", false, alloc);
+						newComp.data.AddMember("trigger_delay", 0.5f, alloc);
+						newComp.data.AddMember("current_delay", 0.0f, alloc);
+						newComp.data.AddMember("fall_speed", 100.0f, alloc);
+						//newComp.data.AddMember("current_fall_distance", 0.0f, alloc);
+
+						// Original position
+						rapidjson::Value origPos(rapidjson::kObjectType);
+						origPos.AddMember("x", 0.0f, alloc);
+						origPos.AddMember("y", 0.0f, alloc);
+						newComp.data.AddMember("original_position", origPos, alloc);
+					}
+
+					prefab->components.push_back(std::move(newComp));
+					prefabModified = true;
+					selectedAddComponentIndex = 0;
+				}
 			}
-			default:
-				break;
+
+			// Remove component section
+			ImGui::Spacing();
+			ImGui::Text("Remove Component:");
+
+			std::vector<std::string> removableComponents;
+			removableComponents.push_back("None");
+			for (const auto& comp : prefab->components) {
+					removableComponents.push_back(comp.type);
+			}
+
+			static int selectedRemoveComponentIndex = 0;
+			std::vector<const char*> removableItems;
+			for (const auto& comp : removableComponents) {
+				removableItems.push_back(comp.c_str());
+			}
+
+			ImGui::Combo("Component to Remove", &selectedRemoveComponentIndex, removableItems.data(), static_cast<int>(removableItems.size()));
+
+			ImGui::SameLine();
+			if (ImGui::Button("Remove Component") && selectedRemoveComponentIndex > 0) {
+				std::string compToRemove = removableComponents[selectedRemoveComponentIndex];
+
+				auto it = std::find_if(prefab->components.begin(), prefab->components.end(),
+					[&compToRemove](const ComponentData& comp) {
+						return comp.type == compToRemove;
+					});
+
+				if (it != prefab->components.end()) {
+					prefab->components.erase(it);
+					prefabModified = true;
+					selectedRemoveComponentIndex = 0;
+				}
 			}
 
 			if (prefabModified) {
@@ -5725,7 +6750,34 @@ namespace Editor {
 
 			// Update components based on prefab data
 			for (const auto& compData : prefab->components) {
-				if (compData.type == "RigidBody") {
+
+				// TRANSFORM
+				if (compData.type == "Transform") {
+					if (entityMgr.HasComponent(entity, TransformType)) {
+						Transform& transform = entityMgr.GetComponent<Transform>(entity);
+
+						if (compData.data.HasMember("Rotation") && compData.data["Rotation"].IsObject()) {
+							const auto& rot = compData.data["Rotation"];
+							if (rot.HasMember("texture_angle"))
+								transform.rotation.textureAngle = rot["texture_angle"].GetFloat();
+							if (rot.HasMember("collider_angle"))
+								transform.rotation.colliderAngle = rot["collider_angle"].GetFloat();
+
+							if (transformationSystem_) {
+								transformationSystem_->UpdateEntityTransform(entity);
+							}
+						}
+
+						if (compData.data.HasMember("Scale") && compData.data["Scale"].IsObject()) {
+							const auto& scale = compData.data["Scale"];
+							if (scale.HasMember("x")) transform.scale.x = scale["x"].GetFloat();
+							if (scale.HasMember("y")) transform.scale.y = scale["y"].GetFloat();
+						}
+					}
+				}
+
+				// RIGIDBODY
+				else if (compData.type == "RigidBody") {
 					if (entityMgr.HasComponent(entity, RigidBodyType)) {
 						RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
 						if (compData.data.HasMember("mass")) {
@@ -5733,6 +6785,8 @@ namespace Editor {
 						}
 					}
 				}
+
+				// AABBCOLLIDER
 				else if (compData.type == "AABBCollider") {
 					if (entityMgr.HasComponent(entity, AABBColliderType)) {
 						AABBCollider& col = entityMgr.GetComponent<AABBCollider>(entity);
@@ -5740,11 +6794,22 @@ namespace Editor {
 							col.HalfSize.x = compData.data["half_width"].GetFloat();
 							col.HalfSize.y = compData.data["half_height"].GetFloat();
 						}
+						if (compData.data.HasMember("offset_x") && compData.data.HasMember("offset_y")) {
+							col.Offset.x = compData.data["offset_x"].GetFloat();
+							col.Offset.y = compData.data["offset_y"].GetFloat();
+						}
 					}
 				}
+
+				// TEXTURECOMPONENT
 				else if (compData.type == "TextureComponent") {
 					if (entityMgr.HasComponent(entity, TextureComponentType)) {
 						TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
+
+						if (compData.data.HasMember("texture_key")) {
+							tex.textureKey = compData.data["texture_key"].GetString();
+						}
+
 						if (compData.data.HasMember("half_size")) {
 							const rapidjson::Value& halfSize = compData.data["half_size"];
 							if (halfSize.IsObject() && halfSize.HasMember("x") && halfSize.HasMember("y")) {
@@ -5752,22 +6817,213 @@ namespace Editor {
 								tex.HalfSize.y = halfSize["y"].GetFloat();
 							}
 						}
+
+						if (compData.data.HasMember("flip_x")) {
+							tex.flipHorizontal = compData.data["flip_x"].GetBool();
+						}
 					}
 				}
+
+				// VELOCITY
+				else if (compData.type == "Velocity") {
+					if (entityMgr.HasComponent(entity, VelocityType)) {
+						Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
+						if (compData.data.HasMember("x")) vel.Vel.x = compData.data["x"].GetFloat();
+						if (compData.data.HasMember("y")) vel.Vel.y = compData.data["y"].GetFloat();
+					}
+				}
+
+				// ACCELERATION
+				else if (compData.type == "Acceleration") {
+					if (entityMgr.HasComponent(entity, AccelerationType)) {
+						Acceleration& acc = entityMgr.GetComponent<Acceleration>(entity);
+						if (compData.data.HasMember("x")) acc.Accel.x = compData.data["x"].GetFloat();
+						if (compData.data.HasMember("y")) acc.Accel.y = compData.data["y"].GetFloat();
+					}
+				}
+
+				// PLAYERSTATE
+				else if (compData.type == "PlayerState") {
+					if (entityMgr.HasComponent(entity, PlayerStateType)) {
+						PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+						if (compData.data.HasMember("is_facing_right"))
+							state.isFacingRight = compData.data["is_facing_right"].GetBool();
+						if (compData.data.HasMember("is_grounded"))
+							state.isGrounded = compData.data["is_grounded"].GetBool();
+					}
+				}
+
+				// ROTATIONFLAG
+				else if (compData.type == "RotationFlag") {
+					if (entityMgr.HasComponent(entity, RotationFlagType)) {
+						RotationFlag& rflag = entityMgr.GetComponent<RotationFlag>(entity);
+						if (compData.data.HasMember("is_rotating"))
+							rflag.isRotating = compData.data["is_rotating"].GetBool();
+						if (compData.data.HasMember("target_rotation"))
+							rflag.targetRotation = compData.data["target_rotation"].GetFloat();
+					}
+				}
+
+				// AUDIOCOMPONENT
+				else if (compData.type == "AudioComponent") {
+					if (entityMgr.HasComponent(entity, AudioComponentType)) {
+						AudioComponent& audio = entityMgr.GetComponent<AudioComponent>(entity);
+						if (compData.data.HasMember("sound_key"))
+							audio.soundKey = compData.data["sound_key"].GetString();
+						if (compData.data.HasMember("should_loop"))
+							audio.loop = compData.data["should_loop"].GetBool();
+						if (compData.data.HasMember("is_streaming"))
+							audio.stream = compData.data["is_streaming"].GetBool();
+						if (compData.data.HasMember("volume"))
+							audio.volume = compData.data["volume"].GetFloat();
+					}
+				}
+
+				// ANIMATIONCOMPONENT
+				else if (compData.type == "AnimationComponent") {
+					if (entityMgr.HasComponent(entity, AnimationComponentType)) {
+						AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
+						if (compData.data.HasMember("profile_name"))
+							anim.profileName = compData.data["profile_name"].GetString();
+						if (compData.data.HasMember("frame_count"))
+							anim.frameCount = compData.data["frame_count"].GetInt();
+						if (compData.data.HasMember("frame_duration"))
+							anim.frameDuration = compData.data["frame_duration"].GetFloat();
+						if (compData.data.HasMember("start_frame"))
+							anim.startFrame = compData.data["start_frame"].GetInt();
+						if (compData.data.HasMember("is_looping"))
+							anim.isLooping = compData.data["is_looping"].GetBool();
+					}
+				}
+
+				// BIRDAI COMPONENT
+			/*	else if (compData.type == "BirdAIComponent") {
+					if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
+						BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
+						if (compData.data.HasMember("wakeup_radius"))
+							birdAI.wakeUpRadius = compData.data["wakeup_radius"].GetFloat();
+						if (compData.data.HasMember("move_speed"))
+							birdAI.moveSpeed = compData.data["move_speed"].GetFloat();
+						if (compData.data.HasMember("attack_radius"))
+							birdAI.attackRadius = compData.data["attack_radius"].GetFloat();
+						if (compData.data.HasMember("attack_speed"))
+							birdAI.attackSpeed = compData.data["attack_speed"].GetFloat();
+						if (compData.data.HasMember("wakeup_time"))
+							birdAI.wakeUpTime = compData.data["wakeup_time"].GetFloat();
+						if (compData.data.HasMember("hover_radius"))
+							birdAI.hoverRadius = compData.data["hover_radius"].GetFloat();
+						if (compData.data.HasMember("hover_height"))
+							birdAI.hoverHeight = compData.data["hover_height"].GetFloat();
+						if (compData.data.HasMember("hover_speed"))
+							birdAI.hoverSpeed = compData.data["hover_speed"].GetFloat();
+					}
+				}*/
+
+				//// SKELETONAI COMPONENT
+				//else if (compData.type == "SkeletonAIComponent") {
+				//	if (entityMgr.HasComponent(entity, SkeletonAIComponentType)) {
+				//		SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
+				//		if (compData.data.HasMember("detection_radius"))
+				//			skelAI.detectionRadius = compData.data["detection_radius"].GetFloat();
+				//		if (compData.data.HasMember("move_speed"))
+				//			skelAI.moveSpeed = compData.data["move_speed"].GetFloat();
+				//	}
+				//}
+
+				// TRAPPED PLATFORM COMPONENT
 				else if (compData.type == "TrapPlatformComponent") {
 					if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
 						TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(entity);
-						if (compData.data.HasMember("fall_speed")) {
+						if (compData.data.HasMember("fall_speed"))
 							trap.fallSpeed = compData.data["fall_speed"].GetFloat();
-						}
-						if (compData.data.HasMember("trigger_delay")) {
+						if (compData.data.HasMember("trigger_delay"))
 							trap.triggerDelay = compData.data["trigger_delay"].GetFloat();
-						}
 					}
 				}
+				else if (compData.type == "TextComponent") {
+					if (entityMgr.HasComponent(entity, TextComponentType)) {
+						TextComponent& text = entityMgr.GetComponent<TextComponent>(entity);
+						if (compData.data.HasMember("text"))
+							text.textToDraw = compData.data["text"].GetString();
+						if (compData.data.HasMember("font_key"))
+							text.fontKey = compData.data["font_key"].GetString();
+						if (compData.data.HasMember("font_size"))
+							text.scale = compData.data["font_size"].GetFloat();
+						if (compData.data.HasMember("max_width"))
+							text.maxWidth = compData.data["max_width"].GetFloat();
+
+						// Update color
+						if (compData.data.HasMember("font_color") && compData.data["font_color"].IsArray()) {
+							const auto& colorArray = compData.data["font_color"];
+							if (colorArray.Size() >= 4) {
+								text.color.r = colorArray[0].GetFloat();
+								text.color.g = colorArray[1].GetFloat();
+								text.color.b = colorArray[2].GetFloat();
+								text.color.a = colorArray[3].GetFloat();
+							}
+						}
+						text.isDirty = true;
+					}
+				}
+
+				// === CAMERA COMPONENT ===
+				else if (compData.type == "Camera") {
+					if (entityMgr.HasComponent(entity, CameraType)) {
+						Camera& camera = entityMgr.GetComponent<Camera>(entity);
+						if (compData.data.HasMember("position") && compData.data["position"].IsObject()) {
+							const auto& pos = compData.data["position"];
+							if (pos.HasMember("x")) camera.position.x = pos["x"].GetFloat();
+							if (pos.HasMember("y")) camera.position.y = pos["y"].GetFloat();
+						}
+						if (compData.data.HasMember("size") && compData.data["size"].IsObject()) {
+							const auto& size = compData.data["size"];
+							if (size.HasMember("width")) camera.size.x = size["width"].GetFloat();
+							if (size.HasMember("height")) camera.size.y = size["height"].GetFloat();
+						}
+						if (compData.data.HasMember("zoom"))
+							camera.zoom = compData.data["zoom"].GetFloat();
+						if (compData.data.HasMember("target_entity"))
+							camera.targetEntity = compData.data["target_entity"].GetInt();
+						if (compData.data.HasMember("follow_speed"))
+							camera.followSpeed = compData.data["follow_speed"].GetFloat();
+						if (compData.data.HasMember("is_active"))
+							camera.isActive = compData.data["is_active"].GetBool();
+					}
+				}
+						
+
+				// === BUTTON COMPONENT ===
+				else if (compData.type == "ButtonComponent") {
+					if (entityMgr.HasComponent(entity, ButtonType)) {
+						Button& button = entityMgr.GetComponent<Button>(entity);
+						if (compData.data.HasMember("default_texture_key"))
+							button.defaultTextureKey = compData.data["default_texture_key"].GetString();
+						if (compData.data.HasMember("hover_texture_key"))
+							button.hoverTextureKey = compData.data["hover_texture_key"].GetString();
+						if (compData.data.HasMember("pressed_texture_key"))
+							button.pressedTextureKey = compData.data["pressed_texture_key"].GetString();
+						if (compData.data.HasMember("default_is_animated"))
+							button.defaultIsAnimated = compData.data["default_is_animated"].GetBool();
+						if (compData.data.HasMember("hover_is_animated"))
+							button.hoverIsAnimated = compData.data["hover_is_animated"].GetBool();
+						if (compData.data.HasMember("pressed_is_animated"))
+							button.pressedIsAnimated = compData.data["pressed_is_animated"].GetBool();
+						if (compData.data.HasMember("action"))
+							button.action = static_cast<ButtonAction>(compData.data["action"].GetInt());
+						if (compData.data.HasMember("target_string"))
+							button.targetString = compData.data["target_string"].GetString();
+						if (compData.data.HasMember("target_value"))
+							button.targetValue = compData.data["target_value"].GetFloat();
+					}
+				}
+							
 			}
 		}
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Applied prefab changes for " << prefabName << " to " << entities.size() << " entities" << std::endl;
 	}
+
 
 	// Save prefab changes to JSON file
 	void Editor::SavePrefabToFile(const std::string& prefabName) {
@@ -5877,8 +7133,8 @@ namespace Editor {
 		ImGui::Text("Visualization Options:");
 		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
 		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
-		ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
-		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);
+		/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
 		ImGui::EndDisabled();
 

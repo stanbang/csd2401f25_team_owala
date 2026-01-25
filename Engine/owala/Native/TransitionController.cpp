@@ -207,7 +207,6 @@ namespace Framework {
         if (!entityMgr.HasComponent(GetEntity(), TextureComponentType)) return;
 
         TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
-
         // Get current scene and check if it's a level
         std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
         bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
@@ -220,8 +219,6 @@ namespace Framework {
         }
 
         if (state_ == TransitionState::HIDDEN) {
-            std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
-            bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
 
             // If we are NOT in a level (e.g., MainMenu, LoadingScreen), ensure texture is empty.
             // This removes the "hanging curtains" that are preserved from the previous level.
@@ -269,8 +266,6 @@ namespace Framework {
 
             if (t >= 1.0f) {
                 state_ = TransitionState::HIDDEN;
-
-                TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
 
                 if (onTransitionComplete_) {
                     auto callback = onTransitionComplete_;

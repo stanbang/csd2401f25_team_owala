@@ -308,26 +308,22 @@ namespace Editor {
 				}
 				break;
 			}
-			case ComponentType::BirdAIComponentType: {
-				BirdAIComponent newBirdAIComponent;
-				if (EntitySerializer::DeserializeComponent(doc, newBirdAIComponent)) {
-					if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::BirdAIComponentType);
+		
+			case ComponentType::FSMComponentType:
+			{
+				FSMComponent newFSM;
+				// Deserialize data from the JSON snapshot
+				if (EntitySerializer::DeserializeComponent(doc, newFSM)) {
+					// Remove existing if present to ensure clean state
+					if (entityMgr.HasComponent(entity, ComponentType::FSMComponentType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::FSMComponentType);
 					}
-					entityMgr.AddComponent<BirdAIComponent>(entity, newBirdAIComponent);
+					// Add the restored component
+					entityMgr.AddComponent<FSMComponent>(entity, newFSM);
 				}
 				break;
 			}
-			case ComponentType::SkeletonAIComponentType: {
-				SkeletonAIComponent newSkeletonAIComponent;
-				if (EntitySerializer::DeserializeComponent(doc, newSkeletonAIComponent)) {
-					if (entityMgr.HasComponent(entity, ComponentType::SkeletonAIComponentType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::SkeletonAIComponentType);
-					}
-					entityMgr.AddComponent<SkeletonAIComponent>(entity, newSkeletonAIComponent);
-				}
-				break;
-			}
+
 			case ComponentType::ParticleEmitterComponentType: {
 				ParticleEmitterComponent newParticleEmitterComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newParticleEmitterComponent)) {

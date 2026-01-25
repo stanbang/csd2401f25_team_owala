@@ -99,6 +99,17 @@ namespace Editor {
 		std::string textureID;
 	};
 
+	
+	// struct for draggable fsm items (enemys)
+	struct DraggableFSMInfo {
+		std::string name;
+		std::string fsmPath;
+		std::string textureKey;
+		ImTextureID textureID;
+		ImVec2 uv0;
+		ImVec2 uv1;
+	};
+
 	// Struct for handling Editing Session of the Inspector Window for the HistoryManager.
 	struct EditSession {
 		bool active = false;
@@ -222,6 +233,18 @@ namespace Editor {
 		std::vector<std::filesystem::path> droppedFilePaths_;
 		static void DropCallback(GLFWwindow* window, int count, const char* paths[]);
 
+		// FSM Editor state
+		bool isFSMEditorOpen_ = false;
+		std::string selectedFSMDefinition_;
+		std::vector<std::string> availableFSMDefinitions_;
+		bool fsmPalettePrepared_ = false;
+
+		std::vector<DraggableFSMInfo> fsmPaletteItems_;
+		DraggableFSMInfo fsmDragDropPayload_;
+		bool isDraggingFSM_ = false;
+
+
+
 		// --- Camera State Management ---
 		struct CameraState {
 			Vector2D position{ 0.0f, 0.0f };
@@ -337,6 +360,14 @@ namespace Editor {
 
 		// Sort a list of entities by descending render layer
 		void SortEntitiesByRenderLayer(std::vector<Entity>& entities, Framework::EntityManager& entityMgr);
+
+
+		// FSM DRAGGABLE HELPER FUNCTIONS
+		void ShowFSMEditor();
+		void PrepareFSMPaletteItems();
+		void HandleFSMDragDropPlacement();
+		void LoadFSMDefinitionsFromFolder(const std::string& folderPath);
+		Entity CreateFSMEntityAtPosition(const std::string& fsmPath, const Vector2D& position);
 
 		// Layer viewport data for IMGUI
 		void ShowCollisionMatrix(Framework::PhysicsSystem* physics);

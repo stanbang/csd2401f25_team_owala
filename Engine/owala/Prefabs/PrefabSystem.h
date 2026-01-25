@@ -104,7 +104,6 @@ namespace Framework {
         // Get list of all prefab files in folder
         std::vector<std::string> GetPrefabFileList() const;
         bool SavePrefabToFile(const std::string& prefabName);
-        void ApplyPrefabToEntity(EntityStorage& storage, Entity entity, const std::string& prefabName);
     };
 
 } // namespace Framework

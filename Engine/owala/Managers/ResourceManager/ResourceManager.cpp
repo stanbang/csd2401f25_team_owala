@@ -44,6 +44,9 @@ void ResourceManager::Initialize() {
 		ScanAssetDirectory("Assets/Audio");
 		ScanAssetDirectory("Assets/Fonts");
 		ScanAssetDirectory("Data/AnimationData");
+		ScanAssetDirectory("Data/Prefabs/Props");
+		ScanAssetDirectory("Data/Prefabs/Tiles");
+		ScanAssetDirectory("Data/Prefabs/TrapPlatforms");
 		LoadTextureAnimationMappings("Data/textureToAnimationMapping.json");
 		LoadAnimationProfiles("Data/stateToAnimationMapping.json");
 	}
@@ -95,6 +98,7 @@ void ResourceManager::clearAll() {
 	soundMap.clear();
 	fontMap.clear();
 	animationMap.clear();
+	prefabMap.clear();
 }
 
 // Scans a directory and maps asset filenames to their full paths
@@ -225,6 +229,11 @@ std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& ResourceManager
 	return animationMap;
 }
 
+// Getter for the prefab map
+std::unordered_map<std::string, std::unique_ptr<EntityPrefab>>& ResourceManager::getPrefabMap() {
+	return prefabMap;
+}
+
 // Loads a font by name using the scanned asset paths
 bool ResourceManager::loadFont(const std::string& name) {
 	auto it = assetPathMap_.find(name);
@@ -291,6 +300,68 @@ bool ResourceManager::loadAnimationInfo(const std::string& name, const std::stri
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded animation info '" << filepath << "'" << std::endl;
 	add<AnimationInfo>(name, std::move(std::make_unique<AnimationInfo>(animState))); // Add to resource manager's unordered_map
+	return true;
+}
+
+// Loads a prefab by name using the scanned asset paths
+bool ResourceManager::loadPrefab(const std::string& name) {
+	auto it = assetPathMap_.find(name);
+	if (it == assetPathMap_.end()) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Cannot auto-load prefab: Key '" << name << "' not found.\n";
+		return false;
+	}
+	return loadPrefab(name, it->second.string());
+}
+
+// Loads a prefab from file and stores it inside the resource manager
+bool ResourceManager::loadPrefab(const std::string& name, const std::string& filepath) {
+	rapidjson::Document doc;
+	if (!FileIOSystem::ReadFile(filepath, doc) || !doc.IsObject()) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Failed to open prefab file: " << filepath << std::endl;
+		return false;
+	}
+
+	auto newPrefab = std::make_unique<EntityPrefab>();
+	newPrefab->sourceFile = filepath;
+
+	if (doc.HasMember("name") && doc["name"].IsString()) {
+		newPrefab->name = doc["name"].GetString();
+	}
+
+	// Load Components
+	if (doc.HasMember(Serialization::COMPONENTS) && doc[Serialization::COMPONENTS].IsObject()) {
+		const rapidjson::Value& compsObj = doc[Serialization::COMPONENTS];
+		for (auto it = compsObj.MemberBegin(); it != compsObj.MemberEnd(); ++it) {
+			ComponentData compData;
+			compData.type = it->name.GetString();
+			compData.data.CopyFrom(it->value, compData.data.GetAllocator());
+			newPrefab->components.push_back(std::move(compData));
+		}
+	}
+
+	// Load Tags
+	if (doc.HasMember(Serialization::TAGS) && doc[Serialization::TAGS].IsArray()) {
+		const rapidjson::Value& tagsArray = doc[Serialization::TAGS];
+		for (rapidjson::SizeType j = 0; j < tagsArray.Size(); ++j) {
+			if (tagsArray[j].IsString()) newPrefab->tags.push_back(tagsArray[j].GetString());
+		}
+	}
+
+	// Load Layer Info
+	if (doc.HasMember(Serialization::ENTITY_LAYER) && doc[Serialization::ENTITY_LAYER].IsInt()) {
+		int layerInt = doc[Serialization::ENTITY_LAYER].GetInt();
+		CollisionLayer layer = static_cast<CollisionLayer>(layerInt);
+		if (layer == CollisionLayer::Platform) newPrefab->layer = "Platform";
+		else if (layer == CollisionLayer::Player) newPrefab->layer = "Player";
+		else newPrefab->layer = "Default";
+	}
+
+	if (doc.HasMember(Serialization::ENTITY_RENDER_LAYER) && doc[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
+		newPrefab->renderLayer = doc[Serialization::ENTITY_RENDER_LAYER].GetInt();
+	}
+
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded prefab '" << filepath << "'" << std::endl;
+	add<EntityPrefab>(name, std::move(newPrefab));
 	return true;
 }
 
@@ -444,38 +515,6 @@ std::string ResourceManager::GetAssetPath(const std::string& key) const {
 	return ""; // Not found
 }
 
-// Resolves a state key to its corresponding integer ID based on the profile name
-int ResolveStateID(const std::string& profileName, const std::string& stateKey) {
-
-	// BIRD ENEMY MAPPING (Matches BirdState Enum)
-	if (profileName == "BirdEnemy") {
-		if (stateKey == "IDLE")    return 0; // BirdState::IDLE
-		if (stateKey == "WAKING")  return 1; // BirdState::WAKING
-		if (stateKey == "CHASE")   return 2; // BirdState::CHASE
-		if (stateKey == "HOVER")   return 3; // BirdState::HOVER
-		if (stateKey == "STUNNED") return 4; // BirdState::STUNNED
-		if (stateKey == "ATTACK")  return 5; // BirdState::ATTACK
-	}
-
-	// SKELETON ENEMY MAPPING (Matches SkeletonState Enum)
-	else if (profileName == "SkeletonEnemy") {
-		if (stateKey == "IDLE")    return 0; // SkeletonState::IDLE
-		if (stateKey == "CHASE")   return 1; // SkeletonState::CHASE
-	}
-
-	// DEFAULT / PLAYER MAPPING (Matches AnimationState Enum)
-	// Applies to "Player", "FakePlayer", and anyone else
-	else {
-		if (stateKey == "IDLE")    return 0; // AnimationState::IDLE
-		if (stateKey == "RUNNING") return 1; // AnimationState::RUNNING
-		if (stateKey == "JUMPING") return 2; // AnimationState::JUMPING
-		if (stateKey == "FALLING") return 3; // AnimationState::FALLING
-		if (stateKey == "DEATH")   return 4; // AnimationState::DEATH
-	}
-
-	return 0; // Default safe fallback
-}
-
 // Undefine GetObject macro if defined (to avoid conflicts with RapidJSON)
 #ifdef GetObject
 #undef GetObject
@@ -502,15 +541,11 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 		// Iterate over states: "IDLE", "RUNNING", "CHASE"
 		const auto& stateObj = it->value.GetObject();
 		for (auto stateIt = stateObj.MemberBegin(); stateIt != stateObj.MemberEnd(); ++stateIt) {
-
 			std::string stateKey = stateIt->name.GetString();   // e.g. "CHASE"
 			std::string textureKey = stateIt->value.GetString(); // e.g. "Bird_Chase.png"
 
-			// Convert string "CHASE" to int 2 (if Bird) or int 1 (if Skeleton)
-			int stateIndex = ResolveStateID(profileName, stateKey);
-
-			// Store in the map
-			animationProfiles_[profileName][stateIndex] = textureKey;
+			// Directly map the string state to the texture key
+			animationProfiles_[profileName][stateKey] = textureKey;
 		}
 		profilesLoaded++;
 	}

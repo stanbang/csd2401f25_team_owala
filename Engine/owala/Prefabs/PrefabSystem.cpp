@@ -45,7 +45,7 @@ namespace Framework {
         }
 
         int loadedCount = 0;
-        for (const auto& entry : fs::directory_iterator(folderPath)) {
+        for (const auto& entry : fs::recursive_directory_iterator(folderPath)) {
             if (entry.is_regular_file() && entry.path().extension() == ".json") {
                 if (LoadSinglePrefabFile(entry.path().string())) {
                     loadedCount++;
@@ -141,7 +141,7 @@ namespace Framework {
         if (prefabFolderPath_.empty() || !fs::exists(prefabFolderPath_)) {
             return files;
         }
-        for (const auto& entry : fs::directory_iterator(prefabFolderPath_)) {
+        for (const auto& entry : fs::recursive_directory_iterator(prefabFolderPath_)) {
             if (entry.is_regular_file() && entry.path().extension() == ".json") {
                 files.push_back(entry.path().string());
             }
@@ -380,7 +380,7 @@ namespace Framework {
                 entityMgr.AddComponent(entity, std::move(scripts));
             }
         }
-        else if (compData.type == Serialization::BIRD_AI_COMPONENT) {
+        /*else if (compData.type == Serialization::BIRD_AI_COMPONENT) {
             BirdAIComponent birdAI;
             if (EntitySerializer::DeserializeComponent(data, birdAI)) {
                 entityMgr.AddComponent(entity, birdAI);
@@ -391,7 +391,7 @@ namespace Framework {
             if (EntitySerializer::DeserializeComponent(data, skelAI)) {
                 entityMgr.AddComponent(entity, skelAI);
             }
-        }
+        }*/
         else if (compData.type == Serialization::BUTTON_COMPONENT) {
             Button button;
             if (EntitySerializer::DeserializeComponent(data, button)) {
@@ -410,6 +410,13 @@ namespace Framework {
                 entityMgr.AddComponent(entity, particleEmitter);
             }
         }
+        else if (compData.type == Serialization::TRIANGLE_COMPONENT) {
+            Triangle triangle;
+            if (EntitySerializer::DeserializeComponent(data, triangle)) {
+                entityMgr.AddComponent(entity, triangle);
+            }
+        }
+        
         else {
             Logger::Get().Error(DebugType::FileIOSystem) << "Unknown component type: " << compData.type << std::endl;
         }

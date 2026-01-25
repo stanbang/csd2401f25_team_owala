@@ -29,6 +29,7 @@
 #include "Font.h"
 #include "Animation.h"
 #include <filesystem>
+#include "PrefabSystem.h"
 
 // For threading
 #include <queue>
@@ -41,6 +42,7 @@ namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
 	using Audio = FMOD::Sound;
+    using AnimationProfileMap = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
     namespace fs = std::filesystem;
 
 	// Custom deleter for Texture objects
@@ -100,6 +102,9 @@ namespace Framework {
             else if (std::is_same<ResourceType, AnimationInfo>::value) {
                 animationMap.erase(key); // Erase from animation map
             }
+            else if (std::is_same<ResourceType, EntityPrefab>::value) {
+				prefabMap.erase(key); // Erase from prefab map
+            }
             else {
                 Logger::Get().Info(DebugType::ResourceManager) << "Unload only supported for Texture, Audio, Font and AnimationInfo\n";
             }
@@ -119,6 +124,9 @@ namespace Framework {
 			else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
 				animationMap.clear(); // Clear animation map
 			}
+            else if constexpr (std::is_same<ResourceType, EntityPrefab>::value) {
+				prefabMap.clear(); // Clear prefab map
+            }
 			else {
 				static_assert(sizeof(ResourceType) == 0, "ResourceManager::clear only supports Texture, Audio, Fonts or AnimationData at the moment.");
 			}
@@ -134,17 +142,18 @@ namespace Framework {
         bool loadSound(const std::string& name);
         bool loadFont(const std::string& name);
         bool loadAnimationInfo(const std::string& name);
+        bool loadPrefab(const std::string& name);
 
 		// Load assets from file and store it in their respective maps
 		bool loadTexture(const std::string& name, const std::string& filepath); // Overload with filepath
         bool loadSound(const std::string& id, const char* path, bool loop, bool stream);
         bool loadFont(const std::string& fontKey, const std::string& fontPath, unsigned int size = 48);
 		bool loadAnimationInfo(const std::string& name, const std::string& filepath);
+        bool loadPrefab(const std::string& name, const std::string& filepath);
 
         bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
         std::string GetAssetPath(const std::string& key) const;
 
-        using AnimationProfileMap = std::unordered_map<std::string, std::unordered_map<int, std::string>>;
 		const AnimationProfileMap& GetAnimationProfiles() const { return animationProfiles_; } // Getter for animation profiles, used by AnimationSystem
 		bool LoadAnimationProfiles(const std::string& filepath); // Load animation profiles from JSON file
 
@@ -152,7 +161,7 @@ namespace Framework {
 		std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& getSoundMap(); // Get the sound map
         std::unordered_map<std::string, std::unique_ptr<Font>>& getFontMap(); // Get the font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& getAnimationMap(); // Get the animation map
-
+		std::unordered_map<std::string, std::unique_ptr<EntityPrefab>>& getPrefabMap(); // Get the prefab map
     private:
 		// Map of animation profiles
         AnimationProfileMap animationProfiles_;
@@ -162,6 +171,7 @@ namespace Framework {
         std::unordered_map<std::string, std::unique_ptr<Font>> fontMap; // font map
 		std::unordered_map<std::string, std::unique_ptr<AnimationInfo>> animationMap; // Animation map
 		std::unordered_map<std::string, fs::path> assetPathMap_; // Map of asset names to file paths
+		std::unordered_map<std::string, std::unique_ptr<EntityPrefab>> prefabMap; // Prefab map
 
         // Structure to transfer data between threads
         struct AsyncTextureData {
@@ -252,6 +262,21 @@ namespace Framework {
             return *it->second;
         }
 
+		// EntityPrefab
+        else if constexpr (std::is_same<ResourceType, EntityPrefab>::value) {
+            std::unordered_map<std::string, std::unique_ptr<EntityPrefab>>& map = getPrefabMap();
+            auto it = map.find(key);
+            if (it == map.end()) {
+                if (loadPrefab(key)) {
+                    it = map.find(key);
+                    if (it != map.end()) return *it->second;
+                }
+                Logger::Get().Error(DebugType::ResourceManager) << "Missing Prefab: \"" << key << "\"\n";
+                throw std::runtime_error("Missing Prefab: " + key);
+            }
+            return *it->second;
+        }
+
         // Unsupported type
         else {
             static_assert(sizeof(ResourceType) == 0,
@@ -288,6 +313,7 @@ namespace Framework {
     // Non-copyable resources via unique_ptr
     template<typename ResourceType, typename Deleter>
     void ResourceManager::add(const std::string& name, std::unique_ptr<ResourceType, Deleter> resourcePtr) {
+		// Audio
         if constexpr (std::is_same<ResourceType, Audio>::value) {
             auto& map = getSoundMap();
             auto it = map.find(name);
@@ -299,6 +325,8 @@ namespace Framework {
                 map.emplace(name, std::move(resourcePtr));
             }
         }
+        
+        // Font
         else if constexpr (std::is_same<ResourceType, Font>::value) {
             auto& map = getFontMap();
             auto it = map.find(name);
@@ -310,6 +338,8 @@ namespace Framework {
                 map.emplace(name, std::move(resourcePtr));
             }
         }   
+
+		// AnimationInfo
         else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
             auto& map = getAnimationMap();
             auto it = map.find(name);
@@ -321,6 +351,19 @@ namespace Framework {
                 map.emplace(name, std::move(resourcePtr));
             }
         }
+
+		// EntityPrefab
+        else if constexpr (std::is_same<ResourceType, EntityPrefab>::value) {
+            auto& map = getPrefabMap();
+            auto it = map.find(name);
+            if (it != map.end()) {
+                it->second = std::move(resourcePtr);
+            }
+            else {
+                map.emplace(name, std::move(resourcePtr));
+            }
+        }
+
         else {
             static_assert(sizeof(ResourceType) == 0,
                 "add() unique_ptr version only supports Audio/Font/Animation at the moment.");
@@ -344,6 +387,10 @@ namespace Framework {
         // AnimationInfo
         else if constexpr (std::is_same<ResourceType, AnimationInfo>::value) {
             return animationMap.find(key) != animationMap.end();
+        }
+		// EntityPrefab
+        else if constexpr (std::is_same<ResourceType, EntityPrefab>::value) {
+            return prefabMap.find(key) != prefabMap.end();
         }
         // Unsupported type
         else {

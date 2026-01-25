@@ -80,6 +80,7 @@ private:
     bool isReplaceModeActive_ = false;
     fs::path replacementFilePath_;
     bool showReplaceConfirmation_ = false;
+    bool showDeleteConfirmation_ = false;
 
     fs::path localAssetsPath_;
     fs::path localDataPath_;
