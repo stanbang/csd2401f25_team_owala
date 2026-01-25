@@ -42,6 +42,7 @@ namespace Framework {
     class AudioSystem; // Forward declaration
     using Texture = Framework::Texture;
 	using Audio = FMOD::Sound;
+    using AnimationProfileMap = std::unordered_map<std::string, std::unordered_map<std::string, std::string>>;
     namespace fs = std::filesystem;
 
 	// Custom deleter for Texture objects
@@ -153,7 +154,6 @@ namespace Framework {
         bool LoadTextureAnimationMappings(const std::string& mappingFilePath);
         std::string GetAssetPath(const std::string& key) const;
 
-        using AnimationProfileMap = std::unordered_map<std::string, std::unordered_map<int, std::string>>;
 		const AnimationProfileMap& GetAnimationProfiles() const { return animationProfiles_; } // Getter for animation profiles, used by AnimationSystem
 		bool LoadAnimationProfiles(const std::string& filepath); // Load animation profiles from JSON file
 

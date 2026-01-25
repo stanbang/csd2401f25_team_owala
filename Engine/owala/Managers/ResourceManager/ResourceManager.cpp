@@ -515,38 +515,6 @@ std::string ResourceManager::GetAssetPath(const std::string& key) const {
 	return ""; // Not found
 }
 
-// Resolves a state key to its corresponding integer ID based on the profile name
-int ResolveStateID(const std::string& profileName, const std::string& stateKey) {
-
-	// BIRD ENEMY MAPPING (Matches BirdState Enum)
-	if (profileName == "BirdEnemy") {
-		if (stateKey == "IDLE")    return 0; // BirdState::IDLE
-		if (stateKey == "WAKING")  return 1; // BirdState::WAKING
-		if (stateKey == "CHASE")   return 2; // BirdState::CHASE
-		if (stateKey == "HOVER")   return 3; // BirdState::HOVER
-		if (stateKey == "STUNNED") return 4; // BirdState::STUNNED
-		if (stateKey == "ATTACK")  return 5; // BirdState::ATTACK
-	}
-
-	// SKELETON ENEMY MAPPING (Matches SkeletonState Enum)
-	else if (profileName == "SkeletonEnemy") {
-		if (stateKey == "IDLE")    return 0; // SkeletonState::IDLE
-		if (stateKey == "CHASE")   return 1; // SkeletonState::CHASE
-	}
-
-	// DEFAULT / PLAYER MAPPING (Matches AnimationState Enum)
-	// Applies to "Player", "FakePlayer", and anyone else
-	else {
-		if (stateKey == "IDLE")    return 0; // AnimationState::IDLE
-		if (stateKey == "RUNNING") return 1; // AnimationState::RUNNING
-		if (stateKey == "JUMPING") return 2; // AnimationState::JUMPING
-		if (stateKey == "FALLING") return 3; // AnimationState::FALLING
-		if (stateKey == "DEATH")   return 4; // AnimationState::DEATH
-	}
-
-	return 0; // Default safe fallback
-}
-
 // Undefine GetObject macro if defined (to avoid conflicts with RapidJSON)
 #ifdef GetObject
 #undef GetObject
@@ -573,15 +541,11 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 		// Iterate over states: "IDLE", "RUNNING", "CHASE"
 		const auto& stateObj = it->value.GetObject();
 		for (auto stateIt = stateObj.MemberBegin(); stateIt != stateObj.MemberEnd(); ++stateIt) {
-
 			std::string stateKey = stateIt->name.GetString();   // e.g. "CHASE"
 			std::string textureKey = stateIt->value.GetString(); // e.g. "Bird_Chase.png"
 
-			// Convert string "CHASE" to int 2 (if Bird) or int 1 (if Skeleton)
-			int stateIndex = ResolveStateID(profileName, stateKey);
-
-			// Store in the map
-			animationProfiles_[profileName][stateIndex] = textureKey;
+			// Directly map the string state to the texture key
+			animationProfiles_[profileName][stateKey] = textureKey;
 		}
 		profilesLoaded++;
 	}
