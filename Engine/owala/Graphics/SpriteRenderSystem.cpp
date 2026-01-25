@@ -2,9 +2,10 @@
  * \file   SpriteRenderSystem.cpp
  *
  * \primary_author
- *      Ng Jordain Ying Zhe (90%)
+ *      Ng Jordain Ying Zhe (80%)
  * \secondary_author 
  *      Ng Jing Wen (10%)
+ *      Yar Xuan (10%)
  *
  * \brief
  *      Implements the SpriteRenderSystem responsible for rendering sprites,
@@ -67,9 +68,7 @@ namespace Framework {
     void SpriteRenderSystem::RenderSprites() {
         GameManager& gm = GameManager::GetInstance();
         CameraSystem* cameraSystem_ = gm.GetSystems().camera_;
-        ResourceManager& resources_ = *gm.GetSystems().resourceManager_;
         Graphics& gfx_ = *gm.GetSystems().gfx_;
-        EntityManager entityMgr(gm.GetECS());
 
         // Retrieve active camera
         Entity activeCamera = 0;
@@ -77,21 +76,70 @@ namespace Framework {
             activeCamera = cameraSystem_->GetActiveCamera();
         }
 
+        std::vector<RenderItem> renderQueue;
+
+        // --- Collect Sprites ---
+        CollectSprites(activeCamera, renderQueue);
+
+        // --- Collect Text ---
+        CollectText(activeCamera, renderQueue);
+
+        // Sort Everything by RenderOrder
+        // We use stable_sort to preserve the order of creation for items with equal keys
+        std::stable_sort(renderQueue.begin(), renderQueue.end());
+
+        // Execute Render Loop (Batching Interleaved)
+        std::vector<BatchedSprite> currentBatch;
+        Texture currentTexture;
+        bool batchStarted = false;
+
+        for (const auto& item : renderQueue) {
+            if (item.isText) {
+                // -- Text Encountered --
+                // If we have sprites waiting in the batch, draw them now to preserve order
+                if (batchStarted && !currentBatch.empty()) {
+                    gfx_.drawSpriteBatch(currentTexture, currentBatch);
+                    currentBatch.clear();
+                    batchStarted = false;
+                }
+
+                // Draw the text immediately
+                if (item.font) {
+                    gfx_.drawText(*item.font, item.textLine, item.screenPos, item.scale, item.color);
+                }
+            }
+            else {
+                // -- Sprite Encountered --
+                // If texture changed, flush the previous batch
+                if (batchStarted && (item.texture != currentTexture)) {
+                    gfx_.drawSpriteBatch(currentTexture, currentBatch);
+                    currentBatch.clear();
+                }
+
+                // Add to current batch
+                currentTexture = item.texture;
+                currentBatch.push_back(item.spriteData);
+                batchStarted = true;
+            }
+        }
+
+        // Flush remaining sprites at the end
+        if (batchStarted && !currentBatch.empty()) {
+            gfx_.drawSpriteBatch(currentTexture, currentBatch);
+        }
+    }
+
+    void SpriteRenderSystem::CollectSprites(Entity activeCamera, std::vector<RenderItem>& queue) {
+        GameManager& gm = GameManager::GetInstance();
+        CameraSystem* cameraSystem_ = gm.GetSystems().camera_;
+        EntityManager entityMgr(gm.GetECS());
+        ResourceManager& resources_ = *gm.GetSystems().resourceManager_;
+        Graphics& gfx_ = *gm.GetSystems().gfx_;
+
         float left = -1.0f, right = 1.0f, bottom = -1.0f, top = 1.0f;
         if (activeCamera != 0 && cameraSystem_) {
             cameraSystem_->GetViewBounds(activeCamera, left, right, bottom, top);
         }
-
-        // --- Sprite Batching ---
-        struct BatchKey {
-            Texture texture;
-            int renderOrder;
-            bool operator<(const BatchKey& other) const {
-                return std::tie(renderOrder, texture) < std::tie(other.renderOrder, other.texture);
-            }
-        };
-
-        std::map<BatchKey, std::vector<BatchedSprite>> batches;
 
         // --- Collect Sprite Entities ---
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, TransformType, ActiveTagType)) {
@@ -101,8 +149,8 @@ namespace Framework {
             try {
                 const Transform& transform = entityMgr.GetComponent<Transform>(entity);
                 const Vector2D& worldPos = transform.position;
-				bool isUIElement = entityMgr.HasComponent(entity, GUITagType); // Check if entity is a UI element
-				bool isScreenSpaceParticle = false;
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType); // Check if entity is a UI element
+                bool isScreenSpaceParticle = false;
 
                 // Check if particle is screen space
                 if (entityMgr.HasComponent(entity, ParticleComponentType)) {
@@ -149,23 +197,7 @@ namespace Framework {
                     rotationRad = rotation.textureAngle;
                 }
 
-                // --- Fetch Texture Resource ---
-                Texture& tex = resources_.get<Texture>(sprite.textureKey);
-
-                //// --- Determine Render Order ---
-                //int renderOrder = 0;
-                //if (entityMgr.HasComponent(entity, BackgroundTagType))
-                //    renderOrder = -100;
-                //else if (isUIElement)
-                //    renderOrder = 200;
-                //else if (entityMgr.HasComponent(entity, PlayerTagType))
-                //    renderOrder = 100;
-                //else if (entityMgr.HasComponent(entity, EnemyTagType))
-                //    renderOrder = 75;
-                //else if (entityMgr.HasComponent(entity, PlatformTagType))
-                //    renderOrder = 50;
-
-                 // --- Determine Render Order using EntityProperties ---
+                // --- Determine Render Order using EntityProperties ---
                 const EntityProperties& props = entityMgr.GetProperties(entity);
                 int renderOrder = props.customRenderOrder;
 
@@ -182,7 +214,7 @@ namespace Framework {
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement && !isScreenSpaceParticle) {
                     // Convert center position from world to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
-                    
+
                     // Get camera for zoom and aspect ratio
                     const Camera& cam = cameraSystem_->GetCamera(activeCamera);
 
@@ -239,16 +271,20 @@ namespace Framework {
                     std::swap(batchedSprite.minUV.x, batchedSprite.maxUV.x);
                 }
 
-				// UV Inset to prevent texture bleeding
+                // UV Inset to prevent texture bleeding
                 /*float uvInset = 0.005f;
                 batchedSprite.minUV.x += uvInset;
                 batchedSprite.minUV.y += uvInset;
                 batchedSprite.maxUV.x -= uvInset;
                 batchedSprite.maxUV.y -= uvInset;*/
 
-                // --- Add to Batch ---
-                BatchKey key{ tex, renderOrder };
-                batches[key].push_back(batchedSprite);
+                RenderItem item;
+                item.isText = false;
+                item.renderOrder = renderOrder;
+                item.texture = resources_.get<Texture>(sprite.textureKey);
+                item.spriteData = batchedSprite;
+
+                queue.push_back(item);
             }
             catch (const std::exception& e) {
                 Logger::Get().Error(DebugType::SpriteRenderSystem)
@@ -257,11 +293,87 @@ namespace Framework {
                 continue;
             }
         }
+    }
 
-        // --- Render Sprite Batches ---
-        for (auto& [key, sprites] : batches) {
-            if (!sprites.empty()) {
-                gfx_.drawSpriteBatch(key.texture, sprites);
+    void SpriteRenderSystem::CollectText(Entity activeCamera, std::vector<RenderItem>& queue) {
+        GameManager& gm = GameManager::GetInstance();
+        CameraSystem* cameraSystem_ = gm.GetSystems().camera_;
+        EntityManager entityMgr(gm.GetECS());
+        ResourceManager& rcm_ = *gm.GetSystems().resourceManager_;
+        Graphics& gfx_ = *gm.GetSystems().gfx_;
+
+        // Retrieve active camera data
+        float zoom = 1.0f;
+        Vector2D camPos = { 0.0f, 0.0f };
+        Vector2D camSize = { (float)gfx_.getScreenWidth(), (float)gfx_.getScreenHeight() };
+
+        if (activeCamera != 0 && cameraSystem_) {
+            const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+            // zoom = cam.zoom;
+            camPos = cam.position;
+            camSize = cam.size;
+        }
+
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
+            const auto& textComp = entityMgr.GetComponent<TextComponent>(entity);
+            if (textComp.fontKey.empty() || textComp.textToDraw.empty()) continue;
+
+            // Determine Render Order
+            const EntityProperties& props = entityMgr.GetProperties(entity);
+            int renderOrder = props.customRenderOrder;
+            if (props.renderLayer != RenderLayer::Custom) {
+                renderOrder = static_cast<int>(props.renderLayer);
+            }
+
+            Font& font = rcm_.get<Font>(textComp.fontKey);
+            const Vector2D& textPos = entityMgr.GetComponent<Transform>(entity).position;
+            bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
+
+            // --- Calculate Screen Position ---
+            Vector2D screenTextPos = textPos;
+
+            if (!isUIElement) {
+                // Subtract Camera Position from Text Position
+                float relativeX = textPos.x - camPos.x;
+                float relativeY = textPos.y - camPos.y;
+
+                // offset so that pos is the middle of the text
+                relativeX -= textComp.halfSize.x;
+                relativeY += textComp.halfSize.y;
+
+                // Convert Relative Position to NDC
+                screenTextPos = Vector2D(
+                    (relativeX / camSize.x) * 2.0f / zoom,
+                    (relativeY / camSize.y) * 2.0f / zoom
+                );
+            }
+            else {
+                // Texts with GUI tag already use screen coords
+                // offset so that pos is the middle of the text
+                screenTextPos.x -= textComp.halfSize.x;
+                screenTextPos.y += textComp.halfSize.y;
+            }
+
+            // get line height for offsetting the y when rendering multiple lines of text
+            float line_height_px = font.GetLineHeight(textComp.scale);
+            float line_height_ndc = (line_height_px / camSize.y) * 2.0f;
+
+            // Create a RenderItem for each line of text
+            Vector2D currentLinePos = screenTextPos;
+            for (const std::string& line : textComp.wrappedLines) {
+                RenderItem item;
+                item.isText = true;
+                item.renderOrder = renderOrder;
+                item.font = &font;
+                item.textLine = line;
+                item.screenPos = currentLinePos;
+                item.scale = textComp.scale / zoom;
+                item.color = textComp.color;
+
+                queue.push_back(item);
+
+                // Move cursor down for next line
+                currentLinePos.y -= line_height_ndc / zoom;
             }
         }
     }

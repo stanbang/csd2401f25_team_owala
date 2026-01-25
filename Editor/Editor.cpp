@@ -181,7 +181,7 @@ namespace Editor {
 		defaultEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		currentEditorCameraState_{ {0.0f, 0.0f}, 1.0f },
 		editorCameraNeedsReset_(false),
-		historyManager_(*gameManager_->GetSystems().ecs_) {
+		historyManager_() {
 	};
 
 	// Add these implementations to your Editor.cpp file
@@ -1064,7 +1064,7 @@ namespace Editor {
 #pragma region COPY AND PASTING APIs
 
 	void Editor::CopyEntityToClipboard(const Entity entity) {
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 		doc.SetObject();
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
@@ -1086,7 +1086,7 @@ namespace Editor {
 			return;
 		}
 
-		Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 
 		doc.Parse(entityClipboard->c_str());
@@ -1195,7 +1195,9 @@ namespace Editor {
 			if (ImGui::Button("Create Empty")) {
 				Entity newEntity = entityMgr.CreateEntity();
 				SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
-				historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				if (!IsGamePlaying()) {
+					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+				}
 			}
 
 			ImGui::SameLine();
@@ -1406,17 +1408,19 @@ namespace Editor {
 		ImGui::SeparatorText("Scene Management");
 
 		// --- Save (Overwrite/Quick Save. No changes to scene name or file path) ---
-		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Save")) {
 			SaveScene();
 		}
-		if (!isCurrentSceneValid) ImGui::EndDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Create New Scene --- 
 		ImGui::SameLine();
+		if (IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("New Scene")) {
 			ImGui::OpenPopup("Create New Scene");
 		}
+		if (IsGamePlaying()) ImGui::EndDisabled();
 
 		// --- Unload Current Scene ---
 		ImGui::SameLine();
@@ -1428,12 +1432,12 @@ namespace Editor {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoverColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
 
-		if (!isCurrentSceneValid) ImGui::BeginDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::BeginDisabled();
 		if (ImGui::Button("Unload Scene")) {
 			ImGui::OpenPopup("Save");
 		}
 		ImGui::PopStyleColor(3);
-		if (!isCurrentSceneValid) ImGui::EndDisabled();
+		if (!isCurrentSceneValid || IsGamePlaying()) ImGui::EndDisabled();
 
 		// Save Scene Modal (pop up before unloading current scene)
 		if (ImGui::BeginPopupModal("Save", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -1939,88 +1943,147 @@ namespace Editor {
 
 		ImGui::Begin("Hierarchy");
 
-		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const SceneAsset& activeScene = sceneMgr.GetActiveScene();
 
 		// --- Scene Info ---
-		if (!currentScene.IsValid()) {
+		if (!activeScene.IsValid()) {
 			ImGui::TextDisabled("No Scene Loaded!");
 			ImGui::End();
 			return;
 		}
 
-		const std::vector<Entity>& entitiesLoaded = SceneManager::GetInstance().GetEntitiesInScene(currentScene.name);
-		EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
 		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
-			int localWidgetID = 0;
 
-			// Clipper for large list optimization(This only process entities in view in the list)
-			ImGuiListClipper clipper;
-			clipper.Begin(static_cast<int>(entitiesLoaded.size()));
+			auto drawEntityItem = [&](Entity entity) {
+				if (!entityMgr.ValidateEntity(entity)) return;
 
-			while (clipper.Step()) {
-				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
-					const Entity entity = entitiesLoaded[i];
+				const std::string& name = entityMgr.GetProperties(entity).name;
 
-					std::string name = entityMgr.GetProperties(entity).name;
-					ImGui::PushID(localWidgetID++);
-					bool selected = (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity);
-					if (ImGui::Selectable(name.c_str(), &selected)) {
-						selectedTagIndex = selectedComponentIndex = 0;
-						selectedEntityIndex = entity + 1;
-						isEntitySelected_ = true;
+				ImGui::PushID(static_cast<int>(entity));
+
+				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+				if (ImGui::Selectable(name.c_str(), &selected)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Allows right-click selection
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+					selectedTagIndex = selectedComponentIndex = 0;
+					selectedEntityIndex = entity + 1;
+					isEntitySelected_ = true;
+				}
+
+				// Selectable Context Menu
+				if (ImGui::BeginPopupContextItem("##EntityContext")) {
+					// Copy
+					if (ImGui::MenuItem("Copy")) {
+						CopyEntityToClipboard(entity);
 					}
-					ImGui::PopID();
-
-					// Allows right-click selection
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-						selectedTagIndex = selectedComponentIndex = 0;
-						selectedEntityIndex = entity + 1;
-						isEntitySelected_ = true;
-					}
-
-					// Selectable Context Menu
-					if (ImGui::BeginPopupContextItem()) {
-						// Copy
-						if (ImGui::MenuItem("Copy")) {
-							CopyEntityToClipboard(entity);
+					// Paste
+					if (entityClipboard) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
 						}
-						// Paste
-						if (entityClipboard) {
-							if (ImGui::MenuItem("Paste")) {
-								PasteEntityFromClipboard();
+					}
+					else {
+						ImGui::TextDisabled("Paste");
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItem("Duplicate")) {
+						SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
+						if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+							ownerSceneID = entityMgr.GetComponent<SceneOwned>(entity).sceneIndex;
+						}
+
+						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
+						Entity clonedEntity = entityMgr.CloneEntity(entity);
+						sceneMgr.AddEntityToScene(activeScene, clonedEntity);
+						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
+					}
+					if (ImGui::MenuItem("Delete")) {
+						historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+						entityMgr.DestroyEntity(entity);
+						if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+							isEntitySelected_ = false;
+						}
+					}
+					ImGui::EndPopup();
+				}
+				ImGui::PopID();
+			}; // End lambda: drawEntityItem
+
+			auto drawSceneDropdown = [&](const SceneManagement::SceneGUID sceneID, const std::string& sceneName) {
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
+				flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+				ImGui::PushID(static_cast<int>(sceneID));
+
+				bool open = ImGui::CollapsingHeader(sceneName.c_str(), flags);
+
+				if (ImGui::BeginPopupContextItem("##SceneHeaderContext")) {
+					// Paste
+					if (entityClipboard.has_value()) {
+						if (ImGui::MenuItem("Paste")) {
+							PasteEntityFromClipboard();
+						}
+					}
+					else {
+						ImGui::TextDisabled("Paste");
+					}
+
+					ImGui::Separator();
+
+					// Create Empty Entity
+					if (ImGui::MenuItem("Create Empty")) {
+						Entity newEntity = entityMgr.CreateEntity();
+						SceneManager::GetInstance().AddEntityToScene(sceneID, newEntity);
+						historyManager_.Record(OpType::Create, newEntity, "Create Entity");
+					}
+
+					ImGui::EndPopup();
+				} // End SceneHeaderContext
+
+				if (open) {
+					std::vector<Entity> list = sceneMgr.GetEntitiesInScene(sceneID);
+
+					if (list.empty()) {
+						ImGui::TextDisabled("(Empty)");
+					}
+					else {
+						// Clipper for large list optimization(This only process entities in view in the list)
+						ImGuiListClipper clipper;
+						clipper.Begin(static_cast<int>(list.size()));
+						while (clipper.Step()) {
+							for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+								drawEntityItem(list[i]);
 							}
 						}
-						else {
-							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-							ImGui::Text("Paste");
-							ImGui::PopStyleColor(1);
-						}
-
-						ImGui::Separator();
-
-						if (ImGui::MenuItem("Duplicate")) {
-							Entity clonedEntity = entityMgr.CloneEntity(entity);
-							SceneManager::GetInstance().AddEntityToScene(currentScene, clonedEntity);
-							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
-						}
-						if (ImGui::MenuItem("Delete")) {
-							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
-							entityMgr.DestroyEntity(entity);
-							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
-								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
-								isEntitySelected_ = false;
-							}
-						}
-						ImGui::EndPopup();
+						clipper.End();
 					}
 				}
+				ImGui::PopID();
+				}; // End lambda: drawSceneDropdown
+
+			drawSceneDropdown(activeScene.sceneIndex, std::string("Scene: ") + activeScene.name);
+			if (activeScene.sceneIndex != SceneManager::GetDDOLSceneID() && IsGamePlaying()) {
+				drawSceneDropdown(SceneManager::GetDDOLSceneID(), SceneManager::GetDDOLSceneName());
 			}
-			// End clipper
-			clipper.End();
+		}
 
-			// Child Window Context Menu
-			if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+		// Ensure Empty Space in Hierarchy List
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+		if (avail.y > 0.f) {
+			ImGui::InvisibleButton("##HierarchyEmptySpace", avail, ImGuiButtonFlags_MouseButtonRight);
 
+			if (ImGui::BeginPopupContextItem("##HierarchyEmptyContext")) {
 				// Paste
 				if (entityClipboard) {
 					if (ImGui::MenuItem("Paste")) {
@@ -2028,22 +2091,20 @@ namespace Editor {
 					}
 				}
 				else {
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-					ImGui::Text("Paste");
-					ImGui::PopStyleColor(1);
+					ImGui::TextDisabled("Paste");
 				}
 
 				ImGui::Separator();
 
-
 				// Create Empty Entity
 				if (ImGui::MenuItem("Create Empty")) {
 					Entity newEntity = entityMgr.CreateEntity();
-					SceneManager::GetInstance().AddEntityToScene(currentScene, newEntity);
+					SceneManager::GetInstance().AddEntityToScene(activeScene, newEntity);
 					historyManager_.Record(OpType::Create, newEntity, "Create Entity");
 				}
+
 				ImGui::EndPopup();
-			}
+			} // End HierarchyEmptyContext
 		}
 
 		ImGui::EndChild();
@@ -4371,9 +4432,9 @@ namespace Editor {
 					camSystem->SetActiveCamera(editorCamera_);
 				}
 
-				// ===  RENDER SPRITES ===
-				spriteRenderer_->Update();
+				// ===  RENDER TEXTS & SPRITES ===
 				textRenderer_->Update();
+				spriteRenderer_->Update();
 
 				// ===  RESTORE ORIGINAL CAMERA ===
 				if (engine_->IsEditorMode()) {
@@ -4937,23 +4998,19 @@ namespace Editor {
 
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
-		const auto& renderLayers = layerManager_.GetRenderLayers();
+		const std::vector<RenderLayerData>& renderLayers = layerManager_.GetRenderLayers();
 
 		// Build dropdown with custom option
-		std::vector<std::string> layerNames;
-		layerNames.push_back("Custom");
-		for (const auto& layer : renderLayers) {
-			layerNames.push_back(layer.name);
-		}
-
 		std::vector<const char*> layerItems;
-		for (const auto& name : layerNames) {
-			layerItems.push_back(name.c_str());
+		layerItems.push_back("Custom");
+		for (const RenderLayerData& layer : renderLayers) {
+			layerItems.push_back(layer.name.c_str());
 		}
 
 		// Determine current selection
-		int currentIdx = 0; // Default to Custom
-		if (props.renderLayer != Framework::RenderLayer::Custom) {
+		static int currentIdx = 0; // Default to Custom
+
+		if (props.renderLayer != RenderLayer::Custom) {
 			// Try to find matching layer by render order
 			for (size_t i = 0; i < renderLayers.size(); ++i) {
 				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
@@ -4963,14 +5020,7 @@ namespace Editor {
 			}
 		}
 		else {
-			// Check if using built-in enum value
-			for (size_t i = 0; i < renderLayers.size(); ++i) {
-				if (renderLayers[i].renderOrder == static_cast<int>(props.renderLayer)) {
-					currentIdx = static_cast<int>(i) + 1;
-					props.renderLayerName = renderLayers[i].name; // Update to track the name
-					break;
-				}
-			}
+			currentIdx = 0;
 		}
 
 		ImGui::AlignTextToFramePadding();
@@ -4991,7 +5041,7 @@ namespace Editor {
 				int layerIdx = currentIdx - 1;
 				if (layerIdx >= 0 && layerIdx < static_cast<int>(renderLayers.size())) {
 					props.customRenderOrder = renderLayers[layerIdx].renderOrder;
-					props.renderLayer = Framework::RenderLayer::Custom;
+					props.renderLayer = static_cast<RenderLayer>(renderLayers[layerIdx].renderOrder);
 					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
 				}
 			}
@@ -5009,11 +5059,13 @@ namespace Editor {
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
 			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom"; // Mark as truly custom
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
 				props.customRenderOrder = 0;
+				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom";
 			}
 
@@ -5078,7 +5130,8 @@ namespace Editor {
 		ImGui::Spacing();
 		ImGui::Separator();
 
-		SortEntitiesByRenderLayer(sceneEntities, entityMgr);
+		std::vector<Entity> sortedEntities = sceneEntities;
+		SortEntitiesByRenderLayer(sortedEntities, entityMgr);
 
 		// Display in a table	
 		if (ImGui::BeginTable("EntityLayerTable", 4,
@@ -5093,7 +5146,7 @@ namespace Editor {
 			ImGui::TableHeadersRow();
 
 			//  Iterate through entity list
-			for (const Entity& entity : sceneEntities) {
+			for (const Entity& entity : sortedEntities) {
 				if (!entityMgr.ValidateEntity(entity)) continue;
 
 				const Framework::EntityProperties& props = entityMgr.GetProperties(entity);
