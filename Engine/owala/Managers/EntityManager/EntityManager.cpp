@@ -85,6 +85,7 @@ namespace Framework {
 					case ComponentType::FSMComponentType: AddComponent<FSMComponent>(newEntity, GetComponent<FSMComponent>(entity)); break;
 					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
 					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
+					case ComponentType::SliderType: AddComponent<Slider>(newEntity, GetComponent<Slider>(entity)); break;
 					default:
 						break;
 				}
@@ -168,6 +169,7 @@ namespace Framework {
 		case ComponentType::FSMComponentType: AddComponent<FSMComponent>(entity, FSMComponent{}); break;
 		case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(entity, ParticleComponent{}); break;
 		case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(entity, ParticleEmitterComponent{}); break;
+		case ComponentType::SliderType: AddComponent<Slider>(entity, Slider{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -206,6 +208,7 @@ namespace Framework {
 			case CameraType: ecs.cameras.erase(entity); break;
 			case ParticleComponentType: ecs.particleComponent.erase(entity); break;
 			case ParticleEmitterComponentType: ecs.particleEmitterComponent.erase(entity); break;
+			case SliderType: ecs.sliders.erase(entity); break;
 			case NativeScriptsComponentType: {
 				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
 				if (it != ecs.nativeScripts.end()) {

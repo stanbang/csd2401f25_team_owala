@@ -29,6 +29,7 @@ namespace Framework {
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
+		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
 
 		for (const auto& [entity, scripts] : other.nativeScripts) {
@@ -69,6 +70,7 @@ namespace Framework {
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
+		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
 
 		nativeScripts.clear();
@@ -113,6 +115,7 @@ namespace Framework {
 		std::swap(fsmComponent, other.fsmComponent);
 		std::swap(particleComponent, other.particleComponent);
 		std::swap(particleEmitterComponent, other.particleEmitterComponent);
+		std::swap(sliders, other.sliders);
 		std::swap(sceneOwned, other.sceneOwned);
 
 		std::swap(nativeScripts, other.nativeScripts);

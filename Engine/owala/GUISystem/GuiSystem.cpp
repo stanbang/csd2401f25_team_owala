@@ -144,6 +144,49 @@ namespace Framework {
 				buttonComponent.isPressed = false;
 			}
 		}
+
+		// Loop through all active entities with Slider, Transform
+        for (const Entity& sliderEntity : entityMgr.GetAllEntitiesWithComponents(SliderType, TransformType, ActiveTagType)) {
+            Slider& slider = entityMgr.GetComponent<Slider>(sliderEntity);
+            Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
+
+            // Get the handle entity
+            Entity handle = slider.handleEntity;
+            Button& handleButton = entityMgr.GetComponent<Button>(handle);
+            Transform& handleTransform = entityMgr.GetComponent<Transform>(handle);
+
+            // Start dragging if the handle is pressed
+            if (handleButton.isHovered && mouseDown) {
+                slider.isDragging = true;
+            }
+
+            // Stop dragging when mouse is released
+            if (inputSystem_.MouseReleased(InputSystem::MouseButton::Left)) {
+                slider.isDragging = false;
+            }
+
+            // Update handle position and slider value while dragging
+            if (slider.isDragging) {
+                float widthCenterX = bgTransform.position.x + slider.widthOffsetX;
+
+                // Calculate the slider's left and right boundaries in world space
+                float minX = widthCenterX - (slider.width / 2.0f);
+                float maxX = widthCenterX + (slider.width / 2.0f);
+
+                // Clamp mouseX_ndc (from your existing code) to the slider's bounds
+                float clampedMouseX = std::max(minX, std::min(static_cast<float>(mouseX_ndc), maxX));
+
+                // Move the handle
+                handleTransform.position.x = clampedMouseX;
+
+                // Calculate normalized value (0.0 to 1.0)
+                float normalizedValue = (clampedMouseX - minX) / slider.width;
+                slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
+
+                // Set master volume using the calculated value
+                GameManager::GetInstance().GetSystems().audio_->setMasterVolume(slider.currentValue);
+            }
+        }
 	}
 
 	void GuiSystem::Shutdown() {

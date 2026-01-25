@@ -99,6 +99,7 @@ namespace Editor {
 		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
+		case ComponentType::SliderType:						return "Slider";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -2003,6 +2004,14 @@ namespace Editor {
 					isEntitySelected_ = true;
 				}
 
+				// Drag and Drop Source
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					// Pack the Entity ID into the payload
+					ImGui::SetDragDropPayload("HIERARCHY_ENTITY", &entity, sizeof(Entity));
+					ImGui::Text("Entity: %s (ID: %u)", name.c_str(), entity);
+					ImGui::EndDragDropSource();
+				}
+
 				// Allows right-click selection
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 					selectedTagIndex = selectedComponentIndex = 0;
@@ -2165,6 +2174,7 @@ namespace Editor {
 			}
 
 			// --- Name Field ---
+			ImGui::TextDisabled("Entity ID: %u", selectedEntity);
 			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
 			static Entity lastSelectedEntity = 0;
@@ -3816,114 +3826,6 @@ namespace Editor {
 			break;
 		}
 
-		//case ComponentType::BirdAIComponentType: {
-
-		//	if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
-		//		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
-		//		break;
-		//	}
-
-		//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
-
-		//	// --- State (Read-only) ---
-		//	int state = static_cast<int>(ai.state);
-		//	const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
-		//	ImGui::Text("Current State: %s", stateNames[state]);
-
-		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-		//	ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//
-		//	ImGui::PopStyleColor(2);
-
-		//	ImGui::Separator();
-
-		//	bool activeNow = false;
-		//	// --- Config ---
-		//	ImGui::Text("Configurable Stats");
-		//	ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		///*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	// --- Hover Config ---
-		//	ImGui::Separator();
-		//	ImGui::Text("Hover Behavior");
-		//	ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	// --- Pathfinding ---
-		//	ImGui::Separator();
-		//	ImGui::Text("Pathfinding");
-		//	ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-		//	ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//	ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//	ImGui::PopStyleColor(2);
-		//	ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
-
-		//	if (activeNow && !editSession.wasItemActive) {
-		//		editSession.Begin(selectedEntity, selectedComponent);
-		//	}
-
-		//	if (!activeNow && editSession.wasItemActive) {
-		//		std::stringstream ss;
-		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-		//	}
-
-		//	editSession.wasItemActive = activeNow;
-		//	break;
-		//}
-
-		//case ComponentType::SkeletonAIComponentType: {
-		//	SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
-
-		//	// for now just show state
-		//	int state = static_cast<int>(skelAI.state);
-		//	ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
-
-		//	bool activeNow = false;
-		//	ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	if (activeNow && !editSession.wasItemActive) {
-		//		editSession.Begin(selectedEntity, selectedComponent);
-		//	}
-
-		//	if (!activeNow && editSession.wasItemActive) {
-		//		std::stringstream ss;
-		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-		//	}
-
-		//	editSession.wasItemActive = activeNow;
-		//	break;
-		//}
-
 		case ComponentType::FSMComponentType:
 		{
 			if (ImGui::CollapsingHeader("FSM Component", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -4349,6 +4251,68 @@ namespace Editor {
 			editSession.wasItemActive = activeNow;
 			break;
 		}
+
+		case ComponentType::SliderType: {
+			Slider& slider = entityMgr.GetComponent<Slider>(selectedEntity);
+			bool activeNow = false;
+
+			int handleId = static_cast<int>(slider.handleEntity);
+			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
+				// Ensure the ID doesn't go below 0
+				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
+			}
+
+			// Drag and Drop Target for Entity
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY")) {
+					IM_ASSERT(payload->DataSize == sizeof(Entity));
+					Entity droppedEntity = *(const Entity*)payload->Data;
+
+					// Assign dropped entity ID to the slider
+					slider.handleEntity = droppedEntity;
+
+					// Mark as active to trigger the Undo/Redo history save
+					activeNow = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Drag an entity from the Hierarchy here");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Current Value
+			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Min Value
+			ImGui::InputFloat("Min Value", &slider.minValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Max Value
+			ImGui::InputFloat("Max Value", &slider.maxValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// Width
+			ImGui::InputFloat("Width", &slider.width, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			ImGui::InputFloat("Track Offset X", &slider.widthOffsetX, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Shifts the slidable area left or right from the center");
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
+			break;
+		}
+
 		default:
 			break;
 		}

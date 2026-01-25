@@ -205,6 +205,15 @@ namespace Framework::Serialization {
 	static constexpr const char* BURST_COUNT = "burst_count";
 	static constexpr const char* BURST_INTERVAL = "burst_interval";
 
+	static constexpr const char* SLIDER = "Slider";
+	static constexpr const char* SLIDER_CURRENT_VALUE = "current_value";
+	static constexpr const char* SLIDER_HANDLE_ENTITY = "handle_entity";
+	static constexpr const char* SLIDER_MIN_VALUE = "min_value";
+	static constexpr const char* SLIDER_MAX_VALUE = "max_value";
+	static constexpr const char* SLIDER_WIDTH = "width";
+	static constexpr const char* SLIDER_WIDTH_OFFSET_X = "width_offset_x";
+	static constexpr const char* SLIDER_IS_DRAGGING = "is_dragging";
+
 	//// bird AI Keys
 	//static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
 	//static constexpr const char* AI_STATE = "state";
