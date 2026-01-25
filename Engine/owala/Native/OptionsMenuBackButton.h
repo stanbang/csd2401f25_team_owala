@@ -5,6 +5,8 @@
 using namespace Framework;
 
 class OptionsMenuBackButton : public ScriptableEntity {
+private:
+	bool shouldCloseMenu_;
 protected:
 	void OnCreate() override;
 	void OnUpdate() override;

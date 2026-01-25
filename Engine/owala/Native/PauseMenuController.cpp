@@ -15,7 +15,7 @@ void PauseMenuController::OnUpdate() {
 
     // Check if the P key was just pressed
     if (input.KeyPressed(InputSystem::Key::P)) {
-        const auto& optionsScene = SceneManager::GetInstance().GetSceneByName("OptionsMenu", true);
+        const SceneManagement::SceneAsset& optionsScene = SceneManager::GetInstance().GetSceneByName("OptionsMenu", true);
 
         // Toggle scene based on whether it is currently loaded
         if (optionsScene.IsValid() && optionsScene.isLoaded) {
