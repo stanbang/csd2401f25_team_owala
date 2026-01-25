@@ -56,7 +56,11 @@ namespace Framework{
 		RUNNING,
 		JUMPING,
 		FALLING,
-		DEATH
+		DEATH,
+		INVULNERABLE_IDLE,
+		INVULNERABLE_RUNNING,
+		INVULNERABLE_JUMPING,
+		INVULNERABLE_FALLING
 	};
 
 	// For particle emission modes
@@ -149,6 +153,10 @@ namespace Framework{
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 		bool isDead = false;
+
+		int currentLives = 3;  // Start with 3 lives
+		bool isInvulnerable = false;
+		float invulnerabilityTimer = 0.0f;
 	};
 
 	struct Triangle { 

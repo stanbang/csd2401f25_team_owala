@@ -52,6 +52,13 @@
             "parameters": {
                 "duration": 1.0
             }
+        },
+        {
+            "name": "Death",
+            "type": "Death",
+            "parameters": {
+                "duration": 0.9
+            }
         }
     ],
     "transitions": [

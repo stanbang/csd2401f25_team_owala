@@ -98,4 +98,9 @@ namespace Framework {
 	struct WorldRotationEvent {};
 	struct PlatformLandEvent {};
 
+
+	struct PlayerDamagedEvent {
+		Entity playerEntity;
+		int livesRemaining;
+	};
 } // namespace Framework

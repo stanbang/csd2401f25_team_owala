@@ -471,6 +471,11 @@ int ResolveStateID(const std::string& profileName, const std::string& stateKey) 
 		if (stateKey == "JUMPING") return 2; // AnimationState::JUMPING
 		if (stateKey == "FALLING") return 3; // AnimationState::FALLING
 		if (stateKey == "DEATH")   return 4; // AnimationState::DEATH
+
+		if (stateKey == "INVULNERABLE_IDLE")    return 5; // AnimationState::INVULNERABLE_IDLE
+		if (stateKey == "INVULNERABLE_RUNNING") return 6; // AnimationState::INVULNERABLE_RUNNING
+		if (stateKey == "INVULNERABLE_JUMPING") return 7; // AnimationState::INVULNERABLE_JUMPING
+		if (stateKey == "INVULNERABLE_FALLING") return 8; // AnimationState::INVULNERABLE_FALLING
 	}
 
 	return 0; // Default safe fallback
