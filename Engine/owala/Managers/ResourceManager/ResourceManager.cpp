@@ -44,6 +44,9 @@ void ResourceManager::Initialize() {
 		ScanAssetDirectory("Assets/Audio");
 		ScanAssetDirectory("Assets/Fonts");
 		ScanAssetDirectory("Data/AnimationData");
+		ScanAssetDirectory("Data/Prefabs/Props");
+		ScanAssetDirectory("Data/Prefabs/Tiles");
+		ScanAssetDirectory("Data/Prefabs/TrapPlatforms");
 		LoadTextureAnimationMappings("Data/textureToAnimationMapping.json");
 		LoadAnimationProfiles("Data/stateToAnimationMapping.json");
 	}
@@ -95,6 +98,7 @@ void ResourceManager::clearAll() {
 	soundMap.clear();
 	fontMap.clear();
 	animationMap.clear();
+	prefabMap.clear();
 }
 
 // Scans a directory and maps asset filenames to their full paths
@@ -225,6 +229,11 @@ std::unordered_map<std::string, std::unique_ptr<AnimationInfo>>& ResourceManager
 	return animationMap;
 }
 
+// Getter for the prefab map
+std::unordered_map<std::string, std::unique_ptr<EntityPrefab>>& ResourceManager::getPrefabMap() {
+	return prefabMap;
+}
+
 // Loads a font by name using the scanned asset paths
 bool ResourceManager::loadFont(const std::string& name) {
 	auto it = assetPathMap_.find(name);
@@ -291,6 +300,68 @@ bool ResourceManager::loadAnimationInfo(const std::string& name, const std::stri
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded animation info '" << filepath << "'" << std::endl;
 	add<AnimationInfo>(name, std::move(std::make_unique<AnimationInfo>(animState))); // Add to resource manager's unordered_map
+	return true;
+}
+
+// Loads a prefab by name using the scanned asset paths
+bool ResourceManager::loadPrefab(const std::string& name) {
+	auto it = assetPathMap_.find(name);
+	if (it == assetPathMap_.end()) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Cannot auto-load prefab: Key '" << name << "' not found.\n";
+		return false;
+	}
+	return loadPrefab(name, it->second.string());
+}
+
+// Loads a prefab from file and stores it inside the resource manager
+bool ResourceManager::loadPrefab(const std::string& name, const std::string& filepath) {
+	rapidjson::Document doc;
+	if (!FileIOSystem::ReadFile(filepath, doc) || !doc.IsObject()) {
+		Logger::Get().Error(DebugType::ResourceManager) << "Failed to open prefab file: " << filepath << std::endl;
+		return false;
+	}
+
+	auto newPrefab = std::make_unique<EntityPrefab>();
+	newPrefab->sourceFile = filepath;
+
+	if (doc.HasMember("name") && doc["name"].IsString()) {
+		newPrefab->name = doc["name"].GetString();
+	}
+
+	// Load Components
+	if (doc.HasMember(Serialization::COMPONENTS) && doc[Serialization::COMPONENTS].IsObject()) {
+		const rapidjson::Value& compsObj = doc[Serialization::COMPONENTS];
+		for (auto it = compsObj.MemberBegin(); it != compsObj.MemberEnd(); ++it) {
+			ComponentData compData;
+			compData.type = it->name.GetString();
+			compData.data.CopyFrom(it->value, compData.data.GetAllocator());
+			newPrefab->components.push_back(std::move(compData));
+		}
+	}
+
+	// Load Tags
+	if (doc.HasMember(Serialization::TAGS) && doc[Serialization::TAGS].IsArray()) {
+		const rapidjson::Value& tagsArray = doc[Serialization::TAGS];
+		for (rapidjson::SizeType j = 0; j < tagsArray.Size(); ++j) {
+			if (tagsArray[j].IsString()) newPrefab->tags.push_back(tagsArray[j].GetString());
+		}
+	}
+
+	// Load Layer Info
+	if (doc.HasMember(Serialization::ENTITY_LAYER) && doc[Serialization::ENTITY_LAYER].IsInt()) {
+		int layerInt = doc[Serialization::ENTITY_LAYER].GetInt();
+		CollisionLayer layer = static_cast<CollisionLayer>(layerInt);
+		if (layer == CollisionLayer::Platform) newPrefab->layer = "Platform";
+		else if (layer == CollisionLayer::Player) newPrefab->layer = "Player";
+		else newPrefab->layer = "Default";
+	}
+
+	if (doc.HasMember(Serialization::ENTITY_RENDER_LAYER) && doc[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
+		newPrefab->renderLayer = doc[Serialization::ENTITY_RENDER_LAYER].GetInt();
+	}
+
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded prefab '" << filepath << "'" << std::endl;
+	add<EntityPrefab>(name, std::move(newPrefab));
 	return true;
 }
 
