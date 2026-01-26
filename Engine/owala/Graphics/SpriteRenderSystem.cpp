@@ -303,15 +303,16 @@ namespace Framework {
         Graphics& gfx_ = *gm.GetSystems().gfx_;
 
         // Retrieve active camera data
-        float zoom = 1.0f;
+        float zoom = 1.0f, zoomRefSize= 540.0f, zoomRatio = 1.0f;
         Vector2D camPos = { 0.0f, 0.0f };
         Vector2D camSize = { (float)gfx_.getScreenWidth(), (float)gfx_.getScreenHeight() };
 
         if (activeCamera != 0 && cameraSystem_) {
             const Camera& cam = cameraSystem_->GetCamera(activeCamera);
-            // zoom = cam.zoom;
+            zoom = cam.zoom;
             camPos = cam.position;
             camSize = cam.size;
+            zoomRatio = zoomRefSize / zoom;
         }
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
@@ -343,8 +344,8 @@ namespace Framework {
 
                 // Convert Relative Position to NDC
                 screenTextPos = Vector2D(
-                    (relativeX / camSize.x) * 2.0f / zoom,
-                    (relativeY / camSize.y) * 2.0f / zoom
+                    (relativeX / camSize.x) * 2.0f * zoomRatio,
+                    (relativeY / camSize.y) * 2.0f * zoomRatio
                 );
             }
             else {
@@ -356,7 +357,7 @@ namespace Framework {
 
             // get line height for offsetting the y when rendering multiple lines of text
             float line_height_px = font.GetLineHeight(textComp.scale);
-            float line_height_ndc = (line_height_px / camSize.y) * 2.0f;
+            float line_height_ndc = (line_height_px / (float)gfx_.getScreenHeight()) * 2.0f;
 
             // Create a RenderItem for each line of text
             Vector2D currentLinePos = screenTextPos;
@@ -367,13 +368,13 @@ namespace Framework {
                 item.font = &font;
                 item.textLine = line;
                 item.screenPos = currentLinePos;
-                item.scale = textComp.scale / zoom;
+                item.scale = textComp.scale * (isUIElement ? 1.0f : zoomRatio);
                 item.color = textComp.color;
 
                 queue.push_back(item);
 
                 // Move cursor down for next line
-                currentLinePos.y -= line_height_ndc / zoom;
+                currentLinePos.y -= line_height_ndc * (isUIElement ? 1.0f : zoomRatio);
             }
         }
     }
