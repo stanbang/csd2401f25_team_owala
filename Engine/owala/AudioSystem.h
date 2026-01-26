@@ -154,11 +154,11 @@ namespace Framework {
         void OnButtonClicked(const ButtonClickedEvent& event);
         
         /**
-         * \brief Handle trap platform land events
+         * \brief Trigger proximity based SFX
          *
-         * \param event
+         * \param pos, eventKey, maxVol
          */
-        void OnTrapPlatformLand(const TrapPlatformLandEvent& event);
+        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, float maxVol = 1.0f);
 
         // For Interupption Handling
         /**

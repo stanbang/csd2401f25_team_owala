@@ -37,7 +37,7 @@ namespace Framework {
         // Subscribe to World Rotation Event
         MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) {this->PlayRandomSound("Stage_Rotate", 0.6f); });
         // Subscribe to Trap Platform Land Event
-        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& event) {this->OnTrapPlatformLand(event); });
+        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& event) {this->TriggerProximitySFX(event.position, "Platform_Land"); });
         // Subscribe to Curtains Open/Close Event
         MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent& event) {this->PlayRandomSound("Curtains_Open", 1.0f); });
         MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent& event) {this->PlayRandomSound("Curtains_Close", 1.0f);});
@@ -262,7 +262,7 @@ namespace Framework {
         }
     }
 
-    void AudioSystem::OnTrapPlatformLand(const TrapPlatformLandEvent& event) {
+    void AudioSystem::TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, float maxVol) {
         // Get Player Position
         Vector2D playerPos;
         EntityManager entityMgr = EntityManager(GameManager::GetInstance().GetECS());
@@ -277,19 +277,19 @@ namespace Framework {
         }
 
         // Calculate Distance
-        float distance = (event.position - playerPos).Magnitude();
+        float distance = (pos - playerPos).Magnitude();
 
         // Calculate Volume (Linear Falloff)
         float maxHearingRange = 700.0f; // TODO: move this hardcoded value to player.json
         float volume = 0.0f;
 
         if (distance < maxHearingRange) {
-            volume = 1.0f - (distance / maxHearingRange);
+            volume = maxVol - (distance / maxHearingRange);
         }
 
         // Play Sound
         if (volume > 0.05f) {
-            this->PlayRandomSound("Platform_Land", volume);
+            this->PlayRandomSound(eventKey, volume);
         }
     }
     void AudioSystem::SuspendAudio() {
