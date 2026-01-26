@@ -62,7 +62,6 @@ namespace Editor{
 	class HistoryManager {
 	private:
 		/* Preservation */
-		Framework::EntityStorage* ecs_ = nullptr;
 		std::vector<Operation> undoStack; // Current operations that can be undone.
 		std::vector<Operation> redoStack; // Current operations that can be redone.
 		int maxHistorySteps{ 20 }; // Maximum stack size of the Undo Stack.
@@ -83,7 +82,7 @@ namespace Editor{
 		// Restores a component to the state recorded in the JSON snapshot.
 		void ApplyComponentSnapshot(Entity entity, Framework::ComponentType type, const std::string& json);
 	public:
-		explicit HistoryManager(Framework::EntityStorage& ecs);
+		HistoryManager() = default;
 
 		/* Config */
 		// Sets the max limit of the Undo Stack. Undo Stack will be pruned to fit the new limit.

@@ -45,7 +45,7 @@ namespace Framework {
 		void OnWorldRotation(const WorldRotationEvent& event);
 
 		// Generic handler for all trigger events
-		void TriggerVFX(const std::string& triggerName);
+		void TriggerVFX(const std::string& triggerName, bool hasPositionOverride = false, Vector2D overridePos = { 0.0f, 0.0f });
 		void OnTriggerEvent(const std::string& triggerEventName, const Vector2D& position);
 
 		// Helper function to calculate emission position based on style

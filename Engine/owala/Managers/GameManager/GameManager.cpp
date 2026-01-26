@@ -195,6 +195,7 @@ namespace Framework {
 		nextEntityID = nextEntityIDSnapshot;
 
 		systems_.physics_->SetPaused(true);
+		systems_.audio_->stopAll();
 		SceneManager::GetInstance().OnExitPlay();
 
 		// Cleaning
@@ -367,8 +368,8 @@ namespace Framework {
 
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
-		systems_.spriteRenderer_->Update();
 		systems_.textRenderer_->Update();
+		systems_.spriteRenderer_->Update();
 		#endif
 
 		// --- END GAME UPDATE ---

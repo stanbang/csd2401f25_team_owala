@@ -114,6 +114,10 @@ namespace Framework {
                 effect.effectStrength = effectObj["effectStrength"].GetFloat();
             }
 
+            if (effectObj.HasMember("isGlobal") && effectObj["isGlobal"].IsBool()) {
+                effect.isGlobal = effectObj["isGlobal"].GetBool();
+            }
+
             if (effectObj.HasMember("radius") && effectObj["radius"].IsNumber()) {
                 effect.radius = effectObj["radius"].GetFloat();
             }

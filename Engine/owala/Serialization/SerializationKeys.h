@@ -100,7 +100,7 @@ namespace Framework::Serialization {
 	static constexpr const char* CURRENT_DELAY = "current_delay";
 	static constexpr const char* FALL_SPEED = "fall_speed";
 	static constexpr const char* ORIGINAL_POSITION = "original_position";
-	static constexpr const char* CURRENT_FALL_DISTANCE = "current_fall_distance";
+	//static constexpr const char* CURRENT_FALL_DISTANCE = "current_fall_distance";
 
 	static constexpr const char* SCALING_PLATFORM_COMPONENT = "ScalingPlatform";
 	static constexpr const char* BASE_HALFSIZE = "base_half_size";
@@ -173,6 +173,7 @@ namespace Framework::Serialization {
 	static constexpr const char* BUTTON_PRESSED_ANIMATED = "pressed_is_animated";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
+	static constexpr const char* COMP_SCENE_ID = "scene_id";
 	static constexpr const char* COMP_SCENE_NAME = "sceneName";
 
 	static constexpr const char* PARTICLE_EMITTER_COMPONENT = "ParticleEmitterComponent";
@@ -199,6 +200,10 @@ namespace Framework::Serialization {
 	static constexpr const char* VIEWPORT_MAX = "viewport_max";
 	static constexpr const char* EMISSION_DIRECTION = "emission_direction";
 	static constexpr const char* EMISSION_OFFSET = "emission_offset";
+	static constexpr const char* TRIGGER_EVENT_NAME = "trigger_event_name";
+	static constexpr const char* EMISSION_MODE = "emission_mode";
+	static constexpr const char* BURST_COUNT = "burst_count";
+	static constexpr const char* BURST_INTERVAL = "burst_interval";
 
 	// bird AI Keys
 	static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
