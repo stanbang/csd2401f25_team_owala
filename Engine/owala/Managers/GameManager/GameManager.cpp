@@ -366,6 +366,19 @@ namespace Framework {
 		// Always update native scripts
 		UpdateNativeScripts();
 
+		if (systems_.input_->KeyPressed(InputSystem::Key::F2)) {
+			EntityManager entityMgr(GetECS());
+			std::vector<Entity> persistentEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
+			std::cout << persistentEntities.size() << std::endl;
+			std::cout << "Persistent Entities: " << std::endl;
+			for (Entity entity : persistentEntities) {
+				if (entityMgr.ValidateEntity(entity)) {
+					std::cout << "Entity ID: " << entity << " | Entity Name: " << entityMgr.GetProperties(entity).name << std::endl;
+;				}
+			}
+			std::cout << "== End Persistent Entities == " << std::endl;
+		}
+
 		//Render sprite in engine if not using editor
 		#ifdef BUILD_ENGINE
 		systems_.textRenderer_->Update();

@@ -447,12 +447,33 @@ namespace Framework {
 
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
+		// Get Assigned Scene Info
+		SceneGUID assignedIndex = sceneIndex;
+		std::string assignedName = targetScene->name;
+
+		// If entity is persistent, redirect it to the don't destroy on load scene
+		if (entityMgr.HasComponent(entity, PersistentTagType)) {
+			assignedIndex = DDOL_SCENEID;
+			assignedName = DDOL_SCENENAME;
+
+			// Ensure DDOL is marked as loaded in the Engine build
+			#ifndef BUILD_EDITOR
+			SceneAsset* ddol = GetSceneAssetMutable(DDOL_SCENEID);
+			if (ddol && !ddol->isLoaded) {
+				ddol->isLoaded = true;
+				if (std::find(loadedScenes_.begin(), loadedScenes_.end(), DDOL_SCENEID) == loadedScenes_.end()) {
+					loadedScenes_.push_back(DDOL_SCENEID);
+				}
+			}
+			#endif
+		}
+
 		// Assign Scene Ownership
 		if (!entityMgr.HasComponent(entity, SceneOwnedType)) {
-			entityMgr.AddComponent(entity, SceneOwned{ sceneIndex, targetScene->name });
+			entityMgr.AddComponent(entity, SceneOwned{ assignedIndex, assignedName });
 		}
 		else {
-			entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ sceneIndex, targetScene->name };
+			entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ assignedIndex, assignedName };
 		}
 
 		bool shouldBeActive = targetScene->isLoaded;

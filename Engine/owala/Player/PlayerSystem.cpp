@@ -231,12 +231,12 @@ namespace Framework {
 
             if (CollisionIntersection_RectRect_Static(playerBounds, enemyBounds)) {
                 std::string enemyType = "enemy";
-                if (entityMgr.HasComponent(enemy, BirdAIComponentType)) {
+                if (entityMgr.HasComponent(enemy, FSMComponentType)) {
                     enemyType = "bird enemy";
                 }
-                else if (entityMgr.HasComponent(enemy, SkeletonAIComponentType)) {
+              /*  else if (entityMgr.HasComponent(enemy, SkeletonAIComponentType)) {
                     enemyType = "skeleton enemy";
-                }
+                }*/
 
                 KillPlayer(playerEntity, enemyType);
                 break;

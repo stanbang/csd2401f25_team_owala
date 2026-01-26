@@ -27,19 +27,19 @@ namespace Framework {
     private:
 
         // Store the signatures required for quick checking (built in the constructor)
-        ComponentSignature playerSig;
+        //ComponentSignature playerSig;
         ComponentSignature playerSpawnPtSig;
 
         // Platform signatures
-        ComponentSignature basicPlatformSig;
-        ComponentSignature trapPlatformSig;
-        ComponentSignature scalingPlatformSig;
+        //ComponentSignature basicPlatformSig;
+        //ComponentSignature trapPlatformSig;
+        //ComponentSignature scalingPlatformSig;
 
         // Enemy signatures
-        ComponentSignature enemySig;
+        //ComponentSignature enemySig;
 
         // Text signature
-        ComponentSignature worldTextSig;
+        //ComponentSignature worldTextSig;
 
     public:
         LevelResetSystem();
@@ -48,13 +48,13 @@ namespace Framework {
         void RunReset();
         
         // Reset Player
-        void ResetPlayer(EntityManager& entityMgr, Entity entity);
+        //void ResetPlayer(EntityManager& entityMgr, Entity entity);
         
         // --- Reset Helpers ---
         // Reset Transform of a Entity, uses default transform if no Transform provided
         void ResetTransform(EntityManager& entityMgr, Entity entity, Transform transform = Transform());
         // Reset Velocity to given velocity, default to 0,0 if no Velocity provided
-        void ResetVelocity(EntityManager& entityMgr, Entity entity, Velocity vel = Velocity());
+        //void ResetVelocity(EntityManager& entityMgr, Entity entity, Velocity vel = Velocity());
         
         // Helper function to compare signatures
         bool CmpSignatures(ComponentSignature sigToTest, ComponentSignature sigToMatch);

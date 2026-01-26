@@ -185,7 +185,8 @@ namespace Framework {
                     if (sysName == "Player System" ||
                         sysName == "Physics System" ||
                         sysName == "Rotation System" ||
-                        sysName == "Audio System") {
+                        sysName == "Audio System" || 
+                        sysName == "Platform Behavior") {
                         shouldUpdate = false;
                     }
                 }

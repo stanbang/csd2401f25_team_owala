@@ -94,8 +94,9 @@ namespace Editor {
 		case ComponentType::CameraType:						return "Camera";
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
-		case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";
+	/*	case ComponentType::BirdAIComponentType:			return "BirdAI";
+		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";*/
+		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
@@ -488,6 +489,8 @@ namespace Editor {
 			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
 			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
 			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
+			ImGui::DockBuilderDockWindow("FSM Enemy Editor", dock_bottom);
+
 			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
 			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
 
@@ -515,6 +518,30 @@ namespace Editor {
 		if (isTileEditorActive_ && isDraggingPrefab_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			HandleDragDropPlacement();
 		}
+		if (isFSMEditorOpen_ && isDraggingFSM_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			HandleFSMDragDropPlacement();
+		}
+		if (isDraggingFSM_ && isMouseOverGameViewport_) { // fsm preview shld prolly be in a function
+			ImDrawList* drawList = ImGui::GetForegroundDrawList();
+			Vector2D worldMousePos = GetMouseWorldPosition();
+			Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+			ImVec2 screenPos = WorldToImGuiScreen(snappedPos);
+
+			// Draw preview
+			ImVec2 rectMin = ImVec2(screenPos.x - 25, screenPos.y - 25);
+			ImVec2 rectMax = ImVec2(screenPos.x + 25, screenPos.y + 25);
+
+			drawList->AddImage(
+				fsmDragDropPayload_.textureID,
+				rectMin,
+				rectMax,
+				fsmDragDropPayload_.uv0,
+				fsmDragDropPayload_.uv1,
+				IM_COL32(255, 255, 255, 150)
+			);
+		}
+
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
 			HandleTileErasing();
 		}
@@ -541,6 +568,7 @@ namespace Editor {
 				ShowTilePalette(); // Tile palette
 			}
 		}
+		if (isFSMEditorOpen_) ShowFSMEditor();
 
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowDebugVisualizationPanel(); 
@@ -1282,48 +1310,52 @@ namespace Editor {
 				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
 			}
 		}
-		//ImGui::SameLine();
-		if (ImGui::Button("Spawn Test Bird")) {
-			// Get the systems we need
-			SceneManager& sceneMgr = SceneManager::GetInstance();
-			const SceneAsset& currScene = sceneMgr.GetActiveScene();
 
-			//  Create entity
-			Entity bird = entityMgr.CreateEntity();
-
-			//  Set properties
-			entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
-
-			// Add components required for the AI
-			entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Transform>(bird, Transform({ 0.f, 0.5f }, 0.f)); // Spawn at (0, 0.5)
-			entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-			entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
-			entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
-			entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
-			entityMgr.AddComponent<RotationFlag>(bird, {});
-
-			RigidBody rb;	
-			rb.SetMass(1.0f); // Give it some mass
-			rb.isAffectedByGravity = false; // Make sure it doesn't fall
-			entityMgr.AddComponent<RigidBody>(bird, rb);
-
-			//  Add components to make it visible and selectable
-			Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
-			Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
-
-			// texture is loaded in TestScene.cpp
-			//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
-			entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
-			
-		    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
-
-			// Add it to the active scene
-			sceneMgr.AddEntityToScene(currScene, bird);
-
-			Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
-				<< bird << ")";
+		if (ImGui::Button("Open FSM Editor")) {
+			isFSMEditorOpen_ = true;
 		}
+		//ImGui::SameLine();
+		//if (ImGui::Button("Spawn Test Bird")) {
+		//	// Get the systems we need
+		//	SceneManager& sceneMgr = SceneManager::GetInstance();
+		//	const SceneAsset& currScene = sceneMgr.GetActiveScene();
+
+		//	//  Create entity
+		//	Entity bird = entityMgr.CreateEntity();
+
+		//	//  Set properties
+		//	entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
+
+		//	// Add components required for the AI
+		//	entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
+		//	entityMgr.AddComponent<Transform>(bird, Transform({ 0.f, 0.5f }, 0.f)); // Spawn at (0, 0.5)
+		//	entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
+		//	entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
+		//	entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
+		//	entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
+		//	entityMgr.AddComponent<RotationFlag>(bird, {});
+
+		//	RigidBody rb;	
+		//	rb.SetMass(1.0f); // Give it some mass
+		//	rb.isAffectedByGravity = false; // Make sure it doesn't fall
+		//	entityMgr.AddComponent<RigidBody>(bird, rb);
+
+		//	//  Add components to make it visible and selectable
+		//	Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
+		//	Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
+
+		//	// texture is loaded in TestScene.cpp
+		//	//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
+		//	entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
+		//	
+		//    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
+
+		//	// Add it to the active scene
+		//	sceneMgr.AddEntityToScene(currScene, bird);
+
+		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
+		//		<< bird << ")";
+		//}
 
 		//ImGui::SameLine();
 		
@@ -3784,111 +3816,166 @@ namespace Editor {
 			break;
 		}
 
-		case ComponentType::BirdAIComponentType: {
+		//case ComponentType::BirdAIComponentType: {
 
-			if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
-				break;
+		//	if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
+		//		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
+		//		break;
+		//	}
+
+		//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
+
+		//	// --- State (Read-only) ---
+		//	int state = static_cast<int>(ai.state);
+		//	const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
+		//	ImGui::Text("Current State: %s", stateNames[state]);
+
+		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		//	ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//
+		//	ImGui::PopStyleColor(2);
+
+		//	ImGui::Separator();
+
+		//	bool activeNow = false;
+		//	// --- Config ---
+		//	ImGui::Text("Configurable Stats");
+		//	ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		///*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	// --- Hover Config ---
+		//	ImGui::Separator();
+		//	ImGui::Text("Hover Behavior");
+		//	ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	// --- Pathfinding ---
+		//	ImGui::Separator();
+		//	ImGui::Text("Pathfinding");
+		//	ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		//	ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		//	ImGui::PopStyleColor(2);
+		//	ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
+
+		//	if (activeNow && !editSession.wasItemActive) {
+		//		editSession.Begin(selectedEntity, selectedComponent);
+		//	}
+
+		//	if (!activeNow && editSession.wasItemActive) {
+		//		std::stringstream ss;
+		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+		//	}
+
+		//	editSession.wasItemActive = activeNow;
+		//	break;
+		//}
+
+		//case ComponentType::SkeletonAIComponentType: {
+		//	SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
+
+		//	// for now just show state
+		//	int state = static_cast<int>(skelAI.state);
+		//	ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
+
+		//	bool activeNow = false;
+		//	ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+		//	ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
+		//	if (ImGui::IsItemActive()) activeNow = true;
+
+		//	if (activeNow && !editSession.wasItemActive) {
+		//		editSession.Begin(selectedEntity, selectedComponent);
+		//	}
+
+		//	if (!activeNow && editSession.wasItemActive) {
+		//		std::stringstream ss;
+		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+		//	}
+
+		//	editSession.wasItemActive = activeNow;
+		//	break;
+		//}
+
+		case ComponentType::FSMComponentType:
+		{
+			if (ImGui::CollapsingHeader("FSM Component", ImGuiTreeNodeFlags_DefaultOpen)) {
+				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+
+				// 1. Definition Path Input
+				char buffer[256];
+				strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
+				if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
+					fsm.fsmDefinitionPath = buffer;
+					fsm.initialized = false; // Force rebuild
+				}
+
+				// --- DRAG AND DROP TARGET ---
+				// Allows dragging a .json file from the Asset Browser into this field
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
+						const char* path = (const char*)payload->Data;
+						std::string pathStr = path;
+
+						// Simple check for JSON extension
+						if (pathStr.find(".json") != std::string::npos) {
+							fsm.fsmDefinitionPath = pathStr;
+							fsm.initialized = false; // Force rebuild
+							Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << pathStr << std::endl;
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+				// -----------------------------
+
+				// 2. Initial State Override (Optional)
+				char initBuffer[256];
+				strcpy_s(initBuffer, fsm.initialStateOverride.c_str());
+				if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
+					fsm.initialStateOverride = initBuffer;
+				}
+
+				// 3. Current State Display (Read-Only)
+				std::string currentState = fsm.fsm.GetCurrentState();
+				ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
+
+				// 4. Reload Button
+				if (ImGui::Button("Reload FSM")) {
+					fsm.initialized = false;
+				}
+
+				// 5. Remove Component Button
+				if (ImGui::Button("Remove Component")) {
+					entityMgr.RemoveComponent(selectedEntity, ComponentType::FSMComponentType);
+				}
 			}
-
-			BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
-
-			// --- State (Read-only) ---
-			int state = static_cast<int>(ai.state);
-			const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
-			ImGui::Text("Current State: %s", stateNames[state]);
-
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		
-			ImGui::PopStyleColor(2);
-
-			ImGui::Separator();
-
-			bool activeNow = false;
-			// --- Config ---
-			ImGui::Text("Configurable Stats");
-			ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-		/*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			// --- Hover Config ---
-			ImGui::Separator();
-			ImGui::Text("Hover Behavior");
-			ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			// --- Pathfinding ---
-			ImGui::Separator();
-			ImGui::Text("Pathfinding");
-			ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2);
-			ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
-
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			editSession.wasItemActive = activeNow;
-			break;
-		}
-
-		case ComponentType::SkeletonAIComponentType: {
-			SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
-
-			// for now just show state
-			int state = static_cast<int>(skelAI.state);
-			ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
-
-			bool activeNow = false;
-			ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-			ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
-			if (ImGui::IsItemActive()) activeNow = true;
-
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			editSession.wasItemActive = activeNow;
 			break;
 		}
 
@@ -4535,6 +4622,301 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+#pragma endregion
+
+#pragma region FSM
+	void Editor::LoadFSMDefinitionsFromFolder(const std::string& folderPath) {
+		using namespace Framework;
+
+		availableFSMDefinitions_.clear();
+
+		if (!std::filesystem::exists(folderPath)) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "FSM definitions folder not found: " << folderPath << std::endl;
+			return;
+		}
+
+		for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+			if (entry.is_regular_file() && entry.path().extension() == ".json") {
+				availableFSMDefinitions_.push_back(entry.path().string());
+				Logger::Get().Info(DebugType::Editor)
+					<< "Found FSM definition: " << entry.path().filename().string() << std::endl;
+			}
+		}
+	}
+
+	void Editor::PrepareFSMPaletteItems() {
+		using namespace Framework;
+
+		fsmPaletteItems_.clear();
+
+		// Load FSM definitions from folder
+		LoadFSMDefinitionsFromFolder("Data/FSM/");
+
+		for (const std::string& fsmPath : availableFSMDefinitions_) {
+			// Parse the JSON to get display info
+			rapidjson::Document doc;
+			if (!FileIOSystem::ReadFile(fsmPath, doc)) {
+				Logger::Get().Error(DebugType::Editor)
+					<< "Failed to read FSM definition: " << fsmPath << std::endl;
+				continue;
+			}
+
+			std::string displayName = std::filesystem::path(fsmPath).stem().string();
+			std::string textureKey = "default_enemy.png"; // Default texture
+
+			// Try to extract texture from the definition
+			if (doc.HasMember("previewTexture") && doc["previewTexture"].IsString()) {
+				textureKey = doc["previewTexture"].GetString();
+			}
+
+			// Get texture ID
+			try {
+				Texture texID = resourceManager_->get<Texture>(textureKey);
+
+				if (texID != 0) {
+					fsmPaletteItems_.push_back({
+						displayName,
+						fsmPath,
+						textureKey,
+						(ImTextureID)(intptr_t)texID,
+						ImVec2(0.0f, 1.0f),
+						ImVec2(1.0f, 0.0f)
+						});
+
+					Logger::Get().Info(DebugType::Editor)
+						<< "Added FSM palette item: " << displayName << std::endl;
+				}
+			}
+			catch (const std::exception& e) {
+				Logger::Get().Error(DebugType::Editor)
+					<< "Failed to load texture for FSM: " << displayName
+					<< " - " << e.what() << std::endl;
+			}
+		}
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Prepared " << fsmPaletteItems_.size() << " FSM palette items." << std::endl;
+	}
+
+	void Editor::ShowFSMEditor() {
+		using namespace Framework;
+
+		static bool wasOpen = false;
+
+		if (ImGui::Begin("FSM Enemy Editor", &isFSMEditorOpen_)) {
+			if (!wasOpen) {
+				wasOpen = true;
+				// Prepare palette when opening
+				if (!fsmPalettePrepared_) {
+					PrepareFSMPaletteItems();
+					fsmPalettePrepared_ = true;
+				}
+			}
+
+			ImGui::Text("Drag and drop FSM enemies into the scene");
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+				"Left Click to drag, or select and click in scene");
+			ImGui::Separator();
+
+			// Reload button
+			if (ImGui::Button("Reload FSM Definitions")) {
+				fsmPalettePrepared_ = false;
+				PrepareFSMPaletteItems();
+				fsmPalettePrepared_ = true;
+			}
+
+			ImGui::Separator();
+
+			// Display FSM palette items
+			ImVec2 buttonSize(96, 96);
+			ImVec4 bgCol(0, 0, 0, 0);
+			ImVec4 tintCol(1, 1, 1, 1);
+
+			int itemsPerRow = 0;
+			const int maxItemsPerRow = 4;
+
+			if (fsmPaletteItems_.empty()) {
+				ImGui::TextDisabled("No FSM definitions found in Data/FSM/");
+				ImGui::TextDisabled("Create .json files with FSM definitions");
+			}
+
+			for (const auto& item : fsmPaletteItems_) {
+				ImGui::PushID(item.name.c_str());
+
+				// Button with preview image
+				if (ImGui::ImageButton(
+					item.name.c_str(),
+					item.textureID,
+					buttonSize,
+					item.uv0,
+					item.uv1,
+					bgCol,
+					tintCol))
+				{
+					selectedFSMDefinition_ = item.fsmPath;
+					Logger::Get().Info(DebugType::Editor)
+						<< "Selected FSM: " << item.name << std::endl;
+				}
+
+				// Drag and drop source
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					ImGui::SetDragDropPayload("FSM_ENEMY_DND", &item, sizeof(DraggableFSMInfo));
+					ImGui::Text("Placing: %s", item.name.c_str());
+					ImGui::Image(item.textureID, ImVec2(48, 48), item.uv0, item.uv1);
+
+					isDraggingFSM_ = true;
+					fsmDragDropPayload_ = item;
+					ImGui::EndDragDropSource();
+				}
+
+				// Show tooltip
+				if (ImGui::IsItemHovered()) {
+					ImGui::BeginTooltip();
+					ImGui::Text("%s", item.name.c_str());
+					ImGui::TextDisabled("Path: %s", item.fsmPath.c_str());
+					ImGui::EndTooltip();
+				}
+
+				// Display name below button
+				ImGui::Text("%s", item.name.c_str());
+
+				ImGui::PopID();
+
+				itemsPerRow++;
+				if (itemsPerRow < maxItemsPerRow) {
+					ImGui::SameLine();
+				}
+				else {
+					itemsPerRow = 0;
+				}
+			}
+
+			if (itemsPerRow != 0) {
+				ImGui::NewLine();
+			}
+
+			ImGui::Separator();
+
+			// Instructions
+			if (ImGui::CollapsingHeader("Instructions", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::BulletText("Click an FSM enemy to select it");
+				ImGui::BulletText("Drag and drop into the game viewport to place");
+				ImGui::BulletText("Or click in viewport after selection");
+				ImGui::BulletText("FSM definitions are loaded from Data/FSM/");
+			}
+
+		}
+		ImGui::End();
+
+		if (!isFSMEditorOpen_ && wasOpen) {
+			wasOpen = false;
+			isDraggingFSM_ = false;
+			selectedFSMDefinition_.clear();
+		}
+	}
+
+
+	Entity Editor::CreateFSMEntityAtPosition(const std::string& fsmPath, const Vector2D& position) {
+		using namespace Framework;
+
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+
+		// Create entity
+		Entity enemy = entityMgr.CreateEntity();
+
+		// Parse FSM definition to get initial setup
+		rapidjson::Document doc;
+		if (!FileIOSystem::ReadFile(fsmPath, doc)) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Failed to load FSM definition: " << fsmPath << std::endl;
+			entityMgr.DestroyEntity(enemy);
+			return 0;
+		}
+
+		// Set basic properties
+		std::string enemyName = std::filesystem::path(fsmPath).stem().string();
+		entityMgr.GetProperties(enemy).name = enemyName;
+		entityMgr.GetProperties(enemy).layer = CollisionLayer::Enemy;
+
+		// Add required components for FSM
+		entityMgr.AddComponent<Transform>(enemy, Transform(position, 0.f));
+		entityMgr.AddComponent<Velocity>(enemy, Velocity{});
+		entityMgr.AddComponent<EnemyTag>(enemy, EnemyTag{});
+
+		// Add FSM Component
+		FSMComponent fsmComp;
+		fsmComp.fsmDefinitionPath = fsmPath;
+		fsmComp.initialized = false; // Will be initialized by AISystem
+
+		// Check for initial state override in JSON
+		if (doc.HasMember("initialState") && doc["initialState"].IsString()) {
+			fsmComp.initialStateOverride = doc["initialState"].GetString();
+		}
+
+		entityMgr.AddComponent(enemy, fsmComp);
+
+		// Add visual components if specified in JSON
+		std::string textureKey = "default_enemy.png";
+		Vector2D halfSize = { 50.f, 50.f };
+
+		if (doc.HasMember("texture") && doc["texture"].IsString()) {
+			textureKey = doc["texture"].GetString();
+		}
+		if (doc.HasMember("halfSize") && doc["halfSize"].IsObject()) {
+			const auto& sizeObj = doc["halfSize"];
+			if (sizeObj.HasMember("x")) halfSize.x = sizeObj["x"].GetFloat();
+			if (sizeObj.HasMember("y")) halfSize.y = sizeObj["y"].GetFloat();
+		}
+
+		entityMgr.AddComponent<TextureComponent>(enemy, TextureComponent{ textureKey, halfSize });
+		entityMgr.AddComponent<AABBCollider>(enemy, AABBCollider{ halfSize });
+
+		// Add physics
+		RigidBody rb;
+		rb.SetMass(1.0f);
+		rb.isAffectedByGravity = false; // Most AI enemies float/fly
+		entityMgr.AddComponent(enemy, rb);
+
+		// Add animation if specified
+		if (doc.HasMember("animationProfile") && doc["animationProfile"].IsString()) {
+			std::string animProfile = doc["animationProfile"].GetString();
+			entityMgr.AddComponent<AnimationComponent>(enemy, AnimationComponent{ animProfile });
+		}
+
+		// Add rotation flag if needed
+		entityMgr.AddComponent<RotationFlag>(enemy, RotationFlag{});
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Created FSM enemy: " << enemyName
+			<< " at (" << position.x << ", " << position.y << ")" << std::endl;
+
+		return enemy;
+	}
+
+	void Editor::HandleFSMDragDropPlacement() {
+		if (!isDraggingFSM_ || !isMouseOverGameViewport_) {
+			isDraggingFSM_ = false;
+			return;
+		}
+
+		Vector2D worldMousePos = GetMouseWorldPosition();
+		Vector2D snappedPos = SnapToGrid(worldMousePos);
+
+		// Create the FSM enemy
+		Entity newEnemy = CreateFSMEntityAtPosition(fsmDragDropPayload_.fsmPath, snappedPos);
+
+		if (newEnemy != 0) {
+			Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEnemy);
+
+			historyManager_.Record(OpType::Create, newEnemy, "Created FSM Enemy");
+		}
+
+		isDraggingFSM_ = false;
 	}
 
 #pragma endregion
@@ -6515,7 +6897,7 @@ namespace Editor {
 				}
 
 				// BIRDAI COMPONENT
-				else if (compData.type == "BirdAIComponent") {
+			/*	else if (compData.type == "BirdAIComponent") {
 					if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
 						BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
 						if (compData.data.HasMember("wakeup_radius"))
@@ -6535,18 +6917,18 @@ namespace Editor {
 						if (compData.data.HasMember("hover_speed"))
 							birdAI.hoverSpeed = compData.data["hover_speed"].GetFloat();
 					}
-				}
+				}*/
 
-				// SKELETONAI COMPONENT
-				else if (compData.type == "SkeletonAIComponent") {
-					if (entityMgr.HasComponent(entity, SkeletonAIComponentType)) {
-						SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
-						if (compData.data.HasMember("detection_radius"))
-							skelAI.detectionRadius = compData.data["detection_radius"].GetFloat();
-						if (compData.data.HasMember("move_speed"))
-							skelAI.moveSpeed = compData.data["move_speed"].GetFloat();
-					}
-				}
+				//// SKELETONAI COMPONENT
+				//else if (compData.type == "SkeletonAIComponent") {
+				//	if (entityMgr.HasComponent(entity, SkeletonAIComponentType)) {
+				//		SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
+				//		if (compData.data.HasMember("detection_radius"))
+				//			skelAI.detectionRadius = compData.data["detection_radius"].GetFloat();
+				//		if (compData.data.HasMember("move_speed"))
+				//			skelAI.moveSpeed = compData.data["move_speed"].GetFloat();
+				//	}
+				//}
 
 				// TRAPPED PLATFORM COMPONENT
 				else if (compData.type == "TrapPlatformComponent") {
@@ -6751,8 +7133,8 @@ namespace Editor {
 		ImGui::Text("Visualization Options:");
 		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
 		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
-		ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
-		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);
+		/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
 		ImGui::EndDisabled();
 

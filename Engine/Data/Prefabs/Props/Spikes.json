@@ -28,12 +28,6 @@
                 "y": 0.0
             }
         },
-        "AABBCollider": {
-            "half_width": 50.0,
-            "half_height": 50.0,
-            "offset_x": 0.0,
-            "offset_y": 0.0
-        },
         "TextureComponent": {
             "texture_key": "SB_Spikes.png",
             "half_size": {

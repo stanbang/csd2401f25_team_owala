@@ -26,6 +26,7 @@
 #include <vector> 
 #include <map>
 #include "ScriptableEntity.h"
+#include "FSM.h"
 
 namespace Framework{
 
@@ -389,85 +390,104 @@ namespace Framework{
 	
 	// --- ADDED FOR AI ---
 
-	/**
-	 * @enum BirdState
-	 * @brief Defines the possible states for the Bird AI.
-	 */
-	enum class BirdState {
-		IDLE,    // Sleeping, not aware of the player
-		WAKING,  // Alerted, playing "wake up" animation
-		CHASE,   // Using A* to navigate to the player
-		HOVER,   // Close to the player, hovering erratically
-		STUNNED, // Stunned after attacking
-		ATTACK   // Diving at the player's last known position
-	};
+	///**
+	// * @enum BirdState
+	// * @brief Defines the possible states for the Bird AI.
+	// */
+	//enum class BirdState {
+	//	IDLE,    // Sleeping, not aware of the player
+	//	WAKING,  // Alerted, playing "wake up" animation
+	//	CHASE,   // Using A* to navigate to the player
+	//	HOVER,   // Close to the player, hovering erratically
+	//	STUNNED, // Stunned after attacking
+	//	ATTACK   // Diving at the player's last known position
+	//};
 
-	 /**
-	 * @struct BirdAIComponent
-	 * @brief Contains all data for the Bird's state machine and pathfinding.
-	 */
-	struct BirdAIComponent {
-		BirdState state = BirdState::IDLE;
-
-		bool isFacingRight = true;  // Default facing right
-
-		// State
-		float stateTimer = 0.0f;
-
-		// Wake-up
-		float wakeUpRadius = 500.0f;
-		float wakeUpTime = 1.0f;
-
-		// Chase
-		float moveSpeed = 50.0f;
-		float chaseRadius = 40000.0f; // Max distance before giving up
-
-		// Attack
-		float attackRadius = 400.f; // Distance to trigger attack
-		float attackSpeed = 100.0f;
-		float attackDuration = 5.0f; // Max time in attack state
-		Vector2D attackTargetPosition = { 0.0f, 0.0f }; // Snapshot of player pos
-
-		// Stunned
-		float stunDuration = 1.0f; // Buffer time after hitting wall
-
-		// Hover
-		float hoverRadius = 400.f; // Distance to re-engage from hover
-		float hoverSpeed = 10.f;
-		float hoverHeight = 50.f; // Height above player to orbit
-
-		// Pathfinding
-		std::vector<Vector2D> currentPath;
-		float pathRecalculateInterval = 0.5f;
-		float pathRecalculateTimer = 0.0f;
-
-		// Rotation pause
-		bool isPausedForRotation = false;
-	};
+	
 
 	/**
-	 * @enum SkeletonState
-	 * @brief Defines the possible states for the Skeleton AI.
+	 * @struct FSMComponent
+	 * @brief Data-driven FSM container.
 	 */
-	enum class SkeletonState {
-		IDLE,    // Standing still, waiting for player
-		CHASE    // Player is in range, walking towards them 
-		//NOT YET DONE IN PROGRESSS
+	struct FSMComponent {
+		// Serialized Data
+		std::string fsmDefinitionPath;  // e.g. "Assets/Config/BirdAI.json"
+		std::string initialStateOverride;
+
+		// Runtime Data (Do not serialize the whole FSM object)
+		Framework::FSM fsm;
+		bool initialized = false;
+
+		// Used during deserialization to restore state
+		std::string serializedState;
 	};
 
-	/**
-	 * @struct SkeletonAIComponent
-	 * @brief Contains all data for the Skeleton's state machine.
-	 */
-	struct SkeletonAIComponent {
-		SkeletonState state = SkeletonState::IDLE;
+	// /**
+	// * @struct BirdAIComponent
+	// * @brief Contains all data for the Bird's state machine and pathfinding.
+	// */
+	//struct BirdAIComponent {
+	//	BirdState state = BirdState::IDLE;
 
-		// How far the skeleton can see the player
-		float detectionRadius = 0.5f;
+	//	bool isFacingRight = true;  // Default facing right
 
-		// How fast the skeleton walks
-		float moveSpeed = 0.1f;
-	};
+	//	// State
+	//	float stateTimer = 0.0f;
+
+	//	// Wake-up
+	//	float wakeUpRadius = 500.0f;
+	//	float wakeUpTime = 1.0f;
+
+	//	// Chase
+	//	float moveSpeed = 50.0f;
+	//	float chaseRadius = 40000.0f; // Max distance before giving up
+
+	//	// Attack
+	//	float attackRadius = 400.f; // Distance to trigger attack
+	//	float attackSpeed = 100.0f;
+	//	float attackDuration = 5.0f; // Max time in attack state
+	//	Vector2D attackTargetPosition = { 0.0f, 0.0f }; // Snapshot of player pos
+
+	//	// Stunned
+	//	float stunDuration = 1.0f; // Buffer time after hitting wall
+
+	//	// Hover
+	//	float hoverRadius = 400.f; // Distance to re-engage from hover
+	//	float hoverSpeed = 10.f;
+	//	float hoverHeight = 50.f; // Height above player to orbit
+
+	//	// Pathfinding
+	//	std::vector<Vector2D> currentPath;
+	//	float pathRecalculateInterval = 0.5f;
+	//	float pathRecalculateTimer = 0.0f;
+
+	//	// Rotation pause
+	//	bool isPausedForRotation = false;
+	//};
+
+	///**
+	// * @enum SkeletonState
+	// * @brief Defines the possible states for the Skeleton AI.
+	// */
+	//enum class SkeletonState {
+	//	IDLE,    // Standing still, waiting for player
+	//	CHASE    // Player is in range, walking towards them 
+	//	//NOT YET DONE IN PROGRESSS
+	//};
+
+	///**
+	// * @struct SkeletonAIComponent
+	// * @brief Contains all data for the Skeleton's state machine.
+	// */
+	//struct SkeletonAIComponent {
+	//	SkeletonState state = SkeletonState::IDLE;
+
+	//	// How far the skeleton can see the player
+	//	float detectionRadius = 0.5f;
+
+	//	// How fast the skeleton walks
+	//	float moveSpeed = 0.1f;
+	//};
 
 	// Particle Component
 	struct ParticleComponent {

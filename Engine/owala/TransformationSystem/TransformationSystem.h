@@ -3,27 +3,30 @@
 *
 * \primary_author
 *       Sitara Anil
-*     
-* \secondary_author
-*
 *
 * \brief    A system that manages real-time transformation of game
-*           objects including translation, rotation, and scaling. 
+*           objects including translation, rotation, and scaling.
 *           Handles global world rotation mechanics using Q and E keys.
-*           Computes transformation matrices
+*           Adds cinematic camera zoom: zoom out -> rotate -> zoom in.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
 #pragma once
+
 #include "ISystem.h"
 #include "EntityStorage.h"
 #include "InputSystem.h"
 #include "PhysicsSystem.h"
 #include "Matrix3x3.h"
+#include "Vector2D.h"
+
+#include <unordered_map>
 
 namespace Framework {
+
+    class EntityManager;
 
     class TransformationSystem : public ISystem {
     public:
@@ -35,104 +38,55 @@ namespace Framework {
         */
         TransformationSystem();
 
-        /*!
-        * \brief Initializes the transformation system
-        */
         void Initialize() override;
-
-        /*!
-        * \brief Updates transformations and handles world rotation
-        * \param dt Delta time in seconds since last frame
-        */
         void Update() override;
-
-        /*!
-        * \brief Shuts down the transformation system
-        */
         void Shutdown() override;
 
-        /*!
-        * \brief Gets the transformation matrix for a specific entity
-        * \param entity Entity to get transformation for
-        * \return Transformation matrix (identity if entity has no transform)
-        */
         Matrix3x3 GetTransformMatrix(Entity entity) const;
-
-        /*!
-        * \brief Updates a single entity's transformation matrix
-        * \param entity Entity to update
-        */
         void UpdateEntityTransform(Entity entity);
 
-        /*!
-        * \brief Gets the current global world rotation angle
-        * \return Current world rotation in degrees
-        */
         float GetGlobalRotation() const { return globalRotation; }
-
-        /*!
-        * \brief Checks if world is currently rotating
-        * \return True if world rotation animation is in progress
-        */
         bool IsGlobalRotating() const { return isGlobalRotating; }
 
-        /*!
-        * \brief Reset global world rotation state
-        */
         void ResetGlobalRotation();
 
-        /*!
-        * \brief Gets the original position of the entity
-        * \return Original position of entity
-        */
         static Vector2D GetOriginalPos(EntityManager& entityMgr, Entity entity);
 
+        // Optional to keep public; used by Update() anyway.
+        void UpdateRotateCinematic();
 
     private:
         // Global rotation state
-        float globalRotation;
-        float targetGlobalRotation;
-        bool isGlobalRotating;
-        float rotationCooldown;
-        float rotationCooldownDuration;
+        // -------------------------
+        float globalRotation{ 0.0f };
+        float targetGlobalRotation{ 0.0f };
+        bool  isGlobalRotating{ false };
+        float rotationCooldown{ 0.0f };
+        float rotationCooldownDuration{ 0.5f };
 
-        /*!
-        * \brief Handles input and triggers for world rotation
-        * \param dt Delta time for input processing
-        *
-        * Detects Q/E key presses and initiates 90-degree world rotation.
-        * Respects cooldown period to prevent input spam.
-        */
+        // -------------------------
+        // Cinematic zoom state machine
+        // -------------------------
+        enum class RotatePhase { Idle, ZoomingOut, Rotating, ZoomingIn };
+        RotatePhase rotatePhase_{ RotatePhase::Idle };
+
+        float cachedZoom_{ 1.0f };        // zoom before rotation
+        float wideZoom_{ 1.0f };          // cachedZoom_ * rotateZoomFactor_
+        float rotateZoomFactor_{ 1.78f }; // >1 means zoom out
+        float zoomSpeed_{ 50.0f };         // exponential ease strength
+
+        float pendingDelta_{ 0.0f };      // +90 or -90 queued rotation
+        bool  zoomOutInitialized_{ false };
+
+        // -------------------------
+        // Internal helpers
+        // -------------------------
         void ProcessRotationInput();
-
-        /*!
-        * \brief Updates global world rotation animation
-        * \param dt Delta time for smooth interpolation
-        *
-        * Smoothly rotates the world and all entities toward target angle.
-        * Pauses physics during rotation and resumes when complete.
-        */
         void UpdateGlobalRotation();
-
-        /*!
-        * \brief Computes transformation matrix for an entity
-        * \param entity Entity to compute transform for
-        * \return Computed transformation matrix (T * R * S)
-        *
-        * Internal helper that reads Position, RotationFlag, and Scale
-        * components and generates the combined transformation matrix.
-        */
         Matrix3x3 ComputeTransformMatrix(Entity entity) const;
-
-        /*!
-        * \brief Updates all entity transformation matrices
-        * \param dt Delta time
-        *
-        * Recalculates transformation matrices for all active entities
-        * with position and rotation components.
-        */
         void UpdateAllTransforms();
 
         std::unordered_map<Entity, Vector2D> originalColliderSizes_;
     };
+
 } // namespace Framework
