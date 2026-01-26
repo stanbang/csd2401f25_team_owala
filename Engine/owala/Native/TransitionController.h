@@ -42,6 +42,7 @@ namespace Framework {
 
     private:
         static std::vector<TransitionController*> allControllers;
+        static float s_lastOpenEventTime;
 
         TransitionState state_ = TransitionState::HIDDEN;
         std::function<void()> onTransitionComplete_ = nullptr;

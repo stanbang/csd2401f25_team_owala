@@ -15,5 +15,8 @@
     ],
     "Curtains_Open": [
         "curtains_open.wav"
+    ],
+    "Curtains_Close": [
+        "curtains_close.wav"
     ]
 }

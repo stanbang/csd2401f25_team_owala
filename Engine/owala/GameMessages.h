@@ -102,5 +102,5 @@ namespace Framework {
 	struct WorldRotationEvent {};
 	struct PlayerLandEvent {};
 	struct CurtainsOpenEvent {};
-
+	struct CurtainsCloseEvent {};
 } // namespace Framework

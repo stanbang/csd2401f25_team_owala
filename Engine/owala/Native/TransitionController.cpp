@@ -12,9 +12,10 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-        // Replace single instance with a list of all active controllers
-        std::vector<TransitionController*> TransitionController::allControllers;
+    // Replace single instance with a list of all active controllers
+    std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
+    float TransitionController::s_lastOpenEventTime = -1.0f;
 
     const std::string CLOSE_ANIM_TEXTURE = "SB_Curtain_Close_Spritesheet_01.png";
     const std::string OPEN_ANIM_TEXTURE = "SB_Curtain_Open_Spritesheet_01.png";
@@ -83,6 +84,8 @@ namespace Framework {
             if (onComplete) onComplete();
             return;
         }
+
+        MessageBus::Instance().Publish(CurtainsCloseEvent());
 
         bool callbackAssigned = false;
 
@@ -157,7 +160,13 @@ namespace Framework {
         animTimer_ = 0.0f;
         onTransitionComplete_ = onComplete;
 
-        MessageBus::Instance().Publish(CurtainsOpenEvent());
+        float currentTime = Framework::Time::TotalRuntime();
+
+        // Only publish if enough time has passed since the last one
+        if (currentTime - s_lastOpenEventTime > 0.1f) {
+            MessageBus::Instance().Publish(CurtainsOpenEvent());
+            s_lastOpenEventTime = currentTime;
+        }
 
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
