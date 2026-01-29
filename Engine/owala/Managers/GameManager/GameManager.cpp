@@ -106,6 +106,7 @@ namespace Framework {
 		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType);
 		
 		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
+			if(!entityMgr.ValidateEntity(scriptableEntity)) continue;
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
 
 			if (nativeScripts.empty()) continue;
