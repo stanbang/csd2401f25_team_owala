@@ -152,7 +152,28 @@ namespace Framework {
          * \param screenHeight Height of the screen in pixels.
          */
         void UpdateAspectRatio(float screenWidth, float screenHeight);
+        /**
+         * \brief Sets the map boundaries for camera clamping.
+         * \param cameraEntity Camera entity.
+         * \param minX Minimum X boundary of the map.
+         * \param maxX Maximum X boundary of the map.
+         * \param minY Minimum Y boundary of the map.
+         * \param maxY Maximum Y boundary of the map.
+         */
+        void SetMapBounds(Entity cameraEntity, float minX, float maxX, float minY, float maxY);
 
+        /**
+         * \brief Enables or disables map bounds clamping.
+         * \param cameraEntity Camera entity.
+         * \param enabled Whether to enable bounds clamping.
+         */
+        void SetMapBoundsEnabled(Entity cameraEntity, bool enabled);
+        /**
+         * \brief Calculates and sets map bounds based on all platform entities in the scene.
+         * \param cameraEntity Camera entity to set bounds for.
+         * \param padding Optional padding around the calculated bounds (default: 0.0f).
+         */
+        void CalculateAndSetBoundsFromPlatforms(Entity cameraEntity, float padding = 0.0f);
     private:
         Entity activeCamera_ = 0;   ///< Currently active camera entity.
     };

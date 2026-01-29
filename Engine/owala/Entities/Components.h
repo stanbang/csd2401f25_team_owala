@@ -166,6 +166,12 @@ namespace Framework{
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
 		bool isEditorControlled = false;   // NEW: Prevent game from moving this camera
+	
+		bool useMapBounds = false;
+		float mapMinX = -100.0f;
+		float mapMaxX = 100.0f;
+		float mapMinY = -100.0f;
+		float mapMaxY = 100.0f;
 	};
 
 	struct TextureComponent {
