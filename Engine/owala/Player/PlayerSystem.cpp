@@ -201,6 +201,8 @@ namespace Framework {
         if (playerState.isDead || playerState.isInvulnerable) return;
 
         for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
+            std::string trapName = entityMgr.GetProperties(trapEntity).name;
+            if (trapName.find("MovableBox") != std::string::npos) continue;
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
             if (!trapComp.isTriggered) continue;
@@ -350,12 +352,13 @@ namespace Framework {
         playerState.isDead = true;
         playerState.currentLives = 0;
 
-        if (entityMgr.HasComponent(playerEntity, VelocityType)) {
+        /*if (entityMgr.HasComponent(playerEntity, VelocityType)) {
             entityMgr.GetComponent<Velocity>(playerEntity).Vel = Vector2D::Zero();
         }
         if (entityMgr.HasComponent(playerEntity, RigidBodyType)) {
             entityMgr.GetComponent<RigidBody>(playerEntity).SetMass(0.0f);
-        }
+        }*/
+      
 
         if (entityMgr.HasComponent(playerEntity, AnimationComponentType)) {
             entityMgr.GetComponent<AnimationComponent>(playerEntity).currentState = AnimationState::DEATH;
@@ -379,6 +382,8 @@ namespace Framework {
 
             // Check  all trap platforms
             for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
+                std::string trapName = entityMgr.GetProperties(trapEntity).name;
+                if (trapName.find("MovableBox") != std::string::npos) continue;
                 TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
                 if (!trapComp.isTriggered) continue;
