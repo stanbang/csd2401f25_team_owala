@@ -28,5 +28,20 @@
 	"effectStrength": 1.0,
 	"triggerEvent": "WorldRotationEvent",
     "isGlobal": true
+  },
+ "EnemyDeathEffect": {
+    "textureKey": "SB_Poof_VFX.png",
+    "isAnimated": true,
+    "style": "FROM_POINT",
+    "isScreenSpace": false,
+    "lifetime": 0.9,
+    "count": 1,
+    "speed": 0.0,
+    "size": { "x": 120, "y": 120 },
+    "offset": { "x": 0.0, "y": 0.0 },
+    "effect": "NONE",
+    "effectStrength": 1.0,
+    "triggerEvent": "EnemyDeathEvent",
+    "isGlobal": true
   }
 }

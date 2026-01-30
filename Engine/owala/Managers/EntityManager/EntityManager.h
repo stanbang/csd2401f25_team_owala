@@ -66,7 +66,6 @@ namespace Framework {
 			if (HasComponent(entity, type)) return;
 
 			if constexpr (std::is_same_v<T, Transform>) ecs.transform[entity] = component;
-			else if constexpr (std::is_same_v<T, SpawnPoint>) ecs.spawnPoint[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
@@ -121,7 +120,6 @@ namespace Framework {
 
 			// Return a reference to the component in the map
 			if constexpr (std::is_same_v<T, Transform>) return ecs.transform.at(entity);
-			else if constexpr (std::is_same_v<T, SpawnPoint>) return ecs.spawnPoint.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);

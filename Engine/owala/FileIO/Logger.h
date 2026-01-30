@@ -124,15 +124,6 @@ namespace Framework {
             return '[' + DebugTypeLabels[(int)type] + "] ";
         }
 
-        static const std::string GetCrashLogFilename() {
-            std::ostringstream oss;
-            std::time_t t = std::time(nullptr);
-            std::tm tm = *std::localtime(&t);
-
-            oss << LOGS_FILEPATH
-                << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S")
-                << LOGS_FILEEXT;
-            return oss.str();
-        }
+        static const std::string GetCrashLogFilename();
 	};
 } // namespace Framework

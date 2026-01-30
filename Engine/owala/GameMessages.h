@@ -100,6 +100,13 @@ namespace Framework {
 
 	// Empty structs for signalling
 	struct WorldRotationEvent {};
+	struct PlatformLandEvent {};
+
+
+	struct PlayerDamagedEvent {
+		Entity playerEntity;
+		int livesRemaining;
+	};
 	struct PlayerLandEvent {};
 	struct CurtainsOpenEvent {};
 	struct CurtainsCloseEvent {};

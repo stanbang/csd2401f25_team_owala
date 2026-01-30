@@ -138,16 +138,6 @@ namespace Editor {
 				}
 				break;
 			}
-			case ComponentType::SpawnPointType: {
-				SpawnPoint newSpawnPoint;
-				if (EntitySerializer::DeserializeComponent(doc, newSpawnPoint)) {
-					if (entityMgr.HasComponent(entity, ComponentType::SpawnPointType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::SpawnPointType);
-					}
-					entityMgr.AddComponent<SpawnPoint>(entity, newSpawnPoint);
-				}
-				break;
-			}
 			case ComponentType::VelocityType: {
 				Velocity newVelocity;
 				if (EntitySerializer::DeserializeComponent(doc, newVelocity)) {

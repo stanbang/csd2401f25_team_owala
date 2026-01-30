@@ -56,7 +56,11 @@ namespace Framework{
 		RUNNING,
 		JUMPING,
 		FALLING,
-		DEATH
+		DEATH,
+		INVULNERABLE_IDLE,
+		INVULNERABLE_RUNNING,
+		INVULNERABLE_JUMPING,
+		INVULNERABLE_FALLING
 	};
 
 	// For particle emission modes
@@ -99,12 +103,6 @@ namespace Framework{
 		// Parameterized Constructor
 		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
 			: position(pos), rotation(angle), scale(scl) {}
-	};
-
-	/*	SpawnPoint component to store initial x and y
-	coordinates of an entity.*/
-	struct SpawnPoint {
-		Vector2D Pos;
 	};
 
 	/*	Velocity component to store x and y
@@ -151,6 +149,10 @@ namespace Framework{
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 		bool isDead = false;
+
+		int currentLives = 3;  // Start with 3 lives
+		bool isInvulnerable = false;
+		float invulnerabilityTimer = 0.0f;
 	};
 
 	struct Triangle { 
@@ -226,6 +228,9 @@ namespace Framework{
 	struct BackgroundTag {};
 	struct EnemyTag {};
 	struct GUITag {};
+
+	/*	SpawnPoint tag for player spawn point*/
+	struct SpawnPointTag {};
 
 	struct RotationFlag {
 		

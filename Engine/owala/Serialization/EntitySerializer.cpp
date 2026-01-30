@@ -99,14 +99,6 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_COMPONENT), value, alloc);
 		}
 
-		// Serialize SpawnPoint Component
-		if (entityMgr.HasComponent(entity, ComponentType::SpawnPointType)) {
-			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(spawnPt, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::SPAWN_PT_COMPONENT), value, alloc);
-		}
-
 		// Serialize Velocity Component
 		if (entityMgr.HasComponent(entity, ComponentType::VelocityType)) {
 			Velocity& vel = entityMgr.GetComponent<Velocity>(entity);
@@ -305,6 +297,10 @@ namespace Framework {
 			rapidjson::Value tagVal(Serialization::GUI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
+		if (entityMgr.HasComponent(entity, ComponentType::SpawnPointTagType)) {
+			rapidjson::Value tagVal(Serialization::SPAWN_PT_TAG, alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
 
 		outData.AddMember(rapidjson::StringRef(Serialization::TAGS), tagsList, alloc);
 	}
@@ -375,9 +371,6 @@ namespace Framework {
 		switch (compType) {
 		case TransformType:
 			SerializeComponent(entityMgr.GetComponent<Transform>(entity), componentData, alloc);
-			break;
-		case SpawnPointType:
-			SerializeComponent(entityMgr.GetComponent<SpawnPoint>(entity), componentData, alloc);
 			break;
 		case VelocityType:
 			SerializeComponent(entityMgr.GetComponent<Velocity>(entity), componentData, alloc);
@@ -489,16 +482,6 @@ namespace Framework {
 			Transform transform;
 			if (DeserializeComponent(transformData, transform)) {
 				entityMgr.AddComponent<Transform>(loadedEntity, transform);
-			}
-		}
-
-		// Deserialize SpawnPoint Component
-		if (componentLists.HasMember(Serialization::SPAWN_PT_COMPONENT)) {
-			const rapidjson::Value& pos = componentLists[Serialization::SPAWN_PT_COMPONENT];
-
-			SpawnPoint spawnPt;
-			if (DeserializeComponent(pos, spawnPt)) {
-				entityMgr.AddComponent<SpawnPoint>(loadedEntity, spawnPt);
 			}
 		}
 
@@ -728,6 +711,9 @@ namespace Framework {
 				else if (tag == Serialization::GUI_TAG) {
 					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
 				}
+				else if (tag == Serialization::SPAWN_PT_TAG) {
+					entityMgr.AddComponent<SpawnPointTag>(loadedEntity, SpawnPointTag{});
+				}
 			}
 		}
 	}
@@ -941,12 +927,6 @@ namespace Framework {
 		scale.AddMember(rapidjson::StringRef(Serialization::VEC2_X), transform.scale.x, alloc);
 		scale.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), transform.scale.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_SCALE), scale, alloc);
-	}
-
-	// Spawnpoint Component
-	void EntitySerializer::SerializeComponent(const SpawnPoint& spawnPt, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		outData.AddMember(rapidjson::StringRef(Serialization::VEC2_X), spawnPt.Pos.x, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), spawnPt.Pos.y, alloc);
 	}
 
 	// Velocity Component
@@ -1347,19 +1327,6 @@ namespace Framework {
 		return true;
 	}
 
-	// SpawnPoint Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, SpawnPoint& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::VEC2_X) && componentData[Serialization::VEC2_X].IsFloat()) {
-			out.Pos.x = componentData[Serialization::VEC2_X].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::VEC2_Y) && componentData[Serialization::VEC2_Y].IsFloat()) {
-			out.Pos.y = componentData[Serialization::VEC2_Y].GetFloat();
-		}
-		return true;
-	}
-
 	// Velocity Component
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Velocity& out) {
 		if (!componentData.IsObject()) return false;
@@ -1728,96 +1695,6 @@ namespace Framework {
 		out.initialized = false;
 		return true;
 	}
-
-	// BirdAI Component
-	//bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, BirdAIComponent& out) {
-	//	if (!componentData.IsObject()) return false;
-
-	//	if (componentData.HasMember(Serialization::AI_STATE) && componentData[Serialization::AI_STATE].IsInt()) {
-	//		out.state = static_cast<BirdState>(componentData[Serialization::AI_STATE].GetInt());
-	//	}
-	//	if (componentData.HasMember(Serialization::STATE_TIMER) && componentData[Serialization::STATE_TIMER].IsFloat()) {
-	//		out.stateTimer = componentData[Serialization::STATE_TIMER].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::WAKEUP_RADIUS) && componentData[Serialization::WAKEUP_RADIUS].IsFloat()) {
-	//		out.wakeUpRadius = componentData[Serialization::WAKEUP_RADIUS].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::WAKEUP_TIME) && componentData[Serialization::WAKEUP_TIME].IsFloat()) {
-	//		out.wakeUpTime = componentData[Serialization::WAKEUP_TIME].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::MOVE_SPEED) && componentData[Serialization::MOVE_SPEED].IsFloat()) {
-	//		out.moveSpeed = componentData[Serialization::MOVE_SPEED].GetFloat();
-	//	}
-
-	//	if (componentData.HasMember(Serialization::IS_FACING_RIGHT) && componentData[Serialization::IS_FACING_RIGHT].IsBool()) {
-	//		out.isFacingRight = componentData[Serialization::IS_FACING_RIGHT].GetBool();
-	//	}
-
-	//	//CHASE_RADIUS:
-	//	if (componentData.HasMember(Serialization::CHASE_RADIUS) && componentData[Serialization::CHASE_RADIUS].IsFloat()) {
-	//		out.chaseRadius = componentData[Serialization::CHASE_RADIUS].GetFloat();
-	//	}
-
-	//	if (componentData.HasMember(Serialization::HOVER_RADIUS) && componentData[Serialization::HOVER_RADIUS].IsFloat()) {
-	//		out.hoverRadius = componentData[Serialization::HOVER_RADIUS].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::HOVER_HEIGHT) && componentData[Serialization::HOVER_HEIGHT].IsFloat()) {
-	//		out.hoverHeight = componentData[Serialization::HOVER_HEIGHT].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::HOVER_SPEED) && componentData[Serialization::HOVER_SPEED].IsFloat()) {
-	//		out.hoverSpeed = componentData[Serialization::HOVER_SPEED].GetFloat();
-	//	}
-
-	//	if (componentData.HasMember(Serialization::ATTACK_RADIUS) && componentData[Serialization::ATTACK_RADIUS].IsFloat()) {
-	//		out.attackRadius = componentData[Serialization::ATTACK_RADIUS].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::ATTACK_SPEED) && componentData[Serialization::ATTACK_SPEED].IsFloat()) {
-	//		out.attackSpeed = componentData[Serialization::ATTACK_SPEED].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::ATTACK_DURATION) && componentData[Serialization::ATTACK_DURATION].IsFloat()) {
-	//		out.attackDuration = componentData[Serialization::ATTACK_DURATION].GetFloat();
-	//	}
-
-	//	// STUN DURATION:
-	//	if (componentData.HasMember(Serialization::STUN_DURATION) && componentData[Serialization::STUN_DURATION].IsFloat()) {
-	//		out.stunDuration = componentData[Serialization::STUN_DURATION].GetFloat();
-	//	}
-
-	//	// Deserialize attack target position
-	//	if (componentData.HasMember(Serialization::ATTACK_TARGET_POSITION) && componentData[Serialization::ATTACK_TARGET_POSITION].IsObject()) {
-	//		const rapidjson::Value& attackTargetPosData = componentData[Serialization::ATTACK_TARGET_POSITION];
-	//		if (attackTargetPosData.HasMember(Serialization::VEC2_X) && attackTargetPosData[Serialization::VEC2_X].IsFloat()) {
-	//			out.attackTargetPosition.x = attackTargetPosData[Serialization::VEC2_X].GetFloat();
-	//		}
-	//		if (attackTargetPosData.HasMember(Serialization::VEC2_Y) && attackTargetPosData[Serialization::VEC2_Y].IsFloat()) {
-	//			out.attackTargetPosition.y = attackTargetPosData[Serialization::VEC2_Y].GetFloat();
-	//		}
-	//	}
-
-	//	if (componentData.HasMember(Serialization::PATH_RECALCULATE_INTERVAL) && componentData[Serialization::PATH_RECALCULATE_INTERVAL].IsFloat()) {
-	//		out.pathRecalculateInterval = componentData[Serialization::PATH_RECALCULATE_INTERVAL].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::PATH_RECALCULATE_TIMER) && componentData[Serialization::PATH_RECALCULATE_TIMER].IsFloat()) {
-	//		out.pathRecalculateTimer = componentData[Serialization::PATH_RECALCULATE_TIMER].GetFloat();
-	//	}
-	//	return true;
-	//}
-
-	//// SkeletonAI Component
-	//bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, SkeletonAIComponent& out) {
-	//	if (!componentData.IsObject()) return false;
-
-	//	if (componentData.HasMember(Serialization::AI_STATE) && componentData[Serialization::AI_STATE].IsInt()) {
-	//		out.state = static_cast<SkeletonState>(componentData[Serialization::AI_STATE].GetInt());
-	//	}
-	//	if (componentData.HasMember(Serialization::DETECTION_RADIUS) && componentData[Serialization::DETECTION_RADIUS].IsFloat()) {
-	//		out.detectionRadius = componentData[Serialization::DETECTION_RADIUS].GetFloat();
-	//	}
-	//	if (componentData.HasMember(Serialization::MOVE_SPEED) && componentData[Serialization::MOVE_SPEED].IsFloat()) {
-	//		out.moveSpeed = componentData[Serialization::MOVE_SPEED].GetFloat();
-	//	}
-	//	return true;
-	//}
 
 	// Button Component
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Button& out) {

@@ -9,7 +9,6 @@ namespace Framework {
 
 		properties = other.properties;
 		transform = other.transform;
-		spawnPoint = other.spawnPoint;
 		velocity = other.velocity;
 		acceleration = other.acceleration;
 		triangle = other.triangle;
@@ -24,8 +23,6 @@ namespace Framework {
 		animatedTex = other.animatedTex;
 		text = other.text;
 		cameras = other.cameras;
-	/*	birdAIComponent = other.birdAIComponent;
-		skeletonAIComponent = other.skeletonAIComponent;*/
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
@@ -49,7 +46,6 @@ namespace Framework {
 
 		properties = other.properties;
 		transform = other.transform;
-		spawnPoint = other.spawnPoint;
 		velocity = other.velocity;
 		acceleration = other.acceleration;
 		triangle = other.triangle;
@@ -64,8 +60,6 @@ namespace Framework {
 		animatedTex = other.animatedTex;
 		text = other.text;
 		cameras = other.cameras;
-		/*birdAIComponent = other.birdAIComponent;
-		skeletonAIComponent = other.skeletonAIComponent;*/
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
@@ -93,7 +87,6 @@ namespace Framework {
 
 		// Components
 		std::swap(transform, other.transform);
-		std::swap(spawnPoint, other.spawnPoint);
 		std::swap(velocity, other.velocity);
 		std::swap(acceleration, other.acceleration);
 		std::swap(triangle, other.triangle);
@@ -108,8 +101,6 @@ namespace Framework {
 		std::swap(animatedTex, other.animatedTex);
 		std::swap(text, other.text);
 		std::swap(cameras, other.cameras);
-		/*std::swap(birdAIComponent, other.birdAIComponent);
-		std::swap(skeletonAIComponent, other.skeletonAIComponent);*/
 		std::swap(fsmComponent, other.fsmComponent);
 		std::swap(particleComponent, other.particleComponent);
 		std::swap(particleEmitterComponent, other.particleEmitterComponent);

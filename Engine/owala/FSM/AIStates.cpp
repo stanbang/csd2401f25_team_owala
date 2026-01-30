@@ -223,6 +223,48 @@ namespace Framework {
         if (key == "duration") duration_ = value;
     }
 
+
+    // --- DEATH ---
+    void BirdDeathState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        Vector2D deathPosition = { 0.0f, 0.0f };
+        if (mgr.HasComponent(entity, TransformType)) {
+            deathPosition = mgr.GetComponent<Transform>(entity).position;
+        }
+
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
+        }
+
+        if (mgr.HasComponent(entity, RigidBodyType)) {
+            mgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
+        }
+        if (mgr.HasComponent(entity, TextureComponentType)) {
+            mgr.GetComponent<TextureComponent>(entity).textureKey.clear();
+        }
+
+        if (mgr.HasComponent(entity, AnimationComponentType)) {
+            mgr.GetComponent<AnimationComponent>(entity).isPlaying = false;
+        }
+        if (mgr.HasComponent(entity, AnimationComponentType)) {
+            mgr.GetComponent<AnimationComponent>(entity).currentState = AnimationState::DEATH;
+        }
+
+        MessageBus::Instance().Publish(VFXTriggerEvent{ "EnemyDeathEvent",true, deathPosition });
+
+        Logger::Get().Info(DebugType::AISystem) << "Enemy death VFX triggered at (" << deathPosition.x << ", " << deathPosition.y << ")" << std::endl;
+    }
+
+    void BirdDeathState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+    }
+
+    void BirdDeathState::SetParameter(const std::string& key, float value) {
+        if (key == "duration") duration_ = value;
+    }
+
     // =========================================================
     // MACRO REGISTRATION (The Magic Part)
     // =========================================================
@@ -234,6 +276,7 @@ namespace Framework {
     REGISTER_STATE("Recovery", BirdRecoveryState);
     REGISTER_STATE("SimpleChase", BirdSimpleChaseState)
     REGISTER_STATE("Bounce", BirdBounceState)
+    REGISTER_STATE("Death", BirdDeathState)
 
     // Common Condition Helpers
     REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {

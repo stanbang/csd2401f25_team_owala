@@ -515,6 +515,43 @@ std::string ResourceManager::GetAssetPath(const std::string& key) const {
 	return ""; // Not found
 }
 
+// Resolves a state key to its corresponding integer ID based on the profile name
+int ResolveStateID(const std::string& profileName, const std::string& stateKey) {
+
+	// BIRD ENEMY MAPPING (Matches BirdState Enum)
+	if (profileName == "BirdEnemy") {
+		if (stateKey == "IDLE")    return 0; // BirdState::IDLE
+		if (stateKey == "WAKING")  return 1; // BirdState::WAKING
+		if (stateKey == "CHASE")   return 2; // BirdState::CHASE
+		if (stateKey == "HOVER")   return 3; // BirdState::HOVER
+		if (stateKey == "STUNNED") return 4; // BirdState::STUNNED
+		if (stateKey == "ATTACK")  return 5; // BirdState::ATTACK
+	}
+
+	// SKELETON ENEMY MAPPING (Matches SkeletonState Enum)
+	else if (profileName == "SkeletonEnemy") {
+		if (stateKey == "IDLE")    return 0; // SkeletonState::IDLE
+		if (stateKey == "CHASE")   return 1; // SkeletonState::CHASE
+	}
+
+	// DEFAULT / PLAYER MAPPING (Matches AnimationState Enum)
+	// Applies to "Player", "FakePlayer", and anyone else
+	else {
+		if (stateKey == "IDLE")    return 0; // AnimationState::IDLE
+		if (stateKey == "RUNNING") return 1; // AnimationState::RUNNING
+		if (stateKey == "JUMPING") return 2; // AnimationState::JUMPING
+		if (stateKey == "FALLING") return 3; // AnimationState::FALLING
+		if (stateKey == "DEATH")   return 4; // AnimationState::DEATH
+
+		if (stateKey == "INVULNERABLE_IDLE")    return 5; // AnimationState::INVULNERABLE_IDLE
+		if (stateKey == "INVULNERABLE_RUNNING") return 6; // AnimationState::INVULNERABLE_RUNNING
+		if (stateKey == "INVULNERABLE_JUMPING") return 7; // AnimationState::INVULNERABLE_JUMPING
+		if (stateKey == "INVULNERABLE_FALLING") return 8; // AnimationState::INVULNERABLE_FALLING
+	}
+
+	return 0; // Default safe fallback
+}
+
 // Undefine GetObject macro if defined (to avoid conflicts with RapidJSON)
 #ifdef GetObject
 #undef GetObject
