@@ -64,7 +64,6 @@ namespace Framework::Serialization {
 	static constexpr const char* ROTATION_COLLIDER_MTX = "collider_matrix";
 	static constexpr const char* TRANSFORM_SCALE = "Scale";
 
-	static constexpr const char* SPAWN_PT_COMPONENT = "SpawnPoint";
 	static constexpr const char* VELOCITY_COMPONENT = "Velocity";
 	static constexpr const char* ACCELERATION_COMPONENT = "Acceleration";
 
@@ -205,36 +204,6 @@ namespace Framework::Serialization {
 	static constexpr const char* BURST_COUNT = "burst_count";
 	static constexpr const char* BURST_INTERVAL = "burst_interval";
 
-	//// bird AI Keys
-	//static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";
-	//static constexpr const char* AI_STATE = "state";
-	//static constexpr const char* IS_FACING_RIGHT = "is_facing_right";  
-	//static constexpr const char* STATE_TIMER = "state_timer";
-	//static constexpr const char* WAKEUP_RADIUS = "wakeup_radius";
-	//static constexpr const char* WAKEUP_TIME = "wakeup_time";
-	//static constexpr const char* MOVE_SPEED = "move_speed";
-	//static constexpr const char* HOVER_RADIUS = "hover_radius";
-	//static constexpr const char* HOVER_HEIGHT = "hover_height";
-	//static constexpr const char* HOVER_SPEED = "hover_speed";
-	//static constexpr const char* HOVER_NODE_REACHED_DIST = "hover_node_reached_dist";
-	//static constexpr const char* CURRENT_HOVER_NODE = "current_hover_node";
-	//static constexpr const char* ATTACK_RADIUS = "attack_radius";
-	//static constexpr const char* ATTACK_SPEED = "attack_speed";
-	//static constexpr const char* ATTACK_DURATION = "attack_duration";
-	//static constexpr const char* ATTACK_COOLDOWN = "attack_cooldown";
-	//static constexpr const char* ATTACK_TIMER = "attack_timer";
-	//static constexpr const char* ATTACK_TARGET_POSITION = "attack_target_position";
-	//static constexpr const char* PATH_RECALCULATE_INTERVAL = "path_recalculate_interval";
-	//static constexpr const char* PATH_RECALCULATE_TIMER = "path_recalculate_timer";
-	//static constexpr const char* CHASE_RADIUS = "chase_radius";
-	//static constexpr const char* STUN_DURATION = "stun_duration";
-
-	//// Skeleton AI Keys
-	//static constexpr const char* SKELETON_AI_COMPONENT = "SkeletonAIComponent";
-	//// AI_STATE = "state" (re-use from Bird)
-	//// MOVE_SPEED = "move_speed" (re-use from Bird)
-	//static constexpr const char* DETECTION_RADIUS = "detection_radius";
-
 	// FSM KEYS
 	static constexpr const char* FSM_COMPONENT = "FSMComponent";
 	static constexpr const char* FSM_DEFINITION_PATH = "DefinitionPath";
@@ -250,4 +219,5 @@ namespace Framework::Serialization {
 	static constexpr const char* GUI_TAG = "GUITag";
 	static constexpr const char* PERSISTENT_TAG = "PersistentTag";
 	static constexpr const char* ACTIVE_TAG = "ActiveTag";
+	static constexpr const char* SPAWN_PT_TAG = "SpawnPointTag";
 }

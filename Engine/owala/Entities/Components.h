@@ -103,12 +103,6 @@ namespace Framework{
 			: position(pos), rotation(angle), scale(scl) {}
 	};
 
-	/*	SpawnPoint component to store initial x and y
-	coordinates of an entity.*/
-	struct SpawnPoint {
-		Vector2D Pos;
-	};
-
 	/*	Velocity component to store x and y
 		velocity of an entity.*/
 	struct Velocity {
@@ -232,6 +226,9 @@ namespace Framework{
 	struct BackgroundTag {};
 	struct EnemyTag {};
 	struct GUITag {};
+
+	/*	SpawnPoint tag for player spawn point*/
+	struct SpawnPointTag {};
 
 	struct RotationFlag {
 		

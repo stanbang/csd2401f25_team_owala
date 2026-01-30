@@ -32,7 +32,8 @@ namespace Framework {
         //playerSig.set(SceneOwnedType);
 
         playerSpawnPtSig.set(ActiveTagType);
-        playerSpawnPtSig.set(SpawnPointType);
+        playerSpawnPtSig.set(TransformType);
+        playerSpawnPtSig.set(SpawnPointTagType);
         playerSpawnPtSig.set(SceneOwnedType);
 
         // Platform signatures
@@ -213,8 +214,8 @@ namespace Framework {
         }
 
         if (spawnPtEntity > 0) {
-            SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(spawnPtEntity);
-            return spawnPt.Pos;
+            Transform& spawnPt = entityMgr.GetComponent<Transform>(spawnPtEntity);
+            return spawnPt.position;
         }
         else {
             Logger::Get().Error(DebugType::LevelResetSystem) << "Player spawn point not found!" << std::endl;

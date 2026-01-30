@@ -63,7 +63,6 @@ namespace Framework {
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
 					case ComponentType::TransformType: AddComponent<Transform>(newEntity, GetComponent<Transform>(entity)); break;
-					case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(newEntity, GetComponent<SpawnPoint>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
 					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
 					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
@@ -147,7 +146,6 @@ namespace Framework {
 		switch (componentType)
 		{
 		case ComponentType::TransformType: AddComponent<Transform>(entity, Transform{}); break;
-		case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(entity, SpawnPoint{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
 		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
 		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
@@ -176,9 +174,10 @@ namespace Framework {
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType: break;
 		case ComponentType::GUITagType: break;
+		case ComponentType::SpawnPointTagType: break;
 
 		default:
-			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
+			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
 			return;
 		}
 
@@ -190,7 +189,6 @@ namespace Framework {
 
 		switch (componentType) {
 			case TransformType:		ecs.transform.erase(entity); break;
-			case SpawnPointType:    ecs.spawnPoint.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
 			case TriangleType:      ecs.triangle.erase(entity); break;
@@ -219,8 +217,6 @@ namespace Framework {
 				break;
 			}
 			case ButtonType: ecs.button.erase(entity); break;
-		/*	case BirdAIComponentType: ecs.birdAIComponent.erase(entity); break;
-			case SkeletonAIComponentType: ecs.skeletonAIComponent.erase(entity); break; */
 			case FSMComponentType:ecs.fsmComponent.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:
@@ -230,8 +226,9 @@ namespace Framework {
 			case PersistentTagType:
 			case ActiveTagType: break;
 			case GUITagType: break;
+			case SpawnPointTagType: break;
 			default: 
-				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
+				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
 				return;
 		}
 
@@ -248,6 +245,7 @@ namespace Framework {
 		case ComponentType::PersistentTagType:
 		case ComponentType::ActiveTagType:
 		case ComponentType::GUITagType:
+		case ComponentType::SpawnPointTagType:
 			return true;
 		default:
 			return false;
