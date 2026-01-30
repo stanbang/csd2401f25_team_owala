@@ -1542,9 +1542,14 @@ namespace Editor {
 		// Display list of scenes available to load
 		if (ImGui::CollapsingHeader("Scenes List")) {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
+				// skip persistent scene
+				if (scene.name == "Persistent") {
+					continue;
+				}
+
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1599,7 +1604,7 @@ namespace Editor {
 					}
 				}
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::EndDisabled();
 				}
 			}
