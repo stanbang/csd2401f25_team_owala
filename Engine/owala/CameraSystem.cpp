@@ -79,10 +79,107 @@ namespace Framework {
                 }
             }
 
-            // Print camera position (optional debug)
-            // Logger::Get().Info(DebugType::CameraSystem) << "Camera Entity " << e
-            //     << " Position: (" << camera.position.x << ", " << camera.position.y << ")\n";
+            // **NEW: Clamp camera position to map bounds**
+            if (camera.useMapBounds) {
+                float halfWidth = camera.size.x * 0.5f;
+                float halfHeight = camera.size.y * 0.5f;
+
+                // Calculate the valid range for camera center position
+                float minCameraX = camera.mapMinX + halfWidth;
+                float maxCameraX = camera.mapMaxX - halfWidth;
+                float minCameraY = camera.mapMinY + halfHeight;
+                float maxCameraY = camera.mapMaxY - halfHeight;
+
+                // If view is larger than map, center the camera
+                if (minCameraX > maxCameraX) {
+                    camera.position.x = (camera.mapMinX + camera.mapMaxX) * 0.5f;
+                }
+                else {
+                    camera.position.x = std::clamp(camera.position.x, minCameraX, maxCameraX);
+                }
+
+                if (minCameraY > maxCameraY) {
+                    camera.position.y = (camera.mapMinY + camera.mapMaxY) * 0.5f;
+                }
+                else {
+                    camera.position.y = std::clamp(camera.position.y, minCameraY, maxCameraY);
+                }
+            }
         }
+    }
+    void CameraSystem::SetMapBounds(Entity cameraEntity, float minX, float maxX, float minY, float maxY) {
+        Camera& camera = GetCamera(cameraEntity);
+        camera.mapMinX = minX;
+        camera.mapMaxX = maxX;
+        camera.mapMinY = minY;
+        camera.mapMaxY = maxY;
+        camera.useMapBounds = true;
+    }
+    void CameraSystem::CalculateAndSetBoundsFromPlatforms(Entity cameraEntity, float padding) {
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+        float minX = std::numeric_limits<float>::max();
+        float maxX = std::numeric_limits<float>::lowest();
+        float minY = std::numeric_limits<float>::max();
+        float maxY = std::numeric_limits<float>::lowest();
+
+        bool foundAnyPlatform = false;
+
+        // Iterate through all entities with PlatformTag
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+            if (!entityMgr.HasComponent(e, TransformType)) continue;
+
+            foundAnyPlatform = true;
+            const Transform& transform = entityMgr.GetComponent<Transform>(e);
+
+            // Get platform bounds
+            float platformMinX, platformMaxX, platformMinY, platformMaxY;
+
+            if (entityMgr.HasComponent(e, AABBColliderType)) {
+                // Use collider size if available
+                const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
+                platformMinX = transform.position.x - collider.HalfSize.x * transform.scale.x;
+                platformMaxX = transform.position.x + collider.HalfSize.x * transform.scale.x;
+                platformMinY = transform.position.y - collider.HalfSize.y * transform.scale.y;
+                platformMaxY = transform.position.y + collider.HalfSize.y * transform.scale.y;
+            }
+            else if (entityMgr.HasComponent(e, TextureComponentType)) {
+                // Use texture size if no collider
+                const TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(e);
+                platformMinX = transform.position.x - texture.HalfSize.x * transform.scale.x;
+                platformMaxX = transform.position.x + texture.HalfSize.x * transform.scale.x;
+                platformMinY = transform.position.y - texture.HalfSize.y * transform.scale.y;
+                platformMaxY = transform.position.y + texture.HalfSize.y * transform.scale.y;
+            }
+            else {
+                // Just use position if no size information
+                platformMinX = platformMaxX = transform.position.x;
+                platformMinY = platformMaxY = transform.position.y;
+            }
+
+            // Update overall bounds
+            minX = std::min(minX, platformMinX);
+            maxX = std::max(maxX, platformMaxX);
+            minY = std::min(minY, platformMinY);
+            maxY = std::max(maxY, platformMaxY);
+        }
+
+        if (!foundAnyPlatform) {
+            return;
+        }
+
+        // Apply padding
+        minX -= padding;
+        maxX += padding;
+        minY -= padding;
+        maxY += padding;
+
+        // Set the bounds
+        SetMapBounds(cameraEntity, minX, maxX, minY, maxY);
+    }
+    void CameraSystem::SetMapBoundsEnabled(Entity cameraEntity, bool enabled) {
+        Camera& camera = GetCamera(cameraEntity);
+        camera.useMapBounds = enabled;
     }
     /**
      * \brief Converts a world-space position to normalized screen-space coordinates.

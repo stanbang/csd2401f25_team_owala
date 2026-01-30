@@ -140,4 +140,21 @@ namespace Framework {
         float duration_ = 1.5f;
         float timer_ = 0.0f;
     };
+
+
+    // --- DEATH STATE ---
+    class BirdDeathState : public State {
+    public:
+        const char* GetName() const override { return "Death"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetDuration() const { return duration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float duration_ = 0.9f;
+    };
 }

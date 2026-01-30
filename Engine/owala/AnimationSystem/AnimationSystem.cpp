@@ -78,6 +78,9 @@ namespace Framework {
 				else if (stateName == "Recovery") {
 					animationComponent.currentState = AnimationState::RUNNING; // Back to "Fly" after missing
 				}
+				else if (stateName == "Death") {
+					animationComponent.currentState = AnimationState::DEATH;
+				}
 			}
 
 			// Generic Texture Lookup

@@ -74,6 +74,8 @@ namespace TestScene {
 
         if (playerEntity && mainCamera) {
             cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+            cameraSystem->CalculateAndSetBoundsFromPlatforms(mainCamera, 0.0f);
+
         }
 	}
 

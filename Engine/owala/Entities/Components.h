@@ -56,7 +56,11 @@ namespace Framework{
 		RUNNING,
 		JUMPING,
 		FALLING,
-		DEATH
+		DEATH,
+		INVULNERABLE_IDLE,
+		INVULNERABLE_RUNNING,
+		INVULNERABLE_JUMPING,
+		INVULNERABLE_FALLING
 	};
 
 	// For particle emission modes
@@ -149,6 +153,10 @@ namespace Framework{
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 		bool isDead = false;
+
+		int currentLives = 3;  // Start with 3 lives
+		bool isInvulnerable = false;
+		float invulnerabilityTimer = 0.0f;
 	};
 
 	struct Triangle { 
@@ -166,6 +174,12 @@ namespace Framework{
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
 		bool isEditorControlled = false;   // NEW: Prevent game from moving this camera
+	
+		bool useMapBounds = false;
+		float mapMinX = -100.0f;
+		float mapMaxX = 100.0f;
+		float mapMinY = -100.0f;
+		float mapMaxY = 100.0f;
 	};
 
 	struct TextureComponent {
@@ -231,9 +245,11 @@ namespace Framework{
 	struct TrapPlatformComponent {
 		bool isTriggered = false;
 		bool hasFallen = false;
+		bool isGrounded = false;
 		float triggerDelay{ 0.0f };
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };
+		float airTime{ 0.0f };
 		Vector2D originalPosition;
 		//float currentFallDistance{ 0.0f };
 	};

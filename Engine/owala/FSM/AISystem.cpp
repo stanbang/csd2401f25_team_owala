@@ -52,7 +52,7 @@ namespace Framework {
 
         // 2. AI Update Loop
         float dt = Framework::Time::DeltaTime();
-
+        std::vector<Entity> entitiesToDestroy;
         for (const Entity& entity : aiEntities) {
             FSMComponent& ai = entityMgr.GetComponent<FSMComponent>(entity);
 
@@ -71,6 +71,18 @@ namespace Framework {
 
             // The Magic: Generic Update
             ai.fsm.Update(entity, GameManager::GetInstance().GetECS(), dt);
+
+            if (ai.fsm.GetCurrentState() == "Death") {
+                State* deathState = ai.fsm.GetState("Death");
+                if (auto* ds = dynamic_cast<BirdDeathState*>(deathState)) {
+                    if (ds->GetTimer() >= ds->GetDuration()) {
+                        entitiesToDestroy.push_back(entity);
+                    }
+                }
+            }
+        }
+        for (Entity entity : entitiesToDestroy) {
+            entityMgr.DestroyEntity(entity);
         }
     }
 
