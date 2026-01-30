@@ -534,7 +534,8 @@ namespace Framework {
 			name == "SplashScreen" || 
 			name == "RestartMenu" || 
 			name == "LoadingScreen" || 
-			name == "HowToPlay")
+			name == "HowToPlay" ||
+			name == "OptionsMenu")
 			return false;
 		return true;
 	}

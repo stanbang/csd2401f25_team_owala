@@ -1,3 +1,18 @@
+/*****************************************************************//**
+ * \file   TransitionController.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Implements the TransitionController script to manage
+ *          curtain open/close transitions between scenes.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "TransitionController.h"
 #include "ScriptRegistry.h"
 #include "Components.h"

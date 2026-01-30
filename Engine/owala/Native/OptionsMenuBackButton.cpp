@@ -1,3 +1,18 @@
+/*****************************************************************//**
+ * \file   OptionsMenuBackButton.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Implements the OptionsMenuBackButton script to handle
+ *          the back button functionality in the options menu.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "OptionsMenuBackButton.h"
 #include "ScriptRegistry.h"
 #include "Components.h"

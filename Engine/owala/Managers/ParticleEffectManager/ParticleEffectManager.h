@@ -1,3 +1,19 @@
+/*****************************************************************//**
+ * \file  ParticleEffectManager.h
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Declaration of the Particle Effect Manager class. Which
+ *          loads particle effect presets from JSON files and manages
+ *          the mappings between trigger events and effect presets.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #pragma once
 #include <string>
 #include <unordered_map>
