@@ -110,6 +110,9 @@ namespace Framework {
                         state.isFacingRight = false;
                     }
                 }
+                else {
+                    vel.Vel.x = 0.0f;
+                }
 
                 // Animation State Handling
                 AnimationState animState = AnimationState::IDLE; // Default to IDLE
