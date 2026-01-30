@@ -75,6 +75,8 @@ namespace Framework{
 		int customRenderOrder = 0; // Used when renderLayer is Custom
 		std::string renderLayerName = ""; // store name of dynamiclly created layers
 		bool isActive = true;
+
+		uint64_t uuid;
 	};
 
 	/* Transform Component indicating data relating to the entity's Position, Rotation and Scale */

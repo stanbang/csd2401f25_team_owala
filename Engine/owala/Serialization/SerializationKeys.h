@@ -41,6 +41,7 @@ namespace Framework::Serialization {
 	static constexpr const char* ENTITY_CUSTOM_RENDER_ORDER = "custom_render_order"; 
 	static constexpr const char* ENTITY_IS_ACTIVE = "active";
 	static constexpr const char* ENTITY_RENDER_LAYER_NAME = "layer_render_name";
+	static constexpr const char* ENTITY_UUID = "uuid";
 
 	/* Layer Configuration Keys */
 	static constexpr const char* RENDER_LAYERS = "RenderLayers";

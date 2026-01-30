@@ -47,6 +47,9 @@ namespace Framework {
 		// Validate if Entity exists. Returns true if Entity is a valid entity.
 		bool ValidateEntity(Entity entity);
 
+		// Generates a UUID
+		static uint64_t GenerateUUID();
+
 		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
 		bool HasComponent(Entity entity, ComponentType componentType) const;
 		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h

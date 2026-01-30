@@ -22,10 +22,15 @@
 
 #include "EntitySerializer.h"
 #include "SerializationKeys.h"
+#include "GameManager.h"
 #include "EntityManager.h"
 #include "ScriptRegistry.h"
 #include "FileUtility.h"
 #include "Logger.h"
+
+// STL
+#include <unordered_map>
+#include <unordered_set>
 
 // Internal Helpers - Will move this and the Editor's version to a global utils file later.
 namespace {
@@ -80,6 +85,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER_NAME), rapidjson::StringRef(properties.renderLayerName.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_IS_ACTIVE), properties.isActive, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_UUID), rapidjson::Value().SetUint64(properties.uuid), alloc);
 	}
 
 	void EntitySerializer::SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
@@ -805,6 +811,10 @@ namespace Framework {
 		if (entityData.HasMember(Serialization::ENTITY_IS_ACTIVE) && entityData[Serialization::ENTITY_IS_ACTIVE].IsBool()) {
 			out.isActive = entityData[Serialization::ENTITY_IS_ACTIVE].GetBool();
 		}
+
+		if (entityData.HasMember(Serialization::ENTITY_UUID) && entityData[Serialization::ENTITY_UUID].IsUint64()) {
+			out.uuid = entityData[Serialization::ENTITY_UUID].GetUint64();
+		}
 	}
 
 	bool EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList) {
@@ -827,9 +837,64 @@ namespace Framework {
 			// Deserialize scene name and entities
 			sceneName = sceneData[Serialization::SCENE_NAME].GetString();
 			const rapidjson::Value& entitiesData = sceneData[Serialization::ENTITIES];
+			
+			EntityManager entityMgr(ecs);
+
+			// Map currently persistent entities by UUID
+			std::unordered_map<uint64_t, Entity> existingPersistentByUUID;
+			std::vector<Entity> persistentEntities = entityMgr.GetAllEntitiesWithComponent(PersistentTagType);
+			existingPersistentByUUID.reserve(persistentEntities.size());
+			for (Entity entity : persistentEntities) {
+				if (GameManager::GetInstance().IsGamePlaying()) {
+					if (entityMgr.GetComponent<SceneOwned>(entity).sceneIndex != SceneManager::GetDDOLSceneID()) continue;
+				}
+				uint64_t uuid = entityMgr.GetProperties(entity).uuid;
+				if (uuid != 0) existingPersistentByUUID[uuid] = entity;
+			}
+
+			std::unordered_set<Entity> alreadyPushed;
+			alreadyPushed.reserve(static_cast<size_t>(entitiesData.Size()));
+
 			if (entitiesData.IsArray()) {
 				for (const rapidjson::Value& en : entitiesData.GetArray()) {
-					entitiesList.push_back(DeserializeEntity(ecs, en));
+					bool wantsPersistent = false;
+
+					if (en.HasMember(Serialization::TAGS) && en[Serialization::TAGS].IsArray()) {
+						for (const rapidjson::Value& tag : en[Serialization::TAGS].GetArray()) {
+							if (tag.IsString() && (std::string(tag.GetString()) == Serialization::PERSISTENT_TAG)) {
+								wantsPersistent = true;
+								break;
+							}
+						}
+					}
+
+					uint64_t desiredUUID = 0;
+					if (en.HasMember(Serialization::ENTITY_UUID) && en[Serialization::ENTITY_UUID].IsUint64()) {
+						desiredUUID = en[Serialization::ENTITY_UUID].GetUint64();
+					}
+
+					// If persistent and already exists, reuse the entity instead.
+					if (wantsPersistent && desiredUUID != 0) {
+						std::unordered_map<uint64_t, Entity>::iterator it = existingPersistentByUUID.find(desiredUUID);
+						if (it != existingPersistentByUUID.end()) {
+							Entity existing = it->second;
+							if (alreadyPushed.insert(existing).second) {
+								entitiesList.push_back(existing);
+							}
+							continue;
+						}
+					}
+
+					// Otherwise create a new entity from JSON.
+					Entity created = DeserializeEntity(ecs, en);
+
+					if (wantsPersistent) {
+						uint64_t newUUID = entityMgr.GetProperties(created).uuid;
+						if (newUUID != 0) existingPersistentByUUID[newUUID] = created;
+					}
+
+					entitiesList.push_back(created);
+					alreadyPushed.insert(created);
 				}
 			}
 			return true;

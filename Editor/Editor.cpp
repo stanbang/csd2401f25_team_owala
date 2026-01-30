@@ -1124,6 +1124,8 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+		EntityManager entityMgr(*ecs);
+		entityMgr.GetProperties(pastedEntity).uuid = EntityManager::GenerateUUID();
 
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
@@ -2207,6 +2209,14 @@ namespace Editor {
 				editingName = false;
 			}
 			// --- End Name Field ---
+
+			// --- UUID ---
+			std::string entityUUID = "UUID: ";
+			entityUUID += std::to_string(entityMgr.GetProperties(selectedEntity).uuid);
+
+			ImGui::TextDisabled(entityUUID.c_str());
+			
+			// --- End UUID ---
 
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;

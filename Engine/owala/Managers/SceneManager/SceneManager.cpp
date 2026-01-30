@@ -452,12 +452,17 @@ namespace Framework {
 		std::string assignedName = targetScene->name;
 
 		// If entity is persistent, redirect it to the don't destroy on load scene
+#ifdef BUILD_EDITOR
+		if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) {
+			assignedIndex = DDOL_SCENEID;
+			assignedName = DDOL_SCENENAME;
+		}
+#else
 		if (entityMgr.HasComponent(entity, PersistentTagType)) {
 			assignedIndex = DDOL_SCENEID;
 			assignedName = DDOL_SCENENAME;
 
 			// Ensure DDOL is marked as loaded in the Engine build
-			#ifndef BUILD_EDITOR
 			SceneAsset* ddol = GetSceneAssetMutable(DDOL_SCENEID);
 			if (ddol && !ddol->isLoaded) {
 				ddol->isLoaded = true;
@@ -465,8 +470,8 @@ namespace Framework {
 					loadedScenes_.push_back(DDOL_SCENEID);
 				}
 			}
-			#endif
 		}
+#endif
 
 		// Assign Scene Ownership
 		if (!entityMgr.HasComponent(entity, SceneOwnedType)) {

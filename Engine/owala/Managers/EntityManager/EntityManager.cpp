@@ -12,6 +12,9 @@
 #include "Logger.h"
 #include "ScriptRegistry.h"
 
+// STL
+#include <random>
+
 namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
 
@@ -30,6 +33,7 @@ namespace Framework {
 
 		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
+		ecs.properties[newEntity].uuid = GenerateUUID();
 
 		return newEntity;
 	}
@@ -40,6 +44,7 @@ namespace Framework {
 
 		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(entityID), 0U, UINT_MAX)) + ")";
 		ecs.properties[entityID] = EntityProperties{ entityName, CollisionLayer::Default };
+		ecs.properties[entityID].uuid = GenerateUUID();
 
 		if (entityID >= nextEntityID) {
 			nextEntityID = entityID + 1;
@@ -55,6 +60,7 @@ namespace Framework {
 
 		Entity newEntity = CreateEntity();
 		GetProperties(newEntity) = GetProperties(entity);
+		GetProperties(newEntity).uuid = GenerateUUID();
 		ComponentSignature otherSignature = ecs.entitySignatures[entity];
 
 		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
@@ -127,6 +133,16 @@ namespace Framework {
 		}
 		
 		return true;
+	}
+
+	uint64_t EntityManager::GenerateUUID() {
+		static std::random_device rd;
+		static std::mt19937 rng(rd());
+		static std::uniform_int_distribution<uint64_t> dist;
+
+		uint64_t gen = 0;
+		while (gen == 0) gen = dist(rng);
+		return gen;
 	}
 
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
