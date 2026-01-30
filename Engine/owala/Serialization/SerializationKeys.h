@@ -207,7 +207,7 @@ namespace Framework::Serialization {
 
 	static constexpr const char* SLIDER = "Slider";
 	static constexpr const char* SLIDER_CURRENT_VALUE = "current_value";
-	static constexpr const char* SLIDER_HANDLE_ENTITY = "handle_entity";
+	static constexpr const char* SLIDER_HANDLE_NAME = "handle_name";
 	static constexpr const char* SLIDER_MIN_VALUE = "min_value";
 	static constexpr const char* SLIDER_MAX_VALUE = "max_value";
 	static constexpr const char* SLIDER_WIDTH = "width";

@@ -4262,39 +4262,22 @@ namespace Editor {
 				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
 			}
 
-			// Drag and Drop Target for Entity
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY")) {
-					IM_ASSERT(payload->DataSize == sizeof(Entity));
-					Entity droppedEntity = *(const Entity*)payload->Data;
-
-					// Assign dropped entity ID to the slider
-					slider.handleEntity = droppedEntity;
-
-					// Mark as active to trigger the Undo/Redo history save
-					activeNow = true;
-				}
-				ImGui::EndDragDropTarget();
-			}
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Drag an entity from the Hierarchy here");
+			// Handle Name
+			ImGui::InputText("Handle Name", &slider.handleName);
 			if (ImGui::IsItemActive()) activeNow = true;
-
 			// Current Value
 			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-
 			// Min Value
 			ImGui::InputFloat("Min Value", &slider.minValue, 0.1f, 1.0f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-
 			// Max Value
 			ImGui::InputFloat("Max Value", &slider.maxValue, 0.1f, 1.0f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-
 			// Width
 			ImGui::InputFloat("Width", &slider.width, 1.0f, 10.0f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
-
+			// X Offset
 			ImGui::InputFloat("Track Offset X", &slider.widthOffsetX, 1.0f, 10.0f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Shifts the slidable area left or right from the center");

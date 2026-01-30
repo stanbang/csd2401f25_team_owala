@@ -170,6 +170,9 @@ namespace Framework {
 		inline const auto& GetEntitySignatures() const {
 			return ecs.entitySignatures;
 		}
+
+		//Get entity by name
+		Entity GetEntityByName(const std::string& name) const;
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.

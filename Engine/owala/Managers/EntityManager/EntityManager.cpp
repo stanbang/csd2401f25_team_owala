@@ -401,9 +401,17 @@ namespace Framework {
 		return false; // Entity not found or does not have the component
 	}
 
-	/*void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
-		// Empty by design.
-	}*/
+	Entity EntityManager::GetEntityByName(const std::string& name) const {
+		// If exact match found, return immediately
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+			if (props.name == name) return entity;
+		}
+
+		Logger::Get().Info(DebugType::GameManager) << "GetEntityByName: Entity with name '" << name << "' not found." << std::endl;
+		return static_cast<Entity>(-1); // Return invalid entity
+	}
 
 #pragma endregion
 }

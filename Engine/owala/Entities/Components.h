@@ -547,12 +547,15 @@ namespace Framework{
 	};
 
 	struct Slider {
-		Entity handleEntity;
+		Entity handleEntity = 0;
+		std::string handleName = "";
+
 		float minValue = 0.0f;
 		float maxValue = 1.0f;
 		float currentValue = 1.0f;
 		float width = 1.0f; // Total width of the slider bar
 		float widthOffsetX = 0.0f;
 		bool isDragging = false;
+		bool needsResolution = true;
 	};
 }

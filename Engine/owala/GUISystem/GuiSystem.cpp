@@ -150,8 +150,27 @@ namespace Framework {
             Slider& slider = entityMgr.GetComponent<Slider>(sliderEntity);
             Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
 
-            // Get the handle entity
+			// Get the handle entity by resolving its name if needed
+            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity)) {
+                if (!slider.handleName.empty()) {
+                    slider.handleEntity = entityMgr.GetEntityByName(slider.handleName);
+
+                    // If found, we don't need to resolve again this session
+                    if (slider.handleEntity != 0) {
+                        slider.needsResolution = false;
+                    }
+                    else {
+                        // If still not found, skip this frame
+                        continue;
+                    }
+                }
+                else {
+                    continue; // No name provided to search with
+                }
+            }
+
             Entity handle = slider.handleEntity;
+
 			// Safety check just in case the handle entity does not have a Button component
             if (!entityMgr.HasComponent(handle, ComponentType::ButtonType)) {continue;}
 			// Get handle components
