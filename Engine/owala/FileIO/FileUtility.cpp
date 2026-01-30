@@ -195,6 +195,30 @@ namespace Framework {
 		return anim;
 	}
 
+	void FileIOSystem::LoadAudioFileNames(std::unordered_map<std::string, std::vector<std::string>>& audioFilesMap) {
+		rapidjson::Document d;
+		ReadFile(FileIOKeys::AUDIO_NAMES_FILEPATH, d); //Read the file name passed in as a path
+
+		// Check if the JSON file is an object
+		if (!d.IsObject()) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing audio data in " << FileIOKeys::AUDIO_NAMES_FILEPATH << std::endl;
+			return;
+		}
+
+		for (rapidjson::GenericMemberIterator itr = d.MemberBegin(); itr != d.MemberEnd(); ++itr) {
+			std::string key = itr->name.GetString();
+			
+			if (itr->value.IsArray()) {
+				for (rapidjson::Value& v : itr->value.GetArray()) {
+					if (v.IsString()) {
+						std::string filePath = v.GetString();
+						audioFilesMap[key].push_back(filePath);
+					}
+				}
+			}
+		}
+	}
+
 	bool FileIOSystem::LoadSceneAssets(rapidjson::Document& doc) {
 		rapidjson::Document d;
 		if (!ReadFile(FileIOKeys::SCENE_ASSETS_FILEPATH, d) || !d.IsArray()) {

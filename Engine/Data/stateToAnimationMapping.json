@@ -19,7 +19,10 @@
     "IDLE": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
     "WAKING": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
     "CHASE": "SB_BirdEnemy_Fly_Spritesheet_1.png",
+    "SIMPLECHASE": "SB_BirdEnemy_Fly_Spritesheet_1.png",
+    "BOUNCE": "SB_BirdEnemy_Fly_Spritesheet_1.png",
     "HOVER": "SB_BirdEnemy_Fly_Spritesheet_1.png",
-    "ATTACK": "SB_BirdEnemy_DiveAttack_Spritesheet.png"
+    "ATTACK": "SB_BirdEnemy_DiveAttack_Spritesheet.png",
+    "RECOVERY": "SB_BirdEnemy_Fly_Spritesheet_1.png"
   }
 }

@@ -112,47 +112,45 @@ namespace Framework {
             // Determine if trap should fall at current rotation
             bool shouldFall = ShouldTrapFall(entityMgr, entity, worldRotation);
 
-            // If rotation changed and this trap should no longer fall, stop it
-            if (trapComp.hasFallen && !shouldFall) {
-                // Stop the trap from falling
+            // RESET: If rotation changed, reset everything so it can fall again later
+            if ((trapComp.hasFallen || trapComp.isGrounded) && !shouldFall) {
                 if (entityMgr.HasComponent(entity, VelocityType)) {
                     entityMgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
                 }
-                // Make it static again
                 if (entityMgr.HasComponent(entity, RigidBodyType)) {
                     entityMgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
                 }
-                // Reset fallen state but keep it triggered
                 trapComp.hasFallen = false;
+                trapComp.isTriggered = false;
+                trapComp.isGrounded = false;
+                trapComp.airTime = 0.0f;
+                trapComp.currentDelay = 0.0f;
                 continue;
             }
 
-            // Skip if already fallen and should still be falling
+            // GROUNDED CHECK: If it hit the floor, DO NOTHING.
+            if (trapComp.isGrounded) {
+                continue; // Skip everything else. Do not apply velocity. Do not trigger.
+            }
+
+            // FALLING LOGIC: If it is currently falling
             if (trapComp.hasFallen && shouldFall) {
-                // Continue applying falling velocity
                 if (entityMgr.HasComponent(entity, VelocityType)) {
-                    Vector2D fallDir = GetFallDirection(/*entityName, worldRotation*/);
+                    Vector2D fallDir = GetFallDirection();
                     entityMgr.GetComponent<Velocity>(entity).Vel = fallDir * trapComp.fallSpeed;
+                    trapComp.airTime += Framework::Time::DeltaTime();
                 }
                 continue;
             }
 
-            // Trigger the trap if conditions are met and not already triggered
+            // TRIGGER LOGIC: If not triggered yet, start the timer
             if (!trapComp.isTriggered && shouldFall) {
                 trapComp.isTriggered = true;
                 trapComp.currentDelay = 0.0f;
-                //std::cout << "TRAP TRIGGERED: " << entityName << " at rotation " << worldRotation << "\n";
+                trapComp.airTime = 0.0f;
             }
 
-            // Reset trigger if rotation changed before falling
-            if (trapComp.isTriggered && !trapComp.hasFallen && !shouldFall) {
-                trapComp.isTriggered = false;
-                trapComp.currentDelay = 0.0f;
-                //std::cout << "TRAP RESET: " << entityName << " - rotation changed before falling\n";
-                continue;
-            }
-
-            // Handle trigger delay countdown
+            // COUNTDOWN: Handle delay
             if (trapComp.isTriggered && !trapComp.hasFallen && shouldFall) {
                 trapComp.currentDelay += Framework::Time::DeltaTime();
 
@@ -162,12 +160,6 @@ namespace Framework {
                         entityMgr.GetComponent<RigidBody>(entity).SetMass(1.0f);
                     }
                 }
-            }
-
-            // Apply falling velocity only if should be falling
-            if (trapComp.hasFallen && shouldFall && entityMgr.HasComponent(entity, VelocityType)) {
-                Vector2D fallDir = GetFallDirection(/*entityName, worldRotation*/);
-                entityMgr.GetComponent<Velocity>(entity).Vel = fallDir * trapComp.fallSpeed;
             }
         }
     }

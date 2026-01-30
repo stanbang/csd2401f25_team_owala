@@ -12,9 +12,10 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-        // Replace single instance with a list of all active controllers
-        std::vector<TransitionController*> TransitionController::allControllers;
+    // Replace single instance with a list of all active controllers
+    std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
+    float TransitionController::s_lastOpenEventTime = -1.0f;
 
     const std::string CLOSE_ANIM_TEXTURE = "SB_Curtain_Close_Spritesheet_01.png";
     const std::string OPEN_ANIM_TEXTURE = "SB_Curtain_Open_Spritesheet_01.png";
@@ -83,6 +84,8 @@ namespace Framework {
             if (onComplete) onComplete();
             return;
         }
+
+        MessageBus::Instance().Publish(CurtainsCloseEvent());
 
         bool callbackAssigned = false;
 
@@ -157,6 +160,14 @@ namespace Framework {
         animTimer_ = 0.0f;
         onTransitionComplete_ = onComplete;
 
+        float currentTime = Framework::Time::TotalRuntime();
+
+        // Only publish if enough time has passed since the last one
+        if (currentTime - s_lastOpenEventTime > 0.1f) {
+            MessageBus::Instance().Publish(CurtainsOpenEvent());
+            s_lastOpenEventTime = currentTime;
+        }
+
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
 
@@ -207,7 +218,6 @@ namespace Framework {
         if (!entityMgr.HasComponent(GetEntity(), TextureComponentType)) return;
 
         TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
-
         // Get current scene and check if it's a level
         std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
         bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
@@ -220,8 +230,6 @@ namespace Framework {
         }
 
         if (state_ == TransitionState::HIDDEN) {
-            std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
-            bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
 
             // If we are NOT in a level (e.g., MainMenu, LoadingScreen), ensure texture is empty.
             // This removes the "hanging curtains" that are preserved from the previous level.
@@ -269,8 +277,6 @@ namespace Framework {
 
             if (t >= 1.0f) {
                 state_ = TransitionState::HIDDEN;
-
-                TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
 
                 if (onTransitionComplete_) {
                     auto callback = onTransitionComplete_;

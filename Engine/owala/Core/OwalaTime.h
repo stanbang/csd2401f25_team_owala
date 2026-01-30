@@ -35,6 +35,7 @@ namespace Framework {
 
 		/* Accumulated Time */
 		static inline double accumulatedTime = 0.0; // Internal Time
+		static inline double totalAppTime = 0.0;
 	public:
 		/* Time Capturing - Only CoreEngine should be calling these functions */
 		// Let Engine call this
@@ -49,6 +50,8 @@ namespace Framework {
 		static float DeltaTime() noexcept { return dt; }
 		// The interval in seconds with no influence from timescale from the last frame to the current frame (Read Only).
 		static float UnscaledDeltaTime() noexcept { return unscaledDt; }
+		// Total runtime
+		static float TotalRuntime() noexcept { return static_cast<float>(totalAppTime); }
 
 		/* Mutators */
 		// The interval in seconds of in-game time at which physics and other fixed frame rate updates are performed.

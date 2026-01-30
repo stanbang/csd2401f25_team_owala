@@ -49,9 +49,7 @@ namespace Framework {
 			if (entityMgr.HasComponent(entity, PlayerStateType)) {
 				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
 			}
-			/*else if (entityMgr.HasComponent(entity, BirdAIComponentType)) {
-				isFacingRight = entityMgr.GetComponent<BirdAIComponent>(entity).isFacingRight;
-			}*/
+
 			if (entityMgr.HasComponent(entity, FSMComponentType)) {
 				if (entityMgr.HasComponent(entity, VelocityType)) {
 					const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
@@ -93,21 +91,31 @@ namespace Framework {
 				// Find the profile in the map
 				if (animationProfiles.count(animationComponent.profileName)) {
 					const auto& stateMap = animationProfiles.at(animationComponent.profileName);
+					std::string targetStateString = "";
 
-					//// Synchronize animation state with AI state for BirdEnemy
-					//if (animationComponent.profileName == "BirdEnemy" &&
-					//	entityMgr.HasComponent(entity, BirdAIComponentType)) {
-					//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(entity);
-					//	// Map BirdState to AnimationState
-					//	// We use the stateMap keys from the JSON which are: IDLE, WAKING, CHASE, HOVER, ATTACK
-					//	int birdStateIndex = static_cast<int>(ai.state);
-					//	animationComponent.currentState = static_cast<AnimationState>(birdStateIndex);
-					//}
+					// If entity has FSM, the FSM state will determine the animation state
+					if (entityMgr.HasComponent(entity, FSMComponentType)) {
+						FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
+						targetStateString = fsm.fsm.GetCurrentState();
 
-					// Find the texture for the current state (cast enum to int)
-					int stateIndex = static_cast<int>(animationComponent.currentState);
-					if (stateMap.count(stateIndex)) {
-						newTextureKey = stateMap.at(stateIndex);
+						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
+						std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
+					}
+
+					// Fallback for Player/Non-FSM entities using the legacy AnimationState enum
+					else {
+						switch (animationComponent.currentState) {
+						case AnimationState::IDLE: targetStateString = "IDLE"; break;
+						case AnimationState::RUNNING: targetStateString = "RUNNING"; break;
+						case AnimationState::JUMPING: targetStateString = "JUMPING"; break;
+						case AnimationState::FALLING: targetStateString = "FALLING"; break;
+						case AnimationState::DEATH: targetStateString = "DEATH"; break;
+						}
+					}
+
+					// Look up the texture using the string directly
+					if (stateMap.count(targetStateString)) {
+						newTextureKey = stateMap.at(targetStateString);
 					}
 				}
 			}
