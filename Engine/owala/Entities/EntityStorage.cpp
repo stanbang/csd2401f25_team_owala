@@ -24,8 +24,6 @@ namespace Framework {
 		animatedTex = other.animatedTex;
 		text = other.text;
 		cameras = other.cameras;
-	/*	birdAIComponent = other.birdAIComponent;
-		skeletonAIComponent = other.skeletonAIComponent;*/
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
