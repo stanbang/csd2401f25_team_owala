@@ -66,6 +66,19 @@ namespace Framework{
 		LOOP_BURST     // Emit multiple bursts on trigger
 	};
 
+	// To separate different audio types
+	enum class AudioType {
+		SFX,
+		MUSIC
+	};
+
+	// Different slider sound types
+	enum class SliderSoundType {
+		MASTER_VOLUME,
+		MUSIC_VOLUME,
+		SFX_VOLUME
+	};
+
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
 	struct EntityProperties {
 		std::string name = "Empty";
@@ -179,6 +192,7 @@ namespace Framework{
 		bool loop = false;
 		bool stream = false;
 		float volume = 0.5f;
+		AudioType audioType = AudioType::SFX; // Default audio is SFX
 	};
 
 	struct AnimationComponent {
@@ -557,5 +571,8 @@ namespace Framework{
 		float widthOffsetX = 0.0f;
 		bool isDragging = false;
 		bool needsResolution = true;
+
+		SliderSoundType sliderType = SliderSoundType::MASTER_VOLUME; //Default to master volume
+		bool isInitialized = false;
 	};
 }

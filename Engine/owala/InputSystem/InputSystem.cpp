@@ -104,7 +104,7 @@ namespace Framework {
         if (KeyPressed(Key::T)) {
             try {
                 FMOD::Sound& sfx = resources->get<FMOD::Sound>("jingle.ogg");
-                audio->play(sfx, 1.0f, false);
+                audio->play(sfx, AudioType::SFX, 1.0f, false);
             }
             catch (...) {
                 // ignore if missing
@@ -114,7 +114,7 @@ namespace Framework {
         if (KeyPressed(Key::Y)) {
             try {
                 FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect.ogg");
-                audio->play(sfx, 1.0f, false);
+                audio->play(sfx, AudioType::SFX, 1.0f, false);
             }
             catch (...) {
                 // ignore if missing

@@ -951,6 +951,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::SHOULD_LOOP), audioComp.loop, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_STREAMING), audioComp.stream, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::VOLUME), audioComp.volume, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::AUDIO_TYPE), static_cast<int>(audioComp.audioType), alloc);
 	}
 
 	// Animation Component
@@ -1172,6 +1173,7 @@ namespace Framework {
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_WIDTH), slider.width, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_WIDTH_OFFSET_X), slider.widthOffsetX, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_IS_DRAGGING), slider.isDragging, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_TYPE), static_cast<int>(slider.sliderType), alloc);
 	}
 #pragma endregion
 
@@ -1451,6 +1453,12 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::VOLUME) && componentData[Serialization::VOLUME].IsFloat()) {
 			out.volume = componentData[Serialization::VOLUME].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::AUDIO_TYPE) && componentData[Serialization::AUDIO_TYPE].IsInt()) {
+			out.audioType = static_cast<AudioType>(componentData[Serialization::AUDIO_TYPE].GetInt());
+		}
+		else {
+			out.audioType = AudioType::SFX; // Default for old save files
 		}
 		return true;
 	}
@@ -1887,6 +1895,14 @@ namespace Framework {
 
 		if (componentData.HasMember(Serialization::SLIDER_IS_DRAGGING))
 			out.isDragging = componentData[Serialization::SLIDER_IS_DRAGGING].GetBool();
+		
+		if (componentData.HasMember(Serialization::SLIDER_TYPE) && componentData[Serialization::SLIDER_TYPE].IsInt()) {
+			out.sliderType = static_cast<SliderSoundType>(componentData[Serialization::SLIDER_TYPE].GetInt());
+		}
+		else {
+			out.sliderType = SliderSoundType::MASTER_VOLUME; // Default
+		}
+
 		return true;
 	}
 

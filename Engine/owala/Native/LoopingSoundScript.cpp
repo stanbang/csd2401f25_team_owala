@@ -18,7 +18,7 @@ void LoopingSoundScript::OnUpdate() {
     if (loopTime <= 0.f) {
         try {
             FMOD::Sound& sfx = rsm.get<FMOD::Sound>("soundeffect.ogg");
-            audio.play(sfx, 1.0f, false);
+            audio.play(sfx, AudioType::SFX, 1.0f, false);
         }
         catch (...) {
             // ignore if missing

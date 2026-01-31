@@ -120,6 +120,7 @@ namespace Framework::Serialization {
 	static constexpr const char* SHOULD_LOOP = "should_loop";
 	static constexpr const char* IS_STREAMING = "is_streaming";
 	static constexpr const char* VOLUME = "volume";
+	static constexpr const char* AUDIO_TYPE = "audio_type";
 
 	static constexpr const char* ANIMATION_COMPONENT = "AnimationComponent";
 	static constexpr const char* ANIMATION_PROFILE = "profile_name";
@@ -213,6 +214,7 @@ namespace Framework::Serialization {
 	static constexpr const char* SLIDER_WIDTH = "width";
 	static constexpr const char* SLIDER_WIDTH_OFFSET_X = "width_offset_x";
 	static constexpr const char* SLIDER_IS_DRAGGING = "is_dragging";
+	static constexpr const char* SLIDER_TYPE = "slider_type";
 
 	//// bird AI Keys
 	//static constexpr const char* BIRD_AI_COMPONENT = "BirdAIComponent";

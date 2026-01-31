@@ -3084,7 +3084,7 @@ namespace Editor {
 			if (ImGui::Button("Test Hover Sound") && !buttonComp.hoverSoundKey.empty()) {
 				try {
 					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.hoverSoundKey);
-					gameManager_->GetSystems().audio_->play(sound, buttonComp.hoverSoundVolume, false);
+					gameManager_->GetSystems().audio_->play(sound, AudioType::SFX, buttonComp.hoverSoundVolume, false);
 				}
 				catch (...) {
 					Framework::Logger::Get().Error(DebugType::Editor)
@@ -3124,7 +3124,7 @@ namespace Editor {
 			if (ImGui::Button("Test Click Sound") && !buttonComp.clickSoundKey.empty()) {
 				try {
 					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.clickSoundKey);
-					gameManager_->GetSystems().audio_->play(sound, buttonComp.clickSoundVolume, false);
+					gameManager_->GetSystems().audio_->play(sound, AudioType::SFX, buttonComp.clickSoundVolume, false);
 				}
 				catch (...) {
 					Framework::Logger::Get().Error(DebugType::Editor)
@@ -3390,6 +3390,26 @@ namespace Editor {
 				}
 
 				ImGui::EndPopup();
+			}
+
+			// Audio Type Dropdown (SFX vs Music)
+			const char* audioTypeItems[] = { "SFX", "Music" };
+			int currentAudioTypeIndex = static_cast<int>(audioComp.audioType);
+
+			if (ImGui::Combo("Audio Type", &currentAudioTypeIndex, audioTypeItems, IM_ARRAYSIZE(audioTypeItems))) {
+				// Record state before change for Undo
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Apply change
+				audioComp.audioType = static_cast<AudioType>(currentAudioTypeIndex);
+
+				// Record state after for Undo
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Audio Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			// Looping Checkbox
@@ -4255,6 +4275,27 @@ namespace Editor {
 		case ComponentType::SliderType: {
 			Slider& slider = entityMgr.GetComponent<Slider>(selectedEntity);
 			bool activeNow = false;
+
+			// Slider Sound Type Dropdown
+			const char* sliderTypeItems[] = { "Master Volume", "Music Volume", "SFX Volume" };
+			int currentSliderTypeIndex = static_cast<int>(slider.sliderType);
+
+			if (ImGui::Combo("Control Type", &currentSliderTypeIndex, sliderTypeItems, IM_ARRAYSIZE(sliderTypeItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Update the slider type
+				slider.sliderType = static_cast<SliderSoundType>(currentSliderTypeIndex);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Record for Undo/Redo
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+			ImGui::Separator();
 
 			int handleId = static_cast<int>(slider.handleEntity);
 			if (ImGui::InputInt("Handle Entity ID", &handleId)) {

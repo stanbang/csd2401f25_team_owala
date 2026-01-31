@@ -187,6 +187,23 @@ namespace Framework {
                 slider.isDragging = false;
             }
 
+			// Initialize slider value on first update to sync with audio system
+            if (!slider.isInitialized) {
+                // Force an update
+                switch (slider.sliderType) {
+                case SliderSoundType::MASTER_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setMasterVolume(slider.currentValue);
+                    break;
+                case SliderSoundType::MUSIC_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setMusicVolume(slider.currentValue);
+                    break;
+                case SliderSoundType::SFX_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setSFXVolume(slider.currentValue);
+                    break;
+                }
+                slider.isInitialized = true;
+            }
+
             // Update handle position and slider value while dragging
             if (slider.isDragging) {
                 float widthCenterX = bgTransform.position.x + slider.widthOffsetX;
@@ -205,8 +222,17 @@ namespace Framework {
                 float normalizedValue = (clampedMouseX - minX) / slider.width;
                 slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
 
-                // Set master volume using the calculated value
-                GameManager::GetInstance().GetSystems().audio_->setMasterVolume(slider.currentValue);
+                switch (slider.sliderType) {
+                case SliderSoundType::MASTER_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setMasterVolume(slider.currentValue);
+                    break;
+                case SliderSoundType::MUSIC_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setMusicVolume(slider.currentValue);
+                    break;
+                case SliderSoundType::SFX_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setSFXVolume(slider.currentValue);
+                    break;
+                }
             }
         }
 	}
@@ -238,7 +264,7 @@ namespace Framework {
 			// Assuming you have access to AudioSystem through a pointer
 			if (audioSystem_) {
 				FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(soundKey);
-				audioSystem_->play(sound, volume, false);
+				audioSystem_->play(sound, AudioType::SFX, volume, false);
 			}
 		}
 		catch (const std::exception& e) {
