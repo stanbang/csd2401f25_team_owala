@@ -62,6 +62,9 @@ namespace Framework {
 		// Load AnimationInfo from a given filepath
 		static AnimationInfo LoadAnimationInfo(std::string filepath);
 
+		// Load audio file names from audio json file
+		static void LoadAudioFileNames(std::unordered_map<std::string, std::vector<std::string>>& audioFilesMap);
+
 		// Reads SceneAssets file (scenes.json) and assigns its data to doc
 		static bool LoadSceneAssets(Document& doc);
 
@@ -81,6 +84,7 @@ namespace Framework {
 		static constexpr const char* WIN_CONFIG_FILEPATH = "Data/config.json";
 		static constexpr const char* PLAYER_CONFIG_FILEPATH = "Data/player.json";
 		static constexpr const char* WORLD_CONFIG_FILEPATH = "Data/world.json";
+		static constexpr const char* AUDIO_NAMES_FILEPATH = "Data/audioFiles.json";
 
 		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
 		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";

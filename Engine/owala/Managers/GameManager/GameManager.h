@@ -174,6 +174,9 @@ namespace Framework {
 		void RegisterScriptToScene(SceneGUID sceneIndex, SceneFunction initFunction, SceneFunction updateFunction, SceneFunction freeFunction);
 		void UnregisterScriptFromScene(SceneGUID sceneIndex);
 
+		// Checks if game is currently in play mode or not
+		bool IsGamePlaying() const;
+
 		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
 		std::string GetNextScene() const { return nextSceneToLoad_; }
 		void InitiateLevelLoad(const std::string& levelName);

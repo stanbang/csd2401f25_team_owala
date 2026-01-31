@@ -43,7 +43,6 @@ namespace Framework {
 
 	enum ComponentType : int {
 		TransformType = 0,
-		SpawnPointType,
 		VelocityType,
 		AccelerationType,
 		TriangleType,
@@ -67,10 +66,9 @@ namespace Framework {
 		SceneOwnedType,
 		PersistentTagType,
 		ActiveTagType,     
-		/*BirdAIComponentType, 
-		SkeletonAIComponentType, */
 		FSMComponentType,
 		GUITagType,
+		SpawnPointTagType,
 		ParticleComponentType,
 		ParticleEmitterComponentType,
 		SliderType,
@@ -90,7 +88,6 @@ namespace Framework {
 
 	// Specializations for each real component
 	template <> struct ComponentTypeTrait<Transform> { static constexpr ComponentType value = TransformType; };
-	template <> struct ComponentTypeTrait<SpawnPoint> { static constexpr ComponentType value = SpawnPointType; };
 	template <> struct ComponentTypeTrait<Velocity> { static constexpr ComponentType value = VelocityType; };
 	template <> struct ComponentTypeTrait<Acceleration> { static constexpr ComponentType value = AccelerationType; };
 	template <> struct ComponentTypeTrait<Triangle> { static constexpr ComponentType value = TriangleType; };
@@ -114,13 +111,12 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<SceneOwned> { static constexpr ComponentType value = SceneOwnedType; };
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
 	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };  
-	/*template <> struct ComponentTypeTrait<BirdAIComponent> { static constexpr ComponentType value = BirdAIComponentType; };
-	template <> struct ComponentTypeTrait<SkeletonAIComponent> { static constexpr ComponentType value = SkeletonAIComponentType; }; */
 	template <> struct ComponentTypeTrait<FSMComponent> { static constexpr ComponentType value = FSMComponentType; };
 	template <> struct ComponentTypeTrait<ParticleComponent> { static constexpr ComponentType value = ParticleComponentType; };
 	template <> struct ComponentTypeTrait<ParticleEmitterComponent> { static constexpr ComponentType value = ParticleEmitterComponentType; };
 	template <> struct ComponentTypeTrait<Slider> { static constexpr ComponentType value = SliderType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
+	template <> struct ComponentTypeTrait<SpawnPointTag> { static constexpr ComponentType value = SpawnPointTagType; };
 
 #pragma endregion
 
@@ -134,7 +130,6 @@ namespace Framework {
 		/* Basic Components */
 		std::unordered_map<Entity, EntityProperties> properties;
 		std::unordered_map<Entity, Transform>	 transform;
-		std::unordered_map<Entity, SpawnPoint>   spawnPoint;
 		std::unordered_map<Entity, Velocity>     velocity;
 		std::unordered_map<Entity, Acceleration> acceleration;
 		std::unordered_map<Entity, Triangle>     triangle;

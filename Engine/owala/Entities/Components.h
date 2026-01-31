@@ -56,7 +56,11 @@ namespace Framework{
 		RUNNING,
 		JUMPING,
 		FALLING,
-		DEATH
+		DEATH,
+		INVULNERABLE_IDLE,
+		INVULNERABLE_RUNNING,
+		INVULNERABLE_JUMPING,
+		INVULNERABLE_FALLING
 	};
 
 	// For particle emission modes
@@ -88,6 +92,8 @@ namespace Framework{
 		int customRenderOrder = 0; // Used when renderLayer is Custom
 		std::string renderLayerName = ""; // store name of dynamiclly created layers
 		bool isActive = true;
+
+		uint64_t uuid;
 	};
 
 	/* Transform Component indicating data relating to the entity's Position, Rotation and Scale */
@@ -110,12 +116,6 @@ namespace Framework{
 		// Parameterized Constructor
 		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
 			: position(pos), rotation(angle), scale(scl) {}
-	};
-
-	/*	SpawnPoint component to store initial x and y
-	coordinates of an entity.*/
-	struct SpawnPoint {
-		Vector2D Pos;
 	};
 
 	/*	Velocity component to store x and y
@@ -162,6 +162,10 @@ namespace Framework{
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 		bool isDead = false;
+
+		int currentLives = 3;  // Start with 3 lives
+		bool isInvulnerable = false;
+		float invulnerabilityTimer = 0.0f;
 	};
 
 	struct Triangle { 
@@ -179,6 +183,12 @@ namespace Framework{
 		float followSpeed = 5.0f;          // How quickly camera follows target (0 = instant)
 		bool isActive = false;             // Main camera flag
 		bool isEditorControlled = false;   // NEW: Prevent game from moving this camera
+	
+		bool useMapBounds = false;
+		float mapMinX = -100.0f;
+		float mapMaxX = 100.0f;
+		float mapMinY = -100.0f;
+		float mapMaxY = 100.0f;
 	};
 
 	struct TextureComponent {
@@ -233,6 +243,9 @@ namespace Framework{
 	struct EnemyTag {};
 	struct GUITag {};
 
+	/*	SpawnPoint tag for player spawn point*/
+	struct SpawnPointTag {};
+
 	struct RotationFlag {
 		
 		bool isRotating = false;
@@ -245,9 +258,11 @@ namespace Framework{
 	struct TrapPlatformComponent {
 		bool isTriggered = false;
 		bool hasFallen = false;
+		bool isGrounded = false;
 		float triggerDelay{ 0.0f };
 		float currentDelay{ 0.0f };
 		float fallSpeed{ 0.0f };
+		float airTime{ 0.0f };
 		Vector2D originalPosition;
 		//float currentFallDistance{ 0.0f };
 	};

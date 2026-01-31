@@ -167,6 +167,13 @@ namespace Framework {
          * \param event
          */
         void OnButtonClicked(const ButtonClickedEvent& event);
+        
+        /**
+         * \brief Trigger proximity based SFX
+         *
+         * \param pos, eventKey, maxVol
+         */
+        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, float maxVol = 1.0f);
 
         // For Interupption Handling
         /**
@@ -181,6 +188,13 @@ namespace Framework {
            */
         void ResumeAudio();
 
+        /**
+           * \brief Plays a random audio from the soundPaths_ map
+           * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
+           * from that array to play.
+           */
+        void PlayRandomSound(std::string eventKey, float volume);
+
     private:
         /// \name FMOD Core Pointers
         ///@{
@@ -194,6 +208,7 @@ namespace Framework {
         ///@{
         std::unordered_map<std::string, FMOD::Sound*>   sounds_;   //!< Cached sounds by ID (owned by FMOD; released on unload/Shutdown()).
         std::unordered_map<std::string, FMOD::Channel*> channels_; //!< Last started channel per ID (optional bookkeeping).
+        std::unordered_map<std::string, std::vector<std::string>> soundPaths_; //!< Audio file names read from json file. eg: "Player_Jump" : [file1, file2]
         ///@}
     };
 

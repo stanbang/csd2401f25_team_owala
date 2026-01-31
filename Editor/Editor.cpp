@@ -78,7 +78,6 @@ namespace Editor {
 		switch (componentType)
 		{
 		case ComponentType::TransformType:					return "Transform";
-		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
 		case ComponentType::TriangleType:					return "Triangle";
@@ -108,7 +107,8 @@ namespace Editor {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::ActiveTagType:					return "ActiveTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		
+		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
+
 		default:											return "Unknown";
 		}
 	}
@@ -1125,6 +1125,8 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+		EntityManager entityMgr(*ecs);
+		entityMgr.GetProperties(pastedEntity).uuid = EntityManager::GenerateUUID();
 
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
@@ -1543,9 +1545,14 @@ namespace Editor {
 		// Display list of scenes available to load
 		if (ImGui::CollapsingHeader("Scenes List")) {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
+				// skip persistent scene
+				if (scene.name == "Persistent") {
+					continue;
+				}
+
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1600,7 +1607,7 @@ namespace Editor {
 					}
 				}
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::EndDisabled();
 				}
 			}
@@ -2218,6 +2225,14 @@ namespace Editor {
 			}
 			// --- End Name Field ---
 
+			// --- UUID ---
+			std::string entityUUID = "UUID: ";
+			entityUUID += std::to_string(entityMgr.GetProperties(selectedEntity).uuid);
+
+			ImGui::TextDisabled(entityUUID.c_str());
+			
+			// --- End UUID ---
+
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
@@ -2637,12 +2652,6 @@ namespace Editor {
 				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
 			}
 			editSession.wasItemActive = nowActive;
-			break;
-		}
-		case ComponentType::SpawnPointType: {
-			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
-
-			ImGui::InputFloat2("Spawn Point", &spawnPt.Pos.x, "%.2f");
 			break;
 		}
 		case ComponentType::VelocityType: {

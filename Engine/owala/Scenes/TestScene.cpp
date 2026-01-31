@@ -17,7 +17,7 @@ namespace TestScene {
 
 	void Initialize() {
         //FileIOSystem fileIO;
-		//SceneManager& sceneMgr = SceneManager::GetInstance();
+		SceneManager& sceneMgr = SceneManager::GetInstance();
 		GameManager& gm = GameManager::GetInstance();
 		EntityStorage* ecs = gm.GetSystems().ecs_;
 		AudioSystem* audio = gm.GetSystems().audio_;
@@ -65,7 +65,7 @@ namespace TestScene {
         if (cameras.size() > 0) {
             mainCamera = cameras[0];
             cameraSystem->SetActiveCamera(mainCamera);
-            SceneManager::GetInstance().SetEntityAsPersistent(mainCamera);
+            sceneMgr.SetEntityAsPersistent(mainCamera);
 
             // Ensure game camera is NOT editor-controlled
             Camera& gameCam = cameraSystem->GetCamera(mainCamera);
@@ -74,6 +74,29 @@ namespace TestScene {
 
         if (playerEntity && mainCamera) {
             cameraSystem->SetFollowTarget(mainCamera, playerEntity, 8.0f);
+            cameraSystem->CalculateAndSetBoundsFromPlatforms(mainCamera, 0.0f);
+        }
+
+        // Spawn player at SpawnPoint
+        std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointTagType, ActiveTagType, TransformType);
+        if (spawnPts.size() > 0) {
+            if (entityMgr.HasComponent(playerEntity, TransformType)) {
+                Entity playerSpawnPt = spawnPts[0];
+                Transform& playerTransform = entityMgr.GetComponent<Transform>(playerEntity);
+                Transform spawnPtTransform = entityMgr.GetComponent<Transform>(playerSpawnPt);
+            
+                playerTransform.position = spawnPtTransform.position;
+                Framework::Logger::Get().Info(DebugType::GameManager) << "[TestScene] Spawned Player at (" << playerTransform.position.x 
+                    << ", " << playerTransform.position.y << ")" << std::endl;
+            }
+            else {
+                Framework::Logger::Get().Error(DebugType::GameManager) << "[TestScene] Player does not have Transform component!" << std::endl;
+            }
+        }
+        else {
+            Framework::Logger::Get().Error(DebugType::GameManager)
+                << "[TestScene] Player SpawnPoint missing! SpawnPtCount: "
+                << spawnPts.size() << std::endl;
         }
 	}
 

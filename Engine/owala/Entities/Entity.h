@@ -13,6 +13,7 @@
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #pragma once //Ensure the file is only included once during compilation
+#include <xhash>
 using Entity = unsigned int; // Define Entity as an alias for unsigned int, all "Entity" usage is essentially unsigned int usage
 extern Entity nextEntityID; // Global var to track next available entity ID
 

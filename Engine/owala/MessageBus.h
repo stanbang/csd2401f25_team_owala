@@ -111,11 +111,24 @@ namespace Framework {
          */
         template <typename T>
         void Publish(const T& message) {
-            std::lock_guard<std::mutex> lock(mutex_);
-            auto it = subscribers_.find(typeid(T));
-            if (it == subscribers_.end()) return;
+            // PREPARE SNAPSHOT
+            // Create a local list to hold the callbacks for this specific frame.
+            std::vector<AnyCallback> callbacksToRun;
 
-            for (auto& sub : it->second)
+            {
+                // We lock ONLY long enough to find and copy the pointers.
+                // We do NOT hold the lock while running user code.
+                std::lock_guard<std::mutex> lock(mutex_);
+
+                auto it = subscribers_.find(typeid(T));
+                if (it == subscribers_.end()) return;
+
+                if (it != subscribers_.end()) {
+                    callbacksToRun = it->second; // Copy the vector
+                }
+            }
+
+            for (auto& sub : callbacksToRun)
                 sub(&message);
         }
 

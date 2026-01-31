@@ -39,6 +39,7 @@ namespace Framework {
 		//player death
 		void CheckPlayerDeathFromTraps();
 		void CheckPlayerDeathFromEnemies();
+		void DamagePlayer(Entity playerEntity, const std::string& damageSource = "Unknown");
 		void KillPlayer(Entity playerEntity, const std::string& killerType = "Unknown");
 		bool IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius);
 		void HandlePlayerDeath();
@@ -46,5 +47,13 @@ namespace Framework {
 		//player movement
 		float moveSpeed = 0.0f;
 		float jumpHeight = 0.0f;
+
+		//enemy death
+		void CheckEnemyDeathFromTraps();
+		void TriggerEnemyDeath(Entity enemyEntity, const std::string& killerType = "Unknown");
+
+		static constexpr float INVULNERABILITY_DURATION = 1.0f;
+
+		void UpdateInvulnerability();
 	};
 } // namespace Framework

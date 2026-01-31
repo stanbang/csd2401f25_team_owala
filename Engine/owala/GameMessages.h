@@ -94,8 +94,20 @@ namespace Framework {
 		Vector2D position = { 0.0f, 0.0f };
 	};
 
+	struct TrapPlatformLandEvent {
+		Vector2D position;
+	};
+
 	// Empty structs for signalling
 	struct WorldRotationEvent {};
 	struct PlatformLandEvent {};
 
+
+	struct PlayerDamagedEvent {
+		Entity playerEntity;
+		int livesRemaining;
+	};
+	struct PlayerLandEvent {};
+	struct CurtainsOpenEvent {};
+	struct CurtainsCloseEvent {};
 } // namespace Framework

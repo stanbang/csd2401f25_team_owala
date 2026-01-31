@@ -25,6 +25,7 @@ namespace Framework {
 		dt = 0.0f;
 		unscaledDt = 0.0f;
 		accumulatedTime = 0.0;
+		totalAppTime = 0.0;
 	}
 
 	void Time::BeginFrame() noexcept {
@@ -34,6 +35,7 @@ namespace Framework {
 
 		unscaledDt = std::min(frameDuration, maxDt); // cap huge delta time
 		dt = unscaledDt * timeScale;
+		totalAppTime += unscaledDt;
 
 		prev = now;
 	}

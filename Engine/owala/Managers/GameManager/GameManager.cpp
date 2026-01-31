@@ -115,8 +115,7 @@ namespace Framework {
 				if (!script.enabled) continue;
 
 #ifdef BUILD_EDITOR
-				const bool isPlaying = (editor_ != nullptr) ? editor_->IsGamePlaying() : true;
-				if (!script.executeInEditMode && !isPlaying) continue;
+				if (!script.executeInEditMode && !IsGamePlaying()) continue;
 #endif
 
 				if (!script.Instance && script.InstantiateScript) {
@@ -216,6 +215,14 @@ namespace Framework {
 
 	void GameManager::UnregisterScriptFromScene(SceneGUID sceneIndex) {
 		sceneCallbacks_.erase(sceneIndex);
+	}
+
+	bool GameManager::IsGamePlaying() const {
+#ifdef BUILD_EDITOR
+		return (editor_ != nullptr) ? editor_->IsGamePlaying() : true;
+#else
+		return true;
+#endif
 	}
 
 	void GameManager::Initialize() {

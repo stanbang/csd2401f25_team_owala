@@ -22,10 +22,15 @@
 
 #include "EntitySerializer.h"
 #include "SerializationKeys.h"
+#include "GameManager.h"
 #include "EntityManager.h"
 #include "ScriptRegistry.h"
 #include "FileUtility.h"
 #include "Logger.h"
+
+// STL
+#include <unordered_map>
+#include <unordered_set>
 
 // Internal Helpers - Will move this and the Editor's version to a global utils file later.
 namespace {
@@ -80,6 +85,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_CUSTOM_RENDER_ORDER), properties.customRenderOrder, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_RENDER_LAYER_NAME), rapidjson::StringRef(properties.renderLayerName.c_str()), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_IS_ACTIVE), properties.isActive, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::ENTITY_UUID), rapidjson::Value().SetUint64(properties.uuid), alloc);
 	}
 
 	void EntitySerializer::SerializeComponents(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
@@ -91,14 +97,6 @@ namespace Framework {
 			rapidjson::Value value(rapidjson::kObjectType);
 			SerializeComponent(transform, value, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_COMPONENT), value, alloc);
-		}
-
-		// Serialize SpawnPoint Component
-		if (entityMgr.HasComponent(entity, ComponentType::SpawnPointType)) {
-			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(entity);
-			rapidjson::Value value(rapidjson::kObjectType);
-			SerializeComponent(spawnPt, value, alloc);
-			componentList.AddMember(rapidjson::StringRef(Serialization::SPAWN_PT_COMPONENT), value, alloc);
 		}
 
 		// Serialize Velocity Component
@@ -287,6 +285,10 @@ namespace Framework {
 			rapidjson::Value tagVal(Serialization::GUI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
+		if (entityMgr.HasComponent(entity, ComponentType::SpawnPointTagType)) {
+			rapidjson::Value tagVal(Serialization::SPAWN_PT_TAG, alloc);
+			tagsList.PushBack(tagVal, alloc);
+		}
 
 		outData.AddMember(rapidjson::StringRef(Serialization::TAGS), tagsList, alloc);
 	}
@@ -357,9 +359,6 @@ namespace Framework {
 		switch (compType) {
 		case TransformType:
 			SerializeComponent(entityMgr.GetComponent<Transform>(entity), componentData, alloc);
-			break;
-		case SpawnPointType:
-			SerializeComponent(entityMgr.GetComponent<SpawnPoint>(entity), componentData, alloc);
 			break;
 		case VelocityType:
 			SerializeComponent(entityMgr.GetComponent<Velocity>(entity), componentData, alloc);
@@ -469,16 +468,6 @@ namespace Framework {
 			Transform transform;
 			if (DeserializeComponent(transformData, transform)) {
 				entityMgr.AddComponent<Transform>(loadedEntity, transform);
-			}
-		}
-
-		// Deserialize SpawnPoint Component
-		if (componentLists.HasMember(Serialization::SPAWN_PT_COMPONENT)) {
-			const rapidjson::Value& pos = componentLists[Serialization::SPAWN_PT_COMPONENT];
-
-			SpawnPoint spawnPt;
-			if (DeserializeComponent(pos, spawnPt)) {
-				entityMgr.AddComponent<SpawnPoint>(loadedEntity, spawnPt);
 			}
 		}
 
@@ -697,6 +686,9 @@ namespace Framework {
 				else if (tag == Serialization::GUI_TAG) {
 					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
 				}
+				else if (tag == Serialization::SPAWN_PT_TAG) {
+					entityMgr.AddComponent<SpawnPointTag>(loadedEntity, SpawnPointTag{});
+				}
 			}
 		}
 	}
@@ -780,6 +772,10 @@ namespace Framework {
 		if (entityData.HasMember(Serialization::ENTITY_IS_ACTIVE) && entityData[Serialization::ENTITY_IS_ACTIVE].IsBool()) {
 			out.isActive = entityData[Serialization::ENTITY_IS_ACTIVE].GetBool();
 		}
+
+		if (entityData.HasMember(Serialization::ENTITY_UUID) && entityData[Serialization::ENTITY_UUID].IsUint64()) {
+			out.uuid = entityData[Serialization::ENTITY_UUID].GetUint64();
+		}
 	}
 
 	bool EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList) {
@@ -802,9 +798,64 @@ namespace Framework {
 			// Deserialize scene name and entities
 			sceneName = sceneData[Serialization::SCENE_NAME].GetString();
 			const rapidjson::Value& entitiesData = sceneData[Serialization::ENTITIES];
+			
+			EntityManager entityMgr(ecs);
+
+			// Map currently persistent entities by UUID
+			std::unordered_map<uint64_t, Entity> existingPersistentByUUID;
+			std::vector<Entity> persistentEntities = entityMgr.GetAllEntitiesWithComponent(PersistentTagType);
+			existingPersistentByUUID.reserve(persistentEntities.size());
+			for (Entity entity : persistentEntities) {
+				if (GameManager::GetInstance().IsGamePlaying()) {
+					if (entityMgr.GetComponent<SceneOwned>(entity).sceneIndex != SceneManager::GetDDOLSceneID()) continue;
+				}
+				uint64_t uuid = entityMgr.GetProperties(entity).uuid;
+				if (uuid != 0) existingPersistentByUUID[uuid] = entity;
+			}
+
+			std::unordered_set<Entity> alreadyPushed;
+			alreadyPushed.reserve(static_cast<size_t>(entitiesData.Size()));
+
 			if (entitiesData.IsArray()) {
 				for (const rapidjson::Value& en : entitiesData.GetArray()) {
-					entitiesList.push_back(DeserializeEntity(ecs, en));
+					bool wantsPersistent = false;
+
+					if (en.HasMember(Serialization::TAGS) && en[Serialization::TAGS].IsArray()) {
+						for (const rapidjson::Value& tag : en[Serialization::TAGS].GetArray()) {
+							if (tag.IsString() && (std::string(tag.GetString()) == Serialization::PERSISTENT_TAG)) {
+								wantsPersistent = true;
+								break;
+							}
+						}
+					}
+
+					uint64_t desiredUUID = 0;
+					if (en.HasMember(Serialization::ENTITY_UUID) && en[Serialization::ENTITY_UUID].IsUint64()) {
+						desiredUUID = en[Serialization::ENTITY_UUID].GetUint64();
+					}
+
+					// If persistent and already exists, reuse the entity instead.
+					if (wantsPersistent && desiredUUID != 0) {
+						std::unordered_map<uint64_t, Entity>::iterator it = existingPersistentByUUID.find(desiredUUID);
+						if (it != existingPersistentByUUID.end()) {
+							Entity existing = it->second;
+							if (alreadyPushed.insert(existing).second) {
+								entitiesList.push_back(existing);
+							}
+							continue;
+						}
+					}
+
+					// Otherwise create a new entity from JSON.
+					Entity created = DeserializeEntity(ecs, en);
+
+					if (wantsPersistent) {
+						uint64_t newUUID = entityMgr.GetProperties(created).uuid;
+						if (newUUID != 0) existingPersistentByUUID[newUUID] = created;
+					}
+
+					entitiesList.push_back(created);
+					alreadyPushed.insert(created);
 				}
 			}
 			return true;
@@ -851,12 +902,6 @@ namespace Framework {
 		scale.AddMember(rapidjson::StringRef(Serialization::VEC2_X), transform.scale.x, alloc);
 		scale.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), transform.scale.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TRANSFORM_SCALE), scale, alloc);
-	}
-
-	// Spawnpoint Component
-	void EntitySerializer::SerializeComponent(const SpawnPoint& spawnPt, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-		outData.AddMember(rapidjson::StringRef(Serialization::VEC2_X), spawnPt.Pos.x, alloc);
-		outData.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), spawnPt.Pos.y, alloc);
 	}
 
 	// Velocity Component
@@ -1235,19 +1280,6 @@ namespace Framework {
 			if (scaleData.HasMember(Serialization::VEC2_Y) && scaleData[Serialization::VEC2_Y].IsFloat()) {
 				out.scale.y = scaleData[Serialization::VEC2_Y].GetFloat();
 			}
-		}
-		return true;
-	}
-
-	// SpawnPoint Component
-	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, SpawnPoint& out) {
-		if (!componentData.IsObject()) return false;
-
-		if (componentData.HasMember(Serialization::VEC2_X) && componentData[Serialization::VEC2_X].IsFloat()) {
-			out.Pos.x = componentData[Serialization::VEC2_X].GetFloat();
-		}
-		if (componentData.HasMember(Serialization::VEC2_Y) && componentData[Serialization::VEC2_Y].IsFloat()) {
-			out.Pos.y = componentData[Serialization::VEC2_Y].GetFloat();
 		}
 		return true;
 	}
