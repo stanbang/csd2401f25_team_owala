@@ -26,6 +26,7 @@ void OptionsMenuBackButton::OnCreate() {
 
 void OptionsMenuBackButton::OnUpdate() {
     if (shouldCloseMenu_) {
+        GameManager::GetInstance().GetSystems().physics_->SetPaused(false);
         SceneManager::GetInstance().UnloadScene("OptionsMenu");
         shouldCloseMenu_ = false;
         return; // Don't process button this frame
@@ -34,13 +35,14 @@ void OptionsMenuBackButton::OnUpdate() {
     // Get self
     Entity self = GetEntity();
     EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
+	InputSystem& inputSystem_ = *GameManager::GetInstance().GetSystems().input_;
 
     // Get the Button component attached to this entity
     if (entityMgr.HasComponent(self, ComponentType::ButtonType)) {
         const Button& btn = entityMgr.GetComponent<Button>(self);
 
         // When the button is clicked, defer unload to next frame
-        if (btn.isHovered && !btn.isPressed && btn.wasHoveredLastFrame) {
+        if (btn.isHovered && inputSystem_.MouseReleased(InputSystem::MouseButton::Left)) {
             shouldCloseMenu_ = true;
         }
     }
