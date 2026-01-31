@@ -1998,16 +1998,26 @@ namespace Editor {
 
 			auto drawEntityItem = [&](Entity entity) {
 				if (!entityMgr.ValidateEntity(entity)) return;
-
+				
 				const std::string& name = entityMgr.GetProperties(entity).name;
+
 
 				ImGui::PushID(static_cast<int>(entity));
 
 				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(160, 160, 160, 255));
+				}
+
 				if (ImGui::Selectable(name.c_str(), &selected)) {
 					selectedTagIndex = selectedComponentIndex = 0;
 					selectedEntityIndex = entity + 1;
 					isEntitySelected_ = true;
+				}
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PopStyleColor();
 				}
 
 				// Allows right-click selection
@@ -2214,6 +2224,22 @@ namespace Editor {
 				editingName = false;
 			}
 			// --- End Name Field ---
+
+			// --- Active Toggle Checkbox ---
+			ImGui::SameLine();
+			bool isActiveLocal = entityMgr.GetProperties(selectedEntity).isActive;
+			if (ImGui::Checkbox("Is Active?", &isActiveLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+				entityMgr.GetProperties(selectedEntity).isActive = isActiveLocal;
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Is Active in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
+			}
+			// --- End Active Toggle Checkbox ---
 
 			// --- UUID ---
 			std::string entityUUID = "UUID: ";
