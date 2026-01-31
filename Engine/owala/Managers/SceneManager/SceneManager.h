@@ -68,7 +68,7 @@ namespace Framework {
 		// Internal Helpers
 		SceneAsset* GetSceneAssetMutable(SceneGUID sceneIndex);
 		void EnsureScenePopulated(SceneGUID sceneIndex);
-		void RebuildActiveTags();
+		void RebuildLoadedTags();
 
 #ifdef BUILD_EDITOR
 		/* Scene Context Handling */

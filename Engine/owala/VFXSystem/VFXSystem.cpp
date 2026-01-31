@@ -55,7 +55,7 @@ namespace Framework {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		int emittersFound = 0;
 		
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleEmitterComponentType)) {
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
 			
 			// Skip continuous emitters
@@ -201,8 +201,8 @@ namespace Framework {
 
 	void VFXSystem::EmitParticles(EntityManager& entityMgr) {
 		// Loop through all particle emitters
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleEmitterComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 			if (!entityMgr.HasComponent(entity, ParticleEmitterComponentType)) continue;
 
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
@@ -278,8 +278,8 @@ namespace Framework {
 	}
 
 	void VFXSystem::UpdateParticles(EntityManager& entityMgr) {
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 			if (!entityMgr.HasComponent(entity, ParticleComponentType)) continue;
 
 			ParticleComponent& particle = entityMgr.GetComponent<ParticleComponent>(entity);
@@ -356,7 +356,7 @@ namespace Framework {
 			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
 		}
 
-		entityMgr.AddComponent<ActiveTag>(particleEntity, ActiveTag{});
+		entityMgr.AddComponent<LoadedTag>(particleEntity, LoadedTag{});
 	}
 
 	void VFXSystem::Shutdown() {

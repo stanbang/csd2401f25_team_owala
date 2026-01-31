@@ -65,7 +65,7 @@ namespace Framework {
 		EnemyTagType,
 		SceneOwnedType,
 		PersistentTagType,
-		ActiveTagType,     
+		LoadedTagType,
 		FSMComponentType,
 		GUITagType,
 		SpawnPointTagType,
@@ -110,7 +110,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<EnemyTag> { static constexpr ComponentType value = EnemyTagType; };
 	template <> struct ComponentTypeTrait<SceneOwned> { static constexpr ComponentType value = SceneOwnedType; };
 	template <> struct ComponentTypeTrait<PersistentTag> { static constexpr ComponentType value = PersistentTagType; };
-	template <> struct ComponentTypeTrait<ActiveTag> { static constexpr ComponentType value = ActiveTagType; };  
+	template <> struct ComponentTypeTrait<LoadedTag> { static constexpr ComponentType value = LoadedTagType; };  
 	template <> struct ComponentTypeTrait<FSMComponent> { static constexpr ComponentType value = FSMComponentType; };
 	template <> struct ComponentTypeTrait<ParticleComponent> { static constexpr ComponentType value = ParticleComponentType; };
 	template <> struct ComponentTypeTrait<ParticleEmitterComponent> { static constexpr ComponentType value = ParticleEmitterComponentType; };

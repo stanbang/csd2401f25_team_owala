@@ -81,6 +81,8 @@ namespace Editor{
 		void RestoreEntityFromSnapshot(Entity entity, const std::string& json);
 		// Restores a component to the state recorded in the JSON snapshot.
 		void ApplyComponentSnapshot(Entity entity, Framework::ComponentType type, const std::string& json);
+		// Helper to handle LoadedTag.
+		void SyncSceneLoadedState(Entity entity);
 	public:
 		HistoryManager() = default;
 

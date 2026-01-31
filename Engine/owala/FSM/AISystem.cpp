@@ -28,7 +28,7 @@ namespace Framework {
 
     Entity AISystem::GetPlayer() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        auto players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        auto players = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
         return players.empty() ? 0 : players[0];
     }
 
@@ -36,7 +36,7 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Get all entities with FSM component
-        std::vector<Entity> aiEntities = entityMgr.GetAllEntitiesWithComponent(FSMComponentType); // Make sure to add this Enum to Components.h
+        std::vector<Entity> aiEntities = entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType); // Make sure to add this Enum to Components.h
 
         bool worldIsRotating = GameManager::GetInstance().GetSystems().transformation_->IsGlobalRotating();
 
@@ -119,7 +119,7 @@ namespace Framework {
         // ... [Keep your existing Grid drawing code] ...
 
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        auto aiEntities = entityMgr.GetAllEntitiesWithComponent(FSMComponentType);
+        auto aiEntities = entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType);
 
         for (Entity entity : aiEntities) {
             if (!entityMgr.HasComponent(entity, TransformType)) continue;

@@ -157,7 +157,7 @@ namespace Framework {
         // FAKE PLAYER SWITCH ANIMATIONS
         if (KeyPressed(Key::F)) {
             //Get all entities with FakePlayerTag
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(FakePlayerTagType)) {
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, FakePlayerTagType)) {
                 AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
                 if (animationComponent.currentState != AnimationState::RUNNING) {
                     animationComponent.currentState = AnimationState::RUNNING;

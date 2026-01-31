@@ -142,7 +142,7 @@ namespace Framework {
         }
 
         // --- Collect Sprite Entities ---
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, TransformType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextureComponentType, TransformType, LoadedTagType)) {
             TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(entity);
             if (sprite.textureKey.empty()) continue;
 
@@ -315,7 +315,7 @@ namespace Framework {
             zoomRatio = zoomRefSize / zoom;
         }
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextComponentType, TransformType, LoadedTagType)) {
             const auto& textComp = entityMgr.GetComponent<TextComponent>(entity);
             if (textComp.fontKey.empty() || textComp.textToDraw.empty()) continue;
 
@@ -397,7 +397,7 @@ namespace Framework {
             activeCamera = cameraSystem_->GetActiveCamera();
         }
 
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
             if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
             const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
             if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;

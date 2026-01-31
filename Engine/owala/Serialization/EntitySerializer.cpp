@@ -277,10 +277,10 @@ namespace Framework {
 			rapidjson::Value tagVal(Serialization::PERSISTENT_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
 		}
-		if (entityMgr.HasComponent(entity, ComponentType::ActiveTagType)) {
-			rapidjson::Value tagVal(Serialization::ACTIVE_TAG, alloc);
-			tagsList.PushBack(tagVal, alloc);
-		}
+		//if (entityMgr.HasComponent(entity, ComponentType::ActiveTagType)) {
+		//	rapidjson::Value tagVal(Serialization::ACTIVE_TAG, alloc);
+		//	tagsList.PushBack(tagVal, alloc);
+		//}
 		if (entityMgr.HasComponent(entity, ComponentType::GUITagType)) {
 			rapidjson::Value tagVal(Serialization::GUI_TAG, alloc);
 			tagsList.PushBack(tagVal, alloc);
@@ -681,7 +681,8 @@ namespace Framework {
 					entityMgr.AddComponent<PersistentTag>(loadedEntity, PersistentTag{});
 				}
 				else if (tag == Serialization::ACTIVE_TAG) {
-					entityMgr.AddComponent<ActiveTag>(loadedEntity, ActiveTag{});
+					continue;
+					//entityMgr.AddComponent<ActiveTag>(loadedEntity, ActiveTag{});
 				}
 				else if (tag == Serialization::GUI_TAG) {
 					entityMgr.AddComponent<GUITag>(loadedEntity, GUITag{});
@@ -803,7 +804,7 @@ namespace Framework {
 
 			// Map currently persistent entities by UUID
 			std::unordered_map<uint64_t, Entity> existingPersistentByUUID;
-			std::vector<Entity> persistentEntities = entityMgr.GetAllEntitiesWithComponent(PersistentTagType);
+			std::vector<Entity> persistentEntities = entityMgr.GetAllEntitiesWithComponent(false, PersistentTagType);
 			existingPersistentByUUID.reserve(persistentEntities.size());
 			for (Entity entity : persistentEntities) {
 				if (GameManager::GetInstance().IsGamePlaying()) {

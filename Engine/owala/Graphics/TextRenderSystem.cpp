@@ -30,7 +30,7 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Loop through all text components
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextComponentType, TransformType, LoadedTagType)) {
             auto& textComp = entityMgr.GetComponent<TextComponent>(entity);
             if (textComp.fontKey.empty() || textComp.textToDraw.empty()) continue;
 

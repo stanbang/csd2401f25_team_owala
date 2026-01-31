@@ -190,7 +190,7 @@ namespace Framework {
 		case ComponentType::EnemyTagType: ; break;
 		case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(entity, SceneOwned{}); break;
 		case ComponentType::PersistentTagType:
-		case ComponentType::ActiveTagType: break;
+		case ComponentType::LoadedTagType: break;
 		case ComponentType::GUITagType: break;
 		case ComponentType::SpawnPointTagType: break;
 
@@ -243,7 +243,7 @@ namespace Framework {
 			case EnemyTagType:; break;
 			case SceneOwnedType: ecs.sceneOwned.erase(entity); break;
 			case PersistentTagType:
-			case ActiveTagType: break;
+			case LoadedTagType: break;
 			case GUITagType: break;
 			case SpawnPointTagType: break;
 			default: 
@@ -262,7 +262,7 @@ namespace Framework {
 		case ComponentType::BackgroundTagType:
 		case ComponentType::EnemyTagType:
 		case ComponentType::PersistentTagType:
-		case ComponentType::ActiveTagType:
+		case ComponentType::LoadedTagType:
 		case ComponentType::GUITagType:
 		case ComponentType::SpawnPointTagType:
 			return true;
@@ -277,6 +277,28 @@ namespace Framework {
 			if (IsTagComponent(componentType)) {
 				RemoveComponent(entity, componentType);
 			}
+		}
+	}
+
+	bool EntityManager::IsActive(Entity entity) const {
+		auto it = ecs.properties.find(entity);
+		if (it != ecs.properties.end()) {
+			return it->second.isActive;
+		}
+		else {
+			Logger::Get().Info(DebugType::EntityManager) << "IsActive: Entity no longer exists!" << std::endl;
+			return false;
+		}
+	}
+
+	void EntityManager::SetActive(Entity entity, bool value) {
+		auto it = ecs.properties.find(entity);
+		if (it != ecs.properties.end()) {
+			it->second.isActive = value;
+		}
+		else {
+			Logger::Get().Info(DebugType::EntityManager) << "SetActive: Entity no longer exists!" << std::endl;
+			return;
 		}
 	}
 
@@ -343,13 +365,18 @@ namespace Framework {
 		return entities;
 	}
 
-	std::vector<Entity> EntityManager::GetAllEntitiesWithComponent(ComponentType componentType) const {
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponent(bool activeOnly, ComponentType componentType) const {
 		std::vector<Entity> entities;
 		for (const auto& [entity, signature] : ecs.entitySignatures) {
-			if (signature.test(componentType)) {
-				entities.push_back(entity);
-			}
+			// Check if signature matches the component signature
+			if (!signature.test(componentType)) continue;
+
+			// Check if entity is active.
+			if (activeOnly && !IsActive(entity)) continue;
+
+			entities.push_back(entity);
 		}
+
 		return entities;
 	}
 

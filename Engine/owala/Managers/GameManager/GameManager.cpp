@@ -103,10 +103,9 @@ namespace Framework {
 		SceneManager& sceneMgr = SceneManager::GetInstance();
 		
 		// Get all entities with NativeScriptsComponent and ActiveTag to log them
-		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType);
+		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType);
 		
-		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
-			if(!entityMgr.ValidateEntity(scriptableEntity)) continue;
+		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType)) {
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
 
 			if (nativeScripts.empty()) continue;

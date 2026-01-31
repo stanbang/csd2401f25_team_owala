@@ -264,7 +264,7 @@ namespace Framework {
                 entityMgr.AddComponent(entity, PersistentTag{});
             }
             else if (tag == Serialization::ACTIVE_TAG) {
-                entityMgr.AddComponent(entity, ActiveTag{});
+                //entityMgr.AddComponent(entity, ActiveTag{});
             }
             else if (tag == Serialization::GUI_TAG) {
                 entityMgr.AddComponent(entity, GUITag{});

@@ -105,7 +105,7 @@ namespace Editor {
 		case ComponentType::EnemyTagType:					return "EnemyTag";
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
-		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::LoadedTagType:					return "LoadedTag";
 		case ComponentType::GUITagType:						return "GUITag";
 		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
 
@@ -315,7 +315,7 @@ namespace Editor {
 				componentTypes.push_back(type);
 			}
 			else {
-				if (type == ComponentType::ActiveTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
+				if (type == ComponentType::LoadedTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
 				tagNames.push_back(ComponentToString(type));
 				tagTypes.push_back(type);
 			}
@@ -1999,12 +1999,18 @@ namespace Editor {
 
 			auto drawEntityItem = [&](Entity entity) {
 				if (!entityMgr.ValidateEntity(entity)) return;
-
+				
 				const std::string& name = entityMgr.GetProperties(entity).name;
+
 
 				ImGui::PushID(static_cast<int>(entity));
 
 				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(160, 160, 160, 255));
+				}
+
 				if (ImGui::Selectable(name.c_str(), &selected)) {
 					selectedTagIndex = selectedComponentIndex = 0;
 					selectedEntityIndex = entity + 1;
@@ -2017,6 +2023,10 @@ namespace Editor {
 					ImGui::SetDragDropPayload("HIERARCHY_ENTITY", &entity, sizeof(Entity));
 					ImGui::Text("Entity: %s (ID: %u)", name.c_str(), entity);
 					ImGui::EndDragDropSource();
+				}
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PopStyleColor();
 				}
 
 				// Allows right-click selection
@@ -2225,6 +2235,22 @@ namespace Editor {
 			}
 			// --- End Name Field ---
 
+			// --- Active Toggle Checkbox ---
+			ImGui::SameLine();
+			bool isActiveLocal = entityMgr.GetProperties(selectedEntity).isActive;
+			if (ImGui::Checkbox("Is Active?", &isActiveLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+				entityMgr.GetProperties(selectedEntity).isActive = isActiveLocal;
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Is Active in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
+			}
+			// --- End Active Toggle Checkbox ---
+
 			// --- UUID ---
 			std::string entityUUID = "UUID: ";
 			entityUUID += std::to_string(entityMgr.GetProperties(selectedEntity).uuid);
@@ -2370,9 +2396,9 @@ namespace Editor {
 				ImGui::Text("Active Tags:");
 				int tagCount = 0;
 
-				if (entityMgr.HasComponent(selectedEntity, ComponentType::ActiveTagType)) {
+				if (entityMgr.HasComponent(selectedEntity, ComponentType::LoadedTagType)) {
 					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-					ImGui::Text("[ActiveTag (Not Removable)]");
+					ImGui::Text("[LoadedTag (Not Removable)]");
 					ImGui::PopStyleColor();
 					++tagCount;
 				}
