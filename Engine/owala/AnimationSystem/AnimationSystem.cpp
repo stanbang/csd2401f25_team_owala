@@ -19,12 +19,17 @@
 #include <iostream>
 #include "GameManager.h"
 #include "OwalaTime.h"
+#include "PhysicsSystem.h" // For checking paused state
 
 namespace Framework {
 
 	void AnimationSystem::Update() {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+		PhysicsSystem& physics_ = *GameManager::GetInstance().GetSystems().physics_;
+		// If physics is paused, skip animation update
+		if (physics_.IsPaused()) { return; }
+
 		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
 		// Small padding to avoid texture bleeding
 		constexpr float UV_PADDING = 0.003f;

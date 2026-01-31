@@ -189,18 +189,36 @@ namespace Framework {
 
 			// Initialize slider value on first update to sync with audio system
             if (!slider.isInitialized) {
-                // Force an update
+                float currentSysVol = 1.0f;
                 switch (slider.sliderType) {
                 case SliderSoundType::MASTER_VOLUME:
-                    GameManager::GetInstance().GetSystems().audio_->setMasterVolume(slider.currentValue);
+                    currentSysVol = GameManager::GetInstance().GetSystems().audio_->getMasterVolume();
                     break;
                 case SliderSoundType::MUSIC_VOLUME:
-                    GameManager::GetInstance().GetSystems().audio_->setMusicVolume(slider.currentValue);
+                    currentSysVol = GameManager::GetInstance().GetSystems().audio_->getMusicVolume();
                     break;
                 case SliderSoundType::SFX_VOLUME:
-                    GameManager::GetInstance().GetSystems().audio_->setSFXVolume(slider.currentValue);
+                    currentSysVol = GameManager::GetInstance().GetSystems().audio_->getSFXVolume();
                     break;
                 }
+
+                // Update the slider value
+                slider.currentValue = currentSysVol;
+
+                // Update the visual Handle Position
+                // Formula: pos = minX + normalized_value * width
+                float widthCenterX = bgTransform.position.x + slider.widthOffsetX;
+                float minX = widthCenterX - (slider.width / 2.0f);
+
+                float range = slider.maxValue - slider.minValue;
+                float normalized = 0.0f;
+                if (range != 0.0f) {
+                    normalized = (slider.currentValue - slider.minValue) / range;
+                }
+
+                // Snap handle to the correct visual position immediately
+                handleTransform.position.x = minX + (normalized * slider.width);
+
                 slider.isInitialized = true;
             }
 

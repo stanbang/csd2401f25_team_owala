@@ -194,7 +194,14 @@ namespace Framework {
            * from that array to play.
            */
         void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
-
+        
+        /**
+		 * \brief Gets the master, music and SFX volume
+		 * \return The volume as float in [0,1]
+         */
+        float getMasterVolume();
+        float getMusicVolume();
+        float getSFXVolume();
     private:
         /// \name FMOD Core Pointers
         ///@{

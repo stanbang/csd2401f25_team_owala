@@ -331,6 +331,24 @@ namespace Framework {
         if (sfxGroup_) sfxGroup_->setVolume(volume);
 	}
 
+    float AudioSystem::getMasterVolume() {
+        float vol = 1.0f;
+        if (masterGroup_) masterGroup_->getVolume(&vol);
+        return vol;
+    }
+
+    float AudioSystem::getMusicVolume() {
+        float vol = 1.0f;
+        if (musicGroup_) musicGroup_->getVolume(&vol);
+        return vol;
+    }
+
+    float AudioSystem::getSFXVolume() {
+        float vol = 1.0f;
+        if (sfxGroup_) sfxGroup_->getVolume(&vol);
+        return vol;
+    }
+
     void AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
         if (soundPaths_.find(eventKey) != soundPaths_.end()) {
             const std::vector<std::string>& files = soundPaths_[eventKey];

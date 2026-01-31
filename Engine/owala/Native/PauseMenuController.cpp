@@ -18,6 +18,7 @@
 #include "GameManager.h"
 #include "InputSystem.h"
 #include "SceneManager.h"
+#include "PhysicsSystem.h"
 
 REGISTER_SCRIPT(PauseMenuController, "PauseMenuController")
 
@@ -27,17 +28,22 @@ void PauseMenuController::OnCreate() {
 
 void PauseMenuController::OnUpdate() {
     InputSystem& input = *GameManager::GetInstance().GetSystems().input_;
+	PhysicsSystem& physics = *GameManager::GetInstance().GetSystems().physics_;
 
-    // Check if the P key was just pressed
-    if (input.KeyPressed(InputSystem::Key::P)) {
+    // Check if the Escape key was just pressed
+    if (input.KeyPressed(InputSystem::Key::Escape)) {
         const SceneManagement::SceneAsset& optionsScene = SceneManager::GetInstance().GetSceneByName("OptionsMenu", true);
 
         // Toggle scene based on whether it is currently loaded
         if (optionsScene.IsValid() && optionsScene.isLoaded) {
+			// Unpause physics
+            physics.SetPaused(false);
             // Close scene if already open
             SceneManager::GetInstance().UnloadScene("OptionsMenu");
         }
         else {
+            // Pause physics
+            physics.SetPaused(true);
             // Load scene on top of current scene
             SceneManager::GetInstance().LoadScene("OptionsMenu", LoadSceneMode::Additive);
         }

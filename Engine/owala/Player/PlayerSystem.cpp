@@ -35,6 +35,7 @@ namespace Framework {
 	void PlayerSystem::Update() {
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        if (physics_.IsPaused()) {return;}
         InputSystem& input_ = *gm.GetSystems().input_;
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
 
