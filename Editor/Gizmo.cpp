@@ -33,35 +33,42 @@ GizmoSystem::GizmoSystem(Editor& editor) : editor_(&editor) {}
 void GizmoSystem::DrawInvisPlaceholders(ImDrawList* drawList) {
     // Draw placeholder green dot for SpawnPoint (invisible entities)
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
-    std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
-    for (Entity en : spawnPts) {
-        SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
-        ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(spawnPt.Pos);
-        drawList->AddCircleFilled(gizmoScreenPos, invisCircleRad_, IM_COL32(0, 255, 0, 255), 12);
-    }
+    entityMgr.ForEachEntityWithComponents(
+        [&](Entity en) {
+            Transform& transform = entityMgr.GetComponent<Transform>(en);
+            ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(transform.position);
+            drawList->AddCircleFilled(gizmoScreenPos, invisCircleRad_, IM_COL32(0, 255, 0, 255), 12);
+        }, true, SpawnPointTagType, LoadedTagType, TransformType
+    );
 }
 
 Entity GizmoSystem::IsInvisEntityClicked() {
     ImVec2 mouseScreenPos = ImGui::GetMousePos();
 
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
-    std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointType, ActiveTagType);
-    for (Entity en : spawnPts)
-    {
-        SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(en);
-        ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(spawnPt.Pos);
 
-        float dx = mouseScreenPos.x - gizmoScreenPos.x;
-        float dy = mouseScreenPos.y - gizmoScreenPos.y;
-        float distSq = dx * dx + dy * dy;
+    Entity clickedEntity = 0;
+    bool found = false;
+    entityMgr.ForEachEntityWithComponents(
+        [&](Entity en) {
+            if (found) return;
 
-        if (distSq <= (invisCircleRad_ * invisCircleRad_))
-        {
-            return en;
-        }
-    }
+            Transform& transform = entityMgr.GetComponent<Transform>(en);
+            ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(transform.position);
 
-    return 0;
+            float dx = mouseScreenPos.x - gizmoScreenPos.x;
+            float dy = mouseScreenPos.y - gizmoScreenPos.y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq <= (invisCircleRad_ * invisCircleRad_))
+            {
+                found = true;
+                clickedEntity = en;
+            }
+        }, true, SpawnPointTagType, LoadedTagType, TransformType
+    );
+
+    return clickedEntity;
 }
 
 // --- Gizmos Drawing ---
@@ -78,9 +85,6 @@ void GizmoSystem::DrawGizmos(ImDrawList* drawList, int selectedEntityIndex) {
 
     if (entityMgr.HasComponent(entity, TransformType)) {
         pos = entityMgr.GetComponent<Transform>(entity).position;
-    }
-    else if (entityMgr.HasComponent(entity, SpawnPointType)) {
-        pos = entityMgr.GetComponent<SpawnPoint>(entity).Pos;
     }
 
     ImVec2 screenOrigin = ImVec2(pos.x, pos.y);
@@ -442,7 +446,6 @@ void GizmoSystem::HandleStartDrag() {
     if (currentMode_ == GizmoMode::Translate) {
         record(TransformType, true);
         record(TrapPlatformComponentType, false);
-        record(SpawnPointType, false);
     }
     else if (currentMode_ == GizmoMode::Scale) {
         record(TransformType, true);
@@ -484,9 +487,6 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
                 currentPos = entityMgr.GetComponent<Transform>(draggedEntity_).position;
             }
-            else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
-                currentPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
-            }
             else return;
 
             if (activeAxis_ == GizmoAxis::X) {
@@ -503,9 +503,6 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
         }
         if (entityMgr.HasComponent(draggedEntity_, TrapPlatformComponentType)) {
             entityMgr.GetComponent<TrapPlatformComponent>(draggedEntity_).originalPosition = snappedPos;
-        }
-        if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
-            entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos = snappedPos;
         }
         break;
     }
@@ -527,10 +524,6 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             if (entityMgr.HasComponent(draggedEntity_, TransformType)) {
                 entityWorldPos = entityMgr.GetComponent<Transform>(draggedEntity_).position;
             }
-            else if (entityMgr.HasComponent(draggedEntity_, SpawnPointType)) {
-                entityWorldPos = entityMgr.GetComponent<SpawnPoint>(draggedEntity_).Pos;
-            }
-            
             else return;
 
             // 1. Get Screen Center of the Entity

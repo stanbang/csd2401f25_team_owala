@@ -18,9 +18,27 @@
  *********************************************************************/
 
 #include "Logger.h"
+#include <shlobj.h>     // Required for SHGetFolderPath
+#include <filesystem>
 
 namespace Framework {
-    const std::string Logger::LOGS_FILEPATH = "Logs/", Logger::LOGS_FILEEXT = "_crash.log";
+    const std::string Logger::LOGS_FILEEXT = "_crash.log";
+    
+    const std::string Logger::LOGS_FILEPATH = []() -> std::string {
+        char path[MAX_PATH];
+        // CSIDL_PERSONAL requests the "Documents" folder
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path))) {
+            // Create a subfolder
+            std::filesystem::path fullPath = std::filesystem::path(path) / "StageBound_Logs";
+
+            // Create directory if it doesn't exist
+            std::error_code ec;
+            std::filesystem::create_directories(fullPath, ec);
+
+            return fullPath.string() + "\\";
+        }
+        return "";
+    }();
 
     const void Logger::InitSymbols() {
         // SYMOPT_DEFERRED_LOADS: load symbols only when its needed
@@ -33,10 +51,26 @@ namespace Framework {
             Get().Error(DebugType::Logger) << "Failed to initialize symbols. Error: " << GetLastError() << std::endl;
         }
     }
+
+    const std::string Logger::GetCrashLogFilename() {
+        std::ostringstream oss;
+        std::time_t t = std::time(nullptr);
+        std::tm tm = *std::localtime(&t);
+
+        oss << LOGS_FILEPATH
+            << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S")
+            << LOGS_FILEEXT;
+        return oss.str();
+    }
     
     // called when GameException is thrown. uses stack trace captured at the point where GameException was thrown
     void Logger::LogCrash(const DebugType type, const std::string& message, const backward::StackTrace& stack_trace) {
         Get().Error(type) << message << std::endl; // log to console for debugging
+
+        if (Logger::LOGS_FILEPATH.empty()) {
+            Get().Error(DebugType::Logger) << "Unable to get Documents directory. LOGS_FILEPATH: " << Logger::LOGS_FILEPATH << std::endl;
+            return;
+        }
 
         std::string logPath = GetCrashLogFilename();
         std::ofstream logFile(logPath, std::ios::app);
@@ -59,6 +93,11 @@ namespace Framework {
     // called when other exceptions are thrown. captures stack trace at this point
     void Logger::LogCrash(const DebugType type, const std::string& message) {
         Get().Error(type) << message << std::endl; // log to console for debugging
+
+        if (Logger::LOGS_FILEPATH.empty()) {
+            Get().Error(DebugType::Logger) << "Unable to get Documents directory. LOGS_FILEPATH: " << Logger::LOGS_FILEPATH << std::endl;
+            return;
+        }
 
         std::string logPath = GetCrashLogFilename();
         std::ofstream logFile(logPath, std::ios::app);

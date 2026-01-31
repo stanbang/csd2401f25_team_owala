@@ -78,7 +78,6 @@ namespace Editor {
 		switch (componentType)
 		{
 		case ComponentType::TransformType:					return "Transform";
-		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
 		case ComponentType::TriangleType:					return "Triangle";
@@ -105,9 +104,10 @@ namespace Editor {
 		case ComponentType::EnemyTagType:					return "EnemyTag";
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
-		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::LoadedTagType:					return "LoadedTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		
+		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
+
 		default:											return "Unknown";
 		}
 	}
@@ -314,7 +314,7 @@ namespace Editor {
 				componentTypes.push_back(type);
 			}
 			else {
-				if (type == ComponentType::ActiveTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
+				if (type == ComponentType::LoadedTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
 				tagNames.push_back(ComponentToString(type));
 				tagTypes.push_back(type);
 			}
@@ -1124,6 +1124,8 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+		EntityManager entityMgr(*ecs);
+		entityMgr.GetProperties(pastedEntity).uuid = EntityManager::GenerateUUID();
 
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
@@ -1542,9 +1544,14 @@ namespace Editor {
 		// Display list of scenes available to load
 		if (ImGui::CollapsingHeader("Scenes List")) {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
+				// skip persistent scene
+				if (scene.name == "Persistent") {
+					continue;
+				}
+
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1599,7 +1606,7 @@ namespace Editor {
 					}
 				}
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::EndDisabled();
 				}
 			}
@@ -1991,16 +1998,26 @@ namespace Editor {
 
 			auto drawEntityItem = [&](Entity entity) {
 				if (!entityMgr.ValidateEntity(entity)) return;
-
+				
 				const std::string& name = entityMgr.GetProperties(entity).name;
+
 
 				ImGui::PushID(static_cast<int>(entity));
 
 				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(160, 160, 160, 255));
+				}
+
 				if (ImGui::Selectable(name.c_str(), &selected)) {
 					selectedTagIndex = selectedComponentIndex = 0;
 					selectedEntityIndex = entity + 1;
 					isEntitySelected_ = true;
+				}
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PopStyleColor();
 				}
 
 				// Allows right-click selection
@@ -2208,6 +2225,30 @@ namespace Editor {
 			}
 			// --- End Name Field ---
 
+			// --- Active Toggle Checkbox ---
+			ImGui::SameLine();
+			bool isActiveLocal = entityMgr.GetProperties(selectedEntity).isActive;
+			if (ImGui::Checkbox("Is Active?", &isActiveLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+				entityMgr.GetProperties(selectedEntity).isActive = isActiveLocal;
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Is Active in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
+			}
+			// --- End Active Toggle Checkbox ---
+
+			// --- UUID ---
+			std::string entityUUID = "UUID: ";
+			entityUUID += std::to_string(entityMgr.GetProperties(selectedEntity).uuid);
+
+			ImGui::TextDisabled(entityUUID.c_str());
+			
+			// --- End UUID ---
+
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
@@ -2345,9 +2386,9 @@ namespace Editor {
 				ImGui::Text("Active Tags:");
 				int tagCount = 0;
 
-				if (entityMgr.HasComponent(selectedEntity, ComponentType::ActiveTagType)) {
+				if (entityMgr.HasComponent(selectedEntity, ComponentType::LoadedTagType)) {
 					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-					ImGui::Text("[ActiveTag (Not Removable)]");
+					ImGui::Text("[LoadedTag (Not Removable)]");
 					ImGui::PopStyleColor();
 					++tagCount;
 				}
@@ -2627,12 +2668,6 @@ namespace Editor {
 				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
 			}
 			editSession.wasItemActive = nowActive;
-			break;
-		}
-		case ComponentType::SpawnPointType: {
-			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
-
-			ImGui::InputFloat2("Spawn Point", &spawnPt.Pos.x, "%.2f");
 			break;
 		}
 		case ComponentType::VelocityType: {
@@ -3815,114 +3850,6 @@ namespace Editor {
 
 			break;
 		}
-
-		//case ComponentType::BirdAIComponentType: {
-
-		//	if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
-		//		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
-		//		break;
-		//	}
-
-		//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
-
-		//	// --- State (Read-only) ---
-		//	int state = static_cast<int>(ai.state);
-		//	const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
-		//	ImGui::Text("Current State: %s", stateNames[state]);
-
-		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-		//	ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//
-		//	ImGui::PopStyleColor(2);
-
-		//	ImGui::Separator();
-
-		//	bool activeNow = false;
-		//	// --- Config ---
-		//	ImGui::Text("Configurable Stats");
-		//	ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		///*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	// --- Hover Config ---
-		//	ImGui::Separator();
-		//	ImGui::Text("Hover Behavior");
-		//	ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	// --- Pathfinding ---
-		//	ImGui::Separator();
-		//	ImGui::Text("Pathfinding");
-		//	ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-		//	ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//	ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//	ImGui::PopStyleColor(2);
-		//	ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
-
-		//	if (activeNow && !editSession.wasItemActive) {
-		//		editSession.Begin(selectedEntity, selectedComponent);
-		//	}
-
-		//	if (!activeNow && editSession.wasItemActive) {
-		//		std::stringstream ss;
-		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-		//	}
-
-		//	editSession.wasItemActive = activeNow;
-		//	break;
-		//}
-
-		//case ComponentType::SkeletonAIComponentType: {
-		//	SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
-
-		//	// for now just show state
-		//	int state = static_cast<int>(skelAI.state);
-		//	ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
-
-		//	bool activeNow = false;
-		//	ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	if (activeNow && !editSession.wasItemActive) {
-		//		editSession.Begin(selectedEntity, selectedComponent);
-		//	}
-
-		//	if (!activeNow && editSession.wasItemActive) {
-		//		std::stringstream ss;
-		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-		//	}
-
-		//	editSession.wasItemActive = activeNow;
-		//	break;
-		//}
 
 		case ComponentType::FSMComponentType:
 		{

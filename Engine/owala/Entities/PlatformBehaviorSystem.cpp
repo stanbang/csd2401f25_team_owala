@@ -105,7 +105,7 @@ namespace Framework {
         worldRotation = std::fmod(worldRotation + 360.0f, 360.0f);
 
    
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(entity);
             std::string entityName = entityMgr.GetProperties(entity).name;
 

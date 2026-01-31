@@ -49,9 +49,9 @@ namespace Framework {
         const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
 
 		// Loop through each entity that is in the playerTag map
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
             // Check if Player Entity is active in the scene. Handle player controller if active.
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 
 
             // We need a RigidBody, Velocity, and PlayerState to control the player
@@ -110,6 +110,9 @@ namespace Framework {
                         state.isFacingRight = false;
                     }
                 }
+                else {
+                    vel.Vel.x = 0.0f;
+                }
 
                 // Animation State Handling
                 AnimationState animState = AnimationState::IDLE; // Default to IDLE
@@ -161,8 +164,8 @@ namespace Framework {
     void PlayerSystem::UpdateInvulnerability() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
             if (!entityMgr.HasComponent(entity, PlayerStateType)) continue;
 
             PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
@@ -188,8 +191,8 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         Entity playerEntity = 0;
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (entityMgr.HasComponent(entity, ActiveTagType) && entityMgr.HasComponent(entity, PlayerStateType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+            if (entityMgr.HasComponent(entity, LoadedTagType) && entityMgr.HasComponent(entity, PlayerStateType)) {
                 playerEntity = entity;
                 break;
             }
@@ -200,7 +203,7 @@ namespace Framework {
         PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
         if (playerState.isDead || playerState.isInvulnerable) return;
 
-        for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
+        for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
             std::string trapName = entityMgr.GetProperties(trapEntity).name;
             if (trapName.find("MovableBox") != std::string::npos) continue;
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
@@ -241,8 +244,8 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         Entity playerEntity{};
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (entityMgr.HasComponent(entity, ActiveTagType) && entityMgr.HasComponent(entity, PlayerStateType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+            if (entityMgr.HasComponent(entity, LoadedTagType) && entityMgr.HasComponent(entity, PlayerStateType)) {
                 playerEntity = entity;
                 break;
             }
@@ -253,7 +256,7 @@ namespace Framework {
         PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
         if (playerState.isDead || playerState.isInvulnerable) return;
 
-        for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(EnemyTagType)) {
+        for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(true, EnemyTagType)) {
             if (!entityMgr.HasComponent(enemy, TransformType) ||
                 !entityMgr.HasComponent(enemy, AABBColliderType) ||
                 !entityMgr.HasComponent(playerEntity, TransformType) ||
@@ -370,7 +373,7 @@ namespace Framework {
     void PlayerSystem::CheckEnemyDeathFromTraps() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(FSMComponentType)) {
+        for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
             if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || !entityMgr.HasComponent(enemyEntity, TransformType) ||
                 !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
                 continue;
@@ -381,7 +384,7 @@ namespace Framework {
             if (fsmComp.fsm.GetCurrentState() == "Death") continue;
 
             // Check  all trap platforms
-            for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
+            for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
                 std::string trapName = entityMgr.GetProperties(trapEntity).name;
                 if (trapName.find("MovableBox") != std::string::npos) continue;
                 TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
@@ -448,8 +451,8 @@ namespace Framework {
     void PlayerSystem::HandlePlayerDeath() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 
             if (entityMgr.HasComponent(entity, PlayerStateType)) {
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);

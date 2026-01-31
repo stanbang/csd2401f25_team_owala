@@ -79,6 +79,8 @@ namespace Framework{
 		int customRenderOrder = 0; // Used when renderLayer is Custom
 		std::string renderLayerName = ""; // store name of dynamiclly created layers
 		bool isActive = true;
+
+		uint64_t uuid;
 	};
 
 	/* Transform Component indicating data relating to the entity's Position, Rotation and Scale */
@@ -101,12 +103,6 @@ namespace Framework{
 		// Parameterized Constructor
 		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
 			: position(pos), rotation(angle), scale(scl) {}
-	};
-
-	/*	SpawnPoint component to store initial x and y
-	coordinates of an entity.*/
-	struct SpawnPoint {
-		Vector2D Pos;
 	};
 
 	/*	Velocity component to store x and y
@@ -232,6 +228,9 @@ namespace Framework{
 	struct BackgroundTag {};
 	struct EnemyTag {};
 	struct GUITag {};
+
+	/*	SpawnPoint tag for player spawn point*/
+	struct SpawnPointTag {};
 
 	struct RotationFlag {
 		

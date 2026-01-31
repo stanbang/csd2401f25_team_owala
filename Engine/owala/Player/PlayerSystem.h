@@ -52,7 +52,7 @@ namespace Framework {
 		void CheckEnemyDeathFromTraps();
 		void TriggerEnemyDeath(Entity enemyEntity, const std::string& killerType = "Unknown");
 
-		static constexpr float INVULNERABILITY_DURATION = 4.0f;
+		static constexpr float INVULNERABILITY_DURATION = 1.0f;
 
 		void UpdateInvulnerability();
 	};

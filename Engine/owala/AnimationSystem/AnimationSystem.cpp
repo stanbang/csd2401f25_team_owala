@@ -30,8 +30,8 @@ namespace Framework {
 		constexpr float UV_PADDING = 0.003f;
 
 		// Loop through each entity that with AnimationComponent
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AnimationComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue; // Skip if entity is not active
 			if (!entityMgr.HasComponent(entity, TextureComponentType)) continue; // Skip if entity does not have TextureComponent
 
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);

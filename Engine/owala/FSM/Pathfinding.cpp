@@ -225,7 +225,7 @@ void NavigationGrid::BuildGrid() {
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
     // Find all entities that are platforms
-    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlatformTagType)) {
 
         if (!entityMgr.HasComponent(entity, TransformType)) continue;
         const Transform& transform = entityMgr.GetComponent<Transform>(entity);

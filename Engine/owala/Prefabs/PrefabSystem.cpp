@@ -264,10 +264,13 @@ namespace Framework {
                 entityMgr.AddComponent(entity, PersistentTag{});
             }
             else if (tag == Serialization::ACTIVE_TAG) {
-                entityMgr.AddComponent(entity, ActiveTag{});
+                //entityMgr.AddComponent(entity, ActiveTag{});
             }
             else if (tag == Serialization::GUI_TAG) {
                 entityMgr.AddComponent(entity, GUITag{});
+            }
+            else if (tag == Serialization::SPAWN_PT_TAG) {
+                entityMgr.AddComponent(entity, SpawnPointTag{});
             }
         }
 
@@ -454,12 +457,6 @@ namespace Framework {
             Transform transform;
             if (EntitySerializer::DeserializeComponent(data, transform)) {
                 entityMgr.AddComponent(entity, transform);
-            }
-        }
-        else if (compData.type == Serialization::SPAWN_PT_COMPONENT) {
-            SpawnPoint spawnPt;
-            if (EntitySerializer::DeserializeComponent(data, spawnPt)) {
-                entityMgr.AddComponent(entity, spawnPt);
             }
         }
         else if (compData.type == Serialization::VELOCITY_COMPONENT) {
