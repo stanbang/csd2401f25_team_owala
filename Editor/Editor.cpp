@@ -93,12 +93,11 @@ namespace Editor {
 		case ComponentType::CameraType:						return "Camera";
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
-	/*	case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";*/
 		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
 		case ComponentType::SliderType:						return "Slider";
+		case ComponentType::PlayerHealthComponentType:		return "PlayerHealth";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -4371,7 +4370,12 @@ namespace Editor {
 			editSession.wasItemActive = activeNow;
 			break;
 		}
-
+		
+		case ComponentType::PlayerHealthComponentType: {
+			PlayerHealthComponent& healthComp = entityMgr.GetComponent<PlayerHealthComponent>(selectedEntity);
+			ImGui::InputInt("Life number:", &healthComp.lifeNum);
+			break;
+		}
 		default:
 			break;
 		}

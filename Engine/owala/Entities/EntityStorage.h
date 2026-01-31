@@ -72,6 +72,7 @@ namespace Framework {
 		ParticleComponentType,
 		ParticleEmitterComponentType,
 		SliderType,
+		PlayerHealthComponentType,
 		MAX_COMPONENTS
 	};
 
@@ -115,6 +116,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<ParticleComponent> { static constexpr ComponentType value = ParticleComponentType; };
 	template <> struct ComponentTypeTrait<ParticleEmitterComponent> { static constexpr ComponentType value = ParticleEmitterComponentType; };
 	template <> struct ComponentTypeTrait<Slider> { static constexpr ComponentType value = SliderType; };
+	template <> struct ComponentTypeTrait<PlayerHealthComponent> { static constexpr ComponentType value = PlayerHealthComponentType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<SpawnPointTag> { static constexpr ComponentType value = SpawnPointTagType; };
 
@@ -144,8 +146,7 @@ namespace Framework {
 		std::unordered_map<Entity, AudioComponent>        audio; //Audio Component
 		std::unordered_map<Entity, AnimationComponent> animatedTex; //Animated Texture Component
 		std::unordered_map<Entity, TextComponent>	text; // Text Component
-	/*	std::unordered_map<Entity, BirdAIComponent> birdAIComponent;
-		std::unordered_map<Entity, SkeletonAIComponent> skeletonAIComponent; */
+
 		std::unordered_map<Entity, FSMComponent> fsmComponent; //fsm compoenent
 		std::unordered_map<Entity, ParticleComponent> particleComponent;
 		std::unordered_map<Entity, ParticleEmitterComponent> particleEmitterComponent;
@@ -154,6 +155,7 @@ namespace Framework {
 		std::unordered_map<Entity, Camera> cameras;//Camera
 
 		std::unordered_map<Entity, NativeScriptsComponent> nativeScripts; // Native Scripts
+		std::unordered_map<Entity, PlayerHealthComponent> playerHealth;
 
 		/* Scene Components */
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to

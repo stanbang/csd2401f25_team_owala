@@ -221,6 +221,9 @@ namespace Framework::Serialization {
 	static constexpr const char* FSM_DEFINITION_PATH = "DefinitionPath";
 	static constexpr const char* FSM_CURRENT_STATE = "CurrentState";
 	static constexpr const char* FSM_INITIAL_STATE = "InitialState";
+
+	static constexpr const char* PLAYER_HEALTH_COMPONENT = "PlayerHealthComponent";
+	static constexpr const char* PLAYER_HEALTH_NUM = "life_num";
 	
 	/* Tags JSON Labels */
 	static constexpr const char* TAGS = "tags";
