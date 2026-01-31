@@ -289,6 +289,166 @@ namespace Framework {
         return entity;
     }
 
+    bool PrefabSystem::SaveEntityAsPrefab(EntityStorage& storage, Entity entity, const std::string& prefabName, const std::string& customFolder) {
+        using namespace Framework;
+
+        EntityManager entityMgr(storage);
+
+        if (!entityMgr.ValidateEntity(entity)) {
+            Logger::Get().Error(DebugType::FileIOSystem)  << "Invalid entity provided for prefab creation" << std::endl;
+            return false;
+        }
+
+        std::string customFolderPath = prefabFolderPath_;
+        if (!customFolder.empty()) {
+            customFolderPath = prefabFolderPath_ + "/" + customFolder;
+        }
+
+        if (!fs::exists(customFolderPath)) {
+            try {
+                fs::create_directories(customFolderPath);
+                Logger::Get().Info(DebugType::FileIOSystem) << "Created custom prefab folder: " << customFolderPath << std::endl;
+            }
+            catch (const std::exception& e) {
+                Logger::Get().Error(DebugType::FileIOSystem) << "Failed to create custom prefab folder: " << e.what() << std::endl;
+                return false;
+            }
+        }
+
+        std::string filepath = customFolderPath + "/" + prefabName + ".json";
+        if (fs::exists(filepath)) {
+            Logger::Get().Error(DebugType::FileIOSystem) << "Prefab file already exists and will be overwritten: " << filepath << std::endl;
+        }
+
+        rapidjson::Document doc;
+        doc.SetObject();
+        auto& alloc = doc.GetAllocator();
+        doc.AddMember("name", rapidjson::Value(prefabName.c_str(), alloc), alloc);
+        EntityProperties& props = entityMgr.GetProperties(entity);
+
+        if (!props.collisionLayerName.empty()) {
+            doc.AddMember(rapidjson::Value(Serialization::ENTITY_COLLISION_LAYER_NAME, alloc).Move(),
+                rapidjson::Value(static_cast<int>(props.layer)).Move(),
+                alloc);
+        }
+
+        if (!props.renderLayerName.empty()) {
+            doc.AddMember(rapidjson::Value(Serialization::ENTITY_RENDER_LAYER_NAME, alloc).Move(),
+                rapidjson::Value(props.renderLayerName.c_str(), alloc),
+                alloc);
+        }
+
+        doc.AddMember(rapidjson::Value(Serialization::ENTITY_LAYER, alloc).Move(),
+            rapidjson::Value(static_cast<int>(props.layer)).Move(),
+            alloc);
+        doc.AddMember(rapidjson::Value(Serialization::ENTITY_RENDER_LAYER, alloc).Move(),
+            rapidjson::Value(static_cast<int>(props.renderLayer)).Move(),
+            alloc);
+        doc.AddMember(rapidjson::Value(Serialization::ENTITY_CUSTOM_RENDER_ORDER, alloc).Move(),
+            rapidjson::Value(props.customRenderOrder).Move(),
+            alloc);
+
+        rapidjson::Value componentsObj(rapidjson::kObjectType);
+        EntitySerializer::SerializeComponents(entityMgr, entity, componentsObj, alloc);
+        if (componentsObj.HasMember(Serialization::COMPONENTS)) {
+            doc.AddMember(rapidjson::Value(Serialization::COMPONENTS, alloc).Move(),
+                componentsObj[Serialization::COMPONENTS],
+                alloc);
+        }
+
+        rapidjson::Value tagsArray(rapidjson::kArrayType);
+        if (entityMgr.HasComponent(entity, PlayerTagType)) {
+            tagsArray.PushBack(rapidjson::Value(Serialization::PLAYER_TAG, alloc), alloc);
+        }
+        if (entityMgr.HasComponent(entity, PlatformTagType)) {
+            tagsArray.PushBack(rapidjson::Value(Serialization::PLATFORM_TAG, alloc), alloc);
+        }
+        if (entityMgr.HasComponent(entity, BackgroundTagType)) {
+            tagsArray.PushBack(rapidjson::Value(Serialization::BACKGROUND_TAG, alloc), alloc);
+        }
+        if (entityMgr.HasComponent(entity, EnemyTagType)) {
+            tagsArray.PushBack(rapidjson::Value(Serialization::ENEMY_TAG, alloc), alloc);
+        }
+        if (entityMgr.HasComponent(entity, GUITagType)) {
+            tagsArray.PushBack(rapidjson::Value(Serialization::GUI_TAG, alloc), alloc);
+        }
+
+        if (!tagsArray.Empty()) {
+            doc.AddMember(rapidjson::Value(Serialization::TAGS, alloc).Move(),
+                tagsArray,
+                alloc);
+        }
+
+        // Write to file
+        if (!FileIOSystem::WriteFileJson(filepath, doc)) {
+            Logger::Get().Error(DebugType::FileIOSystem) << "Failed to write prefab file: " << filepath << std::endl;
+            return false;
+        }
+
+        Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved custom prefab: " << filepath << std::endl;
+
+        if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+            std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filepath;
+            std::string rootCustomFolderPath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + customFolderPath;
+            if (!fs::exists(rootCustomFolderPath)) {
+                try {
+                    fs::create_directories(rootCustomFolderPath);
+                    Logger::Get().Info(DebugType::FileIOSystem)<< "Created root custom prefab folder: " << rootCustomFolderPath << std::endl;
+                }
+                catch (const std::exception& e) {
+                    Logger::Get().Error(DebugType::FileIOSystem) << "Failed to create root custom prefab folder: " << e.what() << std::endl;
+                }
+            }
+
+            FileIOSystem::WriteFileJson(rootFilePath, doc);
+            Logger::Get().Info(DebugType::FileIOSystem) << "Saved prefab to root folder: " << rootFilePath << std::endl;
+        }
+
+        if (LoadSinglePrefabFile(filepath)) {
+            Logger::Get().Info(DebugType::FileIOSystem) << "Loaded new prefab '" << prefabName << "' into prefab system" << std::endl;
+        }
+
+        return true;
+    }
+    bool PrefabSystem::DeletePrefab(const std::string& prefabName) {
+        const EntityPrefab* prefab = GetPrefab(prefabName);
+        if (!prefab) {
+            Logger::Get().Error(DebugType::FileIOSystem) << "Prefab not found: " << prefabName << std::endl;
+            return false;
+        }
+        try {
+            if (fs::exists(prefab->sourceFile)) {
+                fs::remove(prefab->sourceFile);
+                Logger::Get().Info(DebugType::FileIOSystem)  << "Deleted prefab file: " << prefab->sourceFile << std::endl;
+            }
+        }
+        catch (const std::exception& e) {
+            Logger::Get().Error(DebugType::FileIOSystem) << "Failed to delete prefab file: " << e.what() << std::endl;
+            return false;
+        }
+
+        if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+            std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + prefab->sourceFile;
+            try {
+                if (fs::exists(rootFilePath)) {
+                    fs::remove(rootFilePath);
+                    Logger::Get().Info(DebugType::FileIOSystem)
+                        << "Deleted prefab file from root folder: " << rootFilePath << std::endl;
+                }
+            }
+            catch (const std::exception& e) {
+                Logger::Get().Error(DebugType::FileIOSystem) << "Failed to delete prefab file from root folder: " << e.what() << std::endl;
+            }
+        }
+
+        prefabs_.erase(prefabName);
+
+        Logger::Get().Info(DebugType::FileIOSystem)
+            << "Removed prefab from system: " << prefabName << std::endl;
+
+        return true;
+    }
+
     void PrefabSystem::DeserializeComponent(EntityStorage& storage, Entity entity, const ComponentData& compData) {
         EntityManager entityMgr(storage);
         const rapidjson::Document& data = compData.data;
