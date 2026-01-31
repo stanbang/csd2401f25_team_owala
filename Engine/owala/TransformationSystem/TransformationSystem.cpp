@@ -29,7 +29,7 @@ namespace Framework {
 
     void TransformationSystem::Initialize() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, TransformType)) {
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
                 UpdateEntityTransform(entity);
             }
@@ -125,8 +125,8 @@ namespace Framework {
         bool canRotate = false; // boolean for checking for rotation (for grounded player)
 
         // Find grounded active player
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerStateType)) {
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
             PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
             if (state.isGrounded) { canRotate = true; break; }
         }
@@ -188,9 +188,9 @@ namespace Framework {
             Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
 
             // Rotate all entities with RotationFlag around world origin (0,0)
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, RotationFlagType)) {
                 if (!entityMgr.HasComponent(entity, TransformType)) continue;
-                if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+                if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 
                 Vector2D originalPos = entityMgr.GetComponent<Transform>(entity).position;
                 entityMgr.GetComponent<Transform>(entity).position = rotationMat * originalPos;
@@ -204,8 +204,8 @@ namespace Framework {
             }
 
             // Keep player grounded after rotation
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
-                if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerStateType)) {
+                if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
                 state.isGrounded = true;
             }
@@ -244,8 +244,8 @@ namespace Framework {
     void TransformationSystem::UpdateAllTransforms() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, TransformType)) {
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
             if (!entityMgr.HasComponent(entity, RotationFlagType)) continue;
             UpdateEntityTransform(entity);
         }

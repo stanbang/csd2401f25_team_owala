@@ -104,7 +104,7 @@ namespace Editor {
 		case ComponentType::EnemyTagType:					return "EnemyTag";
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
-		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::LoadedTagType:					return "LoadedTag";
 		case ComponentType::GUITagType:						return "GUITag";
 		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
 
@@ -314,7 +314,7 @@ namespace Editor {
 				componentTypes.push_back(type);
 			}
 			else {
-				if (type == ComponentType::ActiveTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
+				if (type == ComponentType::LoadedTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
 				tagNames.push_back(ComponentToString(type));
 				tagTypes.push_back(type);
 			}
@@ -2360,9 +2360,9 @@ namespace Editor {
 				ImGui::Text("Active Tags:");
 				int tagCount = 0;
 
-				if (entityMgr.HasComponent(selectedEntity, ComponentType::ActiveTagType)) {
+				if (entityMgr.HasComponent(selectedEntity, ComponentType::LoadedTagType)) {
 					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-					ImGui::Text("[ActiveTag (Not Removable)]");
+					ImGui::Text("[LoadedTag (Not Removable)]");
 					ImGui::PopStyleColor();
 					++tagCount;
 				}

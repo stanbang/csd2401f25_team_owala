@@ -31,7 +31,7 @@ namespace Framework {
         //playerSig.set(RotationFlagType);
         //playerSig.set(SceneOwnedType);
 
-        playerSpawnPtSig.set(ActiveTagType);
+        playerSpawnPtSig.set(LoadedTagType);
         playerSpawnPtSig.set(TransformType);
         playerSpawnPtSig.set(SpawnPointTagType);
         playerSpawnPtSig.set(SceneOwnedType);
@@ -68,7 +68,7 @@ namespace Framework {
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
             if (event.action == ButtonAction::RESETPLAYERPOS) {
                 EntityManager entityMgr(GameManager::GetInstance().GetECS());
-                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
                     if (entityMgr.HasComponent(entity, TransformType)) {
                         ResetTransform(entityMgr, entity, Transform(GetPlayerSpawnPt(entityMgr)));
                     }
@@ -88,7 +88,7 @@ namespace Framework {
         EntityManager entityMgr(gm.GetECS());
         
         // Delete all particles
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
 			entityMgr.DestroyEntity(entity);
 		}
         

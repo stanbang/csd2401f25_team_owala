@@ -54,7 +54,7 @@ namespace Framework {
     void CameraSystem::Update() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
 
             // Skip cameras that are controlled by the editor
@@ -126,7 +126,7 @@ namespace Framework {
         bool foundAnyPlatform = false;
 
         // Iterate through all entities with PlatformTag
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, PlatformTagType)) {
             if (!entityMgr.HasComponent(e, TransformType)) continue;
 
             foundAnyPlatform = true;
@@ -379,7 +379,7 @@ namespace Framework {
         float aspect = screenWidth / screenHeight;
 
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, CameraType)) {
             Camera& cam = entityMgr.GetComponent<Camera>(e);
             cam.aspectRatio = aspect;
         }

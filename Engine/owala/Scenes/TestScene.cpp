@@ -49,7 +49,7 @@ namespace TestScene {
        
         EntityManager entityMgr(*ecs);
         
-        std::vector<Entity> players = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        std::vector<Entity> players = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
         Entity playerEntity = 0;
         if (players.size() > 0) {
             playerEntity = players[0];
@@ -60,7 +60,7 @@ namespace TestScene {
                 << players.size() << std::endl;
 		}
 
-        std::vector<Entity> cameras = entityMgr.GetAllEntitiesWithComponent(CameraType);
+        std::vector<Entity> cameras = entityMgr.GetAllEntitiesWithComponent(true, CameraType);
         Entity mainCamera = 0;
         if (cameras.size() > 0) {
             mainCamera = cameras[0];
@@ -78,7 +78,7 @@ namespace TestScene {
         }
 
         // Spawn player at SpawnPoint
-        std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointTagType, ActiveTagType, TransformType);
+        std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointTagType, LoadedTagType, TransformType);
         if (spawnPts.size() > 0) {
             if (entityMgr.HasComponent(playerEntity, TransformType)) {
                 Entity playerSpawnPt = spawnPts[0];

@@ -33,35 +33,42 @@ GizmoSystem::GizmoSystem(Editor& editor) : editor_(&editor) {}
 void GizmoSystem::DrawInvisPlaceholders(ImDrawList* drawList) {
     // Draw placeholder green dot for SpawnPoint (invisible entities)
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
-    std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointTagType, ActiveTagType, TransformType);
-    for (Entity en : spawnPts) {
-        Transform& transform = entityMgr.GetComponent<Transform>(en);
-        ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(transform.position);
-        drawList->AddCircleFilled(gizmoScreenPos, invisCircleRad_, IM_COL32(0, 255, 0, 255), 12);
-    }
+    entityMgr.ForEachEntityWithComponents(
+        [&](Entity en) {
+            Transform& transform = entityMgr.GetComponent<Transform>(en);
+            ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(transform.position);
+            drawList->AddCircleFilled(gizmoScreenPos, invisCircleRad_, IM_COL32(0, 255, 0, 255), 12);
+        }, true, SpawnPointTagType, LoadedTagType, TransformType
+    );
 }
 
 Entity GizmoSystem::IsInvisEntityClicked() {
     ImVec2 mouseScreenPos = ImGui::GetMousePos();
 
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
-    std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointTagType, ActiveTagType, TransformType);
-    for (Entity en : spawnPts)
-    {
-        Transform& transform = entityMgr.GetComponent<Transform>(en);
-        ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(transform.position);
 
-        float dx = mouseScreenPos.x - gizmoScreenPos.x;
-        float dy = mouseScreenPos.y - gizmoScreenPos.y;
-        float distSq = dx * dx + dy * dy;
+    Entity clickedEntity = 0;
+    bool found = false;
+    entityMgr.ForEachEntityWithComponents(
+        [&](Entity en) {
+            if (found) return;
 
-        if (distSq <= (invisCircleRad_ * invisCircleRad_))
-        {
-            return en;
-        }
-    }
+            Transform& transform = entityMgr.GetComponent<Transform>(en);
+            ImVec2 gizmoScreenPos = editor_->WorldToImGuiScreen(transform.position);
 
-    return 0;
+            float dx = mouseScreenPos.x - gizmoScreenPos.x;
+            float dy = mouseScreenPos.y - gizmoScreenPos.y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq <= (invisCircleRad_ * invisCircleRad_))
+            {
+                found = true;
+                clickedEntity = en;
+            }
+        }, true, SpawnPointTagType, LoadedTagType, TransformType
+    );
+
+    return clickedEntity;
 }
 
 // --- Gizmos Drawing ---

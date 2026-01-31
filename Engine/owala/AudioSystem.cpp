@@ -54,10 +54,10 @@ namespace Framework {
             check(r, "System::update");
         }
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AudioComponentType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AudioComponentType)) {
 
 			// Check if Entity is active in the scene. Loads if active.
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
             // Check if entity is tied to a button
 			if (entityMgr.HasComponent(entity, ButtonType)) {
                 continue; //Skip button entities, handle separately.
@@ -266,7 +266,7 @@ namespace Framework {
         // Get Player Position
         Vector2D playerPos;
         EntityManager entityMgr = EntityManager(GameManager::GetInstance().GetECS());
-        std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+        std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
 
         if (!playerEntities.empty()) {
             Entity playerID = playerEntities[0];

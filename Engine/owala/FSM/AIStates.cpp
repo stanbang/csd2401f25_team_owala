@@ -12,7 +12,7 @@ namespace Framework {
     // --- HELPER ---
     static Entity GetPlayer(EntityStorage& ecs) {
         EntityManager mgr(ecs);
-        auto players = mgr.GetAllEntitiesWithComponent(PlayerTagType);
+        auto players = mgr.GetAllEntitiesWithComponent(true, PlayerTagType);
         return players.empty() ? 0 : players[0];
     }
 
@@ -354,7 +354,7 @@ namespace Framework {
             if (!physics) return false;
 
             // Get all platform entities
-            auto platforms = mgr.GetAllEntitiesWithComponent(PlatformTagType);
+            auto platforms = mgr.GetAllEntitiesWithComponent(true, PlatformTagType);
 
             // Check if we're overlapping with any platform
             for (Entity platform : platforms) {
