@@ -173,7 +173,7 @@ namespace Framework {
          *
          * \param pos, eventKey, maxVol
          */
-        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, float maxVol = 1.0f);
+        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol = 1.0f);
 
         // For Interupption Handling
         /**
@@ -193,7 +193,7 @@ namespace Framework {
            * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
            * from that array to play.
            */
-        void PlayRandomSound(std::string eventKey, float volume);
+        void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
 
     private:
         /// \name FMOD Core Pointers
