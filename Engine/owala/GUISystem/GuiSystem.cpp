@@ -146,7 +146,7 @@ namespace Framework {
 		}
 
 		// Loop through all active entities with Slider, Transform
-        for (const Entity& sliderEntity : entityMgr.GetAllEntitiesWithComponents(SliderType, TransformType, ActiveTagType)) {
+        for (const Entity& sliderEntity : entityMgr.GetAllEntitiesWithComponents(true, SliderType, TransformType)) {
             Slider& slider = entityMgr.GetComponent<Slider>(sliderEntity);
             Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
 
