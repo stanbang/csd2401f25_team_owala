@@ -28,6 +28,7 @@ namespace Framework {
 		particleEmitterComponent = other.particleEmitterComponent;
 		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
+		playerHealth = other.playerHealth;
 
 		for (const auto& [entity, scripts] : other.nativeScripts) {
 			nativeScripts[entity] = scripts;
@@ -66,6 +67,7 @@ namespace Framework {
 		particleEmitterComponent = other.particleEmitterComponent;
 		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
+		playerHealth = other.playerHealth;
 
 		nativeScripts.clear();
 		for (const auto& [entity, scripts] : other.nativeScripts) {
@@ -108,6 +110,7 @@ namespace Framework {
 		std::swap(particleEmitterComponent, other.particleEmitterComponent);
 		std::swap(sliders, other.sliders);
 		std::swap(sceneOwned, other.sceneOwned);
+		std::swap(playerHealth, other.playerHealth);
 
 		std::swap(nativeScripts, other.nativeScripts);
 	}

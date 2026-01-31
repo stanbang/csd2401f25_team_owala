@@ -250,6 +250,14 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::SLIDER), value, alloc);
 		}
 
+		// Serialize PlayerHealth Component
+		if (entityMgr.HasComponent(entity, ComponentType::PlayerHealthComponentType)) {
+			PlayerHealthComponent& health = entityMgr.GetComponent<PlayerHealthComponent>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(health, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::PLAYER_HEALTH_COMPONENT), value, alloc);
+		}
+
 		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
 	}
 
@@ -654,6 +662,15 @@ namespace Framework {
 			Slider sliderComp;
 			if (DeserializeComponent(sliderData, sliderComp)) {
 				entityMgr.AddComponent<Slider>(loadedEntity, sliderComp);
+			}
+		}
+
+		// Deserialize PlayerHealth Component
+		if (componentLists.HasMember(Serialization::PLAYER_HEALTH_COMPONENT)) {
+			const rapidjson::Value& playerHealthData = componentLists[Serialization::PLAYER_HEALTH_COMPONENT];
+			PlayerHealthComponent healthComp;
+			if (DeserializeComponent(playerHealthData, healthComp)) {
+				entityMgr.AddComponent<PlayerHealthComponent>(loadedEntity, healthComp);
 			}
 		}
 	}
@@ -1221,6 +1238,12 @@ namespace Framework {
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_IS_DRAGGING), slider.isDragging, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_TYPE), static_cast<int>(slider.sliderType), alloc);
 	}
+
+	// PlayerHealth Component
+	void EntitySerializer::SerializeComponent(const PlayerHealthComponent& playerHealthComp, rapidjson::Value& componentData, rapidjson::Document::AllocatorType& alloc) {
+		componentData.AddMember(rapidjson::StringRef(Serialization::PLAYER_HEALTH_NUM), playerHealthComp.lifeNum, alloc);
+	}
+
 #pragma endregion
 
 #pragma region SPECIALIZED DESERIALIZATION
@@ -1936,6 +1959,16 @@ namespace Framework {
 			out.sliderType = SliderSoundType::MASTER_VOLUME; // Default
 		}
 
+		return true;
+	}
+
+	// PlayerHealth Component
+	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, PlayerHealthComponent& out) {
+		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::PLAYER_HEALTH_NUM) && componentData[Serialization::PLAYER_HEALTH_NUM].IsInt()) {
+			out.lifeNum = componentData[Serialization::PLAYER_HEALTH_NUM].GetInt();
+		}
 		return true;
 	}
 
