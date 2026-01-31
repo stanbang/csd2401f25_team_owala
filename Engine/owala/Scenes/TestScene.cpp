@@ -78,7 +78,7 @@ namespace TestScene {
         }
 
         // Spawn player at SpawnPoint
-        std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(SpawnPointTagType, LoadedTagType, TransformType);
+        std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(true, SpawnPointTagType, LoadedTagType, TransformType);
         if (spawnPts.size() > 0) {
             if (entityMgr.HasComponent(playerEntity, TransformType)) {
                 Entity playerSpawnPt = spawnPts[0];
