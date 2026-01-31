@@ -573,7 +573,7 @@ namespace Editor {
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
-
+		ShowCreatePrefabDialog();
 		// To show animation editor beside asset viewer
 		if (settings.showAnimationEditor) {
 			ImGui::SetNextItemWidth(-1);
@@ -5872,7 +5872,185 @@ namespace Editor {
 #pragma endregion
 
 #pragma region PREFAB EDITOR
+
+	void Editor::ShowCreatePrefabDialog() {
+		using namespace Framework;
+
+		if (!showCreatePrefabDialog_) return;
+
+		if (!ImGui::IsPopupOpen("Create Custom Prefab")) {
+			ImGui::OpenPopup("Create Custom Prefab");
+		}
+
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_Appearing);
+
+		if (ImGui::BeginPopupModal("Create Custom Prefab", &showCreatePrefabDialog_, ImGuiWindowFlags_NoResize)) {
+			ImGui::TextWrapped("Create a custom prefab from the selected entity.");
+			ImGui::TextWrapped("This will save to: Data/Prefabs/Custom/");
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			ImGui::Text("Prefab Name:");
+			ImGui::InputText("##NewPrefabName", newPrefabNameBuffer_, sizeof(newPrefabNameBuffer_));
+
+			ImGui::Spacing();
+
+			if (entityForPrefabCreation_ != 0) {
+				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+				if (entityMgr.ValidateEntity(entityForPrefabCreation_)) {
+					EntityProperties& props = entityMgr.GetProperties(entityForPrefabCreation_);
+					ImGui::Text("Source Entity: %s", props.name.c_str());
+				}
+			}
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			bool canCreate = strlen(newPrefabNameBuffer_) > 0;
+
+			if (!canCreate) ImGui::BeginDisabled();
+
+			if (ImGui::Button("Create Prefab", ImVec2(120, 0))) {
+				std::string prefabName(newPrefabNameBuffer_);
+				if (prefabSystem_.SaveEntityAsPrefab(*(gameManager_->GetSystems().ecs_),
+					entityForPrefabCreation_, prefabName, "Custom")) {
+					showCreatePrefabDialog_ = false;
+					memset(newPrefabNameBuffer_, 0, sizeof(newPrefabNameBuffer_));
+					palettePrepared_ = false;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!canCreate) ImGui::EndDisabled();
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+				showCreatePrefabDialog_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+		else {
+			showCreatePrefabDialog_ = false;
+		}
+	}
+
 	void Editor::ShowPrefabEditor() {
+		using namespace Framework;
+		ImGui::Begin("Prefab Editor", &isPrefabEditorOpen_);
+		ImGui::SeparatorText("Prefab Actions");
+		{
+			bool hasSelectedEntity = isEntitySelected_ && selectedEntityIndex > 0;
+			Entity selectedEntity = hasSelectedEntity ? static_cast<Entity>(selectedEntityIndex - 1) : 0;
+
+			if (!hasSelectedEntity) {
+				ImGui::BeginDisabled();
+			}
+
+			if (ImGui::Button("Create Prefab from Selected Entity", ImVec2(300, 30))) {
+				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+
+				if (entityMgr.ValidateEntity(selectedEntity)) {
+					showCreatePrefabDialog_ = true;
+					entityForPrefabCreation_ = selectedEntity;
+					EntityProperties& props = entityMgr.GetProperties(selectedEntity);
+					strncpy_s(newPrefabNameBuffer_, sizeof(newPrefabNameBuffer_), props.name.c_str(), _TRUNCATE);
+				}
+			}
+
+			if (!hasSelectedEntity) {
+				ImGui::EndDisabled();
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				if (hasSelectedEntity) {
+					ImGui::SetTooltip("Save the selected entity as a custom prefab");
+				}
+				else {
+					ImGui::SetTooltip("Please select an entity in the scene first");
+				}
+			}
+		}
+		ImGui::SameLine();
+		{
+			bool canDelete = !selectedPrefabForEditing_.empty();
+			if (canDelete) {
+				const EntityPrefab* prefab = prefabSystem_.GetPrefab(selectedPrefabForEditing_);
+				if (!prefab) {
+					canDelete = false;
+				}
+			}
+			if (!canDelete) {
+				ImGui::BeginDisabled();
+			}
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
+
+			if (ImGui::Button("Delete Selected Prefab", ImVec2(200, 30))) {
+				ImGui::OpenPopup("Confirm Delete Prefab");
+			}
+
+			ImGui::PopStyleColor(3);
+
+			if (!canDelete) {
+				ImGui::EndDisabled();
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				if (canDelete) {
+					ImGui::SetTooltip("Delete this prefab");
+				}
+				else {
+					ImGui::SetTooltip("Please select a prefab first");
+				}
+			}
+			if (ImGui::BeginPopupModal("Confirm Delete Prefab", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("Are you sure you want to delete the prefab:");
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "%s", selectedPrefabForEditing_.c_str());
+				ImGui::Text("This action cannot be undone!");
+
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::Spacing();
+
+				if (ImGui::Button("Delete", ImVec2(120, 0))) {
+					if (prefabSystem_.DeletePrefab(selectedPrefabForEditing_)) {
+						Logger::Get().Info(DebugType::Editor)
+							<< "Deleted custom prefab: " << selectedPrefabForEditing_ << std::endl;
+
+						selectedPrefabForEditing_.clear();
+						selectedPrefabTypeForEditing_ = PrefabType::None;
+						palettePrepared_ = false;
+					}
+					else {
+						Logger::Get().Error(DebugType::Editor)
+							<< "Failed to delete prefab" << std::endl;
+					}
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+		ImGui::End();
 		using namespace Framework;
 
 		ImGui::Begin("Prefab Editor", &isPrefabEditorOpen_);

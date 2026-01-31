@@ -394,8 +394,12 @@ namespace Editor {
 		std::string selectedAnimationName_;
 		std::vector<const char*> animationNames_;
 		bool isAnimationEditorInitialized_ = false;
+		bool showCreatePrefabDialog_ = false;
+		char newPrefabNameBuffer_[256] = "";
+		Entity entityForPrefabCreation_ = 0;
 
-		bool ShowPrefabComponentEditor(Framework::ComponentData& compData);
+		// Helper function
+		void ShowCreatePrefabDialog();
 
 	public:
 		bool isEnabled = true;

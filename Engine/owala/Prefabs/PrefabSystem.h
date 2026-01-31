@@ -42,6 +42,7 @@ namespace Framework {
         std::vector<std::string> tags;
         std::string layer;
         std::string sourceFile;
+        std::string filePath;
         int renderLayer = 0;          
         int customRenderOrder = 0;    
 
@@ -81,6 +82,9 @@ namespace Framework {
         bool ReloadAllPrefabs();
 
         bool LoadPrefabsFromFile(const std::string& filename);
+
+        bool SaveEntityAsPrefab(EntityStorage& storage, Entity entity, const std::string& prefabName, const std::string& customFolder = "Custom");
+        bool DeletePrefab(const std::string& prefabName);
 
         Entity CreateEntityFromPrefab(EntityStorage& storage, const std::string& prefabName, const Vector2D& position);
         bool HasPrefab(const std::string& name) const;
