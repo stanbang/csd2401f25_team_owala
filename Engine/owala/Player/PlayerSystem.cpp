@@ -13,6 +13,7 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "EntityStorage.h"
 #include "PlayerSystem.h"
 #include <iostream>
@@ -24,7 +25,6 @@
 #include "MessageBus.h"
 #include "GameMessages.h"
 #include "ParticleEffectManager.h"
-#include <cmath>
 
 namespace Framework {
     void PlayerSystem::Initialize() {
@@ -35,6 +35,7 @@ namespace Framework {
 	void PlayerSystem::Update() {
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        if (physics_.IsPaused()) {return;}
         InputSystem& input_ = *gm.GetSystems().input_;
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
 

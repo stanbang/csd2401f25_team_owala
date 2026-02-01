@@ -89,6 +89,10 @@ if(WIN32)
     )
 endif()
 
+#Precompiled Headers
+target_precompile_headers(${CMAKE_PROJECT_NAME}_Engine PRIVATE "${ENGINE_DIR}/pch.h")
+target_precompile_headers(${CMAKE_PROJECT_NAME}_Editor PRIVATE "${ENGINE_DIR}/pch.h")
+
 # ======================= File Organization for Visual Studio =========================
 foreach(source IN LISTS ENGINE_SRC)
     # Get relative path from ENGINE_DIR

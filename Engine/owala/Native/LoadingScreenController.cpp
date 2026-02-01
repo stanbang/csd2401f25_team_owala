@@ -13,16 +13,13 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 #include "ScriptRegistry.h"
 #include "GameManager.h"
 #include "Components.h"
 #include "EntityManager.h"
-#include <string>
-#include <iomanip>
-#include <sstream>
 
 namespace Framework {
 

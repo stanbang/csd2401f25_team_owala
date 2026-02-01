@@ -6,13 +6,13 @@
  * \author	Jason Lou
  * \date	11 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "SceneManager.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "GameManager.h"
 #include "Logger.h"
 #include "EntitySerializer.h"
-#include <unordered_set>
 
 namespace Framework {
 	using namespace SceneManagement;

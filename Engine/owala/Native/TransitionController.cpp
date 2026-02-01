@@ -13,15 +13,13 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "TransitionController.h"
 #include "ScriptRegistry.h"
 #include "Components.h"
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "OwalaTime.h"
-#include <vector>     // Required for the list
-#include <algorithm>  // Required for std::remove
 #include "FileUtility.h"
 
 namespace Framework {

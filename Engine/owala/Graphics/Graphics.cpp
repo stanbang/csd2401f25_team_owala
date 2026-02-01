@@ -34,19 +34,10 @@
  *      Reproduction or disclosure of this file or its contents without
  *      the prior written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "Graphics.h"
 #include "GameManager.h"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include <cstdio>
-#include <fstream>
-#include <vector>
-#include <cmath>
-#include <memory>
-#include <iostream>
-#include <variant>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "Logger.h"

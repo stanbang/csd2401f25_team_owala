@@ -24,13 +24,11 @@
  *      Reproduction or disclosure of this file or its contents without the prior
  *      written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "CameraSystem.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "GameManager.h"
-#include <cmath>
-#include <stdexcept>
 #include "OwalaTime.h"
 #include "Logger.h"
 

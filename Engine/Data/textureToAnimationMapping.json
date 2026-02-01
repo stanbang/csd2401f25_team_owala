@@ -154,6 +154,37 @@
 				"SB_Eli_Idle_Invuln_Spritesheet_2.png"
 			],
       		"animation_path": "Data/AnimationData/playerIdleInvulnAnimation.json" 
-    	}
+    	},
+		{
+			"texture_keys": [
+				"SB_MainMenu_Lightbulb_Spritesheet_1.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_2.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_3.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_4.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_5.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_6.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_7.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_8.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_9.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_10.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_11.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_12.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_13.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_14.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_15.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_16.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_17.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_18.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_19.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_20.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_21.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_22.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_23.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_24.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_25.png",
+				"SB_MainMenu_Lightbulb_Spritesheet_26.png"
+			],
+			"animation_path": "Data/AnimationData/mainMenuLightbulbAnimation.json"
+		}
   ]
 }

@@ -6,9 +6,9 @@
  * \author	Jason Lou
  * \date	18 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "GameManager.h"
 #include "EntitySerializer.h"
-#include <iostream>
 
 // Scene Scripts
 #include "SplashScreen.h"
@@ -16,17 +16,8 @@
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
-// ImGui headers
-#ifdef BUILD_EDITOR
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#endif
 //Core Engine headers for IMGUI
 #include "Core.h"
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -106,6 +97,7 @@ namespace Framework {
 		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType);
 		
 		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType)) {
+			if (!entityMgr.ValidateEntity(scriptableEntity)) continue;
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
 
 			if (nativeScripts.empty()) continue;
@@ -540,7 +532,8 @@ namespace Framework {
 			name == "SplashScreen" || 
 			name == "RestartMenu" || 
 			name == "LoadingScreen" || 
-			name == "HowToPlay")
+			name == "HowToPlay" ||
+			name == "OptionsMenu")
 			return false;
 		return true;
 	}

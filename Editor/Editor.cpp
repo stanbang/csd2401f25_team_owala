@@ -19,7 +19,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
-
+#include "pch.h"
 #include "Editor.h"
 #include "Core.h"
 #include "GameManager.h"
@@ -29,25 +29,10 @@
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
 #include "AISystem.h" // Include AISystem for debugging purposes
-#include "rapidjson/prettywriter.h"
 #include "FileUtility.h"
-#include <fstream>
 
 // Debug
 #include "Logger.h"
-
-// Imgui Dependencies
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include <random> // for random generation
-
 #include "Fake_Player.h"
 
 // Serialization
@@ -60,11 +45,6 @@
 #include "ScriptableEntity.h"
 #include "ScriptRegistry.h"
 #include "NativeScriptMaker.h"
-
-#include <unordered_set>
-// Standard Libraries
-#include <sstream>
-#include <iomanip>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -93,11 +73,11 @@ namespace Editor {
 		case ComponentType::CameraType:						return "Camera";
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
-	/*	case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";*/
 		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
+		case ComponentType::SliderType:						return "Slider";
+		case ComponentType::PlayerHealthComponentType:		return "PlayerHealth";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
@@ -2016,6 +1996,14 @@ namespace Editor {
 					isEntitySelected_ = true;
 				}
 
+				// Drag and Drop Source
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					// Pack the Entity ID into the payload
+					ImGui::SetDragDropPayload("HIERARCHY_ENTITY", &entity, sizeof(Entity));
+					ImGui::Text("Entity: %s (ID: %u)", name.c_str(), entity);
+					ImGui::EndDragDropSource();
+				}
+
 				if (!entityMgr.IsActive(entity)) {
 					ImGui::PopStyleColor();
 				}
@@ -2182,6 +2170,7 @@ namespace Editor {
 			}
 
 			// --- Name Field ---
+			ImGui::TextDisabled("Entity ID: %u", selectedEntity);
 			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
 			static Entity lastSelectedEntity = 0;
@@ -3109,7 +3098,7 @@ namespace Editor {
 			if (ImGui::Button("Test Hover Sound") && !buttonComp.hoverSoundKey.empty()) {
 				try {
 					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.hoverSoundKey);
-					gameManager_->GetSystems().audio_->play(sound, buttonComp.hoverSoundVolume, false);
+					gameManager_->GetSystems().audio_->play(sound, AudioType::SFX, buttonComp.hoverSoundVolume, false);
 				}
 				catch (...) {
 					Framework::Logger::Get().Error(DebugType::Editor)
@@ -3149,7 +3138,7 @@ namespace Editor {
 			if (ImGui::Button("Test Click Sound") && !buttonComp.clickSoundKey.empty()) {
 				try {
 					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.clickSoundKey);
-					gameManager_->GetSystems().audio_->play(sound, buttonComp.clickSoundVolume, false);
+					gameManager_->GetSystems().audio_->play(sound, AudioType::SFX, buttonComp.clickSoundVolume, false);
 				}
 				catch (...) {
 					Framework::Logger::Get().Error(DebugType::Editor)
@@ -3415,6 +3404,26 @@ namespace Editor {
 				}
 
 				ImGui::EndPopup();
+			}
+
+			// Audio Type Dropdown (SFX vs Music)
+			const char* audioTypeItems[] = { "SFX", "Music" };
+			int currentAudioTypeIndex = static_cast<int>(audioComp.audioType);
+
+			if (ImGui::Combo("Audio Type", &currentAudioTypeIndex, audioTypeItems, IM_ARRAYSIZE(audioTypeItems))) {
+				// Record state before change for Undo
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Apply change
+				audioComp.audioType = static_cast<AudioType>(currentAudioTypeIndex);
+
+				// Record state after for Undo
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Audio Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			// Looping Checkbox
@@ -4274,6 +4283,77 @@ namespace Editor {
 			}
 
 			editSession.wasItemActive = activeNow;
+			break;
+		}
+
+		case ComponentType::SliderType: {
+			Slider& slider = entityMgr.GetComponent<Slider>(selectedEntity);
+			bool activeNow = false;
+
+			// Slider Sound Type Dropdown
+			const char* sliderTypeItems[] = { "Master Volume", "Music Volume", "SFX Volume" };
+			int currentSliderTypeIndex = static_cast<int>(slider.sliderType);
+
+			if (ImGui::Combo("Control Type", &currentSliderTypeIndex, sliderTypeItems, IM_ARRAYSIZE(sliderTypeItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Update the slider type
+				slider.sliderType = static_cast<SliderSoundType>(currentSliderTypeIndex);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Record for Undo/Redo
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+			ImGui::Separator();
+
+			int handleId = static_cast<int>(slider.handleEntity);
+			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
+				// Ensure the ID doesn't go below 0
+				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
+			}
+
+			// Handle Name
+			ImGui::InputText("Handle Name", &slider.handleName);
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Current Value
+			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Min Value
+			ImGui::InputFloat("Min Value", &slider.minValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Max Value
+			ImGui::InputFloat("Max Value", &slider.maxValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Width
+			ImGui::InputFloat("Width", &slider.width, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// X Offset
+			ImGui::InputFloat("Track Offset X", &slider.widthOffsetX, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Shifts the slidable area left or right from the center");
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
+			break;
+		}
+		
+		case ComponentType::PlayerHealthComponentType: {
+			PlayerHealthComponent& healthComp = entityMgr.GetComponent<PlayerHealthComponent>(selectedEntity);
+			ImGui::InputInt("Life number:", &healthComp.lifeNum);
 			break;
 		}
 		default:

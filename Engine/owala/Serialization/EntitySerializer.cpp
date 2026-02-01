@@ -19,7 +19,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
-
+#include "pch.h"
 #include "EntitySerializer.h"
 #include "SerializationKeys.h"
 #include "GameManager.h"
@@ -27,10 +27,6 @@
 #include "ScriptRegistry.h"
 #include "FileUtility.h"
 #include "Logger.h"
-
-// STL
-#include <unordered_map>
-#include <unordered_set>
 
 // Internal Helpers - Will move this and the Editor's version to a global utils file later.
 namespace {
@@ -218,26 +214,6 @@ namespace Framework {
 			componentList.AddMember(rapidjson::StringRef(Serialization::FSM_COMPONENT), value, alloc);
 		}
 
-		//if (entityMgr.HasComponent(entity, ComponentType::BirdAIComponentType)) {
-		//	BirdAIComponent& birdAI = entityMgr.GetComponent<BirdAIComponent>(entity);
-		//	rapidjson::Value value(rapidjson::kObjectType);
-
-		//	SerializeComponent(birdAI, value, alloc);
-
-		//	// currentPath is runtime state, don't serialize it
-
-		//	componentList.AddMember(rapidjson::StringRef(Serialization::BIRD_AI_COMPONENT), value, alloc);
-		//}
-
-		//if (entityMgr.HasComponent(entity, ComponentType::SkeletonAIComponentType)) {
-		//	SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(entity);
-		//	rapidjson::Value value(rapidjson::kObjectType);
-
-		//	SerializeComponent(skelAI, value, alloc);
-
-		//	componentList.AddMember(rapidjson::StringRef(Serialization::SKELETON_AI_COMPONENT), value, alloc);
-		//}
-
 		// Serialize Button Component
 		if (entityMgr.HasComponent(entity, ComponentType::ButtonType)) {
 			Button& button = entityMgr.GetComponent<Button>(entity);
@@ -260,6 +236,22 @@ namespace Framework {
 			rapidjson::Value value(rapidjson::kObjectType);
 			SerializeComponent(particleEmitter, value, alloc);
 			componentList.AddMember(rapidjson::StringRef(Serialization::PARTICLE_EMITTER_COMPONENT), value, alloc);
+		}
+
+		// Serialize Slider Component
+		if (entityMgr.HasComponent(entity, ComponentType::SliderType)) {
+			Slider& slider = entityMgr.GetComponent<Slider>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(slider, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::SLIDER), value, alloc);
+		}
+
+		// Serialize PlayerHealth Component
+		if (entityMgr.HasComponent(entity, ComponentType::PlayerHealthComponentType)) {
+			PlayerHealthComponent& health = entityMgr.GetComponent<PlayerHealthComponent>(entity);
+			rapidjson::Value value(rapidjson::kObjectType);
+			SerializeComponent(health, value, alloc);
+			componentList.AddMember(rapidjson::StringRef(Serialization::PLAYER_HEALTH_COMPONENT), value, alloc);
 		}
 
 		outData.AddMember(rapidjson::StringRef(Serialization::COMPONENTS), componentList, alloc);
@@ -417,19 +409,17 @@ namespace Framework {
 		case ButtonType:
 			SerializeComponent(entityMgr.GetComponent<Button>(entity), componentData, alloc);
 			break;
-		/*case BirdAIComponentType:
-			SerializeComponent(entityMgr.GetComponent<BirdAIComponent>(entity), componentData, alloc);
-			break;
-		case SkeletonAIComponentType:
-			SerializeComponent(entityMgr.GetComponent<SkeletonAIComponent>(entity), componentData, alloc);
-			break;*/
-		case  FSMComponentType: 
+		case FSMComponentType:
 			SerializeComponent(entityMgr.GetComponent<Button>(entity), componentData, alloc);
+			break;
 		case SceneOwnedType:
 			SerializeComponent(entityMgr.GetComponent<SceneOwned>(entity), componentData, alloc);
 			break;
 		case ParticleEmitterComponentType:
 			SerializeComponent(entityMgr.GetComponent<ParticleEmitterComponent>(entity), componentData, alloc);
+			break;
+		case SliderType:
+			SerializeComponent(entityMgr.GetComponent<Slider>(entity), componentData, alloc);
 			break;
 		}
 		doc.CopyFrom(componentData, alloc);
@@ -624,26 +614,6 @@ namespace Framework {
 				entityMgr.AddComponent<NativeScriptsComponent>(loadedEntity, std::move(nativeScripts));
 			}
 		}
-
-		//// Deserialize BirdAI Component
-		//if (componentLists.HasMember(Serialization::BIRD_AI_COMPONENT)) {
-		//	const rapidjson::Value& birdAIData = componentLists[Serialization::BIRD_AI_COMPONENT];
-
-		//	BirdAIComponent birdAI;
-		//	if (DeserializeComponent(birdAIData, birdAI)) {
-		//		entityMgr.AddComponent<BirdAIComponent>(loadedEntity, birdAI);
-		//	}
-		//}
-
-		//// Deserialize SkeletonAI Component
-		//if (componentLists.HasMember(Serialization::SKELETON_AI_COMPONENT)) {
-		//	const rapidjson::Value& skelAIData = componentLists[Serialization::SKELETON_AI_COMPONENT];
-
-		//	SkeletonAIComponent skelAI;
-		//	if (DeserializeComponent(skelAIData, skelAI)) {
-		//		entityMgr.AddComponent<SkeletonAIComponent>(loadedEntity, skelAI);
-		//	}
-		//}
 		
 		// Deserialize FSM Component
 		if (componentLists.HasMember(Serialization::FSM_COMPONENT)) {
@@ -679,6 +649,24 @@ namespace Framework {
 			ParticleEmitterComponent particleEmitter;
 			if (DeserializeComponent(particleEmitterData, particleEmitter)) {
 				entityMgr.AddComponent<ParticleEmitterComponent>(loadedEntity, particleEmitter);
+			}
+		}
+
+		// Deserialize Slider Component
+		if (componentLists.HasMember(Serialization::SLIDER)) {
+			const rapidjson::Value& sliderData = componentLists[Serialization::SLIDER];
+			Slider sliderComp;
+			if (DeserializeComponent(sliderData, sliderComp)) {
+				entityMgr.AddComponent<Slider>(loadedEntity, sliderComp);
+			}
+		}
+
+		// Deserialize PlayerHealth Component
+		if (componentLists.HasMember(Serialization::PLAYER_HEALTH_COMPONENT)) {
+			const rapidjson::Value& playerHealthData = componentLists[Serialization::PLAYER_HEALTH_COMPONENT];
+			PlayerHealthComponent healthComp;
+			if (DeserializeComponent(playerHealthData, healthComp)) {
+				entityMgr.AddComponent<PlayerHealthComponent>(loadedEntity, healthComp);
 			}
 		}
 	}
@@ -1022,6 +1010,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::SHOULD_LOOP), audioComp.loop, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_STREAMING), audioComp.stream, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::VOLUME), audioComp.volume, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::AUDIO_TYPE), static_cast<int>(audioComp.audioType), alloc);
 	}
 
 	// Animation Component
@@ -1107,43 +1096,6 @@ namespace Framework {
 			outData.AddMember(rapidjson::StringRef(Serialization::FSM_INITIAL_STATE), initVal, alloc);
 		}
 	}
-
-	// BirdAI Component
-	//void EntitySerializer::SerializeComponent(const BirdAIComponent& birdAI, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-	//	outData.AddMember(rapidjson::StringRef(Serialization::AI_STATE), static_cast<int>(birdAI.state), alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::IS_FACING_RIGHT), birdAI.isFacingRight, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::STATE_TIMER), birdAI.stateTimer, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::WAKEUP_RADIUS), birdAI.wakeUpRadius, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::WAKEUP_TIME), birdAI.wakeUpTime, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::MOVE_SPEED), birdAI.moveSpeed, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::CHASE_RADIUS), birdAI.chaseRadius, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::HOVER_RADIUS), birdAI.hoverRadius, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::HOVER_HEIGHT), birdAI.hoverHeight, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::HOVER_SPEED), birdAI.hoverSpeed, alloc);
-
-	//	outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_RADIUS), birdAI.attackRadius, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_SPEED), birdAI.attackSpeed, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_DURATION), birdAI.attackDuration, alloc);
-
-	//	// ADD STUN DURATION:
-	//	outData.AddMember(rapidjson::StringRef(Serialization::STUN_DURATION), birdAI.stunDuration, alloc);
-
-	//	// Serialize attack target position
-	//	rapidjson::Value attackTargetPos(rapidjson::kObjectType);
-	//	attackTargetPos.AddMember(rapidjson::StringRef(Serialization::VEC2_X), birdAI.attackTargetPosition.x, alloc);
-	//	attackTargetPos.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), birdAI.attackTargetPosition.y, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::ATTACK_TARGET_POSITION), attackTargetPos, alloc);
-
-	//	outData.AddMember(rapidjson::StringRef(Serialization::PATH_RECALCULATE_INTERVAL), birdAI.pathRecalculateInterval, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::PATH_RECALCULATE_TIMER), birdAI.pathRecalculateTimer, alloc);
-	//}
-
-	//// SkeletonAI Component
-	//void EntitySerializer::SerializeComponent(const SkeletonAIComponent& skelAI, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
-	//	outData.AddMember(rapidjson::StringRef(Serialization::AI_STATE), static_cast<int>(skelAI.state), alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::DETECTION_RADIUS), skelAI.detectionRadius, alloc);
-	//	outData.AddMember(rapidjson::StringRef(Serialization::MOVE_SPEED), skelAI.moveSpeed, alloc);
-	//}
 
 	// Button Component
 	void EntitySerializer::SerializeComponent(const Button& button, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc) {
@@ -1264,6 +1216,30 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::BURST_COUNT), particleEmitter.burstCount, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::BURST_INTERVAL), particleEmitter.burstInterval, alloc);
 	}
+
+	// Slider Component
+	void EntitySerializer::SerializeComponent(const Slider& slider, rapidjson::Value& componentData, rapidjson::Document::AllocatorType& alloc) {
+		// Dont serialize handle ids as ids can change
+
+		rapidjson::Value handleNameVal;
+		const char* hName = slider.handleName.empty() ? "" : slider.handleName.c_str();
+		handleNameVal.SetString(hName, static_cast<rapidjson::SizeType>(strlen(hName)), alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_HANDLE_NAME), handleNameVal, alloc);
+
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MIN_VALUE), slider.minValue, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MAX_VALUE), slider.maxValue, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_CURRENT_VALUE), slider.currentValue, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_WIDTH), slider.width, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_WIDTH_OFFSET_X), slider.widthOffsetX, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_IS_DRAGGING), slider.isDragging, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_TYPE), static_cast<int>(slider.sliderType), alloc);
+	}
+
+	// PlayerHealth Component
+	void EntitySerializer::SerializeComponent(const PlayerHealthComponent& playerHealthComp, rapidjson::Value& componentData, rapidjson::Document::AllocatorType& alloc) {
+		componentData.AddMember(rapidjson::StringRef(Serialization::PLAYER_HEALTH_NUM), playerHealthComp.lifeNum, alloc);
+	}
+
 #pragma endregion
 
 #pragma region SPECIALIZED DESERIALIZATION
@@ -1529,6 +1505,12 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::VOLUME) && componentData[Serialization::VOLUME].IsFloat()) {
 			out.volume = componentData[Serialization::VOLUME].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::AUDIO_TYPE) && componentData[Serialization::AUDIO_TYPE].IsInt()) {
+			out.audioType = static_cast<AudioType>(componentData[Serialization::AUDIO_TYPE].GetInt());
+		}
+		else {
+			out.audioType = AudioType::SFX; // Default for old save files
 		}
 		return true;
 	}
@@ -1933,6 +1915,55 @@ namespace Framework {
 		}
 		if (componentData.HasMember(Serialization::BURST_INTERVAL) && componentData[Serialization::BURST_INTERVAL].IsFloat()) {
 			out.burstInterval = componentData[Serialization::BURST_INTERVAL].GetFloat();
+		}
+		return true;
+	}
+
+	// Slider Component Deserialization
+	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Slider& out) {
+		if (componentData.HasMember(Serialization::SLIDER_HANDLE_NAME) && componentData[Serialization::SLIDER_HANDLE_NAME].IsString()) {
+			out.handleName = componentData[Serialization::SLIDER_HANDLE_NAME].GetString();
+		}
+
+		// When deserializing, we can't set the handle entity yet since it may not exist
+		// Set needs Resolution to true to resolve the entity id by its name
+		out.handleEntity = 0;
+		out.needsResolution = true;
+
+		if (componentData.HasMember(Serialization::SLIDER_MIN_VALUE))
+			out.minValue = componentData[Serialization::SLIDER_MIN_VALUE].GetFloat();
+
+		if (componentData.HasMember(Serialization::SLIDER_MAX_VALUE))
+			out.maxValue = componentData[Serialization::SLIDER_MAX_VALUE].GetFloat();
+
+		if (componentData.HasMember(Serialization::SLIDER_CURRENT_VALUE))
+			out.currentValue = componentData[Serialization::SLIDER_CURRENT_VALUE].GetFloat();
+
+		if (componentData.HasMember(Serialization::SLIDER_WIDTH))
+			out.width = componentData[Serialization::SLIDER_WIDTH].GetFloat();
+
+		if (componentData.HasMember(Serialization::SLIDER_WIDTH_OFFSET_X))
+			out.widthOffsetX = componentData[Serialization::SLIDER_WIDTH_OFFSET_X].GetFloat();
+
+		if (componentData.HasMember(Serialization::SLIDER_IS_DRAGGING))
+			out.isDragging = componentData[Serialization::SLIDER_IS_DRAGGING].GetBool();
+		
+		if (componentData.HasMember(Serialization::SLIDER_TYPE) && componentData[Serialization::SLIDER_TYPE].IsInt()) {
+			out.sliderType = static_cast<SliderSoundType>(componentData[Serialization::SLIDER_TYPE].GetInt());
+		}
+		else {
+			out.sliderType = SliderSoundType::MASTER_VOLUME; // Default
+		}
+
+		return true;
+	}
+
+	// PlayerHealth Component
+	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, PlayerHealthComponent& out) {
+		if (!componentData.IsObject()) return false;
+
+		if (componentData.HasMember(Serialization::PLAYER_HEALTH_NUM) && componentData[Serialization::PLAYER_HEALTH_NUM].IsInt()) {
+			out.lifeNum = componentData[Serialization::PLAYER_HEALTH_NUM].GetInt();
 		}
 		return true;
 	}

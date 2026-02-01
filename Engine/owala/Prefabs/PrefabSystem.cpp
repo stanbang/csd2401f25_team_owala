@@ -17,18 +17,13 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+#include "pch.h"
 #include "PrefabSystem.h"
 #include "EntityManager.h"
 #include "EntitySerializer.h"
 #include "Components.h"
 #include "Logger.h"
 #include "SerializationKeys.h"
-#include "rapidjson/istreamwrapper.h"
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/prettywriter.h>
 #include "FileUtility.h"
 
 namespace fs = std::filesystem;

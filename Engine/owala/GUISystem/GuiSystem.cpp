@@ -15,6 +15,7 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "GuiSystem.h"
 #include "GameManager.h"
 #include "GameMessages.h" // For ButtonClickedEvent
@@ -144,6 +145,115 @@ namespace Framework {
 				buttonComponent.isPressed = false;
 			}
 		}
+
+		// Loop through all active entities with Slider, Transform
+        for (const Entity& sliderEntity : entityMgr.GetAllEntitiesWithComponents(true, SliderType, TransformType)) {
+            Slider& slider = entityMgr.GetComponent<Slider>(sliderEntity);
+            Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
+
+			// Get the handle entity by resolving its name if needed
+            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity)) {
+                if (!slider.handleName.empty()) {
+                    slider.handleEntity = entityMgr.GetEntityByName(slider.handleName);
+
+                    // If found, we don't need to resolve again this session
+                    if (slider.handleEntity != 0) {
+                        slider.needsResolution = false;
+                    }
+                    else {
+                        // If still not found, skip this frame
+                        continue;
+                    }
+                }
+                else {
+                    continue; // No name provided to search with
+                }
+            }
+
+            Entity handle = slider.handleEntity;
+
+			// Safety check just in case the handle entity does not have a Button component
+            if (!entityMgr.HasComponent(handle, ComponentType::ButtonType)) {continue;}
+			// Get handle components
+            Button& handleButton = entityMgr.GetComponent<Button>(handle);
+            Transform& handleTransform = entityMgr.GetComponent<Transform>(handle);
+
+            // Start dragging if the handle is pressed
+            if (handleButton.isHovered && mouseDown) {
+                slider.isDragging = true;
+            }
+
+            // Stop dragging when mouse is released
+            if (inputSystem_.MouseReleased(InputSystem::MouseButton::Left)) {
+                slider.isDragging = false;
+            }
+
+			// Initialize slider value on first update to sync with audio system
+            if (!slider.isInitialized) {
+                float currentSysVol = 1.0f;
+                switch (slider.sliderType) {
+                case SliderSoundType::MASTER_VOLUME:
+                    currentSysVol = GameManager::GetInstance().GetSystems().audio_->getMasterVolume();
+                    break;
+                case SliderSoundType::MUSIC_VOLUME:
+                    currentSysVol = GameManager::GetInstance().GetSystems().audio_->getMusicVolume();
+                    break;
+                case SliderSoundType::SFX_VOLUME:
+                    currentSysVol = GameManager::GetInstance().GetSystems().audio_->getSFXVolume();
+                    break;
+                }
+
+                // Update the slider value
+                slider.currentValue = currentSysVol;
+
+                // Update the visual Handle Position
+                // Formula: pos = minX + normalized_value * width
+                float widthCenterX = bgTransform.position.x + slider.widthOffsetX;
+                float minX = widthCenterX - (slider.width / 2.0f);
+
+                float range = slider.maxValue - slider.minValue;
+                float normalized = 0.0f;
+                if (range != 0.0f) {
+                    normalized = (slider.currentValue - slider.minValue) / range;
+                }
+
+                // Snap handle to the correct visual position immediately
+                handleTransform.position.x = minX + (normalized * slider.width);
+
+                slider.isInitialized = true;
+            }
+
+            // Update handle position and slider value while dragging
+            if (slider.isDragging) {
+                float widthCenterX = bgTransform.position.x + slider.widthOffsetX;
+
+                // Calculate the slider's left and right boundaries in world space
+                float minX = widthCenterX - (slider.width / 2.0f);
+                float maxX = widthCenterX + (slider.width / 2.0f);
+
+                // Clamp mouseX_ndc (from your existing code) to the slider's bounds
+                float clampedMouseX = std::max(minX, std::min(static_cast<float>(mouseX_ndc), maxX));
+
+                // Move the handle
+                handleTransform.position.x = clampedMouseX;
+
+                // Calculate normalized value (0.0 to 1.0)
+                float normalizedValue = (clampedMouseX - minX) / slider.width;
+                slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
+
+                switch (slider.sliderType) {
+                case SliderSoundType::MASTER_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setMasterVolume(slider.currentValue);
+                    break;
+                case SliderSoundType::MUSIC_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setMusicVolume(slider.currentValue);
+                    break;
+                case SliderSoundType::SFX_VOLUME:
+                    GameManager::GetInstance().GetSystems().audio_->setSFXVolume(slider.currentValue);
+                    break;
+                }
+            }
+        }
 	}
 
 	void GuiSystem::Shutdown() {
@@ -173,7 +283,7 @@ namespace Framework {
 			// Assuming you have access to AudioSystem through a pointer
 			if (audioSystem_) {
 				FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(soundKey);
-				audioSystem_->play(sound, volume, false);
+				audioSystem_->play(sound, AudioType::SFX, volume, false);
 			}
 		}
 		catch (const std::exception& e) {

@@ -13,13 +13,10 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "Editor.h"
 #include "Logger.h"
 #include "FileUtility.h"
-#include "imgui.h"
-#include "rapidjson/prettywriter.h"
-#include <fstream>
-#include <filesystem>
 
 namespace Editor {
 

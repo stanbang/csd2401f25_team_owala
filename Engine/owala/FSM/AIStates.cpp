@@ -1,8 +1,8 @@
+#include "pch.h"
 #include "AIStates.h"
 #include "EntityManager.h"
 #include "Components.h"
 #include "FSMFactory.h" // Needed for Macros
-#include <cmath>
 #include "Vector2D.h"
 #include "GameManager.h" // Required for HitWall condition
 #include "PhysicsSystem.h"

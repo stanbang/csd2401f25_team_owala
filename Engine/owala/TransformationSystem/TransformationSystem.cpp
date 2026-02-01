@@ -9,13 +9,12 @@
 *       rotation triggered by Q/E keys with smooth interpolation and cooldown.
 *       Adds cinematic camera zoom: zoom out -> rotate -> zoom back in.
 *********************************************************************/
+#include "pch.h"
 #include "TransformationSystem.h"
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "Components.h"
 #include "Transformation.h"
-#include <cmath>
-#include <iostream>
 #include "OwalaTime.h"
 #include "MessageBus.h"
 #include "GameManager.h"

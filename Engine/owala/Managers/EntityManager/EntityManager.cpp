@@ -8,12 +8,10 @@
  * \author	Jason Lou
  * \date	26 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "EntityManager.h"
 #include "Logger.h"
 #include "ScriptRegistry.h"
-
-// STL
-#include <random>
 
 namespace Framework {
 #pragma region CURRENT ENTITYMANAGER
@@ -85,11 +83,11 @@ namespace Framework {
 					case ComponentType::CameraType: AddComponent<Camera>(newEntity, GetComponent<Camera>(entity)); break;
 					case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(newEntity, GetComponent<NativeScriptsComponent>(entity)); break;
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
-				/*	case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
-					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; */
 					case ComponentType::FSMComponentType: AddComponent<FSMComponent>(newEntity, GetComponent<FSMComponent>(entity)); break;
 					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
 					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
+					case ComponentType::SliderType: AddComponent<Slider>(newEntity, GetComponent<Slider>(entity)); break;
+					case ComponentType::PlayerHealthComponentType: AddComponent<PlayerHealthComponent>(newEntity, GetComponent<PlayerHealthComponent>(entity)); break;
 					default:
 						break;
 				}
@@ -177,11 +175,11 @@ namespace Framework {
 		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{}); break;
-	/*	case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
-		case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(entity, SkeletonAIComponent{}); break; */
 		case ComponentType::FSMComponentType: AddComponent<FSMComponent>(entity, FSMComponent{}); break;
 		case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(entity, ParticleComponent{}); break;
 		case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(entity, ParticleEmitterComponent{}); break;
+		case ComponentType::SliderType: AddComponent<Slider>(entity, Slider{}); break;
+		case ComponentType::PlayerHealthComponentType: AddComponent<PlayerHealthComponent>(entity, PlayerHealthComponent{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
@@ -220,6 +218,8 @@ namespace Framework {
 			case CameraType: ecs.cameras.erase(entity); break;
 			case ParticleComponentType: ecs.particleComponent.erase(entity); break;
 			case ParticleEmitterComponentType: ecs.particleEmitterComponent.erase(entity); break;
+			case SliderType: ecs.sliders.erase(entity); break;
+			case PlayerHealthComponentType: ecs.playerHealth.erase(entity); break;
 			case NativeScriptsComponentType: {
 				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
 				if (it != ecs.nativeScripts.end()) {
@@ -439,9 +439,17 @@ namespace Framework {
 		return false; // Entity not found or does not have the component
 	}
 
-	/*void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
-		// Empty by design.
-	}*/
+	Entity EntityManager::GetEntityByName(const std::string& name) const {
+		// If exact match found, return immediately
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+			if (props.name == name) return entity;
+		}
+
+		Logger::Get().Info(DebugType::GameManager) << "GetEntityByName: Entity with name '" << name << "' not found." << std::endl;
+		return static_cast<Entity>(-1); // Return invalid entity
+	}
 
 #pragma endregion
 }

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EntityStorage.h"
 #include "Components.h"
 
@@ -26,7 +27,9 @@ namespace Framework {
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
+		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
+		playerHealth = other.playerHealth;
 
 		for (const auto& [entity, scripts] : other.nativeScripts) {
 			nativeScripts[entity] = scripts;
@@ -63,7 +66,9 @@ namespace Framework {
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
+		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
+		playerHealth = other.playerHealth;
 
 		nativeScripts.clear();
 		for (const auto& [entity, scripts] : other.nativeScripts) {
@@ -104,7 +109,9 @@ namespace Framework {
 		std::swap(fsmComponent, other.fsmComponent);
 		std::swap(particleComponent, other.particleComponent);
 		std::swap(particleEmitterComponent, other.particleEmitterComponent);
+		std::swap(sliders, other.sliders);
 		std::swap(sceneOwned, other.sceneOwned);
+		std::swap(playerHealth, other.playerHealth);
 
 		std::swap(nativeScripts, other.nativeScripts);
 	}

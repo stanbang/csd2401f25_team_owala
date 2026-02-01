@@ -12,8 +12,8 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "AABB_Collision.h"
-#include <algorithm> // For std::min/max
 
 namespace Framework {
 
@@ -48,19 +48,19 @@ namespace Framework {
         if (relativeVel.x < 0.0f) {
             if (aabb1.max.x < aabb2.min.x) return false; // Separated and moving apart
             if (aabb2.max.x < aabb1.min.x) {
-                tFirst = std::max((aabb2.max.x - aabb1.min.x) / relativeVel.x, tFirst);
+                tFirst = (std::max)((aabb2.max.x - aabb1.min.x) / relativeVel.x, tFirst);
             }
             if (aabb1.max.x > aabb2.min.x) {
-                tLast = std::min((aabb1.min.x - aabb2.max.x) / relativeVel.x, tLast);
+                tLast = (std::min)((aabb1.min.x - aabb2.max.x) / relativeVel.x, tLast);
             }
         }
         else if (relativeVel.x > 0.0f) {
             if (aabb1.min.x > aabb2.max.x) return false; // Separated and moving apart
             if (aabb2.min.x > aabb1.max.x) {
-                tFirst = std::max((aabb2.min.x - aabb1.max.x) / relativeVel.x, tFirst);
+                tFirst = (std::max)((aabb2.min.x - aabb1.max.x) / relativeVel.x, tFirst);
             }
             if (aabb1.min.x < aabb2.max.x) {
-                tLast = std::min((aabb2.max.x - aabb1.min.x) / relativeVel.x, tLast);
+                tLast = (std::min)((aabb2.max.x - aabb1.min.x) / relativeVel.x, tLast);
             }
         }
         else { // No relative motion on the X-axis
@@ -73,19 +73,19 @@ namespace Framework {
         if (relativeVel.y < 0.0f) {
             if (aabb1.max.y < aabb2.min.y) return false; // Separated and moving apart
             if (aabb2.max.y < aabb1.min.y) {
-                tFirst = std::max((aabb2.max.y - aabb1.min.y) / relativeVel.y, tFirst);
+                tFirst = (std::max)((aabb2.max.y - aabb1.min.y) / relativeVel.y, tFirst);
             }
             if (aabb1.max.y > aabb2.min.y) {
-                tLast = std::min((aabb1.min.y - aabb2.max.y) / relativeVel.y, tLast);
+                tLast = (std::min)((aabb1.min.y - aabb2.max.y) / relativeVel.y, tLast);
             }
         }
         else if (relativeVel.y > 0.0f) {
             if (aabb1.min.y > aabb2.max.y) return false; // Separated and moving apart
             if (aabb2.min.y > aabb1.max.y) {
-                tFirst = std::max((aabb2.min.y - aabb1.max.y) / relativeVel.y, tFirst);
+                tFirst = (std::max)((aabb2.min.y - aabb1.max.y) / relativeVel.y, tFirst);
             }
             if (aabb1.min.y < aabb2.max.y) {
-                tLast = std::min((aabb2.max.y - aabb1.min.y) / relativeVel.y, tLast);
+                tLast = (std::min)((aabb2.max.y - aabb1.min.y) / relativeVel.y, tLast);
             }
         }
         else { // No relative motion on the Y-axis

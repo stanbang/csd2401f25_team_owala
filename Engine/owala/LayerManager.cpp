@@ -5,12 +5,10 @@
  *
  * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
  *********************************************************************/
+#include "pch.h"
 #include "LayerManager.h"
 #include "FileUtility.h"
 #include "Logger.h"
-#include <algorithm>
-#include <fstream>
-#include <filesystem>
 
 namespace Framework {
 

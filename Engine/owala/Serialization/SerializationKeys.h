@@ -120,6 +120,7 @@ namespace Framework::Serialization {
 	static constexpr const char* SHOULD_LOOP = "should_loop";
 	static constexpr const char* IS_STREAMING = "is_streaming";
 	static constexpr const char* VOLUME = "volume";
+	static constexpr const char* AUDIO_TYPE = "audio_type";
 
 	static constexpr const char* ANIMATION_COMPONENT = "AnimationComponent";
 	static constexpr const char* ANIMATION_PROFILE = "profile_name";
@@ -205,11 +206,24 @@ namespace Framework::Serialization {
 	static constexpr const char* BURST_COUNT = "burst_count";
 	static constexpr const char* BURST_INTERVAL = "burst_interval";
 
+	static constexpr const char* SLIDER = "Slider";
+	static constexpr const char* SLIDER_CURRENT_VALUE = "current_value";
+	static constexpr const char* SLIDER_HANDLE_NAME = "handle_name";
+	static constexpr const char* SLIDER_MIN_VALUE = "min_value";
+	static constexpr const char* SLIDER_MAX_VALUE = "max_value";
+	static constexpr const char* SLIDER_WIDTH = "width";
+	static constexpr const char* SLIDER_WIDTH_OFFSET_X = "width_offset_x";
+	static constexpr const char* SLIDER_IS_DRAGGING = "is_dragging";
+	static constexpr const char* SLIDER_TYPE = "slider_type";
+
 	// FSM KEYS
 	static constexpr const char* FSM_COMPONENT = "FSMComponent";
 	static constexpr const char* FSM_DEFINITION_PATH = "DefinitionPath";
 	static constexpr const char* FSM_CURRENT_STATE = "CurrentState";
 	static constexpr const char* FSM_INITIAL_STATE = "InitialState";
+
+	static constexpr const char* PLAYER_HEALTH_COMPONENT = "PlayerHealthComponent";
+	static constexpr const char* PLAYER_HEALTH_NUM = "life_num";
 	
 	/* Tags JSON Labels */
 	static constexpr const char* TAGS = "tags";
