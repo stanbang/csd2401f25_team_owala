@@ -81,6 +81,7 @@ namespace Framework {
                 physics_.SetPaused(true);
                 isGlobalRotating = true;
 
+                MessageBus::Instance().Publish(VFXTriggerEvent{"WorldRotationEvent", true});
                 MessageBus::Instance().Publish(WorldRotationEvent{});
 
                 rotatePhase_ = RotatePhase::Rotating;

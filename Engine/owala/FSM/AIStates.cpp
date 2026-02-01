@@ -365,8 +365,8 @@ namespace Framework {
             }
 
             return false;
-            };
-        });
+        };
+    });
 
 
 

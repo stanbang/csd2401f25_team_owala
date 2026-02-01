@@ -92,7 +92,7 @@ namespace Framework {
 	void GameManager::UpdateNativeScripts() {
 		static int count = 0;
 		EntityManager entityMgr(*systems_.ecs_);
-		SceneManager& sceneMgr = SceneManager::GetInstance();
+		//SceneManager& sceneMgr = SceneManager::GetInstance();
 		
 		// Get all entities with NativeScriptsComponent and ActiveTag to log them
 		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType);

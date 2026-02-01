@@ -43,14 +43,14 @@ namespace Framework {
         // Subscribe to Player Jump Event
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {this->PlayRandomSound("Player_Jump", AudioType::SFX, e.volume); });
         // Subscribe to Player Land Event
-        MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent& e) {this->PlayRandomSound("Player_Land", AudioType::SFX, 1.0f); });
+        MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 1.0f);  });
         // Subscribe to World Rotation Event
-        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent& e) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 0.6f); });
+        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
         // Subscribe to Trap Platform Land Event
         MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& event) {this->TriggerProximitySFX(event.position, "Platform_Land", AudioType::SFX); });
         // Subscribe to Curtains Open/Close Event
-        MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent& event) {this->PlayRandomSound("Curtains_Open", AudioType::SFX, 1.0f); });
-        MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent& event) {this->PlayRandomSound("Curtains_Close", AudioType::SFX, 1.0f);});
+        MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent&) {this->PlayRandomSound("Curtains_Open", AudioType::SFX, 1.0f); });
+        MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent&) {this->PlayRandomSound("Curtains_Close", AudioType::SFX, 1.0f);});
 		// Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event); });
     }
