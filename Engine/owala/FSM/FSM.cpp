@@ -34,7 +34,7 @@ namespace Framework {
     void FSM::Update(Entity entity, EntityStorage& ecs, float dt) {
         if (currentState_.empty()) return;
 
-        // 1. Check Transitions
+        // Check Transitions
         if (transitions_.find(currentState_) != transitions_.end()) {
             for (const auto& trans : transitions_[currentState_]) {
                 if (trans->Check(entity, ecs)) {
@@ -44,7 +44,7 @@ namespace Framework {
             }
         }
 
-        // 2. Update Current State
+        // Update Current State
         if (states_[currentState_]) {
             states_[currentState_]->OnUpdate(entity, ecs, dt);
         }

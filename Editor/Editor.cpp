@@ -2959,7 +2959,7 @@ namespace Editor {
 			ImGui::Separator();
 			ImGui::SeparatorText("Button Actions");
 
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME" };
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {

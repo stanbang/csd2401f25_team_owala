@@ -447,8 +447,30 @@ namespace Framework {
 			if (props.name == name) return entity;
 		}
 
-		Logger::Get().Info(DebugType::GameManager) << "GetEntityByName: Entity with name '" << name << "' not found." << std::endl;
+		Logger::Get().Info(DebugType::EntityManager) << "GetEntityByName: Entity with name '" << name << "' not found." << std::endl;
 		return static_cast<Entity>(-1); // Return invalid entity
+	}
+
+	std::vector<Entity> EntityManager::GetEntitiesBySubstring(const std::string& subStr) const {
+		std::vector<Entity> matches;
+
+		// Iterate through all entities
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+
+			if (props.name.find(subStr) != std::string::npos) {
+				matches.push_back(entity);
+			}
+		}
+
+		// Log if nothing was found (useful for debugging typos in names)
+		if (matches.empty()) {
+			Logger::Get().Info(DebugType::EntityManager)
+				<< "GetEntitiesBySubstring: No entities found containing '" << subStr << "'." << std::endl;
+		}
+
+		return matches;
 	}
 
 #pragma endregion

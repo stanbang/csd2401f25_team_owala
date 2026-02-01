@@ -14,6 +14,7 @@
 #include "SplashScreen.h"
 #include "TestScene.h"
 #include "CutsceneIntro.h"
+#include "HowToPlay.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
@@ -298,6 +299,10 @@ namespace Framework {
 				}
 				if (sceneName == "Cutscene Intro") {
 					RegisterScriptToScene(sceneID, CutsceneIntro::Initialize, CutsceneIntro::Update, CutsceneIntro::Free);
+					continue;
+				}
+				if (sceneName == "HowToPlay") {
+					RegisterScriptToScene(sceneID, HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
 					continue;
 				}
 				// all other scenes use TestScene.cpp for now
