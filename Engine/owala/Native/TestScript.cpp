@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "TestScript.h"
 #include "ScriptRegistry.h"
-#include <iostream>
 
 REGISTER_SCRIPT(TestScript, "TestScript")
 

@@ -13,13 +13,11 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+#include "pch.h"
 #include "PhysicsSystem.h"
 #include "EntityManager.h"
 #include "AABB_Collision.h"
 #include "FileUtility.h"
-#include <algorithm>
-#include <vector>
-#include <set> // Include for duplicate pair checking
 #include "OwalaTime.h"
 #include "GameManager.h"
 #ifndef M_PI

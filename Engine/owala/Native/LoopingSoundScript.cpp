@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LoopingSoundScript.h"
 #include "ScriptRegistry.h"
 #include "GameManager.h"

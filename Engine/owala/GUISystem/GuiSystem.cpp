@@ -15,6 +15,7 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "GuiSystem.h"
 #include "GameManager.h"
 #include "GameMessages.h" // For ButtonClickedEvent

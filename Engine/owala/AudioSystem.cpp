@@ -1,7 +1,7 @@
+#include "pch.h"
 #include "AudioSystem.h"
 #include "EntityManager.h"
 #include "GameManager.h"
-#include <cstdio>   // fprintf
 #include "Logger.h"
 
 namespace Framework {

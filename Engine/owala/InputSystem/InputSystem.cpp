@@ -15,11 +15,9 @@
  *   Reproduction or disclosure of this file or its contents without the prior
  *   written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "InputSystem.h"
 #include "WindowsSystem.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <cctype>      // std::toupper
 #include "GameManager.h"
 #include "PhysicsSystem.h"
 #include "CameraSystem.h"

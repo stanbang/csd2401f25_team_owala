@@ -19,7 +19,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
-
+#include "pch.h"
 #include "Editor.h"
 #include "Core.h"
 #include "GameManager.h"
@@ -29,25 +29,10 @@
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
 #include "AISystem.h" // Include AISystem for debugging purposes
-#include "rapidjson/prettywriter.h"
 #include "FileUtility.h"
-#include <fstream>
 
 // Debug
 #include "Logger.h"
-
-// Imgui Dependencies
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include <random> // for random generation
-
 #include "Fake_Player.h"
 
 // Serialization
@@ -60,11 +45,6 @@
 #include "ScriptableEntity.h"
 #include "ScriptRegistry.h"
 #include "NativeScriptMaker.h"
-
-#include <unordered_set>
-// Standard Libraries
-#include <sstream>
-#include <iomanip>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

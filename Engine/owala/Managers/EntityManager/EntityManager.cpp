@@ -8,12 +8,10 @@
  * \author	Jason Lou
  * \date	26 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "EntityManager.h"
 #include "Logger.h"
 #include "ScriptRegistry.h"
-
-// STL
-#include <random>
 
 namespace Framework {
 #pragma region CURRENT ENTITYMANAGER

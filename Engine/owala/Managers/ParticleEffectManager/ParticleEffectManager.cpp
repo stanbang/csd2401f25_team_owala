@@ -14,10 +14,10 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "ParticleEffectManager.h"
 #include "FileUtility.h"
 #include "Logger.h"
-#include "rapidjson/document.h"
 
 namespace Framework {
     bool ParticleEffectManager::LoadEffectPresets(const std::string& filepath) {

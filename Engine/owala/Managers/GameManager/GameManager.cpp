@@ -6,9 +6,9 @@
  * \author	Jason Lou
  * \date	18 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "GameManager.h"
 #include "EntitySerializer.h"
-#include <iostream>
 
 // Scene Scripts
 #include "SplashScreen.h"
@@ -16,17 +16,8 @@
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
-// ImGui headers
-#ifdef BUILD_EDITOR
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#endif
 //Core Engine headers for IMGUI
 #include "Core.h"
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------

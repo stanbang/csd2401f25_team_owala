@@ -16,10 +16,8 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "Logger.h"
-#include <shlobj.h>     // Required for SHGetFolderPath
-#include <filesystem>
 
 namespace Framework {
     const std::string Logger::LOGS_FILEEXT = "_crash.log";

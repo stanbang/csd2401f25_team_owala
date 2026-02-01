@@ -16,9 +16,8 @@
  *   Reproduction or disclosure of this file or its contents without the prior
  *   written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "Core.h"
-#include <algorithm>
-#include <chrono>
 
 #include "WindowsSystem.h"
 #include "InputSystem.h"
@@ -31,7 +30,6 @@
 #include "ParticleEffectManager.h"
 #include "Graphics.h"
 #include "OwalaTime.h"
-#include "GLFW/glfw3.h"
 #include "PlatformBehaviorSystem.h" 
 #include "VFXSystem.h"
 

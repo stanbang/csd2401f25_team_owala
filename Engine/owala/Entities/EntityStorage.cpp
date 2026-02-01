@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EntityStorage.h"
 #include "Components.h"
 

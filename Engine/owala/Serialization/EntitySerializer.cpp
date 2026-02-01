@@ -19,7 +19,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
-
+#include "pch.h"
 #include "EntitySerializer.h"
 #include "SerializationKeys.h"
 #include "GameManager.h"
@@ -27,10 +27,6 @@
 #include "ScriptRegistry.h"
 #include "FileUtility.h"
 #include "Logger.h"
-
-// STL
-#include <unordered_map>
-#include <unordered_set>
 
 // Internal Helpers - Will move this and the Editor's version to a global utils file later.
 namespace {
