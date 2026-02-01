@@ -224,7 +224,178 @@ namespace Framework {
     }
 
     // =========================================================
-    // MACRO REGISTRATION (The Magic Part)
+    // WITCH ENEMY STATE IMPLEMENTATIONS
+    // =========================================================
+
+    // --- WITCH IDLE ---
+    void WitchIdleState::OnEnter(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        // Just waiting for player detection (handled by FSM transitions)
+    }
+
+    void WitchIdleState::SetParameter(const std::string& key, float value) {
+        if (key == "detectionRadius") detectionRadius_ = value;
+    }
+
+    // --- WITCH ALERTED ---
+    void WitchAlertedState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+        // Stop movement during alert animation
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchAlertedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        // Play alert animation here if you have animation system
+    }
+
+    void WitchAlertedState::SetParameter(const std::string& key, float value) {
+        if (key == "alertDuration") alertDuration_ = value;
+    }
+
+    // --- WITCH ENRAGED ---
+    void WitchEnragedState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+        // Stop movement during enrage animation
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchEnragedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        // Play enraged animation here
+    }
+
+    void WitchEnragedState::SetParameter(const std::string& key, float value) {
+        if (key == "enrageDuration") enrageDuration_ = value;
+    }
+
+    // --- WITCH TELEPORT ---
+    void WitchTeleportState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        Entity player = GetPlayer(ecs);
+        if (player == 0 || !mgr.HasComponent(entity, TransformType) ||
+            !mgr.HasComponent(player, TransformType)) return;
+
+        Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
+        Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
+
+        // Calculate teleport position near player
+        Vector2D dirToPlayer = playerPos - myPos;
+        dirToPlayer.Normalize();
+
+        // Teleport to a position near the player (at teleportDistance_)
+        targetPosition_ = playerPos - dirToPlayer * teleportDistance_;
+
+        // Stop velocity during teleport
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchTeleportState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        EntityManager mgr(ecs);
+
+        // Teleport effect: move towards target over duration
+        if (mgr.HasComponent(entity, TransformType)) {
+            Vector2D& pos = mgr.GetComponent<Transform>(entity).position;
+
+            // Lerp to target position
+            float t = timer_ / teleportDuration_;
+            if (t > 1.0f) t = 1.0f;
+
+            Vector2D startPos = pos;
+            pos = startPos + (targetPosition_ - startPos) * t;
+        }
+    }
+
+    void WitchTeleportState::SetParameter(const std::string& key, float value) {
+        if (key == "teleportDuration") teleportDuration_ = value;
+        if (key == "teleportDistance") teleportDistance_ = value;
+    }
+
+    // --- WITCH CHARGING ---
+    void WitchChargingState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        // Stop movement during charge
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchChargingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        // Show charging animation/effect
+        // You can visualize the attack radius here in debug mode
+    }
+
+    void WitchChargingState::SetParameter(const std::string& key, float value) {
+        if (key == "chargeDuration") chargeDuration_ = value;
+        if (key == "attackRadius") attackRadius_ = value;
+    }
+
+    // --- WITCH ATTACK ---
+    void WitchAttackState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        damageDealt_ = false;
+
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        EntityManager mgr(ecs);
+
+        // Deal damage once during the attack
+        if (!damageDealt_ && timer_ >= attackDuration_ * 0.3f) {
+            damageDealt_ = true;
+
+            // Check if player is in attack radius
+            Entity player = GetPlayer(ecs);
+            if (player != 0 && mgr.HasComponent(entity, TransformType) &&
+                mgr.HasComponent(player, TransformType)) {
+
+                Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
+                Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
+
+                float distance = myPos.Distance(playerPos);
+
+                if (distance <= attackRadius_) {
+                    // Deal damage to player
+                    // If you have a Health component, reduce it here
+                    // Example: mgr.GetComponent<Health>(player).TakeDamage(10);
+                }
+            }
+        }
+    }
+
+    void WitchAttackState::SetParameter(const std::string& key, float value) {
+        if (key == "attackDuration") attackDuration_ = value;
+        if (key == "attackRadius") attackRadius_ = value;
+    }
+
+
+    // =========================================================
+    // MACRO REGISTRATION 
     // =========================================================
     REGISTER_STATE("Idle", BirdIdleState);
     REGISTER_STATE("Waking", BirdWakingState);
@@ -234,6 +405,14 @@ namespace Framework {
     REGISTER_STATE("Recovery", BirdRecoveryState);
     REGISTER_STATE("SimpleChase", BirdSimpleChaseState)
     REGISTER_STATE("Bounce", BirdBounceState)
+
+    // witch registration 
+    REGISTER_STATE("WitchIdle", WitchIdleState);
+    REGISTER_STATE("WitchAlerted", WitchAlertedState);
+    REGISTER_STATE("WitchEnraged", WitchEnragedState);
+    REGISTER_STATE("WitchTeleport", WitchTeleportState);
+    REGISTER_STATE("WitchCharging", WitchChargingState);
+    REGISTER_STATE("WitchAttack", WitchAttackState);
 
     // Common Condition Helpers
     REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
@@ -276,24 +455,6 @@ namespace Framework {
         };
     });
 
-        //// Add collision detection condition
-        //REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
-        //    return [](Entity e, EntityStorage& ecs) {
-        //        EntityManager mgr(ecs);
-
-        //        // Check if entity hit a platform this frame
-        //        if (!mgr.HasComponent(e, PlayerStateType)) return false;
-
-        //        // You can use collision flags or check if velocity was blocked
-        //        // For now, simple approach: check if stuck against wall
-        //        if (!mgr.HasComponent(e, VelocityType)) return false;
-
-        //        Vector2D vel = mgr.GetComponent<Velocity>(e).Vel;
-
-        //        // If velocity is very low but we're trying to move, we hit something
-        //        return vel.Magnitude() < 10.0f;
-        //        };
-        //    });
 
         // AIStates.cpp, improved collision detection
     REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
@@ -324,6 +485,7 @@ namespace Framework {
             return false;
             };
         });
+
 
 
 

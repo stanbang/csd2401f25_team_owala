@@ -75,7 +75,7 @@ namespace Framework {
         float repathInterval_ = 0.5f;
     };
 
-    // --- BOUNCE STATE (After hitting wall) --- previous hover state
+    // --- BOUNCE STATE (After hitting wall) --- 
     class BirdBounceState : public State {
     public:
         const char* GetName() const override { return "Bounce"; }
@@ -139,5 +139,108 @@ namespace Framework {
     private:
         float duration_ = 1.5f;
         float timer_ = 0.0f;
+    };
+
+    // ========================================
+    // WITCH ENEMY STATES
+    // ========================================
+
+    // --- WITCH IDLE STATE ---
+    class WitchIdleState : public State {
+    public:
+        const char* GetName() const override { return "WitchIdle"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+    private:
+        float detectionRadius_ = 400.0f;
+    };
+
+    // --- WITCH ALERTED STATE ---
+    class WitchAlertedState : public State {
+    public:
+        const char* GetName() const override { return "WitchAlerted"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetAlertDuration() const { return alertDuration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float alertDuration_ = 1.0f;
+    };
+
+    // --- WITCH ENRAGED STATE ---
+    class WitchEnragedState : public State {
+    public:
+        const char* GetName() const override { return "WitchEnraged"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetEnrageDuration() const { return enrageDuration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float enrageDuration_ = 0.5f;
+    };
+
+    // --- WITCH TELEPORT STATE ---
+    class WitchTeleportState : public State {
+    public:
+        const char* GetName() const override { return "WitchTeleport"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetTeleportDuration() const { return teleportDuration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float teleportDuration_ = 0.3f;
+        float teleportDistance_ = 200.0f;
+        Vector2D targetPosition_;
+    };
+
+    // --- WITCH CHARGING STATE ---
+    class WitchChargingState : public State {
+    public:
+        const char* GetName() const override { return "WitchCharging"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetChargeDuration() const { return chargeDuration_; }
+        float GetAttackRadius() const { return attackRadius_; }
+
+    private:
+        float timer_ = 0.0f;
+        float chargeDuration_ = 1.5f;
+        float attackRadius_ = 150.0f;
+    };
+
+    // --- WITCH ATTACK STATE ---
+    class WitchAttackState : public State {
+    public:
+        const char* GetName() const override { return "WitchAttack"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetAttackDuration() const { return attackDuration_; }
+        float GetAttackRadius() const { return attackRadius_; }
+
+    private:
+        float timer_ = 0.0f;
+        float attackDuration_ = 0.5f;
+        float attackRadius_ = 150.0f;
+        bool damageDealt_ = false;
     };
 }
