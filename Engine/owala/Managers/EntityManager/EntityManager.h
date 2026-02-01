@@ -154,7 +154,7 @@ namespace Framework {
 		// Activates or deactivates the entity to be used by systems and scripts. 
 		void SetActive(Entity entity, bool value);
 		// Attaches a custom C++ script to an entity.
-		template<class T> 
+		template<class T>
 		std::size_t AttachScript(Entity entity, const char* displayName = nullptr, bool enabled = true);
 		// Attaches a custom C++ script to an entity.
 		std::size_t AttachScriptByName(Entity entity, std::string typeName, bool enabled = true);
@@ -178,6 +178,8 @@ namespace Framework {
 
 		//Get entity by name
 		Entity GetEntityByName(const std::string& name) const;
+		std::vector<Entity> GetEntitiesBySubstring(const std::string& subStr) const;
+
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.

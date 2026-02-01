@@ -24,7 +24,9 @@ namespace Framework {
 		PLAYSOUND,
 		RESETPLAYERPOS,
 		SWITCH_SCENE,
-		QUIT_GAME
+		QUIT_GAME,
+		PREV_PAGE,
+		NEXT_PAGE,
 	};
 
 	// Enum for different particle movement effects
