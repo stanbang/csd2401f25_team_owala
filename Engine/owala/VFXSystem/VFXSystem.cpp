@@ -354,6 +354,9 @@ namespace Framework {
 		if (emitter.isParticleAnimated) {
 			AnimationComponent animComp;
 			animComp.isPlaying = true;
+			// Ignore UVs for now to prevent full spritesheet flashing for the first frame.
+			animComp.minUV = { 0.0f, 0.0f };
+			animComp.maxUV = { 0.0f, 0.0f };
 			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
 		}
 
