@@ -113,7 +113,16 @@ namespace Framework {
                 else {
                     vel.Vel.x = 0.0f;
                 }
-
+                if (state.isDead) {
+                    vel.Vel.x = 0.0f;
+                    if (state.isGrounded) {
+                        if (entityMgr.HasComponent(entity, RigidBodyType)) {
+                            RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+                            rb.InverseMass = 0.0f;
+                        }
+                        vel.Vel.y = 0.0f;
+                    }
+                }
                 // Animation State Handling
                 AnimationState animState = AnimationState::IDLE; // Default to IDLE
 
@@ -363,6 +372,10 @@ namespace Framework {
         }*/
       
 
+        if (entityMgr.HasComponent(playerEntity, VelocityType)) {
+            Velocity& vel = entityMgr.GetComponent<Velocity>(playerEntity);
+            vel.Vel.x = 0.0f;
+        }
         if (entityMgr.HasComponent(playerEntity, AnimationComponentType)) {
             entityMgr.GetComponent<AnimationComponent>(playerEntity).currentState = AnimationState::DEATH;
         }
