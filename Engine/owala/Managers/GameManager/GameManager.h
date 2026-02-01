@@ -39,6 +39,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 
@@ -73,7 +74,8 @@ namespace Framework {
 			SceneFunction fpFree = nullptr;
 		};
 		std::unordered_map<SceneGUID, SceneCallBacks> sceneCallbacks_;
-		SceneGUID lastInitializedScene_ = 0;
+		std::unordered_set<SceneGUID> initializedScenes_;
+		SceneGUID lastActiveScene_ = 0;
 
 		struct RegisteredSystems {
 			EntityStorage* ecs_ = nullptr;

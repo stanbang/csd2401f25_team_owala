@@ -2041,7 +2041,7 @@ namespace Editor {
 
 						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
 						Entity clonedEntity = entityMgr.CloneEntity(entity);
-						sceneMgr.AddEntityToScene(activeScene, clonedEntity);
+						sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
 						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
 					}
 					if (ImGui::MenuItem("Delete")) {
@@ -2109,10 +2109,22 @@ namespace Editor {
 				ImGui::PopID();
 				}; // End lambda: drawSceneDropdown
 
-			drawSceneDropdown(activeScene.sceneIndex, std::string("Scene: ") + activeScene.name);
-			if (activeScene.sceneIndex != SceneManager::GetDDOLSceneID() && IsGamePlaying()) {
+			// --- Per Scene Hierarchy ---
+			const std::vector<SceneManagement::SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+			for (SceneGUID sceneID : loadedScenes) {
+				if (sceneID == SceneManager::GetDDOLSceneID()) continue;
+				const SceneAsset& scene = sceneMgr.GetSceneAt(sceneID, true);
+				if (!scene.IsValid()) continue;
+
+				std::string header = "Scene: " + scene.name;
+				if (sceneID == activeScene.sceneIndex) header += " (Active)";
+				drawSceneDropdown(sceneID, header);
+			}
+
+			if (IsGamePlaying()) {
 				drawSceneDropdown(SceneManager::GetDDOLSceneID(), SceneManager::GetDDOLSceneName());
 			}
+			// --- End Per Scene Hierarchy ---
 		}
 
 		// Ensure Empty Space in Hierarchy List
