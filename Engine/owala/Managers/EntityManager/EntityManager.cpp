@@ -460,7 +460,6 @@ namespace Framework {
 			const EntityProperties& props = kv.second;
 
 			if (props.name.find(subStr) != std::string::npos) {
-				std::cout << "Found: " << props.name << std::endl;
 				matches.push_back(entity);
 			}
 		}
