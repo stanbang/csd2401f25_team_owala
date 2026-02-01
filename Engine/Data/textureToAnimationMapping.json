@@ -185,6 +185,25 @@
 				"SB_MainMenu_Lightbulb_Spritesheet_26.png"
 			],
 			"animation_path": "Data/AnimationData/mainMenuLightbulbAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Props_Lamp_spritesheet.png"
+			],
+    		"animation_path": "Data/AnimationData/propsLampAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Props_SwingingSkulls_Spritesheet.png"
+			],
+    		"animation_path": "Data/AnimationData/propsSwingingSkullsAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Props_AhhSkulls_Spritesheet_01.png",
+				"SB_Props_AhhSkulls_Spritesheet_02.png"
+			],
+    		"animation_path": "Data/AnimationData/propsAhhSkullsAnimation.json"
 		}
   ]
 }

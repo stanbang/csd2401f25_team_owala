@@ -756,7 +756,13 @@ namespace Framework {
             tagVal.SetString(tag.c_str(), alloc);
             tagsArray.PushBack(tagVal, alloc);
         }
-        doc[Serialization::TAGS] = tagsArray;
+        if (doc.HasMember(Serialization::TAGS)) {
+            doc[Serialization::TAGS] = tagsArray;
+        }
+        else {
+            rapidjson::Value tagsKey(Serialization::TAGS, alloc);
+            doc.AddMember(tagsKey, tagsArray, alloc);
+        }
         //rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
         CollisionLayer layer = CollisionLayer::Default;
