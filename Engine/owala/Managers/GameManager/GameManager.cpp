@@ -13,6 +13,7 @@
 // Scene Scripts
 #include "SplashScreen.h"
 #include "TestScene.h"
+#include "CutsceneIntro.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
@@ -291,6 +292,10 @@ namespace Framework {
 					testScene = sceneID;
 					continue;
 				}
+				if (sceneName == "Cutscene Intro") {
+					RegisterScriptToScene(sceneID, CutsceneIntro::Initialize, CutsceneIntro::Update, CutsceneIntro::Free);
+					continue;
+				}
 				// all other scenes use TestScene.cpp for now
 				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 			}
@@ -533,7 +538,8 @@ namespace Framework {
 			name == "RestartMenu" || 
 			name == "LoadingScreen" || 
 			name == "HowToPlay" ||
-			name == "OptionsMenu")
+			name == "OptionsMenu" ||
+			name == "Cutscene Intro")
 			return false;
 		return true;
 	}
