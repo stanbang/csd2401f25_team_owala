@@ -88,7 +88,7 @@ namespace Framework {
 		triggerToEmitters_[triggerName].push_back(emitterEntity);
 	}
 
-	void VFXSystem::OnWorldRotation(const WorldRotationEvent& event) {
+	void VFXSystem::OnWorldRotation(const WorldRotationEvent&) {
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
 	
 	// First, refresh registrations to catch any newly created or reconfigured emitters
