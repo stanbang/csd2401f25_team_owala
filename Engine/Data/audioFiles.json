@@ -18,5 +18,15 @@
     ],
     "Curtains_Close": [
         "curtains_close.wav"
+    ],
+    "Bird_Wake": [
+        "bird_wake.wav"
+    ],
+    "Bird_Chase": [
+        "bird_flying.wav"
+    ],
+    "Bird_Attack": [
+        "bird_attack.wav",
+        "bird_attack2.wav"
     ]
 }

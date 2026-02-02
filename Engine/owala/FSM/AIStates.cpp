@@ -24,8 +24,27 @@
 #include "Vector2D.h"
 #include "GameManager.h" 
 #include "PhysicsSystem.h"
+#include "OwalaTime.h"
 
 namespace Framework {
+
+    // --- SHARED AUDIO HELPERS ---
+    // Tracks the absolute time (in seconds) the last vocal event occurred.
+    static float s_LastVocalTime = -100.0f;
+
+    // Minimum seconds between ANY chase or attack screams
+    const float kVocalCooldown = 2.0f;
+
+    // Helper to check if we can play audio
+    static bool CanPlayVocalEvent() {
+        float currentTime = Time::TotalRuntime();
+
+        if (currentTime - s_LastVocalTime >= kVocalCooldown) {
+            s_LastVocalTime = currentTime;
+            return true;
+        }
+        return false;
+    }
 
     // --- HELPER ---
     static Entity GetPlayer(EntityStorage& ecs) {
@@ -58,6 +77,10 @@ namespace Framework {
         (void)entity;
         (void)ecs;
         timer_ = 0.0f;
+
+        if (CanPlayVocalEvent()) {
+            MessageBus::Instance().Publish(BirdWakeEvent());
+        }
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
@@ -72,7 +95,11 @@ namespace Framework {
     void BirdSimpleChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
         (void)entity;
         (void)ecs;
-        // Just started chasing 
+
+        if (!hasStartedChase_ && CanPlayVocalEvent()) {
+            MessageBus::Instance().Publish(BirdChaseEvent(true));
+            hasStartedChase_ = true; // Lock it so it doesn't fire on Bounce -> Chase
+        }
     }
 
     void BirdSimpleChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -96,6 +123,15 @@ namespace Framework {
             mgr.GetComponent<Velocity>(entity).Vel = direction * moveSpeed_;
         }
     }
+
+    void BirdSimpleChaseState::OnExit(Entity entity, EntityStorage& ecs) {
+        (void)entity;
+        (void)ecs;
+
+        // pause the looping audio
+        MessageBus::Instance().Publish(BirdChaseEvent(false));
+    }
+
 
     void BirdSimpleChaseState::SetParameter(const std::string& key, float value) {
         if (key == "moveSpeed") moveSpeed_ = value;
@@ -228,6 +264,10 @@ namespace Framework {
         // Snapshot direction once
         direction_ = playerPos - myPos;
         direction_.Normalize();
+
+        if (CanPlayVocalEvent()) {
+            MessageBus::Instance().Publish(BirdAttackEvent());
+        }
     }
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
@@ -248,6 +288,17 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             // Stop moving, maybe bounce back slightly
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+
+        // Reset the chase flag
+        if (mgr.HasComponent(entity, FSMComponentType)) {
+            FSM& fsm = mgr.GetComponent<FSMComponent>(entity).fsm;
+
+            // Retrieve the SimpleChase state and reset it
+            auto* chaseState = dynamic_cast<BirdSimpleChaseState*>(fsm.GetState("SimpleChase"));
+            if (chaseState) {
+                chaseState->ResetChaseFlag();
+            }
         }
     }
     void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {

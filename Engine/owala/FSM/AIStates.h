@@ -65,12 +65,15 @@ namespace Framework {
         const char* GetName() const override { return "SimpleChase"; }
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void OnExit(Entity entity, EntityStorage& ecs) override;
         void SetParameter(const std::string& key, float value) override;
+        void ResetChaseFlag() { hasStartedChase_ = false; }
 
     private:
         float moveSpeed_ = 150.0f;
         float bounceForce_ = 200.0f;
         float verticalBias_ = 0.3f; // How much to favor upward movement when hitting walls
+        bool hasStartedChase_ = false;
     };
 
     // --- CHASE STATE (Pathfinding) ---

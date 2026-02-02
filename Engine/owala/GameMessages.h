@@ -105,7 +105,6 @@ namespace Framework {
 	struct WorldRotationEvent {};
 	struct PlatformLandEvent {};
 
-
 	struct PlayerDamagedEvent {
 		Entity playerEntity;
 		int livesRemaining;
@@ -113,4 +112,11 @@ namespace Framework {
 	struct PlayerLandEvent {};
 	struct CurtainsOpenEvent {};
 	struct CurtainsCloseEvent {};
+
+	struct BirdAttackEvent {};
+	struct BirdWakeEvent {};
+	struct BirdChaseEvent {
+		bool isCurrentlyChasing;
+	};
+
 } // namespace Framework

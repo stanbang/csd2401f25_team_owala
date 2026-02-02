@@ -47,12 +47,18 @@ namespace Framework {
         // Subscribe to World Rotation Event
         MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
         // Subscribe to Trap Platform Land Event
-        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& event) {this->TriggerProximitySFX(event.position, "Platform_Land", AudioType::SFX); });
+        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& e) {this->TriggerProximitySFX(e.position, "Platform_Land", AudioType::SFX); });
         // Subscribe to Curtains Open/Close Event
         MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent&) {this->PlayRandomSound("Curtains_Open", AudioType::SFX, 1.0f); });
         MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent&) {this->PlayRandomSound("Curtains_Close", AudioType::SFX, 1.0f);});
+
+        // Subscribe to Bird Enemy Events
+        MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent&) {this->PlayRandomSound("Bird_Wake", AudioType::SFX, 0.3f); });
+        MessageBus::Instance().Subscribe<BirdChaseEvent>([this](const BirdChaseEvent& e) {this->PlayLoopSound("Bird_Chase", AudioType::SFX, 0.3f, !e.isCurrentlyChasing); });
+        MessageBus::Instance().Subscribe<BirdAttackEvent>([this](const BirdAttackEvent&) {this->PlayRandomSound("Bird_Attack", AudioType::SFX, 0.3f); });
+        
 		// Subscribe to ButtonClickedEvent
-        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {this->OnButtonClicked(event); });
+        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& e) {this->OnButtonClicked(e); });
     }
 
     void AudioSystem::Update() {
@@ -349,23 +355,71 @@ namespace Framework {
         return vol;
     }
 
-    void AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
+    std::string AudioSystem::getRandomSound(std::string eventKey) {
         if (soundPaths_.find(eventKey) != soundPaths_.end()) {
             const std::vector<std::string>& files = soundPaths_[eventKey];
 
             if (!files.empty()) {
-                // Pick a random index
-                int randomIndex = rand() % files.size();
-                std::string path = files[randomIndex];
+                int index = 0;
 
-                // Load and Play
-                try {
-                    FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(path);
-                    this->play(sound, audiotype, volume, false);
+                // Pick a random index if there's more than 1 sound file in the array
+                if (files.size() > 1) {
+                    index = rand() % files.size();
                 }
-                catch (...) { 
-                    Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << path << std::endl;
+
+                return files[index];
+            }
+        }
+        return "";
+    }
+
+    void AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
+        std::string soundPath = getRandomSound(eventKey);
+
+        if (!soundPath.empty()) {
+            // Load and Play
+            try {
+                FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
+                this->play(sound, audiotype, volume, false);
+            }
+            catch (...) { 
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
+            }
+        }
+    }
+
+    void AudioSystem::PlayLoopSound(std::string eventKey, AudioType audiotype, float volume, bool pause) {
+        std::string soundPath = getRandomSound(eventKey);
+
+        if (!soundPath.empty()) {
+            // Load and Play
+            try {
+                FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->getLoopAudio(soundPath);
+                auto soundChannel = channels_.find(soundPath);
+                bool soundChannelExists = soundChannel != channels_.end() && soundChannel->second;
+
+                if (pause) {
+                    if (soundChannelExists) {
+                        soundChannel->second->stop();
+                    }
                 }
+                else {
+                    if (soundChannelExists) {
+                        FMOD::ChannelGroup* targetGroup = (audiotype == AudioType::MUSIC) ? musicGroup_ : sfxGroup_;
+                        system_->playSound(&sound, targetGroup, false, &soundChannel->second);
+                        soundChannel->second->setVolume(volume);
+                    }
+                    else {
+                        FMOD::Channel* newChannel = this->play(sound, audiotype, volume, false);
+                        // Save to the map so the next frame knows it is playing
+                        if (newChannel) {
+                            channels_[soundPath] = newChannel;
+                        }
+                    }
+                }
+            }
+            catch (...) {
+                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
             }
         }
     }

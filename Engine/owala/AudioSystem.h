@@ -189,11 +189,25 @@ namespace Framework {
         void ResumeAudio();
 
         /**
+           * \brief Gets a random audio from the soundPaths_ map
+           * \details Uses the event parameter as the key to find the corresponding array of audio files, then returns a random sound
+           * from that array.
+           */
+        std::string getRandomSound(std::string eventKey);
+
+        /**
            * \brief Plays a random audio from the soundPaths_ map
            * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
            * from that array to play.
            */
         void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
+
+        /**
+           * \brief Plays a looping audio from the soundPaths_ map
+           * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
+           * from that array to play.
+           */
+        void PlayLoopSound(std::string eventKey, AudioType audiotype, float volume, bool pause);
         
         /**
 		 * \brief Gets the master, music and SFX volume
