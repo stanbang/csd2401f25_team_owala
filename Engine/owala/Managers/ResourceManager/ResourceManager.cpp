@@ -375,6 +375,36 @@ void ResourceManager::Shutdown() {
 		m_workerThread.join();
 	}
 
+	// Clear upload queue and free any pending raw data
+	{
+		std::lock_guard<std::mutex> lock(m_queueMutex);
+
+		// We need access to the Graphics system to free the raw data.
+		// ResourceManager MUST shut down b4 Graphics/GameManager, 
+		// otherwise GetSystems() might be invalid or null.
+		Graphics* gfx = nullptr;
+		if (GameManager::Exists()) {
+			gfx = GameManager::GetInstance().GetSystems().gfx_;
+		}
+
+		while (!m_dataReadyToUpload.empty()) {
+			AsyncTextureData item = m_dataReadyToUpload.front();
+			m_dataReadyToUpload.pop();
+
+			if (gfx) {
+				// Free the memory
+				gfx->FreeImageRawData(item.rawData);
+
+				std::stringstream ss;
+				ss << "Freed pending async texture data during shutdown: " << item.name;
+				Logger::Get().Info(DebugType::ResourceManager) << ss.str() << std::endl;
+			}
+			else {
+				Logger::Get().Error(DebugType::ResourceManager) << "Leaking texture data " << item.name << " because Graphics system is already gone.";
+			}
+		}
+	}
+
     // Clear all maps
 	clearAll();
 }

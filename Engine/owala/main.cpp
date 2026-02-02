@@ -135,11 +135,12 @@ int main() {
         engine.AddSystem(player);
         engine.AddSystem(phx);
         engine.AddSystem(audio);
-        engine.AddSystem(rcm);
+        //engine.AddSystem(rcm);
         engine.AddSystem(platform);
         engine.AddSystem(aiSystem);
         engine.AddSystem(vfx);
         engine.AddSystem(gm);
+        engine.AddSystem(rcm);
         engine.AddSystem(camera);
         engine.AddSystem(animation);
         engine.AddSystem(gui);
