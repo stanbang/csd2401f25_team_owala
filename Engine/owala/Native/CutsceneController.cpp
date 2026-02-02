@@ -44,7 +44,7 @@ void CutsceneController::FinishCutscene() {
 
 void CutsceneController::FitImageToScreen() {
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
-	WindowsSystem& win = *GameManager::GetInstance().GetSystems().win_;
+	//WindowsSystem& win = *GameManager::GetInstance().GetSystems().win_;
 
 	Entity self = GetEntity();
 	TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(self);
@@ -81,7 +81,7 @@ void CutsceneController::OnCreate() {
 void CutsceneController::OnUpdate() {
 	if (isEnding) return;
 
-	GameManager& gm = GameManager::GetInstance();
+	//GameManager& gm = GameManager::GetInstance();
 
 	FitImageToScreen();
 
