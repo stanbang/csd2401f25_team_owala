@@ -15,6 +15,7 @@
 #include "TestScene.h"
 #include "CutsceneIntro.h"
 #include "HowToPlay.h"
+#include "LevelSelection.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
@@ -251,6 +252,32 @@ namespace Framework {
 				}
 				break;
 
+			case ButtonAction::SWITCH_SCENE_ADD:
+				if (!event.stringParam.empty()) {
+					Logger::Get().Info(DebugType::GameManager)
+						<< "Additively Loading and Switching Scene to: " << event.stringParam << std::endl;
+
+					// If not loaded yet, load additively.
+					SceneManager& sceneMgr = SceneManager::GetInstance();
+					const SceneAsset& scene = sceneMgr.GetSceneByName(event.stringParam, true);
+					if (!scene.IsValid()) {
+						Logger::Get().Error(DebugType::GameManager)
+							<< "SWITCH_SCENE_ADD failed: scene not found: " << event.stringParam << std::endl;
+						break;
+					}
+
+					if (!scene.isLoaded) {
+						sceneMgr.LoadScene(event.stringParam, SceneManagement::LoadSceneMode::Additive);
+					}
+
+					sceneMgr.SetActiveScene(sceneMgr.GetSceneByName(event.stringParam, true));
+				}
+				else {
+					Logger::Get().Error(DebugType::GameManager)
+						<< "Button requested SWITCH_SCENE_ADD but stringParam (Scene Name) was empty!" << std::endl;
+				}
+				break;
+
 			case ButtonAction::QUIT_GAME:
 				Logger::Get().Info(DebugType::GameManager) << "Button requested QUIT_GAME" << std::endl;
 				// Exit the application
@@ -306,6 +333,10 @@ namespace Framework {
 				}
 				if (sceneName == "HowToPlay") {
 					RegisterScriptToScene(sceneID, HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
+					continue;
+				}
+				if (sceneName == "LevelSelection") {
+					RegisterScriptToScene(sceneID, LevelSelection::Initialize, LevelSelection::Update, LevelSelection::Free);
 					continue;
 				}
 				// all other scenes use TestScene.cpp for now
