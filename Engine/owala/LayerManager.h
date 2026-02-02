@@ -1,5 +1,8 @@
 /*****************************************************************//**
  * \file   LayerManager.h
+ * 
+ * \primary_author
+ *     Lur Pei Hao Stanley 
  *
  * \brief  Dynamic layer management system for configurable render
  *         and collision layers

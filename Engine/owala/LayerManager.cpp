@@ -1,5 +1,8 @@
 /*****************************************************************//**
  * \file   LayerManager.cpp
+ * 
+ * \primary_author
+ *     Lur Pei Hao Stanley 
  *
  * \brief  Implementation of dynamic layer management system
  *
