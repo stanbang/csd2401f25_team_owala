@@ -323,12 +323,12 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
-		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
+		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_)) {
 			Logger::Get().Info(DebugType::Editor)
 				<< "Using default layer configuration" << std::endl;
 
 			// Save defaults to file for next time
-			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
 		}
 
 		// --- Prepare Palette Items (Load Textures) ---
@@ -2959,7 +2959,7 @@ namespace Editor {
 			ImGui::Separator();
 			ImGui::SeparatorText("Button Actions");
 
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "SWITCH_SCENE_ADD", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
@@ -2979,7 +2979,7 @@ namespace Editor {
 			bool dataChanged = false;
 			std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
-			if (buttonComp.action == ButtonAction::SWITCH_SCENE) {
+			if (buttonComp.action == ButtonAction::SWITCH_SCENE || buttonComp.action == ButtonAction::SWITCH_SCENE_ADD) {
 				ImGui::Text("Target Scene Name:");
 				if (ImGui::InputText("##SceneName", &buttonComp.targetString)) {
 					dataChanged = true;
@@ -5309,7 +5309,12 @@ namespace Editor {
 					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
 
 				if (ImGui::Checkbox("##cb", &canCollide)) {
+					//layerManager_.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
 					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
+					//LayerManager& layerMgr = gameManager_->GetLayerManager();
+					/*layerMgr.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
+					layerMgr.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);*/
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics);
 				}
 
 				if (ImGui::IsItemHovered()) {

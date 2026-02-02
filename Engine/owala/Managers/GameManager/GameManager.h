@@ -31,6 +31,7 @@
 #include "AISystem.h"
 #include "FileUtility.h"
 #include "AnimationSystem.h"
+#include "LayerManager.h"
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
@@ -93,9 +94,11 @@ namespace Framework {
 			LevelResetSystem* levelResetter_ = nullptr;
 			TransformationSystem* transformation_ = nullptr;
 			AnimationSystem* animationSystem_ = nullptr;
+			  
 		};
 
 		RegisteredSystems systems_;
+		
 #ifdef BUILD_EDITOR
 		Editor::Editor* editor_ = nullptr; // ImGui Editor instance
 
@@ -150,6 +153,7 @@ namespace Framework {
 		const RegisteredSystems& GetSystems() const { return systems_; }
 		EntityStorage& GetECS() { return *systems_.ecs_; };
 		const EntityStorage& GetECS() const { return *systems_.ecs_; }
+		
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 

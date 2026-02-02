@@ -1,3 +1,19 @@
+/*********************************************************************//**
+* \file   FSMFactory.cpp
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Implements the data-driven creation of FSMs, parsing JSON configurations
+* to dynamically instantiate states and conditions using a static registry.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "pch.h"
 #include "FSMFactory.h"
 #include "FileUtility.h" 
@@ -31,7 +47,7 @@ namespace Framework {
 
     FSM FSMFactory::CreateFromFile(const std::string& filepath) {
         rapidjson::Document doc;
-        if (!FileIOSystem::ReadFile(filepath, doc)) { // Assuming FileIOSystem wrapper exists
+        if (!FileIOSystem::ReadFile(filepath, doc)) { 
             Logger::Get().Error(DebugType::AISystem) << "Failed to load FSM: " << filepath << std::endl;
             return FSM();
         }

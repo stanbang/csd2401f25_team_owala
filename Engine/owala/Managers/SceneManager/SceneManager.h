@@ -153,6 +153,8 @@ namespace Framework {
 		/* Reserved Scene Getters */
 		static constexpr SceneGUID GetDDOLSceneID() { return DDOL_SCENEID; };
 		static constexpr const char* GetDDOLSceneName() { return DDOL_SCENENAME; };
+		static constexpr SceneGUID GetInvalidSceneID() { return INVALID_SCENEID; };
+		static constexpr const char* GetInvalidSceneName() { return INVALID_SCENENAME; };
 
 		// Checker for duplicate scene names. Return true if scene name exists, false otherwise.
 		bool CheckSceneNameExists(const std::string& sceneName);

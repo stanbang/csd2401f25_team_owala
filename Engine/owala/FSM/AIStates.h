@@ -1,7 +1,20 @@
-/*****************************************************************//**
- * \file   AIStates.h
- * \brief  Concrete state definitions for Bird and generic AI.
- *********************************************************************/
+/*********************************************************************//**
+* \file   AIStates.h
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Declares the concrete state classes (BirdIdle, BirdWaking, BirdChase, etc.)
+* derived from the base State class, defining their specific lifecycle
+* methods and properties.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "FSM.h"
 #include "Pathfinding.h"
