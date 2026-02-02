@@ -6131,7 +6131,7 @@ namespace Editor {
 					selectedPrefabIndex = 0;
 				}
 				else {
-					selectedPrefabIndex = std::distance(filteredPrefabNames.begin(), it);
+					selectedPrefabIndex = static_cast<int>(std::distance(filteredPrefabNames.begin(), it));
 				}
 			}
 
@@ -6219,18 +6219,18 @@ namespace Editor {
 
 							// Texture Angle
 							if (rot.HasMember("texture_angle")) {
-								float textureAngleDeg = rot["texture_angle"].GetFloat() * (180.0f / M_PI);
+								float textureAngleDeg = static_cast<float>(rot["texture_angle"].GetFloat() * (180.0f / M_PI));;
 								if (ImGui::DragFloat("Texture Angle (degrees)", &textureAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["texture_angle"].SetFloat(textureAngleDeg * (M_PI / 180.0f));
+									rot["texture_angle"].SetFloat(static_cast<float>(textureAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
 
 							// Collider Angle
 							if (rot.HasMember("collider_angle")) {
-								float colliderAngleDeg = rot["collider_angle"].GetFloat() * (180.0f / M_PI);
+								float colliderAngleDeg = static_cast<float>(rot["collider_angle"].GetFloat() * (180.0f / M_PI));
 								if (ImGui::DragFloat("Collider Angle (degrees)", &colliderAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["collider_angle"].SetFloat(colliderAngleDeg * (M_PI / 180.0f));
+									rot["collider_angle"].SetFloat(static_cast<float>(colliderAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
@@ -6724,12 +6724,12 @@ namespace Editor {
 				"SkeletonAIComponent", "NativeScripts", "TrapPlatformComponent"
 			};
 
-			std::vector<const char*> componentItems;
+			std::vector<const char*> localComponentItems;
 			for (const auto& comp : availableComponents) {
-				componentItems.push_back(comp.c_str());
+				localComponentItems.push_back(comp.c_str());
 			}
 
-			ImGui::Combo("Component to Add", &selectedAddComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
+			ImGui::Combo("Component to Add", &selectedAddComponentIndex, localComponentItems.data(), static_cast<int>(localComponentItems.size()));
 
 			ImGui::SameLine();
 			if (ImGui::Button("Add Component") && selectedAddComponentIndex > 0) {
