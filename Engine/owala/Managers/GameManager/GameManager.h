@@ -153,8 +153,7 @@ namespace Framework {
 		const RegisteredSystems& GetSystems() const { return systems_; }
 		EntityStorage& GetECS() { return *systems_.ecs_; };
 		const EntityStorage& GetECS() const { return *systems_.ecs_; }
-		LayerManager& GetLayerManager() { return layerManager_; }
-		const LayerManager& GetLayerManager() const { return layerManager_; }
+		
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 
