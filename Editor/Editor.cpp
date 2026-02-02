@@ -6078,21 +6078,94 @@ namespace Editor {
 		ImGui::Text("Select Prefab to Edit:");
 
 		static int selectedPrefabIndex = 0;
-		std::vector<std::string> prefabNames;
+		static char searchBuffer[256] = "";
+		static bool useFilteredList = false;
+		static std::vector<std::string> filteredPrefabNames;
+
+		std::vector<std::string> allPrefabNames;
 		std::vector<const char*> prefabItems;
 
-		prefabNames.push_back("-- Select Prefab --");
+		// Search input
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100);
+		if (ImGui::InputTextWithHint("##PrefabSearch", "Search prefabs...", searchBuffer, IM_ARRAYSIZE(searchBuffer))) {
+			useFilteredList = (strlen(searchBuffer) > 0);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Clear")) {
+			searchBuffer[0] = '\0';
+			useFilteredList = false;
+			selectedPrefabIndex = 0;
+		}
+
+		// Build the list of prefabs
+		allPrefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
-			prefabNames.push_back(pair.first);
+			allPrefabNames.push_back(pair.first);
 		}
 
-		for (const auto& name : prefabNames) {
-			prefabItems.push_back(name.c_str());
+		// Apply search filter if needed
+		if (useFilteredList && strlen(searchBuffer) > 0) {
+			filteredPrefabNames.clear();
+			filteredPrefabNames.push_back("-- Select Prefab --");
+
+			std::string searchLower = searchBuffer;
+			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+			for (const auto& name : allPrefabNames) {
+				if (name == "-- Select Prefab --") continue;
+
+				std::string nameLower = name;
+				std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+
+				if (nameLower.find(searchLower) != std::string::npos) {
+					filteredPrefabNames.push_back(name);
+				}
+			}
+
+			// Update selected index if current selection is not in filtered list
+			if (selectedPrefabIndex > 0 && selectedPrefabIndex < allPrefabNames.size()) {
+				std::string currentSelection = allPrefabNames[selectedPrefabIndex];
+				auto it = std::find(filteredPrefabNames.begin(), filteredPrefabNames.end(), currentSelection);
+				if (it == filteredPrefabNames.end()) {
+					selectedPrefabIndex = 0;
+				}
+				else {
+					selectedPrefabIndex = static_cast<int>(std::distance(filteredPrefabNames.begin(), it));
+				}
+			}
+
+			// Use filtered list
+			const auto& displayNames = filteredPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
+
+			// Show count
+			ImGui::TextDisabled("Showing %d/%d prefabs", filteredPrefabNames.size() - 1, allPrefabNames.size() - 1);
+		}
+		else {
+			// Use full list
+			const auto& displayNames = allPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
 		}
 
+		// Combo box
 		if (ImGui::Combo("##PrefabList", &selectedPrefabIndex, prefabItems.data(), static_cast<int>(prefabItems.size()))) {
-			if (selectedPrefabIndex > 0) {
-				selectedPrefabForEditing_ = prefabNames[selectedPrefabIndex];
+			std::string selectedName;
+			if (useFilteredList && !filteredPrefabNames.empty()) {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < filteredPrefabNames.size())
+					? filteredPrefabNames[selectedPrefabIndex] : "";
+			}
+			else {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < allPrefabNames.size())
+					? allPrefabNames[selectedPrefabIndex] : "";
+			}
+
+			if (selectedPrefabIndex > 0 && !selectedName.empty()) {
+				selectedPrefabForEditing_ = selectedName;
 
 				// Determine prefab type by checking components
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
@@ -6146,18 +6219,18 @@ namespace Editor {
 
 							// Texture Angle
 							if (rot.HasMember("texture_angle")) {
-								float textureAngleDeg = rot["texture_angle"].GetFloat() * (180.0f / M_PI);
+								float textureAngleDeg = static_cast<float>(rot["texture_angle"].GetFloat() * (180.0f / M_PI));;
 								if (ImGui::DragFloat("Texture Angle (degrees)", &textureAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["texture_angle"].SetFloat(textureAngleDeg * (M_PI / 180.0f));
+									rot["texture_angle"].SetFloat(static_cast<float>(textureAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
 
 							// Collider Angle
 							if (rot.HasMember("collider_angle")) {
-								float colliderAngleDeg = rot["collider_angle"].GetFloat() * (180.0f / M_PI);
+								float colliderAngleDeg = static_cast<float>(rot["collider_angle"].GetFloat() * (180.0f / M_PI));
 								if (ImGui::DragFloat("Collider Angle (degrees)", &colliderAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["collider_angle"].SetFloat(colliderAngleDeg * (M_PI / 180.0f));
+									rot["collider_angle"].SetFloat(static_cast<float>(colliderAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
@@ -6651,12 +6724,12 @@ namespace Editor {
 				"SkeletonAIComponent", "NativeScripts", "TrapPlatformComponent"
 			};
 
-			std::vector<const char*> componentItems;
+			std::vector<const char*> localComponentItems;
 			for (const auto& comp : availableComponents) {
-				componentItems.push_back(comp.c_str());
+				localComponentItems.push_back(comp.c_str());
 			}
 
-			ImGui::Combo("Component to Add", &selectedAddComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
+			ImGui::Combo("Component to Add", &selectedAddComponentIndex, localComponentItems.data(), static_cast<int>(localComponentItems.size()));
 
 			ImGui::SameLine();
 			if (ImGui::Button("Add Component") && selectedAddComponentIndex > 0) {
