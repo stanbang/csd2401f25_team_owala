@@ -147,6 +147,8 @@ namespace Framework {
 		std::vector<Entity> GetEntitiesInScene(const SceneAsset& scene) const;
 		// scenes_ map getter
 		const std::unordered_map<SceneGUID, SceneAsset>& GetAllSceneAssets() const;
+		// Retrieves the list IDs of all currently loaded scenes.
+		const std::vector<SceneGUID>& GetLoadedScenes() const { return loadedScenes_; }
 
 		/* Reserved Scene Getters */
 		static constexpr SceneGUID GetDDOLSceneID() { return DDOL_SCENEID; };

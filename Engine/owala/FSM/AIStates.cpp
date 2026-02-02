@@ -24,17 +24,26 @@ namespace Framework {
         }
     }
     void BirdIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity;
+        (void)ecs;
+        (void)dt;
         // Just waiting for transition (handled by FSM::Update)
+        
     }
     void BirdIdleState::SetParameter(const std::string& key, float value) {
         if (key == "wakeUpRadius") wakeUpRadius_ = value;
+        
     }
 
     // --- WAKING ---
     void BirdWakingState::OnEnter(Entity entity, EntityStorage& ecs) {
+        (void)entity;
+        (void)ecs;
         timer_ = 0.0f;
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity;
+        (void)ecs;
         timer_ += dt;
     }
     void BirdWakingState::SetParameter(const std::string& key, float value) {
@@ -43,10 +52,15 @@ namespace Framework {
 
     // --- SIMPLE CHASE ---
     void BirdSimpleChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
-        // Just started chasing - no special setup needed
+        (void)entity;
+        (void)ecs;
+        // Just started chasing 
     }
 
     void BirdSimpleChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity;
+        (void)dt;
+
         EntityManager mgr(ecs);
         Entity player = GetPlayer(ecs);
 
@@ -73,6 +87,8 @@ namespace Framework {
 
     // --- CHASE ---
     void BirdChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
+        (void)entity;
+        (void)ecs;
         repathTimer_ = repathInterval_; // Force path update immediately
     }
     void BirdChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -217,6 +233,8 @@ namespace Framework {
         }
     }
     void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity;
+        (void)ecs;
         timer_ += dt;
     }
     void BirdRecoveryState::SetParameter(const std::string& key, float value) {
@@ -226,6 +244,7 @@ namespace Framework {
 
     // --- DEATH ---
     void BirdDeathState::OnEnter(Entity entity, EntityStorage& ecs) {
+        (void)entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
 
@@ -258,6 +277,8 @@ namespace Framework {
     }
 
     void BirdDeathState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity;
+        (void)ecs;
         timer_ += dt;
     }
 
@@ -293,6 +314,7 @@ namespace Framework {
     });
 
     REGISTER_CONDITION(TimerExpired, [](const rapidjson::Value& data) {
+        (void)data;
         std::string sName = data["state"].GetString();
         return [sName](Entity e, EntityStorage& ecs) {
             EntityManager mgr(ecs);
@@ -319,28 +341,11 @@ namespace Framework {
         };
     });
 
-        //// Add collision detection condition
-        //REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
-        //    return [](Entity e, EntityStorage& ecs) {
-        //        EntityManager mgr(ecs);
-
-        //        // Check if entity hit a platform this frame
-        //        if (!mgr.HasComponent(e, PlayerStateType)) return false;
-
-        //        // You can use collision flags or check if velocity was blocked
-        //        // For now, simple approach: check if stuck against wall
-        //        if (!mgr.HasComponent(e, VelocityType)) return false;
-
-        //        Vector2D vel = mgr.GetComponent<Velocity>(e).Vel;
-
-        //        // If velocity is very low but we're trying to move, we hit something
-        //        return vel.Magnitude() < 10.0f;
-        //        };
-        //    });
-
-        // AIStates.cpp, improved collision detection
+       
     REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
+        (void)data;
         return [](Entity e, EntityStorage& ecs) {
+           
             EntityManager mgr(ecs);
 
             if (!mgr.HasComponent(e, VelocityType) ||
