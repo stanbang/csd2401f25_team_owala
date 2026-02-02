@@ -2959,7 +2959,7 @@ namespace Editor {
 			ImGui::Separator();
 			ImGui::SeparatorText("Button Actions");
 
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "SWITCH_SCENE_ADD", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
@@ -2979,7 +2979,7 @@ namespace Editor {
 			bool dataChanged = false;
 			std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
-			if (buttonComp.action == ButtonAction::SWITCH_SCENE) {
+			if (buttonComp.action == ButtonAction::SWITCH_SCENE || buttonComp.action == ButtonAction::SWITCH_SCENE_ADD) {
 				ImGui::Text("Target Scene Name:");
 				if (ImGui::InputText("##SceneName", &buttonComp.targetString)) {
 					dataChanged = true;
