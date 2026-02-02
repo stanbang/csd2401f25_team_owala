@@ -13,6 +13,8 @@
 // Scene Scripts
 #include "SplashScreen.h"
 #include "TestScene.h"
+#include "CutsceneIntro.h"
+#include "HowToPlay.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
@@ -91,7 +93,7 @@ namespace Framework {
 	void GameManager::UpdateNativeScripts() {
 		static int count = 0;
 		EntityManager entityMgr(*systems_.ecs_);
-		SceneManager& sceneMgr = SceneManager::GetInstance();
+		//SceneManager& sceneMgr = SceneManager::GetInstance();
 		
 		// Get all entities with NativeScriptsComponent and ActiveTag to log them
 		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType);
@@ -289,6 +291,14 @@ namespace Framework {
 				if (sceneName == "Test Scene") {
 					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 					testScene = sceneID;
+					continue;
+				}
+				if (sceneName == "Cutscene Intro") {
+					RegisterScriptToScene(sceneID, CutsceneIntro::Initialize, CutsceneIntro::Update, CutsceneIntro::Free);
+					continue;
+				}
+				if (sceneName == "HowToPlay") {
+					RegisterScriptToScene(sceneID, HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
 					continue;
 				}
 				// all other scenes use TestScene.cpp for now
@@ -533,7 +543,8 @@ namespace Framework {
 			name == "RestartMenu" || 
 			name == "LoadingScreen" || 
 			name == "HowToPlay" ||
-			name == "OptionsMenu")
+			name == "OptionsMenu" ||
+			name == "Cutscene Intro")
 			return false;
 		return true;
 	}

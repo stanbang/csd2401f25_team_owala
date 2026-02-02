@@ -88,7 +88,7 @@ namespace Framework {
 		triggerToEmitters_[triggerName].push_back(emitterEntity);
 	}
 
-	void VFXSystem::OnWorldRotation(const WorldRotationEvent& event) {
+	void VFXSystem::OnWorldRotation(const WorldRotationEvent&) {
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
 	
 	// First, refresh registrations to catch any newly created or reconfigured emitters
@@ -354,6 +354,9 @@ namespace Framework {
 		if (emitter.isParticleAnimated) {
 			AnimationComponent animComp;
 			animComp.isPlaying = true;
+			// Ignore UVs for now to prevent full spritesheet flashing for the first frame.
+			animComp.minUV = { 0.0f, 0.0f };
+			animComp.maxUV = { 0.0f, 0.0f };
 			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
 		}
 
