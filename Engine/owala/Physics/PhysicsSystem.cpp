@@ -65,6 +65,7 @@ namespace Framework {
 
 
     void PhysicsSystem::Initialize() {
+
         InitializeCollisionMatrix();
         FileIOSystem::LoadWorldConfig(gravity_.y);
         // --- Initialize the Implicit Grid ---

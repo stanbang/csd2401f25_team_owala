@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   FSM.cpp
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Implements the runtime logic for the Finite State Machine, managing
+* state switching, transition checks, and lifecycle execution
+* (OnEnter, OnUpdate, OnExit).
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "pch.h"
 #include "FSM.h"
 #include "Logger.h" 

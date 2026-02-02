@@ -224,6 +224,9 @@ namespace Framework {
 
 	void GameManager::Initialize() {
 		CheckSystems();
+		//layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH); // Load all configs directly for layer
+		Logger::Get().Info(DebugType::GameManager)
+			<< "Loaded LayerManager configuration" << std::endl;
 		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {

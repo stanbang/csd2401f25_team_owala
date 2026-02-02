@@ -323,12 +323,12 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
-		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
+		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_)) {
 			Logger::Get().Info(DebugType::Editor)
 				<< "Using default layer configuration" << std::endl;
 
 			// Save defaults to file for next time
-			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
 		}
 
 		// --- Prepare Palette Items (Load Textures) ---
@@ -5309,7 +5309,12 @@ namespace Editor {
 					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
 
 				if (ImGui::Checkbox("##cb", &canCollide)) {
+					//layerManager_.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
 					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
+					//LayerManager& layerMgr = gameManager_->GetLayerManager();
+					/*layerMgr.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
+					layerMgr.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);*/
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics);
 				}
 
 				if (ImGui::IsItemHovered()) {

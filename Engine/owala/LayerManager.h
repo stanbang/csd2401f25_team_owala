@@ -150,6 +150,14 @@ namespace Framework {
         std::string GetCollisionLayerName(uint8_t id) const;
 
 
+        void SetLayerCollision(uint8_t layer1, uint8_t layer2, bool canCollide);
+        bool GetLayerCollision(uint8_t layer1, uint8_t layer2) const;
+        void RebuildCollisionMatrix();
+
+        const std::vector<std::vector<bool>>& GetCollisionMatrix() const {
+            return collisionMatrix_;
+        }
+
 
         // === Persistence ===
 
@@ -158,14 +166,17 @@ namespace Framework {
          * \param filepath Path to save location
          * \return True if saved successfully
          */
-        bool SaveToFile(const std::string& filepath = "Data/LayerConfig.json");
+        bool SaveToFile(const std::string& filepath = "Data/LayerConfig.json", PhysicsSystem* physicsSystem = nullptr);
+
+        
+        //bool LoadFromFile(const std::string& filepath = "Data/LayerConfig.json");
 
         /**
          * \brief Load layer configuration from JSON file
          * \param filepath Path to load from
          * \return True if loaded successfully
          */
-        bool LoadFromFile(const std::string& filepath = "Data/LayerConfig.json");
+        bool LoadFromFile(const std::string& filepath = "Data/LayerConfig.json", PhysicsSystem* physicsSystem = nullptr);
 
         // === Serialization Helpers ===
 
@@ -174,6 +185,11 @@ namespace Framework {
 
         void SerializeCollisionLayers(rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc) const;
         void DeserializeCollisionLayers(const rapidjson::Value& inArray);
+
+        // collision matrix needs physics system to function
+        void SerializeCollisionMatrix(rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc, PhysicsSystem* physics) const;
+        void DeserializeCollisionMatrix(const rapidjson::Value& inArray, PhysicsSystem* physics);
+
 
         // === Validation ===
 
@@ -199,6 +215,7 @@ namespace Framework {
 
         std::vector<RenderLayerData> renderLayers_;
         std::vector<CollisionLayerData> collisionLayers_;
+        std::vector<std::vector<bool>> collisionMatrix_; // store collision matrix data
 
         // Track used collision IDs for efficient lookup
         std::unordered_map<uint8_t, size_t> collisionIDToIndex_;
