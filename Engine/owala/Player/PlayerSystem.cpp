@@ -215,7 +215,7 @@ namespace Framework {
 
         for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
             std::string trapName = entityMgr.GetProperties(trapEntity).name;
-            if (trapName.find("MovableBox") != std::string::npos) continue;
+            //if (trapName.find("MovableBox") != std::string::npos) continue;
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
             if (!trapComp.isTriggered) continue;
@@ -400,7 +400,7 @@ namespace Framework {
             // Check  all trap platforms
             for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
                 std::string trapName = entityMgr.GetProperties(trapEntity).name;
-                if (trapName.find("MovableBox") != std::string::npos) continue;
+                //if (trapName.find("MovableBox") != std::string::npos) continue;
                 TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
                 if (!trapComp.isTriggered) continue;

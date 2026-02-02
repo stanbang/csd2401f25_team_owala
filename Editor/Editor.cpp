@@ -6078,21 +6078,94 @@ namespace Editor {
 		ImGui::Text("Select Prefab to Edit:");
 
 		static int selectedPrefabIndex = 0;
-		std::vector<std::string> prefabNames;
+		static char searchBuffer[256] = "";
+		static bool useFilteredList = false;
+		static std::vector<std::string> filteredPrefabNames;
+
+		std::vector<std::string> allPrefabNames;
 		std::vector<const char*> prefabItems;
 
-		prefabNames.push_back("-- Select Prefab --");
+		// Search input
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100);
+		if (ImGui::InputTextWithHint("##PrefabSearch", "Search prefabs...", searchBuffer, IM_ARRAYSIZE(searchBuffer))) {
+			useFilteredList = (strlen(searchBuffer) > 0);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Clear")) {
+			searchBuffer[0] = '\0';
+			useFilteredList = false;
+			selectedPrefabIndex = 0;
+		}
+
+		// Build the list of prefabs
+		allPrefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
-			prefabNames.push_back(pair.first);
+			allPrefabNames.push_back(pair.first);
 		}
 
-		for (const auto& name : prefabNames) {
-			prefabItems.push_back(name.c_str());
+		// Apply search filter if needed
+		if (useFilteredList && strlen(searchBuffer) > 0) {
+			filteredPrefabNames.clear();
+			filteredPrefabNames.push_back("-- Select Prefab --");
+
+			std::string searchLower = searchBuffer;
+			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+			for (const auto& name : allPrefabNames) {
+				if (name == "-- Select Prefab --") continue;
+
+				std::string nameLower = name;
+				std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+
+				if (nameLower.find(searchLower) != std::string::npos) {
+					filteredPrefabNames.push_back(name);
+				}
+			}
+
+			// Update selected index if current selection is not in filtered list
+			if (selectedPrefabIndex > 0 && selectedPrefabIndex < allPrefabNames.size()) {
+				std::string currentSelection = allPrefabNames[selectedPrefabIndex];
+				auto it = std::find(filteredPrefabNames.begin(), filteredPrefabNames.end(), currentSelection);
+				if (it == filteredPrefabNames.end()) {
+					selectedPrefabIndex = 0;
+				}
+				else {
+					selectedPrefabIndex = std::distance(filteredPrefabNames.begin(), it);
+				}
+			}
+
+			// Use filtered list
+			const auto& displayNames = filteredPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
+
+			// Show count
+			ImGui::TextDisabled("Showing %d/%d prefabs", filteredPrefabNames.size() - 1, allPrefabNames.size() - 1);
+		}
+		else {
+			// Use full list
+			const auto& displayNames = allPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
 		}
 
+		// Combo box
 		if (ImGui::Combo("##PrefabList", &selectedPrefabIndex, prefabItems.data(), static_cast<int>(prefabItems.size()))) {
-			if (selectedPrefabIndex > 0) {
-				selectedPrefabForEditing_ = prefabNames[selectedPrefabIndex];
+			std::string selectedName;
+			if (useFilteredList && !filteredPrefabNames.empty()) {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < filteredPrefabNames.size())
+					? filteredPrefabNames[selectedPrefabIndex] : "";
+			}
+			else {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < allPrefabNames.size())
+					? allPrefabNames[selectedPrefabIndex] : "";
+			}
+
+			if (selectedPrefabIndex > 0 && !selectedName.empty()) {
+				selectedPrefabForEditing_ = selectedName;
 
 				// Determine prefab type by checking components
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
