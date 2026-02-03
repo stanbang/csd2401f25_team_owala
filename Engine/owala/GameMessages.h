@@ -113,4 +113,5 @@ namespace Framework {
 	struct PlayerLandEvent {};
 	struct CurtainsOpenEvent {};
 	struct CurtainsCloseEvent {};
+
 } // namespace Framework

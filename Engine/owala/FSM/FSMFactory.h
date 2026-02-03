@@ -34,7 +34,7 @@ namespace Framework {
     private:
         NavigationGrid* navGrid_;
 
-        // Static Registries (Shared across all factory instances)
+        // Static Registries 
         static std::map<std::string, StateCreator>& GetStateRegistry();
         static std::map<std::string, ConditionCreator>& GetConditionRegistry();
 
