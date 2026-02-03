@@ -7476,7 +7476,6 @@ namespace Editor {
 		for (Entity& entity : sortedByRenderLayer) {
 			if (entityMgr.HasComponent(entity, Framework::ComponentType::TransformType))
 			{
-				Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
 				bool isGUI = entityMgr.HasComponent(entity, GUITagType);
 				Vector2D checkPos = isGUI ? GetNormalizedMousePos() : mouseWorldPos;
 
@@ -7491,12 +7490,19 @@ namespace Editor {
 					continue;
 				}
 
-				// check using halfsize.
-				if (checkPos.x >= pos.x - halfSize.x && checkPos.x <= pos.x + halfSize.x &&
-					checkPos.y >= pos.y - halfSize.y && checkPos.y <= pos.y + halfSize.y)
+				Transform transformComp = entityMgr.GetComponent<Framework::Transform>(entity);
+				Vector2D& pos = transformComp.position;
+				Vector2D& scale = transformComp.scale;
+
+				// Apply Scale to HalfSize
+				Vector2D scaledHalfSize = { halfSize.x * scale.x, halfSize.y * scale.y };
+
+				//  Check bounds using scaledHalfSize
+				if (checkPos.x >= pos.x - scaledHalfSize.x && checkPos.x <= pos.x + scaledHalfSize.x &&
+					checkPos.y >= pos.y - scaledHalfSize.y && checkPos.y <= pos.y + scaledHalfSize.y)
 				{
 					bestCandidate = entity;
-					break; // Stop after finding the top-most one
+					break;
 				}
 			}
 		}
