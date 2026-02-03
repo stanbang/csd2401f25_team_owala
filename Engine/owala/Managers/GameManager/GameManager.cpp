@@ -181,11 +181,21 @@ namespace Framework {
 		SceneManager::GetInstance().OnEnterPlay();
 		initializedScenes_.clear();
 		lastActiveScene_ = 0;
+
+		// Set active camera to first camera found
+		if (systems_.camera_) {
+			systems_.camera_->SetActiveCamera(0);
+		}
 	}
 
 	void GameManager::OnEndPlay() {
 		CheckSystems();
 		if (!hasECSSnapshot) return;
+
+		// Clear active camera
+		if (systems_.camera_) {
+			systems_.camera_->SetActiveCamera(0);
+		}
 
 		systems_.ecs_ = editorECS_;
 		nextEntityID = nextEntityIDSnapshot;
@@ -606,7 +616,7 @@ namespace Framework {
 	// Function to check if a scene is a level scene
 	bool GameManager::IsLevelScene(const std::string& name) {
 		if (name == "MainMenu" || 
-			name == "LevelSelect" || 
+			name == "LevelSelection" || 
 			name == "SplashScreen" || 
 			name == "RestartMenu" || 
 			name == "LoadingScreen" || 
