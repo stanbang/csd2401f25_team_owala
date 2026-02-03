@@ -1596,6 +1596,8 @@ namespace Editor {
 #pragma endregion
 
 #pragma region TILEMAP EDITOR PANEL
+
+	// TILE PALETTE WINDOW
 	void Editor::ShowTilePalette() {
 		static bool wasTilePaletteOpen = false;
 		if (ImGui::Begin("Tile Palette", &isTileEditorActive_)) {
@@ -1613,12 +1615,34 @@ namespace Editor {
 			ImVec4 tintCol(1, 1, 1, 1);
 
 			// --- Eraser Tool ---
-			if (ImGui::Selectable("Eraser", dragDropPayload_.type == PrefabType::Eraser && isDraggingPrefab_)) {
-				isDraggingPrefab_ = true;
-				dragDropPayload_ = { "Eraser", PrefabType::Eraser, 0 };
-			}
-			ImGui::Separator();
+			bool isEraserActive = (isBrushMode_ && brushPayload_.type == PrefabType::Eraser);
+			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 
+			if (ImGui::Selectable("Eraser", isEraserActive)) {
+				if (isEraserActive) {
+					// Toggle OFF
+					isBrushMode_ = false;
+					brushPayload_ = {};
+					brushPayload_.type = PrefabType::None;
+
+					if (dragDropPayload_.type == PrefabType::Eraser) {
+						dragDropPayload_ = {};
+						dragDropPayload_.type = PrefabType::None;
+					}
+					isDraggingPrefab_ = false;
+				}
+				else {
+					// Toggle ON
+					isBrushMode_ = true;
+					brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+					isDraggingPrefab_ = false;
+					dragDropPayload_ = {};
+					dragDropPayload_.type = PrefabType::None;
+				}
+			}
+
+			if (isEraserActive) ImGui::PopStyleColor();
+			ImGui::Separator();
 			// --- Tile Items ---
 			int itemsPerRow = 0;
 			const int maxItemsPerRow = 4;
@@ -1816,7 +1840,7 @@ namespace Editor {
 			<< "Prepared " << tilePaletteItems_.size() << " tile palette items." << std::endl;
 	}
 
-
+	// PREFAB PALETTE WINDOW
 	void Editor::ShowTilemapEditor()
 	{
 		static bool wasTileEditorOpen = false; // Tracks open/close transition
@@ -1851,13 +1875,33 @@ namespace Editor {
 
 			// --- Eraser Tool ---
 			bool isEraserActive = (isBrushMode_ && brushPayload_.type == PrefabType::Eraser);
-			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1));
+
+			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+
 			if (ImGui::Selectable("Eraser", isEraserActive)) {
-				isBrushMode_ = true;
-				brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
-				isDraggingPrefab_ = false;
+				if (isEraserActive) {
+					// Toggle OFF
+					isBrushMode_ = false;
+					brushPayload_ = {};
+					brushPayload_.type = PrefabType::None;
+					if (dragDropPayload_.type == PrefabType::Eraser) {
+						dragDropPayload_ = {};
+						dragDropPayload_.type = PrefabType::None;
+					}
+					isDraggingPrefab_ = false;
+				}
+				else {
+					// Toggle ON
+					isBrushMode_ = true;
+					brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+					isDraggingPrefab_ = false;
+					dragDropPayload_ = {};
+					dragDropPayload_.type = PrefabType::None;
+				}
 			}
+
 			if (isEraserActive) ImGui::PopStyleColor();
+
 			ImGui::Separator();
 
 			// --- Prefab Tiles ---
