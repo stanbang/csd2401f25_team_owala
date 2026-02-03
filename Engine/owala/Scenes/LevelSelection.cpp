@@ -135,10 +135,21 @@ namespace {
 		if (levelData.empty()) return;
 
 		SetTicketTexture(entityMgr, ui.ticketPrev, "SB_LevelSelection_EmptyTicket.png");
-		SetTicketTexture(entityMgr, ui.ticketCurrent, levelData[currentIndex].bannerTextureKey);
+		if (save && save->IsUnlocked(levelData[currentIndex].index)) {
+			SetTicketTexture(entityMgr, ui.ticketCurrent, levelData[currentIndex].bannerTextureKey);
+			SetLevelText(entityMgr, levelData[currentIndex].displayName);
+		}
+		else {
+			if (!GameManager::GetInstance().IsGamePlaying() || currentIndex == 0) {
+				SetTicketTexture(entityMgr, ui.ticketCurrent, levelData[0].bannerTextureKey);
+				SetLevelText(entityMgr, levelData[0].displayName);
+			}
+			else {
+				SetTicketTexture(entityMgr, ui.ticketCurrent, "SB_LevelSelection_EmptyTicket.png");
+				SetLevelText(entityMgr, "locked");
+			}
+		}
 		SetTicketTexture(entityMgr, ui.ticketNext, "SB_LevelSelection_EmptyTicket.png");
-
-		SetLevelText(entityMgr, levelData[currentIndex].displayName);
 	}
 
 	static void HideMenuEntities(Framework::EntityManager& entityMgr) {
@@ -177,6 +188,28 @@ namespace {
 		}
 	}
 
+	void HandleSceneKBInputs(Framework::InputSystem& input) {
+		if (!save) return;
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+		if (input.KeyPressed(InputSystem::Key::Num1)) {
+			save->SetUnlock(1);
+			RefreshUI(entityMgr);
+		}
+		if (input.KeyPressed(InputSystem::Key::Num2)) {
+			save->SetUnlock(2);
+			RefreshUI(entityMgr);
+		}
+		if (input.KeyPressed(InputSystem::Key::Num3)) {
+			save->SetUnlock(3);
+			RefreshUI(entityMgr);
+		}
+		if (input.KeyPressed(InputSystem::Key::Num4)) {
+			save->SetUnlock(4);
+			RefreshUI(entityMgr);
+		}
+	}
+
 	static void RestoreMainMenuEntities(Framework::EntityManager& entityMgr) {
 		for (const EntityState& entity : hiddenMenuEntities) {
 			// Check if entity still exists.
@@ -196,7 +229,8 @@ namespace LevelSelection {
 		CacheUI(entityMgr);
 		save = GetSaveManager(entityMgr);
 
-		std::string firstLevel = save->GetSkipIntro() ? "Tutorial 1" : "Cutscene Intro";
+		bool shouldSkipIntro = (save && save->GetSkipIntro()) ? true : false;
+		std::string firstLevel = shouldSkipIntro ? "Tutorial 1" : "Cutscene Intro";
 
 		levelData = {
 			{1, "act i: the forest", firstLevel, "SB_LevelSelection_ForestTicket.png"},
@@ -217,6 +251,9 @@ namespace LevelSelection {
 
 		if (!cached) CacheUI(entityMgr);
 		if (levelData.empty()) return;
+
+		// Keyboard Input Handling
+		HandleSceneKBInputs(inputSystem);
 
 		// Navigation Button Handling
 		if (ConsumeClick(entityMgr, inputSystem, ui.arrowLeft)) {

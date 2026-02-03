@@ -20,6 +20,7 @@ public:
 	bool IsUnlocked(int levelIndex) const;
 	void Unlock(int levelIndex);
 
+	void SetUnlock(int levelIndex);
 	int GetHighestProgression() const { return highestUnlockedLevel_; }
 	bool GetSkipIntro() const { return skipIntro; }
 	void SetSkipIntro(bool value) { skipIntro = value; Save(); }
