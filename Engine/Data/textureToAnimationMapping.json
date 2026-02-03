@@ -224,6 +224,19 @@
 				"SB_Curtain_Idle_Spritesheet_l_05.png"
 			],
     		"animation_path": "Data/AnimationData/curtainIdlel.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Eli_Walk_Spritesheet_01.png"
+			],
+    		"animation_path": "Data/AnimationData/loadingScreenWalkAnimation.json"
+		},
+		{
+			"texture_keys": [
+				"SB_Word_Spritesheet_01.png",
+				"SB_Word_Spritesheet_02.png"
+			],
+    		"animation_path": "Data/AnimationData/loadingScreenWordAnimation.json"
 		}
   ]
 }
