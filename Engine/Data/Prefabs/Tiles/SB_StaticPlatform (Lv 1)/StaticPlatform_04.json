@@ -1,1 +1,52 @@
-{"name":"StaticPlatform_04","components":{"Transform":{"Position":{"x":0.0,"y":0.0},"Rotation":{"angle":0.0,"texture_angle":0.0,"collider_angle":0.0},"Scale":{"x":1.0,"y":1.0}},"Velocity":{"x":0.0,"y":0.0},"RigidBody":{"mass":0.0,"inv_mass":0.0,"force":{"x":0.0,"y":0.0}},"AABBCollider":{"half_width":20.0,"half_height":50.0,"offset_x":0.0,"offset_y":0.0},"TextureComponent":{"texture_key":"SB_StaticPlatform_04.png","half_size":{"x":50.0,"y":50.0}},"RotationFlag":{"is_rotating":false,"current_rotation":0.0,"target_rotation":0.0}},"tags":["PlatformTag"],"layer":2,"render_layer":50,"custom_render_order":0}
+{
+    "name": "StaticPlatform_04",
+    "components": {
+        "Transform": {
+            "Position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "Rotation": {
+                "angle": 0.0,
+                "texture_angle": 0.0,
+                "collider_angle": 0.0
+            },
+            "Scale": {
+                "x": 1.0,
+                "y": 1.0
+            }
+        },
+        "RigidBody": {
+            "mass": 0.0,
+            "inv_mass": 0.0,
+            "force": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        "AABBCollider": {
+            "half_width": 20.0,
+            "half_height": 50.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0
+        },
+        "TextureComponent": {
+            "texture_key": "SB_StaticPlatform_04.png",
+            "half_size": {
+                "x": 50.0,
+                "y": 50.0
+            }
+        },
+        "RotationFlag": {
+            "is_rotating": false,
+            "current_rotation": 0.0,
+            "target_rotation": 0.0
+        }
+    },
+    "tags": [
+        "PlatformTag"
+    ],
+    "layer": 2,
+    "render_layer": 50,
+    "custom_render_order": 0
+}

@@ -62,7 +62,7 @@ namespace Framework {
             fsm.SetInitialState(root["initialState"].GetString());
         }
 
-        // 2. Create States
+        // Create States
         if (root.HasMember("states")) {
             const auto& states = root["states"];
             for (auto& s : states.GetArray()) {
@@ -71,14 +71,14 @@ namespace Framework {
 
                 auto& registry = GetStateRegistry();
                 if (registry.find(type) != registry.end()) {
-                    auto stateObj = registry[type](); // Invoke Creator
+                    auto stateObj = registry[type](); // creation of stateobject
 
                     // Inject Global Dependencies
                     stateObj->SetNavGrid(navGrid_);
 
                     // Load Parameters
                     if (s.HasMember("parameters")) {
-                        for (auto& p : s["parameters"].GetObject()) {  // Fixed: GetObject() not GetObjectA()
+                        for (auto& p : s["parameters"].GetObject()) {  
                             if (p.value.IsFloat())
                                 stateObj->SetParameter(p.name.GetString(), p.value.GetFloat());
                             else if (p.value.IsString())
@@ -94,7 +94,7 @@ namespace Framework {
             }
         }
 
-        // 3. Create Transitions
+        // Create Transitions
         if (root.HasMember("transitions")) {
             for (auto& t : root["transitions"].GetArray()) {
                 std::string from = t["from"].GetString();

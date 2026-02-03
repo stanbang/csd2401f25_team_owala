@@ -1,0 +1,28 @@
+{
+    "frame_count": 14,
+    "frame_duration": 0.29999998211860657,
+    "is_looping": true,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_Curtain_Idle_Spritesheet_R_01.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Idle_Spritesheet_R_02.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Idle_Spritesheet_R_03.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Idle_Spritesheet_R_04.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Curtain_Idle_Spritesheet_R_05.png",
+            "count": 2
+        }
+    ]
+}

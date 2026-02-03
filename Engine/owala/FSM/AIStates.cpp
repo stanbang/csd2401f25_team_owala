@@ -66,7 +66,7 @@ namespace Framework {
         (void)entity;
         (void)ecs;
         (void)dt;
-        // Just waiting for transition (handled by FSM::Update)
+        // Just waiting for transition 
         
     }
     void BirdIdleState::SetParameter(const std::string& key, float value) {
@@ -131,7 +131,7 @@ namespace Framework {
 
 
         // ---------------------------------------------------------------
-        // VERTICAL  –  accelerate toward targetY
+        // VERTICAL  ï¿½  accelerate toward targetY
         //   Use the slower accel when climbing up, faster when swooping
         // ---------------------------------------------------------------
         if (myPos.y < targetY) {
@@ -151,7 +151,7 @@ namespace Framework {
         s_lastChaseVel[entity] = vel;
 
         // ---------------------------------------------------------------
-        // SPRITE ROTATION  –  face the player (not movement dir)
+        // SPRITE ROTATION  ï¿½  face the player (not movement dir)
         // This gives the classic "eye tracking" look.
         // textureAngle is in radians.
         // ---------------------------------------------------------------
@@ -292,7 +292,7 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             mgr.GetComponent<Transform>(entity).position.x +=
                 collisionNormalX_ * nudgeAmount_;
-            // Reset texture rotation – Bounce uses the fly animation flat
+            // Reset texture rotation ï¿½ Bounce uses the fly animation flat
             mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
         }
     }
@@ -362,14 +362,14 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             float dy = playerPos.y - myPos.y;
             if (dy > UPWARD_LIMIT) {
-                // Player is ABOVE the bird — the default dive sprite points down,
+                // Player is ABOVE the bird ï¿½ the default dive sprite points down,
                 // so we need to rotate to point toward the player.
                 // atan2 zero = +X.  Sprite zero = -Y.  Offset = +PI/2.
                 float angleRad = std::atan2(direction_.y, direction_.x) + (M_PI * 0.5f);
                 mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
             }
             else {
-                // Player is at the same level or below — the dive sprite
+                // Player is at the same level or below ï¿½ the dive sprite
                 // already points downward, which is correct.  No rotation.
                 mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
             }
@@ -397,7 +397,7 @@ namespace Framework {
         }
 
         // ---------------------------------------------------------------
-        // SPRITE ROTATION  –  tilt to match ACTUAL velocity direction.
+        // SPRITE ROTATION  ï¿½  tilt to match ACTUAL velocity direction.
         // During a dive this naturally points nose-down.
         // textureAngle is radians.
         // ---------------------------------------------------------------
@@ -408,7 +408,7 @@ namespace Framework {
             //        float angleRad = std::atan2(direction_.y, direction_.x);
 
             //        // +PI/2 offset because the dive sprite's default pose points DOWN (-Y),
-            //        // but atan2's zero is +X (RIGHT).  The difference is 90° = PI/2.
+            //        // but atan2's zero is +X (RIGHT).  The difference is 90ï¿½ = PI/2.
             //        angleRad += 3.14159265f * 0.5f;   // + PI/2
 
             //        mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
@@ -490,7 +490,7 @@ namespace Framework {
     }
 
     // =========================================================
-    // MACRO REGISTRATION 
+    // MACRO REGISTRATION FOR STATES
     // =========================================================
     REGISTER_STATE("Idle", BirdIdleState);
     REGISTER_STATE("Waking", BirdWakingState);
@@ -557,7 +557,7 @@ namespace Framework {
             // Get all platform entities
             auto platforms = mgr.GetAllEntitiesWithComponent(true, PlatformTagType);
 
-            // Check if we're overlapping with any platform
+            // Check if  overlapping with any platform
             for (Entity platform : platforms) {
                 if (physics->CheckTriggerOverlap(e, platform)) {
                     // We hit a wall/platform!
