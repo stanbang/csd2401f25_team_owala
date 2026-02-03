@@ -7399,21 +7399,21 @@ namespace Editor {
 		}
 
 		// Master toggle
-		ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
-		ImGui::Separator();
+		//ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+		//ImGui::Separator();
 
-		// Individual toggles
-		ImGui::BeginDisabled(!aiSystem->debugVisualization);
+		//// Individual toggles
+		//ImGui::BeginDisabled(!aiSystem->debugVisualization);
 
-		ImGui::Text("Visualization Options:");
-		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
-		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		//ImGui::Text("Visualization Options:");
+		//ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+		//ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
 		/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
 		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
-		ImGui::EndDisabled();
+		/*ImGui::EndDisabled();*/
 
-		ImGui::Separator();
+		/*ImGui::Separator();*/
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add some spacing
 		ImGui::Text("Physics Visualization");
@@ -7431,7 +7431,7 @@ namespace Editor {
 		}
 
 		// Color legend
-		if (ImGui::CollapsingHeader("State Colors Legend")) {
+		/*if (ImGui::CollapsingHeader("State Colors Legend")) {
 			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
 			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
 			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
@@ -7448,7 +7448,7 @@ namespace Editor {
 		if (ImGui::CollapsingHeader("Grid Legend")) {
 			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
-		}
+		}*/
 
 		/*if (ImGui::CollapsingHeader("Path Legend")) {
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");

@@ -26,24 +26,31 @@
             "name": "SimpleChase",
             "type": "SimpleChase",
             "parameters": {
-                "moveSpeed": 150.0,
-                "bounceForce": 200.0,
-                "verticalBias": 0.3
+                "accelX": 240,
+                "accelYUp": 120,
+                "accelYDown": 240,
+                "maxSpeedX": 240,
+                "maxSpeedY": 160,
+                "hoverOffset": 180,
+                "turnaroundMult": 0.5
             }
         },
         {
             "name": "Bounce",
             "type": "Bounce",
             "parameters": {
-                "duration": 0.3
+                "duration": 0.5,
+                "bounceFactor": 0.6,
+                "nudgeAmount": 3
             }
         },
         {
             "name": "Attack",
             "type": "Attack",
             "parameters": {
-                "attackSpeed": 300.0,
-                "duration": 2.0
+                "attackSpeed": 200,
+                "attackAccel": 300,
+                "duration": 1.0
             }
         },
         {
