@@ -20,6 +20,14 @@ void SaveManager::Unlock(int levelIndex) {
 	}
 }
 
+void SaveManager::SetUnlock(int levelIndex) {
+	highestUnlockedLevel_ = levelIndex;
+	if (highestUnlockedLevel_ <= 0) {
+		highestUnlockedLevel_ = 1;
+	}
+	Save();
+}
+
 void SaveManager::Load() {
 	rapidjson::Document doc;
 
