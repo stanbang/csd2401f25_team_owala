@@ -45,12 +45,14 @@ namespace Framework {
         // Subscribe to Player Land Event
         MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 1.0f);  });
         //Subscribe to player death
-// In AudioSystem::Initialize()
         MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& e) {
             if (!e.deathAnimationFinished) {  // Only play sound on the initial death, not after animation ends
-                this->PlayRandomSound("Death", AudioType::SFX, 1.0f);
+                this->PlayRandomSound("Player_Death", AudioType::SFX, 1.0f);
             }
-            });        
+        });
+
+        //Subscribe to player hurt
+        MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 1.0f); });
         // Subscribe to World Rotation Event
         MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
         // Subscribe to Trap Platform Land Event

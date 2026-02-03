@@ -7,8 +7,12 @@
         "player_land.wav",
         "player_land2.wav"
     ],
-    "Death": [
-        "Death.wav"
+    "Player_Hurt": [
+        "player_hurt.wav",
+        "player_hurt2.wav"
+    ],
+    "Player_Death": [
+        "player_death.wav"
     ],
     "Platform_Land": [
         "platform_land.wav"
