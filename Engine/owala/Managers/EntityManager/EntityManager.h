@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <bitset>
 #include <sstream>
+#include <type_traits>
 
 namespace Framework {
 
@@ -162,6 +163,9 @@ namespace Framework {
 		void RemoveScriptAt(Entity entity, std::size_t index, bool removeComponentIfEmpty = true);
 		// Swaps the index of an existing script with another bounded script.
 		void SwapScripts(Entity entity, std::size_t a, std::size_t b);
+		// Gets the script of type T attached to the specified entity. Returns a null pointer if the entity does not have the script.
+		template<class T>
+		T* GetScript(Entity entity);
 		// Gets all entities that have been created. Note that this includes entities that have no components.
 		std::vector<Entity> GetAllEntities() const;
 		// Gets all entities that have the specified component type attached to them.
@@ -222,6 +226,26 @@ namespace Framework {
 		scriptToAdd.Bind<T>(displayName ? displayName : typeid(T).name());
 
 		return nativeScripts.scripts.size() - 1;
+	}
+
+	template<class T>
+	T* EntityManager::GetScript(Entity entity) {
+		static_assert(std::is_base_of<ScriptableEntity, T>::value, "T must derive from ScriptableEntity");
+
+		if (!ValidateEntity(entity)) return nullptr;
+		if (!HasComponent(entity, NativeScriptsComponentType)) return nullptr;
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+		for (NativeScriptsComponent::NativeScript& script : nativeScripts.scripts) {
+			if (!script.Instance) continue;
+			if (!script.enabled) continue;
+			if (script.missing) continue;
+
+			if (T* casted = dynamic_cast<T*>(script.Instance)) {
+				return casted;
+			}
+		}
+		return nullptr;
 	}
 
 	template<typename... Args>

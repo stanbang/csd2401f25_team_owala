@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   FSM.cpp
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Implements the runtime logic for the Finite State Machine, managing
+* state switching, transition checks, and lifecycle execution
+* (OnEnter, OnUpdate, OnExit).
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #include "pch.h"
 #include "FSM.h"
 #include "Logger.h" 
@@ -34,7 +51,7 @@ namespace Framework {
     void FSM::Update(Entity entity, EntityStorage& ecs, float dt) {
         if (currentState_.empty()) return;
 
-        // 1. Check Transitions
+        // Check Transitions
         if (transitions_.find(currentState_) != transitions_.end()) {
             for (const auto& trans : transitions_[currentState_]) {
                 if (trans->Check(entity, ecs)) {
@@ -44,7 +61,7 @@ namespace Framework {
             }
         }
 
-        // 2. Update Current State
+        // Update Current State
         if (states_[currentState_]) {
             states_[currentState_]->OnUpdate(entity, ecs, dt);
         }

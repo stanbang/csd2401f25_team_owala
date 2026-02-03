@@ -27,6 +27,11 @@
 namespace Framework {
     // ----- Layer Collision Functions ------- //
 
+     // Constants for edge handling for level editor
+    static constexpr float EDGE_TOLERANCE = 1.0f;      // width tolerance
+    static constexpr float VELOCITY_THRESHOLD = 5.0f;  // Min velocity to count as moving into
+    static constexpr float EDGE_BIAS = 3.0f;           // Prefer vertical resolution on edges
+
     void PhysicsSystem::InitializeCollisionMatrix() {
         // Resize the matrix to fit all layers
         collisionMatrix_.resize(static_cast<size_t>(CollisionLayer::Count));
@@ -60,6 +65,7 @@ namespace Framework {
 
 
     void PhysicsSystem::Initialize() {
+
         InitializeCollisionMatrix();
         FileIOSystem::LoadWorldConfig(gravity_.y);
         // --- Initialize the Implicit Grid ---
@@ -523,45 +529,100 @@ namespace Framework {
 
             Vector2D& dynVel = entityMgr.GetComponent<Velocity>(dynE).Vel;
 
-            if (minOverlapY < minOverlapX) {
-                // Vertical collision has priority for platformers
+            // Calculate biased overlaps (favor vertical for platformers)
+            float biasedMinOverlapY = minOverlapY - EDGE_BIAS;
+
+            if (biasedMinOverlapY < minOverlapX) {
+                // VERTICAL COLLISION - priority for platformers
                 if (overlapTop < overlapBottom) {
-                    dynPos.y -= overlapTop; // Push down (hit head)
+                    // Hit ceiling
+                    dynPos.y -= (overlapTop + EDGE_TOLERANCE);
                     if (dynVel.y > 0) dynVel.y = 0;
                 }
                 else {
-                    dynPos.y += overlapBottom; // Push up (landed)
+                    // Landed on platform
+                    dynPos.y += (overlapBottom + EDGE_TOLERANCE);
                     if (dynVel.y < 0) dynVel.y = 0;
-                    if (entityMgr.HasComponent(dynE, PlayerStateType)) entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
-                    // Check if the entity landing is a Trap Platform
+
+                    if (entityMgr.HasComponent(dynE, PlayerStateType)) {
+                        entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
+                    }
+
+                    // Trap platform handling
                     if (entityMgr.HasComponent(dynE, TrapPlatformComponentType)) {
                         TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(dynE);
-
-                        // Only trigger if it was actually in 'falling mode'
-                        if (trap.hasFallen) {
-                            // for edge case where platforms are in a corner and "falls" for only 1 frame
-                            if (trap.airTime > 0.1f) {
-                                Vector2D pos = entityMgr.GetComponent<Transform>(dynE).position;
-                                MessageBus::Instance().Publish(TrapPlatformLandEvent(pos));
-                            }
-
-                            trap.hasFallen = false;
-                            trap.isGrounded = true;
+                        if (trap.hasFallen && trap.airTime > 0.1f) {
+                            Vector2D pos = entityMgr.GetComponent<Transform>(dynE).position;
+                            MessageBus::Instance().Publish(TrapPlatformLandEvent(pos));
                         }
+                        trap.hasFallen = false;
+                        trap.isGrounded = true;
                     }
                 }
             }
             else {
-                // Horizontal collision
+                // HORIZONTAL COLLISION - only resolve if actively moving into the edge
+                bool movingLeft = dynVel.x < -VELOCITY_THRESHOLD;
+                bool movingRight = dynVel.x > VELOCITY_THRESHOLD;
+
                 if (overlapLeft < overlapRight) {
-                    dynPos.x -= overlapLeft; // Push left
+                    // Would push left - only if moving right into it
+                    if (movingRight || std::abs(dynVel.x) < 0.1f) {
+                        dynPos.x -= (overlapLeft + EDGE_TOLERANCE);
+                        if (dynVel.x > 0) dynVel.x = 0;
+                    }
                 }
                 else {
-                    dynPos.x += overlapRight; // Push right
+                    // Would push right - only if moving left into it
+                    if (movingLeft || std::abs(dynVel.x) < 0.1f) {
+                        dynPos.x += (overlapRight + EDGE_TOLERANCE);
+                        if (dynVel.x < 0) dynVel.x = 0;
+                    }
                 }
             }
+
+            contacts_.push_back(contact);
+
+            //    if (minOverlapY < minOverlapX) {
+            //        // Vertical collision has priority for platformers
+            //        if (overlapTop < overlapBottom) {
+            //            dynPos.y -= overlapTop; // Push down (hit head)
+            //            if (dynVel.y > 0) dynVel.y = 0;
+            //        }
+            //        else {
+            //            dynPos.y += overlapBottom; // Push up (landed)
+            //            if (dynVel.y < 0) dynVel.y = 0;
+            //            if (entityMgr.HasComponent(dynE, PlayerStateType)) entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
+            //            // Check if the entity landing is a Trap Platform
+            //            if (entityMgr.HasComponent(dynE, TrapPlatformComponentType)) {
+            //                TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(dynE);
+
+            //                // Only trigger if it was actually in 'falling mode'
+            //                if (trap.hasFallen) {
+            //                    // for edge case where platforms are in a corner and "falls" for only 1 frame
+            //                    if (trap.airTime > 0.1f) {
+            //                        Vector2D pos = entityMgr.GetComponent<Transform>(dynE).position;
+            //                        MessageBus::Instance().Publish(TrapPlatformLandEvent(pos));
+            //                    }
+
+            //                    trap.hasFallen = false;
+            //                    trap.isGrounded = true;
+            //                }
+            //            }
+            //        }
+            //    }
+            //    else {
+            //        // Horizontal collision
+            //        if (overlapLeft < overlapRight) {
+            //            dynPos.x -= overlapLeft; // Push left
+            //        }
+            //        else {
+            //            dynPos.x += overlapRight; // Push right
+            //        }
+            //    }
+            //}
+           // contacts_.push_back(contact); // Log the contact regardless of resolution
         }
-        contacts_.push_back(contact); // Log the contact regardless of resolution
     }
 
     // ------ GRID HELPER FUNCTIONS ------ //

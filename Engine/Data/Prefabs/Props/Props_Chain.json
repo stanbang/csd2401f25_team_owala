@@ -41,9 +41,6 @@
             "target_rotation": 0.0
         }
     },
-    "tags": [
-        "PlatformTag"
-    ],
-    "layer": 2,
-    "render_layer": 50
+    "layer": 0,
+    "render_layer": 0
 }

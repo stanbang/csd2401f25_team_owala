@@ -15,6 +15,7 @@
 #include "TestScene.h"
 #include "CutsceneIntro.h"
 #include "HowToPlay.h"
+#include "LevelSelection.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
@@ -178,6 +179,8 @@ namespace Framework {
 
 		systems_.physics_->SetPaused(false);
 		SceneManager::GetInstance().OnEnterPlay();
+		initializedScenes_.clear();
+		lastActiveScene_ = 0;
 	}
 
 	void GameManager::OnEndPlay() {
@@ -195,6 +198,8 @@ namespace Framework {
 		runtimeECS_.reset();
 		editorECS_ = nullptr;
 		hasECSSnapshot = false;
+		initializedScenes_.clear();
+		lastActiveScene_ = 0;
 	}
 #endif
 
@@ -220,6 +225,9 @@ namespace Framework {
 
 	void GameManager::Initialize() {
 		CheckSystems();
+		//layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH); // Load all configs directly for layer
+		Logger::Get().Info(DebugType::GameManager)
+			<< "Loaded LayerManager configuration" << std::endl;
 		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
@@ -241,6 +249,32 @@ namespace Framework {
 				else {
 					Logger::Get().Error(DebugType::GameManager)
 						<< "Button requested SWITCH_SCENE but stringParam (Scene Name) was empty!" << std::endl;
+				}
+				break;
+
+			case ButtonAction::SWITCH_SCENE_ADD:
+				if (!event.stringParam.empty()) {
+					Logger::Get().Info(DebugType::GameManager)
+						<< "Additively Loading and Switching Scene to: " << event.stringParam << std::endl;
+
+					// If not loaded yet, load additively.
+					SceneManager& sceneMgr = SceneManager::GetInstance();
+					const SceneAsset& scene = sceneMgr.GetSceneByName(event.stringParam, true);
+					if (!scene.IsValid()) {
+						Logger::Get().Error(DebugType::GameManager)
+							<< "SWITCH_SCENE_ADD failed: scene not found: " << event.stringParam << std::endl;
+						break;
+					}
+
+					if (!scene.isLoaded) {
+						sceneMgr.LoadScene(event.stringParam, SceneManagement::LoadSceneMode::Additive);
+					}
+
+					sceneMgr.SetActiveScene(sceneMgr.GetSceneByName(event.stringParam, true));
+				}
+				else {
+					Logger::Get().Error(DebugType::GameManager)
+						<< "Button requested SWITCH_SCENE_ADD but stringParam (Scene Name) was empty!" << std::endl;
 				}
 				break;
 
@@ -301,6 +335,10 @@ namespace Framework {
 					RegisterScriptToScene(sceneID, HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
 					continue;
 				}
+				if (sceneName == "LevelSelection") {
+					RegisterScriptToScene(sceneID, LevelSelection::Initialize, LevelSelection::Update, LevelSelection::Free);
+					continue;
+				}
 				// all other scenes use TestScene.cpp for now
 				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 			}
@@ -344,32 +382,62 @@ namespace Framework {
 			InitiateLevelLoad(targetSceneName);
 		}
 
-		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
-
-		// Detected Scene Change
-		if (currentSceneIndex != lastInitializedScene_) {
-			std::unordered_map<SceneGUID, SceneCallBacks>::iterator prevScene = sceneCallbacks_.find(lastInitializedScene_);
-			if (prevScene != sceneCallbacks_.end() && prevScene->second.fpFree) {
-				prevScene->second.fpFree();
-			}
-
-			std::unordered_map<SceneGUID, SceneCallBacks>::iterator newScene = sceneCallbacks_.find(currentSceneIndex);
-			if (newScene != sceneCallbacks_.end() && newScene->second.fpInitialize) {
-				newScene->second.fpInitialize();
-			}
-
-
-#ifdef BUILD_EDITOR
-			// Clear History when changing scenes
-			editor_->GetHistoryMgr()->ClearHistory();
-#endif
-			lastInitializedScene_ = currentSceneIndex;
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const std::vector<SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+		std::unordered_set<SceneGUID> loadedSet;
+		for (SceneGUID loadedSceneID : loadedScenes) {
+			loadedSet.insert(loadedSceneID);
 		}
 
-		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
-			sceneCallbacks_[currentSceneIndex].fpUpdate();
+		// Free Scenes that are no longer loaded
+		for (auto it = initializedScenes_.begin(); it != initializedScenes_.end();) {
+			const SceneGUID sceneID = *it;
 
-			//UpdateNativeScripts();
+			if (loadedSet.find(sceneID) == loadedSet.end()) {
+				std::unordered_map<SceneGUID, SceneCallBacks>::iterator callback = sceneCallbacks_.find(sceneID);
+				if (callback != sceneCallbacks_.end() && callback->second.fpFree) {
+					callback->second.fpFree();
+				}
+
+				it = initializedScenes_.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
+		// Init Scenes that just became loaded
+		for (SceneGUID sceneID : loadedScenes) {
+			auto callback = sceneCallbacks_.find(sceneID);
+			const bool hasLifecycle = (callback != sceneCallbacks_.end()) && (callback->second.fpInitialize || callback->second.fpFree);
+
+			if (!hasLifecycle) {
+				continue;
+			}
+
+			const bool firstTime = initializedScenes_.insert(sceneID).second;
+			if (!firstTime) continue;
+
+			if (callback->second.fpInitialize) {
+				callback->second.fpInitialize();
+			}
+		}
+
+#ifdef BUILD_EDITOR
+		// Clear History when changing scenes
+		const SceneGUID activeScene = sceneMgr.GetActiveScene().sceneIndex;
+		if (activeScene != lastActiveScene_) {
+			editor_->GetHistoryMgr()->ClearHistory();
+			lastActiveScene_ = activeScene;
+		}
+#endif
+
+		// Update all loaded scenes
+		for (SceneGUID loadedSceneID : loadedScenes) {
+			auto callback = sceneCallbacks_.find(loadedSceneID);
+			if (callback != sceneCallbacks_.end() && callback->second.fpUpdate) {
+				callback->second.fpUpdate();
+			}
 		}
 
 		// Always update native scripts

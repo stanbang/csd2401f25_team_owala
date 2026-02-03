@@ -323,12 +323,12 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
-		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
+		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_)) {
 			Logger::Get().Info(DebugType::Editor)
 				<< "Using default layer configuration" << std::endl;
 
 			// Save defaults to file for next time
-			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
 		}
 
 		// --- Prepare Palette Items (Load Textures) ---
@@ -2041,7 +2041,7 @@ namespace Editor {
 
 						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
 						Entity clonedEntity = entityMgr.CloneEntity(entity);
-						sceneMgr.AddEntityToScene(activeScene, clonedEntity);
+						sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
 						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
 					}
 					if (ImGui::MenuItem("Delete")) {
@@ -2109,10 +2109,22 @@ namespace Editor {
 				ImGui::PopID();
 				}; // End lambda: drawSceneDropdown
 
-			drawSceneDropdown(activeScene.sceneIndex, std::string("Scene: ") + activeScene.name);
-			if (activeScene.sceneIndex != SceneManager::GetDDOLSceneID() && IsGamePlaying()) {
+			// --- Per Scene Hierarchy ---
+			const std::vector<SceneManagement::SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+			for (SceneGUID sceneID : loadedScenes) {
+				if (sceneID == SceneManager::GetDDOLSceneID()) continue;
+				const SceneAsset& scene = sceneMgr.GetSceneAt(sceneID, true);
+				if (!scene.IsValid()) continue;
+
+				std::string header = "Scene: " + scene.name;
+				if (sceneID == activeScene.sceneIndex) header += " (Active)";
+				drawSceneDropdown(sceneID, header);
+			}
+
+			if (IsGamePlaying()) {
 				drawSceneDropdown(SceneManager::GetDDOLSceneID(), SceneManager::GetDDOLSceneName());
 			}
+			// --- End Per Scene Hierarchy ---
 		}
 
 		// Ensure Empty Space in Hierarchy List
@@ -2947,7 +2959,7 @@ namespace Editor {
 			ImGui::Separator();
 			ImGui::SeparatorText("Button Actions");
 
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
+			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "SWITCH_SCENE_ADD", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE"};
 			int currentItemIndex = static_cast<int>(buttonComp.action);
 
 			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
@@ -2967,7 +2979,7 @@ namespace Editor {
 			bool dataChanged = false;
 			std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
-			if (buttonComp.action == ButtonAction::SWITCH_SCENE) {
+			if (buttonComp.action == ButtonAction::SWITCH_SCENE || buttonComp.action == ButtonAction::SWITCH_SCENE_ADD) {
 				ImGui::Text("Target Scene Name:");
 				if (ImGui::InputText("##SceneName", &buttonComp.targetString)) {
 					dataChanged = true;
@@ -5297,7 +5309,12 @@ namespace Editor {
 					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
 
 				if (ImGui::Checkbox("##cb", &canCollide)) {
+					//layerManager_.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
 					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
+					//LayerManager& layerMgr = gameManager_->GetLayerManager();
+					/*layerMgr.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
+					layerMgr.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);*/
+					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics);
 				}
 
 				if (ImGui::IsItemHovered()) {
@@ -6066,21 +6083,94 @@ namespace Editor {
 		ImGui::Text("Select Prefab to Edit:");
 
 		static int selectedPrefabIndex = 0;
-		std::vector<std::string> prefabNames;
+		static char searchBuffer[256] = "";
+		static bool useFilteredList = false;
+		static std::vector<std::string> filteredPrefabNames;
+
+		std::vector<std::string> allPrefabNames;
 		std::vector<const char*> prefabItems;
 
-		prefabNames.push_back("-- Select Prefab --");
+		// Search input
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100);
+		if (ImGui::InputTextWithHint("##PrefabSearch", "Search prefabs...", searchBuffer, IM_ARRAYSIZE(searchBuffer))) {
+			useFilteredList = (strlen(searchBuffer) > 0);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Clear")) {
+			searchBuffer[0] = '\0';
+			useFilteredList = false;
+			selectedPrefabIndex = 0;
+		}
+
+		// Build the list of prefabs
+		allPrefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
-			prefabNames.push_back(pair.first);
+			allPrefabNames.push_back(pair.first);
 		}
 
-		for (const auto& name : prefabNames) {
-			prefabItems.push_back(name.c_str());
+		// Apply search filter if needed
+		if (useFilteredList && strlen(searchBuffer) > 0) {
+			filteredPrefabNames.clear();
+			filteredPrefabNames.push_back("-- Select Prefab --");
+
+			std::string searchLower = searchBuffer;
+			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+			for (const auto& name : allPrefabNames) {
+				if (name == "-- Select Prefab --") continue;
+
+				std::string nameLower = name;
+				std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+
+				if (nameLower.find(searchLower) != std::string::npos) {
+					filteredPrefabNames.push_back(name);
+				}
+			}
+
+			// Update selected index if current selection is not in filtered list
+			if (selectedPrefabIndex > 0 && selectedPrefabIndex < allPrefabNames.size()) {
+				std::string currentSelection = allPrefabNames[selectedPrefabIndex];
+				auto it = std::find(filteredPrefabNames.begin(), filteredPrefabNames.end(), currentSelection);
+				if (it == filteredPrefabNames.end()) {
+					selectedPrefabIndex = 0;
+				}
+				else {
+					selectedPrefabIndex = static_cast<int>(std::distance(filteredPrefabNames.begin(), it));
+				}
+			}
+
+			// Use filtered list
+			const auto& displayNames = filteredPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
+
+			// Show count
+			ImGui::TextDisabled("Showing %d/%d prefabs", filteredPrefabNames.size() - 1, allPrefabNames.size() - 1);
+		}
+		else {
+			// Use full list
+			const auto& displayNames = allPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
 		}
 
+		// Combo box
 		if (ImGui::Combo("##PrefabList", &selectedPrefabIndex, prefabItems.data(), static_cast<int>(prefabItems.size()))) {
-			if (selectedPrefabIndex > 0) {
-				selectedPrefabForEditing_ = prefabNames[selectedPrefabIndex];
+			std::string selectedName;
+			if (useFilteredList && !filteredPrefabNames.empty()) {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < filteredPrefabNames.size())
+					? filteredPrefabNames[selectedPrefabIndex] : "";
+			}
+			else {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < allPrefabNames.size())
+					? allPrefabNames[selectedPrefabIndex] : "";
+			}
+
+			if (selectedPrefabIndex > 0 && !selectedName.empty()) {
+				selectedPrefabForEditing_ = selectedName;
 
 				// Determine prefab type by checking components
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
@@ -6134,18 +6224,18 @@ namespace Editor {
 
 							// Texture Angle
 							if (rot.HasMember("texture_angle")) {
-								float textureAngleDeg = rot["texture_angle"].GetFloat() * (180.0f / M_PI);
+								float textureAngleDeg = static_cast<float>(rot["texture_angle"].GetFloat() * (180.0f / M_PI));;
 								if (ImGui::DragFloat("Texture Angle (degrees)", &textureAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["texture_angle"].SetFloat(textureAngleDeg * (M_PI / 180.0f));
+									rot["texture_angle"].SetFloat(static_cast<float>(textureAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
 
 							// Collider Angle
 							if (rot.HasMember("collider_angle")) {
-								float colliderAngleDeg = rot["collider_angle"].GetFloat() * (180.0f / M_PI);
+								float colliderAngleDeg = static_cast<float>(rot["collider_angle"].GetFloat() * (180.0f / M_PI));
 								if (ImGui::DragFloat("Collider Angle (degrees)", &colliderAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["collider_angle"].SetFloat(colliderAngleDeg * (M_PI / 180.0f));
+									rot["collider_angle"].SetFloat(static_cast<float>(colliderAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
@@ -6639,12 +6729,12 @@ namespace Editor {
 				"SkeletonAIComponent", "NativeScripts", "TrapPlatformComponent"
 			};
 
-			std::vector<const char*> componentItems;
+			std::vector<const char*> localComponentItems;
 			for (const auto& comp : availableComponents) {
-				componentItems.push_back(comp.c_str());
+				localComponentItems.push_back(comp.c_str());
 			}
 
-			ImGui::Combo("Component to Add", &selectedAddComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
+			ImGui::Combo("Component to Add", &selectedAddComponentIndex, localComponentItems.data(), static_cast<int>(localComponentItems.size()));
 
 			ImGui::SameLine();
 			if (ImGui::Button("Add Component") && selectedAddComponentIndex > 0) {

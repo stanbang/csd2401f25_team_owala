@@ -113,7 +113,6 @@ namespace Framework {
     void TransformationSystem::ProcessRotationInput() {
         GameManager& gm = GameManager::GetInstance();
         InputSystem& input_ = *gm.GetSystems().input_;
-        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         EntityManager entityMgr(gm.GetECS());
 
         // Update cooldown timer
@@ -154,7 +153,7 @@ namespace Framework {
         if (!isGlobalRotating) return;
 
         GameManager& gm = GameManager::GetInstance();
-        InputSystem& input_ = *gm.GetSystems().input_;
+        //InputSystem& input_ = *gm.GetSystems().input_;
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         EntityManager entityMgr(gm.GetECS());
 

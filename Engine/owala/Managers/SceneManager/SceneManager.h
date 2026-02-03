@@ -147,10 +147,14 @@ namespace Framework {
 		std::vector<Entity> GetEntitiesInScene(const SceneAsset& scene) const;
 		// scenes_ map getter
 		const std::unordered_map<SceneGUID, SceneAsset>& GetAllSceneAssets() const;
+		// Retrieves the list IDs of all currently loaded scenes.
+		const std::vector<SceneGUID>& GetLoadedScenes() const { return loadedScenes_; }
 
 		/* Reserved Scene Getters */
 		static constexpr SceneGUID GetDDOLSceneID() { return DDOL_SCENEID; };
 		static constexpr const char* GetDDOLSceneName() { return DDOL_SCENENAME; };
+		static constexpr SceneGUID GetInvalidSceneID() { return INVALID_SCENEID; };
+		static constexpr const char* GetInvalidSceneName() { return INVALID_SCENENAME; };
 
 		// Checker for duplicate scene names. Return true if scene name exists, false otherwise.
 		bool CheckSceneNameExists(const std::string& sceneName);

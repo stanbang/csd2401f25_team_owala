@@ -51,14 +51,14 @@ namespace Framework {
 
     struct PlatformPrefab {
         std::string textureID;
-        float mass;
+        float mass = 0.0f;
     };
 
     struct TrapPlatformPrefab {
         std::string textureID;
-        float mass;
-        float fallSpeed;
-        float triggerDelay;
+        float mass = 0.0f;
+        float fallSpeed = 0.0f;
+        float triggerDelay = 0.0f;
     };
 
     class PrefabSystem {
