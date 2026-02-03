@@ -494,9 +494,14 @@ namespace Framework {
             contact.State = CollisionState::Overlapping;
         }
         else {
-            float t;
-            if (CollisionIntersection_RectRect_Dynamic(bounds1, entityMgr.GetComponent<Velocity>(e1).Vel, bounds2, entityMgr.GetComponent<Velocity>(e2).Vel, dt, t)) {
-                contact.State = CollisionState::WillCollide;
+            // Only check dynamic collision if both entities have velocity
+            if (entityMgr.HasComponent(e1, VelocityType) && entityMgr.HasComponent(e2, VelocityType)) {
+                float t;
+                Vector2D vel1 = entityMgr.GetComponent<Velocity>(e1).Vel;
+                Vector2D vel2 = entityMgr.GetComponent<Velocity>(e2).Vel;
+                if (CollisionIntersection_RectRect_Dynamic(bounds1, vel1, bounds2, vel2, dt, t)) {
+                    contact.State = CollisionState::WillCollide;
+                }
             }
         }
 
@@ -509,7 +514,7 @@ namespace Framework {
             }
             // Check dynE has Velocity component
             if (!entityMgr.HasComponent(dynE, VelocityType)) {
-                Logger::Get().Error(DebugType::PhysicsSystem) << "dynE entity missing Velocity component. Unable to CheckCollisionPair" << std::endl;
+                //Logger::Get().Error(DebugType::PhysicsSystem) << "dynE entity missing Velocity component. Unable to CheckCollisionPair" << std::endl;
                 return;
             }
 
