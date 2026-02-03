@@ -275,7 +275,7 @@ namespace Framework {
 
         // If we are in a non-level scene like the menu and the curtain is stuck CLOSED,
         // force it to hide immediately.
-        if (!isLevel && state_ == TransitionState::CLOSED) {
+        if (!isLevel && state_ != TransitionState::HIDDEN) {
             ForceHide();
             return; // ForceHide changes state, return to avoid processing other logic this frame
         }

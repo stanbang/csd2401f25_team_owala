@@ -1,6 +1,6 @@
 {
     "frame_count": 16,
-    "frame_duration": 0.05,
+    "frame_duration": 0.07999999076128006,
     "is_looping": true,
     "start_frame": 0,
     "spritesheets": [
@@ -8,7 +8,7 @@
             "texture": "SB_Word_Spritesheet_01.png",
             "count": 10
         },
-		{
+        {
             "texture": "SB_Word_Spritesheet_02.png",
             "count": 6
         }
