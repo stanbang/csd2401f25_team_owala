@@ -26,16 +26,21 @@ void SaveManager::Load() {
 	// Check if file exists
 	if (!Framework::FileIOSystem::ReadFile(SAVE_FILEPATH, doc) || !doc.IsObject()) {
 		highestUnlockedLevel_ = 1;
+		skipIntro = false;
 		Save();
 		return;
 	}
+
+	highestUnlockedLevel_ = 1;
+	skipIntro = false;
 
 	if (doc.HasMember(KEY_HIGHEST_UNLOCKED) && doc[KEY_HIGHEST_UNLOCKED].IsInt()) {
 		highestUnlockedLevel_ = doc[KEY_HIGHEST_UNLOCKED].GetInt();
 		if (highestUnlockedLevel_ < 1) highestUnlockedLevel_ = 1;
 	}
-	else {
-		highestUnlockedLevel_ = 1;
+
+	if (doc.HasMember(KEY_SKIP_INTRO) && doc[KEY_SKIP_INTRO].IsBool()) {
+		skipIntro = doc[KEY_SKIP_INTRO].GetBool();
 	}
 }
 
@@ -46,8 +51,15 @@ void SaveManager::Save() const {
 	rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
 	doc.AddMember(rapidjson::StringRef(KEY_HIGHEST_UNLOCKED), highestUnlockedLevel_, alloc);
+	doc.AddMember(rapidjson::StringRef(KEY_SKIP_INTRO), skipIntro, alloc);
 
 	Framework::FileIOSystem::WriteFileJson(SAVE_FILEPATH, doc);
+
+	// Check if root Data folder exists and serialize data to root folder
+	if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+		std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + std::string(SAVE_FILEPATH);
+		Framework::FileIOSystem::WriteFileJson(rootFilePath, doc);
+	}
 }
 
 void SaveManager::OnCreate() {

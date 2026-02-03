@@ -4,6 +4,7 @@
 // Dependencies
 #include "GameManager.h"
 #include "EntityManager.h"
+#include "SaveManager.h"
 #include "InputSystem.h"
 #include "Components.h"
 #include "OwalaTime.h"
@@ -39,6 +40,18 @@ void CutsceneController::FinishCutscene() {
 	if (isEnding) return;
 	isEnding = true;
 
+	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+	
+	// Search for SaveManager
+	const std::vector<Entity> persistents = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
+	for (Entity entity : persistents) {
+		if (!entityMgr.ValidateEntity(entity)) continue;
+		if (SaveManager* save = entityMgr.GetScript<SaveManager>(entity)) {
+			save->SetSkipIntro(true);
+			break;
+		}
+	}
+	
 	GameManager::GetInstance().InitiateLevelLoad("Tutorial 1");
 }
 

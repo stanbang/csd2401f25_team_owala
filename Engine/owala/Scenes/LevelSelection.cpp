@@ -196,8 +196,10 @@ namespace LevelSelection {
 		CacheUI(entityMgr);
 		save = GetSaveManager(entityMgr);
 
+		std::string firstLevel = save->GetSkipIntro() ? "Tutorial 1" : "Cutscene Intro";
+
 		levelData = {
-			{1, "act i: the forest", "Cutscene Intro", "SB_LevelSelection_ForestTicket.png"},
+			{1, "act i: the forest", firstLevel, "SB_LevelSelection_ForestTicket.png"},
 			{2, "act ii: the hut", "Tutorial 2", "SB_LevelSelection_WitchHut.png"},
 			{3, "act iii: warehouse", "Level 1", "SB_LevelSelection_WarehouseTicket.png"},
 			{4, "act iv: backstage", "Level 2", "SB_LevelSelection_BackstageTicket.png"}
