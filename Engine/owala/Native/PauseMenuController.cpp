@@ -31,7 +31,8 @@ void PauseMenuController::OnUpdate() {
     InputSystem& input = *GameManager::GetInstance().GetSystems().input_;
 	PhysicsSystem& physics = *GameManager::GetInstance().GetSystems().physics_;
 
-    // Check if the Escape key was just pressed
+    // Check if the 
+    // key was just pressed
     if (input.KeyPressed(InputSystem::Key::Escape)) {
         const SceneManagement::SceneAsset& optionsScene = SceneManager::GetInstance().GetSceneByName("OptionsMenu", true);
 
@@ -43,10 +44,10 @@ void PauseMenuController::OnUpdate() {
             SceneManager::GetInstance().UnloadScene("OptionsMenu");
         }
         else {
-            // Pause physics
-            physics.SetPaused(true);
             // Load scene on top of current scene
             SceneManager::GetInstance().LoadScene("OptionsMenu", LoadSceneMode::Additive);
+            // Pause physics
+            physics.SetPaused(true);
         }
     }
 }
