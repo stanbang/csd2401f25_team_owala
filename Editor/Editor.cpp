@@ -1296,89 +1296,6 @@ namespace Editor {
 		if (ImGui::Button("Open FSM Editor")) {
 			isFSMEditorOpen_ = true;
 		}
-		//ImGui::SameLine();
-		//if (ImGui::Button("Spawn Test Bird")) {
-		//	// Get the systems we need
-		//	SceneManager& sceneMgr = SceneManager::GetInstance();
-		//	const SceneAsset& currScene = sceneMgr.GetActiveScene();
-
-		//	//  Create entity
-		//	Entity bird = entityMgr.CreateEntity();
-
-		//	//  Set properties
-		//	entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
-
-		//	// Add components required for the AI
-		//	entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
-		//	entityMgr.AddComponent<Transform>(bird, Transform({ 0.f, 0.5f }, 0.f)); // Spawn at (0, 0.5)
-		//	entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-		//	entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
-		//	entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
-		//	entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
-		//	entityMgr.AddComponent<RotationFlag>(bird, {});
-
-		//	RigidBody rb;	
-		//	rb.SetMass(1.0f); // Give it some mass
-		//	rb.isAffectedByGravity = false; // Make sure it doesn't fall
-		//	entityMgr.AddComponent<RigidBody>(bird, rb);
-
-		//	//  Add components to make it visible and selectable
-		//	Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
-		//	Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
-
-		//	// texture is loaded in TestScene.cpp
-		//	//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
-		//	entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
-		//	
-		//    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
-
-		//	// Add it to the active scene
-		//	sceneMgr.AddEntityToScene(currScene, bird);
-
-		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
-		//		<< bird << ")";
-		//}
-
-		//ImGui::SameLine();
-		
-		// SKELETON AI NOT IN USE CURRENTLY
-		//if (ImGui::Button("Spawn Test Skeleton")) {
-		//	
-		//	SceneManager& sceneMgr = SceneManager::GetInstance();
-		//	//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
-
-		//	// Create entity
-		//	Entity skeleton = entityMgr.CreateEntity();
-
-		//	// Set properties
-		//	entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
-
-		//	// Add components required for the AI
-		//	entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
-		//	entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
-		//	entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
-		//	entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
-		//	entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
-		//	
-
-		//	// Add physics, but make it affected by gravity
-		//	RigidBody rb;
-		//	rb.SetMass(1.0f); // Give it some mass
-		//	rb.isAffectedByGravity = true; // Make it fall
-		//	entityMgr.AddComponent<RigidBody>(skeleton, rb);
-
-		//	// Add components to make it visible and selectable
-		//	Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
-		//	entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
-		//	entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
-
-		//	// Add it to the active scene
-		//	sceneMgr.AddEntityToScene(currentScene, skeleton);
-
-		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
-		//		<< skeleton << ")";
-		//}
-		
 
 		ImGui::End(); // End "Level Editor" window
 	}
@@ -7389,31 +7306,31 @@ namespace Editor {
 			return;
 		}
 
-		// Get the AI system from game manager
-		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+		//// Get the AI system from game manager
+		//AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 
-		if (!aiSystem) {
-			ImGui::TextDisabled("AI System not available");
-			ImGui::End();
-			return;
-		}
+		//if (!aiSystem) {
+		//	ImGui::TextDisabled("AI System not available");
+		//	ImGui::End();
+		//	return;
+		//}
 
 		// Master toggle
-		ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
-		ImGui::Separator();
+		//ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+		//ImGui::Separator();
 
-		// Individual toggles
-		ImGui::BeginDisabled(!aiSystem->debugVisualization);
+		//// Individual toggles
+		//ImGui::BeginDisabled(!aiSystem->debugVisualization);
 
-		ImGui::Text("Visualization Options:");
-		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
-		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
-		/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
-		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
+		//ImGui::Text("Visualization Options:");
+		//ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+		//ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		///*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		//ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
-		ImGui::EndDisabled();
+		//ImGui::EndDisabled();
 
-		ImGui::Separator();
+		//ImGui::Separator();
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add some spacing
 		ImGui::Text("Physics Visualization");
@@ -7430,25 +7347,25 @@ namespace Editor {
 			ImGui::TextDisabled("Physics System not available");
 		}
 
-		// Color legend
-		if (ImGui::CollapsingHeader("State Colors Legend")) {
-			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
-			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
-		}
+		//// Color legend
+		//if (ImGui::CollapsingHeader("State Colors Legend")) {
+		//	ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
+		//	ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
+		//	ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
+		//}
 
-		if (ImGui::CollapsingHeader("Radius Legend")) {
-			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
-			ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
-		}
+		//if (ImGui::CollapsingHeader("Radius Legend")) {
+		//	ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
+		//	ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
+		//}
 
-		if (ImGui::CollapsingHeader("Grid Legend")) {
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
-		}
+		//if (ImGui::CollapsingHeader("Grid Legend")) {
+		//	ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
+		//}
 
 		/*if (ImGui::CollapsingHeader("Path Legend")) {
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");

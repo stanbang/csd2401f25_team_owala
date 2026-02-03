@@ -45,7 +45,7 @@ namespace Framework {
         (void)entity;
         (void)ecs;
         (void)dt;
-        // Just waiting for transition (handled by FSM::Update)
+        // Just waiting for transition 
         
     }
     void BirdIdleState::SetParameter(const std::string& key, float value) {
@@ -119,14 +119,14 @@ namespace Framework {
         Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
         Vector2D targetPos = mgr.GetComponent<Transform>(player).position;
 
-        // 1. Recalculate Path periodically
+        // Recalculate Path periodically
         if (repathTimer_ >= repathInterval_ && navGrid_) {
             repathTimer_ = 0.0f;
             AStarPather pather;
             currentPath_ = pather.FindPath(*navGrid_, myPos, targetPos);
         }
 
-        // 2. Follow Path
+        // Follow Path
         if (!currentPath_.empty()) {
             Vector2D nextPoint = currentPath_.front();
             Vector2D dir = nextPoint - myPos;
@@ -305,7 +305,7 @@ namespace Framework {
     }
 
     // =========================================================
-    // MACRO REGISTRATION (The Magic Part)
+    // MACRO REGISTRATION FOR STATES
     // =========================================================
     REGISTER_STATE("Idle", BirdIdleState);
     REGISTER_STATE("Waking", BirdWakingState);
@@ -379,7 +379,7 @@ namespace Framework {
             // Get all platform entities
             auto platforms = mgr.GetAllEntitiesWithComponent(true, PlatformTagType);
 
-            // Check if we're overlapping with any platform
+            // Check if  overlapping with any platform
             for (Entity platform : platforms) {
                 if (physics->CheckTriggerOverlap(e, platform)) {
                     // We hit a wall/platform!
