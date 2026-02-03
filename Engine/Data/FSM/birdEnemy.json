@@ -19,7 +19,7 @@
             "name": "Waking",
             "type": "Waking",
             "parameters": {
-                "wakeUpTime": 1.0
+                "wakeUpTime": 3.5
             }
         },
         {

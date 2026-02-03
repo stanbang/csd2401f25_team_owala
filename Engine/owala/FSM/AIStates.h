@@ -56,7 +56,7 @@ namespace Framework {
 
     private:
         float timer_ = 0.0f;
-        float wakeUpTime_ = 1.0f;
+        float wakeUpTime_ = 3.5f;
     };
 
     // --- SIMPLE CHASE STATE (No Pathfinding) ---

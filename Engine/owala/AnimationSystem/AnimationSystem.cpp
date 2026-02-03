@@ -84,7 +84,7 @@ namespace Framework {
 					animationComponent.currentState = AnimationState::IDLE;
 				}
 				else if (stateName == "Waking") {
-					animationComponent.currentState = AnimationState::IDLE; // Use idle while waking
+					animationComponent.currentState = AnimationState::WAKING; // Use idle while waking
 				}
 				else if (stateName == "SimpleChase" || stateName == "Bounce" || stateName == "Hover") {
 					animationComponent.currentState = AnimationState::RUNNING; // "Fly" animation
