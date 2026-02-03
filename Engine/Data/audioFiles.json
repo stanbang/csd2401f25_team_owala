@@ -7,6 +7,9 @@
         "player_land.wav",
         "player_land2.wav"
     ],
+    "Player_Walk": [
+        "player_walk.wav"
+    ],
     "Platform_Land": [
         "platform_land.wav"
     ],

@@ -40,10 +40,11 @@ namespace Framework {
 		// Load in audio file names
         FileIOSystem::LoadAudioFileNames(soundPaths_);
 
-        // Subscribe to Player Jump Event
+        // Subscribe to Player Events
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {this->PlayRandomSound("Player_Jump", AudioType::SFX, e.volume); });
-        // Subscribe to Player Land Event
         MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 1.0f);  });
+        MessageBus::Instance().Subscribe<PlayerWalkEvent>([this](const PlayerWalkEvent& e) {this->PlayLoopSound("Player_Walk", AudioType::SFX, 1.0f, !e.isWalking);  });
+       
         // Subscribe to World Rotation Event
         MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
         // Subscribe to Trap Platform Land Event

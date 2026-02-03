@@ -55,6 +55,16 @@ namespace Framework {
 		float volume = 1.0f;
 	};
 
+	struct PlayerWalkEvent {
+		Entity player;
+		bool isWalking;
+	};
+
+	struct PlayerDeathEvent {
+		Entity player;
+		bool deathAnimationFinished = false;
+	};
+
 	struct ButtonClickedEvent {
 		Entity button;
 		ButtonAction action;
@@ -62,11 +72,6 @@ namespace Framework {
 		// Data payloads
 		std::string stringParam; // Scene Name, Audio Key etc
 		float floatParam;
-	};
-
-	struct PlayerDeathEvent {
-		Entity player;
-		bool deathAnimationFinished = false;
 	};
 
 	struct ParticleBurstEvent {
