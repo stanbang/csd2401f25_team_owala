@@ -4,6 +4,7 @@
 // Dependencies
 #include "GameManager.h"
 #include "EntityManager.h"
+#include "SaveManager.h"
 #include "InputSystem.h"
 #include "Components.h"
 #include "OwalaTime.h"
@@ -39,12 +40,24 @@ void CutsceneController::FinishCutscene() {
 	if (isEnding) return;
 	isEnding = true;
 
+	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+	
+	// Search for SaveManager
+	const std::vector<Entity> persistents = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
+	for (Entity entity : persistents) {
+		if (!entityMgr.ValidateEntity(entity)) continue;
+		if (SaveManager* save = entityMgr.GetScript<SaveManager>(entity)) {
+			save->SetSkipIntro(true);
+			break;
+		}
+	}
+	
 	GameManager::GetInstance().InitiateLevelLoad("Tutorial 1");
 }
 
 void CutsceneController::FitImageToScreen() {
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
-	WindowsSystem& win = *GameManager::GetInstance().GetSystems().win_;
+	//WindowsSystem& win = *GameManager::GetInstance().GetSystems().win_;
 
 	Entity self = GetEntity();
 	TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(self);
@@ -81,7 +94,7 @@ void CutsceneController::OnCreate() {
 void CutsceneController::OnUpdate() {
 	if (isEnding) return;
 
-	GameManager& gm = GameManager::GetInstance();
+	//GameManager& gm = GameManager::GetInstance();
 
 	FitImageToScreen();
 
