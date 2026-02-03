@@ -88,7 +88,7 @@ namespace Framework {
 
         // Execute Render Loop (Batching Interleaved)
         std::vector<BatchedSprite> currentBatch;
-        Texture currentTexture;
+        Texture currentTexture{};
         bool batchStarted = false;
 
         for (const auto& item : renderQueue) {
