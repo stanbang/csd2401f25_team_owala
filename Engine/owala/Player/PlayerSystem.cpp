@@ -426,7 +426,6 @@ namespace Framework {
                 if (entityMgr.HasComponent(enemy, FSMComponentType)) {
                     enemyType = "bird enemy";
                 }
-                Vector2D enemyPos = entityMgr.GetComponent<Transform>(enemy).position;
 
                 DamagePlayer(playerEntity, enemyType, enemyPos);
                 break;
@@ -575,7 +574,7 @@ namespace Framework {
                     if (entityMgr.HasComponent(trapEntity, VelocityType)) {
                         
                         //isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
-                        bool isTrapFalling = (trapVelY < -10.0f);
+                        isTrapFalling = (trapVelY < -10.0f);
                     }
 
                     // Check if trap is above enemy (crushing from above)
