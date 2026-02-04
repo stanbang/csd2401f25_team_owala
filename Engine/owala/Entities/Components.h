@@ -161,6 +161,8 @@ namespace Framework{
 	struct PlayerState {
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
+		bool isWalking = false;
+
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 		bool isDead = false;
 
