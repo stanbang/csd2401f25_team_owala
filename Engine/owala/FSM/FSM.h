@@ -46,7 +46,7 @@ namespace Framework {
         virtual void SetParameter(const std::string& key, float value) { (void)key; (void)value; }
         virtual void SetParameter(const std::string& key, const std::string& value) { (void)key; (void)value; }
 
-        // Dependency Injection (Called by Factory)
+        // Dependency Injection 
         virtual void SetNavGrid(NavigationGrid* grid) { (void)grid; }
     };
 

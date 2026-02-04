@@ -68,17 +68,13 @@ namespace Framework {
         void SetParameter(const std::string& key, float value) override;
 
     private:
-        //float moveSpeed_ = 150.0f;
-        //float bounceForce_ = 200.0f;
-        //float verticalBias_ = 0.3f; // How much to favor upward movement when hitting walls
-
-        float accelX_ = 240.0f;   // horizontal acceleration  (units/s²)
+        float accelX_ = 240.0f;   // horizontal acceleration  
         float accelYUp_ = 120.0f;   // vertical accel when moving UP toward target
-        float accelYDown_ = 240.0f;   // vertical accel when swooping DOWN
+        float accelYDown_ = 240.0f;   // vertical accel when coming DOWN
         float maxSpeedX_ = 240.0f;   // horizontal speed cap
         float maxSpeedY_ = 160.0f;   // vertical speed cap
         float hoverOffset_ = 75.0f;   // how far ABOVE the player to aim
-        // Turnaround boost multiplier when velocity opposes target direction
+        // Turnaround boost when velocity opposes target direction
         float turnaroundMult_ = 0.5f;
     };
 

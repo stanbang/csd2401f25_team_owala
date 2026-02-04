@@ -21,8 +21,12 @@
 namespace Framework {
 	std::string FileIOSystem::SanitizeFileName(const std::string& name) {
 		std::string sanitized_name = name;
+		/*std::transform(sanitized_name.begin(), sanitized_name.end(), sanitized_name.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });*/
+
+			
 		std::transform(sanitized_name.begin(), sanitized_name.end(), sanitized_name.begin(),
-			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			[](unsigned char c) -> char { return static_cast<char>(std::tolower(c)); });
 
 		std::replace(sanitized_name.begin(), sanitized_name.end(), ' ', '_');
 

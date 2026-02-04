@@ -116,7 +116,10 @@ namespace Framework {
 						targetStateString = fsm.fsm.GetCurrentState();
 
 						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
-						std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
+						//std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
+						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
+						std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(),
+							[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 					}
 
 					// Fallback for Player/Non-FSM entities using the legacy AnimationState enum

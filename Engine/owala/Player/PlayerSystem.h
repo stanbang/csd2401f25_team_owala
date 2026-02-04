@@ -43,7 +43,8 @@ namespace Framework {
 		void KillPlayer(Entity playerEntity, const std::string& killerType = "Unknown");
 		bool IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius);
 		void HandlePlayerDeath();
-
+		void SeparatePlayerFromDynamicObjects(Entity playerEntity);
+		
 		//player movement
 		float moveSpeed = 0.0f;
 		float jumpHeight = 0.0f;

@@ -1,4 +1,4 @@
-/*****************************************************************//**
+/*******************************************************************
  * \file   PlayerSystem.cpp
  *
  * \primary_author
@@ -35,7 +35,7 @@ namespace Framework {
     void PlayerSystem::Update() {
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
-        if (physics_.IsPaused()) {return;}
+        if (physics_.IsPaused()) { return; }
         InputSystem& input_ = *gm.GetSystems().input_;
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
 
@@ -53,7 +53,6 @@ namespace Framework {
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
-
 
             // We need a RigidBody, Velocity, and PlayerState to control the player
             if (entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, PlayerStateType) && entityMgr.HasComponent(entity, AnimationComponentType)) {
@@ -97,17 +96,19 @@ namespace Framework {
 
                 // Horizontal Movement 
                 if (!state.isDead) {
+                    float targetVelX = 0.0f;
                     if (!state.isKnockedBack) {
-                        float targetVelX = 0.0f;
                         if (input_.KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
                         if (input_.KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
                         vel.Vel.x = targetVelX;
 
                         // Apply Jumping
                         if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
-                            vel.Vel.y = jumpVelocity;
+                            vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
+
                             float jumpVolume = 0.3f;
-                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume });
+                            //messageBus
+                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume }); //empty cause currently theres nothign to pass and just for testing
                         }
 
                         // Sets the direction the player is facing based on movement
@@ -118,71 +119,162 @@ namespace Framework {
                             state.isFacingRight = false;
                         }
                     }
-                    else {
+                    /*else {
                         vel.Vel.x = 0.0f;
-                    }
-                    if (state.isDead) {
-                        vel.Vel.x = 0.0f;
-                        if (state.isGrounded) {
-                            if (entityMgr.HasComponent(entity, RigidBodyType)) {
-                                RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
-                                rb.InverseMass = 0.0f;
-                            }
-                            vel.Vel.y = 0.0f;
-                        }
-                    }
-                    // Animation State Handling
-                    AnimationState animState = AnimationState::IDLE; // Default to IDLE
+                    }*/
 
-                    // player death state
-                    if (state.isDead) {
-                        animState = AnimationState::DEATH;
+                    // Handle invulnerability overlap separation
+                    if (state.isHurt && entityMgr.HasComponent(entity, TransformType)) {
+                        SeparatePlayerFromDynamicObjects(entity);
                     }
-                    else if (state.isGrounded) {
-                        if (std::abs(vel.Vel.x) > 0.01f) {
-                            animState = AnimationState::RUNNING; //If player is on ground and moving, set to running
-                        }
-                        else {
-                            animState = AnimationState::IDLE; //If player is on ground and not moving, set to idle
-                        }
-                    }
-                    else {
-                        if (vel.Vel.y > 0.01f) {
-                            animState = AnimationState::JUMPING; //If player is in air and moving upwards, set to jumping
-                        }
-                        else if (vel.Vel.y <= 0.0f) {
-                            animState = AnimationState::FALLING; //If player is in air, at the point he is beginning to fall down or moving downwards, set to falling
-                        }
-                    }
-
-                    if (state.isHurt) {
-                        animState = AnimationState::HURT;
-                    }
-                    animationComponent.currentState = animState;
                 }
+                else {
+                    // Player is dead - stop all movement
+                    vel.Vel.x = 0.0f;
+                    if (state.isGrounded) {
+                        if (entityMgr.HasComponent(entity, RigidBodyType)) {
+                            RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+                            rb.InverseMass = 0.0f;
+                        }
+                        vel.Vel.y = 0.0f;
+                    }
+                }
+
+                // ========== ANIMATION STATE HANDLING ==========
+                AnimationState animState = AnimationState::IDLE; // Default to IDLE
+                if (state.isDead) {
+                    animState = AnimationState::DEATH;
+                }
+                else if (state.isHurt) {
+                    animState = AnimationState::HURT;
+                }
+                else if (!state.isGrounded) {
+                    // In air states
+                    if (vel.Vel.y > 0.01f) {
+                        animState = AnimationState::JUMPING;
+                    }
+                    else {
+                        animState = AnimationState::FALLING;
+                    }
+                }
+                else {
+                    // On ground states
+                    if (std::abs(vel.Vel.x) > 0.01f) {
+                        animState = AnimationState::RUNNING;
+                    }
+                    else {
+                        animState = AnimationState::IDLE;
+                    }
+                }
+
+                // Set the animation state
+                animationComponent.currentState = animState;
             }
         }
     }
 
-    void PlayerSystem::UpdateInvulnerability() {
+        void PlayerSystem::UpdateInvulnerability() {
+            EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+                if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
+                if (!entityMgr.HasComponent(entity, PlayerStateType)) continue;
+
+                PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+
+                if (state.isHurt) {
+                    state.invulnerabilityTimer += Framework::Time::DeltaTime();
+
+                    if (state.invulnerabilityTimer >= INVULNERABILITY_DURATION) {
+                        // End invulnerability
+                        state.isHurt = false;
+                        state.invulnerabilityTimer = 0.0f;
+
+                        Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player invulnerability ended. Lives remaining: " << state.currentLives << std::endl;
+                    }
+                }
+            }
+        }
+
+    void PlayerSystem::SeparatePlayerFromDynamicObjects(Entity playerEntity) {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
-            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
-            if (!entityMgr.HasComponent(entity, PlayerStateType)) continue;
+        if (!entityMgr.HasComponent(playerEntity, TransformType) || 
+            !entityMgr.HasComponent(playerEntity, AABBColliderType) ||
+            !entityMgr.HasComponent(playerEntity, PlayerStateType)) {
+            return;
+        }
 
-            PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+        Transform& playerTransform = entityMgr.GetComponent<Transform>(playerEntity);
+        const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
+        PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
 
-            if (state.isHurt) {
-                state.invulnerabilityTimer += Framework::Time::DeltaTime();
+        // Only start separating in the last 20% of invulnerability time
+        float separationStartTime = INVULNERABILITY_DURATION * 0.8f;
+        if (playerState.invulnerabilityTimer < separationStartTime) {
+            return; // Too early, don't separate yet
+        }
 
-                if (state.invulnerabilityTimer >= INVULNERABILITY_DURATION) {
-                    // End invulnerability
-                    state.isHurt = false;
-                    state.invulnerabilityTimer = 0.0f;
+        // Calculate separation strength (0 to 1, where 1 is end of invulnerability)
+        float separationProgress = (playerState.invulnerabilityTimer - separationStartTime) / (INVULNERABILITY_DURATION - separationStartTime);
+        float separationSpeed = 50.0f * Framework::Time::DeltaTime() * separationProgress; // Gradual separation
 
-                    Framework::Logger::Get().Info(DebugType::PlayerSystem)  << "Player invulnerability ended. Lives remaining: " << state.currentLives << std::endl;
+        AABB_Bounds playerBounds = {
+            {playerTransform.position.x - playerHalfSize.x, playerTransform.position.y - playerHalfSize.y},
+            {playerTransform.position.x + playerHalfSize.x, playerTransform.position.y + playerHalfSize.y}
+        };
+
+        // Check all dynamic trap objects
+        for (const Entity& dynamicEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
+            if (!entityMgr.HasComponent(dynamicEntity, RigidBodyType) ||
+                !entityMgr.HasComponent(dynamicEntity, TransformType) ||
+                !entityMgr.HasComponent(dynamicEntity, AABBColliderType)) {
+                continue;
+            }
+
+            const Vector2D& objPos = entityMgr.GetComponent<Transform>(dynamicEntity).position;
+            const Vector2D& objHalfSize = entityMgr.GetComponent<AABBCollider>(dynamicEntity).HalfSize;
+
+            float objRotation = 0.0f;
+            if (entityMgr.HasComponent(dynamicEntity, RotationFlagType)) {
+                objRotation = entityMgr.GetComponent<RotationFlag>(dynamicEntity).currentRotation;
+            }
+            AABB_Bounds objBounds = PhysicsSystem::GetRotatedAABB(objPos, objHalfSize, objRotation);
+
+            // Check if overlapping
+            if (CollisionIntersection_RectRect_Static(playerBounds, objBounds)) {
+                // Calculate penetration on each axis
+                float overlapLeft = playerBounds.max.x - objBounds.min.x;
+                float overlapRight = objBounds.max.x - playerBounds.min.x;
+                float overlapTop = playerBounds.max.y - objBounds.min.y;
+                float overlapBottom = objBounds.max.y - playerBounds.min.y;
+
+                // Find minimum overlap
+                float minOverlapX = std::min(overlapLeft, overlapRight);
+                float minOverlapY = std::min(overlapTop, overlapBottom);
+
+                // Separate along the axis with least penetration (gentler)
+                if (minOverlapX < minOverlapY) {
+                    // Separate horizontally
+                    if (overlapLeft < overlapRight) {
+                        playerTransform.position.x -= separationSpeed;
+                    } else {
+                        playerTransform.position.x += separationSpeed;
+                    }
+                } else {
+                    // Separate vertically
+                    if (overlapTop < overlapBottom) {
+                        playerTransform.position.y -= separationSpeed;
+                    } else {
+                        playerTransform.position.y += separationSpeed;
+                    }
                 }
+
+                // Update bounds for next object check
+                playerBounds = {
+                    {playerTransform.position.x - playerHalfSize.x, playerTransform.position.y - playerHalfSize.y},
+                    {playerTransform.position.x + playerHalfSize.x, playerTransform.position.y + playerHalfSize.y}
+                };
             }
         }
     }
@@ -232,20 +324,24 @@ namespace Framework {
 
             // Check Collision
             if (CollisionIntersection_RectRect_Static(playerBounds, trapBounds)) {
+                // Check if trap has velocity component to determine if it's falling
+                bool isTrapFalling = false;
+                float trapVelocityY = 0.0f;
+                
+                if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                    trapVelocityY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
+                    // Trap is falling if it has significant downward velocity
+                    isTrapFalling = trapVelocityY < 0.0f; // Threshold for falling
+                }
+
+                // Only damage if trap is falling AND hitting player from above
                 float trapBottom = trapBounds.min.y;
                 float playerTop = playerBounds.max.y;
 
-                // Check if trap is falling and is above the player
-                Vector2D trapVelocity = Vector2D::Zero();
-                if (entityMgr.HasComponent(trapEntity, VelocityType)) {
-                    trapVelocity = entityMgr.GetComponent<Velocity>(trapEntity).Vel;
-                }
+				// Small tolerance to ensure "from above"
+                bool isHittingFromAbove = (trapBottom <= playerTop + 20.0f);
 
-                bool isFallingDownward = trapVelocity.y < -0.1f;
-                bool isTrapAbovePlayer = trapBottom <= playerTop;
-                bool hasBeenFalling = trapComp.airTime > 0.1f;
-
-                if (isFallingDownward && isTrapAbovePlayer && hasBeenFalling) {
+                if (isTrapFalling && isHittingFromAbove) {
                     DamagePlayer(playerEntity, "falling trap platform", trapPos);
                     break;
                 }
@@ -323,23 +419,24 @@ namespace Framework {
         else {
             playerState.isHurt = true;
             playerState.invulnerabilityTimer = 0.0f;
+
             if (entityMgr.HasComponent(playerEntity, TransformType) && entityMgr.HasComponent(playerEntity, VelocityType)) {
                 Vector2D playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
                 Velocity& vel = entityMgr.GetComponent<Velocity>(playerEntity);
+                float directionX = (sourcePos.x > playerPos.x) ? -1.0f : 1.0f;
 
-                // 1. DIRECTION LOGIC
-                float directionX = (playerPos.x < sourcePos.x) ? -1.0f : 1.0f;
-
-                // 2. ORIENTATION LOGIC (Face the bird/source)
-                playerState.isFacingRight = (sourcePos.x > playerPos.x);
-
-                // Apply Impulse
+                // Apply knockback impulse
                 vel.Vel.x = directionX * KNOCKBACK_FORCE_X;
                 vel.Vel.y = KNOCKBACK_FORCE_Y;
 
                 playerState.isKnockedBack = true;
                 playerState.knockbackTimer = KNOCKBACK_DURATION;
                 playerState.isGrounded = false;
+                playerState.isFacingRight = (directionX < 0);
+
+                Logger::Get().Info(DebugType::PlayerSystem)
+                    << "Knockback applied: X=" << vel.Vel.x << ", Y=" << vel.Vel.y
+                    << ", directionX=" << directionX << std::endl;
             }
 
             MessageBus::Instance().Publish(PlayerDamagedEvent{ playerEntity, playerState.currentLives });
