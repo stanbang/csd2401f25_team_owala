@@ -1,7 +1,7 @@
 {
     "frame_count": 44,
-    "frame_duration": 0.1,
-    "is_looping": true,
+    "frame_duration": 0.04000001400709152,
+    "is_looping": false,
     "start_frame": 0,
     "spritesheets": [
         {
