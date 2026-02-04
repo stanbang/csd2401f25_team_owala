@@ -55,6 +55,10 @@ namespace Framework {
         for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
 
+            if (!camera.zoomInitialized && !camera.isEditorControlled) {
+                camera.zoom = 350.0f;  // Your desired zoom (higher = more zoomed out)
+                camera.zoomInitialized = true;
+            }
             // Skip cameras that are controlled by the editor
             if (camera.isEditorControlled) {
                 continue;
@@ -291,6 +295,7 @@ namespace Framework {
         camera.targetEntity = targetEntity;
         camera.isActive = isActive;
         camera.aspectRatio = 16.0f / 9.0f;
+        camera.zoom = 10.0f; // Add this line
 
         entityMgr.AddComponent(cameraEntity, camera);
 

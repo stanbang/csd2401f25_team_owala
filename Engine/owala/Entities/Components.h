@@ -192,6 +192,9 @@ namespace Framework{
 		float mapMaxX = 100.0f;
 		float mapMinY = -100.0f;
 		float mapMaxY = 100.0f;
+
+		bool zoomInitialized = false;  // ADD THIS LINE
+
 	};
 
 	struct TextureComponent {
