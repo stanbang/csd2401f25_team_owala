@@ -154,7 +154,7 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
     return true;
 }
 
-bool ResourceManager::loadSound(const std::string& name) {
+bool ResourceManager::loadSound(const std::string& name, bool loop) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
@@ -162,7 +162,7 @@ bool ResourceManager::loadSound(const std::string& name) {
 		return false;
 	}
 
-	return loadSound(name, it->second.string().c_str(), false, false);
+	return loadSound(name, it->second.string().c_str(), loop, false);
 }
 
 // Loads a sound from file and stores it inside the resource manager
@@ -619,4 +619,21 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded " << profilesLoaded << " animation profiles.";
 	return true;
+}
+
+
+Audio& ResourceManager::getLoopAudio(std::string key) {
+	std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& map = getSoundMap();
+	auto it = map.find(key);
+	if (it == map.end()) {
+		// Load automatically if missing
+		if (loadSound(key, true)) {
+			it = map.find(key);
+			if (it != map.end()) return *it->second;
+		}
+
+		Logger::Get().Error(DebugType::ResourceManager) << "Missing Audio: \"" << key << "\"\n";
+		throw std::runtime_error("Missing Audio: " + key);
+	}
+	return *it->second;
 }

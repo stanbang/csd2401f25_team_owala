@@ -83,6 +83,8 @@ namespace Framework {
 		// Get a resource by key
         template<typename ResourceType>
         ResourceType& get(std::string key);
+        // Get looping audio by key
+        Audio& getLoopAudio(std::string key);
 
 		// Check if a resource exists
         template<typename ResourceType>
@@ -139,7 +141,7 @@ namespace Framework {
         void ScanAssetDirectory(const fs::path& directoryPath);
         // Load a asset by name (assuming name maps to a file path)
         bool loadTexture(const std::string& name);
-        bool loadSound(const std::string& name);
+        bool loadSound(const std::string& name, bool loop = false);
         bool loadFont(const std::string& name);
         bool loadAnimationInfo(const std::string& name);
         bool loadPrefab(const std::string& name);
