@@ -149,6 +149,12 @@ namespace Framework {
         std::vector<PhysicsDebugCell> GetDebugDrawData(Framework::CameraSystem* cameraSystem, Entity cameraID);
 
 
+        /**
+         * @brief Reload collision matrix from LayerManager after initialization
+         * @details This should be called AFTER Initialize() to restore saved collision settings
+         */
+        void ReloadCollisionMatrixFromFile();
+
 
     private:
         /**
@@ -255,6 +261,8 @@ namespace Framework {
         void GridQuery(const AABB_Bounds& bounds, std::bitset<maxCollidableEntities>& potentialColliders) const;
 
         bool forceNarrowPhase_ = false; // Debug toggle for narrow or broad phased implementation
+
+        bool collisionMatrixInitialized_ = false;
     
     };
 
