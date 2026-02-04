@@ -447,7 +447,7 @@ namespace Framework {
             // Load and Play
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
-                float vol = volume;
+                //float vol = volume;
                 this->play(sound, audiotype, volume, false);
             }
             catch (...) { 

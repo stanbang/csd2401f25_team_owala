@@ -134,7 +134,10 @@ namespace {
 	void RefreshUI(Framework::EntityManager& entityMgr) {
 		if (levelData.empty()) return;
 
+		// Left Ticket
 		SetTicketTexture(entityMgr, ui.ticketPrev, "SB_LevelSelection_EmptyTicket.png");
+
+		// Middle Ticket
 		if (save && save->IsUnlocked(levelData[currentIndex].index)) {
 			SetTicketTexture(entityMgr, ui.ticketCurrent, levelData[currentIndex].bannerTextureKey);
 			SetLevelText(entityMgr, levelData[currentIndex].displayName);
@@ -145,10 +148,12 @@ namespace {
 				SetLevelText(entityMgr, levelData[0].displayName);
 			}
 			else {
-				SetTicketTexture(entityMgr, ui.ticketCurrent, "SB_LevelSelection_EmptyTicket.png");
+				SetTicketTexture(entityMgr, ui.ticketCurrent, "SB_Locked.png");
 				SetLevelText(entityMgr, "locked");
 			}
 		}
+
+		// Right Ticket
 		SetTicketTexture(entityMgr, ui.ticketNext, "SB_LevelSelection_EmptyTicket.png");
 	}
 
@@ -233,10 +238,10 @@ namespace LevelSelection {
 		std::string firstLevel = shouldSkipIntro ? "Tutorial 1" : "Cutscene Intro";
 
 		levelData = {
-			{1, "act i: the forest", firstLevel, "SB_LevelSelection_ForestTicket.png"},
-			{2, "act ii: the hut", "Tutorial 2", "SB_LevelSelection_WitchHut.png"},
-			{3, "act iii: warehouse", "Level 1", "SB_LevelSelection_WarehouseTicket.png"},
-			{4, "act iv: backstage", "Level 2", "SB_LevelSelection_BackstageTicket.png"}
+			{1, "act i: the forest", firstLevel, "SB__ForestTicketGlow.png"},
+			{2, "act ii: the hut", "Tutorial 2", "SB__WitchHutTicketGlow.png"},
+			{3, "act iii: workshop", "Level 1", "SB__WorkshopTicketGlow.png"},
+			{4, "act iv: backstage", "Level 2", "SB__BackstageTicketGlow.png"}
 		};
 
 		HideMenuEntities(entityMgr);
