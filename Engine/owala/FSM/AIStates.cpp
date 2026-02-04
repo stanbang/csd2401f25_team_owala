@@ -462,9 +462,11 @@ namespace Framework {
     void BirdRecoveryState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
         EntityManager mgr(ecs);
-        if (mgr.HasComponent(entity, VelocityType))
+        if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
-        if (mgr.HasComponent(entity, TransformType))
+        }
+
+        if (mgr.HasComponent(entity, TransformType)) {
             mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
         }
 
