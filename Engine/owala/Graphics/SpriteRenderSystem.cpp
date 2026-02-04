@@ -301,7 +301,7 @@ namespace Framework {
         Graphics& gfx_ = *gm.GetSystems().gfx_;
 
         // Retrieve active camera data
-        float zoom = 1.0f, zoomRefSize= 540.0f, zoomRatio = 1.0f;
+        float zoom = 1.0f, zoomRefSize = 350.0f, zoomRatio = 1.0f;
         Vector2D camPos = { 0.0f, 0.0f };
         Vector2D camSize = { (float)gfx_.getScreenWidth(), (float)gfx_.getScreenHeight() };
 
@@ -330,21 +330,27 @@ namespace Framework {
 
             // --- Calculate Screen Position ---
             Vector2D screenTextPos = textPos;
+            float finalScale = textComp.scale;
 
             if (!isUIElement) {
-                // Subtract Camera Position from Text Position
-                float relativeX = textPos.x - camPos.x;
-                float relativeY = textPos.y - camPos.y;
+                // Anchor to World Position
+                // Use the standard camera function so text stays attached to the Gizmo/Entity
+                if (activeCamera != 0 && cameraSystem_) {
+                    screenTextPos = cameraSystem_->WorldToScreen(textPos, activeCamera);
+                }
 
-                // offset so that pos is the middle of the text
-                relativeX -= textComp.halfSize.x;
-                relativeY += textComp.halfSize.y;
+                // Scale the Text
+                // Apply your reference zoom ratio to the text scale
+                finalScale *= zoomRatio;
 
-                // Convert Relative Position to NDC
-                screenTextPos = Vector2D(
-                    (relativeX / camSize.x) * 2.0f * zoomRatio,
-                    (relativeY / camSize.y) * 2.0f * zoomRatio
-                );
+                // Apply Offset in Screen Space (NDC)
+                // Convert halfSize (Pixels) -> NDC. 
+                // We scale the offset by 'finalScale' so it shrinks/grows with the text.
+                float ndcHalfW = (textComp.halfSize.x * finalScale / gfx_.getScreenWidth()) * 2.0f;
+                float ndcHalfH = (textComp.halfSize.y * finalScale / gfx_.getScreenHeight()) * 2.0f;
+
+                screenTextPos.x -= ndcHalfW;
+                screenTextPos.y += ndcHalfH;
             }
             else {
                 // Texts with GUI tag already use screen coords
