@@ -24,7 +24,7 @@ namespace Framework {
     }
 
     void LayerManager::InitializeDefaultRenderLayers() {
-        // Add built-in render layers matching your existing system
+        // pre built layers for legacy layers
         renderLayers_.push_back(RenderLayerData("Background", -100, true));
         renderLayers_.push_back(RenderLayerData("Platform", 50, true));
         renderLayers_.push_back(RenderLayerData("Enemy", 75, true));
@@ -33,7 +33,7 @@ namespace Framework {
     }
 
     void LayerManager::InitializeDefaultCollisionLayers() {
-        // Add built-in collision layers
+        // built-in collision layers
         collisionLayers_.push_back(CollisionLayerData("Default", 0, true));
         collisionLayers_.push_back(CollisionLayerData("Player", 1, true));
         collisionLayers_.push_back(CollisionLayerData("Platform", 2, true));
@@ -83,7 +83,7 @@ namespace Framework {
     bool LayerManager::UpdateRenderLayer(size_t index, const std::string& newName, int newOrder) {
         if (index >= renderLayers_.size()) return false;
 
-        // Check if name change would conflict
+        // Check for same name
         if (newName != renderLayers_[index].name && RenderLayerNameExists(newName)) {
             Logger::Get().Error(DebugType::Editor)
                 << "Render layer name '" << newName << "' already exists!" << std::endl;

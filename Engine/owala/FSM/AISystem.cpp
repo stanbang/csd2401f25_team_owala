@@ -58,7 +58,7 @@ namespace Framework {
         // Grid Maintenance
         gridRebuildTimer_ += Framework::Time::DeltaTime();
         if (gridRebuildTimer_ >= gridRebuildInterval_ || worldIsRotating) {
-            // Only rebuild if not rotating, or logic to handle rotation
+            // Only rebuild if not rotating
             if (!worldIsRotating) {
                 navGrid_.BuildGrid();
                 gridRebuildTimer_ = 0.0f;

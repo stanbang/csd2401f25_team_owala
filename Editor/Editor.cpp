@@ -4773,7 +4773,7 @@ namespace Editor {
 			return 0;
 		}
 
-		// Set basic properties
+		// Set properties
 		std::string enemyName = std::filesystem::path(fsmPath).stem().string();
 		entityMgr.GetProperties(enemy).name = enemyName;
 		entityMgr.GetProperties(enemy).layer = CollisionLayer::Enemy;
@@ -4795,7 +4795,7 @@ namespace Editor {
 
 		entityMgr.AddComponent(enemy, fsmComp);
 
-		// Add visual components if specified in JSON
+		// Add visual components 
 		std::string textureKey = "default_enemy.png";
 		Vector2D halfSize = { 50.f, 50.f };
 
@@ -4817,13 +4817,13 @@ namespace Editor {
 		rb.isAffectedByGravity = false; // Most AI enemies float/fly
 		entityMgr.AddComponent(enemy, rb);
 
-		// Add animation if specified
+		// Add animation 
 		if (doc.HasMember("animationProfile") && doc["animationProfile"].IsString()) {
 			std::string animProfile = doc["animationProfile"].GetString();
 			entityMgr.AddComponent<AnimationComponent>(enemy, AnimationComponent{ animProfile });
 		}
 
-		// Add rotation flag if needed
+		// Add rotation flag 
 		entityMgr.AddComponent<RotationFlag>(enemy, RotationFlag{});
 
 		Logger::Get().Info(DebugType::Editor)
@@ -6032,13 +6032,15 @@ namespace Editor {
 			filteredPrefabNames.push_back("-- Select Prefab --");
 
 			std::string searchLower = searchBuffer;
-			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(),
+				[](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
 			for (const auto& name : allPrefabNames) {
 				if (name == "-- Select Prefab --") continue;
 
 				std::string nameLower = name;
-				std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+				std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+					[](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
 				if (nameLower.find(searchLower) != std::string::npos) {
 					filteredPrefabNames.push_back(name);
