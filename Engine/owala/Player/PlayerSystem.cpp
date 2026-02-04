@@ -87,6 +87,9 @@ namespace Framework {
                 // Update the component for the next frame
                 state.previousVelocityY = currentVelY;
 
+                // Capture isWalking state before its updated
+                bool wasWalking = state.isWalking;
+
                 // Horizontal Movement 
                 if (!state.isDead) {
                     float targetVelX = 0.0f;
@@ -97,6 +100,7 @@ namespace Framework {
 				    // Apply Jumping
                     if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
                         vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
+                        state.isWalking = false;
 
                         float jumpVolume = 0.3f;
                         //messageBus
@@ -106,12 +110,18 @@ namespace Framework {
 				    // Sets the direction the player is facing based on movement
                     if (targetVelX > 0.01f) {
                         state.isFacingRight = true;
+                        state.isWalking = true;
                     }
                     else if (targetVelX < -0.01f) {
                         state.isFacingRight = false;
+                        state.isWalking = true;
+                    }
+                    else {
+                        state.isWalking = false;
                     }
                 }
                 else {
+                    // If player is dead
                     vel.Vel.x = 0.0f;
                 }
 
@@ -173,6 +183,18 @@ namespace Framework {
                         }
                 }
                 animationComponent.currentState = animState;
+
+                // Handle Walk SFX
+                if (state.isWalking != wasWalking) {
+                    if (state.isWalking) {
+                        // State changed from FALSE to TRUE -> START Sound
+                         MessageBus::Instance().Publish(PlayerWalkEvent{ entity, true }); 
+                    }
+                    else {
+                        // State changed from TRUE to FALSE -> STOP Sound
+                        MessageBus::Instance().Publish(PlayerWalkEvent{ entity, false });
+                    }
+                }
             }
         }
     }
