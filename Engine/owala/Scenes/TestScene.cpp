@@ -28,7 +28,7 @@ namespace TestScene {
         CameraSystem* cameraSystem = gm.GetSystems().camera_;  //GET CAMERA SYSTEM
         //SpriteRenderSystem* spriteRenderer = gm.GetSystems().spriteRenderer_; // Get sprite renderer
         //TextRenderSystem* textRenderer = gm.GetSystems().textRenderer_; // Get text renderer
-        PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
+        //PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		//(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
         // Get the current scene name to track initialization per scene

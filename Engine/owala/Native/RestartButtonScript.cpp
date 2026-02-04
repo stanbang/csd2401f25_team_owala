@@ -33,9 +33,9 @@ void RestartButtonScript::OnUpdate() {
 		// button clicked
 		if (btn.isPressed) {
 			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const SceneAsset& prevScene = sceneMgr.GetSceneAt(gameMgr.GetPrevScene());
 
-			std::cout << "prev scene: " << gameMgr.GetPrevScene() << std::endl;
-			sceneMgr.LoadScene(gameMgr.GetPrevScene());
+			gameMgr.InitiateLevelLoad(prevScene.name);
 		}
 	}
 }

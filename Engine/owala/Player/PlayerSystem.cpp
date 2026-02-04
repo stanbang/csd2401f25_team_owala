@@ -431,7 +431,6 @@ namespace Framework {
                 if (entityMgr.HasComponent(enemy, FSMComponentType)) {
                     enemyType = "bird enemy";
                 }
-                Vector2D enemyPos = entityMgr.GetComponent<Transform>(enemy).position;
 
                 DamagePlayer(playerEntity, enemyType, enemyPos);
                 break;
