@@ -62,12 +62,12 @@ namespace Framework {
     // --- SIMPLE CHASE STATE (No Pathfinding) ---
     class BirdSimpleChaseState : public State {
     public:
+        virtual ~BirdSimpleChaseState();
+
         const char* GetName() const override { return "SimpleChase"; }
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
-        void OnExit(Entity entity, EntityStorage& ecs) override;
         void SetParameter(const std::string& key, float value) override;
-        void ResetChaseFlag() { hasStartedChase_ = false; }
 
     private:
         //float moveSpeed_ = 150.0f;
@@ -82,7 +82,7 @@ namespace Framework {
         float hoverOffset_ = 75.0f;   // how far ABOVE the player to aim
         // Turnaround boost multiplier when velocity opposes target direction
         float turnaroundMult_ = 0.5f;
-        bool hasStartedChase_ = false;
+        Entity ownerID_ = 0;
     };
 
     // --- CHASE STATE (Pathfinding) ---
@@ -119,6 +119,7 @@ namespace Framework {
         // Store the collision normal so we know which way to nudge
         float collisionNormalX_ = 0.0f;  // -1 or +1, set in OnEnter
         Vector2D bounceDirection_;
+        Entity ownerID_ = 0;
     };
 
     // --- HOVER STATE ---
@@ -153,11 +154,14 @@ namespace Framework {
         float attackMaxSpeed_ = 400.0f; // speed cap during dive
         float duration_ = 2.0f;
         float timer_ = 0.0f;
+        Entity ownerID_ = 0;
     };
 
     // --- RECOVERY STATE ---
     class BirdRecoveryState : public State {
     public:
+        virtual ~BirdRecoveryState();
+
         const char* GetName() const override { return "Recovery"; }
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
@@ -169,6 +173,7 @@ namespace Framework {
     private:
         float duration_ = 1.f;
         float timer_ = 0.0f;
+        Entity ownerID_ = 0;
     };
 
 

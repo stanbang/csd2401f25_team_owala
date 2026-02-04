@@ -121,7 +121,9 @@ namespace Framework {
 	struct BirdAttackEvent {};
 	struct BirdWakeEvent {};
 	struct BirdChaseEvent {
+		Entity entityID;
 		bool isCurrentlyChasing;
+		Vector2D pos;
 	};
 
 } // namespace Framework

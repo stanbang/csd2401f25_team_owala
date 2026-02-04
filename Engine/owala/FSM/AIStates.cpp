@@ -24,28 +24,9 @@
 #include "Vector2D.h"
 #include "GameManager.h" 
 #include "PhysicsSystem.h"
-#include "OwalaTime.h"
 
 namespace Framework {
-
-    // --- SHARED AUDIO HELPERS ---
-    // Tracks the absolute time (in seconds) the last vocal event occurred.
-    static float s_LastVocalTime = -100.0f;
-
-    // Minimum seconds between ANY chase or attack screams
-    const float kVocalCooldown = 2.0f;
-
-    // Helper to check if we can play audio
-    static bool CanPlayVocalEvent() {
-        float currentTime = Time::TotalRuntime();
-
-        if (currentTime - s_LastVocalTime >= kVocalCooldown) {
-            s_LastVocalTime = currentTime;
-            return true;
-        }
-        return false;
-    }
-
+    
     // --- HELPER ---
     static Entity GetPlayer(EntityStorage& ecs) {
         EntityManager mgr(ecs);
@@ -97,9 +78,7 @@ namespace Framework {
         (void)ecs;
         timer_ = 0.0f;
 
-        if (CanPlayVocalEvent()) {
-            MessageBus::Instance().Publish(BirdWakeEvent());
-        }
+        MessageBus::Instance().Publish(BirdWakeEvent());
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
@@ -112,16 +91,19 @@ namespace Framework {
 
     // --- SIMPLE CHASE ---
     void BirdSimpleChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
-        (void)ecs;
         EntityManager mgr(ecs);
+        ownerID_ = entity;
+
         if (mgr.HasComponent(entity, VelocityType)) {
             s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
         }
 
-        if (!hasStartedChase_ && CanPlayVocalEvent()) {
-            MessageBus::Instance().Publish(BirdChaseEvent(true));
-            hasStartedChase_ = true; // Lock it so it doesn't fire on Bounce -> Chase
+        Vector2D position;
+        if (mgr.HasComponent(entity, TransformType)) {
+            position = mgr.GetComponent<Transform>(entity).position;
         }
+
+        MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, position));
     }
 
     void BirdSimpleChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -131,8 +113,11 @@ namespace Framework {
         EntityManager mgr(ecs);
         Entity player = GetPlayer(ecs);
 
-        if (player == 0 || !mgr.HasComponent(entity, TransformType) ||
-            !mgr.HasComponent(player, TransformType)) return;
+        if (player == 0 || !mgr.HasComponent(entity, TransformType) || !mgr.HasComponent(player, TransformType)) {
+            // Safety stop if player dies mid-chase
+            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
+            return;
+        }
 
         Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
         Vector2D targetPos = mgr.GetComponent<Transform>(player).position;
@@ -206,14 +191,6 @@ namespace Framework {
         //}
 
     }
-
-    void BirdSimpleChaseState::OnExit(Entity entity, EntityStorage& ecs) {
-        (void)entity;
-        (void)ecs;
-
-        // pause the looping audio
-        MessageBus::Instance().Publish(BirdChaseEvent(false));
-    }
     
     void BirdSimpleChaseState::SetParameter(const std::string& key, float value) {
         if (key == "accelX")         accelX_ = value;
@@ -228,7 +205,14 @@ namespace Framework {
         if (key == "bounceForce") {} //bounceForce_ = value;
         if (key == "verticalBias") {}//verticalBias_ = value;
     }
-
+    
+    // Destructor: Ensures sound stops if the entity/scene is destroyed
+    BirdSimpleChaseState::~BirdSimpleChaseState() {
+        if (ownerID_ != 0) {
+            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
+        }
+    }
+    
     // --- CHASE ---
     void BirdChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
         (void)entity;
@@ -283,6 +267,7 @@ namespace Framework {
 
     // --- BOUNCE ---
     void BirdBounceState::OnEnter(Entity entity, EntityStorage& ecs) {
+        ownerID_ = entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
 
@@ -322,10 +307,12 @@ namespace Framework {
         // re-resolve the same collision next frame
         // ----------------------------------------------------------
         if (mgr.HasComponent(entity, TransformType)) {
-            mgr.GetComponent<Transform>(entity).position.x +=
-                collisionNormalX_ * nudgeAmount_;
+            Transform transform = mgr.GetComponent<Transform>(entity);
+            transform.position.x += collisionNormalX_ * nudgeAmount_;
             // Reset texture rotation � Bounce uses the fly animation flat
-            mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
+            transform.rotation.textureAngle = 0.0f;
+
+            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, transform.position));
         }
     }
 
@@ -336,6 +323,12 @@ namespace Framework {
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, VelocityType)) {
             s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
+        }
+
+        // Safety: If player is dead, kill sound immediately
+        if (GetPlayer(ecs) == 0) {
+            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
+            return;
         }
     }
 
@@ -376,6 +369,7 @@ namespace Framework {
 
     // --- ATTACK ---
     void BirdAttackState::OnEnter(Entity entity, EntityStorage& ecs) {
+        ownerID_ = entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
         Entity player = GetPlayer(ecs);
@@ -407,9 +401,8 @@ namespace Framework {
             }
         }
 
-        if (CanPlayVocalEvent()) {
-            MessageBus::Instance().Publish(BirdAttackEvent());
-        }
+        MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
+        MessageBus::Instance().Publish(BirdAttackEvent());
     }
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
@@ -460,6 +453,7 @@ namespace Framework {
 
     // --- RECOVERY ---
     void BirdRecoveryState::OnEnter(Entity entity, EntityStorage& ecs) {
+        ownerID_ = entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, VelocityType)) {
@@ -467,29 +461,42 @@ namespace Framework {
         }
 
         if (mgr.HasComponent(entity, TransformType)) {
-            mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
+            Transform transform = mgr.GetComponent<Transform>(entity);
+            transform.rotation.textureAngle = 0.0f;
+            
+            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, transform.position));
         }
+
 
         // Reset the chase flag
-        if (mgr.HasComponent(entity, FSMComponentType)) {
-            FSM& fsm = mgr.GetComponent<FSMComponent>(entity).fsm;
+        //if (mgr.HasComponent(entity, FSMComponentType)) {
+        //    FSM& fsm = mgr.GetComponent<FSMComponent>(entity).fsm;
 
-            // Retrieve the SimpleChase state and reset it
-            auto* chaseState = dynamic_cast<BirdSimpleChaseState*>(fsm.GetState("SimpleChase"));
-            if (chaseState) {
-                chaseState->ResetChaseFlag();
-            }
-        }
+        //    // Retrieve the SimpleChase state and reset it
+        //    auto* chaseState = dynamic_cast<BirdSimpleChaseState*>(fsm.GetState("SimpleChase"));
+        //    if (chaseState) {
+        //        chaseState->ResetChaseFlag();
+        //    }
+        //}
     }
     void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
         (void)ecs;
         timer_ += dt;
+
+        // Safety: If player is dead, kill sound immediately
+        if (GetPlayer(ecs) == 0) {
+            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
+            return;
+        }
     }
     void BirdRecoveryState::SetParameter(const std::string& key, float value) {
         if (key == "duration") duration_ = value;
     }
-
+    // Destructor: Ensures sound stops if the entity/scene is destroyed
+    BirdRecoveryState::~BirdRecoveryState() {
+        MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
+    }
 
     // --- DEATH ---
     void BirdDeathState::OnEnter(Entity entity, EntityStorage& ecs) {
@@ -585,11 +592,11 @@ namespace Framework {
         };
     });
 
-       
+
     REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
         (void)data;
         return [](Entity e, EntityStorage& ecs) {
-           
+
             EntityManager mgr(ecs);
 
             if (!mgr.HasComponent(e, VelocityType) ||
@@ -614,8 +621,8 @@ namespace Framework {
             }
 
             return false;
-        };
-    });
+            };
+        });
 
 
 

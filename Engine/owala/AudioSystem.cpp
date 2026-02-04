@@ -43,17 +43,22 @@ namespace Framework {
         // Subscribe to Player Events
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {this->PlayRandomSound("Player_Jump", AudioType::SFX, e.volume); });
         MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 1.0f);  });
-        //Subscribe to player death
+        MessageBus::Instance().Subscribe<PlayerWalkEvent>([this](const PlayerWalkEvent& e) {this->PlayLoopSound(e.player, "Player_Walk", AudioType::SFX, 1.0f, e.isWalking);  });
+
+        MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 1.0f); });
         MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& e) {
             if (!e.deathAnimationFinished) {  // Only play sound on the initial death, not after animation ends
                 this->PlayRandomSound("Player_Death", AudioType::SFX, 1.0f);
             }
         });
-
-        //Subscribe to player hurt
-        MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 1.0f); });
-        MessageBus::Instance().Subscribe<PlayerWalkEvent>([this](const PlayerWalkEvent& e) {this->PlayLoopSound("Player_Walk", AudioType::SFX, 1.0f, !e.isWalking);  });
        
+        // Subscribe to Bird Enemy Events
+        MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent&) {this->PlayRandomSound("Bird_Wake", AudioType::SFX, 0.3f); });
+        MessageBus::Instance().Subscribe<BirdChaseEvent>([this](const BirdChaseEvent& e) {
+            this->PlayLoopSound(e.entityID, "Bird_Chase", AudioType::SFX, 0.3f, e.isCurrentlyChasing); 
+        });
+        MessageBus::Instance().Subscribe<BirdAttackEvent>([this](const BirdAttackEvent&) {this->PlayRandomSound("Bird_Attack", AudioType::SFX, 0.3f); });
+
         // Subscribe to World Rotation Event
         MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
         // Subscribe to Trap Platform Land Event
@@ -61,11 +66,6 @@ namespace Framework {
         // Subscribe to Curtains Open/Close Event
         MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent&) {this->PlayRandomSound("Curtains_Open", AudioType::SFX, 1.0f); });
         MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent&) {this->PlayRandomSound("Curtains_Close", AudioType::SFX, 1.0f);});
-
-        // Subscribe to Bird Enemy Events
-        MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent&) {this->PlayRandomSound("Bird_Wake", AudioType::SFX, 0.3f); });
-        MessageBus::Instance().Subscribe<BirdChaseEvent>([this](const BirdChaseEvent& e) {this->PlayLoopSound("Bird_Chase", AudioType::SFX, 0.3f, !e.isCurrentlyChasing); });
-        MessageBus::Instance().Subscribe<BirdAttackEvent>([this](const BirdAttackEvent&) {this->PlayRandomSound("Bird_Attack", AudioType::SFX, 0.3f); });
         
 		// Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& e) {this->OnButtonClicked(e); });
@@ -295,36 +295,6 @@ namespace Framework {
         }
     }
 
-    void AudioSystem::TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol) {
-        // Get Player Position
-        Vector2D playerPos;
-        EntityManager entityMgr = EntityManager(GameManager::GetInstance().GetECS());
-        std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
-
-        if (!playerEntities.empty()) {
-            Entity playerID = playerEntities[0];
-            playerPos = entityMgr.GetComponent<Transform>(playerID).position;
-        }
-        else {
-            return;
-        }
-
-        // Calculate Distance
-        float distance = (pos - playerPos).Magnitude();
-
-        // Calculate Volume (Linear Falloff)
-        float maxHearingRange = 700.0f; // TODO: move this hardcoded value to player.json
-        float volume = 0.0f;
-
-        if (distance < maxHearingRange) {
-            volume = maxVol - (distance / maxHearingRange);
-        }
-
-        // Play Sound
-        if (volume > 0.05f) {
-            this->PlayRandomSound(eventKey, audiotype, volume);
-        }
-    }
     void AudioSystem::SuspendAudio() {
         if (masterGroup_) {
             masterGroup_->setPaused(true);
@@ -365,6 +335,39 @@ namespace Framework {
         return vol;
     }
 
+    float AudioSystem::GetProximityVol(const Vector2D& pos, float maxVol) {
+        // Get Player Position
+        Vector2D playerPos;
+        EntityManager entityMgr = EntityManager(GameManager::GetInstance().GetECS());
+        std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
+
+        if (!playerEntities.empty()) {
+            Entity playerID = playerEntities[0];
+            playerPos = entityMgr.GetComponent<Transform>(playerID).position;
+        }
+        else {
+            return 0.0f;
+        }
+
+        // Calculate Distance
+        float distance = (pos - playerPos).Magnitude();
+
+        // Calculate Volume (Linear Falloff)
+        float maxHearingRange = 700.0f; // TODO: move this hardcoded value to player.json
+        float volume = 0.0f;
+
+        if (distance < maxHearingRange) {
+            volume = maxVol - (distance / maxHearingRange);
+        }
+
+        // Play Sound
+        if (volume > 0.05f) {
+            return volume;
+        }
+
+        return 0.0f;
+    }
+
     std::string AudioSystem::getRandomSound(std::string eventKey) {
         if (soundPaths_.find(eventKey) != soundPaths_.end()) {
             const std::vector<std::string>& files = soundPaths_[eventKey];
@@ -383,6 +386,14 @@ namespace Framework {
         return "";
     }
 
+    void AudioSystem::TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol) {
+        float volume = GetProximityVol(pos, maxVol);
+
+        if (volume > 0.0f) {
+            this->PlayRandomSound(eventKey, audiotype, volume);
+        }
+    }
+
     void AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
         std::string soundPath = getRandomSound(eventKey);
 
@@ -390,6 +401,7 @@ namespace Framework {
             // Load and Play
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
+                float vol = volume;
                 this->play(sound, audiotype, volume, false);
             }
             catch (...) { 
@@ -398,39 +410,62 @@ namespace Framework {
         }
     }
 
-    void AudioSystem::PlayLoopSound(std::string eventKey, AudioType audiotype, float volume, bool pause) {
+    void AudioSystem::PlayLoopSound(Entity entity, std::string eventKey, AudioType audiotype, float volume, bool play, bool proximity, Vector2D pos) {
         std::string soundPath = getRandomSound(eventKey);
+        if (soundPath.empty()) return;
 
-        if (!soundPath.empty()) {
-            // Load and Play
-            try {
+        std::string uniqueMapKey = std::to_string(entity) + "_" + soundPath;
+
+        try {
+            // Check if we already have a record of this sound
+            auto it = channels_.find(uniqueMapKey);
+            FMOD::Channel* existingChannel = (it != channels_.end()) ? it->second : nullptr;
+
+            // --- STOP REQUEST ---
+            if (!play) {
+                if (existingChannel) {
+                    bool isPlaying = false;
+                    existingChannel->isPlaying(&isPlaying);
+
+                    if (isPlaying) {
+                        existingChannel->stop();
+                    }
+
+                    // Remove this specific channel from the map
+                    channels_.erase(it);
+                }
+                return;
+            }
+
+            // --- PLAY REQUEST ---
+            bool isAlreadyPlaying = false;
+            if (existingChannel) {
+                existingChannel->isPlaying(&isAlreadyPlaying);
+            }
+
+            float vol = volume;
+            if (proximity) {
+                vol = GetProximityVol(pos, volume);
+            }
+
+            if (isAlreadyPlaying) {
+                existingChannel->setVolume(vol);
+            }
+            else {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->getLoopAudio(soundPath);
-                auto soundChannel = channels_.find(soundPath);
-                bool soundChannelExists = soundChannel != channels_.end() && soundChannel->second;
+                FMOD::Channel* newChannel = this->play(sound, audiotype, vol, false);
 
-                if (pause) {
-                    if (soundChannelExists) {
-                        soundChannel->second->stop();
-                    }
-                }
-                else {
-                    if (soundChannelExists) {
-                        FMOD::ChannelGroup* targetGroup = (audiotype == AudioType::MUSIC) ? musicGroup_ : sfxGroup_;
-                        system_->playSound(&sound, targetGroup, false, &soundChannel->second);
-                        soundChannel->second->setVolume(volume);
-                    }
-                    else {
-                        FMOD::Channel* newChannel = this->play(sound, audiotype, volume, false);
-                        // Save to the map so the next frame knows it is playing
-                        if (newChannel) {
-                            channels_[soundPath] = newChannel;
-                        }
-                    }
+                if (newChannel) {
+                    // Force it to loop just in case the wrapper didn't
+                    newChannel->setMode(FMOD_LOOP_NORMAL);
+                    newChannel->setLoopCount(-1);
+
+                    channels_[uniqueMapKey] = newChannel;
                 }
             }
-            catch (...) {
-                Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
-            }
+        }
+        catch (...) {
+            Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
         }
     }
 

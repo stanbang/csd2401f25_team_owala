@@ -168,13 +168,6 @@ namespace Framework {
          */
         void OnButtonClicked(const ButtonClickedEvent& event);
         
-        /**
-         * \brief Trigger proximity based SFX
-         *
-         * \param pos, eventKey, maxVol
-         */
-        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol = 1.0f);
-
         // For Interupption Handling
         /**
          * \brief Suspends audio
@@ -196,6 +189,20 @@ namespace Framework {
         std::string getRandomSound(std::string eventKey);
 
         /**
+         * \brief Get proximity based volume
+         *
+         * \param pos, maxVol
+         */
+        float GetProximityVol(const Vector2D& pos, float maxVol);
+
+        /**
+         * \brief Trigger proximity based SFX
+         *
+         * \param pos, eventKey, audiotype, maxVol
+         */
+        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol = 1.0f);
+
+        /**
            * \brief Plays a random audio from the soundPaths_ map
            * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
            * from that array to play.
@@ -207,7 +214,7 @@ namespace Framework {
            * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
            * from that array to play.
            */
-        void PlayLoopSound(std::string eventKey, AudioType audiotype, float volume, bool pause);
+        void PlayLoopSound(Entity entity, std::string eventKey, AudioType audiotype, float volume, bool play, bool proximity = false, Vector2D pos = {0.0f,0.0f});
         
         /**
 		 * \brief Gets the master, music and SFX volume
