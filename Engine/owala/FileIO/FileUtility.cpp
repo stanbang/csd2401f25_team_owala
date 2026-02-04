@@ -141,10 +141,10 @@ namespace Framework {
 		// Set variables
 		moveSpeed = mvSpeed.GetFloat();
 		jumpHeight = jmpHeight.GetFloat();
-		invuln = invul_dur.GetDouble();
-		kb_dur = knockback_dur.GetDouble();
-		kb_x = knockback_x.GetDouble();
-		kb_y = knockback_y.GetDouble();
+		invuln = static_cast<float>(invul_dur.GetDouble());
+		kb_dur = static_cast<float>(knockback_dur.GetDouble());
+		kb_x = static_cast<float>(knockback_x.GetDouble());
+		kb_y = static_cast<float>(knockback_y.GetDouble());
 	}
 
 	void FileIOSystem::LoadWorldConfig(float& gravity) {
