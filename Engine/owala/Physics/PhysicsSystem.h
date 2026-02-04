@@ -208,6 +208,7 @@ namespace Framework {
 
         // The collision matrix. collisionMatrix_[layer1][layer2] is true if they can collide.
         std::vector<std::bitset<static_cast<size_t>(CollisionLayer::Count)>> collisionMatrix_;
+        bool collisionMatrixInitialized_ = false; // collision matrix initialization boolean
 
 
         // ---  Broad-Phase Members using Fixed-Cell Grid ---
@@ -262,7 +263,7 @@ namespace Framework {
 
         bool forceNarrowPhase_ = false; // Debug toggle for narrow or broad phased implementation
 
-        bool collisionMatrixInitialized_ = false;
+        
     
     };
 

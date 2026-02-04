@@ -36,19 +36,8 @@ namespace TestScene {
         bool isFirstInitialization = (lastInitializedScene != currentSceneName);
 
         // --- CONFIGURE COLLISION MATRIX ---
-        // Player should collide with Platforms, but not with other Players 
-        // This setup ensures that players will land on platforms, 
-        // but multiple players could pass through each other without interacting, 
-        // and static platforms won't needlessly check for collisions against other static platforms. 
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Platform, true);
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Player, false);
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Default, false);
-
-        // Platforms will collide with each other
-        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Platform, true);
-        physics->SetLayerCollision(CollisionLayer::Player, CollisionLayer::Enemy, true); // Player can collide with Enemy
-        physics->SetLayerCollision(CollisionLayer::Platform, CollisionLayer::Enemy, true); // Enemy can collide with Platform
-        physics->SetLayerCollision(CollisionLayer::Enemy, CollisionLayer::Enemy, false);  // Enemies don't collide with each other
+        // CONFIGURED IN LAYER MANAGER
+        
 
         gm.GetSystems().gfx_->setAlphaBlend(true); // Enable transparency for PNGs
        
