@@ -62,8 +62,6 @@ namespace Framework {
     // --- SIMPLE CHASE STATE (No Pathfinding) ---
     class BirdSimpleChaseState : public State {
     public:
-        virtual ~BirdSimpleChaseState();
-
         const char* GetName() const override { return "SimpleChase"; }
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
@@ -160,8 +158,6 @@ namespace Framework {
     // --- RECOVERY STATE ---
     class BirdRecoveryState : public State {
     public:
-        virtual ~BirdRecoveryState();
-
         const char* GetName() const override { return "Recovery"; }
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;

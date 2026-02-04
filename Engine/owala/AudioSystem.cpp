@@ -104,8 +104,7 @@ namespace Framework {
             FMOD::Channel* channel = it->second;
 
             // Check if the entity still "Exists" in the scene logic
-            bool isEntityActive = entityMgr.HasComponent(ownerEntity, AudioComponentType) &&
-                entityMgr.HasComponent(ownerEntity, LoadedTagType) && entityMgr.IsActive(ownerEntity);
+            bool isEntityActive = entityMgr.HasComponent(ownerEntity, LoadedTagType) && entityMgr.IsActive(ownerEntity);
 
             // Check if the channel is actually still playing
             bool isChannelPlaying = false;
@@ -133,6 +132,8 @@ namespace Framework {
 			if (entityMgr.HasComponent(entity, ButtonType)) {
                 continue; //Skip button entities, handle separately.
 			}
+            // Check if entity has AudioComponent
+            if (!entityMgr.HasComponent(entity, AudioComponentType)) continue;
 
 			AudioComponent& comp = entityMgr.GetComponent<AudioComponent>(entity);
             if (comp.soundKey.empty()) continue;
@@ -507,6 +508,7 @@ namespace Framework {
                     newChannel->setLoopCount(-1);
 
                     channels_[uniqueMapKey] = newChannel;
+                    entityChannels_[entity] = newChannel;
                 }
             }
         }

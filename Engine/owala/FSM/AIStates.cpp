@@ -206,13 +206,6 @@ namespace Framework {
         if (key == "verticalBias") {}//verticalBias_ = value;
     }
     
-    // Destructor: Ensures sound stops if the entity/scene is destroyed
-    BirdSimpleChaseState::~BirdSimpleChaseState() {
-        if (ownerID_ != 0) {
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
-        }
-    }
-    
     // --- CHASE ---
     void BirdChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
         (void)entity;
@@ -465,10 +458,6 @@ namespace Framework {
     }
     void BirdRecoveryState::SetParameter(const std::string& key, float value) {
         if (key == "duration") duration_ = value;
-    }
-    // Destructor: Ensures sound stops if the entity/scene is destroyed
-    BirdRecoveryState::~BirdRecoveryState() {
-        MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
     }
 
     // --- DEATH ---
