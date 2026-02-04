@@ -72,7 +72,7 @@ namespace Framework {
 
         float cachedZoom_{ 1.0f };        // zoom before rotation
         float wideZoom_{ 1.0f };          // cachedZoom_ * rotateZoomFactor_
-        float rotateZoomFactor_{ 5.0f }; // >1 means zoom out
+        float rotateZoomFactor_{ 2.0f }; // >1 means zoom out
         float zoomSpeed_{ 50.0f };         // exponential ease strength
 
         float pendingDelta_{ 0.0f };      // +90 or -90 queued rotation
