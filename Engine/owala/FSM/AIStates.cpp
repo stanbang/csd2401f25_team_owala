@@ -365,7 +365,7 @@ namespace Framework {
                 // Player is ABOVE the bird � the default dive sprite points down,
                 // so we need to rotate to point toward the player.
                 // atan2 zero = +X.  Sprite zero = -Y.  Offset = +PI/2.
-                float angleRad = std::atan2(direction_.y, direction_.x) + (M_PI * 0.5f);
+                float angleRad = std::atan2(direction_.y, direction_.x) + static_cast<float>(M_PI * 0.5f);
                 mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
             }
             else {
