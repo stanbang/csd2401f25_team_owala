@@ -81,6 +81,7 @@ namespace Framework {
     class CameraSystem;
     class PhysicsSystem;
     class AudioSystem;
+    class LayerManager;
 }
 
 namespace Editor {

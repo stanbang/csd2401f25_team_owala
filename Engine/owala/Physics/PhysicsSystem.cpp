@@ -20,7 +20,9 @@
 #include "FileUtility.h"
 #include "OwalaTime.h"
 #include "GameManager.h"
+#include "LayerManager.h"
 
+#include <filesystem> // For checking file paths
 
 namespace Framework {
     // ----- Layer Collision Functions ------- //
@@ -60,11 +62,83 @@ namespace Framework {
         }
     }
 
+    void PhysicsSystem::ReloadCollisionMatrixFromFile() {
+        try {
+            rapidjson::Document doc;
+            std::string filepath = FileIOKeys::LAYER_CONFIG_FILEPATH;
+
+            // Try root folder first for consistency
+            if (std::filesystem::exists(std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filepath)) {
+                filepath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filepath;
+                Logger::Get().Info(DebugType::PhysicsSystem)
+                    << "Using root folder config: " << filepath << std::endl;
+            }
+
+            if (!FileIOSystem::ReadFile(filepath, doc)) {
+                Logger::Get().Error(DebugType::PhysicsSystem)
+                    << "Could not reload collision matrix from file: " << filepath << std::endl;
+                return;
+            }
+
+            if (!doc.IsObject()) {
+                Logger::Get().Error(DebugType::PhysicsSystem)
+                    << "Invalid collision matrix file format" << std::endl;
+                return;
+            }
+
+            // Load the collision matrix data
+            if (doc.HasMember("CollisionMatrix") && doc["CollisionMatrix"].IsArray()) {
+                const rapidjson::Value& matrixArray = doc["CollisionMatrix"];
+
+                Logger::Get().Info(DebugType::PhysicsSystem)
+                    << "Reloading " << matrixArray.Size() << " collision matrix entries..." << std::endl;
+
+                // Apply saved settings
+                for (rapidjson::SizeType i = 0; i < matrixArray.Size(); ++i) {
+                    const auto& obj = matrixArray[i];
+
+                    if (obj.HasMember("layer1") && obj.HasMember("layer2") && obj.HasMember("canCollide")) {
+                        uint8_t layer1 = static_cast<uint8_t>(obj["layer1"].GetInt());
+                        uint8_t layer2 = static_cast<uint8_t>(obj["layer2"].GetInt());
+                        bool canCollide = obj["canCollide"].GetBool();
+
+                        SetLayerCollision(
+                            static_cast<CollisionLayer>(layer1),
+                            static_cast<CollisionLayer>(layer2),
+                            canCollide
+                        );
+                    }
+                }
+
+                Logger::Get().Info(DebugType::PhysicsSystem)
+                    << "Successfully reloaded collision matrix from: " << filepath << std::endl;
+            }
+            else {
+                Logger::Get().Error(DebugType::PhysicsSystem)
+                    << "No CollisionMatrix found in config file" << std::endl;
+            }
+        }
+        catch (const std::exception& e) {
+            Logger::Get().Error(DebugType::PhysicsSystem)
+                << "Exception while reloading collision matrix: " << e.what() << std::endl;
+        }
+    }
+
 
 
     void PhysicsSystem::Initialize() {
 
-        InitializeCollisionMatrix();
+        
+        if (!collisionMatrixInitialized_) {
+            InitializeCollisionMatrix();
+            collisionMatrixInitialized_ = true;
+            Logger::Get().Info(DebugType::PhysicsSystem)
+                << "Collision matrix initialized with defaults" << std::endl;
+        }
+        else {
+            Logger::Get().Info(DebugType::PhysicsSystem)
+                << "Collision matrix already initialized, skipping reset" << std::endl;
+        }
         FileIOSystem::LoadWorldConfig(gravity_.y);
         // --- Initialize the Implicit Grid ---
         grid_.resize(GridCellsX * GridCellsY);
@@ -691,6 +765,10 @@ namespace Framework {
             }
         }
     }
+
+
+
+
 
     //--------- DEBUG DRAW FUNCTIONS ---------//
     std::vector<PhysicsDebugCell> PhysicsSystem::GetDebugDrawData(Framework::CameraSystem* cameraSystem, Entity cameraID) {

@@ -423,25 +423,7 @@ namespace Framework {
             vel = vel * (attackMaxSpeed_ / speed);
         }
 
-        // ---------------------------------------------------------------
-        // SPRITE ROTATION  �  tilt to match ACTUAL velocity direction.
-        // During a dive this naturally points nose-down.
-        // textureAngle is radians.
-        // ---------------------------------------------------------------
-            //if (mgr.HasComponent(entity, TransformType)) {
-            //    if (vel.x != 0.0f || vel.y != 0.0f) {
-            //        // direction_ is the snapshotted normalised vector toward player
-            //  // (set in OnEnter, does not change during the dive)
-            //        float angleRad = std::atan2(direction_.y, direction_.x);
-
-            //        // +PI/2 offset because the dive sprite's default pose points DOWN (-Y),
-            //        // but atan2's zero is +X (RIGHT).  The difference is 90� = PI/2.
-            //        angleRad += 3.14159265f * 0.5f;   // + PI/2
-
-            //        mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
-            //    }
-            //}
-
+      
             
         
     }
@@ -468,16 +450,7 @@ namespace Framework {
         }
 
 
-        // Reset the chase flag
-        //if (mgr.HasComponent(entity, FSMComponentType)) {
-        //    FSM& fsm = mgr.GetComponent<FSMComponent>(entity).fsm;
-
-        //    // Retrieve the SimpleChase state and reset it
-        //    auto* chaseState = dynamic_cast<BirdSimpleChaseState*>(fsm.GetState("SimpleChase"));
-        //    if (chaseState) {
-        //        chaseState->ResetChaseFlag();
-        //    }
-        //}
+        
     }
     void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;

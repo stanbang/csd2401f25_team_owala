@@ -323,13 +323,32 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
-		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_)) {
+		//if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_)) {
+		//	Logger::Get().Info(DebugType::Editor)
+		//		<< "Using default layer configuration" << std::endl;
+
+		//	// Save defaults to file for next time
+		//	layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
+		//}
+
+		std::string layerConfigPath = FileIOKeys::LAYER_CONFIG_FILEPATH;
+		if (std::filesystem::exists(std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + layerConfigPath)) {
+			layerConfigPath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + layerConfigPath;
+			Logger::Get().Info(DebugType::Editor)
+				<< "Using root folder layer config: " << layerConfigPath << std::endl;
+		}
+
+		if (!layerManager_.LoadFromFile(layerConfigPath, gameManager_->GetSystems().physics_)) {
 			Logger::Get().Info(DebugType::Editor)
 				<< "Using default layer configuration" << std::endl;
 
 			// Save defaults to file for next time
 			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
 		}
+
+		gameManager_->GetSystems().physics_->ReloadCollisionMatrixFromFile();
+		Logger::Get().Info(DebugType::Editor)
+			<< "Collision matrix reloaded from configuration file" << std::endl;
 
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
@@ -4433,10 +4452,24 @@ namespace Editor {
 				if (ImGui::Checkbox("##cb", &canCollide)) {
 					//layerManager_.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
 					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
+
+					Logger::Get().Info(DebugType::Editor)
+						<< "Collision changed: " << rowLayer.name << " vs " << colLayer.name
+						<< " = " << (canCollide ? "ENABLED" : "DISABLED") << std::endl;
+
 					//LayerManager& layerMgr = gameManager_->GetLayerManager();
 					/*layerMgr.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
 					layerMgr.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);*/
-					layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics);
+					//layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics);
+
+					if (layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics)) {
+						Logger::Get().Info(DebugType::Editor)
+							<< "Collision matrix saved to file" << std::endl;
+					}
+					else {
+						Logger::Get().Error(DebugType::Editor)
+							<< "FAILED to save collision matrix!" << std::endl;
+					}
 				}
 
 				if (ImGui::IsItemHovered()) {
