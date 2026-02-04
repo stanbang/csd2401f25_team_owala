@@ -1,4 +1,4 @@
-/*****************************************************************//**
+/*******************************************************************
 * \file   PhysicsSystem.cpp
 *
 * \primary_author
@@ -487,7 +487,7 @@ namespace Framework {
         bool e1IsTrap = entityMgr.HasComponent(e1, TrapPlatformComponentType);
         bool e2IsTrap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
 
-		// trap v player, make trap static to avoid player pushing
+        // trap v player, make trap static to avoid player pushing
         if ((e1IsTrap && isE2Player) || (e2IsTrap && isE1Player)) {
             if (e1IsTrap) e1IsDynamic = false;
             if (e2IsTrap) e2IsDynamic = false;
@@ -495,15 +495,12 @@ namespace Framework {
 
         // trap v trap, allows stacking (top trap lands on bottom trap)
         if (e1IsTrap && e2IsTrap && e1IsDynamic && e2IsDynamic) {
-            // Determine which trap is higher (will be the dynamic one)
             const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
             const Vector2D& pos2 = entityMgr.GetComponent<Transform>(e2).position;
             
             if (pos1.y > pos2.y) {
-                // e1 is above e2, make e2 static (acts as ground)
                 e2IsDynamic = false;
             } else {
-                // e2 is above e1, make e1 static (acts as ground)
                 e1IsDynamic = false;
             }
         }
