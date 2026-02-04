@@ -35,7 +35,7 @@ namespace Framework {
     struct PhysicsDebugCell {
         Vector2D worldMin;
         Vector2D worldMax;
-        bool isActive;
+        bool isActive = false;
     };
 
     /**

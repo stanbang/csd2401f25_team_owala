@@ -490,7 +490,8 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
-            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || !entityMgr.HasComponent(enemyEntity, TransformType) ||
+            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || 
+                !entityMgr.HasComponent(enemyEntity, TransformType) ||
                 !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
                 continue;
             }
@@ -499,10 +500,8 @@ namespace Framework {
 
             if (fsmComp.fsm.GetCurrentState() == "Death") continue;
 
-            // Check  all trap platforms
+            // Check all trap platforms
             for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
-                std::string trapName = entityMgr.GetProperties(trapEntity).name;
-                //if (trapName.find("MovableBox") != std::string::npos) continue;
                 TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
                 if (!trapComp.isTriggered) continue;
@@ -525,12 +524,20 @@ namespace Framework {
                 AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
                 if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
+                    // Check if trap has velocity (is falling or has fallen)
+                    bool isTrapFalling = false;
+                    if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                        float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
+                        isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
+                    }
+
+                    // Check if trap is above enemy (crushing from above)
                     float trapBottom = trapBounds.min.y;
                     float enemyTop = enemyBounds.max.y;
+                    bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
 
-                    bool shouldKill = (trapBottom >= enemyTop);
-
-                    if (shouldKill) {
+                    // Kill if trap is falling OR if trap has fallen and is resting on enemy
+                    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove)) {
                         TriggerEnemyDeath(enemyEntity, "falling trap platform");
                         break;
                     }
