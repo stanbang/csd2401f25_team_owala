@@ -78,7 +78,7 @@ void CutsceneController::FitImageToScreen() {
 	TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(self);
 	Transform& transform = entityMgr.GetComponent<Transform>(self);
 
-	texture.HalfSize = { 1.2f, 1.2f };
+	texture.HalfSize = { 1.f, 1.f };
 	transform.position = { 0.f, 0.f };
 }
 

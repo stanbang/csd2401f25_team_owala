@@ -100,43 +100,43 @@ namespace TestScene {
 	}
 
 	void Update() {
-        GameManager& gm = GameManager::GetInstance();
-        PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
-        AudioSystem& audioSystem = *gm.GetSystems().audio_;
-        EntityManager entityMgr(*gm.GetSystems().ecs_);
+        //GameManager& gm = GameManager::GetInstance();
+        //PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
+        //AudioSystem& audioSystem = *gm.GetSystems().audio_;
+        //EntityManager entityMgr(*gm.GetSystems().ecs_);
 
-        // Get all entities in scene
-        std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
+        //// Get all entities in scene
+        //std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
 
-        // Find the player in list of active entities.
-        Entity player = 0;
-        for (Entity entity : sceneEntities) {
-            if (entityMgr.HasComponent(entity, PlayerTagType)) {
-                player = entity;
-                break;
-            }
-        }
+        //// Find the player in list of active entities.
+        //Entity player = 0;
+        //for (Entity entity : sceneEntities) {
+        //    if (entityMgr.HasComponent(entity, PlayerTagType)) {
+        //        player = entity;
+        //        break;
+        //    }
+        //}
 
-        if (player == 0) return;
+        //if (player == 0) return;
 
-        // Find the door in list of active entities.
-        Entity portal = 0;
-        for (Entity entity : sceneEntities) {
-            if (!entityMgr.HasComponent(entity, AABBColliderType)) continue;
+        //// Find the door in list of active entities.
+        //Entity portal = 0;
+        //for (Entity entity : sceneEntities) {
+        //    if (!entityMgr.HasComponent(entity, AABBColliderType)) continue;
 
-            if (entityMgr.GetProperties(entity).name == "Portal") {
-                portal = entity;
-                break;
-            }
-        }
+        //    if (entityMgr.GetProperties(entity).name == "Portal") {
+        //        portal = entity;
+        //        break;
+        //    }
+        //}
 
-        if (portal == 0) return;
+        //if (portal == 0) return;
 
-        if (physicsSystem.CheckTriggerOverlap(player, portal)) {
-            GameManager::GetInstance().GetSystems().levelResetter_->RunReset();
-            audioSystem.stopAll();
-            SceneManager::GetInstance().LoadScene(SceneManager::GetInstance().GetSceneByName("MainMenu"));
-        }
+        //if (physicsSystem.CheckTriggerOverlap(player, portal)) {
+        //    GameManager::GetInstance().GetSystems().levelResetter_->RunReset();
+        //    audioSystem.stopAll();
+        //    SceneManager::GetInstance().LoadScene(SceneManager::GetInstance().GetSceneByName("MainMenu"));
+        //}
 	}
 
 	void Free() {
