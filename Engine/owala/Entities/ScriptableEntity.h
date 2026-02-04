@@ -20,7 +20,7 @@ namespace Framework {
 	// Base class for Script Behaviors. Technically also a wrapper.
 	class ScriptableEntity {
 	private:
-		Entity entity_;
+		Entity entity_ = 0;
 
 		friend class GameManager;
 		friend class EntityManager;

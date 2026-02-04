@@ -28,7 +28,7 @@ void Portal::SearchForSaveManager() {
 	const std::vector<Entity> persistents = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
 	for (Entity entity : persistents) {
 		if (!entityMgr.ValidateEntity(entity)) continue;
-		if (save = entityMgr.GetScript<SaveManager>(entity)) {
+		if ((save = entityMgr.GetScript<SaveManager>(entity))) {
 			return;
 		}
 	}
@@ -54,7 +54,7 @@ void Portal::OnUpdate() {
 	PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
 	AudioSystem& audioSystem = *gm.GetSystems().audio_;
 	EntityManager entityMgr(*gm.GetSystems().ecs_);
-	SceneManager& sceneMgr = SceneManager::GetInstance();
+	//SceneManager& sceneMgr = SceneManager::GetInstance();
 
 	Entity self = GetEntity();
 
