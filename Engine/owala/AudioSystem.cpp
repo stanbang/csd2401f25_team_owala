@@ -43,6 +43,15 @@ namespace Framework {
         // Subscribe to Player Events
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent& e) {this->PlayRandomSound("Player_Jump", AudioType::SFX, e.volume); });
         MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 1.0f);  });
+        //Subscribe to player death
+        MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& e) {
+            if (!e.deathAnimationFinished) {  // Only play sound on the initial death, not after animation ends
+                this->PlayRandomSound("Player_Death", AudioType::SFX, 1.0f);
+            }
+        });
+
+        //Subscribe to player hurt
+        MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 1.0f); });
         MessageBus::Instance().Subscribe<PlayerWalkEvent>([this](const PlayerWalkEvent& e) {this->PlayLoopSound("Player_Walk", AudioType::SFX, 1.0f, !e.isWalking);  });
        
         // Subscribe to World Rotation Event

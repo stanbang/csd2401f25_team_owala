@@ -26,8 +26,9 @@ namespace Framework {
             HIDDEN,     // Curtains open, game visible
             CLOSING,    // Animation playing: Open -> Closed
             CLOSED,     // Curtains closed, screen covered
-            OPENING,     // Animation playing: Closed -> Open
-			WAITING	// Waiting state (no animation)
+            WAITING,    // Waiting state (no animation)
+            OPENING,    // Animation playing: Closed -> Open
+            IDLING      // Idle state, appears between transitions
         };
 
         static void PlayAllClose(std::function<void()> onComplete = nullptr);
@@ -58,6 +59,8 @@ namespace Framework {
     private:
         static std::vector<TransitionController*> allControllers;
         static float s_lastOpenEventTime;
+
+        std::string idleTextureKey_;
 
         TransitionState state_ = TransitionState::HIDDEN;
         std::function<void()> onTransitionComplete_ = nullptr;

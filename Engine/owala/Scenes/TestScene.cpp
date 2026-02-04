@@ -14,6 +14,8 @@
 
 namespace TestScene {
 	using namespace Framework;
+	// Track which scene was last initialized
+    static std::string lastInitializedScene;
 
 	void Initialize() {
         //FileIOSystem fileIO;
@@ -29,6 +31,9 @@ namespace TestScene {
         PhysicsSystem* physics = gm.GetSystems().physics_; // get physics sytems
 		//(void)win_; // Suppress unused parameter warning if not used
 		(void)audio; // Suppress unused parameter warning if not used
+        // Get the current scene name to track initialization per scene
+        std::string currentSceneName = sceneMgr.GetActiveScene().name;
+        bool isFirstInitialization = (lastInitializedScene != currentSceneName);
 
         // --- CONFIGURE COLLISION MATRIX ---
         // Player should collide with Platforms, but not with other Players 
@@ -78,25 +83,30 @@ namespace TestScene {
         }
 
         // Spawn player at SpawnPoint
-        std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(true, SpawnPointTagType, LoadedTagType, TransformType);
-        if (spawnPts.size() > 0) {
-            if (entityMgr.HasComponent(playerEntity, TransformType)) {
-                Entity playerSpawnPt = spawnPts[0];
-                Transform& playerTransform = entityMgr.GetComponent<Transform>(playerEntity);
-                Transform spawnPtTransform = entityMgr.GetComponent<Transform>(playerSpawnPt);
-            
-                playerTransform.position = spawnPtTransform.position;
-                Framework::Logger::Get().Info(DebugType::GameManager) << "[TestScene] Spawned Player at (" << playerTransform.position.x 
-                    << ", " << playerTransform.position.y << ")" << std::endl;
+        if (isFirstInitialization) {
+            std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(true, SpawnPointTagType, LoadedTagType, TransformType);
+            if (spawnPts.size() > 0) {
+                if (entityMgr.HasComponent(playerEntity, TransformType)) {
+                    Entity playerSpawnPt = spawnPts[0];
+                    Transform& playerTransform = entityMgr.GetComponent<Transform>(playerEntity);
+                    Transform spawnPtTransform = entityMgr.GetComponent<Transform>(playerSpawnPt);
+
+                    playerTransform.position = spawnPtTransform.position;
+                    Framework::Logger::Get().Info(DebugType::GameManager) << "[TestScene] Spawned Player at (" << playerTransform.position.x
+                        << ", " << playerTransform.position.y << ")" << std::endl;
+                }
+                else {
+                    Framework::Logger::Get().Error(DebugType::GameManager) << "[TestScene] Player does not have Transform component!" << std::endl;
+                }
             }
             else {
-                Framework::Logger::Get().Error(DebugType::GameManager) << "[TestScene] Player does not have Transform component!" << std::endl;
+                Framework::Logger::Get().Error(DebugType::GameManager)
+                    << "[TestScene] Player SpawnPoint missing! SpawnPtCount: "
+                    << spawnPts.size() << std::endl;
             }
-        }
-        else {
-            Framework::Logger::Get().Error(DebugType::GameManager)
-                << "[TestScene] Player SpawnPoint missing! SpawnPtCount: "
-                << spawnPts.size() << std::endl;
+
+            // Mark this scene as initialized
+            lastInitializedScene = currentSceneName;
         }
 	}
 

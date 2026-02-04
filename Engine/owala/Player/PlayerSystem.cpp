@@ -400,6 +400,7 @@ namespace Framework {
         if (entityMgr.HasComponent(playerEntity, AnimationComponentType)) {
             entityMgr.GetComponent<AnimationComponent>(playerEntity).currentState = AnimationState::DEATH;
         }
+        MessageBus::Instance().Publish(PlayerDeathEvent{ playerEntity, false });
 
         Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player killed by " << killerType << "!" << std::endl;
     }

@@ -56,7 +56,7 @@ namespace Framework {
 
     private:
         float timer_ = 0.0f;
-        float wakeUpTime_ = 1.0f;
+        float wakeUpTime_ = 3.5f;
     };
 
     // --- SIMPLE CHASE STATE (No Pathfinding) ---
@@ -70,9 +70,18 @@ namespace Framework {
         void ResetChaseFlag() { hasStartedChase_ = false; }
 
     private:
-        float moveSpeed_ = 150.0f;
-        float bounceForce_ = 200.0f;
-        float verticalBias_ = 0.3f; // How much to favor upward movement when hitting walls
+        //float moveSpeed_ = 150.0f;
+        //float bounceForce_ = 200.0f;
+        //float verticalBias_ = 0.3f; // How much to favor upward movement when hitting walls
+
+        float accelX_ = 240.0f;   // horizontal acceleration  (units/s�)
+        float accelYUp_ = 120.0f;   // vertical accel when moving UP toward target
+        float accelYDown_ = 240.0f;   // vertical accel when swooping DOWN
+        float maxSpeedX_ = 240.0f;   // horizontal speed cap
+        float maxSpeedY_ = 160.0f;   // vertical speed cap
+        float hoverOffset_ = 75.0f;   // how far ABOVE the player to aim
+        // Turnaround boost multiplier when velocity opposes target direction
+        float turnaroundMult_ = 0.5f;
         bool hasStartedChase_ = false;
     };
 
@@ -104,7 +113,11 @@ namespace Framework {
 
     private:
         float timer_ = 0.0f;
-        float bounceDuration_ = 0.3f;
+        float bounceDuration_ = 0.5f;
+        float bounceFactor_ = 1.f;    // energy retained after bounce (Demon Eye = 0.6)
+        float nudgeAmount_ = 3.0f;    // pixels to push out of wall on enter
+        // Store the collision normal so we know which way to nudge
+        float collisionNormalX_ = 0.0f;  // -1 or +1, set in OnEnter
         Vector2D bounceDirection_;
     };
 
@@ -136,7 +149,8 @@ namespace Framework {
 
     private:
         Vector2D direction_;
-        float attackSpeed_ = 400.0f;
+        float attackAccel_ = 600.0f; // acceleration along dive direction
+        float attackMaxSpeed_ = 400.0f; // speed cap during dive
         float duration_ = 2.0f;
         float timer_ = 0.0f;
     };
@@ -153,7 +167,7 @@ namespace Framework {
         float GetTimer() const { return timer_; }
 
     private:
-        float duration_ = 1.5f;
+        float duration_ = 1.f;
         float timer_ = 0.0f;
     };
 

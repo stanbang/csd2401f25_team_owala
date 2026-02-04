@@ -10,6 +10,13 @@
     "Player_Walk": [
         "player_walk.wav"
     ],
+    "Player_Hurt": [
+        "player_hurt.wav",
+        "player_hurt2.wav"
+    ],
+    "Player_Death": [
+        "player_death.wav"
+    ],
     "Platform_Land": [
         "platform_land.wav"
     ],

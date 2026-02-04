@@ -51,7 +51,7 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Get all entities with FSM component
-        std::vector<Entity> aiEntities = entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType); // Make sure to add this Enum to Components.h
+        std::vector<Entity> aiEntities = entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType);
 
         bool worldIsRotating = GameManager::GetInstance().GetSystems().transformation_->IsGlobalRotating();
 

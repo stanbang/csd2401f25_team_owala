@@ -16,10 +16,6 @@
                 "y": 1.0
             }
         },
-        "Velocity": {
-            "x": 0.0,
-            "y": 0.0
-        },
         "RigidBody": {
             "mass": 0.0,
             "inv_mass": 0.0,

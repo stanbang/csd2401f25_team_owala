@@ -16,10 +16,6 @@
                 "y": 1.0
             }
         },
-        "Velocity": {
-            "x": 0.0,
-            "y": 0.0
-        },
         "RigidBody": {
             "mass": 0.0,
             "inv_mass": 0.0,
@@ -51,5 +47,6 @@
         "PlatformTag"
     ],
     "layer": 2,
-    "render_layer": 50
+    "render_layer": 50,
+    "custom_render_order": 0
 }
