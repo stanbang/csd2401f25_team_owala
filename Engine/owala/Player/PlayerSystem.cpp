@@ -340,7 +340,8 @@ namespace Framework {
                 float trapBottom = trapBounds.min.y;
                 float playerTop = playerBounds.max.y;
 
-                bool isHittingFromAbove = (trapBottom <= playerTop + 5.0f); // Small tolerance
+				// Small tolerance to ensure "from above"
+                bool isHittingFromAbove = (trapBottom <= playerTop + 20.0f);
 
                 if (isTrapFalling && isHittingFromAbove) {
                     DamagePlayer(playerEntity, "falling trap platform");

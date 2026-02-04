@@ -488,6 +488,17 @@ namespace Framework {
             return;
         }
 
+		// For Player-Trap collisions, treat trap as static
+        bool isE1Trap = entityMgr.HasComponent(e1, TrapPlatformComponentType);
+        bool isE2Trap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
+
+        if (isE1Player && isE2Trap) {
+            e2IsDynamic = false; // Treat trap as immovable
+        }
+        if (isE2Player && isE1Trap) {
+            e1IsDynamic = false; // Treat trap as immovable
+        }
+
         // --- Get rotation for e1 ---
         float rotation1 = 0.0f;
         if (entityMgr.HasComponent(e1, RotationFlagType)) {
