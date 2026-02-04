@@ -73,6 +73,32 @@ namespace Framework {
             check(r, "System::update");
         }
 
+        for (auto it = entityChannels_.begin(); it != entityChannels_.end(); ) {
+            Entity ownerEntity = it->first;
+            FMOD::Channel* channel = it->second;
+
+            // Check if the entity still "Exists" in the scene logic
+            bool isEntityActive = entityMgr.HasComponent(ownerEntity, AudioComponentType) &&
+                entityMgr.HasComponent(ownerEntity, LoadedTagType) && entityMgr.IsActive(ownerEntity);
+
+            // Check if the channel is actually still playing
+            bool isChannelPlaying = false;
+            if (channel) {
+                channel->isPlaying(&isChannelPlaying);
+            }
+
+            // REMOVE IF: Entity is dead OR Sound finished naturally
+            if (!isEntityActive || !isChannelPlaying) {
+                if (channel) {
+                    channel->stop(); // Cut the audio immediately
+                }
+                it = entityChannels_.erase(it); // Remove from map
+            }
+            else {
+                ++it;
+            }
+        }
+
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AudioComponentType)) {
 
 			// Check if Entity is active in the scene. Loads if active.
@@ -108,6 +134,7 @@ namespace Framework {
                     // Save to the map so the next frame knows it is playing
                     if (newChannel) {
                         channels_[comp.soundKey] = newChannel;
+                        entityChannels_[entity] = newChannel;
                     }
                 }
 

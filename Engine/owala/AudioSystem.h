@@ -216,6 +216,7 @@ namespace Framework {
         std::unordered_map<std::string, FMOD::Sound*>   sounds_;   //!< Cached sounds by ID (owned by FMOD; released on unload/Shutdown()).
         std::unordered_map<std::string, FMOD::Channel*> channels_; //!< Last started channel per ID (optional bookkeeping).
         std::unordered_map<std::string, std::vector<std::string>> soundPaths_; //!< Audio file names read from json file. eg: "Player_Jump" : [file1, file2]
+        std::map<Entity, FMOD::Channel*> entityChannels_;
         ///@}
     };
 
