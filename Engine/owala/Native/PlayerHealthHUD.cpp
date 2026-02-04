@@ -1,3 +1,18 @@
+/*****************************************************************//**
+ * \file	PlayerHealthHUD.cpp
+ *
+ * \primary_author
+ *      Yar Xuan
+ * \secondary_author
+
+ *
+ * \brief	Contains definitions for the PlayerHealthHUD script
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "PlayerHealthHUD.h"
 #include "ScriptRegistry.h"
 #include "GameManager.h"

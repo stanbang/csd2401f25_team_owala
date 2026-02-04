@@ -94,6 +94,9 @@ namespace Framework {
                 // Update the component for the next frame
                 state.previousVelocityY = currentVelY;
 
+                // Capture isWalking state before its updated
+                bool wasWalking = state.isWalking;
+
                 // Horizontal Movement 
                 if (!state.isDead) {
                     float targetVelX = 0.0f;
@@ -102,9 +105,10 @@ namespace Framework {
                         if (input_.KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
                         vel.Vel.x = targetVelX;
 
-                        // Apply Jumping
-                        if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
-                            vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
+				    // Apply Jumping
+                    if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
+                        vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
+                        state.isWalking = false;
 
                             float jumpVolume = 0.3f;
                             //messageBus
@@ -123,13 +127,30 @@ namespace Framework {
                         vel.Vel.x = 0.0f;
                     }*/
 
-                    // Handle invulnerability overlap separation
-                    if (state.isHurt && entityMgr.HasComponent(entity, TransformType)) {
-                        SeparatePlayerFromDynamicObjects(entity);
+				    // Sets the direction the player is facing based on movement
+                    if (targetVelX > 0.01f) {
+                        state.isFacingRight = true;
+                        state.isWalking = true;
+                    }
+                    else if (targetVelX < -0.01f) {
+                        state.isFacingRight = false;
+                        state.isWalking = true;
+                    }
+                    else {
+                        state.isWalking = false;
                     }
                 }
                 else {
-                    // Player is dead - stop all movement
+                    // If player is dead
+                    vel.Vel.x = 0.0f;
+                }
+
+                // Handle invulnerability overlap separation
+                if (state.isHurt && entityMgr.HasComponent(entity, TransformType)) {
+                    SeparatePlayerFromDynamicObjects(entity);
+                }
+
+                if (state.isDead) {
                     vel.Vel.x = 0.0f;
                     if (state.isGrounded) {
                         if (entityMgr.HasComponent(entity, RigidBodyType)) {
@@ -169,6 +190,18 @@ namespace Framework {
 
                 // Set the animation state
                 animationComponent.currentState = animState;
+
+                // Handle Walk SFX
+                if (state.isWalking != wasWalking) {
+                    if (state.isWalking) {
+                        // State changed from FALSE to TRUE -> START Sound
+                         MessageBus::Instance().Publish(PlayerWalkEvent{ entity, true }); 
+                    }
+                    else {
+                        // State changed from TRUE to FALSE -> STOP Sound
+                        MessageBus::Instance().Publish(PlayerWalkEvent{ entity, false });
+                    }
+                }
             }
         }
     }
@@ -496,7 +529,8 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
-            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || !entityMgr.HasComponent(enemyEntity, TransformType) ||
+            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || 
+                !entityMgr.HasComponent(enemyEntity, TransformType) ||
                 !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
                 continue;
             }
@@ -530,20 +564,20 @@ namespace Framework {
                 AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
                 if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
-                    float trapBottom = trapBounds.min.y;
-                    float enemyTop = enemyBounds.max.y;
-
-                    // Check trap velocity
-                    Vector2D trapVelocity = Vector2D::Zero();
+                    // Check if trap has velocity (is falling or has fallen)
+                    bool isTrapFalling = false;
                     if (entityMgr.HasComponent(trapEntity, VelocityType)) {
-                        trapVelocity = entityMgr.GetComponent<Velocity>(trapEntity).Vel;
+                        float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
+                        isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
                     }
 
-                    bool isFallingDownward = trapVelocity.y < -0.1f;
-                    bool isTrapAboveEnemy = trapBottom <= enemyTop;
-                    bool hasBeenFalling = trapComp.airTime > 0.1f;
+                    // Check if trap is above enemy (crushing from above)
+                    float trapBottom = trapBounds.min.y;
+                    float enemyTop = enemyBounds.max.y;
+                    bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
 
-                    if (isFallingDownward && isTrapAboveEnemy && hasBeenFalling) {
+                    // Kill if trap is falling OR if trap has fallen and is resting on enemy
+                    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove)) {
                         TriggerEnemyDeath(enemyEntity, "falling trap platform");
                         break;
                     }

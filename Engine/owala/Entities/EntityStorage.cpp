@@ -1,3 +1,18 @@
+/*****************************************************************//**
+ * \file   EntityStorage.cpp
+ *
+ * \primary_author
+ *      Jason Lou(60%)
+ * \secondary_author
+ *		Ng Jing Wen(40%)
+ *
+ * \brief	Contains the definition of EntityStorage class which stores
+ *			unordered maps of entity-component pairs for all components.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "pch.h"
 #include "EntityStorage.h"
 #include "Components.h"
