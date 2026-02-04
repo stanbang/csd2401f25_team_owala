@@ -514,16 +514,13 @@ namespace Framework {
         bool isE2Trap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
         bool isE1Enemy = entityMgr.HasComponent(e1, EnemyTagType);
         bool isE2Enemy = entityMgr.HasComponent(e2, EnemyTagType);
+        bool isE1Player = entityMgr.HasComponent(e1, PlayerTagType);
+        bool isE2Player = entityMgr.HasComponent(e2, PlayerTagType);
 
         if ((isE1Trap && isE2Enemy) || (isE2Trap && isE1Enemy)) {
-            Entity trapEntity = isE1Trap ? e1 : e2;
-            TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
-
-            // If the trap is in "falling mode", ignore collision resolution.
-            // This stops it from landing on the bird.
-            if (trapComp.hasFallen) {
-                return;
-            }
+            // Skip collision resolution entirely between traps and enemies
+            // PlayerSystem will handle trap-killing-bird logic manually
+            return;
         }
 
         // --- LAYER-BASED COLLISION CHECK ---
@@ -534,15 +531,22 @@ namespace Framework {
         CollisionLayer& layer1 = entityMgr.GetProperties(e1).layer;
         CollisionLayer& layer2 = entityMgr.GetProperties(e2).layer;
 
+        if ((isE1Enemy && isE2Player) || (isE2Enemy && isE1Player)) {
+            static bool loggedOnce = false;
+            if (!loggedOnce) {
+                Logger::Get().Info(DebugType::PhysicsSystem)
+                    << "Enemy-Player collision check: Layer1=" << static_cast<int>(layer1)
+                    << ", Layer2=" << static_cast<int>(layer2)
+                    << ", CanCollide=" << collisionMatrix_[static_cast<size_t>(layer1)][static_cast<size_t>(layer2)]
+                    << std::endl;
+                loggedOnce = true;
+            }
+        }
+
         if (!collisionMatrix_[static_cast<size_t>(layer1)][static_cast<size_t>(layer2)]) {
             return;
         }
 
-        // --- CHECK IF PLAYER IS INVULNERABLE AND COLLIDING WITH DYNAMIC TRAP ---
-        // Identify if one entity is player and the other is a dynamic trap
-        bool isE1Player = entityMgr.HasComponent(e1, PlayerTagType);
-        bool isE2Player = entityMgr.HasComponent(e2, PlayerTagType);
-        
         bool isE1DynamicTrap = entityMgr.HasComponent(e1, TrapPlatformComponentType) && 
                                 entityMgr.HasComponent(e1, RigidBodyType);
         bool isE2DynamicTrap = entityMgr.HasComponent(e2, TrapPlatformComponentType) && 

@@ -534,7 +534,7 @@ namespace Framework {
 
     void PlayerSystem::CheckEnemyDeathFromTraps() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        float dt = Time::DeltaTime();
+        //float dt = Time::DeltaTime();
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
             if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) ||
@@ -589,49 +589,34 @@ namespace Framework {
                 expandedTrapBounds.min.y -= tolerance;
                 expandedTrapBounds.max.y += tolerance;
 
-                // Check for static overlap with expanded bounds
-                bool isStaticHit = CollisionIntersection_RectRect_Static(enemyBounds, expandedTrapBounds);
+                // 3. Intersection Check
+                if (CollisionIntersection_RectRect_Static(enemyBounds, expandedTrapBounds)) {
 
-                if (!isStaticHit) continue;
+                    // --- NEW LOGIC STARTS HERE ---
 
-                // Check if trap is above enemy (crushing from above)
-                float trapBottom = trapBounds.min.y;
-                float enemyTop = enemyBounds.max.y;
-                bool isTrapAbove = (trapBottom <= enemyTop + 30.0f); // Tolerance for alignment
+                    // Calculate the actual overlap dimensions
+                    float overlapMinX = std::max(enemyBounds.min.x, expandedTrapBounds.min.x);
+                    float overlapMaxX = std::min(enemyBounds.max.x, expandedTrapBounds.max.x);
+                    float overlapMinY = std::max(enemyBounds.min.y, expandedTrapBounds.min.y);
+                    float overlapMaxY = std::min(enemyBounds.max.y, expandedTrapBounds.max.y);
 
-                if (!isTrapAbove) continue;
+                    float overlapWidth = std::max(0.0f, overlapMaxX - overlapMinX);
+                    float overlapHeight = std::max(0.0f, overlapMaxY - overlapMinY);
 
-                // If the trap has officially fallen, it is lethal. 
-                // We ignore trapVel.y because the bird might be flying up, pushing the trap up, 
-                // which would make trapVel.y positive or zero.
-                bool shouldKill = false;
+                    // A crushing hit is mostly horizontal surface contact (Vertical Penetration < Horizontal Width)
+                    bool isVerticalHit = overlapHeight < overlapWidth;
 
-                if (trapComp.hasFallen) {
-                    shouldKill = true;
-                }
-                // Fallback for initial impact if not fully "fallen" state yet (rare)
-                else {
-                    // Previous logic for dynamic impact
-                    float tFirst = 0.0f;
-                    bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(
-                        enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst
-                    );
-                    shouldKill = (isDynamicHit && tFirst >= 0.0f && tFirst <= dt);
-                }
+                    // Ensure the trap is physically above the enemy
+                    bool isTrapAbove = trapPos.y > enemyPos.y;
 
-                // Method 3: Check for initial impact (dynamic collision)
-                float tFirst = 0.0f;
-                bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(
-                    enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst
-                );
-                bool isInitialImpact = (isDynamicHit && tFirst >= 0.0f && tFirst <= dt);
-
-                if (shouldKill) {
-                    TriggerEnemyDeath(enemyEntity, "falling trap platform");
-
-                    // Optional: Ensure trap doesn't stay grounded on the dead bird immediately
-                    // If the bird collider is disabled in "Death" state, this solves itself next frame.
-                    break;
+                    // Kill ONLY if:
+                    // 1. It's a vertical collision (not a side swipe)
+                    // 2. The trap is above the bird
+                    // 3. The trap is in the falling state
+                    if (isVerticalHit && isTrapAbove && trapComp.hasFallen) {
+                        TriggerEnemyDeath(enemyEntity, "falling trap platform");
+                        break;
+                    }
                 }
             }
         }
