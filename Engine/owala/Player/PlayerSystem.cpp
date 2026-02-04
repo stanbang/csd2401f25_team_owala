@@ -453,6 +453,11 @@ namespace Framework {
             playerState.isHurt = true;
             playerState.invulnerabilityTimer = 0.0f;
 
+            //EntityProperties& props = entityMgr.GetProperties(playerEntity);
+            //props.layer = CollisionLayer::Invulnrabilty; // Layer 6
+            /*Logger::Get().Info(DebugType::PlayerSystem)
+                << "Player switched to Invulnerability layer (6)" << std::endl;*/
+
             if (entityMgr.HasComponent(playerEntity, TransformType) && entityMgr.HasComponent(playerEntity, VelocityType)) {
                 Vector2D playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
                 Velocity& vel = entityMgr.GetComponent<Velocity>(playerEntity);
@@ -566,18 +571,21 @@ namespace Framework {
                 if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
                     // Check if trap has velocity (is falling or has fallen)
                     bool isTrapFalling = false;
+                    float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
                     if (entityMgr.HasComponent(trapEntity, VelocityType)) {
-                        float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
-                        isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
+                        
+                        //isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
+                        bool isTrapFalling = (trapVelY < -10.0f);
                     }
 
                     // Check if trap is above enemy (crushing from above)
                     float trapBottom = trapBounds.min.y;
                     float enemyTop = enemyBounds.max.y;
-                    bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
+                    //bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
+                    bool isTrapAbove = (trapBottom <= enemyTop + 30.0f);
 
                     // Kill if trap is falling OR if trap has fallen and is resting on enemy
-                    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove)) {
+                    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove && std::abs(trapVelY) < 5.0f))  {
                         TriggerEnemyDeath(enemyEntity, "falling trap platform");
                         break;
                     }
