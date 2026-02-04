@@ -1,4 +1,4 @@
-/*****************************************************************//**
+/*******************************************************************
  * \file   PlayerSystem.cpp
  *
  * \primary_author
@@ -123,7 +123,15 @@ namespace Framework {
                 else {
                     // If player is dead
                     vel.Vel.x = 0.0f;
-                    state.isWalking = false;
+                }
+
+                // Handle invulnerability overlap separation
+                if (state.isInvulnerable && entityMgr.HasComponent(entity, TransformType)) {
+                    SeparatePlayerFromDynamicObjects(entity);
+                }
+
+                if (state.isDead) {
+                    vel.Vel.x = 0.0f;
                     if (state.isGrounded) {
                         if (entityMgr.HasComponent(entity, RigidBodyType)) {
                             RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
@@ -214,6 +222,89 @@ namespace Framework {
         }
     }
 
+    void PlayerSystem::SeparatePlayerFromDynamicObjects(Entity playerEntity) {
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+        if (!entityMgr.HasComponent(playerEntity, TransformType) || 
+            !entityMgr.HasComponent(playerEntity, AABBColliderType) ||
+            !entityMgr.HasComponent(playerEntity, PlayerStateType)) {
+            return;
+        }
+
+        Transform& playerTransform = entityMgr.GetComponent<Transform>(playerEntity);
+        const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
+        PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
+
+        // Only start separating in the last 20% of invulnerability time
+        float separationStartTime = INVULNERABILITY_DURATION * 0.8f;
+        if (playerState.invulnerabilityTimer < separationStartTime) {
+            return; // Too early, don't separate yet
+        }
+
+        // Calculate separation strength (0 to 1, where 1 is end of invulnerability)
+        float separationProgress = (playerState.invulnerabilityTimer - separationStartTime) / (INVULNERABILITY_DURATION - separationStartTime);
+        float separationSpeed = 50.0f * Framework::Time::DeltaTime() * separationProgress; // Gradual separation
+
+        AABB_Bounds playerBounds = {
+            {playerTransform.position.x - playerHalfSize.x, playerTransform.position.y - playerHalfSize.y},
+            {playerTransform.position.x + playerHalfSize.x, playerTransform.position.y + playerHalfSize.y}
+        };
+
+        // Check all dynamic trap objects
+        for (const Entity& dynamicEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
+            if (!entityMgr.HasComponent(dynamicEntity, RigidBodyType) ||
+                !entityMgr.HasComponent(dynamicEntity, TransformType) ||
+                !entityMgr.HasComponent(dynamicEntity, AABBColliderType)) {
+                continue;
+            }
+
+            const Vector2D& objPos = entityMgr.GetComponent<Transform>(dynamicEntity).position;
+            const Vector2D& objHalfSize = entityMgr.GetComponent<AABBCollider>(dynamicEntity).HalfSize;
+
+            float objRotation = 0.0f;
+            if (entityMgr.HasComponent(dynamicEntity, RotationFlagType)) {
+                objRotation = entityMgr.GetComponent<RotationFlag>(dynamicEntity).currentRotation;
+            }
+            AABB_Bounds objBounds = PhysicsSystem::GetRotatedAABB(objPos, objHalfSize, objRotation);
+
+            // Check if overlapping
+            if (CollisionIntersection_RectRect_Static(playerBounds, objBounds)) {
+                // Calculate penetration on each axis
+                float overlapLeft = playerBounds.max.x - objBounds.min.x;
+                float overlapRight = objBounds.max.x - playerBounds.min.x;
+                float overlapTop = playerBounds.max.y - objBounds.min.y;
+                float overlapBottom = objBounds.max.y - playerBounds.min.y;
+
+                // Find minimum overlap
+                float minOverlapX = std::min(overlapLeft, overlapRight);
+                float minOverlapY = std::min(overlapTop, overlapBottom);
+
+                // Separate along the axis with least penetration (gentler)
+                if (minOverlapX < minOverlapY) {
+                    // Separate horizontally
+                    if (overlapLeft < overlapRight) {
+                        playerTransform.position.x -= separationSpeed;
+                    } else {
+                        playerTransform.position.x += separationSpeed;
+                    }
+                } else {
+                    // Separate vertically
+                    if (overlapTop < overlapBottom) {
+                        playerTransform.position.y -= separationSpeed;
+                    } else {
+                        playerTransform.position.y += separationSpeed;
+                    }
+                }
+
+                // Update bounds for next object check
+                playerBounds = {
+                    {playerTransform.position.x - playerHalfSize.x, playerTransform.position.y - playerHalfSize.y},
+                    {playerTransform.position.x + playerHalfSize.x, playerTransform.position.y + playerHalfSize.y}
+                };
+            }
+        }
+    }
+
 
     // ========== PLAYER DEATH LOGIC ==========
 
@@ -257,12 +348,23 @@ namespace Framework {
             AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
             if (CollisionIntersection_RectRect_Static(playerBounds, trapBounds)) {
+                // Check if trap has velocity component to determine if it's falling
+                bool isTrapFalling = false;
+                float trapVelocityY = 0.0f;
+                
+                if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                    trapVelocityY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
+                    // Trap is falling if it has significant downward velocity
+                    isTrapFalling = trapVelocityY < 0.0f; // Threshold for falling
+                }
+
+                // Only damage if trap is falling AND hitting player from above
                 float trapBottom = trapBounds.min.y;
                 float playerTop = playerBounds.max.y;
 
-                bool shouldDamage = (trapBottom >= playerTop);
+                bool isHittingFromAbove = (trapBottom <= playerTop + 5.0f); // Small tolerance
 
-                if (shouldDamage) {
+                if (isTrapFalling && isHittingFromAbove) {
                     DamagePlayer(playerEntity, "falling trap platform");
                     break;
                 }

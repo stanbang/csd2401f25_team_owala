@@ -391,7 +391,7 @@ namespace Framework {
             int i = entityToColliderIndex_[dynE];
 
             const Vector2D& pos1 = entityMgr.GetComponent<Transform>(dynE).position;
-            const Vector2D& halfSize1 = entityMgr.GetComponent<AABBCollider>(dynE).HalfSize;
+            const Vector2D& halfSize1 = entityMgr.GetComponent<Framework::AABBCollider>(dynE).HalfSize;
             float rotation1 = 0.0f;
             if (entityMgr.HasComponent(dynE, RotationFlagType)) {
                 rotation1 = entityMgr.GetComponent<RotationFlag>(dynE).currentRotation;
@@ -444,6 +444,28 @@ namespace Framework {
 
         if (!collisionMatrix_[static_cast<size_t>(layer1)][static_cast<size_t>(layer2)]) {
             return;
+        }
+
+        // --- CHECK IF PLAYER IS INVULNERABLE AND COLLIDING WITH DYNAMIC TRAP ---
+        // Identify if one entity is player and the other is a dynamic trap
+        bool isE1Player = entityMgr.HasComponent(e1, PlayerTagType);
+        bool isE2Player = entityMgr.HasComponent(e2, PlayerTagType);
+        
+        bool isE1DynamicTrap = entityMgr.HasComponent(e1, TrapPlatformComponentType) && 
+                                entityMgr.HasComponent(e1, RigidBodyType);
+        bool isE2DynamicTrap = entityMgr.HasComponent(e2, TrapPlatformComponentType) && 
+                                entityMgr.HasComponent(e2, RigidBodyType);
+
+        // If player and dynamic trap are colliding, check invulnerability
+        if ((isE1Player && isE2DynamicTrap) || (isE2Player && isE1DynamicTrap)) {
+            Entity playerEntity = isE1Player ? e1 : e2;
+            
+            if (entityMgr.HasComponent(playerEntity, PlayerStateType)) {
+                const PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
+                if (playerState.isInvulnerable) {
+                    return; // Skip collision resolution entirely
+                }
+            }
         }
 
         // Determine which entity is dynamic (needs RigidBody + Velocity)
