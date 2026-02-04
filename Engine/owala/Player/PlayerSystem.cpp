@@ -28,7 +28,7 @@
 
 namespace Framework {
     void PlayerSystem::Initialize() {
-        FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight);
+        FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight, INVULNERABILITY_DURATION, KNOCKBACK_DURATION, KNOCKBACK_FORCE_X, KNOCKBACK_FORCE_Y);
 		ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
     }
 
@@ -67,7 +67,15 @@ namespace Framework {
                     currentPos = entityMgr.GetComponent<Transform>(entity).position;
                 }
 
-				// Get previous and current vertical velocities for landing detection
+                // --- KNOCKBACK TIMER LOGIC START ---
+                if (state.isKnockedBack) {
+                    state.knockbackTimer -= Framework::Time::DeltaTime();
+                    if (state.knockbackTimer <= 0.0f) {
+                        state.isKnockedBack = false;
+                    }
+                }
+                // --- KNOCKBACK TIMER LOGIC END ---
+
                 float currentVelY = vel.Vel.y;
                 float prevVelY = state.previousVelocityY; // Get from Component
                 float stopThreshold = 0.01f;
@@ -89,19 +97,18 @@ namespace Framework {
 
                 // Horizontal Movement 
                 if (!state.isDead) {
-                    float targetVelX = 0.0f;
-                    if (input_.KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
-                    if (input_.KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
-                    vel.Vel.x = targetVelX;
+                    if (!state.isKnockedBack) {
+                        float targetVelX = 0.0f;
+                        if (input_.KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
+                        if (input_.KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
+                        vel.Vel.x = targetVelX;
 
-				    // Apply Jumping
-                    if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
-                        vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
-
-                        float jumpVolume = 0.3f;
-                        //messageBus
-                        MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume}); //empty cause currently theres nothign to pass and just for testing
-                    }
+                        // Apply Jumping
+                        if (state.isGrounded && (input_.KeyPressed(InputSystem::Key::W) || input_.KeyPressed(InputSystem::Key::Space))) {
+                            vel.Vel.y = jumpVelocity;
+                            float jumpVolume = 0.3f;
+                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume });
+                        }
 
 				    // Sets the direction the player is facing based on movement
                     if (targetVelX > 0.01f) {
@@ -148,23 +155,8 @@ namespace Framework {
                     }
                 }
 
-                if (state.isInvulnerable) {
-                        switch (animState) {
-                        case AnimationState::IDLE:
-                            animState = AnimationState::INVULNERABLE_IDLE;
-                            break;
-                        case AnimationState::RUNNING:
-                            animState = AnimationState::INVULNERABLE_RUNNING;
-                            break;
-                        case AnimationState::JUMPING:
-                            animState = AnimationState::INVULNERABLE_JUMPING;
-                            break;
-                        case AnimationState::FALLING:
-                            animState = AnimationState::INVULNERABLE_FALLING;
-                            break;
-                        default:
-                            break;
-                        }
+                if (state.isHurt) {
+                   animState = AnimationState::HURT;
                 }
                 animationComponent.currentState = animState;
             }
@@ -180,12 +172,12 @@ namespace Framework {
 
             PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
 
-            if (state.isInvulnerable) {
+            if (state.isHurt) {
                 state.invulnerabilityTimer += Framework::Time::DeltaTime();
 
                 if (state.invulnerabilityTimer >= INVULNERABILITY_DURATION) {
                     // End invulnerability
-                    state.isInvulnerable = false;
+                    state.isHurt = false;
                     state.invulnerabilityTimer = 0.0f;
 
                     Framework::Logger::Get().Info(DebugType::PlayerSystem)  << "Player invulnerability ended. Lives remaining: " << state.currentLives << std::endl;
@@ -211,14 +203,15 @@ namespace Framework {
         if (playerEntity == 0) return;
 
         PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
-        if (playerState.isDead || playerState.isInvulnerable) return;
 
+        if (playerState.isDead || playerState.isHurt || playerState.isKnockedBack) return;
+
+        // Loop through all trap platforms
         for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
-            std::string trapName = entityMgr.GetProperties(trapEntity).name;
-            //if (trapName.find("MovableBox") != std::string::npos) continue;
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
-            if (!trapComp.isTriggered) continue;
+            // Only check traps that are currently falling
+            if (!trapComp.hasFallen) continue;
 
             const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
             const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
@@ -236,14 +229,23 @@ namespace Framework {
             }
             AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
+            // Check Collision
             if (CollisionIntersection_RectRect_Static(playerBounds, trapBounds)) {
                 float trapBottom = trapBounds.min.y;
                 float playerTop = playerBounds.max.y;
 
-                bool shouldDamage = (trapBottom >= playerTop);
+                // Check if trap is falling and is above the player
+                Vector2D trapVelocity = Vector2D::Zero();
+                if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                    trapVelocity = entityMgr.GetComponent<Velocity>(trapEntity).Vel;
+                }
 
-                if (shouldDamage) {
-                    DamagePlayer(playerEntity, "falling trap platform");
+                bool isFallingDownward = trapVelocity.y < -0.1f;
+                bool isTrapAbovePlayer = trapBottom <= playerTop;
+                bool hasBeenFalling = trapComp.airTime > 0.1f;
+
+                if (isFallingDownward && isTrapAbovePlayer && hasBeenFalling) {
+                    DamagePlayer(playerEntity, "falling trap platform", trapPos);
                     break;
                 }
             }
@@ -264,7 +266,7 @@ namespace Framework {
         if (playerEntity == 0) return;
 
         PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
-        if (playerState.isDead || playerState.isInvulnerable) return;
+        if (playerState.isDead || playerState.isHurt) return;
 
         for (const Entity& enemy : entityMgr.GetAllEntitiesWithComponent(true, EnemyTagType)) {
             if (!entityMgr.HasComponent(enemy, TransformType) ||
@@ -294,43 +296,50 @@ namespace Framework {
                 if (entityMgr.HasComponent(enemy, FSMComponentType)) {
                     enemyType = "bird enemy";
                 }
+                Vector2D enemyPos = entityMgr.GetComponent<Transform>(enemy).position;
 
-                DamagePlayer(playerEntity, enemyType);
+                DamagePlayer(playerEntity, enemyType, enemyPos);
                 break;
             }
         }
     }
 
-    void PlayerSystem::DamagePlayer(Entity playerEntity, const std::string& damageSource) {
+    void PlayerSystem::DamagePlayer(Entity playerEntity, const std::string& damageSource, const Vector2D& sourcePos) {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        if (!entityMgr.HasComponent(playerEntity, PlayerStateType)) {
-            return;
-        }
+        if (!entityMgr.HasComponent(playerEntity, PlayerStateType)) return;
 
         PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
-        Framework::Logger::Get().Info(DebugType::PlayerSystem)<< "Before damage - Lives: " << playerState.currentLives
-            << " Invulnerable: " << playerState.isInvulnerable
-            << " Dead: " << playerState.isDead << std::endl;
 
-        // Already invulnerable or dead
-        if (playerState.isInvulnerable || playerState.isDead) {
-            return;
-        }
+        if (playerState.isHurt || playerState.isDead) return;
 
-        // Lose a life
         playerState.currentLives--;
+        Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player hit by " << damageSource << "! Lives: " << playerState.currentLives << std::endl;
 
-        Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player hit by " << damageSource << "! Lives remaining: " << playerState.currentLives << std::endl;
-
-        // Check if player is out of lives
         if (playerState.currentLives <= 0) {
             KillPlayer(playerEntity, damageSource);
         }
         else {
-            // Activate invulnerability
-            playerState.isInvulnerable = true;
+            playerState.isHurt = true;
             playerState.invulnerabilityTimer = 0.0f;
+            if (entityMgr.HasComponent(playerEntity, TransformType) && entityMgr.HasComponent(playerEntity, VelocityType)) {
+                Vector2D playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
+                Velocity& vel = entityMgr.GetComponent<Velocity>(playerEntity);
+
+                // 1. DIRECTION LOGIC
+                float directionX = (playerPos.x < sourcePos.x) ? -1.0f : 1.0f;
+
+                // 2. ORIENTATION LOGIC (Face the bird/source)
+                playerState.isFacingRight = (sourcePos.x > playerPos.x);
+
+                // Apply Impulse
+                vel.Vel.x = directionX * KNOCKBACK_FORCE_X;
+                vel.Vel.y = KNOCKBACK_FORCE_Y;
+
+                playerState.isKnockedBack = true;
+                playerState.knockbackTimer = KNOCKBACK_DURATION;
+                playerState.isGrounded = false;
+            }
 
             MessageBus::Instance().Publish(PlayerDamagedEvent{ playerEntity, playerState.currentLives });
         }
@@ -398,13 +407,12 @@ namespace Framework {
 
             if (fsmComp.fsm.GetCurrentState() == "Death") continue;
 
-            // Check  all trap platforms
+            // Check all trap platforms
             for (const Entity& trapEntity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
-                std::string trapName = entityMgr.GetProperties(trapEntity).name;
-                //if (trapName.find("MovableBox") != std::string::npos) continue;
                 TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
-                if (!trapComp.isTriggered) continue;
+                // Only check falling traps
+                if (!trapComp.hasFallen) continue;
 
                 const Vector2D& enemyPos = entityMgr.GetComponent<Transform>(enemyEntity).position;
                 const Vector2D& enemyHalfSize = entityMgr.GetComponent<AABBCollider>(enemyEntity).HalfSize;
@@ -427,9 +435,17 @@ namespace Framework {
                     float trapBottom = trapBounds.min.y;
                     float enemyTop = enemyBounds.max.y;
 
-                    bool shouldKill = (trapBottom >= enemyTop);
+                    // Check trap velocity
+                    Vector2D trapVelocity = Vector2D::Zero();
+                    if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                        trapVelocity = entityMgr.GetComponent<Velocity>(trapEntity).Vel;
+                    }
 
-                    if (shouldKill) {
+                    bool isFallingDownward = trapVelocity.y < -0.1f;
+                    bool isTrapAboveEnemy = trapBottom <= enemyTop;
+                    bool hasBeenFalling = trapComp.airTime > 0.1f;
+
+                    if (isFallingDownward && isTrapAboveEnemy && hasBeenFalling) {
                         TriggerEnemyDeath(enemyEntity, "falling trap platform");
                         break;
                     }

@@ -57,10 +57,7 @@ namespace Framework{
 		JUMPING,
 		FALLING,
 		DEATH,
-		INVULNERABLE_IDLE,
-		INVULNERABLE_RUNNING,
-		INVULNERABLE_JUMPING,
-		INVULNERABLE_FALLING
+		HURT
 	};
 
 	// For particle emission modes
@@ -164,8 +161,11 @@ namespace Framework{
 		bool isDead = false;
 
 		int currentLives = 3;  // Start with 3 lives
-		bool isInvulnerable = false;
+		bool isHurt = false;
 		float invulnerabilityTimer = 0.0f;
+
+		bool isKnockedBack = false;
+		float knockbackTimer = 0.0f;
 	};
 
 	struct Triangle { 

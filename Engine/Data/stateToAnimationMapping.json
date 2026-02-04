@@ -5,11 +5,7 @@
     "JUMPING": "Eli_Jump_Spritesheet.png",
     "FALLING": "Eli_Falling_Spritesheet.png",
     "DEATH": "SB_Eli_Death_Spritesheet_1.png",
-
-    "INVULNERABLE_IDLE": "SB_Eli_Idle_Invuln_Spritesheet_1.png",
-    "INVULNERABLE_RUNNING": "Eli_Walk_Invuln_Spritesheet.png",
-    "INVULNERABLE_JUMPING": "Eli_Jump_Invuln_Spritesheet.png",
-    "INVULNERABLE_FALLING": "Eli_Falling_Invuln_Spritesheet.png"
+    "HURT": "SB_Eli_Hurt_Spritesheet_1.png"
   },
   "FakePlayer": {
 	"IDLE": "SB_Eli_Idle_Spritesheet_1.png",

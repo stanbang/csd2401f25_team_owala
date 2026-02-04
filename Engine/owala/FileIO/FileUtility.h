@@ -54,7 +54,7 @@ namespace Framework {
 		static WindowConfig LoadWindowConfig();
 
 		// Load PlayerStats from player config json file
-		static void LoadPlayerStats(float& moveSpeed, float& jumpHeight);
+		static void LoadPlayerStats(float& moveSpeed, float& jumpHeight , float& invuln, float& kb_dur, float& kb_x, float& kb_y);
 
 		// Load world config variables from world config json file
 		static void LoadWorldConfig(float& gravity);
@@ -100,6 +100,10 @@ namespace Framework {
 		// Player config Json keys
 		static constexpr const char* PLAYER_MV_SPEED = "move_speed";
 		static constexpr const char* PLAYER_JUMP_HEIGHT = "jump_height";
+		static constexpr const char* PLAYER_INVULNERABILITY_DURATION = "invulnerability_duration";
+		static constexpr const char* PLAYER_KNOCKBACK_DURATION = "knockback_duration";
+		static constexpr const char* PLAYER_KNOCKBACK_FORCE_X = "knockback_force_x";
+		static constexpr const char* PLAYER_KNOCKBACK_FORCE_Y = "knockback_force_y";
 
 		// World config Json keys
 		static constexpr const char* WORLD_GRAVITY = "gravity";
