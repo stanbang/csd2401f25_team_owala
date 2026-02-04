@@ -37,6 +37,8 @@ namespace Framework{
 		Platform,
 		Enemy,
 		Trigger,
+		TrapPlatform,    
+		Invulnrabilty, 
 		Count = 32  // Maximum layers 
 	};
 

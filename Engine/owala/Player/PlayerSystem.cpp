@@ -25,6 +25,7 @@
 #include "MessageBus.h"
 #include "GameMessages.h"
 #include "ParticleEffectManager.h"
+#include "OwalaTime.h"
 
 namespace Framework {
     void PlayerSystem::Initialize() {
@@ -214,6 +215,7 @@ namespace Framework {
                 if (!entityMgr.HasComponent(entity, PlayerStateType)) continue;
 
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
+                EntityProperties& props = entityMgr.GetProperties(entity);
 
                 if (state.isHurt) {
                     state.invulnerabilityTimer += Framework::Time::DeltaTime();
@@ -221,7 +223,10 @@ namespace Framework {
                     if (state.invulnerabilityTimer >= INVULNERABILITY_DURATION) {
                         // End invulnerability
                         state.isHurt = false;
+
                         state.invulnerabilityTimer = 0.0f;
+
+                        props.layer = CollisionLayer::Player;
 
                         Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player invulnerability ended. Lives remaining: " << state.currentLives << std::endl;
                     }
@@ -337,7 +342,7 @@ namespace Framework {
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
             // Only check traps that are currently falling
-            if (!trapComp.hasFallen) continue;
+            if (!trapComp.isTriggered && !trapComp.hasFallen) continue;
 
             const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
             const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
@@ -453,10 +458,8 @@ namespace Framework {
             playerState.isHurt = true;
             playerState.invulnerabilityTimer = 0.0f;
 
-            //EntityProperties& props = entityMgr.GetProperties(playerEntity);
-            //props.layer = CollisionLayer::Invulnrabilty; // Layer 6
-            /*Logger::Get().Info(DebugType::PlayerSystem)
-                << "Player switched to Invulnerability layer (6)" << std::endl;*/
+            EntityProperties& props = entityMgr.GetProperties(playerEntity);
+            props.layer = CollisionLayer::Invulnrabilty;
 
             if (entityMgr.HasComponent(playerEntity, TransformType) && entityMgr.HasComponent(playerEntity, VelocityType)) {
                 Vector2D playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
@@ -532,6 +535,7 @@ namespace Framework {
 
     void PlayerSystem::CheckEnemyDeathFromTraps() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
+        float dt = Time::DeltaTime();
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
             if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || 
@@ -549,18 +553,28 @@ namespace Framework {
                 TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
 
                 // Only check falling traps
-                if (!trapComp.hasFallen) continue;
+                if (!trapComp.isTriggered && !trapComp.hasFallen) continue;
 
                 const Vector2D& enemyPos = entityMgr.GetComponent<Transform>(enemyEntity).position;
                 const Vector2D& enemyHalfSize = entityMgr.GetComponent<AABBCollider>(enemyEntity).HalfSize;
                 const Vector2D& trapPos = entityMgr.GetComponent<Transform>(trapEntity).position;
                 const Vector2D& trapHalfSize = entityMgr.GetComponent<AABBCollider>(trapEntity).HalfSize;
 
+                Vector2D trapVel = { 0.0f, 0.0f };
+                if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                    trapVel = entityMgr.GetComponent<Velocity>(trapEntity).Vel;
+                }
+
+                Vector2D enemyVel = { 0.0f, 0.0f };
+                if (entityMgr.HasComponent(enemyEntity, VelocityType)) {
+                    enemyVel = entityMgr.GetComponent<Velocity>(enemyEntity).Vel;
+                }
+
                 // Enemy bounds
                 AABB_Bounds enemyBounds = {
                     {enemyPos.x - enemyHalfSize.x, enemyPos.y - enemyHalfSize.y},
                     {enemyPos.x + enemyHalfSize.x, enemyPos.y + enemyHalfSize.y}
-                };
+                };  
 
                 float trapRotation = 0.0f;
                 if (entityMgr.HasComponent(trapEntity, RotationFlagType)) {
@@ -568,28 +582,48 @@ namespace Framework {
                 }
                 AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
-                if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
-                    // Check if trap has velocity (is falling or has fallen)
-                    bool isTrapFalling = false;
-                    float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
-                    if (entityMgr.HasComponent(trapEntity, VelocityType)) {
-                        
-                        //isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
-                        bool isTrapFalling = (trapVelY < -10.0f);
-                    }
+                float tFirst = 0.0f;
+                bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst);
+                bool isStaticHit = CollisionIntersection_RectRect_Static(enemyBounds, trapBounds);
 
-                    // Check if trap is above enemy (crushing from above)
-                    float trapBottom = trapBounds.min.y;
-                    float enemyTop = enemyBounds.max.y;
-                    //bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
-                    bool isTrapAbove = (trapBottom <= enemyTop + 30.0f);
+                // Valid Hit if:
+                // 1. Dynamic hit occurred within this frame (tFirst <= dt)
+                // 2. OR Static overlap is currently happening
+                if (isDynamicHit || isStaticHit) {
 
-                    // Kill if trap is falling OR if trap has fallen and is resting on enemy
-                    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove && std::abs(trapVelY) < 5.0f))  {
+                    // Extra Check: Ensure the trap is actually crushing (moving down or above)
+                    // This prevents the bird from dying if it touches the *side* of a stationary trap
+                    bool isTrapFalling = (trapVel.y < -10.0f);
+                    bool isTrapAbove = (trapBounds.min.y <= enemyBounds.max.y + 10.0f); // Forgiving vertical check
+
+                    if (isTrapFalling || (trapComp.hasFallen && isTrapAbove)) {
                         TriggerEnemyDeath(enemyEntity, "falling trap platform");
-                        break;
+                        break; // Enemy is dead, move to next enemy
                     }
                 }
+
+                //if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
+                //    // Check if trap has velocity (is falling or has fallen)
+                //    bool isTrapFalling = false;
+                //    float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
+                //    if (entityMgr.HasComponent(trapEntity, VelocityType)) {
+                //        
+                //        //isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
+                //        isTrapFalling = (trapVelY < -10.0f);
+                //    }
+
+                //    // Check if trap is above enemy (crushing from above)
+                //    float trapBottom = trapBounds.min.y;
+                //    float enemyTop = enemyBounds.max.y;
+                //    //bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
+                //    bool isTrapAbove = (trapBottom <= enemyTop + 30.0f);
+
+                //    // Kill if trap is falling OR if trap has fallen and is resting on enemy
+                //    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove && std::abs(trapVelY) < 5.0f))  {
+                //        TriggerEnemyDeath(enemyEntity, "falling trap platform");
+                //        break;
+                //    }
+                //}
             }
         }
     }
