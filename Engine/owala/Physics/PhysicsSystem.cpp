@@ -487,10 +487,6 @@ namespace Framework {
         bool e1IsTrap = entityMgr.HasComponent(e1, TrapPlatformComponentType);
         bool e2IsTrap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
 
-        // Detect enemy entities
-        bool e1IsEnemy = entityMgr.HasComponent(e1, EnemyTagType);
-        bool e2IsEnemy = entityMgr.HasComponent(e2, EnemyTagType);
-
         // trap v player, make trap static to avoid player pushing
         if ((e1IsTrap && isE2Player) || (e2IsTrap && isE1Player)) {
             if (e1IsTrap) e1IsDynamic = false;
