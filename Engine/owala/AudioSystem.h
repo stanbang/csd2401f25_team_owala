@@ -2,8 +2,9 @@
  * \file   AudioSystem.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (80%)
  * \secondary_author
+ *      Yar Xuan  (20%)
  *
  * \brief
  *   Audio system wrapper around FMOD for loading, playing, and managing

@@ -1,3 +1,22 @@
+/*****************************************************************//**
+ * \file   AudioSystem.cpp
+ *
+ * \primary_author
+ *      Ng Jordain Ying Zhe (80%)
+ * \secondary_author
+ *      Yar Xuan  (20%)
+ *
+ * \brief
+ *   Audio system wrapper around FMOD for loading, playing, and managing
+ *   sounds within the Framework ECS. Provides simple caching by ID,
+ *   fire-and-forget playback, master volume control, and bulk stop.
+ *
+ * \copyright
+ *   Copyright (C) 2025 DigiPen Institute of Technology.
+ *   Reproduction or disclosure of this file or its contents without the prior
+ *   written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "pch.h"
 #include "AudioSystem.h"
 #include "EntityManager.h"
