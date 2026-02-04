@@ -1,3 +1,18 @@
+/*****************************************************************//**
+ * \file	SaveManager.cpp
+ *
+ * \primary_author
+ *      Jason Lou
+ * \secondary_author
+
+ *
+ * \brief	Contains definitions for the SaveManager script
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "SaveManager.h"
 #include "ScriptRegistry.h"
 
