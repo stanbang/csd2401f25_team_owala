@@ -20,9 +20,7 @@
 #include "FileUtility.h"
 #include "OwalaTime.h"
 #include "GameManager.h"
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+
 
 namespace Framework {
     // ----- Layer Collision Functions ------- //
@@ -532,7 +530,7 @@ namespace Framework {
         if (contact.State == CollisionState::Overlapping) {
             // Determine which is dynamic
             Entity dynE = e1IsDynamic ? e1 : e2;
-            Entity staticE = e1IsDynamic ? e2 : e1;
+            //Entity staticE = e1IsDynamic ? e2 : e1;
 
             Vector2D& dynPos = entityMgr.GetComponent<Transform>(dynE).position;
             Vector2D& dynVel = entityMgr.GetComponent<Velocity>(dynE).Vel;

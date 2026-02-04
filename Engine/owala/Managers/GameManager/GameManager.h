@@ -130,6 +130,7 @@ namespace Framework {
 		void PreloadSceneAssets(const std::string& sceneName);
 
 		bool restartMenuInitialized = false;
+		SceneGUID previousScene = 0;
 
 	public:
 		// GLOBAL STATES
@@ -189,6 +190,9 @@ namespace Framework {
 
 		// Helper to check if a scene is a level scene
 		bool IsLevelScene(const std::string& name);
+
+		// Getter for Previous scene
+		SceneGUID GetPrevScene() const { return previousScene; }
 
 		/* Game Cycle Functions */
 		void Initialize() override;

@@ -58,8 +58,20 @@ namespace Framework {
 			if (entityMgr.HasComponent(entity, FSMComponentType)) {
 				if (entityMgr.HasComponent(entity, VelocityType)) {
 					const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
-					if (vel.x > 0.1f) isFacingRight = true;
-					else if (vel.x < -0.1f) isFacingRight = false;
+
+					// Check current FSM state
+					FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
+					std::string stateName = fsm.fsm.GetCurrentState();
+
+					// //During Attack, textureAngle handles full rotation — skip UV flip
+					//if (stateName == "Attack") {
+					//	isFacingRight = true; // Lock to default, no UV flip
+					//}
+					/*else if (entityMgr.HasComponent(entity, VelocityType)) {*/
+						
+						if (vel.x > 0.1f)       isFacingRight = true;  // flip to face right
+						else if (vel.x < -0.1f) isFacingRight = false;   // already faces left
+					//}
 				}
 			}
 
@@ -72,7 +84,7 @@ namespace Framework {
 					animationComponent.currentState = AnimationState::IDLE;
 				}
 				else if (stateName == "Waking") {
-					animationComponent.currentState = AnimationState::IDLE; // Use idle while waking
+					animationComponent.currentState = AnimationState::WAKING; // Use idle while waking
 				}
 				else if (stateName == "SimpleChase" || stateName == "Bounce" || stateName == "Hover") {
 					animationComponent.currentState = AnimationState::RUNNING; // "Fly" animation

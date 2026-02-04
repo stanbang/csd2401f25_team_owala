@@ -53,6 +53,7 @@ namespace Framework{
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
+		WAKING,
 		RUNNING,
 		JUMPING,
 		FALLING,

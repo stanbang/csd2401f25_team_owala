@@ -507,6 +507,8 @@ namespace Framework {
 		bool currentIsLevel = IsLevelScene(currentSceneName);
 		bool targetIsLevel = IsLevelScene(targetSceneName);
 
+		previousScene = SceneManager::GetInstance().GetActiveScene().sceneIndex;
+
 		// Level > Level (Direct Transition, No Loading Screen)
 		if (currentIsLevel && targetIsLevel) {
 			Logger::Get().Info(DebugType::GameManager) << "Level->Level Transition: " << targetSceneName << std::endl;

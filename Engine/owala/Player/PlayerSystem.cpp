@@ -32,7 +32,7 @@ namespace Framework {
 		ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
     }
 
-	void PlayerSystem::Update() {
+    void PlayerSystem::Update() {
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         if (physics_.IsPaused()) {return;}
@@ -49,8 +49,8 @@ namespace Framework {
         const float gravity = std::abs(physics_.gravity_.y);
         const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
 
-		// Loop through each entity that is in the playerTag map
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+        // Loop through each entity that is in the playerTag map
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 
@@ -110,55 +110,56 @@ namespace Framework {
                             MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume });
                         }
 
-				    // Sets the direction the player is facing based on movement
-                    if (targetVelX > 0.01f) {
-                        state.isFacingRight = true;
-                    }
-                    else if (targetVelX < -0.01f) {
-                        state.isFacingRight = false;
-                    }
-                }
-                else {
-                    vel.Vel.x = 0.0f;
-                }
-                if (state.isDead) {
-                    vel.Vel.x = 0.0f;
-                    if (state.isGrounded) {
-                        if (entityMgr.HasComponent(entity, RigidBodyType)) {
-                            RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
-                            rb.InverseMass = 0.0f;
+                        // Sets the direction the player is facing based on movement
+                        if (targetVelX > 0.01f) {
+                            state.isFacingRight = true;
                         }
-                        vel.Vel.y = 0.0f;
-                    }
-                }
-                // Animation State Handling
-                AnimationState animState = AnimationState::IDLE; // Default to IDLE
-
-                // player death state
-                if (state.isDead) {
-                    animState = AnimationState::DEATH;
-                }
-                else if (state.isGrounded) {
-                    if (std::abs(vel.Vel.x) > 0.01f) {
-                        animState = AnimationState::RUNNING; //If player is on ground and moving, set to running
+                        else if (targetVelX < -0.01f) {
+                            state.isFacingRight = false;
+                        }
                     }
                     else {
-                        animState = AnimationState::IDLE; //If player is on ground and not moving, set to idle
+                        vel.Vel.x = 0.0f;
                     }
-                }
-                else {
-                    if (vel.Vel.y > 0.01f) {
-                        animState = AnimationState::JUMPING; //If player is in air and moving upwards, set to jumping
+                    if (state.isDead) {
+                        vel.Vel.x = 0.0f;
+                        if (state.isGrounded) {
+                            if (entityMgr.HasComponent(entity, RigidBodyType)) {
+                                RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+                                rb.InverseMass = 0.0f;
+                            }
+                            vel.Vel.y = 0.0f;
+                        }
                     }
-                    else if (vel.Vel.y <= 0.0f) {
-                        animState = AnimationState::FALLING; //If player is in air, at the point he is beginning to fall down or moving downwards, set to falling
-                    }
-                }
+                    // Animation State Handling
+                    AnimationState animState = AnimationState::IDLE; // Default to IDLE
 
-                if (state.isHurt) {
-                   animState = AnimationState::HURT;
+                    // player death state
+                    if (state.isDead) {
+                        animState = AnimationState::DEATH;
+                    }
+                    else if (state.isGrounded) {
+                        if (std::abs(vel.Vel.x) > 0.01f) {
+                            animState = AnimationState::RUNNING; //If player is on ground and moving, set to running
+                        }
+                        else {
+                            animState = AnimationState::IDLE; //If player is on ground and not moving, set to idle
+                        }
+                    }
+                    else {
+                        if (vel.Vel.y > 0.01f) {
+                            animState = AnimationState::JUMPING; //If player is in air and moving upwards, set to jumping
+                        }
+                        else if (vel.Vel.y <= 0.0f) {
+                            animState = AnimationState::FALLING; //If player is in air, at the point he is beginning to fall down or moving downwards, set to falling
+                        }
+                    }
+
+                    if (state.isHurt) {
+                        animState = AnimationState::HURT;
+                    }
+                    animationComponent.currentState = animState;
                 }
-                animationComponent.currentState = animState;
             }
         }
     }

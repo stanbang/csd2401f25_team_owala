@@ -25,6 +25,8 @@
 #include "GameManager.h" 
 #include "PhysicsSystem.h"
 
+
+
 namespace Framework {
 
     // --- HELPER ---
@@ -34,12 +36,31 @@ namespace Framework {
         return players.empty() ? 0 : players[0];
     }
 
+    // Per-entity storage for the pre-collision velocity that SimpleChase
+    // captured last frame.  Bounce reads it on enter.
+    // (static map is fine; one entry per living bird enemy)
+    static std::unordered_map<Entity, Vector2D> s_lastChaseVel;
+
+    // Helper: clamp a float toward zero by a max magnitude
+    static float ClampMagnitude(float value, float maxMag) {
+        if (value > maxMag)  return maxMag;
+        if (value < -maxMag) return -maxMag;
+        return value;
+    }
+
     // --- IDLE ---
     void BirdIdleState::OnEnter(Entity entity, EntityStorage& ecs) {
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
+
+        if (mgr.HasComponent(entity, TransformType)) {
+            mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
+        }
+
+        s_lastChaseVel.erase(entity);
+
     }
     void BirdIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
@@ -70,9 +91,11 @@ namespace Framework {
 
     // --- SIMPLE CHASE ---
     void BirdSimpleChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
-        (void)entity;
         (void)ecs;
-        // Just started chasing 
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, VelocityType)) {
+            s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
+        }
     }
 
     void BirdSimpleChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -87,20 +110,91 @@ namespace Framework {
 
         Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
         Vector2D targetPos = mgr.GetComponent<Transform>(player).position;
+        Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
 
-        // Simple: just fly straight toward player
-        Vector2D direction = targetPos - myPos;
-        direction.Normalize();
+        float targetX = targetPos.x;
+        float targetY = targetPos.y + hoverOffset_;
 
-        if (mgr.HasComponent(entity, VelocityType)) {
-            mgr.GetComponent<Velocity>(entity).Vel = direction * moveSpeed_;
+        // horizontal movement
+        if (myPos.x < targetX) {
+            // Target is to the right
+            vel.x += accelX_ * dt;
+            // Turnaround: if we're still moving LEFT, add extra kick
+            if (vel.x < 0.0f) vel.x += accelX_ * turnaroundMult_ * dt;
         }
+        else {
+            // Target is to the left
+            vel.x -= accelX_ * dt;
+            if (vel.x > 0.0f) vel.x -= accelX_ * turnaroundMult_ * dt;
+        }
+        vel.x = ClampMagnitude(vel.x, maxSpeedX_);
+
+
+        // ---------------------------------------------------------------
+        // VERTICAL  �  accelerate toward targetY
+        //   Use the slower accel when climbing up, faster when swooping
+        // ---------------------------------------------------------------
+        if (myPos.y < targetY) {
+            // We are BELOW the target - need to move UP
+            vel.y += accelYUp_ * dt;
+        }
+        else {
+            // We are ABOVE the target - swoop DOWN
+            vel.y -= accelYDown_ * dt;
+        }
+        vel.y = ClampMagnitude(vel.y, maxSpeedY_);
+
+        // ---------------------------------------------------------------
+        // Cache velocity BEFORE physics resolves collisions next frame
+        // (Bounce needs the pre-zero X value)
+        // ---------------------------------------------------------------
+        s_lastChaseVel[entity] = vel;
+
+        // ---------------------------------------------------------------
+        // SPRITE ROTATION  �  face the player (not movement dir)
+        // This gives the classic "eye tracking" look.
+        // textureAngle is in radians.
+        // ---------------------------------------------------------------
+        //if (mgr.HasComponent(entity, TransformType)) {
+        //    float dx = targetPos.x - myPos.x;
+        //    float dy = targetPos.y - myPos.y;
+        //    if (std::abs(dx) > 0.1f || std::abs(dy) > 0.1f) {
+
+        //        float angleRad = std::atan2(dy, dx);
+
+        //        // 2. Add offset because sprite faces Left natively (+180 degrees)
+        //        float finalAngle = angleRad + 3.14159265f;
+
+        //        // 3. FIX: If moving Left, AnimationSystem flips the sprite. 
+        //        // We must subtract 180 (PI) to compensate, or it will face the wrong way.
+        //        if (vel.x < 0.0f) {
+        //            finalAngle -= 3.14159265f;
+        //        }
+
+        //        // 4. Convert to Degrees (Engine uses degrees for Transform)
+        //       
+        //        float angleDeg = finalAngle * (180.0f / 3.14159265f);
+
+        //        mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
+        //    }
+        //}
+
+       
+        
     }
 
     void BirdSimpleChaseState::SetParameter(const std::string& key, float value) {
-        if (key == "moveSpeed") moveSpeed_ = value;
-        if (key == "bounceForce") bounceForce_ = value;
-        if (key == "verticalBias") verticalBias_ = value;
+        if (key == "accelX")         accelX_ = value;
+        if (key == "accelYUp")       accelYUp_ = value;
+        if (key == "accelYDown")     accelYDown_ = value;
+        if (key == "maxSpeedX")      maxSpeedX_ = value;
+        if (key == "maxSpeedY")      maxSpeedY_ = value;
+        if (key == "hoverOffset")    hoverOffset_ = value;
+        if (key == "turnaroundMult") turnaroundMult_ = value;
+        // Legacy keys (ignored but won't crash if still in JSON)
+        if (key == "moveSpeed") {} //moveSpeed_ = value;
+        if (key == "bounceForce") {} //bounceForce_ = value;
+        if (key == "verticalBias") {}//verticalBias_ = value;
     }
 
     // --- CHASE ---
@@ -109,6 +203,8 @@ namespace Framework {
         (void)ecs;
         repathTimer_ = repathInterval_; // Force path update immediately
     }
+
+
     void BirdChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         repathTimer_ += dt;
         EntityManager mgr(ecs);
@@ -161,14 +257,44 @@ namespace Framework {
         if (!mgr.HasComponent(entity, VelocityType)) return;
 
         // Get current velocity to determine bounce direction
-        Vector2D currentVel = mgr.GetComponent<Velocity>(entity).Vel;
+        Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
 
-        // Bounce upward and slightly away from wall
-        // Favor upward movement (like Demon Eye)
-        bounceDirection_ = Vector2D(-currentVel.x * 0.5f, std::abs(currentVel.y) + 100.0f);
-        bounceDirection_.Normalize();
+        // ----------------------------------------------------------
+       // Read the PRE-collision velocity from the cache.
+       // PhysicsSystem already zeroed vel.x by the time we get here,
+       // so we cannot trust the current vel.x for the bounce calc.
+       // ----------------------------------------------------------
+        Vector2D preVel = { 0.0f, 0.0f };
+        auto it = s_lastChaseVel.find(entity);
+        if (it != s_lastChaseVel.end()) {
+            preVel = it->second;
+        }
 
-        mgr.GetComponent<Velocity>(entity).Vel = bounceDirection_ * 250.0f;
+        // Determine which side we hit based on the cached X velocity
+        // positive X  was moving right  hit a right wall  normal is -1
+        collisionNormalX_ = (preVel.x >= 0.0f) ? -1.0f : 1.0f;
+
+        // ----------------------------------------------------------
+        // REFLECT X, retain bounceFactor_ of the speed
+        // Keep Y as-is (Demon Eye only bounces horizontally off walls)
+        // ----------------------------------------------------------
+        vel.x = -preVel.x * bounceFactor_;
+        // Y: keep whatever physics left us with, but use cached if
+        // physics zeroed it too (floor/ceiling hit)
+        if (std::abs(vel.y) < 0.1f) {
+            vel.y = preVel.y;  // preserve Y momentum
+        }
+
+        // ----------------------------------------------------------
+        // NUDGE out of the wall so physics doesn't immediately
+        // re-resolve the same collision next frame
+        // ----------------------------------------------------------
+        if (mgr.HasComponent(entity, TransformType)) {
+            mgr.GetComponent<Transform>(entity).position.x +=
+                collisionNormalX_ * nudgeAmount_;
+            // Reset texture rotation � Bounce uses the fly animation flat
+            mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
+        }
     }
 
     void BirdBounceState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -177,13 +303,14 @@ namespace Framework {
         // Gradually reduce bounce velocity
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, VelocityType)) {
-            Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
-            vel = vel * 0.95f; // Damping
+            s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
         }
     }
 
     void BirdBounceState::SetParameter(const std::string& key, float value) {
         if (key == "duration") bounceDuration_ = value;
+        if (key == "bounceFactor")  bounceFactor_ = value;
+        if (key == "nudgeAmount")   nudgeAmount_ = value;
     }
 
     // --- HOVER ---
@@ -228,27 +355,83 @@ namespace Framework {
         // Snapshot direction once
         direction_ = playerPos - myPos;
         direction_.Normalize();
+
+        // upward limit for dive to include rotation (eg bird diving towards player when player is above bird)
+        static constexpr float UPWARD_LIMIT = 50.f; 
+
+        if (mgr.HasComponent(entity, TransformType)) {
+            float dy = playerPos.y - myPos.y;
+            if (dy > UPWARD_LIMIT) {
+                // Player is ABOVE the bird � the default dive sprite points down,
+                // so we need to rotate to point toward the player.
+                // atan2 zero = +X.  Sprite zero = -Y.  Offset = +PI/2.
+                float angleRad = std::atan2(direction_.y, direction_.x) + static_cast<float>(M_PI * 0.5f);
+                mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
+            }
+            else {
+                // Player is at the same level or below � the dive sprite
+                // already points downward, which is correct.  No rotation.
+                mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
+            }
+        }
     }
+
+
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
         EntityManager mgr(ecs);
-        if (mgr.HasComponent(entity, VelocityType)) {
-            mgr.GetComponent<Velocity>(entity).Vel = direction_ * attackSpeed_;
+        if (!mgr.HasComponent(entity, VelocityType)) return;
+
+        Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
+
+        // ---------------------------------------------------------------
+        // Accelerate along the dive direction, capped at attackMaxSpeed_
+        // This gives the "lunge" feel instead of instant full speed.
+        // ---------------------------------------------------------------
+        vel += direction_ * attackAccel_ * dt;
+
+        // Clamp total speed to max
+        float speed = vel.Magnitude();
+        if (speed > attackMaxSpeed_) {
+            vel = vel * (attackMaxSpeed_ / speed);
         }
+
+        // ---------------------------------------------------------------
+        // SPRITE ROTATION  �  tilt to match ACTUAL velocity direction.
+        // During a dive this naturally points nose-down.
+        // textureAngle is radians.
+        // ---------------------------------------------------------------
+            //if (mgr.HasComponent(entity, TransformType)) {
+            //    if (vel.x != 0.0f || vel.y != 0.0f) {
+            //        // direction_ is the snapshotted normalised vector toward player
+            //  // (set in OnEnter, does not change during the dive)
+            //        float angleRad = std::atan2(direction_.y, direction_.x);
+
+            //        // +PI/2 offset because the dive sprite's default pose points DOWN (-Y),
+            //        // but atan2's zero is +X (RIGHT).  The difference is 90� = PI/2.
+            //        angleRad += 3.14159265f * 0.5f;   // + PI/2
+
+            //        mgr.GetComponent<Transform>(entity).rotation.textureAngle = angleRad;
+            //    }
+            //}
+
+            
+        
     }
     void BirdAttackState::SetParameter(const std::string& key, float value) {
-        if (key == "attackSpeed") attackSpeed_ = value;
-        if (key == "duration") duration_ = value;
+        if (key == "attackSpeed")    attackMaxSpeed_ = value;   // JSON key kept same
+        if (key == "attackAccel")    attackAccel_ = value;
+        if (key == "duration")       duration_ = value;
     }
 
     // --- RECOVERY ---
     void BirdRecoveryState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
         EntityManager mgr(ecs);
-        if (mgr.HasComponent(entity, VelocityType)) {
-            // Stop moving, maybe bounce back slightly
+        if (mgr.HasComponent(entity, VelocityType))
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
-        }
+        if (mgr.HasComponent(entity, TransformType))
+            mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
     }
     void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
@@ -288,6 +471,8 @@ namespace Framework {
         if (mgr.HasComponent(entity, AnimationComponentType)) {
             mgr.GetComponent<AnimationComponent>(entity).currentState = AnimationState::DEATH;
         }
+
+        s_lastChaseVel.erase(entity);  // cleanup
 
         MessageBus::Instance().Publish(VFXTriggerEvent{ "EnemyDeathEvent",true, deathPosition });
 
@@ -339,19 +524,12 @@ namespace Framework {
             FSMComponent& fsm = mgr.GetComponent<FSMComponent>(e);
             State* s = fsm.fsm.GetState(sName);
 
-            // 1. Check Waking State
             if (auto* ws = dynamic_cast<BirdWakingState*>(s))
                 return ws->GetTimer() >= ws->GetWakeUpTime();
-
-            // 2. Check Bounce State
             if (auto* bs = dynamic_cast<BirdBounceState*>(s))
                 return bs->GetTimer() >= bs->GetDuration();
-
-            // 3. Check Attack State
             if (auto* as = dynamic_cast<BirdAttackState*>(s))
                 return as->GetTimer() >= as->GetDuration();
-
-            // 4. Check Recovery State
             if (auto* rs = dynamic_cast<BirdRecoveryState*>(s))
                 return rs->GetTimer() >= rs->GetDuration();
 

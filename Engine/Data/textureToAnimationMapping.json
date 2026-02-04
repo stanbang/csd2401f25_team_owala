@@ -67,6 +67,19 @@
 		},
 		{
 			"texture_keys": [
+				"SB_BirdEnemy_Wake_Spritesheet_1.png",
+				"SB_BirdEnemy_Wake_Spritesheet_2.png",
+				"SB_BirdEnemy_Wake_Spritesheet_3.png",
+				"SB_BirdEnemy_Wake_Spritesheet_4.png",
+				"SB_BirdEnemy_Wake_Spritesheet_5.png",
+				"SB_BirdEnemy_Wake_Spritesheet_6.png",
+				"SB_BirdEnemy_Wake_Spritesheet_7.png",
+				"SB_BirdEnemy_Wake_Spritesheet_8.png"
+			],
+			"animation_path": "Data/AnimationData/birdWakeAnimation.json"
+		},
+		{
+			"texture_keys": [
 				"SB_BirdEnemy_Fly_Spritesheet_1.png",
 				"SB_BirdEnemy_Fly_Spritesheet_2.png"
 			],
@@ -172,20 +185,20 @@
 			"texture_keys": [
 				"SB_Props_Lamp_spritesheet.png"
 			],
-    		"animation_path": "Data/AnimationData/propsLampAnimation.json"
+			"animation_path": "Data/AnimationData/propsLampAnimation.json"
 		},
 		{
 			"texture_keys": [
 				"SB_Props_SwingingSkulls_Spritesheet.png"
 			],
-    		"animation_path": "Data/AnimationData/propsSwingingSkullsAnimation.json"
+			"animation_path": "Data/AnimationData/propsSwingingSkullsAnimation.json"
 		},
 		{
 			"texture_keys": [
 				"SB_Props_AhhSkulls_Spritesheet_01.png",
 				"SB_Props_AhhSkulls_Spritesheet_02.png"
 			],
-    		"animation_path": "Data/AnimationData/propsAhhSkullsAnimation.json"
+			"animation_path": "Data/AnimationData/propsAhhSkullsAnimation.json"
 		},
 		{
 			"texture_keys": [
@@ -195,7 +208,7 @@
 				"SB_Curtain_Idle_Spritesheet_R_04.png",
 				"SB_Curtain_Idle_Spritesheet_R_05.png"
 			],
-    		"animation_path": "Data/AnimationData/curtainIdleR.json"
+			"animation_path": "Data/AnimationData/curtainIdleR.json"
 		},
 		{
 			"texture_keys": [
@@ -205,20 +218,20 @@
 				"SB_Curtain_Idle_Spritesheet_l_04.png",
 				"SB_Curtain_Idle_Spritesheet_l_05.png"
 			],
-    		"animation_path": "Data/AnimationData/curtainIdlel.json"
+			"animation_path": "Data/AnimationData/curtainIdlel.json"
 		},
 		{
 			"texture_keys": [
 				"SB_Eli_Walk_Spritesheet_01.png"
 			],
-    		"animation_path": "Data/AnimationData/loadingScreenWalkAnimation.json"
+			"animation_path": "Data/AnimationData/loadingScreenWalkAnimation.json"
 		},
 		{
 			"texture_keys": [
 				"SB_Word_Spritesheet_01.png",
 				"SB_Word_Spritesheet_02.png"
 			],
-    		"animation_path": "Data/AnimationData/loadingScreenWordAnimation.json"
+			"animation_path": "Data/AnimationData/loadingScreenWordAnimation.json"
 		}
-  ]
+	]
 }
