@@ -508,6 +508,24 @@ namespace Framework {
             return;
         }
 
+        // This prevents the trap from "resting" on the bird.
+        // We let them overlap so PlayerSystem can detect the kill.
+        bool isE1Trap = entityMgr.HasComponent(e1, TrapPlatformComponentType);
+        bool isE2Trap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
+        bool isE1Enemy = entityMgr.HasComponent(e1, EnemyTagType);
+        bool isE2Enemy = entityMgr.HasComponent(e2, EnemyTagType);
+
+        if ((isE1Trap && isE2Enemy) || (isE2Trap && isE1Enemy)) {
+            Entity trapEntity = isE1Trap ? e1 : e2;
+            TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(trapEntity);
+
+            // If the trap is in "falling mode", ignore collision resolution.
+            // This stops it from landing on the bird.
+            if (trapComp.hasFallen) {
+                return;
+            }
+        }
+
         // --- LAYER-BASED COLLISION CHECK ---
         if (entityMgr.GetProperties(e1).layer == CollisionLayer::Default || entityMgr.GetProperties(e2).layer == CollisionLayer::Default) {
             return;

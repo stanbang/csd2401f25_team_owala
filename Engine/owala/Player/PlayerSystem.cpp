@@ -537,14 +537,13 @@ namespace Framework {
         float dt = Time::DeltaTime();
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
-            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || 
+            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) ||
                 !entityMgr.HasComponent(enemyEntity, TransformType) ||
                 !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
                 continue;
             }
 
             FSMComponent& fsmComp = entityMgr.GetComponent<FSMComponent>(enemyEntity);
-
             if (fsmComp.fsm.GetCurrentState() == "Death") continue;
 
             // Check all trap platforms
@@ -573,7 +572,7 @@ namespace Framework {
                 AABB_Bounds enemyBounds = {
                     {enemyPos.x - enemyHalfSize.x, enemyPos.y - enemyHalfSize.y},
                     {enemyPos.x + enemyHalfSize.x, enemyPos.y + enemyHalfSize.y}
-                };  
+                };
 
                 float trapRotation = 0.0f;
                 if (entityMgr.HasComponent(trapEntity, RotationFlagType)) {
@@ -581,48 +580,59 @@ namespace Framework {
                 }
                 AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
-                float tFirst = 0.0f;
-                bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst);
-                bool isStaticHit = CollisionIntersection_RectRect_Static(enemyBounds, trapBounds);
+                // Physics might have resolved the overlap, so expand trap bounds slightly 
+                // to detect "touching" contact.
+                float tolerance = 2.0f;
+                AABB_Bounds expandedTrapBounds = trapBounds;
+                expandedTrapBounds.min.x -= tolerance;
+                expandedTrapBounds.max.x += tolerance;
+                expandedTrapBounds.min.y -= tolerance;
+                expandedTrapBounds.max.y += tolerance;
 
-                // Valid Hit if:
-                // 1. Dynamic hit occurred within this frame (tFirst <= dt)
-                // 2. OR Static overlap is currently happening
-                if (isDynamicHit || isStaticHit) {
+                // Check for static overlap with expanded bounds
+                bool isStaticHit = CollisionIntersection_RectRect_Static(enemyBounds, expandedTrapBounds);
 
-                    // Extra Check: Ensure the trap is actually crushing (moving down or above)
-                    // This prevents the bird from dying if it touches the *side* of a stationary trap
-                    bool isTrapFalling = (trapVel.y < -10.0f);
-                    bool isTrapAbove = (trapBounds.min.y <= enemyBounds.max.y + 10.0f); // Forgiving vertical check
+                if (!isStaticHit) continue;
 
-                    if (isTrapFalling || (trapComp.hasFallen && isTrapAbove)) {
-                        TriggerEnemyDeath(enemyEntity, "falling trap platform");
-                        break; // Enemy is dead, move to next enemy
-                    }
+                // Check if trap is above enemy (crushing from above)
+                float trapBottom = trapBounds.min.y;
+                float enemyTop = enemyBounds.max.y;
+                bool isTrapAbove = (trapBottom <= enemyTop + 30.0f); // Tolerance for alignment
+
+                if (!isTrapAbove) continue;
+
+                // If the trap has officially fallen, it is lethal. 
+                // We ignore trapVel.y because the bird might be flying up, pushing the trap up, 
+                // which would make trapVel.y positive or zero.
+                bool shouldKill = false;
+
+                if (trapComp.hasFallen) {
+                    shouldKill = true;
+                }
+                // Fallback for initial impact if not fully "fallen" state yet (rare)
+                else {
+                    // Previous logic for dynamic impact
+                    float tFirst = 0.0f;
+                    bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(
+                        enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst
+                    );
+                    shouldKill = (isDynamicHit && tFirst >= 0.0f && tFirst <= dt);
                 }
 
-                //if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
-                //    // Check if trap has velocity (is falling or has fallen)
-                //    bool isTrapFalling = false;
-                //    float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
-                //    if (entityMgr.HasComponent(trapEntity, VelocityType)) {
-                //        
-                //        //isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
-                //        isTrapFalling = (trapVelY < -10.0f);
-                //    }
+                // Method 3: Check for initial impact (dynamic collision)
+                float tFirst = 0.0f;
+                bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(
+                    enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst
+                );
+                bool isInitialImpact = (isDynamicHit && tFirst >= 0.0f && tFirst <= dt);
 
-                //    // Check if trap is above enemy (crushing from above)
-                //    float trapBottom = trapBounds.min.y;
-                //    float enemyTop = enemyBounds.max.y;
-                //    //bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
-                //    bool isTrapAbove = (trapBottom <= enemyTop + 30.0f);
+                if (shouldKill) {
+                    TriggerEnemyDeath(enemyEntity, "falling trap platform");
 
-                //    // Kill if trap is falling OR if trap has fallen and is resting on enemy
-                //    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove && std::abs(trapVelY) < 5.0f))  {
-                //        TriggerEnemyDeath(enemyEntity, "falling trap platform");
-                //        break;
-                //    }
-                //}
+                    // Optional: Ensure trap doesn't stay grounded on the dead bird immediately
+                    // If the bird collider is disabled in "Death" state, this solves itself next frame.
+                    break;
+                }
             }
         }
     }
