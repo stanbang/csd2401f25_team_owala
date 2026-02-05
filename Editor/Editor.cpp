@@ -5872,6 +5872,69 @@ namespace Editor {
 				}
 			}
 
+			// === ENTITY PROPERTIES SECTION ===
+			ImGui::Separator();
+			ImGui::SeparatorText("Entity Properties");
+
+			// Collision Layer ID
+			if (ImGui::InputInt("Collision Layer ID", &prefab->layer)) {
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The collision layer ID for physics interactions");
+			}
+
+			// Layer Collision Name
+			static char layerCollisionNameBuffer[256] = "";
+			strncpy_s(layerCollisionNameBuffer, sizeof(layerCollisionNameBuffer), prefab->layer_collision_name.c_str(), _TRUNCATE);
+			if (ImGui::InputText("Collision Layer Name", layerCollisionNameBuffer, 256)) {
+				prefab->layer_collision_name = std::string(layerCollisionNameBuffer);
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The collision layer name (e.g., 'Platform', 'Player', 'Default')");
+			}
+
+			ImGui::Spacing();
+
+			// Render Layer
+			if (ImGui::InputInt("Render Layer", &prefab->renderLayer)) {
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The rendering layer order (higher values render on top)");
+			}
+
+			// Custom Render Order
+			if (ImGui::InputInt("Custom Render Order", &prefab->customRenderOrder)) {
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Fine-tuned render order within the same render layer");
+			}
+
+			// Render Layer Name
+			static char layerRenderNameBuffer[256] = "";
+			strncpy_s(layerRenderNameBuffer, sizeof(layerRenderNameBuffer), prefab->layer_render_name.c_str(), _TRUNCATE);
+			if (ImGui::InputText("Render Layer Name", layerRenderNameBuffer, 256)) {
+				prefab->layer_render_name = std::string(layerRenderNameBuffer);
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The render layer name (optional)");
+			}
+
+
 			// === ADD/REMOVE COMPONENTS SECTION ===
 			ImGui::Separator();
 			ImGui::SeparatorText("Add/Remove Components");

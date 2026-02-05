@@ -40,13 +40,15 @@ namespace Framework {
         std::string name;
         std::vector<ComponentData> components;
         std::vector<std::string> tags;
-        std::string layer;
         std::string sourceFile;
         std::string filePath;
-        int renderLayer = 0;          
-        int customRenderOrder = 0;    
+        int layer = 0;                          // Collision layer ID
+        std::string layer_collision_name = "";  // Changed from int to string
+        int renderLayer = 0;                    // Render layer ID
+        std::string layer_render_name = "";     // Changed from int to string
+        int customRenderOrder = 0;              // Custom render order within layer
 
-        EntityPrefab() : name(""), layer("Default"), renderLayer(0), customRenderOrder(0), sourceFile("") {}
+        EntityPrefab() : name(""), layer(0), layer_collision_name("Default"), renderLayer(0), layer_render_name(""), customRenderOrder(0), sourceFile("") { }
     };
 
     struct PlatformPrefab {

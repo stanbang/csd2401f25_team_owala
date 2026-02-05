@@ -351,13 +351,23 @@ bool ResourceManager::loadPrefab(const std::string& name, const std::string& fil
 	if (doc.HasMember(Serialization::ENTITY_LAYER) && doc[Serialization::ENTITY_LAYER].IsInt()) {
 		int layerInt = doc[Serialization::ENTITY_LAYER].GetInt();
 		CollisionLayer layer = static_cast<CollisionLayer>(layerInt);
-		if (layer == CollisionLayer::Platform) newPrefab->layer = "Platform";
-		else if (layer == CollisionLayer::Player) newPrefab->layer = "Player";
-		else newPrefab->layer = "Default";
+		newPrefab->layer = layerInt;
+		if (layer == CollisionLayer::Platform) newPrefab->layer_collision_name = "Platform";
+		else if (layer == CollisionLayer::Player) newPrefab->layer_collision_name = "Player";
+		else newPrefab->layer_collision_name = "Default";
+	}
+
+	if (doc.HasMember(Serialization::ENTITY_COLLISION_LAYER_NAME) && doc[Serialization::ENTITY_COLLISION_LAYER_NAME].IsString()) {
+		newPrefab->layer_collision_name = doc[Serialization::ENTITY_COLLISION_LAYER_NAME].GetString();
 	}
 
 	if (doc.HasMember(Serialization::ENTITY_RENDER_LAYER) && doc[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
 		newPrefab->renderLayer = doc[Serialization::ENTITY_RENDER_LAYER].GetInt();
+	}
+
+	// Load render layer name if present
+	if (doc.HasMember(Serialization::ENTITY_RENDER_LAYER_NAME) && doc[Serialization::ENTITY_RENDER_LAYER_NAME].IsString()) {
+		newPrefab->layer_render_name = doc[Serialization::ENTITY_RENDER_LAYER_NAME].GetString();
 	}
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded prefab '" << filepath << "'" << std::endl;
