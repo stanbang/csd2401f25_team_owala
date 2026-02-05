@@ -511,8 +511,6 @@ namespace Framework {
 
         // This prevents the trap from "resting" on the bird.
         // We let them overlap so PlayerSystem can detect the kill.
-        bool isE1Trap = entityMgr.HasComponent(e1, TrapPlatformComponentType);
-        bool isE2Trap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
         bool isE1Enemy = entityMgr.HasComponent(e1, EnemyTagType);
         bool isE2Enemy = entityMgr.HasComponent(e2, EnemyTagType);
         bool isE1Player = entityMgr.HasComponent(e1, PlayerTagType);
