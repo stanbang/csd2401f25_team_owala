@@ -448,7 +448,7 @@ namespace Framework {
                 uint8_t id1 = collisionLayers_[i].id;
                 uint8_t id2 = collisionLayers_[j].id;
 
-                // Ask PhysicsSystem: Do these two collide?
+                
                 bool canCollide = physics->GetLayerCollision(
                     static_cast<CollisionLayer>(id1),
                     static_cast<CollisionLayer>(id2)
@@ -460,18 +460,7 @@ namespace Framework {
                 obj.AddMember("canCollide", canCollide, alloc);
 
                 outArray.PushBack(obj, alloc);
-                /*rapidjson::Value pairObj(rapidjson::kObjectType);
-
-                pairObj.AddMember("layer1", static_cast<int>(collisionLayers_[i].id), alloc);
-                pairObj.AddMember("layer2", static_cast<int>(collisionLayers_[j].id), alloc);
-
-                bool canCollide = false;
-                if (i < collisionMatrix_.size() && j < collisionMatrix_[i].size()) {
-                    canCollide = collisionMatrix_[i][j];
-                }
-                pairObj.AddMember("canCollide", canCollide, alloc);
-
-                outArray.PushBack(pairObj, alloc);*/
+               
             }
         }
     }
