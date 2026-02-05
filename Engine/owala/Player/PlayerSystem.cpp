@@ -534,17 +534,16 @@ namespace Framework {
 
     void PlayerSystem::CheckEnemyDeathFromTraps() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        float dt = Time::DeltaTime();
+        //float dt = Time::DeltaTime();
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
-            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) || 
+            if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) ||
                 !entityMgr.HasComponent(enemyEntity, TransformType) ||
                 !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
                 continue;
             }
 
             FSMComponent& fsmComp = entityMgr.GetComponent<FSMComponent>(enemyEntity);
-
             if (fsmComp.fsm.GetCurrentState() == "Death") continue;
 
             // Check all trap platforms
@@ -573,7 +572,7 @@ namespace Framework {
                 AABB_Bounds enemyBounds = {
                     {enemyPos.x - enemyHalfSize.x, enemyPos.y - enemyHalfSize.y},
                     {enemyPos.x + enemyHalfSize.x, enemyPos.y + enemyHalfSize.y}
-                };  
+                };
 
                 float trapRotation = 0.0f;
                 if (entityMgr.HasComponent(trapEntity, RotationFlagType)) {
@@ -581,48 +580,44 @@ namespace Framework {
                 }
                 AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
 
-                float tFirst = 0.0f;
-                bool isDynamicHit = CollisionIntersection_RectRect_Dynamic(enemyBounds, enemyVel, trapBounds, trapVel, dt, tFirst);
-                bool isStaticHit = CollisionIntersection_RectRect_Static(enemyBounds, trapBounds);
+                // Physics might have resolved the overlap, so expand trap bounds slightly 
+                // to detect "touching" contact.
+                float tolerance = 2.0f;
+                AABB_Bounds expandedTrapBounds = trapBounds;
+                expandedTrapBounds.min.x -= tolerance;
+                expandedTrapBounds.max.x += tolerance;
+                expandedTrapBounds.min.y -= tolerance;
+                expandedTrapBounds.max.y += tolerance;
 
-                // Valid Hit if:
-                // 1. Dynamic hit occurred within this frame (tFirst <= dt)
-                // 2. OR Static overlap is currently happening
-                if (isDynamicHit || isStaticHit) {
+                // 3. Intersection Check
+                if (CollisionIntersection_RectRect_Static(enemyBounds, expandedTrapBounds)) {
 
-                    // Extra Check: Ensure the trap is actually crushing (moving down or above)
-                    // This prevents the bird from dying if it touches the *side* of a stationary trap
-                    bool isTrapFalling = (trapVel.y < -10.0f);
-                    bool isTrapAbove = (trapBounds.min.y <= enemyBounds.max.y + 10.0f); // Forgiving vertical check
+                    // --- NEW LOGIC STARTS HERE ---
 
-                    if (isTrapFalling || (trapComp.hasFallen && isTrapAbove)) {
+                    // Calculate the actual overlap dimensions
+                    float overlapMinX = std::max(enemyBounds.min.x, expandedTrapBounds.min.x);
+                    float overlapMaxX = std::min(enemyBounds.max.x, expandedTrapBounds.max.x);
+                    float overlapMinY = std::max(enemyBounds.min.y, expandedTrapBounds.min.y);
+                    float overlapMaxY = std::min(enemyBounds.max.y, expandedTrapBounds.max.y);
+
+                    float overlapWidth = std::max(0.0f, overlapMaxX - overlapMinX);
+                    float overlapHeight = std::max(0.0f, overlapMaxY - overlapMinY);
+
+                    // A crushing hit is mostly horizontal surface contact (Vertical Penetration < Horizontal Width)
+                    bool isVerticalHit = overlapHeight < overlapWidth;
+
+                    // Ensure the trap is physically above the enemy
+                    bool isTrapAbove = trapPos.y > enemyPos.y;
+
+                    // Kill ONLY if:
+                    // 1. It's a vertical collision (not a side swipe)
+                    // 2. The trap is above the bird
+                    // 3. The trap is in the falling state
+                    if (isVerticalHit && isTrapAbove && trapComp.hasFallen) {
                         TriggerEnemyDeath(enemyEntity, "falling trap platform");
-                        break; // Enemy is dead, move to next enemy
+                        break;
                     }
                 }
-
-                //if (CollisionIntersection_RectRect_Static(enemyBounds, trapBounds)) {
-                //    // Check if trap has velocity (is falling or has fallen)
-                //    bool isTrapFalling = false;
-                //    float trapVelY = entityMgr.GetComponent<Velocity>(trapEntity).Vel.y;
-                //    if (entityMgr.HasComponent(trapEntity, VelocityType)) {
-                //        
-                //        //isTrapFalling = (trapVelY < -50.0f); // Falling fast enough
-                //        isTrapFalling = (trapVelY < -10.0f);
-                //    }
-
-                //    // Check if trap is above enemy (crushing from above)
-                //    float trapBottom = trapBounds.min.y;
-                //    float enemyTop = enemyBounds.max.y;
-                //    //bool isTrapAbove = (trapBottom <= enemyTop + 20.0f);
-                //    bool isTrapAbove = (trapBottom <= enemyTop + 30.0f);
-
-                //    // Kill if trap is falling OR if trap has fallen and is resting on enemy
-                //    if ((isTrapFalling && isTrapAbove) || (trapComp.hasFallen && isTrapAbove && std::abs(trapVelY) < 5.0f))  {
-                //        TriggerEnemyDeath(enemyEntity, "falling trap platform");
-                //        break;
-                //    }
-                //}
             }
         }
     }

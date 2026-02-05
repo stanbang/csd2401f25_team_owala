@@ -224,7 +224,14 @@ namespace Framework {
         float getMasterVolume();
         float getMusicVolume();
         float getSFXVolume();
+
+        // Helper to start the fade
+        void FadeOutChannel(FMOD::Channel* channel, float duration);
+
     private:
+        // Tracks channels fading out: <Channel Pointer, Fade Speed (vol/sec)>
+        std::unordered_map<FMOD::Channel*, float> fadingChannels_;
+
         /// \name FMOD Core Pointers
         ///@{
         FMOD::System* system_ = nullptr;  //!< Owned FMOD system (created in Initialize()).

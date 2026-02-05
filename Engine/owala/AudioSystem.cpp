@@ -94,11 +94,43 @@ namespace Framework {
         GameManager& gm = GameManager::GetInstance();
         ResourceManager& resourceManager_ = *gm.GetSystems().resourceManager_;
 		EntityManager entityMgr(gm.GetECS());
+
+        // --- Process Fading Channels ---
+        float dt = Time::DeltaTime();
+
+        for (auto it = fadingChannels_.begin(); it != fadingChannels_.end(); ) {
+            FMOD::Channel* ch = it->first;
+            float fadeSpeed = it->second;
+
+            bool isPlaying = false;
+            if (ch) ch->isPlaying(&isPlaying);
+
+            if (!ch || !isPlaying) {
+                it = fadingChannels_.erase(it); // Channel died naturally
+                continue;
+            }
+
+            float vol = 0.0f;
+            ch->getVolume(&vol);
+            vol -= fadeSpeed * dt; // Reduce volume
+
+            if (vol <= 0.0f) {
+                ch->stop(); // Done fading
+                it = fadingChannels_.erase(it);
+            }
+            else {
+                ch->setVolume(vol); // Apply new volume
+                ++it;
+            }
+        }
+
+        // --- Update FMOD System ---
         if (system_) {
             FMOD_RESULT r = system_->update();
             check(r, "System::update");
         }
 
+        // --- Manage Entity Channels ---
         for (auto it = entityChannels_.begin(); it != entityChannels_.end(); ) {
             Entity ownerEntity = it->first;
             FMOD::Channel* channel = it->second;
@@ -112,18 +144,21 @@ namespace Framework {
                 channel->isPlaying(&isChannelPlaying);
             }
 
-            // REMOVE IF: Entity is dead OR Sound finished naturally
-            if (!isEntityActive || !isChannelPlaying) {
-                if (channel) {
-                    channel->stop(); // Cut the audio immediately
-                }
-                it = entityChannels_.erase(it); // Remove from map
+            if (!isChannelPlaying) {
+                // Sound finished naturally: just remove, no fade needed
+                it = entityChannels_.erase(it);
+            }
+            else if (!isEntityActive) {
+                // Entity disabled/died: Force fade out (e.g., 1.0 second)
+                FadeOutChannel(channel, 1.0f);
+                it = entityChannels_.erase(it); // Detach from entity map
             }
             else {
                 ++it;
             }
         }
 
+        // --- Start New Sounds ---
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AudioComponentType)) {
 
 			// Check if Entity is active in the scene. Loads if active.
@@ -298,7 +333,7 @@ namespace Framework {
         for (std::unordered_map<std::string, FMOD::Channel*>::iterator it = channels_.begin();
             it != channels_.end(); ++it) {
             if (it->second) {
-                it->second->stop();
+                FadeOutChannel(it->second, 1.0f);
             }
         }
         channels_.clear();
@@ -431,6 +466,25 @@ namespace Framework {
             }
         }
         return "";
+    }
+
+    void AudioSystem::FadeOutChannel(FMOD::Channel* channel, float duration) {
+        if (!channel) return;
+
+        float currentVol = 0.0f;
+        channel->getVolume(&currentVol);
+
+        // If duration is effectively zero, stop immediately
+        if (duration <= 0.001f) {
+            channel->stop();
+            return;
+        }
+
+        // Calculate speed: Volume to lose per second
+        float speed = currentVol / duration;
+
+        // Add to map for processing in Update()
+        fadingChannels_[channel] = speed;
     }
 
     void AudioSystem::TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol) {
