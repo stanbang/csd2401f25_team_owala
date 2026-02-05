@@ -10,3 +10,4 @@ Installer/INSTALLER/StageBound_Setup.exe
 Installer/GAMEDIRECTORY/StageBound.exe
 /Installer/GAMEDIRECTORY
 /Installer/INSTALLER
+/Engine/Data/save.json
