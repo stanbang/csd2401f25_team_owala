@@ -132,6 +132,7 @@ namespace Framework {
         if (!collisionMatrixInitialized_) {
             InitializeCollisionMatrix();
             collisionMatrixInitialized_ = true;
+            ReloadCollisionMatrixFromFile();
             Logger::Get().Info(DebugType::PhysicsSystem)
                 << "Collision matrix initialized with defaults" << std::endl;
         }
@@ -516,12 +517,6 @@ namespace Framework {
         bool isE2Enemy = entityMgr.HasComponent(e2, EnemyTagType);
         bool isE1Player = entityMgr.HasComponent(e1, PlayerTagType);
         bool isE2Player = entityMgr.HasComponent(e2, PlayerTagType);
-
-        if ((isE1Trap && isE2Enemy) || (isE2Trap && isE1Enemy)) {
-            // Skip collision resolution entirely between traps and enemies
-            // PlayerSystem will handle trap-killing-bird logic manually
-            return;
-        }
 
         // --- LAYER-BASED COLLISION CHECK ---
         if (entityMgr.GetProperties(e1).layer == CollisionLayer::Default || entityMgr.GetProperties(e2).layer == CollisionLayer::Default) {
