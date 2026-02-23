@@ -84,19 +84,35 @@ namespace Framework {
 					animationComponent.currentState = AnimationState::IDLE;
 				}
 				else if (stateName == "Waking") {
-					animationComponent.currentState = AnimationState::WAKING; // Use idle while waking
+					animationComponent.currentState = AnimationState::WAKING;
 				}
 				else if (stateName == "SimpleChase" || stateName == "Bounce" || stateName == "Hover") {
-					animationComponent.currentState = AnimationState::RUNNING; // "Fly" animation
+					animationComponent.currentState = AnimationState::RUNNING;
 				}
 				else if (stateName == "Attack") {
-					animationComponent.currentState = AnimationState::JUMPING; // "Dive" animation
+					animationComponent.currentState = AnimationState::JUMPING;
 				}
 				else if (stateName == "Recovery") {
-					animationComponent.currentState = AnimationState::RUNNING; // Back to "Fly" after missing
+					animationComponent.currentState = AnimationState::RUNNING;
 				}
 				else if (stateName == "Death") {
 					animationComponent.currentState = AnimationState::DEATH;
+				}
+				// --- ADD WITCH STATE MAPPINGS ---
+				else if (stateName == "WitchIdle") {
+					animationComponent.currentState = AnimationState::IDLE;
+				}
+				else if (stateName == "WitchAlerted") {
+					animationComponent.currentState = AnimationState::WAKING;
+				}
+				else if (stateName == "WitchEnraged" || stateName == "WitchCharging") {
+					animationComponent.currentState = AnimationState::RUNNING;
+				}
+				else if (stateName == "WitchTeleport") {
+					animationComponent.currentState = AnimationState::JUMPING;
+				}
+				else if (stateName == "WitchAttack") {
+					animationComponent.currentState = AnimationState::HURT;
 				}
 			}
 

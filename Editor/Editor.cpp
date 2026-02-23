@@ -528,8 +528,10 @@ namespace Editor {
 			ImVec2 screenPos = WorldToImGuiScreen(snappedPos);
 
 			// Draw preview
-			ImVec2 rectMin = ImVec2(screenPos.x - 25, screenPos.y - 25);
-			ImVec2 rectMax = ImVec2(screenPos.x + 25, screenPos.y + 25);
+			ImVec2 rectMin = ImVec2(screenPos.x - fsmDragDropPayload_.halfSize.x,
+				screenPos.y - fsmDragDropPayload_.halfSize.y);
+			ImVec2 rectMax = ImVec2(screenPos.x + fsmDragDropPayload_.halfSize.x,
+				screenPos.y + fsmDragDropPayload_.halfSize.y);
 
 			drawList->AddImage(
 				fsmDragDropPayload_.textureID,
@@ -3826,10 +3828,17 @@ namespace Editor {
 
 			std::string displayName = std::filesystem::path(fsmPath).stem().string();
 			std::string textureKey = "default_enemy.png"; // Default texture
+			ImVec2 halfSize{ 25.0f, 25.0f };
 
 			// Try to extract texture from the definition
 			if (doc.HasMember("previewTexture") && doc["previewTexture"].IsString()) {
 				textureKey = doc["previewTexture"].GetString();
+			}
+
+			if (doc.HasMember("halfSize") && doc["halfSize"].IsObject()) {
+				const auto& sizeObj = doc["halfSize"];
+				if (sizeObj.HasMember("x")) halfSize.x = sizeObj["x"].GetFloat();
+				if (sizeObj.HasMember("y")) halfSize.y = sizeObj["y"].GetFloat();
 			}
 
 			// Get texture ID
@@ -3843,7 +3852,8 @@ namespace Editor {
 						textureKey,
 						(ImTextureID)(intptr_t)texID,
 						ImVec2(0.0f, 1.0f),
-						ImVec2(1.0f, 0.0f)
+						ImVec2(1.0f, 0.0f),
+						halfSize
 						});
 
 					Logger::Get().Info(DebugType::Editor)
@@ -3904,55 +3914,59 @@ namespace Editor {
 			}
 
 			for (const auto& item : fsmPaletteItems_) {
-				ImGui::PushID(item.name.c_str());
+					ImGui::PushID(item.name.c_str());
+					ImGui::BeginGroup();
 
-				// Button with preview image
-				if (ImGui::ImageButton(
-					item.name.c_str(),
-					item.textureID,
-					buttonSize,
-					item.uv0,
-					item.uv1,
-					bgCol,
-					tintCol))
-				{
-					selectedFSMDefinition_ = item.fsmPath;
-					Logger::Get().Info(DebugType::Editor)
-						<< "Selected FSM: " << item.name << std::endl;
-				}
+					// Button with preview image
+					if (ImGui::ImageButton(
+						item.name.c_str(),
+						item.textureID,
+						buttonSize,
+						item.uv0,
+						item.uv1,
+						bgCol,
+						tintCol))
+					{
+						selectedFSMDefinition_ = item.fsmPath;
+						Logger::Get().Info(DebugType::Editor)
+							<< "Selected FSM: " << item.name << std::endl;
+					}
 
-				// Drag and drop source
-				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-					ImGui::SetDragDropPayload("FSM_ENEMY_DND", &item, sizeof(DraggableFSMInfo));
-					ImGui::Text("Placing: %s", item.name.c_str());
-					ImGui::Image(item.textureID, ImVec2(48, 48), item.uv0, item.uv1);
+					// Drag and drop source
+					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+						fsmDragDropPayload_ = item;
+						ImGui::SetDragDropPayload("FSM_ENEMY_DND",
+							fsmDragDropPayload_.fsmPath.c_str(),
+							fsmDragDropPayload_.fsmPath.size() + 1);
+						ImGui::Text("Placing: %s", item.name.c_str());
+						ImGui::Image(item.textureID, ImVec2(48, 48), item.uv0, item.uv1);
 
-					isDraggingFSM_ = true;
-					fsmDragDropPayload_ = item;
-					ImGui::EndDragDropSource();
-				}
+						isDraggingFSM_ = true;
+						ImGui::EndDragDropSource();
+					}
 
-				// Show tooltip
-				if (ImGui::IsItemHovered()) {
-					ImGui::BeginTooltip();
+					// Show tooltip
+					if (ImGui::IsItemHovered()) {
+						ImGui::BeginTooltip();
+						ImGui::Text("%s", item.name.c_str());
+						ImGui::TextDisabled("Path: %s", item.fsmPath.c_str());
+						ImGui::EndTooltip();
+					}
+
+					// Display name below button
 					ImGui::Text("%s", item.name.c_str());
-					ImGui::TextDisabled("Path: %s", item.fsmPath.c_str());
-					ImGui::EndTooltip();
-				}
 
-				// Display name below button
-				ImGui::Text("%s", item.name.c_str());
+					ImGui::EndGroup();
+					ImGui::PopID();
 
-				ImGui::PopID();
-
-				itemsPerRow++;
-				if (itemsPerRow < maxItemsPerRow) {
-					ImGui::SameLine();
+					itemsPerRow++;
+					if (itemsPerRow < maxItemsPerRow) {
+						ImGui::SameLine();
+					}
+					else {
+						itemsPerRow = 0;
+					}
 				}
-				else {
-					itemsPerRow = 0;
-				}
-			}
 
 			if (itemsPerRow != 0) {
 				ImGui::NewLine();
@@ -4033,7 +4047,15 @@ namespace Editor {
 		}
 
 		entityMgr.AddComponent<TextureComponent>(enemy, TextureComponent{ textureKey, halfSize });
-		entityMgr.AddComponent<AABBCollider>(enemy, AABBCollider{ halfSize });
+
+		// Only add collision if not explicitly disabled (e.g., witch phases through things)
+		bool hasCollision = true;
+		if (doc.HasMember("hasCollision") && doc["hasCollision"].IsBool()) {
+			hasCollision = doc["hasCollision"].GetBool();
+		}
+		if (hasCollision) {
+			entityMgr.AddComponent<AABBCollider>(enemy, AABBCollider{ halfSize });
+		}
 
 		// Add physics
 		RigidBody rb;

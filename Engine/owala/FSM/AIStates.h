@@ -251,8 +251,8 @@ namespace Framework {
     private:
         float timer_ = 0.0f;
         float teleportDuration_ = 0.3f;
-        float teleportDistance_ = 200.0f;
-        Vector2D targetPosition_;
+        float minTeleportRange_ = 80.0f;
+        float maxTeleportRange_ = 200.0f;
     };
 
     // --- WITCH CHARGING STATE ---
@@ -283,12 +283,14 @@ namespace Framework {
 
         float GetTimer() const { return timer_; }
         float GetAttackDuration() const { return attackDuration_; }
-        float GetAttackRadius() const { return attackRadius_; }
+        float GetAttackRadius() const { return maxAttackRadius_; }
+        float GetCurrentRadius() const { return currentRadius_; }
 
     private:
         float timer_ = 0.0f;
-        float attackDuration_ = 0.5f;
-        float attackRadius_ = 150.0f;
+        float attackDuration_ = 2.0f;
+        float maxAttackRadius_ = 200.0f;
+        float currentRadius_ = 0.0f;
         bool damageDealt_ = false;
     };
 }

@@ -1,8 +1,9 @@
 {
-    "initialState": "Idle",
+    "initialState": "WitchIdle",
     "previewTexture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
     "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
     "animationProfile": "witchEnemy",
+    "hasCollision": false,
     "halfSize": {
         "x": 30,
         "y": 40
@@ -34,7 +35,8 @@
             "type": "WitchTeleport",
             "parameters": {
                 "teleportDuration": 0.3,
-                "teleportDistance": 200
+                "minTeleportRange": 80,
+                "maxTeleportRange": 200
             }
         },
         {
@@ -49,8 +51,8 @@
             "name": "WitchAttack",
             "type": "WitchAttack",
             "parameters": {
-                "attackDuration": 0.5,
-                "attackRadius": 150
+                "attackDuration": 2.0,
+                "attackRadius": 200
             }
         }
     ],

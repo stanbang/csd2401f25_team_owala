@@ -540,17 +540,23 @@ namespace Framework {
         if (player == 0 || !mgr.HasComponent(entity, TransformType) ||
             !mgr.HasComponent(player, TransformType)) return;
 
-        Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
         Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
 
-        // Calculate teleport position near player
-        Vector2D dirToPlayer = playerPos - myPos;
-        dirToPlayer.Normalize();
+        // Pick a random angle and distance within range of the player
+        static std::mt19937 rng{ std::random_device{}() };
+        std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * 3.14159265f);
+        std::uniform_real_distribution<float> distDist(minTeleportRange_, maxTeleportRange_);
 
-        // Teleport to a position near the player (at teleportDistance_)
-        targetPosition_ = playerPos - dirToPlayer * teleportDistance_;
+        float angle = angleDist(rng);
+        float dist = distDist(rng);
 
-        // Stop velocity during teleport
+        Vector2D offset = { std::cos(angle) * dist, std::sin(angle) * dist };
+        Vector2D teleportPos = playerPos + offset;
+
+        // Instantly teleport
+        mgr.GetComponent<Transform>(entity).position = teleportPos;
+
+        // Stop velocity
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
@@ -558,24 +564,12 @@ namespace Framework {
 
     void WitchTeleportState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
-        EntityManager mgr(ecs);
-
-        // Teleport effect: move towards target over duration
-        if (mgr.HasComponent(entity, TransformType)) {
-            Vector2D& pos = mgr.GetComponent<Transform>(entity).position;
-
-            // Lerp to target position
-            float t = timer_ / teleportDuration_;
-            if (t > 1.0f) t = 1.0f;
-
-            Vector2D startPos = pos;
-            pos = startPos + (targetPosition_ - startPos) * t;
-        }
     }
 
     void WitchTeleportState::SetParameter(const std::string& key, float value) {
         if (key == "teleportDuration") teleportDuration_ = value;
-        if (key == "teleportDistance") teleportDistance_ = value;
+        if (key == "minTeleportRange") minTeleportRange_ = value;
+        if (key == "maxTeleportRange") maxTeleportRange_ = value;
     }
 
     // --- WITCH CHARGING ---
@@ -603,6 +597,7 @@ namespace Framework {
     // --- WITCH ATTACK ---
     void WitchAttackState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
+        currentRadius_ = 0.0f;
         damageDealt_ = false;
 
         EntityManager mgr(ecs);
@@ -615,24 +610,41 @@ namespace Framework {
         timer_ += dt;
         EntityManager mgr(ecs);
 
-        // Deal damage once during the attack
-        if (!damageDealt_ && timer_ >= attackDuration_ * 0.3f) {
-            damageDealt_ = true;
+        // Expanding/contracting circle: expand first half, contract second half
+        float halfDuration = attackDuration_ * 0.5f;
+        if (timer_ <= halfDuration) {
+            // Expanding phase: 0 -> maxAttackRadius_
+            currentRadius_ = (timer_ / halfDuration) * maxAttackRadius_;
+        }
+        else {
+            // Contracting phase: maxAttackRadius_ -> 0
+            float contractT = (timer_ - halfDuration) / halfDuration;
+            if (contractT > 1.0f) contractT = 1.0f;
+            currentRadius_ = (1.0f - contractT) * maxAttackRadius_;
+        }
 
-            // Check if player is in attack radius
+        // Check if player is inside the expanding circle to deal damage
+        if (!damageDealt_) {
             Entity player = GetPlayer(ecs);
             if (player != 0 && mgr.HasComponent(entity, TransformType) &&
                 mgr.HasComponent(player, TransformType)) {
 
                 Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
                 Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
-
                 float distance = myPos.Distance(playerPos);
 
-                if (distance <= attackRadius_) {
-                    // Deal damage to player
-                    // If you have a Health component, reduce it here
-                    // Example: mgr.GetComponent<Health>(player).TakeDamage(10);
+                if (distance <= currentRadius_) {
+                    damageDealt_ = true;
+
+                    // Hurt the player if they have PlayerState
+                    if (mgr.HasComponent(player, PlayerStateType)) {
+                        PlayerState& ps = mgr.GetComponent<PlayerState>(player);
+                        if (!ps.isHurt && !ps.isDead) {
+                            ps.isHurt = true;
+                            ps.invulnerabilityTimer = 1.5f;
+                            ps.currentLives--;
+                        }
+                    }
                 }
             }
         }
@@ -640,7 +652,7 @@ namespace Framework {
 
     void WitchAttackState::SetParameter(const std::string& key, float value) {
         if (key == "attackDuration") attackDuration_ = value;
-        if (key == "attackRadius") attackRadius_ = value;
+        if (key == "attackRadius") maxAttackRadius_ = value;
     }
 
 
@@ -695,6 +707,18 @@ namespace Framework {
                 return as->GetTimer() >= as->GetDuration();
             if (auto* rs = dynamic_cast<BirdRecoveryState*>(s))
                 return rs->GetTimer() >= rs->GetDuration();
+
+            // --- WITCH STATES ---
+            if (auto* wa = dynamic_cast<WitchAlertedState*>(s))
+                return wa->GetTimer() >= wa->GetAlertDuration();
+            if (auto* we = dynamic_cast<WitchEnragedState*>(s))
+                return we->GetTimer() >= we->GetEnrageDuration();
+            if (auto* wt = dynamic_cast<WitchTeleportState*>(s))
+                return wt->GetTimer() >= wt->GetTeleportDuration();
+            if (auto* wc = dynamic_cast<WitchChargingState*>(s))
+                return wc->GetTimer() >= wc->GetChargeDuration();
+            if (auto* watt = dynamic_cast<WitchAttackState*>(s))
+                return watt->GetTimer() >= watt->GetAttackDuration();
 
             return false;
         };

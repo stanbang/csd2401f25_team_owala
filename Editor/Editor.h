@@ -108,6 +108,7 @@ namespace Editor {
 		ImTextureID textureID = 0;
 		ImVec2 uv0;
 		ImVec2 uv1;
+		ImVec2 halfSize{ 25.0f, 25.0f };
 	};
 
 	// Struct for handling Editing Session of the Inspector Window for the HistoryManager.
