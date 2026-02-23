@@ -26,7 +26,7 @@ void TextFadeScript::OnUpdate() {
 	EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
 
 	// Get Player
-	std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(PlayerTagType);
+	std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
 	Entity player = 0;
 
 	if (!playerEntities.empty()) {

@@ -15,14 +15,11 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+#include "pch.h"
 #include "Pathfinding.h"
 #include "EntityManager.h" 
-#include "Components.h"     
-#include <cmath>            
+#include "Components.h"             
 #include "GameManager.h"
-#include <algorithm>
-#include <queue>
-#include <map>
 
 // for rotation calculation 
 #ifndef M_PI
@@ -225,7 +222,7 @@ void NavigationGrid::BuildGrid() {
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
     // Find all entities that are platforms
-    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+    for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlatformTagType)) {
 
         if (!entityMgr.HasComponent(entity, TransformType)) continue;
         const Transform& transform = entityMgr.GetComponent<Transform>(entity);

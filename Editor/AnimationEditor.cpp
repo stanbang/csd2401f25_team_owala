@@ -1,10 +1,22 @@
+/*****************************************************************//**
+ * \file   AnimationEditor.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Implementation of animation file loading, saving and editing in the
+ *			IMGUI editor.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+#include "pch.h"
 #include "Editor.h"
 #include "Logger.h"
 #include "FileUtility.h"
-#include "imgui.h"
-#include "rapidjson/prettywriter.h"
-#include <fstream>
-#include <filesystem>
 
 namespace Editor {
 

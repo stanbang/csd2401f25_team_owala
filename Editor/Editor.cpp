@@ -19,7 +19,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
-
+#include "pch.h"
 #include "Editor.h"
 #include "Core.h"
 #include "GameManager.h"
@@ -29,25 +29,10 @@
 #include "Graphics.h"     // Include Graphics for drawing preview
 #include "AssetBrowser.h"
 #include "AISystem.h" // Include AISystem for debugging purposes
-#include "rapidjson/prettywriter.h"
 #include "FileUtility.h"
-#include <fstream>
 
 // Debug
 #include "Logger.h"
-
-// Imgui Dependencies
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include <random> // for random generation
-
 #include "Fake_Player.h"
 
 // Serialization
@@ -61,11 +46,6 @@
 #include "ScriptRegistry.h"
 #include "NativeScriptMaker.h"
 
-#include <unordered_set>
-// Standard Libraries
-#include <sstream>
-#include <iomanip>
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -78,7 +58,6 @@ namespace Editor {
 		switch (componentType)
 		{
 		case ComponentType::TransformType:					return "Transform";
-		case ComponentType::SpawnPointType:					return "SpawnPoint";
 		case ComponentType::VelocityType:					return "Velocity";
 		case ComponentType::AccelerationType:				return "Acceleration";
 		case ComponentType::TriangleType:					return "Triangle";
@@ -94,20 +73,21 @@ namespace Editor {
 		case ComponentType::CameraType:						return "Camera";
 		case ComponentType::NativeScriptsComponentType:		return "Scripts";
 		case ComponentType::ButtonType:						return "Button";
-	/*	case ComponentType::BirdAIComponentType:			return "BirdAI";
-		case ComponentType::SkeletonAIComponentType:		return "SkeletonAI";*/
 		case ComponentType::FSMComponentType:				return "FSM";
 		case ComponentType::ParticleEmitterComponentType:	return "ParticleEmitter";
 		case ComponentType::ParticleComponentType:			return "Particle";
+		case ComponentType::SliderType:						return "Slider";
+		case ComponentType::PlayerHealthComponentType:		return "PlayerHealth";
 		case ComponentType::PlayerTagType:					return "PlayerTag";
 		case ComponentType::PlatformTagType:				return "PlatformTag";
 		case ComponentType::BackgroundTagType:				return "BackgroundTag";
 		case ComponentType::EnemyTagType:					return "EnemyTag";
 		case ComponentType::SceneOwnedType:					return "SceneOwned";
 		case ComponentType::PersistentTagType:				return "PersistentTag";
-		case ComponentType::ActiveTagType:					return "ActiveTag";
+		case ComponentType::LoadedTagType:					return "LoadedTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		
+		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
+
 		default:											return "Unknown";
 		}
 	}
@@ -314,7 +294,7 @@ namespace Editor {
 				componentTypes.push_back(type);
 			}
 			else {
-				if (type == ComponentType::ActiveTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
+				if (type == ComponentType::LoadedTagType) continue; // Skip ActiveTag since user will not be able to manually add/remove it.
 				tagNames.push_back(ComponentToString(type));
 				tagTypes.push_back(type);
 			}
@@ -343,13 +323,32 @@ namespace Editor {
 		}
 
 		//LoadTilesFromFile();
-		if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH)) {
+		//if (!layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_)) {
+		//	Logger::Get().Info(DebugType::Editor)
+		//		<< "Using default layer configuration" << std::endl;
+
+		//	// Save defaults to file for next time
+		//	layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
+		//}
+
+		std::string layerConfigPath = FileIOKeys::LAYER_CONFIG_FILEPATH;
+		if (std::filesystem::exists(std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + layerConfigPath)) {
+			layerConfigPath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + layerConfigPath;
+			Logger::Get().Info(DebugType::Editor)
+				<< "Using root folder layer config: " << layerConfigPath << std::endl;
+		}
+
+		if (!layerManager_.LoadFromFile(layerConfigPath, gameManager_->GetSystems().physics_)) {
 			Logger::Get().Info(DebugType::Editor)
 				<< "Using default layer configuration" << std::endl;
 
 			// Save defaults to file for next time
-			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);
+			layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, gameManager_->GetSystems().physics_);
 		}
+
+		gameManager_->GetSystems().physics_->ReloadCollisionMatrixFromFile();
+		Logger::Get().Info(DebugType::Editor)
+			<< "Collision matrix reloaded from configuration file" << std::endl;
 
 		// --- Prepare Palette Items (Load Textures) ---
 		// (assuming this stays as-is)
@@ -573,7 +572,7 @@ namespace Editor {
 		if (settings.showGameViewport) ShowGameViewport();
 		ShowDebugVisualizationPanel(); 
 		if (isPrefabEditorOpen_) ShowPrefabEditor();
-
+		ShowCreatePrefabDialog();
 		// To show animation editor beside asset viewer
 		if (settings.showAnimationEditor) {
 			ImGui::SetNextItemWidth(-1);
@@ -1124,6 +1123,8 @@ namespace Editor {
 		}
 
 		Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+		EntityManager entityMgr(*ecs);
+		entityMgr.GetProperties(pastedEntity).uuid = EntityManager::GenerateUUID();
 
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
@@ -1314,89 +1315,6 @@ namespace Editor {
 		if (ImGui::Button("Open FSM Editor")) {
 			isFSMEditorOpen_ = true;
 		}
-		//ImGui::SameLine();
-		//if (ImGui::Button("Spawn Test Bird")) {
-		//	// Get the systems we need
-		//	SceneManager& sceneMgr = SceneManager::GetInstance();
-		//	const SceneAsset& currScene = sceneMgr.GetActiveScene();
-
-		//	//  Create entity
-		//	Entity bird = entityMgr.CreateEntity();
-
-		//	//  Set properties
-		//	entityMgr.GetProperties(bird) = { "Test Bird", CollisionLayer::Enemy };
-
-		//	// Add components required for the AI
-		//	entityMgr.AddComponent<SpawnPoint>(bird, { {0.0f, 0.5f} }); // Spawn at (0, 0.5)
-		//	entityMgr.AddComponent<Transform>(bird, Transform({ 0.f, 0.5f }, 0.f)); // Spawn at (0, 0.5)
-		//	entityMgr.AddComponent<Velocity>(bird, {});              // Start with no velocity
-		//	entityMgr.AddComponent<EnemyTag>(bird, {});            // Tag for the AISystem
-		//	entityMgr.AddComponent<BirdAIComponent>(bird, {});      // Add the AI brain
-		//	entityMgr.AddComponent<AnimationComponent>(bird, {"BirdEnemy"});
-		//	entityMgr.AddComponent<RotationFlag>(bird, {});
-
-		//	RigidBody rb;	
-		//	rb.SetMass(1.0f); // Give it some mass
-		//	rb.isAffectedByGravity = false; // Make sure it doesn't fall
-		//	entityMgr.AddComponent<RigidBody>(bird, rb);
-
-		//	//  Add components to make it visible and selectable
-		//	Vector2D texHalfSize = { 50.f, 50.f }; // Set a default size
-		//	Vector2D aabbHalfSize = { 50.f, 50.f }; // Set a default size
-
-		//	// texture is loaded in TestScene.cpp
-		//	//entityMgr.AddComponent<TextureComponent>(bird, { "Eli_Idle_Spritesheet.png", halfSize });
-		//	entityMgr.AddComponent<TextureComponent>(bird, { "Bird_Enemy_SleepIdle_Spritesheet.png", texHalfSize });
-		//	
-		//    entityMgr.AddComponent<AABBCollider>(bird, { aabbHalfSize });
-
-		//	// Add it to the active scene
-		//	sceneMgr.AddEntityToScene(currScene, bird);
-
-		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Bird (Entity ID: "
-		//		<< bird << ")";
-		//}
-
-		//ImGui::SameLine();
-		
-		// SKELETON AI NOT IN USE CURRENTLY
-		//if (ImGui::Button("Spawn Test Skeleton")) {
-		//	
-		//	SceneManager& sceneMgr = SceneManager::GetInstance();
-		//	//const SceneAsset& currentScene = sceneMgr.GetActiveScene();
-
-		//	// Create entity
-		//	Entity skeleton = entityMgr.CreateEntity();
-
-		//	// Set properties
-		//	entityMgr.GetProperties(skeleton) = { "Test Skeleton", CollisionLayer::Enemy };
-
-		//	// Add components required for the AI
-		//	entityMgr.AddComponent<Position>(skeleton, { {-0.5f, 0.0f} }); // Spawn at (0, 0.5)
-		//	entityMgr.AddComponent<Velocity>(skeleton, {});              // Start with no velocity
-		//	entityMgr.AddComponent<EnemyTag>(skeleton, {});            // Tag for the AISystem
-		//	entityMgr.AddComponent<SkeletonAIComponent>(skeleton, {});  // Add the Skeleton AI brain
-		//	entityMgr.AddComponent<PlayerState>(skeleton, {});      // Needed for grounded/facing checks
-		//	
-
-		//	// Add physics, but make it affected by gravity
-		//	RigidBody rb;
-		//	rb.SetMass(1.0f); // Give it some mass
-		//	rb.isAffectedByGravity = true; // Make it fall
-		//	entityMgr.AddComponent<RigidBody>(skeleton, rb);
-
-		//	// Add components to make it visible and selectable
-		//	Vector2D halfSize = { 0.1f, 0.1f }; // Set a default size
-		//	entityMgr.AddComponent<TextureComponent>(skeleton, { "Eli_Idle_Spritesheet.png", halfSize });
-		//	entityMgr.AddComponent<AABBCollider>(skeleton, { halfSize });
-
-		//	// Add it to the active scene
-		//	sceneMgr.AddEntityToScene(currentScene, skeleton);
-
-		//	Logger::Get().Info(DebugType::Editor) << "Spawned Test Skeleton (Entity ID: "
-		//		<< skeleton << ")";
-		//}
-		
 
 		ImGui::End(); // End "Level Editor" window
 	}
@@ -1542,9 +1460,14 @@ namespace Editor {
 		// Display list of scenes available to load
 		if (ImGui::CollapsingHeader("Scenes List")) {
 			for (const auto& [id, scene] : sceneMgr.GetAllSceneAssets()) {
+				// skip persistent scene
+				if (scene.name == "Persistent") {
+					continue;
+				}
+
 				bool isCurrentScene = (id == sceneMgr.GetActiveScene().sceneIndex);
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::BeginDisabled();
 				}
 
@@ -1599,7 +1522,7 @@ namespace Editor {
 					}
 				}
 
-				if (isCurrentScene || !scene.IsValid()) {
+				if (isCurrentScene || !scene.IsValid() || engine_->IsPlayMode()) {
 					ImGui::EndDisabled();
 				}
 			}
@@ -1609,6 +1532,8 @@ namespace Editor {
 #pragma endregion
 
 #pragma region TILEMAP EDITOR PANEL
+
+	// TILE PALETTE WINDOW
 	void Editor::ShowTilePalette() {
 		static bool wasTilePaletteOpen = false;
 		if (ImGui::Begin("Tile Palette", &isTileEditorActive_)) {
@@ -1626,12 +1551,34 @@ namespace Editor {
 			ImVec4 tintCol(1, 1, 1, 1);
 
 			// --- Eraser Tool ---
-			if (ImGui::Selectable("Eraser", dragDropPayload_.type == PrefabType::Eraser && isDraggingPrefab_)) {
-				isDraggingPrefab_ = true;
-				dragDropPayload_ = { "Eraser", PrefabType::Eraser, 0 };
-			}
-			ImGui::Separator();
+			bool isEraserActive = (isBrushMode_ && brushPayload_.type == PrefabType::Eraser);
+			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 
+			if (ImGui::Selectable("Eraser", isEraserActive)) {
+				if (isEraserActive) {
+					// Toggle OFF
+					isBrushMode_ = false;
+					brushPayload_ = {};
+					brushPayload_.type = PrefabType::None;
+
+					if (dragDropPayload_.type == PrefabType::Eraser) {
+						dragDropPayload_ = {};
+						dragDropPayload_.type = PrefabType::None;
+					}
+					isDraggingPrefab_ = false;
+				}
+				else {
+					// Toggle ON
+					isBrushMode_ = true;
+					brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+					isDraggingPrefab_ = false;
+					dragDropPayload_ = {};
+					dragDropPayload_.type = PrefabType::None;
+				}
+			}
+
+			if (isEraserActive) ImGui::PopStyleColor();
+			ImGui::Separator();
 			// --- Tile Items ---
 			int itemsPerRow = 0;
 			const int maxItemsPerRow = 4;
@@ -1829,7 +1776,7 @@ namespace Editor {
 			<< "Prepared " << tilePaletteItems_.size() << " tile palette items." << std::endl;
 	}
 
-
+	// PREFAB PALETTE WINDOW
 	void Editor::ShowTilemapEditor()
 	{
 		static bool wasTileEditorOpen = false; // Tracks open/close transition
@@ -1864,13 +1811,33 @@ namespace Editor {
 
 			// --- Eraser Tool ---
 			bool isEraserActive = (isBrushMode_ && brushPayload_.type == PrefabType::Eraser);
-			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1));
+
+			if (isEraserActive) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+
 			if (ImGui::Selectable("Eraser", isEraserActive)) {
-				isBrushMode_ = true;
-				brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
-				isDraggingPrefab_ = false;
+				if (isEraserActive) {
+					// Toggle OFF
+					isBrushMode_ = false;
+					brushPayload_ = {};
+					brushPayload_.type = PrefabType::None;
+					if (dragDropPayload_.type == PrefabType::Eraser) {
+						dragDropPayload_ = {};
+						dragDropPayload_.type = PrefabType::None;
+					}
+					isDraggingPrefab_ = false;
+				}
+				else {
+					// Toggle ON
+					isBrushMode_ = true;
+					brushPayload_ = { "Eraser", PrefabType::Eraser, 0 };
+					isDraggingPrefab_ = false;
+					dragDropPayload_ = {};
+					dragDropPayload_.type = PrefabType::None;
+				}
 			}
+
 			if (isEraserActive) ImGui::PopStyleColor();
+
 			ImGui::Separator();
 
 			// --- Prefab Tiles ---
@@ -1991,16 +1958,34 @@ namespace Editor {
 
 			auto drawEntityItem = [&](Entity entity) {
 				if (!entityMgr.ValidateEntity(entity)) return;
-
+				
 				const std::string& name = entityMgr.GetProperties(entity).name;
+
 
 				ImGui::PushID(static_cast<int>(entity));
 
 				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(160, 160, 160, 255));
+				}
+
 				if (ImGui::Selectable(name.c_str(), &selected)) {
 					selectedTagIndex = selectedComponentIndex = 0;
 					selectedEntityIndex = entity + 1;
 					isEntitySelected_ = true;
+				}
+
+				// Drag and Drop Source
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+					// Pack the Entity ID into the payload
+					ImGui::SetDragDropPayload("HIERARCHY_ENTITY", &entity, sizeof(Entity));
+					ImGui::Text("Entity: %s (ID: %u)", name.c_str(), entity);
+					ImGui::EndDragDropSource();
+				}
+
+				if (!entityMgr.IsActive(entity)) {
+					ImGui::PopStyleColor();
 				}
 
 				// Allows right-click selection
@@ -2036,7 +2021,7 @@ namespace Editor {
 
 						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
 						Entity clonedEntity = entityMgr.CloneEntity(entity);
-						sceneMgr.AddEntityToScene(activeScene, clonedEntity);
+						sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
 						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
 					}
 					if (ImGui::MenuItem("Delete")) {
@@ -2104,10 +2089,22 @@ namespace Editor {
 				ImGui::PopID();
 				}; // End lambda: drawSceneDropdown
 
-			drawSceneDropdown(activeScene.sceneIndex, std::string("Scene: ") + activeScene.name);
-			if (activeScene.sceneIndex != SceneManager::GetDDOLSceneID() && IsGamePlaying()) {
+			// --- Per Scene Hierarchy ---
+			const std::vector<SceneManagement::SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+			for (SceneGUID sceneID : loadedScenes) {
+				if (sceneID == SceneManager::GetDDOLSceneID()) continue;
+				const SceneAsset& scene = sceneMgr.GetSceneAt(sceneID, true);
+				if (!scene.IsValid()) continue;
+
+				std::string header = "Scene: " + scene.name;
+				if (sceneID == activeScene.sceneIndex) header += " (Active)";
+				drawSceneDropdown(sceneID, header);
+			}
+
+			if (IsGamePlaying()) {
 				drawSceneDropdown(SceneManager::GetDDOLSceneID(), SceneManager::GetDDOLSceneName());
 			}
+			// --- End Per Scene Hierarchy ---
 		}
 
 		// Ensure Empty Space in Hierarchy List
@@ -2165,6 +2162,7 @@ namespace Editor {
 			}
 
 			// --- Name Field ---
+			ImGui::TextDisabled("Entity ID: %u", selectedEntity);
 			std::string& entityName = entityMgr.GetProperties(selectedEntity).name;
 
 			static Entity lastSelectedEntity = 0;
@@ -2207,6 +2205,30 @@ namespace Editor {
 				editingName = false;
 			}
 			// --- End Name Field ---
+
+			// --- Active Toggle Checkbox ---
+			ImGui::SameLine();
+			bool isActiveLocal = entityMgr.GetProperties(selectedEntity).isActive;
+			if (ImGui::Checkbox("Is Active?", &isActiveLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+				entityMgr.GetProperties(selectedEntity).isActive = isActiveLocal;
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Is Active in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
+			}
+			// --- End Active Toggle Checkbox ---
+
+			// --- UUID ---
+			std::string entityUUID = "UUID: ";
+			entityUUID += std::to_string(entityMgr.GetProperties(selectedEntity).uuid);
+
+			ImGui::TextDisabled(entityUUID.c_str());
+			
+			// --- End UUID ---
 
 			// --- Layer Dropdown ---
 			CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
@@ -2345,9 +2367,9 @@ namespace Editor {
 				ImGui::Text("Active Tags:");
 				int tagCount = 0;
 
-				if (entityMgr.HasComponent(selectedEntity, ComponentType::ActiveTagType)) {
+				if (entityMgr.HasComponent(selectedEntity, ComponentType::LoadedTagType)) {
 					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-					ImGui::Text("[ActiveTag (Not Removable)]");
+					ImGui::Text("[LoadedTag (Not Removable)]");
 					ImGui::PopStyleColor();
 					++tagCount;
 				}
@@ -2420,219 +2442,7 @@ namespace Editor {
 		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
 		switch (selectedComponent) {
 		case ComponentType::TransformType: {
-			Transform& transform = entityMgr.GetComponent<Transform>(selectedEntity);
-
-			bool nowActive = false;
-			// Position
-			ImGui::InputFloat2("Position", &transform.position.x, "%.2f");
-			if (ImGui::IsItemActive()) nowActive = true;
-
-			// Rotation
-			static bool unifiedTransformRotation = true;
-			ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedTransformRotation);
-			ImGui::Separator();
-
-			if (unifiedTransformRotation) {
-				float unifiedDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
-
-				// Unified Rotation Slider
-				ImGui::SetNextItemWidth(100.f);
-				if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
-					float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
-					transform.rotation.textureAngle = newRadians;
-					transform.rotation.colliderAngle = newRadians;
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
-				}
-				if (ImGui::IsItemActive()) nowActive = true;
-
-				if (ImGui::Button("Reset Rotation")) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					transform.rotation.textureAngle = 0.0f;
-					transform.rotation.colliderAngle = 0.0f;
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					if (beforeJSON != afterJSON) {
-						std::stringstream ss;
-						ss << "Reset Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-					}
-				}
-				ImGui::Text("Current: %.1f°", unifiedDegrees);
-			}
-			else {
-				// Texture Rotation Slider
-				ImGui::Text("Texture Rotation");
-				float textureDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
-				if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
-					transform.rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-				}
-				if (ImGui::IsItemActive()) nowActive = true;
-
-				ImGui::Separator();
-
-				// Collider Rotation Slider
-				ImGui::Text("Collider Rotation");
-				float colliderDegrees = static_cast<float>(transform.rotation.colliderAngle * (180.0f / M_PI));
-				if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
-					transform.rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-				}
-				if (ImGui::IsItemActive()) nowActive = true;
-
-				ImGui::Separator();
-
-				// Reset Texture Button
-				if (ImGui::Button("Reset Texture")) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					transform.rotation.textureAngle = 0.0f;
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					if (beforeJSON != afterJSON) {
-						std::stringstream ss;
-						ss << "Reset Texture Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Reset Collider")) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					transform.rotation.colliderAngle = 0.0f;
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					if (beforeJSON != afterJSON) {
-						std::stringstream ss;
-						ss << "Reset Collider Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Reset Both")) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					transform.rotation.textureAngle = 0.0f;
-					transform.rotation.colliderAngle = 0.0f;
-					if (transformationSystem_) {
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-					}
-
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					if (beforeJSON != afterJSON) {
-						std::stringstream ss;
-						ss << "Reset Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-					}
-				}
-				ImGui::Text("Texture: %.1f° | Collider: %.1f°", textureDegrees, colliderDegrees);
-			}
-
-			// Scale
-			if (transformationSystem_) {
-				static std::unordered_map<Entity, Vector2D> defaultSizes;
-
-				if (defaultSizes.find(selectedEntity) == defaultSizes.end()) {
-					if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
-						defaultSizes[selectedEntity] = entityMgr.GetComponent<AABBCollider>(selectedEntity).HalfSize;
-					}
-				}
-
-				// ===========================================================
-				// SCALING
-				// ===========================================================
-				if (entityMgr.HasComponent(selectedEntity, AABBColliderType)) {
-					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(selectedEntity);
-					Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
-
-					if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
-						transform.scale.x = ScaleFactor.x;
-						transform.scale.y = ScaleFactor.y;
-
-						if (defaultSizes.count(selectedEntity)) {
-							collider.HalfSize.x = defaultSizes[selectedEntity].x * ScaleFactor.x;
-							collider.HalfSize.y = defaultSizes[selectedEntity].y * ScaleFactor.y;
-						}
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild(); // force grid to rebuild instantly 
-					}
-					if (ImGui::IsItemActive()) nowActive = true;
-
-					static bool uniformTransformScale = false;
-					ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
-
-					if (uniformTransformScale) {
-						float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-						if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
-							transform.scale.x = uniformValue;
-							transform.scale.y = uniformValue;
-
-							if (defaultSizes.count(selectedEntity)) {
-								collider.HalfSize.x = defaultSizes[selectedEntity].x * uniformValue;
-								collider.HalfSize.y = defaultSizes[selectedEntity].y * uniformValue;
-							}
-							transformationSystem_->UpdateEntityTransform(selectedEntity);
-							if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
-						}
-						if (ImGui::IsItemActive()) nowActive = true;
-					}
-					if (ImGui::Button("Reset Scale")) {
-						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-						transform.scale = { 1.0f, 1.0f };
-						if (defaultSizes.count(selectedEntity)) {
-							collider.HalfSize = defaultSizes[selectedEntity];
-						}
-						transformationSystem_->UpdateEntityTransform(selectedEntity);
-
-						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-						if (beforeJSON != afterJSON) {
-							std::stringstream ss;
-							ss << "Reset Scale in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-						}
-					}
-				}
-				else {
-					ImGui::TextDisabled("No AABBCollider attached");
-				}
-			}
-			else {
-				Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised or not working" << std::endl;
-			}
-
-			if (nowActive && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-			if (!nowActive && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Set Rotation in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-			editSession.wasItemActive = nowActive;
-			break;
-		}
-		case ComponentType::SpawnPointType: {
-			SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(selectedEntity);
-
-			ImGui::InputFloat2("Spawn Point", &spawnPt.Pos.x, "%.2f");
+			DrawTransformInspector(selectedEntity);
 			break;
 		}
 		case ComponentType::VelocityType: {
@@ -2681,35 +2491,7 @@ namespace Editor {
 			break;
 		}
 		case ComponentType::RigidBodyType: {
-			RigidBody& rb = entityMgr.GetComponent<RigidBody>(selectedEntity);
-
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat2("Force", &rb.Force.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2);
-
-			float localMass = rb.Mass;
-			if (ImGui::InputFloat("Mass", &localMass, 0.1f, 1.0f, "%.2f")) {
-				rb.SetMass(localMass);
-			}
-
-			bool activeNow = ImGui::IsItemActive();
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified Mass in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			ImGui::InputFloat("Inverse Mass", &rb.InverseMass, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-			ImGui::PopStyleColor(2);
-
-			editSession.wasItemActive = activeNow;
+			DrawRigidBodyInspector(selectedEntity);
 			break;
 		}
 		case ComponentType::AABBColliderType: {
@@ -2761,376 +2543,7 @@ namespace Editor {
 			break;
 		}
 		case ComponentType::ButtonType: {
-			Button& buttonComp = entityMgr.GetComponent<Button>(selectedEntity);
-
-			bool isPressedLocal = buttonComp.isPressed;
-			if (ImGui::Checkbox("Is Pressed?", &isPressedLocal)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-				buttonComp.isPressed = isPressedLocal;
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-
-			ImGui::Separator();
-			ImGui::SeparatorText("Button Visual States");
-
-			bool visualStatesChanged = false;
-			std::string visualStatesBeforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-			// Default State
-			if (ImGui::TreeNodeEx("Default State", ImGuiTreeNodeFlags_DefaultOpen)) {
-				ImGui::Text("Default Texture Key:");
-				if (ImGui::InputText("##DefaultTexture", &buttonComp.defaultTextureKey)) {
-					visualStatesChanged = true;
-				}
-
-				// Drag & Drop for Default Texture
-				if (ImGui::BeginDragDropTarget()) {
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-					if (payload) {
-						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-						fs::path dropped_file(dropped_path);
-						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
-
-						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-							buttonComp.defaultTextureKey = dropped_file.filename().string();
-							visualStatesChanged = true;
-
-							// Load texture if not already loaded
-							resourceManager_->unload<Texture>(buttonComp.defaultTextureKey);
-							resourceManager_->loadTexture(buttonComp.defaultTextureKey, dropped_file.string());
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::Checkbox("Is Animated##default", &buttonComp.defaultIsAnimated)) {
-					visualStatesChanged = true;
-				}
-
-				if (buttonComp.defaultIsAnimated) {
-					ImGui::Indent();
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
-						"Ensure animation data exists in textureToAnimationMapping.json");
-					ImGui::Unindent();
-				}
-
-				ImGui::TreePop();
-			}
-
-			ImGui::Spacing();
-
-			// Hover State
-			if (ImGui::TreeNodeEx("Hover State", ImGuiTreeNodeFlags_DefaultOpen)) {
-				ImGui::Text("Hover Texture Key:");
-				if (ImGui::InputText("##HoverTexture", &buttonComp.hoverTextureKey)) {
-					visualStatesChanged = true;
-				}
-
-				// Drag & Drop for Hover Texture
-				if (ImGui::BeginDragDropTarget()) {
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-					if (payload) {
-						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-						fs::path dropped_file(dropped_path);
-						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
-
-						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-							buttonComp.hoverTextureKey = dropped_file.filename().string();
-							visualStatesChanged = true;
-
-							resourceManager_->unload<Texture>(buttonComp.hoverTextureKey);
-							resourceManager_->loadTexture(buttonComp.hoverTextureKey, dropped_file.string());
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::Checkbox("Is Animated##hover", &buttonComp.hoverIsAnimated)) {
-					visualStatesChanged = true;
-				}
-
-				if (buttonComp.hoverIsAnimated) {
-					ImGui::Indent();
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
-						"Ensure animation data exists in textureToAnimationMapping.json");
-					ImGui::Unindent();
-				}
-
-				ImGui::TextDisabled("(Leave empty to use default texture)");
-				ImGui::TreePop();
-			}
-
-			ImGui::Spacing();
-
-			// Pressed State
-			if (ImGui::TreeNodeEx("Pressed State", ImGuiTreeNodeFlags_DefaultOpen)) {
-				ImGui::Text("Pressed Texture Key:");
-				if (ImGui::InputText("##PressedTexture", &buttonComp.pressedTextureKey)) {
-					visualStatesChanged = true;
-				}
-
-				// Drag & Drop for Pressed Texture
-				if (ImGui::BeginDragDropTarget()) {
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-					if (payload) {
-						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-						fs::path dropped_file(dropped_path);
-						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
-
-						if (ext == ".png" || ext == ".jpg" || ext == ".jpeg") {
-							buttonComp.pressedTextureKey = dropped_file.filename().string();
-							visualStatesChanged = true;
-
-							resourceManager_->unload<Texture>(buttonComp.pressedTextureKey);
-							resourceManager_->loadTexture(buttonComp.pressedTextureKey, dropped_file.string());
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::Checkbox("Is Animated##pressed", &buttonComp.pressedIsAnimated)) {
-					visualStatesChanged = true;
-				}
-
-				if (buttonComp.pressedIsAnimated) {
-					ImGui::Indent();
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
-						"Ensure animation data exists in textureToAnimationMapping.json");
-					ImGui::Unindent();
-				}
-
-				ImGui::TextDisabled("(Leave empty to use default texture)");
-				ImGui::TreePop();
-			}
-
-			// Save changes if any texture data was modified
-			if (visualStatesChanged) {
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-				if (visualStatesBeforeJSON != afterJSON) {
-					historyManager_.RecordModifyComponent(selectedEntity, "Modified Button Visual States", visualStatesBeforeJSON, afterJSON, selectedComponent);
-				}
-			}
-
-			ImGui::Separator();
-			ImGui::SeparatorText("Button Actions");
-
-			const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "QUIT_GAME" };
-			int currentItemIndex = static_cast<int>(buttonComp.action);
-
-			if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-				buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-
-			// Context Sensitive Inputs for Button Actions
-			// Only show relevant fields based on the selected action
-			bool dataChanged = false;
-			std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-			if (buttonComp.action == ButtonAction::SWITCH_SCENE) {
-				ImGui::Text("Target Scene Name:");
-				if (ImGui::InputText("##SceneName", &buttonComp.targetString)) {
-					dataChanged = true;
-				}
-				
-				// Drag & Drop Support for Scene Files
-				if (ImGui::BeginDragDropTarget())
-				{
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-					if (payload)
-					{
-						// CORRECT way to extract the string from payload
-						// payload->Data is the raw bytes, payload->DataSize is the size in bytes
-						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
-						fs::path dropped_file(dropped_path);
-						// Validate the file extension
-						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
-						if (ext == ".json") // Assuming scene files are .json
-						{
-							// Update the target string with the new scene's filename without extension
-							std::string newSceneName = dropped_file.stem().string();
-							buttonComp.targetString = newSceneName;
-							Framework::Logger::Get().Info(DebugType::Editor)
-								<< "Scene name updated via Drag & Drop to: " << newSceneName << std::endl;
-						}
-						else
-						{
-							Framework::Logger::Get().Error(DebugType::Editor)
-								<< "Dropped file is not a valid scene file: " << ext << std::endl;
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Type the exact name of the scene to load (e.g., 'Level1')");
-			}
-			else if (buttonComp.action == ButtonAction::PLAYSOUND) {
-				ImGui::Text("Sound Key:");
-				if (ImGui::InputText("##SoundKey", &buttonComp.targetString)) {
-					dataChanged = true;
-				}
-				
-				// Drag & Drop Support for Audio Files
-				if (ImGui::BeginDragDropTarget())
-				{
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-					if (payload)
-					{
-						// CORRECT way to extract the string from payload
-						// payload->Data is the raw bytes, payload->DataSize is the size in bytes
-						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
-
-						fs::path dropped_file(dropped_path);
-
-						// Validate the file extension
-						std::string ext = dropped_file.extension().string();
-						std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
-
-						// Check for common audio formats
-						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
-						{
-							// Update the sound key with the new file's filename
-							std::string newKey = dropped_file.filename().string();
-							beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-							buttonComp.targetString = newKey;
-							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-							if (beforeJSON != afterJSON) {
-								std::stringstream ss;
-								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-							}
-
-							Framework::Logger::Get().Info(DebugType::Editor)
-								<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
-						}
-						else
-						{
-							Framework::Logger::Get().Error(DebugType::Editor)
-								<< "Dropped file is not a supported audio format: " << ext << std::endl;
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-			}
-			else if (buttonComp.action == ButtonAction::DEFAULT) {
-				// Maybe default buttons trigger generic events with a value?
-				ImGui::Text("Event Value:");
-				if (ImGui::DragFloat("##Val", &buttonComp.targetValue)) {
-					dataChanged = true;
-				}
-			}
-
-			// Sound Effects
-			ImGui::Separator();
-			ImGui::SeparatorText("Sound Effects");
-
-			// Hover Sound
-			ImGui::Text("Hover Sound:");
-			if (ImGui::InputText("##HoverSound", &buttonComp.hoverSoundKey)) {
-				dataChanged = true;
-			}
-
-			// Drag & Drop Support for Hover Sound
-			if (ImGui::BeginDragDropTarget()) {
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-				if (payload) {
-					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-					fs::path dropped_file(dropped_path);
-					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
-
-					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
-						buttonComp.hoverSoundKey = dropped_file.filename().string();
-						dataChanged = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			if (ImGui::SliderFloat("Hover Volume", &buttonComp.hoverSoundVolume, 0.0f, 1.0f)) {
-				dataChanged = true;
-			}
-
-			// Test button for hover sound
-			if (ImGui::Button("Test Hover Sound") && !buttonComp.hoverSoundKey.empty()) {
-				try {
-					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.hoverSoundKey);
-					gameManager_->GetSystems().audio_->play(sound, buttonComp.hoverSoundVolume, false);
-				}
-				catch (...) {
-					Framework::Logger::Get().Error(DebugType::Editor)
-						<< "Failed to play hover sound: " << buttonComp.hoverSoundKey << std::endl;
-				}
-			}
-
-			ImGui::Spacing();
-
-			// Click Sound
-			ImGui::Text("Click Sound:");
-			if (ImGui::InputText("##ClickSound", &buttonComp.clickSoundKey)) {
-				dataChanged = true;
-			}
-			// Drag & Drop Support for Click Sound
-			if (ImGui::BeginDragDropTarget()) {
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-				if (payload) {
-					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-					fs::path dropped_file(dropped_path);
-					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
-
-					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
-						buttonComp.clickSoundKey = dropped_file.filename().string();
-						dataChanged = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			if (ImGui::SliderFloat("Click Volume", &buttonComp.clickSoundVolume, 0.0f, 1.0f)) {
-				dataChanged = true;
-			}
-
-			// Test button for click sound
-			if (ImGui::Button("Test Click Sound") && !buttonComp.clickSoundKey.empty()) {
-				try {
-					FMOD::Sound& sound = resourceManager_->get<FMOD::Sound>(buttonComp.clickSoundKey);
-					gameManager_->GetSystems().audio_->play(sound, buttonComp.clickSoundVolume, false);
-				}
-				catch (...) {
-					Framework::Logger::Get().Error(DebugType::Editor)
-						<< "Failed to play click sound: " << buttonComp.clickSoundKey << std::endl;
-				}
-			}
-
-			// Save History if data changed
-			if (dataChanged) {
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-				// Check equality before recording to prevent spam
-				if (beforeJSON != afterJSON) {
-					historyManager_.RecordModifyComponent(selectedEntity, "Modified Button Data", beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-
+			DrawButtonInspector(selectedEntity);
 			break;
 		}
 		case ComponentType::PlayerStateType: {
@@ -3204,227 +2617,11 @@ namespace Editor {
 		}
 
 		case ComponentType::TextureComponentType: {
-			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
-
-			//Show text but make it read-only
-			ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
-
-			// Drag and Drop Target for Texture Key
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-				if (payload)
-				{
-					// Process the dropped file path
-					const char* dropped_path_c_str = (const char*)payload->Data;
-					fs::path dropped_path(dropped_path_c_str);
-
-					// Validate the file extension
-					std::string ext = dropped_path.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
-
-					if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
-					{
-						// Update the texture key with the new file's filename
-						std::string newKey = dropped_path.filename().string();
-						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-						tex.textureKey = newKey;
-						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-						if (beforeJSON != afterJSON) {
-							std::stringstream ss;
-							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-						}
-
-						// Reload the texture resource
-						resourceManager_->unload<Texture>(newKey);
-						resourceManager_->loadTexture(newKey, dropped_path.string());
-
-						Logger::Get().Info(DebugType::Editor) << "Texture key updated via Drag & Drop to: " << newKey << std::endl;
-					}
-					else
-					{
-						Logger::Get().Error(DebugType::Editor) << "Dropped file is not a supported image format: " << ext << std::endl;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			// Manual input field for new texture key
-			static std::string newTextureKey = "";
-			ImGui::InputText("New Texture Key", &newTextureKey);
-
-			//Button to update texture key
-			if (ImGui::Button("Update Texture")) {
-				if (!newTextureKey.empty()) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-					tex.textureKey = newTextureKey;
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-					if (beforeJSON != afterJSON) {
-						std::stringstream ss;
-						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-					}
-				}
-			}
-
-			// Vector2D HalfSize Input
-			if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
-				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
-			}
-
-			// Bool flipHorizontal Input
-			ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
-			bool activeNow = ImGui::IsItemActive();
-
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			editSession.wasItemActive = activeNow;
+			DrawTextureInspector(selectedEntity);
 			break;
 		}
 		case ComponentType::AudioComponentType: {
-			AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(selectedEntity);
-			//Show text but make it read-only
-			ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
-
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
-				if (payload)
-				{
-					// CORRECT way to extract the string from payload
-					// payload->Data is the raw bytes, payload->DataSize is the size in bytes
-					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1); // -1 to exclude null terminator
-
-					fs::path dropped_file(dropped_path);
-
-					// Validate the file extension
-					std::string ext = dropped_file.extension().string();
-					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
-
-					// Check for common audio formats
-					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
-					{
-						// Update the sound key with the new file's filename
-						std::string newKey = dropped_file.filename().string();
-						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-						audioComp.soundKey = newKey;
-						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-						if (beforeJSON != afterJSON) {
-							std::stringstream ss;
-							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-						}
-
-						Framework::Logger::Get().Info(DebugType::Editor)
-							<< "Audio key updated via Drag & Drop to: " << newKey << std::endl;
-					}
-					else
-					{
-						ImGui::OpenPopup("Invalid Audio File");
-						Framework::Logger::Get().Error(DebugType::Editor)
-							<< "Dropped file is not a supported audio format: " << ext << std::endl;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			static std::string newSoundKey = "";
-			ImGui::InputText("New Audio Key", &newSoundKey);
-			//Button to update audio key
-			if (ImGui::Button("Update Audio")) {
-				if (!newSoundKey.empty()) {
-					fs::path filePath(newSoundKey);
-
-					if (filePath.has_extension()) {
-						std::string ext = filePath.extension().string();
-
-						if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
-							std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-							audioComp.soundKey = newSoundKey;
-							std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-							
-							if (beforeJSON != afterJSON) {
-								std::stringstream ss;
-								ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-								historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-							}
-						}
-						else {
-							ImGui::OpenPopup("Invalid Audio File");
-						}
-					}
-
-				}
-			}
-
-			// Invalid Audio File Popup
-			if (ImGui::BeginPopupModal("Invalid Audio File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-			{
-				ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Error: An invalid audio file was uploaded!");
-
-				if (ImGui::Button("Ok", ImVec2(120, 0)))
-				{
-					ImGui::CloseCurrentPopup();
-				}
-
-				ImGui::EndPopup();
-			}
-
-			// Looping Checkbox
-			bool loopLocal = audioComp.loop;
-			if (ImGui::Checkbox("Looping", &loopLocal)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-				audioComp.loop = loopLocal;
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-
-			// Stream Checkbox
-			bool streamLocal = audioComp.stream;
-			if (ImGui::Checkbox("Stream", &streamLocal)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-				audioComp.stream = streamLocal;
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-
-			// Volume Slider
-			ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
-			bool activeNow = ImGui::IsItemActive();
-
-			if (activeNow && !editSession.wasItemActive) {
-				editSession.Begin(selectedEntity, selectedComponent);
-			}
-
-			if (!activeNow && editSession.wasItemActive) {
-				std::stringstream ss;
-				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-			}
-
-			editSession.wasItemActive = activeNow;
+			DrawAudioInspector(selectedEntity);
 			break;
 		}
 
@@ -3815,114 +3012,6 @@ namespace Editor {
 
 			break;
 		}
-
-		//case ComponentType::BirdAIComponentType: {
-
-		//	if (!entityMgr.HasComponent(selectedEntity, ComponentType::BirdAIComponentType)) {
-		//		ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "ERROR: Component not found!");
-		//		break;
-		//	}
-
-		//	BirdAIComponent& ai = entityMgr.GetComponent<BirdAIComponent>(selectedEntity);
-
-		//	// --- State (Read-only) ---
-		//	int state = static_cast<int>(ai.state);
-		//	const char* stateNames[] = { "IDLE", "WAKING", "CHASE", "HOVER", "ATTACK", "STUNNED"};
-		//	ImGui::Text("Current State: %s", stateNames[state]);
-
-		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-		//	ImGui::InputFloat("State Timer", &ai.stateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//
-		//	ImGui::PopStyleColor(2);
-
-		//	ImGui::Separator();
-
-		//	bool activeNow = false;
-		//	// --- Config ---
-		//	ImGui::Text("Configurable Stats");
-		//	ImGui::InputFloat("Wake-Up Radius", &ai.wakeUpRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Radius (Arrival)", &ai.hoverRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Radius", &ai.attackRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Move Speed", &ai.moveSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Speed", &ai.attackSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Attack Duration", &ai.attackDuration, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		///*	ImGui::InputFloat("Attack Cooldown", &ai.attackCooldown, 0.05f, 0.1f, "%.2f");*/
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Wake-Up Time", &ai.wakeUpTime, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	// --- Hover Config ---
-		//	ImGui::Separator();
-		//	ImGui::Text("Hover Behavior");
-		//	ImGui::InputFloat("Hover Height", &ai.hoverHeight, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	/*ImGui::InputFloat("Hover Patrol Radius", &ai.hoverRadius_Circle, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Node Reach Dist", &ai.hoverNodeReachedDist, 0.01f, 0.05f, "%.2f");*/
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Hover Speed", &ai.hoverSpeed, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	// --- Pathfinding ---
-		//	ImGui::Separator();
-		//	ImGui::Text("Pathfinding");
-		//	ImGui::InputFloat("Path Recalculate Interval", &ai.pathRecalculateInterval, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-		//	ImGui::InputFloat("Path Recalculate Timer", &ai.pathRecalculateTimer, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//	ImGui::InputFloat2("Attack Target Pos", &ai.attackTargetPosition.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
-		//	ImGui::PopStyleColor(2);
-		//	ImGui::Text("Current Path Waypoints: %zu", ai.currentPath.size());
-
-		//	if (activeNow && !editSession.wasItemActive) {
-		//		editSession.Begin(selectedEntity, selectedComponent);
-		//	}
-
-		//	if (!activeNow && editSession.wasItemActive) {
-		//		std::stringstream ss;
-		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-		//	}
-
-		//	editSession.wasItemActive = activeNow;
-		//	break;
-		//}
-
-		//case ComponentType::SkeletonAIComponentType: {
-		//	SkeletonAIComponent& skelAI = entityMgr.GetComponent<SkeletonAIComponent>(selectedEntity);
-
-		//	// for now just show state
-		//	int state = static_cast<int>(skelAI.state);
-		//	ImGui::InputInt("State (0=Idle, 1=Chase)", &state, 0, 0, ImGuiInputTextFlags_ReadOnly);
-
-		//	bool activeNow = false;
-		//	ImGui::InputFloat("Detection Radius", &skelAI.detectionRadius, 0.05f, 0.1f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-		//	ImGui::InputFloat("Move Speed", &skelAI.moveSpeed, 0.01f, 0.05f, "%.2f");
-		//	if (ImGui::IsItemActive()) activeNow = true;
-
-		//	if (activeNow && !editSession.wasItemActive) {
-		//		editSession.Begin(selectedEntity, selectedComponent);
-		//	}
-
-		//	if (!activeNow && editSession.wasItemActive) {
-		//		std::stringstream ss;
-		//		ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-		//		editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
-		//	}
-
-		//	editSession.wasItemActive = activeNow;
-		//	break;
-		//}
 
 		case ComponentType::FSMComponentType:
 		{
@@ -4347,6 +3436,77 @@ namespace Editor {
 			}
 
 			editSession.wasItemActive = activeNow;
+			break;
+		}
+
+		case ComponentType::SliderType: {
+			Slider& slider = entityMgr.GetComponent<Slider>(selectedEntity);
+			bool activeNow = false;
+
+			// Slider Sound Type Dropdown
+			const char* sliderTypeItems[] = { "Master Volume", "Music Volume", "SFX Volume" };
+			int currentSliderTypeIndex = static_cast<int>(slider.sliderType);
+
+			if (ImGui::Combo("Control Type", &currentSliderTypeIndex, sliderTypeItems, IM_ARRAYSIZE(sliderTypeItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Update the slider type
+				slider.sliderType = static_cast<SliderSoundType>(currentSliderTypeIndex);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				// Record for Undo/Redo
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
+			ImGui::Separator();
+
+			int handleId = static_cast<int>(slider.handleEntity);
+			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
+				// Ensure the ID doesn't go below 0
+				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
+			}
+
+			// Handle Name
+			ImGui::InputText("Handle Name", &slider.handleName);
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Current Value
+			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Min Value
+			ImGui::InputFloat("Min Value", &slider.minValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Max Value
+			ImGui::InputFloat("Max Value", &slider.maxValue, 0.1f, 1.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// Width
+			ImGui::InputFloat("Width", &slider.width, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			// X Offset
+			ImGui::InputFloat("Track Offset X", &slider.widthOffsetX, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Shifts the slidable area left or right from the center");
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+
+			editSession.wasItemActive = activeNow;
+			break;
+		}
+		
+		case ComponentType::PlayerHealthComponentType: {
+			PlayerHealthComponent& healthComp = entityMgr.GetComponent<PlayerHealthComponent>(selectedEntity);
+			ImGui::InputInt("Life number:", &healthComp.lifeNum);
 			break;
 		}
 		default:
@@ -4837,7 +3997,7 @@ namespace Editor {
 			return 0;
 		}
 
-		// Set basic properties
+		// Set properties
 		std::string enemyName = std::filesystem::path(fsmPath).stem().string();
 		entityMgr.GetProperties(enemy).name = enemyName;
 		entityMgr.GetProperties(enemy).layer = CollisionLayer::Enemy;
@@ -4859,7 +4019,7 @@ namespace Editor {
 
 		entityMgr.AddComponent(enemy, fsmComp);
 
-		// Add visual components if specified in JSON
+		// Add visual components 
 		std::string textureKey = "default_enemy.png";
 		Vector2D halfSize = { 50.f, 50.f };
 
@@ -4881,13 +4041,13 @@ namespace Editor {
 		rb.isAffectedByGravity = false; // Most AI enemies float/fly
 		entityMgr.AddComponent(enemy, rb);
 
-		// Add animation if specified
+		// Add animation 
 		if (doc.HasMember("animationProfile") && doc["animationProfile"].IsString()) {
 			std::string animProfile = doc["animationProfile"].GetString();
 			entityMgr.AddComponent<AnimationComponent>(enemy, AnimationComponent{ animProfile });
 		}
 
-		// Add rotation flag if needed
+		// Add rotation flag 
 		entityMgr.AddComponent<RotationFlag>(enemy, RotationFlag{});
 
 		Logger::Get().Info(DebugType::Editor)
@@ -5290,7 +4450,26 @@ namespace Editor {
 					(CELL_SIZE - ImGui::GetFrameHeight()) * 0.5f);
 
 				if (ImGui::Checkbox("##cb", &canCollide)) {
+					//layerManager_.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
 					physics->SetLayerCollision(rowLayerEnum, colLayerEnum, canCollide);
+
+					Logger::Get().Info(DebugType::Editor)
+						<< "Collision changed: " << rowLayer.name << " vs " << colLayer.name
+						<< " = " << (canCollide ? "ENABLED" : "DISABLED") << std::endl;
+
+					//LayerManager& layerMgr = gameManager_->GetLayerManager();
+					/*layerMgr.SetLayerCollision(rowLayer.id, colLayer.id, canCollide);
+					layerMgr.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH);*/
+					//layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics);
+
+					if (layerManager_.SaveToFile(FileIOKeys::LAYER_CONFIG_FILEPATH, physics)) {
+						Logger::Get().Info(DebugType::Editor)
+							<< "Collision matrix saved to file" << std::endl;
+					}
+					else {
+						Logger::Get().Error(DebugType::Editor)
+							<< "FAILED to save collision matrix!" << std::endl;
+					}
 				}
 
 				if (ImGui::IsItemHovered()) {
@@ -5872,7 +5051,185 @@ namespace Editor {
 #pragma endregion
 
 #pragma region PREFAB EDITOR
+
+	void Editor::ShowCreatePrefabDialog() {
+		using namespace Framework;
+
+		if (!showCreatePrefabDialog_) return;
+
+		if (!ImGui::IsPopupOpen("Create Custom Prefab")) {
+			ImGui::OpenPopup("Create Custom Prefab");
+		}
+
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_Appearing);
+
+		if (ImGui::BeginPopupModal("Create Custom Prefab", &showCreatePrefabDialog_, ImGuiWindowFlags_NoResize)) {
+			ImGui::TextWrapped("Create a custom prefab from the selected entity.");
+			ImGui::TextWrapped("This will save to: Data/Prefabs/Custom/");
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			ImGui::Text("Prefab Name:");
+			ImGui::InputText("##NewPrefabName", newPrefabNameBuffer_, sizeof(newPrefabNameBuffer_));
+
+			ImGui::Spacing();
+
+			if (entityForPrefabCreation_ != 0) {
+				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+				if (entityMgr.ValidateEntity(entityForPrefabCreation_)) {
+					EntityProperties& props = entityMgr.GetProperties(entityForPrefabCreation_);
+					ImGui::Text("Source Entity: %s", props.name.c_str());
+				}
+			}
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			bool canCreate = strlen(newPrefabNameBuffer_) > 0;
+
+			if (!canCreate) ImGui::BeginDisabled();
+
+			if (ImGui::Button("Create Prefab", ImVec2(120, 0))) {
+				std::string prefabName(newPrefabNameBuffer_);
+				if (prefabSystem_.SaveEntityAsPrefab(*(gameManager_->GetSystems().ecs_),
+					entityForPrefabCreation_, prefabName, "Custom")) {
+					showCreatePrefabDialog_ = false;
+					memset(newPrefabNameBuffer_, 0, sizeof(newPrefabNameBuffer_));
+					palettePrepared_ = false;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!canCreate) ImGui::EndDisabled();
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+				showCreatePrefabDialog_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+		else {
+			showCreatePrefabDialog_ = false;
+		}
+	}
+
 	void Editor::ShowPrefabEditor() {
+		using namespace Framework;
+		ImGui::Begin("Prefab Editor", &isPrefabEditorOpen_);
+		ImGui::SeparatorText("Prefab Actions");
+		{
+			bool hasSelectedEntity = isEntitySelected_ && selectedEntityIndex > 0;
+			Entity selectedEntity = hasSelectedEntity ? static_cast<Entity>(selectedEntityIndex - 1) : 0;
+
+			if (!hasSelectedEntity) {
+				ImGui::BeginDisabled();
+			}
+
+			if (ImGui::Button("Create Prefab from Selected Entity", ImVec2(300, 30))) {
+				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+
+				if (entityMgr.ValidateEntity(selectedEntity)) {
+					showCreatePrefabDialog_ = true;
+					entityForPrefabCreation_ = selectedEntity;
+					EntityProperties& props = entityMgr.GetProperties(selectedEntity);
+					strncpy_s(newPrefabNameBuffer_, sizeof(newPrefabNameBuffer_), props.name.c_str(), _TRUNCATE);
+				}
+			}
+
+			if (!hasSelectedEntity) {
+				ImGui::EndDisabled();
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				if (hasSelectedEntity) {
+					ImGui::SetTooltip("Save the selected entity as a custom prefab");
+				}
+				else {
+					ImGui::SetTooltip("Please select an entity in the scene first");
+				}
+			}
+		}
+		ImGui::SameLine();
+		{
+			bool canDelete = !selectedPrefabForEditing_.empty();
+			if (canDelete) {
+				const EntityPrefab* prefab = prefabSystem_.GetPrefab(selectedPrefabForEditing_);
+				if (!prefab) {
+					canDelete = false;
+				}
+			}
+			if (!canDelete) {
+				ImGui::BeginDisabled();
+			}
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
+
+			if (ImGui::Button("Delete Selected Prefab", ImVec2(200, 30))) {
+				ImGui::OpenPopup("Confirm Delete Prefab");
+			}
+
+			ImGui::PopStyleColor(3);
+
+			if (!canDelete) {
+				ImGui::EndDisabled();
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				if (canDelete) {
+					ImGui::SetTooltip("Delete this prefab");
+				}
+				else {
+					ImGui::SetTooltip("Please select a prefab first");
+				}
+			}
+			if (ImGui::BeginPopupModal("Confirm Delete Prefab", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("Are you sure you want to delete the prefab:");
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "%s", selectedPrefabForEditing_.c_str());
+				ImGui::Text("This action cannot be undone!");
+
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::Spacing();
+
+				if (ImGui::Button("Delete", ImVec2(120, 0))) {
+					if (prefabSystem_.DeletePrefab(selectedPrefabForEditing_)) {
+						Logger::Get().Info(DebugType::Editor)
+							<< "Deleted custom prefab: " << selectedPrefabForEditing_ << std::endl;
+
+						selectedPrefabForEditing_.clear();
+						selectedPrefabTypeForEditing_ = PrefabType::None;
+						palettePrepared_ = false;
+					}
+					else {
+						Logger::Get().Error(DebugType::Editor)
+							<< "Failed to delete prefab" << std::endl;
+					}
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+		ImGui::End();
 		using namespace Framework;
 
 		ImGui::Begin("Prefab Editor", &isPrefabEditorOpen_);
@@ -5881,21 +5238,96 @@ namespace Editor {
 		ImGui::Text("Select Prefab to Edit:");
 
 		static int selectedPrefabIndex = 0;
-		std::vector<std::string> prefabNames;
+		static char searchBuffer[256] = "";
+		static bool useFilteredList = false;
+		static std::vector<std::string> filteredPrefabNames;
+
+		std::vector<std::string> allPrefabNames;
 		std::vector<const char*> prefabItems;
 
-		prefabNames.push_back("-- Select Prefab --");
+		// Search input
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100);
+		if (ImGui::InputTextWithHint("##PrefabSearch", "Search prefabs...", searchBuffer, IM_ARRAYSIZE(searchBuffer))) {
+			useFilteredList = (strlen(searchBuffer) > 0);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Clear")) {
+			searchBuffer[0] = '\0';
+			useFilteredList = false;
+			selectedPrefabIndex = 0;
+		}
+
+		// Build the list of prefabs
+		allPrefabNames.push_back("-- Select Prefab --");
 		for (const auto& pair : prefabSystem_.GetAllPrefabs()) {
-			prefabNames.push_back(pair.first);
+			allPrefabNames.push_back(pair.first);
 		}
 
-		for (const auto& name : prefabNames) {
-			prefabItems.push_back(name.c_str());
+		// Apply search filter if needed
+		if (useFilteredList && strlen(searchBuffer) > 0) {
+			filteredPrefabNames.clear();
+			filteredPrefabNames.push_back("-- Select Prefab --");
+
+			std::string searchLower = searchBuffer;
+			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(),
+				[](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+			for (const auto& name : allPrefabNames) {
+				if (name == "-- Select Prefab --") continue;
+
+				std::string nameLower = name;
+				std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+					[](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+				if (nameLower.find(searchLower) != std::string::npos) {
+					filteredPrefabNames.push_back(name);
+				}
+			}
+
+			// Update selected index if current selection is not in filtered list
+			if (selectedPrefabIndex > 0 && selectedPrefabIndex < allPrefabNames.size()) {
+				std::string currentSelection = allPrefabNames[selectedPrefabIndex];
+				auto it = std::find(filteredPrefabNames.begin(), filteredPrefabNames.end(), currentSelection);
+				if (it == filteredPrefabNames.end()) {
+					selectedPrefabIndex = 0;
+				}
+				else {
+					selectedPrefabIndex = static_cast<int>(std::distance(filteredPrefabNames.begin(), it));
+				}
+			}
+
+			// Use filtered list
+			const auto& displayNames = filteredPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
+
+			// Show count
+			ImGui::TextDisabled("Showing %d/%d prefabs", filteredPrefabNames.size() - 1, allPrefabNames.size() - 1);
+		}
+		else {
+			// Use full list
+			const auto& displayNames = allPrefabNames;
+			for (const auto& name : displayNames) {
+				prefabItems.push_back(name.c_str());
+			}
 		}
 
+		// Combo box
 		if (ImGui::Combo("##PrefabList", &selectedPrefabIndex, prefabItems.data(), static_cast<int>(prefabItems.size()))) {
-			if (selectedPrefabIndex > 0) {
-				selectedPrefabForEditing_ = prefabNames[selectedPrefabIndex];
+			std::string selectedName;
+			if (useFilteredList && !filteredPrefabNames.empty()) {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < filteredPrefabNames.size())
+					? filteredPrefabNames[selectedPrefabIndex] : "";
+			}
+			else {
+				selectedName = (selectedPrefabIndex >= 0 && selectedPrefabIndex < allPrefabNames.size())
+					? allPrefabNames[selectedPrefabIndex] : "";
+			}
+
+			if (selectedPrefabIndex > 0 && !selectedName.empty()) {
+				selectedPrefabForEditing_ = selectedName;
 
 				// Determine prefab type by checking components
 				EntityPrefab* prefab = prefabSystem_.GetMutablePrefab(selectedPrefabForEditing_);
@@ -5949,18 +5381,18 @@ namespace Editor {
 
 							// Texture Angle
 							if (rot.HasMember("texture_angle")) {
-								float textureAngleDeg = rot["texture_angle"].GetFloat() * (180.0f / M_PI);
+								float textureAngleDeg = static_cast<float>(rot["texture_angle"].GetFloat() * (180.0f / M_PI));;
 								if (ImGui::DragFloat("Texture Angle (degrees)", &textureAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["texture_angle"].SetFloat(textureAngleDeg * (M_PI / 180.0f));
+									rot["texture_angle"].SetFloat(static_cast<float>(textureAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
 
 							// Collider Angle
 							if (rot.HasMember("collider_angle")) {
-								float colliderAngleDeg = rot["collider_angle"].GetFloat() * (180.0f / M_PI);
+								float colliderAngleDeg = static_cast<float>(rot["collider_angle"].GetFloat() * (180.0f / M_PI));
 								if (ImGui::DragFloat("Collider Angle (degrees)", &colliderAngleDeg, 1.0f, -180.0f, 180.0f)) {
-									rot["collider_angle"].SetFloat(colliderAngleDeg * (M_PI / 180.0f));
+									rot["collider_angle"].SetFloat(static_cast<float>(colliderAngleDeg* (M_PI / 180.0f)));
 									prefabModified = true;
 								}
 							}
@@ -6440,6 +5872,69 @@ namespace Editor {
 				}
 			}
 
+			// === ENTITY PROPERTIES SECTION ===
+			ImGui::Separator();
+			ImGui::SeparatorText("Entity Properties");
+
+			// Collision Layer ID
+			if (ImGui::InputInt("Collision Layer ID", &prefab->layer)) {
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The collision layer ID for physics interactions");
+			}
+
+			// Layer Collision Name
+			static char layerCollisionNameBuffer[256] = "";
+			strncpy_s(layerCollisionNameBuffer, sizeof(layerCollisionNameBuffer), prefab->layer_collision_name.c_str(), _TRUNCATE);
+			if (ImGui::InputText("Collision Layer Name", layerCollisionNameBuffer, 256)) {
+				prefab->layer_collision_name = std::string(layerCollisionNameBuffer);
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The collision layer name (e.g., 'Platform', 'Player', 'Default')");
+			}
+
+			ImGui::Spacing();
+
+			// Render Layer
+			if (ImGui::InputInt("Render Layer", &prefab->renderLayer)) {
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The rendering layer order (higher values render on top)");
+			}
+
+			// Custom Render Order
+			if (ImGui::InputInt("Custom Render Order", &prefab->customRenderOrder)) {
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Fine-tuned render order within the same render layer");
+			}
+
+			// Render Layer Name
+			static char layerRenderNameBuffer[256] = "";
+			strncpy_s(layerRenderNameBuffer, sizeof(layerRenderNameBuffer), prefab->layer_render_name.c_str(), _TRUNCATE);
+			if (ImGui::InputText("Render Layer Name", layerRenderNameBuffer, 256)) {
+				prefab->layer_render_name = std::string(layerRenderNameBuffer);
+				prefabModified = true;
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("The render layer name (optional)");
+			}
+
+
 			// === ADD/REMOVE COMPONENTS SECTION ===
 			ImGui::Separator();
 			ImGui::SeparatorText("Add/Remove Components");
@@ -6454,12 +5949,12 @@ namespace Editor {
 				"SkeletonAIComponent", "NativeScripts", "TrapPlatformComponent"
 			};
 
-			std::vector<const char*> componentItems;
+			std::vector<const char*> localComponentItems;
 			for (const auto& comp : availableComponents) {
-				componentItems.push_back(comp.c_str());
+				localComponentItems.push_back(comp.c_str());
 			}
 
-			ImGui::Combo("Component to Add", &selectedAddComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
+			ImGui::Combo("Component to Add", &selectedAddComponentIndex, localComponentItems.data(), static_cast<int>(localComponentItems.size()));
 
 			ImGui::SameLine();
 			if (ImGui::Button("Add Component") && selectedAddComponentIndex > 0) {
@@ -7114,31 +6609,31 @@ namespace Editor {
 			return;
 		}
 
-		// Get the AI system from game manager
-		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+		//// Get the AI system from game manager
+		//AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 
-		if (!aiSystem) {
-			ImGui::TextDisabled("AI System not available");
-			ImGui::End();
-			return;
-		}
+		//if (!aiSystem) {
+		//	ImGui::TextDisabled("AI System not available");
+		//	ImGui::End();
+		//	return;
+		//}
 
 		// Master toggle
-		ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
-		ImGui::Separator();
+		//ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+		//ImGui::Separator();
 
-		// Individual toggles
-		ImGui::BeginDisabled(!aiSystem->debugVisualization);
+		//// Individual toggles
+		//ImGui::BeginDisabled(!aiSystem->debugVisualization);
 
-		ImGui::Text("Visualization Options:");
-		ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
-		ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
-		/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
-		ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
+		//ImGui::Text("Visualization Options:");
+		//ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+		//ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+		///*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+		//ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
-		ImGui::EndDisabled();
+		//ImGui::EndDisabled();
 
-		ImGui::Separator();
+		//ImGui::Separator();
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add some spacing
 		ImGui::Text("Physics Visualization");
@@ -7155,25 +6650,25 @@ namespace Editor {
 			ImGui::TextDisabled("Physics System not available");
 		}
 
-		// Color legend
-		if (ImGui::CollapsingHeader("State Colors Legend")) {
-			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
-			ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
-		}
+		//// Color legend
+		//if (ImGui::CollapsingHeader("State Colors Legend")) {
+		//	ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Gray = IDLE");
+		//	ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow = WAKING");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Orange = CHASE");
+		//	ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Cyan = HOVER");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red = ATTACK");
+		//}
 
-		if (ImGui::CollapsingHeader("Radius Legend")) {
-			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
-			ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
-		}
+		//if (ImGui::CollapsingHeader("Radius Legend")) {
+		//	ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Yellow Circle = Wake-up Radius");
+		//	ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.7f, 1.0f), "Cyan Circle = Hover Radius");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Circle = Attack Radius");
+		//}
 
-		if (ImGui::CollapsingHeader("Grid Legend")) {
-			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
-		}
+		//if (ImGui::CollapsingHeader("Grid Legend")) {
+		//	ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green Cells = Walkable");
+		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red Cells = Blocked");
+		//}
 
 		/*if (ImGui::CollapsingHeader("Path Legend")) {
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "Magenta Line = Current Path");
@@ -7201,7 +6696,6 @@ namespace Editor {
 		for (Entity& entity : sortedByRenderLayer) {
 			if (entityMgr.HasComponent(entity, Framework::ComponentType::TransformType))
 			{
-				Vector2D& pos = entityMgr.GetComponent<Framework::Transform>(entity).position;
 				bool isGUI = entityMgr.HasComponent(entity, GUITagType);
 				Vector2D checkPos = isGUI ? GetNormalizedMousePos() : mouseWorldPos;
 
@@ -7216,12 +6710,19 @@ namespace Editor {
 					continue;
 				}
 
-				// check using halfsize.
-				if (checkPos.x >= pos.x - halfSize.x && checkPos.x <= pos.x + halfSize.x &&
-					checkPos.y >= pos.y - halfSize.y && checkPos.y <= pos.y + halfSize.y)
+				Transform transformComp = entityMgr.GetComponent<Framework::Transform>(entity);
+				Vector2D& pos = transformComp.position;
+				Vector2D& scale = transformComp.scale;
+
+				// Apply Scale to HalfSize
+				Vector2D scaledHalfSize = { halfSize.x * scale.x, halfSize.y * scale.y };
+
+				//  Check bounds using scaledHalfSize
+				if (checkPos.x >= pos.x - scaledHalfSize.x && checkPos.x <= pos.x + scaledHalfSize.x &&
+					checkPos.y >= pos.y - scaledHalfSize.y && checkPos.y <= pos.y + scaledHalfSize.y)
 				{
 					bestCandidate = entity;
-					break; // Stop after finding the top-most one
+					break;
 				}
 			}
 		}
@@ -7254,6 +6755,486 @@ namespace Editor {
 				return propsA.renderLayer > propsB.renderLayer;
 			}
 		);
+	}
+
+	void Editor::DrawTransformInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		Transform& transform = entityMgr.GetComponent<Transform>(entity);
+		ComponentType compType = ComponentType::TransformType;
+
+		bool nowActive = false;
+
+		// --- Position ---
+		ImGui::InputFloat2("Position", &transform.position.x, "%.2f");
+		if (ImGui::IsItemActive()) nowActive = true;
+
+		// --- Rotation ---
+		static bool unifiedTransformRotation = true;
+		ImGui::Checkbox("Rotation (Texture + Collider)", &unifiedTransformRotation);
+		ImGui::Separator();
+
+		if (unifiedTransformRotation) {
+			float unifiedDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
+
+			ImGui::SetNextItemWidth(100.f);
+			if (ImGui::DragFloat("Rotation (Degrees)", &unifiedDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+				float newRadians = static_cast<float>(unifiedDegrees * (M_PI / 180.0f));
+				transform.rotation.textureAngle = newRadians;
+				transform.rotation.colliderAngle = newRadians;
+				if (transformationSystem_) {
+					transformationSystem_->UpdateEntityTransform(entity);
+				}
+				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+			}
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			if (ImGui::Button("Reset Rotation")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				transform.rotation.textureAngle = 0.0f;
+				transform.rotation.colliderAngle = 0.0f;
+				if (transformationSystem_) transformationSystem_->UpdateEntityTransform(entity);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Reset Rotation in " << entityMgr.GetProperties(entity).name << std::endl;
+					historyManager_.RecordModifyComponent(entity, ss.str(), beforeJSON, afterJSON, compType);
+				}
+			}
+			ImGui::Text("Current: %.1f°", unifiedDegrees);
+		}
+		else {
+			// Texture Rotation
+			ImGui::Text("Texture Rotation");
+			float textureDegrees = static_cast<float>(transform.rotation.textureAngle * (180.0f / M_PI));
+			if (ImGui::DragFloat("Texture (Degrees)", &textureDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+				transform.rotation.textureAngle = static_cast<float>(textureDegrees * (M_PI / 180.0f));
+				if (transformationSystem_) transformationSystem_->UpdateEntityTransform(entity);
+			}
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			ImGui::Separator();
+
+			// Collider Rotation
+			ImGui::Text("Collider Rotation");
+			float colliderDegrees = static_cast<float>(transform.rotation.colliderAngle * (180.0f / M_PI));
+			if (ImGui::DragFloat("Collider (Degrees)", &colliderDegrees, 1.0f, -180.0f, 180.0f, "%.2f")) {
+				transform.rotation.colliderAngle = static_cast<float>(colliderDegrees * (M_PI / 180.0f));
+				if (transformationSystem_) transformationSystem_->UpdateEntityTransform(entity);
+			}
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			ImGui::Separator();
+
+			// Reset Buttons
+			if (ImGui::Button("Reset Texture")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				transform.rotation.textureAngle = 0.0f;
+				if (transformationSystem_) transformationSystem_->UpdateEntityTransform(entity);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Texture Rotation", beforeJSON, afterJSON, compType);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reset Collider")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				transform.rotation.colliderAngle = 0.0f;
+				if (transformationSystem_) transformationSystem_->UpdateEntityTransform(entity);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Collider Rotation", beforeJSON, afterJSON, compType);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reset Both")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				transform.rotation.textureAngle = 0.0f;
+				transform.rotation.colliderAngle = 0.0f;
+				if (transformationSystem_) transformationSystem_->UpdateEntityTransform(entity);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Rotation", beforeJSON, afterJSON, compType);
+			}
+			ImGui::Text("Texture: %.1f° | Collider: %.1f°", textureDegrees, colliderDegrees);
+		}
+
+		// --- Scaling ---
+		if (transformationSystem_) {
+			static std::unordered_map<Entity, Vector2D> defaultSizes;
+			if (defaultSizes.find(entity) == defaultSizes.end()) {
+				if (entityMgr.HasComponent(entity, AABBColliderType)) {
+					defaultSizes[entity] = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
+				}
+			}
+
+			if (entityMgr.HasComponent(entity, AABBColliderType)) {
+				AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+				Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
+
+				if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
+					transform.scale.x = ScaleFactor.x;
+					transform.scale.y = ScaleFactor.y;
+
+					if (defaultSizes.count(entity)) {
+						collider.HalfSize.x = defaultSizes[entity].x * ScaleFactor.x;
+						collider.HalfSize.y = defaultSizes[entity].y * ScaleFactor.y;
+					}
+					transformationSystem_->UpdateEntityTransform(entity);
+					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+				}
+				if (ImGui::IsItemActive()) nowActive = true;
+
+				static bool uniformTransformScale = false;
+				ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
+
+				if (uniformTransformScale) {
+					float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
+					if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
+						transform.scale.x = uniformValue;
+						transform.scale.y = uniformValue;
+						if (defaultSizes.count(entity)) {
+							collider.HalfSize.x = defaultSizes[entity].x * uniformValue;
+							collider.HalfSize.y = defaultSizes[entity].y * uniformValue;
+						}
+						transformationSystem_->UpdateEntityTransform(entity);
+						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+					}
+					if (ImGui::IsItemActive()) nowActive = true;
+				}
+				if (ImGui::Button("Reset Scale")) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+					transform.scale = { 1.0f, 1.0f };
+					if (defaultSizes.count(entity)) collider.HalfSize = defaultSizes[entity];
+					transformationSystem_->UpdateEntityTransform(entity);
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+					if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Scale", beforeJSON, afterJSON, compType);
+				}
+			}
+			else {
+				ImGui::TextDisabled("No AABBCollider attached");
+			}
+		}
+		else {
+			Framework::Logger::Get().Error(DebugType::Editor) << "Transformation system not initialised" << std::endl;
+		}
+
+		// History Tracking logic
+		if (nowActive && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+		if (!nowActive && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Set Transform in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+		editSession.wasItemActive = nowActive;
+	}
+
+	void Editor::DrawRigidBodyInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		RigidBody& rb = entityMgr.GetComponent<RigidBody>(entity);
+		ComponentType compType = ComponentType::RigidBodyType;
+
+		// Force - Read Only
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		ImGui::InputFloat2("Force", &rb.Force.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::PopStyleColor(2);
+
+		// Mass
+		float localMass = rb.Mass;
+		if (ImGui::InputFloat("Mass", &localMass, 0.1f, 1.0f, "%.2f")) {
+			rb.SetMass(localMass);
+		}
+
+		bool activeNow = ImGui::IsItemActive();
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Mass in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+
+		// Inverse Mass - Read Only
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		ImGui::InputFloat("Inverse Mass", &rb.InverseMass, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::PopStyleColor(2);
+
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawTextureInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
+		ComponentType compType = ComponentType::TextureComponentType;
+
+		// Read-only Texture Key display
+		ImGui::InputText("Texture Key", &tex.textureKey, ImGuiInputTextFlags_ReadOnly);
+
+		// Drag and Drop Target for Texture Key
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+			if (payload)
+			{
+				const char* dropped_path_c_str = (const char*)payload->Data;
+				fs::path dropped_path(dropped_path_c_str);
+				std::string ext = dropped_path.extension().string();
+				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+				if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+				{
+					std::string newKey = dropped_path.filename().string();
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+					tex.textureKey = newKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						historyManager_.RecordModifyComponent(entity, "Modified Texture Key (DragDrop)", beforeJSON, afterJSON, compType);
+					}
+
+					resourceManager_->unload<Texture>(newKey);
+					resourceManager_->loadTexture(newKey, dropped_path.string());
+					Logger::Get().Info(DebugType::Editor) << "Texture key updated to: " << newKey << std::endl;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		// Manual input field
+		static std::string newTextureKey = "";
+		ImGui::InputText("New Texture Key", &newTextureKey);
+
+		if (ImGui::Button("Update Texture")) {
+			if (!newTextureKey.empty()) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				tex.textureKey = newTextureKey;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					historyManager_.RecordModifyComponent(entity, "Modified Texture Key (Manual)", beforeJSON, afterJSON, compType);
+				}
+			}
+		}
+
+		if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
+			if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+		}
+
+		ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
+		bool activeNow = ImGui::IsItemActive();
+
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Texture Properties in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawAudioInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		AudioComponent& audioComp = entityMgr.GetComponent<AudioComponent>(entity);
+		ComponentType compType = ComponentType::AudioComponentType;
+
+		ImGui::InputText("Audio Key", &audioComp.soundKey, ImGuiInputTextFlags_ReadOnly);
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+			if (payload)
+			{
+				std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+				fs::path dropped_file(dropped_path);
+				std::string ext = dropped_file.extension().string();
+				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+				if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+				{
+					std::string newKey = dropped_file.filename().string();
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+					audioComp.soundKey = newKey;
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+					if (beforeJSON != afterJSON) {
+						historyManager_.RecordModifyComponent(entity, "Modified Audio Key (DragDrop)", beforeJSON, afterJSON, compType);
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		static std::string newSoundKey = "";
+		ImGui::InputText("New Audio Key", &newSoundKey);
+
+		if (ImGui::Button("Update Audio")) {
+			if (!newSoundKey.empty()) {
+				fs::path filePath(newSoundKey);
+				if (filePath.has_extension()) {
+					std::string ext = filePath.extension().string();
+					if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+						audioComp.soundKey = newSoundKey;
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+						if (beforeJSON != afterJSON) {
+							historyManager_.RecordModifyComponent(entity, "Modified Audio Key", beforeJSON, afterJSON, compType);
+						}
+					}
+				}
+			}
+		}
+
+		const char* audioTypeItems[] = { "SFX", "Music" };
+		int currentAudioTypeIndex = static_cast<int>(audioComp.audioType);
+
+		if (ImGui::Combo("Audio Type", &currentAudioTypeIndex, audioTypeItems, IM_ARRAYSIZE(audioTypeItems))) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			audioComp.audioType = static_cast<AudioType>(currentAudioTypeIndex);
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Audio Type", beforeJSON, afterJSON, compType);
+		}
+
+		bool loopLocal = audioComp.loop;
+		if (ImGui::Checkbox("Looping", &loopLocal)) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			audioComp.loop = loopLocal;
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Audio Loop", beforeJSON, afterJSON, compType);
+		}
+
+		bool streamLocal = audioComp.stream;
+		if (ImGui::Checkbox("Stream", &streamLocal)) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			audioComp.stream = streamLocal;
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Audio Stream", beforeJSON, afterJSON, compType);
+		}
+
+		ImGui::SliderFloat("Volume", &audioComp.volume, 0.0f, 1.0f, "%.2f");
+		bool activeNow = ImGui::IsItemActive();
+
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Audio Volume in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawButtonInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		Button& buttonComp = entityMgr.GetComponent<Button>(entity);
+		ComponentType compType = ComponentType::ButtonType;
+
+		bool isPressedLocal = buttonComp.isPressed;
+		if (ImGui::Checkbox("Is Pressed?", &isPressedLocal)) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			buttonComp.isPressed = isPressedLocal;
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON) {
+				historyManager_.RecordModifyComponent(entity, "Modified Button Pressed State", beforeJSON, afterJSON, compType);
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::SeparatorText("Button Visual States");
+
+		bool visualStatesChanged = false;
+		std::string visualStatesBeforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+		auto HandleStateUI = [&](const char* label, std::string& texKey, bool& isAnim) {
+			if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Texture Key:");
+				if (ImGui::InputText("##Texture", &texKey)) visualStatesChanged = true;
+
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+					if (payload) {
+						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						fs::path dropped_file(dropped_path);
+						texKey = dropped_file.filename().string();
+						visualStatesChanged = true;
+						resourceManager_->unload<Texture>(texKey);
+						resourceManager_->loadTexture(texKey, dropped_file.string());
+					}
+					ImGui::EndDragDropTarget();
+				}
+				if (ImGui::Checkbox("Is Animated", &isAnim)) visualStatesChanged = true;
+				ImGui::TreePop();
+			}
+			ImGui::Spacing();
+			};
+
+		HandleStateUI("Default State", buttonComp.defaultTextureKey, buttonComp.defaultIsAnimated);
+		HandleStateUI("Hover State", buttonComp.hoverTextureKey, buttonComp.hoverIsAnimated);
+		HandleStateUI("Pressed State", buttonComp.pressedTextureKey, buttonComp.pressedIsAnimated);
+
+		if (visualStatesChanged) {
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (visualStatesBeforeJSON != afterJSON) {
+				historyManager_.RecordModifyComponent(entity, "Modified Button Visual States", visualStatesBeforeJSON, afterJSON, compType);
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::SeparatorText("Button Actions");
+
+		const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "SWITCH_SCENE_ADD", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE" };
+		int currentItemIndex = static_cast<int>(buttonComp.action);
+
+		if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Action", beforeJSON, afterJSON, compType);
+		}
+
+		bool dataChanged = false;
+		std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+		if (buttonComp.action == ButtonAction::SWITCH_SCENE || buttonComp.action == ButtonAction::SWITCH_SCENE_ADD) {
+			ImGui::Text("Target Scene Name:");
+			if (ImGui::InputText("##SceneName", &buttonComp.targetString)) dataChanged = true;
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+					buttonComp.targetString = dropped_file.stem().string();
+					dataChanged = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+		else if (buttonComp.action == ButtonAction::PLAYSOUND) {
+			ImGui::Text("Sound Key:");
+			if (ImGui::InputText("##SoundKey", &buttonComp.targetString)) dataChanged = true;
+		}
+		else if (buttonComp.action == ButtonAction::DEFAULT) {
+			ImGui::Text("Event Value:");
+			if (ImGui::DragFloat("##Val", &buttonComp.targetValue)) dataChanged = true;
+		}
+
+		if (dataChanged) {
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Data", beforeJSON, afterJSON, compType);
+		}
 	}
 
 }

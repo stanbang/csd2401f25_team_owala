@@ -17,7 +17,7 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include <Windows.h>
 #include "Core.h"
 #include "WindowsSystem.h"
@@ -135,11 +135,12 @@ int main() {
         engine.AddSystem(player);
         engine.AddSystem(phx);
         engine.AddSystem(audio);
-        engine.AddSystem(rcm);
+        //engine.AddSystem(rcm);
         engine.AddSystem(platform);
         engine.AddSystem(aiSystem);
         engine.AddSystem(vfx);
         engine.AddSystem(gm);
+        engine.AddSystem(rcm);
         engine.AddSystem(camera);
         engine.AddSystem(animation);
         engine.AddSystem(gui);

@@ -105,7 +105,7 @@ namespace Editor {
 		std::string name;
 		std::string fsmPath;
 		std::string textureKey;
-		ImTextureID textureID;
+		ImTextureID textureID = 0;
 		ImVec2 uv0;
 		ImVec2 uv1;
 	};
@@ -308,6 +308,12 @@ namespace Editor {
 		//void ShowRestartMenu(); //when player dies
 		void ShowLayerManager();
 
+		void DrawTransformInspector(Entity entity);
+		void DrawRigidBodyInspector(Entity entity);
+		void DrawTextureInspector(Entity entity);
+		void DrawAudioInspector(Entity entity);
+		void DrawButtonInspector(Entity entity);
+
 		// Popup Related
 		std::string popupMsg;
 
@@ -394,8 +400,12 @@ namespace Editor {
 		std::string selectedAnimationName_;
 		std::vector<const char*> animationNames_;
 		bool isAnimationEditorInitialized_ = false;
+		bool showCreatePrefabDialog_ = false;
+		char newPrefabNameBuffer_[256] = "";
+		Entity entityForPrefabCreation_ = 0;
 
-		bool ShowPrefabComponentEditor(Framework::ComponentData& compData);
+		// Helper function
+		void ShowCreatePrefabDialog();
 
 	public:
 		bool isEnabled = true;

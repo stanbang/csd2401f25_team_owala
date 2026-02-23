@@ -14,6 +14,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+#include "pch.h"
 #include "History.h"
 #include "EntityManager.h"
 #include "EntitySerializer.h"
@@ -81,6 +82,7 @@ namespace Editor {
 		}
 
 		EntitySerializer::DeserializeEntityToExisting(*ecs_, entity, doc);
+		SyncSceneLoadedState(entity);
 	}
 
 	void HistoryManager::ApplyComponentSnapshot(Entity entity, ComponentType type, const std::string& json) {
@@ -124,6 +126,7 @@ namespace Editor {
 			}
 
 			EntitySerializer::DeserializeTags(entityMgr, entity, doc);
+			SyncSceneLoadedState(entity);
 			return;
 		}
 
@@ -135,16 +138,6 @@ namespace Editor {
 						entityMgr.RemoveComponent(entity, ComponentType::TransformType);
 					}
 					entityMgr.AddComponent<Transform>(entity, newTransform);
-				}
-				break;
-			}
-			case ComponentType::SpawnPointType: {
-				SpawnPoint newSpawnPoint;
-				if (EntitySerializer::DeserializeComponent(doc, newSpawnPoint)) {
-					if (entityMgr.HasComponent(entity, ComponentType::SpawnPointType)) {
-						entityMgr.RemoveComponent(entity, ComponentType::SpawnPointType);
-					}
-					entityMgr.AddComponent<SpawnPoint>(entity, newSpawnPoint);
 				}
 				break;
 			}
@@ -305,6 +298,7 @@ namespace Editor {
 						entityMgr.RemoveComponent(entity, ComponentType::SceneOwnedType);
 					}
 					entityMgr.AddComponent<SceneOwned>(entity, newSceneOwned);
+					SyncSceneLoadedState(entity);
 				}
 				break;
 			}
@@ -371,6 +365,23 @@ namespace Editor {
 		// Prune everything after recorded index.
 		if (index > 0) {
 			undoStack.erase(undoStack.begin(), undoStack.begin() + index);
+		}
+	}
+
+	void HistoryManager::SyncSceneLoadedState(Entity entity) {
+		using namespace Framework;
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+
+		if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+			const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
+			sceneMgr.AddEntityToScene(owned.sceneIndex, entity);
+		}
+		else {
+			const SceneManagement::SceneAsset& activeScene = sceneMgr.GetActiveScene();
+			if (activeScene.IsValid()) {
+				sceneMgr.AddEntityToScene(activeScene, entity);
+			}
 		}
 	}
 

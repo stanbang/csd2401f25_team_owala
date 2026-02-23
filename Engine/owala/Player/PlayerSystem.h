@@ -39,12 +39,24 @@ namespace Framework {
 		//player death
 		void CheckPlayerDeathFromTraps();
 		void CheckPlayerDeathFromEnemies();
+		void DamagePlayer(Entity playerEntity, const std::string& damageSource, const Vector2D& sourcePos);
 		void KillPlayer(Entity playerEntity, const std::string& killerType = "Unknown");
 		bool IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius);
 		void HandlePlayerDeath();
-
+		void SeparatePlayerFromDynamicObjects(Entity playerEntity);
+		
 		//player movement
 		float moveSpeed = 0.0f;
 		float jumpHeight = 0.0f;
+
+		//enemy death
+		void CheckEnemyDeathFromTraps();
+		void TriggerEnemyDeath(Entity enemyEntity, const std::string& killerType = "Unknown");
+		void UpdateInvulnerability();
+
+		float INVULNERABILITY_DURATION = 0.0f;
+		float KNOCKBACK_DURATION = 0.0f;
+		float KNOCKBACK_FORCE_X = 0.0f;
+		float KNOCKBACK_FORCE_Y = 0.0f;
 	};
 } // namespace Framework

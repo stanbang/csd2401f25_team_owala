@@ -24,13 +24,11 @@
  *      Reproduction or disclosure of this file or its contents without the prior
  *      written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "CameraSystem.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "GameManager.h"
-#include <cmath>
-#include <stdexcept>
 #include "OwalaTime.h"
 #include "Logger.h"
 
@@ -54,9 +52,13 @@ namespace Framework {
     void CameraSystem::Update() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, CameraType)) {
             Camera& camera = entityMgr.GetComponent<Camera>(e);
 
+            if (!camera.zoomInitialized && !camera.isEditorControlled) {
+                camera.zoom = 350.0f;  // Your desired zoom (higher = more zoomed out)
+                camera.zoomInitialized = true;
+            }
             // Skip cameras that are controlled by the editor
             if (camera.isEditorControlled) {
                 continue;
@@ -126,7 +128,7 @@ namespace Framework {
         bool foundAnyPlatform = false;
 
         // Iterate through all entities with PlatformTag
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(PlatformTagType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, PlatformTagType)) {
             if (!entityMgr.HasComponent(e, TransformType)) continue;
 
             foundAnyPlatform = true;
@@ -293,6 +295,7 @@ namespace Framework {
         camera.targetEntity = targetEntity;
         camera.isActive = isActive;
         camera.aspectRatio = 16.0f / 9.0f;
+        camera.zoom = 10.0f; // Add this line
 
         entityMgr.AddComponent(cameraEntity, camera);
 
@@ -379,7 +382,7 @@ namespace Framework {
         float aspect = screenWidth / screenHeight;
 
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(CameraType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, CameraType)) {
             Camera& cam = entityMgr.GetComponent<Camera>(e);
             cam.aspectRatio = aspect;
         }

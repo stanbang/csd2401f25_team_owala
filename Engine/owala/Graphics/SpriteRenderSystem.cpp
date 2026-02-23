@@ -30,13 +30,11 @@
  *      Reproduction or disclosure of this file or its contents without the prior
  *      written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "SpriteRenderSystem.h"
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
-#include <tuple>
-#include <map>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -90,7 +88,7 @@ namespace Framework {
 
         // Execute Render Loop (Batching Interleaved)
         std::vector<BatchedSprite> currentBatch;
-        Texture currentTexture;
+        Texture currentTexture{};
         bool batchStarted = false;
 
         for (const auto& item : renderQueue) {
@@ -142,7 +140,7 @@ namespace Framework {
         }
 
         // --- Collect Sprite Entities ---
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextureComponentType, TransformType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextureComponentType, TransformType, LoadedTagType)) {
             TextureComponent& sprite = entityMgr.GetComponent<TextureComponent>(entity);
             if (sprite.textureKey.empty()) continue;
 
@@ -303,7 +301,7 @@ namespace Framework {
         Graphics& gfx_ = *gm.GetSystems().gfx_;
 
         // Retrieve active camera data
-        float zoom = 1.0f, zoomRefSize= 540.0f, zoomRatio = 1.0f;
+        float zoom = 1.0f, zoomRefSize = 350.0f, zoomRatio = 1.0f;
         Vector2D camPos = { 0.0f, 0.0f };
         Vector2D camSize = { (float)gfx_.getScreenWidth(), (float)gfx_.getScreenHeight() };
 
@@ -315,7 +313,7 @@ namespace Framework {
             zoomRatio = zoomRefSize / zoom;
         }
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextComponentType, TransformType, LoadedTagType)) {
             const auto& textComp = entityMgr.GetComponent<TextComponent>(entity);
             if (textComp.fontKey.empty() || textComp.textToDraw.empty()) continue;
 
@@ -332,21 +330,27 @@ namespace Framework {
 
             // --- Calculate Screen Position ---
             Vector2D screenTextPos = textPos;
+            float finalScale = textComp.scale;
 
             if (!isUIElement) {
-                // Subtract Camera Position from Text Position
-                float relativeX = textPos.x - camPos.x;
-                float relativeY = textPos.y - camPos.y;
+                // Anchor to World Position
+                // Use the standard camera function so text stays attached to the Gizmo/Entity
+                if (activeCamera != 0 && cameraSystem_) {
+                    screenTextPos = cameraSystem_->WorldToScreen(textPos, activeCamera);
+                }
 
-                // offset so that pos is the middle of the text
-                relativeX -= textComp.halfSize.x;
-                relativeY += textComp.halfSize.y;
+                // Scale the Text
+                // Apply your reference zoom ratio to the text scale
+                finalScale *= zoomRatio;
 
-                // Convert Relative Position to NDC
-                screenTextPos = Vector2D(
-                    (relativeX / camSize.x) * 2.0f * zoomRatio,
-                    (relativeY / camSize.y) * 2.0f * zoomRatio
-                );
+                // Apply Offset in Screen Space (NDC)
+                // Convert halfSize (Pixels) -> NDC. 
+                // We scale the offset by 'finalScale' so it shrinks/grows with the text.
+                float ndcHalfW = (textComp.halfSize.x * finalScale / gfx_.getScreenWidth()) * 2.0f;
+                float ndcHalfH = (textComp.halfSize.y * finalScale / gfx_.getScreenHeight()) * 2.0f;
+
+                screenTextPos.x -= ndcHalfW;
+                screenTextPos.y += ndcHalfH;
             }
             else {
                 // Texts with GUI tag already use screen coords
@@ -397,7 +401,7 @@ namespace Framework {
             activeCamera = cameraSystem_->GetActiveCamera();
         }
 
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(AABBColliderType)) {
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
             if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
             const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
             if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;

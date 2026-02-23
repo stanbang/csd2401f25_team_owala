@@ -31,12 +31,10 @@
  *      Reproduction or disclosure of this file or its contents without the prior
  *      written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "WindowsSystem.h"
 #include "Core.h"
 #include "Logger.h"
-#include <cstdio>
-#include <GLFW/glfw3.h>
 
 namespace Framework {
 

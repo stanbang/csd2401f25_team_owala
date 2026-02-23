@@ -13,7 +13,7 @@
  *   Reproduction or disclosure of this file or its contents without the prior
  *   written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "LevelResetSystem.h"
 #include "MessageBus.h"
 #include "GameManager.h"
@@ -31,8 +31,9 @@ namespace Framework {
         //playerSig.set(RotationFlagType);
         //playerSig.set(SceneOwnedType);
 
-        playerSpawnPtSig.set(ActiveTagType);
-        playerSpawnPtSig.set(SpawnPointType);
+        playerSpawnPtSig.set(LoadedTagType);
+        playerSpawnPtSig.set(TransformType);
+        playerSpawnPtSig.set(SpawnPointTagType);
         playerSpawnPtSig.set(SceneOwnedType);
 
         // Platform signatures
@@ -67,7 +68,7 @@ namespace Framework {
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
             if (event.action == ButtonAction::RESETPLAYERPOS) {
                 EntityManager entityMgr(GameManager::GetInstance().GetECS());
-                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerTagType)) {
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
                     if (entityMgr.HasComponent(entity, TransformType)) {
                         ResetTransform(entityMgr, entity, Transform(GetPlayerSpawnPt(entityMgr)));
                     }
@@ -87,7 +88,7 @@ namespace Framework {
         EntityManager entityMgr(gm.GetECS());
         
         // Delete all particles
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
 			entityMgr.DestroyEntity(entity);
 		}
         
@@ -213,8 +214,8 @@ namespace Framework {
         }
 
         if (spawnPtEntity > 0) {
-            SpawnPoint& spawnPt = entityMgr.GetComponent<SpawnPoint>(spawnPtEntity);
-            return spawnPt.Pos;
+            Transform& spawnPt = entityMgr.GetComponent<Transform>(spawnPtEntity);
+            return spawnPt.position;
         }
         else {
             Logger::Get().Error(DebugType::LevelResetSystem) << "Player spawn point not found!" << std::endl;

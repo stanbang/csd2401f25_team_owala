@@ -31,6 +31,7 @@
 #include "AISystem.h"
 #include "FileUtility.h"
 #include "AnimationSystem.h"
+#include "LayerManager.h"
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
@@ -39,6 +40,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 
@@ -73,7 +75,8 @@ namespace Framework {
 			SceneFunction fpFree = nullptr;
 		};
 		std::unordered_map<SceneGUID, SceneCallBacks> sceneCallbacks_;
-		SceneGUID lastInitializedScene_ = 0;
+		std::unordered_set<SceneGUID> initializedScenes_;
+		SceneGUID lastActiveScene_ = 0;
 
 		struct RegisteredSystems {
 			EntityStorage* ecs_ = nullptr;
@@ -91,9 +94,11 @@ namespace Framework {
 			LevelResetSystem* levelResetter_ = nullptr;
 			TransformationSystem* transformation_ = nullptr;
 			AnimationSystem* animationSystem_ = nullptr;
+			  
 		};
 
 		RegisteredSystems systems_;
+		
 #ifdef BUILD_EDITOR
 		Editor::Editor* editor_ = nullptr; // ImGui Editor instance
 
@@ -125,6 +130,7 @@ namespace Framework {
 		void PreloadSceneAssets(const std::string& sceneName);
 
 		bool restartMenuInitialized = false;
+		SceneGUID previousScene = 0;
 
 	public:
 		// GLOBAL STATES
@@ -148,6 +154,7 @@ namespace Framework {
 		const RegisteredSystems& GetSystems() const { return systems_; }
 		EntityStorage& GetECS() { return *systems_.ecs_; };
 		const EntityStorage& GetECS() const { return *systems_.ecs_; }
+		
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 
@@ -174,12 +181,18 @@ namespace Framework {
 		void RegisterScriptToScene(SceneGUID sceneIndex, SceneFunction initFunction, SceneFunction updateFunction, SceneFunction freeFunction);
 		void UnregisterScriptFromScene(SceneGUID sceneIndex);
 
+		// Checks if game is currently in play mode or not
+		bool IsGamePlaying() const;
+
 		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
 		std::string GetNextScene() const { return nextSceneToLoad_; }
 		void InitiateLevelLoad(const std::string& levelName);
 
 		// Helper to check if a scene is a level scene
 		bool IsLevelScene(const std::string& name);
+
+		// Getter for Previous scene
+		SceneGUID GetPrevScene() const { return previousScene; }
 
 		/* Game Cycle Functions */
 		void Initialize() override;

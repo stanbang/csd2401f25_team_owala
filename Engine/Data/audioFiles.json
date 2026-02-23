@@ -7,6 +7,16 @@
         "player_land.wav",
         "player_land2.wav"
     ],
+    "Player_Walk": [
+        "player_walk.wav"
+    ],
+    "Player_Hurt": [
+        "player_hurt.wav",
+        "player_hurt2.wav"
+    ],
+    "Player_Death": [
+        "player_death.wav"
+    ],
     "Platform_Land": [
         "platform_land.wav"
     ],
@@ -18,5 +28,15 @@
     ],
     "Curtains_Close": [
         "curtains_close.wav"
+    ],
+    "Bird_Wake": [
+        "bird_wake.wav"
+    ],
+    "Bird_Chase": [
+        "bird_flying.wav"
+    ],
+    "Bird_Attack": [
+        "bird_attack.wav",
+        "bird_attack2.wav"
     ]
 }

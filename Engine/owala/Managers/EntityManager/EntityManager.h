@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <bitset>
 #include <sstream>
+#include <type_traits>
 
 namespace Framework {
 
@@ -47,6 +48,9 @@ namespace Framework {
 		// Validate if Entity exists. Returns true if Entity is a valid entity.
 		bool ValidateEntity(Entity entity);
 
+		// Generates a UUID
+		static uint64_t GenerateUUID();
+
 		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
 		bool HasComponent(Entity entity, ComponentType componentType) const;
 		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
@@ -63,7 +67,6 @@ namespace Framework {
 			if (HasComponent(entity, type)) return;
 
 			if constexpr (std::is_same_v<T, Transform>) ecs.transform[entity] = component;
-			else if constexpr (std::is_same_v<T, SpawnPoint>) ecs.spawnPoint[entity] = component;
 			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
 			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
 			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
@@ -80,11 +83,11 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
 			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
 			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) ecs.nativeScripts[entity] = component;
-		/*	else if constexpr (std::is_same_v<T, BirdAIComponent>) ecs.birdAIComponent[entity] = component;
-			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) ecs.skeletonAIComponent[entity] = component;*/
 			else if constexpr (std::is_same_v<T, FSMComponent>) ecs.fsmComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, ParticleComponent>) ecs.particleComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) ecs.particleEmitterComponent[entity] = component;
+			else if constexpr (std::is_same_v<T, Slider>) ecs.sliders[entity] = component;
+			else if constexpr (std::is_same_v<T, PlayerHealthComponent>) ecs.playerHealth[entity] = component;
 			else {
 				// If this is a tag-only type, no storage is necessary.
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
@@ -118,7 +121,6 @@ namespace Framework {
 
 			// Return a reference to the component in the map
 			if constexpr (std::is_same_v<T, Transform>) return ecs.transform.at(entity);
-			else if constexpr (std::is_same_v<T, SpawnPoint>) return ecs.spawnPoint.at(entity);
 			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
 			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
 			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
@@ -135,11 +137,11 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
 			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
 			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) return ecs.nativeScripts.at(entity);
-			/*else if constexpr (std::is_same_v<T, BirdAIComponent>) return ecs.birdAIComponent.at(entity);
-			else if constexpr (std::is_same_v<T, SkeletonAIComponent>) return ecs.skeletonAIComponent.at(entity);*/
 			else if constexpr (std::is_same_v<T, FSMComponent>) return ecs.fsmComponent.at(entity);
 			else if constexpr (std::is_same_v<T, ParticleComponent>) return ecs.particleComponent.at(entity);
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) return ecs.particleEmitterComponent.at(entity);
+			else if constexpr (std::is_same_v<T, Slider>) return ecs.sliders.at(entity);
+			else if constexpr (std::is_same_v<T, PlayerHealthComponent>) return ecs.playerHealth.at(entity);
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}
@@ -148,8 +150,12 @@ namespace Framework {
 		bool IsTagComponent(ComponentType componentType);
 		// Clears all tag components from the specified entity.
 		void ClearTags(Entity entity);
+		// The active state of the entity. True if active, false if inactive. (Read Only)
+		bool IsActive(Entity entity) const;
+		// Activates or deactivates the entity to be used by systems and scripts. 
+		void SetActive(Entity entity, bool value);
 		// Attaches a custom C++ script to an entity.
-		template<class T> 
+		template<class T>
 		std::size_t AttachScript(Entity entity, const char* displayName = nullptr, bool enabled = true);
 		// Attaches a custom C++ script to an entity.
 		std::size_t AttachScriptByName(Entity entity, std::string typeName, bool enabled = true);
@@ -157,17 +163,27 @@ namespace Framework {
 		void RemoveScriptAt(Entity entity, std::size_t index, bool removeComponentIfEmpty = true);
 		// Swaps the index of an existing script with another bounded script.
 		void SwapScripts(Entity entity, std::size_t a, std::size_t b);
+		// Gets the script of type T attached to the specified entity. Returns a null pointer if the entity does not have the script.
+		template<class T>
+		T* GetScript(Entity entity);
 		// Gets all entities that have been created. Note that this includes entities that have no components.
 		std::vector<Entity> GetAllEntities() const;
 		// Gets all entities that have the specified component type attached to them.
-		std::vector<Entity> GetAllEntitiesWithComponent(ComponentType componentType) const;
+		std::vector<Entity> GetAllEntitiesWithComponent(bool activeOnly, ComponentType componentType) const;
 		// Gets all entities that have all the specified component types attached to them. (Multiple component support)
 		template<typename... Args>
-		std::vector<Entity> GetAllEntitiesWithComponents(Args... componentTypes) const;
+		std::vector<Entity> GetAllEntitiesWithComponents(bool activeOnly, Args... componentTypes) const;
+		template<typename Func, typename... Types>
+		void ForEachEntityWithComponents(Func&& fn, bool activeOnly, Types... componentTypes);
 		// Get entity signatures
 		inline const auto& GetEntitySignatures() const {
 			return ecs.entitySignatures;
 		}
+
+		//Get entity by name
+		Entity GetEntityByName(const std::string& name) const;
+		std::vector<Entity> GetEntitiesBySubstring(const std::string& subStr) const;
+
 	};
 
 	// BELOW IS STILL WIP. DO NOT USE.
@@ -212,8 +228,28 @@ namespace Framework {
 		return nativeScripts.scripts.size() - 1;
 	}
 
+	template<class T>
+	T* EntityManager::GetScript(Entity entity) {
+		static_assert(std::is_base_of<ScriptableEntity, T>::value, "T must derive from ScriptableEntity");
+
+		if (!ValidateEntity(entity)) return nullptr;
+		if (!HasComponent(entity, NativeScriptsComponentType)) return nullptr;
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+		for (NativeScriptsComponent::NativeScript& script : nativeScripts.scripts) {
+			if (!script.Instance) continue;
+			if (!script.enabled) continue;
+			if (script.missing) continue;
+
+			if (T* casted = dynamic_cast<T*>(script.Instance)) {
+				return casted;
+			}
+		}
+		return nullptr;
+	}
+
 	template<typename... Args>
-	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(Args... componentTypes) const {
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(bool activeOnly, Args... componentTypes) const {
 		// Create the required signature bitset
 		ComponentSignature requiredSignature;
 
@@ -222,14 +258,45 @@ namespace Framework {
 
 		std::vector<Entity> entities;
 		for (const auto& [entity, entitySignature] : ecs.entitySignatures) {
+			// Check if signatures match
+			if ((entitySignature & requiredSignature) != requiredSignature) continue;
+
+			// Check for Entity's existence
+			auto it = ecs.properties.find(entity);
+			if (it == ecs.properties.end()) continue;
 
 			if (ecs.properties.find(entity) == ecs.properties.end()) continue;
 
-			// Check if the entity's signature includes all bits in the required signature
-			if ((entitySignature & requiredSignature) == requiredSignature) {
-				entities.push_back(entity);
-			}
+			// Check if Entity is Active
+			if (activeOnly && !it->second.isActive) continue;
+
+			entities.push_back(entity);
 		}
+
 		return entities;
+	}
+
+	template <typename Func, typename... Types>
+	void EntityManager::ForEachEntityWithComponents(Func&& fn, bool activeOnly, Types... componentTypes) {
+		// Create the required signature bitset
+		ComponentSignature requiredSignature;
+
+		// This sets a bit for each component type passed in
+		(requiredSignature.set(static_cast<size_t>(componentTypes)), ...);
+
+		for (auto& [entity, entitySignature] : ecs.entitySignatures) {
+			// Check for signature
+			if ((entitySignature & requiredSignature) != requiredSignature) continue;
+
+			// Check for Entity's existence
+			auto it = ecs.properties.find(entity);
+			if (it == ecs.properties.end()) continue;
+
+			// Check if Entity is Active
+			if (activeOnly && !it->second.isActive) continue;
+
+			// Passed all checks. Can execute lambda.
+			fn(entity);
+		}
 	}
 }

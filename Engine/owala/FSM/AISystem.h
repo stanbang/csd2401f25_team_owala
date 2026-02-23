@@ -1,9 +1,25 @@
+/*********************************************************************//**
+* \file   AISystem.h
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Declares the AISystem class, which orchestrates the AI logic updates,
+* manages the navigation grid, and integrates AI components with the ECS.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "ISystem.h"
 #include "EntityStorage.h"
 #include "Pathfinding.h"
 #include "Components.h"
-#include "FSMFactory.h" // Include your Factory header
+#include "FSMFactory.h" 
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
@@ -44,7 +60,7 @@ namespace Framework {
 
         // Debug helpers...
 #ifdef BUILD_EDITOR
-        void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        //void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
         // Updated to use FSMComponent
         void DrawFSMDebug(Entity entity, const FSMComponent& fsmComp, const Vector2D& pos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
 #endif

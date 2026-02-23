@@ -1,7 +1,23 @@
+/*****************************************************************//**
+ * \file  ParticleEffectManager.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief	Implements the Particle Effect Manager class. Which
+ * 	        handles loading particle effect presets from JSON files
+ *          and managing mappings between trigger events and effect presets.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+#include "pch.h"
 #include "ParticleEffectManager.h"
 #include "FileUtility.h"
 #include "Logger.h"
-#include "rapidjson/document.h"
 
 namespace Framework {
     bool ParticleEffectManager::LoadEffectPresets(const std::string& filepath) {

@@ -37,6 +37,8 @@ namespace Framework{
 		Platform,
 		Enemy,
 		Trigger,
+		TrapPlatform,    
+		Invulnrabilty, 
 		Count = 32  // Maximum layers 
 	};
 
@@ -53,10 +55,12 @@ namespace Framework{
 	// Enum for animation states
 	enum class AnimationState {
 		IDLE,
+		WAKING,
 		RUNNING,
 		JUMPING,
 		FALLING,
-		DEATH
+		DEATH,
+		HURT
 	};
 
 	// For particle emission modes
@@ -64,6 +68,19 @@ namespace Framework{
 		CONTINUOUS,    // Emit constantly while active
 		BURST,         // Emit once on trigger
 		LOOP_BURST     // Emit multiple bursts on trigger
+	};
+
+	// To separate different audio types
+	enum class AudioType {
+		SFX,
+		MUSIC
+	};
+
+	// Different slider sound types
+	enum class SliderSoundType {
+		MASTER_VOLUME,
+		MUSIC_VOLUME,
+		SFX_VOLUME
 	};
 
 	// Main Data Component that should exist in all objects. Stores core attributes for the entity. THIS IS ALWAYS ON A GAMEOBJECT.
@@ -75,6 +92,8 @@ namespace Framework{
 		int customRenderOrder = 0; // Used when renderLayer is Custom
 		std::string renderLayerName = ""; // store name of dynamiclly created layers
 		bool isActive = true;
+
+		uint64_t uuid;
 	};
 
 	/* Transform Component indicating data relating to the entity's Position, Rotation and Scale */
@@ -97,12 +116,6 @@ namespace Framework{
 		// Parameterized Constructor
 		Transform(const Vector2D& pos = Vector2D{ 0.f, 0.f }, float angle = 0.f, const Vector2D& scl = Vector2D{ 1.f, 1.f })
 			: position(pos), rotation(angle), scale(scl) {}
-	};
-
-	/*	SpawnPoint component to store initial x and y
-	coordinates of an entity.*/
-	struct SpawnPoint {
-		Vector2D Pos;
 	};
 
 	/*	Velocity component to store x and y
@@ -147,8 +160,17 @@ namespace Framework{
 	struct PlayerState {
 		bool isFacingRight = true; // Direction the player is facing
 		bool isGrounded = false; // Flag for checking if player is grounded on floor
+		bool isWalking = false;
+
 		float previousVelocityY = 0.0f; // Store previous frame's Y velocity
 		bool isDead = false;
+
+		int currentLives = 3;  // Start with 3 lives
+		bool isHurt = false;
+		float invulnerabilityTimer = 0.0f;
+
+		bool isKnockedBack = false;
+		float knockbackTimer = 0.0f;
 	};
 
 	struct Triangle { 
@@ -172,6 +194,9 @@ namespace Framework{
 		float mapMaxX = 100.0f;
 		float mapMinY = -100.0f;
 		float mapMaxY = 100.0f;
+
+		bool zoomInitialized = false;  // ADD THIS LINE
+
 	};
 
 	struct TextureComponent {
@@ -185,6 +210,7 @@ namespace Framework{
 		bool loop = false;
 		bool stream = false;
 		float volume = 0.5f;
+		AudioType audioType = AudioType::SFX; // Default audio is SFX
 	};
 
 	struct AnimationComponent {
@@ -224,6 +250,9 @@ namespace Framework{
 	struct BackgroundTag {};
 	struct EnemyTag {};
 	struct GUITag {};
+
+	/*	SpawnPoint tag for player spawn point*/
+	struct SpawnPointTag {};
 
 	struct RotationFlag {
 		
@@ -396,23 +425,6 @@ namespace Framework{
 		std::vector<NativeScript> scripts;
 	};
 	
-	// --- ADDED FOR AI ---
-
-	///**
-	// * @enum BirdState
-	// * @brief Defines the possible states for the Bird AI.
-	// */
-	//enum class BirdState {
-	//	IDLE,    // Sleeping, not aware of the player
-	//	WAKING,  // Alerted, playing "wake up" animation
-	//	CHASE,   // Using A* to navigate to the player
-	//	HOVER,   // Close to the player, hovering erratically
-	//	STUNNED, // Stunned after attacking
-	//	ATTACK   // Diving at the player's last known position
-	//};
-
-	
-
 	/**
 	 * @struct FSMComponent
 	 * @brief Data-driven FSM container.
@@ -429,73 +441,6 @@ namespace Framework{
 		// Used during deserialization to restore state
 		std::string serializedState;
 	};
-
-	// /**
-	// * @struct BirdAIComponent
-	// * @brief Contains all data for the Bird's state machine and pathfinding.
-	// */
-	//struct BirdAIComponent {
-	//	BirdState state = BirdState::IDLE;
-
-	//	bool isFacingRight = true;  // Default facing right
-
-	//	// State
-	//	float stateTimer = 0.0f;
-
-	//	// Wake-up
-	//	float wakeUpRadius = 500.0f;
-	//	float wakeUpTime = 1.0f;
-
-	//	// Chase
-	//	float moveSpeed = 50.0f;
-	//	float chaseRadius = 40000.0f; // Max distance before giving up
-
-	//	// Attack
-	//	float attackRadius = 400.f; // Distance to trigger attack
-	//	float attackSpeed = 100.0f;
-	//	float attackDuration = 5.0f; // Max time in attack state
-	//	Vector2D attackTargetPosition = { 0.0f, 0.0f }; // Snapshot of player pos
-
-	//	// Stunned
-	//	float stunDuration = 1.0f; // Buffer time after hitting wall
-
-	//	// Hover
-	//	float hoverRadius = 400.f; // Distance to re-engage from hover
-	//	float hoverSpeed = 10.f;
-	//	float hoverHeight = 50.f; // Height above player to orbit
-
-	//	// Pathfinding
-	//	std::vector<Vector2D> currentPath;
-	//	float pathRecalculateInterval = 0.5f;
-	//	float pathRecalculateTimer = 0.0f;
-
-	//	// Rotation pause
-	//	bool isPausedForRotation = false;
-	//};
-
-	///**
-	// * @enum SkeletonState
-	// * @brief Defines the possible states for the Skeleton AI.
-	// */
-	//enum class SkeletonState {
-	//	IDLE,    // Standing still, waiting for player
-	//	CHASE    // Player is in range, walking towards them 
-	//	//NOT YET DONE IN PROGRESSS
-	//};
-
-	///**
-	// * @struct SkeletonAIComponent
-	// * @brief Contains all data for the Skeleton's state machine.
-	// */
-	//struct SkeletonAIComponent {
-	//	SkeletonState state = SkeletonState::IDLE;
-
-	//	// How far the skeleton can see the player
-	//	float detectionRadius = 0.5f;
-
-	//	// How fast the skeleton walks
-	//	float moveSpeed = 0.1f;
-	//};
 
 	// Particle Component
 	struct ParticleComponent {
@@ -552,6 +497,26 @@ namespace Framework{
 
 		// Direction override
 		Vector2D emissionDirection = { 0.0f, -1.0f }; // Default downward for top emission
+	};
+
+	struct Slider {
+		Entity handleEntity = 0;
+		std::string handleName = "";
+
+		float minValue = 0.0f;
+		float maxValue = 1.0f;
+		float currentValue = 1.0f;
+		float width = 1.0f; // Total width of the slider bar
+		float widthOffsetX = 0.0f;
+		bool isDragging = false;
+		bool needsResolution = true;
+
+		SliderSoundType sliderType = SliderSoundType::MASTER_VOLUME; //Default to master volume
+		bool isInitialized = false;
+	};
+
+	struct PlayerHealthComponent {
+		int lifeNum{};
 	};
 
 }

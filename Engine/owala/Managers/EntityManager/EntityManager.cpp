@@ -8,6 +8,7 @@
  * \author	Jason Lou
  * \date	26 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "EntityManager.h"
 #include "Logger.h"
 #include "ScriptRegistry.h"
@@ -30,6 +31,7 @@ namespace Framework {
 
 		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
 		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
+		ecs.properties[newEntity].uuid = GenerateUUID();
 
 		return newEntity;
 	}
@@ -40,6 +42,7 @@ namespace Framework {
 
 		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(entityID), 0U, UINT_MAX)) + ")";
 		ecs.properties[entityID] = EntityProperties{ entityName, CollisionLayer::Default };
+		ecs.properties[entityID].uuid = GenerateUUID();
 
 		if (entityID >= nextEntityID) {
 			nextEntityID = entityID + 1;
@@ -55,6 +58,7 @@ namespace Framework {
 
 		Entity newEntity = CreateEntity();
 		GetProperties(newEntity) = GetProperties(entity);
+		GetProperties(newEntity).uuid = GenerateUUID();
 		ComponentSignature otherSignature = ecs.entitySignatures[entity];
 
 		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
@@ -63,7 +67,6 @@ namespace Framework {
 			if (HasComponent(entity, componentType)) {
 				switch (componentType) {
 					case ComponentType::TransformType: AddComponent<Transform>(newEntity, GetComponent<Transform>(entity)); break;
-					case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(newEntity, GetComponent<SpawnPoint>(entity)); break;
 					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
 					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
 					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
@@ -80,11 +83,11 @@ namespace Framework {
 					case ComponentType::CameraType: AddComponent<Camera>(newEntity, GetComponent<Camera>(entity)); break;
 					case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(newEntity, GetComponent<NativeScriptsComponent>(entity)); break;
 					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
-				/*	case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(newEntity, GetComponent<BirdAIComponent>(entity)); break;
-					case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(newEntity, GetComponent<SkeletonAIComponent>(entity)); break; */
 					case ComponentType::FSMComponentType: AddComponent<FSMComponent>(newEntity, GetComponent<FSMComponent>(entity)); break;
 					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
 					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
+					case ComponentType::SliderType: AddComponent<Slider>(newEntity, GetComponent<Slider>(entity)); break;
+					case ComponentType::PlayerHealthComponentType: AddComponent<PlayerHealthComponent>(newEntity, GetComponent<PlayerHealthComponent>(entity)); break;
 					default:
 						break;
 				}
@@ -129,6 +132,16 @@ namespace Framework {
 		return true;
 	}
 
+	uint64_t EntityManager::GenerateUUID() {
+		static std::random_device rd;
+		static std::mt19937 rng(rd());
+		static std::uniform_int_distribution<uint64_t> dist;
+
+		uint64_t gen = 0;
+		while (gen == 0) gen = dist(rng);
+		return gen;
+	}
+
 	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
 		std::unordered_map<Entity, ComponentSignature>::iterator it = ecs.entitySignatures.find(entity);
 		if (it == ecs.entitySignatures.end()) return false;
@@ -147,7 +160,6 @@ namespace Framework {
 		switch (componentType)
 		{
 		case ComponentType::TransformType: AddComponent<Transform>(entity, Transform{}); break;
-		case ComponentType::SpawnPointType: AddComponent<SpawnPoint>(entity, SpawnPoint{}); break;
 		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
 		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
 		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
@@ -163,22 +175,23 @@ namespace Framework {
 		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
 		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
 		case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{}); break;
-	/*	case ComponentType::BirdAIComponentType: AddComponent<BirdAIComponent>(entity, BirdAIComponent{}); break;
-		case ComponentType::SkeletonAIComponentType: AddComponent<SkeletonAIComponent>(entity, SkeletonAIComponent{}); break; */
 		case ComponentType::FSMComponentType: AddComponent<FSMComponent>(entity, FSMComponent{}); break;
 		case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(entity, ParticleComponent{}); break;
 		case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(entity, ParticleEmitterComponent{}); break;
+		case ComponentType::SliderType: AddComponent<Slider>(entity, Slider{}); break;
+		case ComponentType::PlayerHealthComponentType: AddComponent<PlayerHealthComponent>(entity, PlayerHealthComponent{}); break;
 		case ComponentType::PlayerTagType:
 		case ComponentType::PlatformTagType:
 		case ComponentType::BackgroundTagType:
 		case ComponentType::EnemyTagType: ; break;
 		case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(entity, SceneOwned{}); break;
 		case ComponentType::PersistentTagType:
-		case ComponentType::ActiveTagType: break;
+		case ComponentType::LoadedTagType: break;
 		case ComponentType::GUITagType: break;
+		case ComponentType::SpawnPointTagType: break;
 
 		default:
-			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
+			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
 			return;
 		}
 
@@ -190,7 +203,6 @@ namespace Framework {
 
 		switch (componentType) {
 			case TransformType:		ecs.transform.erase(entity); break;
-			case SpawnPointType:    ecs.spawnPoint.erase(entity); break;
 			case VelocityType:      ecs.velocity.erase(entity); break;
 			case AccelerationType:  ecs.acceleration.erase(entity); break;
 			case TriangleType:      ecs.triangle.erase(entity); break;
@@ -206,6 +218,8 @@ namespace Framework {
 			case CameraType: ecs.cameras.erase(entity); break;
 			case ParticleComponentType: ecs.particleComponent.erase(entity); break;
 			case ParticleEmitterComponentType: ecs.particleEmitterComponent.erase(entity); break;
+			case SliderType: ecs.sliders.erase(entity); break;
+			case PlayerHealthComponentType: ecs.playerHealth.erase(entity); break;
 			case NativeScriptsComponentType: {
 				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
 				if (it != ecs.nativeScripts.end()) {
@@ -219,8 +233,6 @@ namespace Framework {
 				break;
 			}
 			case ButtonType: ecs.button.erase(entity); break;
-		/*	case BirdAIComponentType: ecs.birdAIComponent.erase(entity); break;
-			case SkeletonAIComponentType: ecs.skeletonAIComponent.erase(entity); break; */
 			case FSMComponentType:ecs.fsmComponent.erase(entity); break;
 			case PlayerTagType:
 			case PlatformTagType:
@@ -228,10 +240,11 @@ namespace Framework {
 			case EnemyTagType:; break;
 			case SceneOwnedType: ecs.sceneOwned.erase(entity); break;
 			case PersistentTagType:
-			case ActiveTagType: break;
+			case LoadedTagType: break;
 			case GUITagType: break;
+			case SpawnPointTagType: break;
 			default: 
-				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType);
+				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
 				return;
 		}
 
@@ -246,8 +259,9 @@ namespace Framework {
 		case ComponentType::BackgroundTagType:
 		case ComponentType::EnemyTagType:
 		case ComponentType::PersistentTagType:
-		case ComponentType::ActiveTagType:
+		case ComponentType::LoadedTagType:
 		case ComponentType::GUITagType:
+		case ComponentType::SpawnPointTagType:
 			return true;
 		default:
 			return false;
@@ -260,6 +274,28 @@ namespace Framework {
 			if (IsTagComponent(componentType)) {
 				RemoveComponent(entity, componentType);
 			}
+		}
+	}
+
+	bool EntityManager::IsActive(Entity entity) const {
+		auto it = ecs.properties.find(entity);
+		if (it != ecs.properties.end()) {
+			return it->second.isActive;
+		}
+		else {
+			Logger::Get().Info(DebugType::EntityManager) << "IsActive: Entity no longer exists!" << std::endl;
+			return false;
+		}
+	}
+
+	void EntityManager::SetActive(Entity entity, bool value) {
+		auto it = ecs.properties.find(entity);
+		if (it != ecs.properties.end()) {
+			it->second.isActive = value;
+		}
+		else {
+			Logger::Get().Info(DebugType::EntityManager) << "SetActive: Entity no longer exists!" << std::endl;
+			return;
 		}
 	}
 
@@ -326,13 +362,18 @@ namespace Framework {
 		return entities;
 	}
 
-	std::vector<Entity> EntityManager::GetAllEntitiesWithComponent(ComponentType componentType) const {
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponent(bool activeOnly, ComponentType componentType) const {
 		std::vector<Entity> entities;
 		for (const auto& [entity, signature] : ecs.entitySignatures) {
-			if (signature.test(componentType)) {
-				entities.push_back(entity);
-			}
+			// Check if signature matches the component signature
+			if (!signature.test(componentType)) continue;
+
+			// Check if entity is active.
+			if (activeOnly && !IsActive(entity)) continue;
+
+			entities.push_back(entity);
 		}
+
 		return entities;
 	}
 
@@ -398,9 +439,39 @@ namespace Framework {
 		return false; // Entity not found or does not have the component
 	}
 
-	/*void WIPEntityManager::AddComponent(Entity entity, ComponentType componentType) {
-		// Empty by design.
-	}*/
+	Entity EntityManager::GetEntityByName(const std::string& name) const {
+		// If exact match found, return immediately
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+			if (props.name == name) return entity;
+		}
+
+		Logger::Get().Info(DebugType::EntityManager) << "GetEntityByName: Entity with name '" << name << "' not found." << std::endl;
+		return static_cast<Entity>(-1); // Return invalid entity
+	}
+
+	std::vector<Entity> EntityManager::GetEntitiesBySubstring(const std::string& subStr) const {
+		std::vector<Entity> matches;
+
+		// Iterate through all entities
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+
+			if (props.name.find(subStr) != std::string::npos) {
+				matches.push_back(entity);
+			}
+		}
+
+		// Log if nothing was found (useful for debugging typos in names)
+		if (matches.empty()) {
+			Logger::Get().Info(DebugType::EntityManager)
+				<< "GetEntitiesBySubstring: No entities found containing '" << subStr << "'." << std::endl;
+		}
+
+		return matches;
+	}
 
 #pragma endregion
 }

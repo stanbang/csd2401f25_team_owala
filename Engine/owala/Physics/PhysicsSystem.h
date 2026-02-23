@@ -35,7 +35,7 @@ namespace Framework {
     struct PhysicsDebugCell {
         Vector2D worldMin;
         Vector2D worldMax;
-        bool isActive;
+        bool isActive = false;
     };
 
     /**
@@ -149,6 +149,12 @@ namespace Framework {
         std::vector<PhysicsDebugCell> GetDebugDrawData(Framework::CameraSystem* cameraSystem, Entity cameraID);
 
 
+        /**
+         * @brief Reload collision matrix from LayerManager after initialization
+         * @details This should be called AFTER Initialize() to restore saved collision settings
+         */
+        void ReloadCollisionMatrixFromFile();
+
 
     private:
         /**
@@ -202,6 +208,7 @@ namespace Framework {
 
         // The collision matrix. collisionMatrix_[layer1][layer2] is true if they can collide.
         std::vector<std::bitset<static_cast<size_t>(CollisionLayer::Count)>> collisionMatrix_;
+        bool collisionMatrixInitialized_ = false; // collision matrix initialization boolean
 
 
         // ---  Broad-Phase Members using Fixed-Cell Grid ---
@@ -255,6 +262,8 @@ namespace Framework {
         void GridQuery(const AABB_Bounds& bounds, std::bitset<maxCollidableEntities>& potentialColliders) const;
 
         bool forceNarrowPhase_ = false; // Debug toggle for narrow or broad phased implementation
+
+        
     
     };
 

@@ -1,3 +1,20 @@
+/*********************************************************************//**
+* \file   FSMFactory.h
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Declares the FSMFactory class and registration macros used to map
+* string identifiers to C++ state and condition classes for data-driven
+* creation.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "FSM.h"
 #include <rapidjson/document.h>
@@ -17,7 +34,7 @@ namespace Framework {
     private:
         NavigationGrid* navGrid_;
 
-        // Static Registries (Shared across all factory instances)
+        // Static Registries 
         static std::map<std::string, StateCreator>& GetStateRegistry();
         static std::map<std::string, ConditionCreator>& GetConditionRegistry();
 

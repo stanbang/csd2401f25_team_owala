@@ -9,13 +9,12 @@
 *       rotation triggered by Q/E keys with smooth interpolation and cooldown.
 *       Adds cinematic camera zoom: zoom out -> rotate -> zoom back in.
 *********************************************************************/
+#include "pch.h"
 #include "TransformationSystem.h"
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "Components.h"
 #include "Transformation.h"
-#include <cmath>
-#include <iostream>
 #include "OwalaTime.h"
 #include "MessageBus.h"
 #include "GameManager.h"
@@ -29,7 +28,7 @@ namespace Framework {
 
     void TransformationSystem::Initialize() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, TransformType)) {
             if (entityMgr.HasComponent(entity, RotationFlagType)) {
                 UpdateEntityTransform(entity);
             }
@@ -82,6 +81,7 @@ namespace Framework {
                 physics_.SetPaused(true);
                 isGlobalRotating = true;
 
+                MessageBus::Instance().Publish(VFXTriggerEvent{"WorldRotationEvent", true});
                 MessageBus::Instance().Publish(WorldRotationEvent{});
 
                 rotatePhase_ = RotatePhase::Rotating;
@@ -113,7 +113,6 @@ namespace Framework {
     void TransformationSystem::ProcessRotationInput() {
         GameManager& gm = GameManager::GetInstance();
         InputSystem& input_ = *gm.GetSystems().input_;
-        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         EntityManager entityMgr(gm.GetECS());
 
         // Update cooldown timer
@@ -125,8 +124,8 @@ namespace Framework {
         bool canRotate = false; // boolean for checking for rotation (for grounded player)
 
         // Find grounded active player
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerStateType)) {
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
             PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
             if (state.isGrounded) { canRotate = true; break; }
         }
@@ -154,7 +153,7 @@ namespace Framework {
         if (!isGlobalRotating) return;
 
         GameManager& gm = GameManager::GetInstance();
-        InputSystem& input_ = *gm.GetSystems().input_;
+        //InputSystem& input_ = *gm.GetSystems().input_;
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         EntityManager entityMgr(gm.GetECS());
 
@@ -188,9 +187,9 @@ namespace Framework {
             Matrix3x3 rotationMat = Transformation::CreateRotationMatrix(rotationIncrement);
 
             // Rotate all entities with RotationFlag around world origin (0,0)
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(RotationFlagType)) {
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, RotationFlagType)) {
                 if (!entityMgr.HasComponent(entity, TransformType)) continue;
-                if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+                if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 
                 Vector2D originalPos = entityMgr.GetComponent<Transform>(entity).position;
                 entityMgr.GetComponent<Transform>(entity).position = rotationMat * originalPos;
@@ -204,8 +203,8 @@ namespace Framework {
             }
 
             // Keep player grounded after rotation
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(PlayerStateType)) {
-                if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerStateType)) {
+                if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
                 state.isGrounded = true;
             }
@@ -244,8 +243,8 @@ namespace Framework {
     void TransformationSystem::UpdateAllTransforms() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TransformType)) {
-            if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, TransformType)) {
+            if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
             if (!entityMgr.HasComponent(entity, RotationFlagType)) continue;
             UpdateEntityTransform(entity);
         }

@@ -1,3 +1,19 @@
+/*****************************************************************//**
+ * \file   EntityStorage.cpp
+ *
+ * \primary_author
+ *      Jason Lou(60%)
+ * \secondary_author
+ *		Ng Jing Wen(40%)
+ *
+ * \brief	Contains the definition of EntityStorage class which stores
+ *			unordered maps of entity-component pairs for all components.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+#include "pch.h"
 #include "EntityStorage.h"
 #include "Components.h"
 
@@ -9,7 +25,6 @@ namespace Framework {
 
 		properties = other.properties;
 		transform = other.transform;
-		spawnPoint = other.spawnPoint;
 		velocity = other.velocity;
 		acceleration = other.acceleration;
 		triangle = other.triangle;
@@ -24,12 +39,12 @@ namespace Framework {
 		animatedTex = other.animatedTex;
 		text = other.text;
 		cameras = other.cameras;
-	/*	birdAIComponent = other.birdAIComponent;
-		skeletonAIComponent = other.skeletonAIComponent;*/
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
+		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
+		playerHealth = other.playerHealth;
 
 		for (const auto& [entity, scripts] : other.nativeScripts) {
 			nativeScripts[entity] = scripts;
@@ -49,7 +64,6 @@ namespace Framework {
 
 		properties = other.properties;
 		transform = other.transform;
-		spawnPoint = other.spawnPoint;
 		velocity = other.velocity;
 		acceleration = other.acceleration;
 		triangle = other.triangle;
@@ -64,12 +78,12 @@ namespace Framework {
 		animatedTex = other.animatedTex;
 		text = other.text;
 		cameras = other.cameras;
-		/*birdAIComponent = other.birdAIComponent;
-		skeletonAIComponent = other.skeletonAIComponent;*/
 		fsmComponent = other.fsmComponent;
 		particleComponent = other.particleComponent;
 		particleEmitterComponent = other.particleEmitterComponent;
+		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
+		playerHealth = other.playerHealth;
 
 		nativeScripts.clear();
 		for (const auto& [entity, scripts] : other.nativeScripts) {
@@ -93,7 +107,6 @@ namespace Framework {
 
 		// Components
 		std::swap(transform, other.transform);
-		std::swap(spawnPoint, other.spawnPoint);
 		std::swap(velocity, other.velocity);
 		std::swap(acceleration, other.acceleration);
 		std::swap(triangle, other.triangle);
@@ -108,12 +121,12 @@ namespace Framework {
 		std::swap(animatedTex, other.animatedTex);
 		std::swap(text, other.text);
 		std::swap(cameras, other.cameras);
-		/*std::swap(birdAIComponent, other.birdAIComponent);
-		std::swap(skeletonAIComponent, other.skeletonAIComponent);*/
 		std::swap(fsmComponent, other.fsmComponent);
 		std::swap(particleComponent, other.particleComponent);
 		std::swap(particleEmitterComponent, other.particleEmitterComponent);
+		std::swap(sliders, other.sliders);
 		std::swap(sceneOwned, other.sceneOwned);
+		std::swap(playerHealth, other.playerHealth);
 
 		std::swap(nativeScripts, other.nativeScripts);
 	}

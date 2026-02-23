@@ -6,27 +6,21 @@
  * \author	Jason Lou
  * \date	18 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "GameManager.h"
 #include "EntitySerializer.h"
-#include <iostream>
 
 // Scene Scripts
 #include "SplashScreen.h"
 #include "TestScene.h"
+#include "CutsceneIntro.h"
+#include "HowToPlay.h"
+#include "LevelSelection.h"
 #include "LoadingScreenController.h"
 #include "TransitionController.h"
 
-// ImGui headers
-#ifdef BUILD_EDITOR
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#endif
 //Core Engine headers for IMGUI
 #include "Core.h"
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 namespace Framework {
 	// ---------------------------------------------------------------------------
@@ -100,12 +94,13 @@ namespace Framework {
 	void GameManager::UpdateNativeScripts() {
 		static int count = 0;
 		EntityManager entityMgr(*systems_.ecs_);
-		SceneManager& sceneMgr = SceneManager::GetInstance();
+		//SceneManager& sceneMgr = SceneManager::GetInstance();
 		
 		// Get all entities with NativeScriptsComponent and ActiveTag to log them
-		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType);
+		std::vector<Entity> scriptEntities = entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType);
 		
-		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(NativeScriptsComponentType, ActiveTagType)) {
+		for (Entity scriptableEntity : entityMgr.GetAllEntitiesWithComponents(true, NativeScriptsComponentType, LoadedTagType)) {
+			if (!entityMgr.ValidateEntity(scriptableEntity)) continue;
 			std::vector<NativeScriptsComponent::NativeScript>& nativeScripts = entityMgr.GetComponent<NativeScriptsComponent>(scriptableEntity).scripts;
 
 			if (nativeScripts.empty()) continue;
@@ -114,8 +109,7 @@ namespace Framework {
 				if (!script.enabled) continue;
 
 #ifdef BUILD_EDITOR
-				const bool isPlaying = (editor_ != nullptr) ? editor_->IsGamePlaying() : true;
-				if (!script.executeInEditMode && !isPlaying) continue;
+				if (!script.executeInEditMode && !IsGamePlaying()) continue;
 #endif
 
 				if (!script.Instance && script.InstantiateScript) {
@@ -185,11 +179,23 @@ namespace Framework {
 
 		systems_.physics_->SetPaused(false);
 		SceneManager::GetInstance().OnEnterPlay();
+		initializedScenes_.clear();
+		lastActiveScene_ = 0;
+
+		// Set active camera to first camera found
+		if (systems_.camera_) {
+			systems_.camera_->SetActiveCamera(0);
+		}
 	}
 
 	void GameManager::OnEndPlay() {
 		CheckSystems();
 		if (!hasECSSnapshot) return;
+
+		// Clear active camera
+		if (systems_.camera_) {
+			systems_.camera_->SetActiveCamera(0);
+		}
 
 		systems_.ecs_ = editorECS_;
 		nextEntityID = nextEntityIDSnapshot;
@@ -202,6 +208,8 @@ namespace Framework {
 		runtimeECS_.reset();
 		editorECS_ = nullptr;
 		hasECSSnapshot = false;
+		initializedScenes_.clear();
+		lastActiveScene_ = 0;
 	}
 #endif
 
@@ -217,8 +225,19 @@ namespace Framework {
 		sceneCallbacks_.erase(sceneIndex);
 	}
 
+	bool GameManager::IsGamePlaying() const {
+#ifdef BUILD_EDITOR
+		return (editor_ != nullptr) ? editor_->IsGamePlaying() : true;
+#else
+		return true;
+#endif
+	}
+
 	void GameManager::Initialize() {
 		CheckSystems();
+		//layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH); // Load all configs directly for layer
+		Logger::Get().Info(DebugType::GameManager)
+			<< "Loaded LayerManager configuration" << std::endl;
 		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
@@ -240,6 +259,32 @@ namespace Framework {
 				else {
 					Logger::Get().Error(DebugType::GameManager)
 						<< "Button requested SWITCH_SCENE but stringParam (Scene Name) was empty!" << std::endl;
+				}
+				break;
+
+			case ButtonAction::SWITCH_SCENE_ADD:
+				if (!event.stringParam.empty()) {
+					Logger::Get().Info(DebugType::GameManager)
+						<< "Additively Loading and Switching Scene to: " << event.stringParam << std::endl;
+
+					// If not loaded yet, load additively.
+					SceneManager& sceneMgr = SceneManager::GetInstance();
+					const SceneAsset& scene = sceneMgr.GetSceneByName(event.stringParam, true);
+					if (!scene.IsValid()) {
+						Logger::Get().Error(DebugType::GameManager)
+							<< "SWITCH_SCENE_ADD failed: scene not found: " << event.stringParam << std::endl;
+						break;
+					}
+
+					if (!scene.isLoaded) {
+						sceneMgr.LoadScene(event.stringParam, SceneManagement::LoadSceneMode::Additive);
+					}
+
+					sceneMgr.SetActiveScene(sceneMgr.GetSceneByName(event.stringParam, true));
+				}
+				else {
+					Logger::Get().Error(DebugType::GameManager)
+						<< "Button requested SWITCH_SCENE_ADD but stringParam (Scene Name) was empty!" << std::endl;
 				}
 				break;
 
@@ -292,6 +337,18 @@ namespace Framework {
 					testScene = sceneID;
 					continue;
 				}
+				if (sceneName == "Cutscene Intro") {
+					RegisterScriptToScene(sceneID, CutsceneIntro::Initialize, CutsceneIntro::Update, CutsceneIntro::Free);
+					continue;
+				}
+				if (sceneName == "HowToPlay") {
+					RegisterScriptToScene(sceneID, HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
+					continue;
+				}
+				if (sceneName == "LevelSelection") {
+					RegisterScriptToScene(sceneID, LevelSelection::Initialize, LevelSelection::Update, LevelSelection::Free);
+					continue;
+				}
 				// all other scenes use TestScene.cpp for now
 				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
 			}
@@ -335,32 +392,62 @@ namespace Framework {
 			InitiateLevelLoad(targetSceneName);
 		}
 
-		SceneGUID currentSceneIndex = SceneManager::GetInstance().GetActiveScene().sceneIndex;
-
-		// Detected Scene Change
-		if (currentSceneIndex != lastInitializedScene_) {
-			std::unordered_map<SceneGUID, SceneCallBacks>::iterator prevScene = sceneCallbacks_.find(lastInitializedScene_);
-			if (prevScene != sceneCallbacks_.end() && prevScene->second.fpFree) {
-				prevScene->second.fpFree();
-			}
-
-			std::unordered_map<SceneGUID, SceneCallBacks>::iterator newScene = sceneCallbacks_.find(currentSceneIndex);
-			if (newScene != sceneCallbacks_.end() && newScene->second.fpInitialize) {
-				newScene->second.fpInitialize();
-			}
-
-
-#ifdef BUILD_EDITOR
-			// Clear History when changing scenes
-			editor_->GetHistoryMgr()->ClearHistory();
-#endif
-			lastInitializedScene_ = currentSceneIndex;
+		SceneManager& sceneMgr = SceneManager::GetInstance();
+		const std::vector<SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+		std::unordered_set<SceneGUID> loadedSet;
+		for (SceneGUID loadedSceneID : loadedScenes) {
+			loadedSet.insert(loadedSceneID);
 		}
 
-		if (sceneCallbacks_.count(currentSceneIndex) && sceneCallbacks_[currentSceneIndex].fpUpdate) {
-			sceneCallbacks_[currentSceneIndex].fpUpdate();
+		// Free Scenes that are no longer loaded
+		for (auto it = initializedScenes_.begin(); it != initializedScenes_.end();) {
+			const SceneGUID sceneID = *it;
 
-			//UpdateNativeScripts();
+			if (loadedSet.find(sceneID) == loadedSet.end()) {
+				std::unordered_map<SceneGUID, SceneCallBacks>::iterator callback = sceneCallbacks_.find(sceneID);
+				if (callback != sceneCallbacks_.end() && callback->second.fpFree) {
+					callback->second.fpFree();
+				}
+
+				it = initializedScenes_.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
+		// Init Scenes that just became loaded
+		for (SceneGUID sceneID : loadedScenes) {
+			auto callback = sceneCallbacks_.find(sceneID);
+			const bool hasLifecycle = (callback != sceneCallbacks_.end()) && (callback->second.fpInitialize || callback->second.fpFree);
+
+			if (!hasLifecycle) {
+				continue;
+			}
+
+			const bool firstTime = initializedScenes_.insert(sceneID).second;
+			if (!firstTime) continue;
+
+			if (callback->second.fpInitialize) {
+				callback->second.fpInitialize();
+			}
+		}
+
+#ifdef BUILD_EDITOR
+		// Clear History when changing scenes
+		const SceneGUID activeScene = sceneMgr.GetActiveScene().sceneIndex;
+		if (activeScene != lastActiveScene_) {
+			editor_->GetHistoryMgr()->ClearHistory();
+			lastActiveScene_ = activeScene;
+		}
+#endif
+
+		// Update all loaded scenes
+		for (SceneGUID loadedSceneID : loadedScenes) {
+			auto callback = sceneCallbacks_.find(loadedSceneID);
+			if (callback != sceneCallbacks_.end() && callback->second.fpUpdate) {
+				callback->second.fpUpdate();
+			}
 		}
 
 		// Always update native scripts
@@ -419,6 +506,8 @@ namespace Framework {
 		std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
 		bool currentIsLevel = IsLevelScene(currentSceneName);
 		bool targetIsLevel = IsLevelScene(targetSceneName);
+
+		previousScene = SceneManager::GetInstance().GetActiveScene().sceneIndex;
 
 		// Level > Level (Direct Transition, No Loading Screen)
 		if (currentIsLevel && targetIsLevel) {
@@ -529,11 +618,13 @@ namespace Framework {
 	// Function to check if a scene is a level scene
 	bool GameManager::IsLevelScene(const std::string& name) {
 		if (name == "MainMenu" || 
-			name == "LevelSelect" || 
+			name == "LevelSelection" || 
 			name == "SplashScreen" || 
 			name == "RestartMenu" || 
 			name == "LoadingScreen" || 
-			name == "HowToPlay")
+			name == "HowToPlay" ||
+			name == "OptionsMenu" ||
+			name == "Cutscene Intro")
 			return false;
 		return true;
 	}

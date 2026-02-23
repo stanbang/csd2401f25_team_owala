@@ -24,7 +24,10 @@ namespace Framework {
 		PLAYSOUND,
 		RESETPLAYERPOS,
 		SWITCH_SCENE,
-		QUIT_GAME
+		SWITCH_SCENE_ADD,
+		QUIT_GAME,
+		PREV_PAGE,
+		NEXT_PAGE,
 	};
 
 	// Enum for different particle movement effects
@@ -52,6 +55,16 @@ namespace Framework {
 		float volume = 1.0f;
 	};
 
+	struct PlayerWalkEvent {
+		Entity player;
+		bool isWalking;
+	};
+
+	struct PlayerDeathEvent {
+		Entity player;
+		bool deathAnimationFinished = false;
+	};
+
 	struct ButtonClickedEvent {
 		Entity button;
 		ButtonAction action;
@@ -59,11 +72,6 @@ namespace Framework {
 		// Data payloads
 		std::string stringParam; // Scene Name, Audio Key etc
 		float floatParam;
-	};
-
-	struct PlayerDeathEvent {
-		Entity player;
-		bool deathAnimationFinished = false;
 	};
 
 	struct ParticleBurstEvent {
@@ -100,7 +108,22 @@ namespace Framework {
 
 	// Empty structs for signalling
 	struct WorldRotationEvent {};
+	struct PlatformLandEvent {};
+
+	struct PlayerDamagedEvent {
+		Entity playerEntity;
+		int livesRemaining;
+	};
 	struct PlayerLandEvent {};
 	struct CurtainsOpenEvent {};
 	struct CurtainsCloseEvent {};
+
+	struct BirdAttackEvent {};
+	struct BirdWakeEvent {};
+	struct BirdChaseEvent {
+		Entity entityID;
+		bool isCurrentlyChasing;
+		Vector2D pos;
+	};
+
 } // namespace Framework

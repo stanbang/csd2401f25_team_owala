@@ -15,11 +15,9 @@
  *   Reproduction or disclosure of this file or its contents without the prior
  *   written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "InputSystem.h"
 #include "WindowsSystem.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <cctype>      // std::toupper
 #include "GameManager.h"
 #include "PhysicsSystem.h"
 #include "CameraSystem.h"
@@ -104,7 +102,7 @@ namespace Framework {
         if (KeyPressed(Key::T)) {
             try {
                 FMOD::Sound& sfx = resources->get<FMOD::Sound>("jingle.ogg");
-                audio->play(sfx, 1.0f, false);
+                audio->play(sfx, AudioType::SFX, 1.0f, false);
             }
             catch (...) {
                 // ignore if missing
@@ -114,7 +112,7 @@ namespace Framework {
         if (KeyPressed(Key::Y)) {
             try {
                 FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect.ogg");
-                audio->play(sfx, 1.0f, false);
+                audio->play(sfx, AudioType::SFX, 1.0f, false);
             }
             catch (...) {
                 // ignore if missing
@@ -157,7 +155,7 @@ namespace Framework {
         // FAKE PLAYER SWITCH ANIMATIONS
         if (KeyPressed(Key::F)) {
             //Get all entities with FakePlayerTag
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(FakePlayerTagType)) {
+            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, FakePlayerTagType)) {
                 AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
                 if (animationComponent.currentState != AnimationState::RUNNING) {
                     animationComponent.currentState = AnimationState::RUNNING;

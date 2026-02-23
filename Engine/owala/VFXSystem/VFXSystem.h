@@ -42,11 +42,10 @@ namespace Framework {
 		std::unordered_map<std::string, std::vector<Entity>> triggerToEmitters_;
 		void RefreshTriggerRegistrations();
 		void RegisterEmitterForTrigger(Entity emitterEntity, const std::string& triggerName);
-		void OnWorldRotation(const WorldRotationEvent& event);
+		void OnWorldRotation(const WorldRotationEvent&);
 
 		// Generic handler for all trigger events
 		void TriggerVFX(const std::string& triggerName, bool hasPositionOverride = false, Vector2D overridePos = { 0.0f, 0.0f });
-		void OnTriggerEvent(const std::string& triggerEventName, const Vector2D& position);
 
 		// Helper function to calculate emission position based on style
 		Vector2D CalculateEmissionPosition(const ParticleEmitterComponent& emitter,

@@ -6,13 +6,13 @@
  * \author	Jason Lou
  * \date	11 September 2025
  *********************************************************************/
+#include "pch.h"
 #include "SceneManager.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "GameManager.h"
 #include "Logger.h"
 #include "EntitySerializer.h"
-#include <unordered_set>
 
 namespace Framework {
 	using namespace SceneManagement;
@@ -102,11 +102,11 @@ namespace Framework {
 		scene->isPopulated = true;
 	}
 
-	void SceneManager::RebuildActiveTags() {
+	void SceneManager::RebuildLoadedTags() {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(ActiveTagType)) {
-			entityMgr.RemoveComponent(entity, ActiveTagType);
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(false, LoadedTagType)) {
+			entityMgr.RemoveComponent(entity, LoadedTagType);
 		}
 
 		std::unordered_set<SceneGUID> loaded;
@@ -115,17 +115,17 @@ namespace Framework {
 			loaded.insert(guid);
 		}
 		
-		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(false, SceneOwnedType)) {
 			const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
 
-			bool shouldBeActive = loaded.find(owned.sceneIndex) != loaded.end();
+			bool shouldBeLoaded = loaded.find(owned.sceneIndex) != loaded.end();
 
 #ifdef BUILD_EDITOR
-			if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+			if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeLoaded = true;
 #else
-			if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+			if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeLoaded = true;
 #endif
-			if (shouldBeActive) entityMgr.AddComponent(entity, ActiveTag{});
+			if (shouldBeLoaded) entityMgr.AddComponent(entity, LoadedTag{});
 		}
 	}
 
@@ -164,7 +164,7 @@ namespace Framework {
 		}
 
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
-		for (Entity persistentEntity : entityMgr.GetAllEntitiesWithComponent(PersistentTagType)) {
+		for (Entity persistentEntity : entityMgr.GetAllEntitiesWithComponent(false, PersistentTagType)) {
 			if (!entityMgr.HasComponent(persistentEntity, SceneOwnedType)) {
 				entityMgr.AddComponent(persistentEntity, SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME });
 			}
@@ -173,7 +173,7 @@ namespace Framework {
 			}
 		}
 
-		RebuildActiveTags();
+		RebuildLoadedTags();
 	}
 
 	void SceneManager::OnExitPlay() {
@@ -217,7 +217,7 @@ namespace Framework {
 			ddol->isLoaded = false;
 		}
 
-		RebuildActiveTags();
+		RebuildLoadedTags();
 	}
 #endif
 
@@ -354,7 +354,7 @@ namespace Framework {
 		}
 
 		EnsureScenePopulated(sceneIndex);
-		RebuildActiveTags();
+		RebuildLoadedTags();
 
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneToLoad->name << " with GUID: " << sceneToLoad->sceneIndex << std::endl;
 	}
@@ -389,7 +389,7 @@ namespace Framework {
 		std::vector<Entity> toDestroy;
 		toDestroy.reserve(64);
 
-		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(false, SceneOwnedType)) {
 			if (entityMgr.GetComponent<SceneOwned>(entity).sceneIndex == sceneIndex) {
 				toDestroy.push_back(entity);
 			}
@@ -417,7 +417,7 @@ namespace Framework {
 			}
 		}
 
-		RebuildActiveTags();
+		RebuildLoadedTags();
 		Logger::Get().Info(DebugType::SceneManager) << "Unloaded Scene GUID: " << sceneIndex << std::endl;
 	}
 
@@ -452,12 +452,17 @@ namespace Framework {
 		std::string assignedName = targetScene->name;
 
 		// If entity is persistent, redirect it to the don't destroy on load scene
+#ifdef BUILD_EDITOR
+		if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) {
+			assignedIndex = DDOL_SCENEID;
+			assignedName = DDOL_SCENENAME;
+		}
+#else
 		if (entityMgr.HasComponent(entity, PersistentTagType)) {
 			assignedIndex = DDOL_SCENEID;
 			assignedName = DDOL_SCENENAME;
 
 			// Ensure DDOL is marked as loaded in the Engine build
-			#ifndef BUILD_EDITOR
 			SceneAsset* ddol = GetSceneAssetMutable(DDOL_SCENEID);
 			if (ddol && !ddol->isLoaded) {
 				ddol->isLoaded = true;
@@ -465,8 +470,8 @@ namespace Framework {
 					loadedScenes_.push_back(DDOL_SCENEID);
 				}
 			}
-			#endif
 		}
+#endif
 
 		// Assign Scene Ownership
 		if (!entityMgr.HasComponent(entity, SceneOwnedType)) {
@@ -476,19 +481,19 @@ namespace Framework {
 			entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ assignedIndex, assignedName };
 		}
 
-		bool shouldBeActive = targetScene->isLoaded;
+		bool shouldBeLoaded = targetScene->isLoaded;
 
 #ifdef BUILD_EDITOR
-		if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+		if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeLoaded = true;
 #else
-		if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+		if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeLoaded = true;
 #endif
 
-		if (shouldBeActive) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.AddComponent(entity, ActiveTag{});
+		if (shouldBeLoaded) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) entityMgr.AddComponent(entity, LoadedTag{});
 		}
 		else {
-			if (entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.RemoveComponent(entity, ActiveTagType);
+			if (entityMgr.HasComponent(entity, LoadedTagType)) entityMgr.RemoveComponent(entity, LoadedTagType);
 		}
 
 		Logger::Get().Info(DebugType::SceneManager) << "Added Entity[" << entity << "] with name " << entityMgr.GetProperties(entity).name << " to Scene[" << targetScene->name << "]" << std::endl;
@@ -516,8 +521,8 @@ namespace Framework {
 					entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME };
 				}
 
-				if (!entityMgr.HasComponent(entity, ActiveTagType)) {
-					entityMgr.AddComponent(entity, ActiveTag{});
+				if (!entityMgr.HasComponent(entity, LoadedTagType)) {
+					entityMgr.AddComponent(entity, LoadedTag{});
 				}
 			}
 #else
@@ -529,8 +534,8 @@ namespace Framework {
 				entityMgr.GetComponent<SceneOwned>(entity) = SceneOwned{ DDOL_SCENEID, DDOL_SCENENAME };
 			}
 
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) {
-				entityMgr.AddComponent(entity, ActiveTag{});
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) {
+				entityMgr.AddComponent(entity, LoadedTag{});
 			}
 #endif
 		}
@@ -551,24 +556,24 @@ namespace Framework {
 				}
 			}
 #endif
-			bool shouldBeActive = false;
+			bool shouldBeLoaded = false;
 
 			if (entityMgr.HasComponent(entity, SceneOwnedType)) {
 				const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
-				shouldBeActive = std::find(loadedScenes_.begin(), loadedScenes_.end(), owned.sceneIndex) != loadedScenes_.end();
+				shouldBeLoaded = std::find(loadedScenes_.begin(), loadedScenes_.end(), owned.sceneIndex) != loadedScenes_.end();
 			}
 
 #ifdef BUILD_EDITOR
-			if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+			if (isPlayMode_ && entityMgr.HasComponent(entity, PersistentTagType)) shouldBeLoaded = true;
 #else
-			if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeActive = true;
+			if (entityMgr.HasComponent(entity, PersistentTagType)) shouldBeLoaded = true;
 #endif
 
-			if (shouldBeActive) {
-				if (!entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.AddComponent(entity, ActiveTag{});
+			if (shouldBeLoaded) {
+				if (!entityMgr.HasComponent(entity, LoadedTagType)) entityMgr.AddComponent(entity, LoadedTag{});
 			}
 			else {
-				if (entityMgr.HasComponent(entity, ActiveTagType)) entityMgr.RemoveComponent(entity, ActiveTagType);
+				if (entityMgr.HasComponent(entity, LoadedTagType)) entityMgr.RemoveComponent(entity, LoadedTagType);
 			}
 		}
 	}
@@ -587,7 +592,7 @@ namespace Framework {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		std::vector<Entity> sceneEntities;
 
-		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(false, SceneOwnedType)) {
 			const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
 			if (owned.sceneIndex == sceneIndex) {
 				sceneEntities.push_back(entity);
@@ -640,7 +645,7 @@ namespace Framework {
 	void SceneManager::PrintAllScenesInfo() const {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		std::unordered_map<std::string, std::vector<Entity>> scenes;
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(SceneOwnedType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(false, SceneOwnedType)) {
 			SceneOwned sceneOwned = entityMgr.GetComponent<SceneOwned>(entity);
 			scenes[sceneOwned.sceneName].push_back(entity);
 		}
@@ -675,11 +680,11 @@ namespace Framework {
 		
 		Logger::Get().Info(DebugType::SceneManager) << "----- Current Scene Info -----" << std::endl;
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << GetSceneAt(currentScene_).name << std::endl;
-		Logger::Get().Info(DebugType::SceneManager) << "Active Entities Count: " << entityMgr.GetAllEntitiesWithComponent(ActiveTagType).size() << std::endl;
+		Logger::Get().Info(DebugType::SceneManager) << "Loaded Entities Count: " << entityMgr.GetAllEntitiesWithComponent(false, LoadedTagType).size() << std::endl;
 
 		std::ostream& logStream = Logger::Get().Info(DebugType::SceneManager);
 		logStream << "Active Entities IDs: ";
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ActiveTagType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(false, LoadedTagType)) {
 			logStream << "Entity[" << entity << "]";
 			if (entityMgr.HasComponent(entity, PersistentTagType)) {
 				logStream << " (Persistent)";

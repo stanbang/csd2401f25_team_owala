@@ -14,6 +14,7 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+#include "pch.h"
 #include "PlatformBehaviorSystem.h"
 #include "GameManager.h"
 #include "TransformationSystem.h"
@@ -21,7 +22,6 @@
 #include "Components.h"
 #include "Transformation.h"
 #include "OwalaTime.h"
-#include <cmath>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -105,7 +105,7 @@ namespace Framework {
         worldRotation = std::fmod(worldRotation + 360.0f, 360.0f);
 
    
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(TrapPlatformComponentType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType)) {
             TrapPlatformComponent& trapComp = entityMgr.GetComponent<TrapPlatformComponent>(entity);
             std::string entityName = entityMgr.GetProperties(entity).name;
 

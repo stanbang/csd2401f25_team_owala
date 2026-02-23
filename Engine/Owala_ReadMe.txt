@@ -12,6 +12,9 @@ W - Jump
 A - Move Left
 D - Move Right
 
+---MENU---
+ESC - Pause/Options Menu
+
 ---WORLD---
 Q - Rotate map by 90 degrees to the left
 E - Rotate map by 90 degrees to the right

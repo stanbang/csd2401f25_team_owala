@@ -15,6 +15,7 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "VFXSystem.h"
 #include "Components.h"
 #include "EntityManager.h"
@@ -55,7 +56,7 @@ namespace Framework {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		int emittersFound = 0;
 		
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleEmitterComponentType)) {
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
 			
 			// Skip continuous emitters
@@ -87,7 +88,7 @@ namespace Framework {
 		triggerToEmitters_[triggerName].push_back(emitterEntity);
 	}
 
-	void VFXSystem::OnWorldRotation(const WorldRotationEvent& event) {
+	void VFXSystem::OnWorldRotation(const WorldRotationEvent&) {
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
 	
 	// First, refresh registrations to catch any newly created or reconfigured emitters
@@ -201,8 +202,8 @@ namespace Framework {
 
 	void VFXSystem::EmitParticles(EntityManager& entityMgr) {
 		// Loop through all particle emitters
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleEmitterComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleEmitterComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 			if (!entityMgr.HasComponent(entity, ParticleEmitterComponentType)) continue;
 
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(entity);
@@ -278,8 +279,8 @@ namespace Framework {
 	}
 
 	void VFXSystem::UpdateParticles(EntityManager& entityMgr) {
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(ParticleComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue;
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 			if (!entityMgr.HasComponent(entity, ParticleComponentType)) continue;
 
 			ParticleComponent& particle = entityMgr.GetComponent<ParticleComponent>(entity);
@@ -353,10 +354,13 @@ namespace Framework {
 		if (emitter.isParticleAnimated) {
 			AnimationComponent animComp;
 			animComp.isPlaying = true;
+			// Ignore UVs for now to prevent full spritesheet flashing for the first frame.
+			animComp.minUV = { 0.0f, 0.0f };
+			animComp.maxUV = { 0.0f, 0.0f };
 			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
 		}
 
-		entityMgr.AddComponent<ActiveTag>(particleEntity, ActiveTag{});
+		entityMgr.AddComponent<LoadedTag>(particleEntity, LoadedTag{});
 	}
 
 	void VFXSystem::Shutdown() {

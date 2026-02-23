@@ -73,7 +73,6 @@ namespace Framework {
         /* Components */
 
         static void SerializeComponent(const Transform& transform, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const SpawnPoint& spawnPt, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Velocity& vel, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Acceleration& acc, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Triangle& triangle, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
@@ -88,18 +87,17 @@ namespace Framework {
         static void SerializeComponent(const TextComponent& textComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Camera& cameraComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const NativeScriptsComponent& nativeScripts, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-       /* static void SerializeComponent(const BirdAIComponent& birdAI, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
-        static void SerializeComponent(const SkeletonAIComponent& skelAI, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);*/
         static void SerializeComponent(const FSMComponent& fsm, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const Button& button, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const SceneOwned& sceneOwnedComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         static void SerializeComponent(const ParticleEmitterComponent& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const Slider& particleEmitter, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
+        static void SerializeComponent(const PlayerHealthComponent& playerHealthComp, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
 
         /* Specialized Deserialization APIs */
         /* Components */
 
         static bool DeserializeComponent(const rapidjson::Value& componentData, Transform& out);
-        static bool DeserializeComponent(const rapidjson::Value& componentData, SpawnPoint& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, Velocity& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Acceleration& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Triangle& out);
@@ -114,12 +112,12 @@ namespace Framework {
 		static bool DeserializeComponent(const rapidjson::Value& componentData, TextComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Camera& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, NativeScriptsComponent& out);
-        /*static bool DeserializeComponent(const rapidjson::Value& componentData, BirdAIComponent& out);
-        static bool DeserializeComponent(const rapidjson::Value& componentData, SkeletonAIComponent& out);*/
         static bool DeserializeComponent(const rapidjson::Value& componentData, FSMComponent& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, Button& out);
 		static bool DeserializeComponent(const rapidjson::Value& componentData, SceneOwned& out);
         static bool DeserializeComponent(const rapidjson::Value& componentData, ParticleEmitterComponent& out);
+		static bool DeserializeComponent(const rapidjson::Value& componentData, Slider& out);
+        static bool DeserializeComponent(const rapidjson::Value& componentData, PlayerHealthComponent& out);
 
     };
 }

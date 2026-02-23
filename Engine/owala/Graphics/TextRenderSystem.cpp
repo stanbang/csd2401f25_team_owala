@@ -13,9 +13,8 @@
  *      Reproduction or disclosure of this file or its contents without the prior
  *      written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
-
+#include "pch.h"
 #include "TextRenderSystem.h"
-#include <cmath>
 #include "GameManager.h"
 #include "GuiSystem.h"
 #include "EntityManager.h"
@@ -30,7 +29,7 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         // Loop through all text components
-        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(TextComponentType, TransformType, ActiveTagType)) {
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextComponentType, TransformType, LoadedTagType)) {
             auto& textComp = entityMgr.GetComponent<TextComponent>(entity);
             if (textComp.fontKey.empty() || textComp.textToDraw.empty()) continue;
 

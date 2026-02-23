@@ -2,8 +2,9 @@
  * \file   AudioSystem.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (80%)
  * \secondary_author
+ *      Yar Xuan  (20%)
  *
  * \brief
  *   Audio system wrapper around FMOD for loading, playing, and managing
@@ -96,14 +97,15 @@ namespace Framework {
         /**
          * \brief Play a previously created FMOD::Sound.
          * \param sound   Reference to a valid FMOD::Sound to play.
+		 * \param type    AudioType (SFX or MUSIC) for categorization.
          * \param volume  Linear volume in [0,1].
          * \param paused  If true, start paused (caller can unpause later).
-         * \return True if playback was successfully started.
+		 * \return The FMOD::Channel* playing the sound, or nullptr on failure.
          *
          * \note This overload does not look up by ID; it uses the provided sound directly.
          * \see playOneShot(), loadSound()
          */
-        bool play(FMOD::Sound& sound, float volume = 1.0f, bool paused = false);
+        FMOD::Channel* play(FMOD::Sound& sound, AudioType type, float volume = 1.0f, bool paused = false);
 
         /**
          * \brief Fire-and-forget playback: load a sound from \p path and play once.
@@ -122,6 +124,20 @@ namespace Framework {
          * \note Affects all channels routed through \c masterGroup_.
          */
         void setMasterVolume(float volume);
+
+        /**
+         * \brief Set music and SFX sub-group volumes.
+         * \param volume Linear volume in [0,1]. Values outside range will be clamped by FMOD.
+         * \note Assumes music and SFX are routed through separate channel groups
+         *       under the master group; implementation depends on your FMOD setup.
+		 */
+        void setMusicVolume(float volume);
+
+        /**
+		 * \brief Set SFX sub-group volume.
+         * \param volume
+         */
+        void setSFXVolume(float volume);
 
         /**
          * \brief Stop all currently playing channels started by this system.
@@ -153,13 +169,6 @@ namespace Framework {
          */
         void OnButtonClicked(const ButtonClickedEvent& event);
         
-        /**
-         * \brief Trigger proximity based SFX
-         *
-         * \param pos, eventKey, maxVol
-         */
-        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, float maxVol = 1.0f);
-
         // For Interupption Handling
         /**
          * \brief Suspends audio
@@ -174,24 +183,69 @@ namespace Framework {
         void ResumeAudio();
 
         /**
+           * \brief Gets a random audio from the soundPaths_ map
+           * \details Uses the event parameter as the key to find the corresponding array of audio files, then returns a random sound
+           * from that array.
+           */
+        std::string getRandomSound(std::string eventKey);
+
+        /**
+         * \brief Get proximity based volume
+         *
+         * \param pos, maxVol
+         */
+        float GetProximityVol(const Vector2D& pos, float maxVol);
+
+        /**
+         * \brief Trigger proximity based SFX
+         *
+         * \param pos, eventKey, audiotype, maxVol
+         */
+        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol = 1.0f);
+
+        /**
            * \brief Plays a random audio from the soundPaths_ map
            * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
            * from that array to play.
            */
-        void PlayRandomSound(std::string eventKey, float volume);
+        void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
+
+        /**
+           * \brief Plays a looping audio from the soundPaths_ map
+           * \details Uses the event parameter as the key to find the corresponding array of audio files, then chooses a random sound
+           * from that array to play.
+           */
+        void PlayLoopSound(Entity entity, std::string eventKey, AudioType audiotype, float volume, bool play, bool proximity = false, Vector2D pos = {0.0f,0.0f});
+        
+        /**
+		 * \brief Gets the master, music and SFX volume
+		 * \return The volume as float in [0,1]
+         */
+        float getMasterVolume();
+        float getMusicVolume();
+        float getSFXVolume();
+
+        // Helper to start the fade
+        void FadeOutChannel(FMOD::Channel* channel, float duration);
 
     private:
+        // Tracks channels fading out: <Channel Pointer, Fade Speed (vol/sec)>
+        std::unordered_map<FMOD::Channel*, float> fadingChannels_;
+
         /// \name FMOD Core Pointers
         ///@{
         FMOD::System* system_ = nullptr;  //!< Owned FMOD system (created in Initialize()).
         FMOD::ChannelGroup* masterGroup_ = nullptr;  //!< Master channel group used for global control.
-        ///@}
+        FMOD::ChannelGroup* musicGroup_ = nullptr;
+        FMOD::ChannelGroup* sfxGroup_ = nullptr;
+        /// ///@}
 
         /// \name Caches
         ///@{
         std::unordered_map<std::string, FMOD::Sound*>   sounds_;   //!< Cached sounds by ID (owned by FMOD; released on unload/Shutdown()).
         std::unordered_map<std::string, FMOD::Channel*> channels_; //!< Last started channel per ID (optional bookkeeping).
         std::unordered_map<std::string, std::vector<std::string>> soundPaths_; //!< Audio file names read from json file. eg: "Player_Jump" : [file1, file2]
+        std::map<Entity, FMOD::Channel*> entityChannels_;
         ///@}
     };
 

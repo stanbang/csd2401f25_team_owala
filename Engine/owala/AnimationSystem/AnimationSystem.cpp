@@ -13,25 +13,30 @@
  * Reproduction or disclosure of this file or its contents without the prior
  * written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+#include "pch.h"
 #include "EntityStorage.h"
 #include "EntityManager.h"
 #include "AnimationSystem.h"
-#include <iostream>
 #include "GameManager.h"
 #include "OwalaTime.h"
+#include "PhysicsSystem.h" // For checking paused state
 
 namespace Framework {
 
 	void AnimationSystem::Update() {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+		PhysicsSystem& physics_ = *GameManager::GetInstance().GetSystems().physics_;
+		// If physics is paused, skip animation update
+		if (physics_.IsPaused()) { return; }
+
 		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
 		// Small padding to avoid texture bleeding
 		constexpr float UV_PADDING = 0.003f;
 
 		// Loop through each entity that with AnimationComponent
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(AnimationComponentType)) {
-			if (!entityMgr.HasComponent(entity, ActiveTagType)) continue; // Skip if entity is not active
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AnimationComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue; // Skip if entity is not active
 			if (!entityMgr.HasComponent(entity, TextureComponentType)) continue; // Skip if entity does not have TextureComponent
 
 			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
@@ -53,8 +58,20 @@ namespace Framework {
 			if (entityMgr.HasComponent(entity, FSMComponentType)) {
 				if (entityMgr.HasComponent(entity, VelocityType)) {
 					const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
-					if (vel.x > 0.1f) isFacingRight = true;
-					else if (vel.x < -0.1f) isFacingRight = false;
+
+					// Check current FSM state
+					FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
+					std::string stateName = fsm.fsm.GetCurrentState();
+
+					// //During Attack, textureAngle handles full rotation — skip UV flip
+					//if (stateName == "Attack") {
+					//	isFacingRight = true; // Lock to default, no UV flip
+					//}
+					/*else if (entityMgr.HasComponent(entity, VelocityType)) {*/
+						
+						if (vel.x > 0.1f)       isFacingRight = true;  // flip to face right
+						else if (vel.x < -0.1f) isFacingRight = false;   // already faces left
+					//}
 				}
 			}
 
@@ -67,7 +84,7 @@ namespace Framework {
 					animationComponent.currentState = AnimationState::IDLE;
 				}
 				else if (stateName == "Waking") {
-					animationComponent.currentState = AnimationState::IDLE; // Use idle while waking
+					animationComponent.currentState = AnimationState::WAKING; // Use idle while waking
 				}
 				else if (stateName == "SimpleChase" || stateName == "Bounce" || stateName == "Hover") {
 					animationComponent.currentState = AnimationState::RUNNING; // "Fly" animation
@@ -77,6 +94,9 @@ namespace Framework {
 				}
 				else if (stateName == "Recovery") {
 					animationComponent.currentState = AnimationState::RUNNING; // Back to "Fly" after missing
+				}
+				else if (stateName == "Death") {
+					animationComponent.currentState = AnimationState::DEATH;
 				}
 			}
 
@@ -96,7 +116,10 @@ namespace Framework {
 						targetStateString = fsm.fsm.GetCurrentState();
 
 						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
-						std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
+						//std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
+						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
+						std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(),
+							[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 					}
 
 					// Fallback for Player/Non-FSM entities using the legacy AnimationState enum
@@ -107,6 +130,8 @@ namespace Framework {
 						case AnimationState::JUMPING: targetStateString = "JUMPING"; break;
 						case AnimationState::FALLING: targetStateString = "FALLING"; break;
 						case AnimationState::DEATH: targetStateString = "DEATH"; break;
+						case AnimationState::HURT: targetStateString = "HURT"; break;
+						default: targetStateString = "IDLE"; break; // Fallback
 						}
 					}
 

@@ -31,6 +31,6 @@ namespace Framework {
     struct PersistentTag {};
 
     // Tag to indicate that this entity is to be loaded in the scene
-    struct ActiveTag {};
+    struct LoadedTag {};
 
 } // namespace Framework

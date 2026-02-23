@@ -14,9 +14,9 @@
 * Reproduction or disclosure of this file or its contents without the prior
 * written consent of DigiPen Institute of Technology is prohibited.
 *********************************************************************/
+#include "pch.h"
 #include "ResourceManager.h"
 #include "GameManager.h"
-#include "GL/glew.h"
 #include "FileIO/FileUtility.h"
 
 using namespace Framework;
@@ -154,7 +154,7 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
     return true;
 }
 
-bool ResourceManager::loadSound(const std::string& name) {
+bool ResourceManager::loadSound(const std::string& name, bool loop) {
 	auto it = assetPathMap_.find(name);
 	if (it == assetPathMap_.end()) {
 		Logger::Get().Error(DebugType::ResourceManager)
@@ -162,7 +162,7 @@ bool ResourceManager::loadSound(const std::string& name) {
 		return false;
 	}
 
-	return loadSound(name, it->second.string().c_str(), false, false);
+	return loadSound(name, it->second.string().c_str(), loop, false);
 }
 
 // Loads a sound from file and stores it inside the resource manager
@@ -351,13 +351,23 @@ bool ResourceManager::loadPrefab(const std::string& name, const std::string& fil
 	if (doc.HasMember(Serialization::ENTITY_LAYER) && doc[Serialization::ENTITY_LAYER].IsInt()) {
 		int layerInt = doc[Serialization::ENTITY_LAYER].GetInt();
 		CollisionLayer layer = static_cast<CollisionLayer>(layerInt);
-		if (layer == CollisionLayer::Platform) newPrefab->layer = "Platform";
-		else if (layer == CollisionLayer::Player) newPrefab->layer = "Player";
-		else newPrefab->layer = "Default";
+		newPrefab->layer = layerInt;
+		if (layer == CollisionLayer::Platform) newPrefab->layer_collision_name = "Platform";
+		else if (layer == CollisionLayer::Player) newPrefab->layer_collision_name = "Player";
+		else newPrefab->layer_collision_name = "Default";
+	}
+
+	if (doc.HasMember(Serialization::ENTITY_COLLISION_LAYER_NAME) && doc[Serialization::ENTITY_COLLISION_LAYER_NAME].IsString()) {
+		newPrefab->layer_collision_name = doc[Serialization::ENTITY_COLLISION_LAYER_NAME].GetString();
 	}
 
 	if (doc.HasMember(Serialization::ENTITY_RENDER_LAYER) && doc[Serialization::ENTITY_RENDER_LAYER].IsInt()) {
 		newPrefab->renderLayer = doc[Serialization::ENTITY_RENDER_LAYER].GetInt();
+	}
+
+	// Load render layer name if present
+	if (doc.HasMember(Serialization::ENTITY_RENDER_LAYER_NAME) && doc[Serialization::ENTITY_RENDER_LAYER_NAME].IsString()) {
+		newPrefab->layer_render_name = doc[Serialization::ENTITY_RENDER_LAYER_NAME].GetString();
 	}
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded prefab '" << filepath << "'" << std::endl;
@@ -373,6 +383,36 @@ void ResourceManager::Shutdown() {
 	m_isLoading = false;
 	if (m_workerThread.joinable()) {
 		m_workerThread.join();
+	}
+
+	// Clear upload queue and free any pending raw data
+	{
+		std::lock_guard<std::mutex> lock(m_queueMutex);
+
+		// We need access to the Graphics system to free the raw data.
+		// ResourceManager MUST shut down b4 Graphics/GameManager, 
+		// otherwise GetSystems() might be invalid or null.
+		Graphics* gfx = nullptr;
+		if (GameManager::Exists()) {
+			gfx = GameManager::GetInstance().GetSystems().gfx_;
+		}
+
+		while (!m_dataReadyToUpload.empty()) {
+			AsyncTextureData item = m_dataReadyToUpload.front();
+			m_dataReadyToUpload.pop();
+
+			if (gfx) {
+				// Free the memory
+				gfx->FreeImageRawData(item.rawData);
+
+				std::stringstream ss;
+				ss << "Freed pending async texture data during shutdown: " << item.name;
+				Logger::Get().Info(DebugType::ResourceManager) << ss.str() << std::endl;
+			}
+			else {
+				Logger::Get().Error(DebugType::ResourceManager) << "Leaking texture data " << item.name << " because Graphics system is already gone.";
+			}
+		}
 	}
 
     // Clear all maps
@@ -515,6 +555,39 @@ std::string ResourceManager::GetAssetPath(const std::string& key) const {
 	return ""; // Not found
 }
 
+// Resolves a state key to its corresponding integer ID based on the profile name
+int ResolveStateID(const std::string& profileName, const std::string& stateKey) {
+
+	// BIRD ENEMY MAPPING (Matches BirdState Enum)
+	if (profileName == "BirdEnemy") {
+		if (stateKey == "IDLE")    return 0; // BirdState::IDLE
+		if (stateKey == "WAKING")  return 1; // BirdState::WAKING
+		if (stateKey == "CHASE")   return 2; // BirdState::CHASE
+		if (stateKey == "HOVER")   return 3; // BirdState::HOVER
+		if (stateKey == "STUNNED") return 4; // BirdState::STUNNED
+		if (stateKey == "ATTACK")  return 5; // BirdState::ATTACK
+	}
+
+	// SKELETON ENEMY MAPPING (Matches SkeletonState Enum)
+	else if (profileName == "SkeletonEnemy") {
+		if (stateKey == "IDLE")    return 0; // SkeletonState::IDLE
+		if (stateKey == "CHASE")   return 1; // SkeletonState::CHASE
+	}
+
+	// DEFAULT / PLAYER MAPPING (Matches AnimationState Enum)
+	// Applies to "Player", "FakePlayer", and anyone else
+	else {
+		if (stateKey == "IDLE")    return 0; // AnimationState::IDLE
+		if (stateKey == "RUNNING") return 1; // AnimationState::RUNNING
+		if (stateKey == "JUMPING") return 2; // AnimationState::JUMPING
+		if (stateKey == "FALLING") return 3; // AnimationState::FALLING
+		if (stateKey == "DEATH")   return 4; // AnimationState::DEATH
+		if (stateKey == "HURT")   return 5; // AnimationState::HURT
+	}
+
+	return 0; // Default safe fallback
+}
+
 // Undefine GetObject macro if defined (to avoid conflicts with RapidJSON)
 #ifdef GetObject
 #undef GetObject
@@ -552,4 +625,21 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 
 	Logger::Get().Info(DebugType::ResourceManager) << "Loaded " << profilesLoaded << " animation profiles.";
 	return true;
+}
+
+
+Audio& ResourceManager::getLoopAudio(std::string key) {
+	std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& map = getSoundMap();
+	auto it = map.find(key);
+	if (it == map.end()) {
+		// Load automatically if missing
+		if (loadSound(key, true)) {
+			it = map.find(key);
+			if (it != map.end()) return *it->second;
+		}
+
+		Logger::Get().Error(DebugType::ResourceManager) << "Missing Audio: \"" << key << "\"\n";
+		throw std::runtime_error("Missing Audio: " + key);
+	}
+	return *it->second;
 }

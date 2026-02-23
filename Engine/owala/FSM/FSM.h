@@ -1,3 +1,19 @@
+/*********************************************************************//**
+* \file   FSM.h
+*
+* \primary_author
+* Lur Pei Hao Stanley
+* \secondary_author
+*
+*
+* \brief
+* Defines the core FSM class and State/Transition base classes used to
+* construct and manage behavioral graphs for entities.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
 #pragma once
 #include "Entity.h"
 #include <string>
@@ -30,7 +46,7 @@ namespace Framework {
         virtual void SetParameter(const std::string& key, float value) { (void)key; (void)value; }
         virtual void SetParameter(const std::string& key, const std::string& value) { (void)key; (void)value; }
 
-        // Dependency Injection (Called by Factory)
+        // Dependency Injection 
         virtual void SetNavGrid(NavigationGrid* grid) { (void)grid; }
     };
 
