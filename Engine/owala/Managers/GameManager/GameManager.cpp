@@ -241,6 +241,13 @@ namespace Framework {
 		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
+			
+			// If the button has a scene to unload on click, queue it for next frame
+			if (!event.sceneToUnload.empty()) {
+				Logger::Get().Info(DebugType::GameManager)
+					<< "Button queuing scene unload: " << event.sceneToUnload << std::endl;
+				queuedSceneUnload_ = event.sceneToUnload;
+			}
 
 			switch (event.action) {
 
@@ -296,7 +303,11 @@ namespace Framework {
 				}
 				break;
 
-				// Note: We do NOT handle PLAYSOUND here. AudioSystem handles that.
+			case ButtonAction::RESUME_GAME:
+				Logger::Get().Info(DebugType::GameManager) << "Button requested RESUME_GAME" << std::endl;
+				queuedResume_ = true;
+				break;
+			// Note: We do NOT handle PLAYSOUND here. AudioSystem handles that.
 			default:
 				break;
 			}
@@ -349,8 +360,12 @@ namespace Framework {
 					RegisterScriptToScene(sceneID, LevelSelection::Initialize, LevelSelection::Update, LevelSelection::Free);
 					continue;
 				}
-				// all other scenes use TestScene.cpp for now
-				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				// Only register TestScene callbacks for actual level scenes.
+				// Overlay/menu scenes (PauseScene, OptionsMenu, etc.) run entirely
+				// through NativeScriptsComponent and do not need lifecycle callbacks.
+				if (IsLevelScene(sceneName)) {
+					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				}
 			}
 		}
 		else {
@@ -374,6 +389,21 @@ namespace Framework {
 		if (deferredTask_) {
 			deferredTask_();
 			deferredTask_ = nullptr;
+		}
+
+		// Process queued resume (deferred to avoid entity destruction mid frame)
+		if (queuedResume_) {
+			queuedResume_ = false;
+			SceneManager::GetInstance().UnloadScene("PauseScene");
+			SceneManager::GetInstance().UnloadScene("OptionsMenu");
+			systems_.physics_->SetPaused(false);
+		}
+
+		// Process any scene unload queued by a button click last frame
+		if (!queuedSceneUnload_.empty()) {
+			std::string sceneToUnload = std::move(queuedSceneUnload_);
+			queuedSceneUnload_.clear();
+			SceneManager::GetInstance().UnloadScene(sceneToUnload);
 		}
 
 		// --- GAME UPDATE HERE ---
@@ -624,6 +654,7 @@ namespace Framework {
 			name == "LoadingScreen" || 
 			name == "HowToPlay" ||
 			name == "OptionsMenu" ||
+			name == "PauseScene" ||
 			name == "Cutscene Intro")
 			return false;
 		return true;

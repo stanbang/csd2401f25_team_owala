@@ -172,6 +172,7 @@ namespace Framework::Serialization {
 	static constexpr const char* BUTTON_DEFAULT_ANIMATED = "default_is_animated";
 	static constexpr const char* BUTTON_HOVER_ANIMATED = "hover_is_animated";
 	static constexpr const char* BUTTON_PRESSED_ANIMATED = "pressed_is_animated";
+	static constexpr const char* BUTTON_SCENE_TO_UNLOAD = "scene_to_unload_on_click";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_ID = "scene_id";

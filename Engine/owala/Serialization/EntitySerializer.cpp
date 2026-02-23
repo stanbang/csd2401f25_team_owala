@@ -1134,6 +1134,10 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_DEFAULT_ANIMATED), button.defaultIsAnimated, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_HOVER_ANIMATED), button.hoverIsAnimated, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_PRESSED_ANIMATED), button.pressedIsAnimated, alloc);
+		
+		rapidjson::Value sceneToUnloadVal;
+		sceneToUnloadVal.SetString(button.sceneToUnloadOnClick.c_str(), static_cast<rapidjson::SizeType>(button.sceneToUnloadOnClick.length()), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::BUTTON_SCENE_TO_UNLOAD), sceneToUnloadVal, alloc);
 	}
 
 	// SceneOwned Component
@@ -1758,6 +1762,15 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::BUTTON_PRESSED_ANIMATED) &&
 			componentData[Serialization::BUTTON_PRESSED_ANIMATED].IsBool()) {
 			out.pressedIsAnimated = componentData[Serialization::BUTTON_PRESSED_ANIMATED].GetBool();
+		}
+
+		if (componentData.HasMember(Serialization::BUTTON_SCENE_TO_UNLOAD) &&
+			componentData[Serialization::BUTTON_SCENE_TO_UNLOAD].IsString()) {
+			out.sceneToUnloadOnClick = componentData[Serialization::BUTTON_SCENE_TO_UNLOAD].GetString();
+		}
+
+		else {
+			out.sceneToUnloadOnClick = ""; // Default for old save files
 		}
 
 		return true;

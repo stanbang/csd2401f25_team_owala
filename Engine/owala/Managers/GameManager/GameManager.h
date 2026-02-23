@@ -67,6 +67,8 @@ namespace Framework {
 
 		bool queuedLevelLoad_ = false;
 		bool queuedLevelReset_ = false;
+		bool queuedResume_ = false;
+		std::string queuedSceneUnload_;
 		std::string queuedLevelName_;
 
 		struct SceneCallBacks {

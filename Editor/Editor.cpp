@@ -7217,7 +7217,7 @@ namespace Editor {
 		ImGui::Separator();
 		ImGui::SeparatorText("Button Actions");
 
-		const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "SWITCH_SCENE_ADD", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE" };
+		const char* items[] = { "DEFAULT", "PLAYSOUND", "RESETPLAYERPOS", "SWITCH_SCENE", "SWITCH_SCENE_ADD", "QUIT_GAME", "PREV_PAGE", "NEXT_PAGE", "RESUME_GAME"};
 		int currentItemIndex = static_cast<int>(buttonComp.action);
 
 		if (ImGui::Combo("Button Action", &currentItemIndex, items, IM_ARRAYSIZE(items))) {
@@ -7242,6 +7242,12 @@ namespace Editor {
 					dataChanged = true;
 				}
 				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Text("Scene to Unload on Click:");
+			if (ImGui::InputText("##SceneToUnload", &buttonComp.sceneToUnloadOnClick)) dataChanged = true;
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Optional: Name of the scene to unload when this button is clicked.\nLeave empty to skip unloading.");
 			}
 		}
 		else if (buttonComp.action == ButtonAction::PLAYSOUND) {
