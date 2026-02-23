@@ -648,6 +648,19 @@ namespace Framework {
                 }
             }
         }
+
+        // Write current radius to FSMComponent for visual rendering
+        if (mgr.HasComponent(entity, FSMComponentType)) {
+            mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = currentRadius_;
+        }
+    }
+
+    void WitchAttackState::OnExit(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, FSMComponentType)) {
+            mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = 0.0f;
+        }
+        currentRadius_ = 0.0f;
     }
 
     void WitchAttackState::SetParameter(const std::string& key, float value) {

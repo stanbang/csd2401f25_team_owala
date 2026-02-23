@@ -440,6 +440,9 @@ namespace Framework{
 
 		// Used during deserialization to restore state
 		std::string serializedState;
+
+		// Visual effect: active attack circle radius (0 = none)
+		float attackCircleRadius = 0.0f;
 	};
 
 	// Particle Component

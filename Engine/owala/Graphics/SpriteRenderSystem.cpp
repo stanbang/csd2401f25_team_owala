@@ -51,6 +51,7 @@ namespace Framework {
     void SpriteRenderSystem::Update() {
         GameManager::GetInstance().GetSystems().gfx_->beginFrame(clearColor_);
         RenderSprites();
+        RenderAttackCircles();
         if (drawColliders_) {
             RenderColliderOutlines();
         }
@@ -477,6 +478,59 @@ namespace Framework {
             for (int i = 0; i < 4; ++i) {
                 int next = (i + 1) % 4;
                 gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
+            }
+        }
+    }
+
+    void SpriteRenderSystem::RenderAttackCircles() {
+        GameManager& gm = GameManager::GetInstance();
+        CameraSystem* cameraSystem_ = gm.GetSystems().camera_;
+        Graphics& gfx_ = *gm.GetSystems().gfx_;
+        EntityManager entityMgr(gm.GetECS());
+
+        Entity activeCamera = 0;
+        if (cameraSystem_) {
+            activeCamera = cameraSystem_->GetActiveCamera();
+        }
+
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
+            FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(e);
+            if (fsm.attackCircleRadius <= 0.0f) continue;
+            if (!entityMgr.HasComponent(e, TransformType)) continue;
+            if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
+
+            const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
+            if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;
+
+            const Transform& transform = entityMgr.GetComponent<Transform>(e);
+            Vector2D worldPos = transform.position;
+            float worldRadius = fsm.attackCircleRadius;
+
+            // Draw circle using line segments
+            const int segments = 48;
+            const float twoPi = 2.0f * static_cast<float>(M_PI);
+
+            // Red circle, brighter at larger radius
+            float intensity = worldRadius / 200.0f;
+            if (intensity > 1.0f) intensity = 1.0f;
+            Color circleColor = { 1.0f, 0.15f, 0.1f, 0.5f + 0.4f * intensity };
+
+            for (int i = 0; i < segments; ++i) {
+                float angle1 = static_cast<float>(i) / segments * twoPi;
+                float angle2 = static_cast<float>(i + 1) / segments * twoPi;
+
+                Vector2D p1 = { worldPos.x + std::cos(angle1) * worldRadius,
+                                worldPos.y + std::sin(angle1) * worldRadius };
+                Vector2D p2 = { worldPos.x + std::cos(angle2) * worldRadius,
+                                worldPos.y + std::sin(angle2) * worldRadius };
+
+                // Convert to screen space
+                if (activeCamera != 0 && cameraSystem_) {
+                    p1 = cameraSystem_->WorldToScreen(p1, activeCamera);
+                    p2 = cameraSystem_->WorldToScreen(p2, activeCamera);
+                }
+
+                gfx_.drawLine(p1, p2, circleColor);
             }
         }
     }
