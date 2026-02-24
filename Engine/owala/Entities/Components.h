@@ -76,6 +76,8 @@ namespace Framework{
 		MUSIC
 	};
 
+
+
 	// Different slider sound types
 	enum class SliderSoundType {
 		MASTER_VOLUME,

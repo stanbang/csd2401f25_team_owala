@@ -1,19 +1,13 @@
 /*****************************************************************//**
- * \file   InputSystem.h
+ * \file   InputSystem.cpp
  *
  * \primary_author
  *      Ng Jordain Ying Zhe
- * \secondary_author
  *
  * \brief
  *   Engine input subsystem that wraps GLFW keyboard/mouse state into a
  *   frame-based API (Down/Pressed/Released), with integer and enum
  *   query overloads, cursor locking, and mouse delta tracking.
- *
- * \copyright
- *   Copyright (C) 2025 DigiPen Institute of Technology.
- *   Reproduction or disclosure of this file or its contents without the prior
- *   written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
 #include "pch.h"
 #include "InputSystem.h"
@@ -27,18 +21,12 @@
 #include "SpriteRenderSystem.h"
 #include "EntityManager.h"
 
-
-
 namespace Framework {
 
-    // ---------------------- ISystem ----------------------
-
     void InputSystem::Initialize() {
-        // Get the actual GLFWwindow* AFTER WindowsSystem created it
         window_ = winSys_->window();
-        if (!window_) return;  // guard: do nothing if window creation failed
+        if (!window_) return;
 
-        // Seed mouse position
         glfwGetCursorPos(window_, &mouseX_, &mouseY_);
         prevMouseX_ = mouseX_;
         prevMouseY_ = mouseY_;
@@ -47,34 +35,28 @@ namespace Framework {
     void InputSystem::Update() {
         if (!window_) return;
 
-        // Ensure events are pumped (ok to call here even if another system calls it too)
         glfwPollEvents();
 
-        // Roll current -> previous
         std::memcpy(keyPrev_, keyNow_, sizeof(keyNow_));
         std::memcpy(btnPrev_, btnNow_, sizeof(btnNow_));
 
-        // Sample a safe range of key codes
         for (int i = 0; i < kMaxKeys; ++i) {
             int s = glfwGetKey(window_, i);
             keyNow_[i] = (s == GLFW_PRESS) || (s == GLFW_REPEAT);
         }
 
-        // Mouse buttons
         for (int b = 0; b < kMaxButtons; ++b) {
             int s = glfwGetMouseButton(window_, b);
             btnNow_[b] = (s == GLFW_PRESS);
         }
 
-        // Mouse position / delta
         prevMouseX_ = mouseX_;
         prevMouseY_ = mouseY_;
         glfwGetCursorPos(window_, &mouseX_, &mouseY_);
 
-
         // =========================
-// --- GLOBAL SHORTCUT KEYS ---
-// =========================
+        // --- GLOBAL SHORTCUT KEYS ---
+        // =========================
         GameManager& gm = GameManager::GetInstance();
         EntityStorage* ecs = gm.GetSystems().ecs_;
         PhysicsSystem* physics = gm.GetSystems().physics_;
@@ -85,45 +67,93 @@ namespace Framework {
 
         EntityManager entityMgr(*ecs);
 
+        // ---- helper: player position (for 3D audio test) ----
+        auto GetPlayerPos = [&]() -> Vector2D {
+            Vector2D p{ 0.0f, 0.0f };
+            auto players = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
+            if (!players.empty() && entityMgr.HasComponent(players[0], TransformType)) {
+                p = entityMgr.GetComponent<Transform>(players[0]).position;
+            }
+            return p;
+            };
+
         // --- PHYSICS TOGGLES ---
         if (KeyPressed(Key::P)) {
             physics->SetPaused(!physics->IsPaused());
         }
-
         if (KeyPressed(Key::O)) {
             physics->ToggleStepMode();
         }
-
         if (KeyPressed(Key::I)) {
             physics->ExecuteNextStep();
         }
 
-        //audio effect 1
-        if (KeyPressed(Key::T)) {
-            try {
-                FMOD::Sound& sfx = resources->get<FMOD::Sound>("jingle.ogg");
-                audio->play(sfx, AudioType::SFX, 1.0f, false);
-            }
-            catch (...) {
-                // ignore if missing
-            }
+        // =========================
+        // --- AUDIO REVERB TEST ---
+        // =========================
+        // 1: Reverb OFF (dry)
+        if (KeyPressed(Key::Num1)) {
+            if (audio) audio->EnableGroupReverb(AudioType::SFX, false);
         }
-        //audio effect 2
-        if (KeyPressed(Key::Y)) {
-            try {
-                FMOD::Sound& sfx = resources->get<FMOD::Sound>("soundeffect.ogg");
-                audio->play(sfx, AudioType::SFX, 1.0f, false);
-            }
-            catch (...) {
-                // ignore if missing
+
+        // 2: Reverb ON (wet) - default preset
+        if (KeyPressed(Key::Num2)) {
+            if (audio) audio->EnableGroupReverb(AudioType::SFX, true);
+        }
+
+        // 3: Small room preset (audible but controlled)
+        if (KeyPressed(Key::Num3)) {
+            if (audio) {
+                audio->EnableGroupReverb(AudioType::SFX, true);
+                audio->SetGroupReverbWetDb(AudioType::SFX, -8.0f);
+                audio->SetGroupReverbRoom(AudioType::SFX, 0.25f);
+                audio->SetGroupReverbDecay(AudioType::SFX, 500.0f);
             }
         }
 
+        // 4: Huge hall preset (very obvious)
+        if (KeyPressed(Key::Num4)) {
+            if (audio) {
+                audio->EnableGroupReverb(AudioType::SFX, true);
+                audio->SetGroupReverbWetDb(AudioType::SFX, 0.0f);
+                audio->SetGroupReverbRoom(AudioType::SFX, 1.0f);
+                audio->SetGroupReverbDecay(AudioType::SFX, 2000.0f);
+            }
+        }
+
+        // =========================
+        // --- AUDIO SPATIAL TEST ---
+        // =========================
+        // U: play 3D SFX left of player
+        if (KeyPressed(Key::U)) {
+            if (audio && resources) {
+                try {
+                    Vector2D p = GetPlayerPos();
+                    FMOD::Sound& sfx = resources->get<FMOD::Sound>("jingle.ogg");
+                    audio->play3D(sfx, AudioType::SFX, 1.0f, { p.x - 250.0f, p.y }, 50.0f, 700.0f, false);
+                }
+                catch (...) {}
+            }
+        }
+
+        // I: play 3D SFX right of player
+        if (KeyPressed(Key::I)) {
+            if (audio && resources) {
+                try {
+                    Vector2D p = GetPlayerPos();
+                    FMOD::Sound& sfx = resources->get<FMOD::Sound>("jingle.ogg");
+                    audio->play3D(sfx, AudioType::SFX, 1.0f, { p.x + 250.0f, p.y }, 50.0f, 700.0f, false);
+                }
+                catch (...) {}
+            }
+        }
+
+        // --- MASTER VOLUME QUICK TEST (optional keep) ---
         if (KeyPressed(Key::L)) {
-            audio->setMasterVolume(0.0f);
+            if (audio) audio->setMasterVolume(0.0f);
         }
         if (KeyPressed(Key::K)) {
-            audio->setMasterVolume(0.35f);
+            if (audio) audio->setMasterVolume(0.35f);
         }
 
         // --- RENDERER DEBUG TOGGLE ---
@@ -154,14 +184,12 @@ namespace Framework {
 
         // FAKE PLAYER SWITCH ANIMATIONS
         if (KeyPressed(Key::F)) {
-            //Get all entities with FakePlayerTag
             for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, FakePlayerTagType)) {
                 AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
                 if (animationComponent.currentState != AnimationState::RUNNING) {
                     animationComponent.currentState = AnimationState::RUNNING;
                     Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to RUNNING" << std::endl;
                 }
-
                 else {
                     animationComponent.currentState = AnimationState::IDLE;
                     Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to IDLE" << std::endl;
@@ -170,26 +198,19 @@ namespace Framework {
         }
 
 #ifdef BUILD_ENGINE
-        // Toggle between full screen and windowed mode
         if (KeyPressed(Key::F11)) {
             winSys_->ToggleFullScreen();
         }
 #endif
-
     }
 
     void InputSystem::ResetInputState() {
-        // Clear current and previous states to prevent stuck keys
         std::memset(keyNow_, 0, sizeof(keyNow_));
         std::memset(keyPrev_, 0, sizeof(keyPrev_));
         std::memset(btnNow_, 0, sizeof(btnNow_));
         std::memset(btnPrev_, 0, sizeof(btnPrev_));
-
-        // Unlock cursor so user can click other windows
         SetCursorLocked(false);
     }
-
-    // ---------------------- integer queries ----------------------
 
     bool InputSystem::KeyDown(int key) const {
         if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
@@ -217,8 +238,6 @@ namespace Framework {
         return !btnNow_[b] && btnPrev_[b];
     }
 
-    // ---------------------- enum queries ----------------------
-
     bool InputSystem::KeyDown(Key k) const { return KeyDown(ToGlfwKey(k)); }
     bool InputSystem::KeyPressed(Key k) const { return KeyPressed(ToGlfwKey(k)); }
     bool InputSystem::KeyReleased(Key k) const { return KeyReleased(ToGlfwKey(k)); }
@@ -227,13 +246,9 @@ namespace Framework {
     bool InputSystem::MousePressed(MouseButton b) const { return MousePressed(ToGlfwMouse(b)); }
     bool InputSystem::MouseReleased(MouseButton b) const { return MouseReleased(ToGlfwMouse(b)); }
 
-    // ---------------------- ASCII helpers ----------------------
-
     bool InputSystem::KeyDown(char c) const { return KeyDown(ToGlfwKeyFromChar(c)); }
     bool InputSystem::KeyPressed(char c) const { return KeyPressed(ToGlfwKeyFromChar(c)); }
     bool InputSystem::KeyReleased(char c) const { return KeyReleased(ToGlfwKeyFromChar(c)); }
-
-    // ---------------------- mouse & cursor ----------------------
 
     void InputSystem::GetMousePos(double* x, double* y) const {
         if (x) *x = mouseX_;
@@ -253,8 +268,6 @@ namespace Framework {
         keyboardLocked_ = locked;
     }
 
-    // ---------------------- mappings ----------------------
-
     static int alphaToGlfw(int upper) { return GLFW_KEY_A + (upper - 'A'); }
     static int digitToGlfw(int digit) { return GLFW_KEY_0 + digit; }
 
@@ -273,11 +286,11 @@ namespace Framework {
         case Key::Num3: return GLFW_KEY_3; case Key::Num4: return GLFW_KEY_4; case Key::Num5: return GLFW_KEY_5;
         case Key::Num6: return GLFW_KEY_6; case Key::Num7: return GLFW_KEY_7; case Key::Num8: return GLFW_KEY_8;
         case Key::Num9: return GLFW_KEY_9;
-        case Key::Enter: return GLFW_KEY_ENTER; case Key::Escape: return GLFW_KEY_ESCAPE; 
+        case Key::Enter: return GLFW_KEY_ENTER; case Key::Escape: return GLFW_KEY_ESCAPE;
         case Key::Tab: return GLFW_KEY_TAB; case Key::Backspace: return GLFW_KEY_BACKSPACE;
         case Key::Space: return GLFW_KEY_SPACE;
-		case Key::PageUp: return GLFW_KEY_PAGE_UP; case Key::PageDown: return GLFW_KEY_PAGE_DOWN;
-		case Key::Home: return GLFW_KEY_HOME; case Key::End: return GLFW_KEY_END;
+        case Key::PageUp: return GLFW_KEY_PAGE_UP; case Key::PageDown: return GLFW_KEY_PAGE_DOWN;
+        case Key::Home: return GLFW_KEY_HOME; case Key::End: return GLFW_KEY_END;
         case Key::Insert: return GLFW_KEY_INSERT; case Key::Delete: return GLFW_KEY_DELETE;
         case Key::Left: return GLFW_KEY_LEFT; case Key::Right: return GLFW_KEY_RIGHT;
         case Key::Up: return GLFW_KEY_UP; case Key::Down: return GLFW_KEY_DOWN;
