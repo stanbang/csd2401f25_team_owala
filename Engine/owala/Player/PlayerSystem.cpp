@@ -111,9 +111,8 @@ namespace Framework {
                         vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
                         state.isWalking = false;
 
-                            float jumpVolume = 0.3f;
                             //messageBus
-                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume }); //empty cause currently theres nothign to pass and just for testing
+                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity });
                         }
 
                         // Sets the direction the player is facing based on movement
