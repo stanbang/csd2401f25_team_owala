@@ -60,6 +60,7 @@ namespace Framework {
         float rotation = 0;     //!< Rotation in radians
         Vector2D minUV;     //!< Usually (0,0)
         Vector2D maxUV;     //!< Usually (1,1)
+        Color color = { 1.0f, 1.0f, 1.0f, 1.0f }; // ADD THIS
     };
 
     // ------------------------------------------------------------------

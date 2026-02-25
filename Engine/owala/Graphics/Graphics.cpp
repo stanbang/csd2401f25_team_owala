@@ -65,15 +65,18 @@ namespace Framework {
     static const char* VS_TEX = R"(#version 330 core
     layout(location=0) in vec2 aPos;
     layout(location=1) in vec2 aUV;
+    layout(location=2) in vec4 aColor;
     out vec2 vUV;
-    void main(){ gl_Position = vec4(aPos, 0.0, 1.0); vUV = aUV; }
+    out vec4 vColor;
+    void main(){ gl_Position = vec4(aPos, 0.0, 1.0); vUV = aUV; vColor = aColor; }
     )";
 
     static const char* FS_TEX = R"(#version 330 core
     in vec2 vUV;
+    in vec4 vColor;
     uniform sampler2D uTex;
     out vec4 FragColor;
-    void main(){ FragColor = texture(uTex, vUV); }
+    void main(){ FragColor = texture(uTex, vUV) * vColor; }
     )";
 
     // Textured glyphs (pos + uv), alpha from red channel
@@ -159,6 +162,7 @@ namespace Framework {
 
     // Cached uniform locations (avoid glGetUniformLocation per draw)
     static GLint g_uColorLoc = -1;
+    static GLint g_uColorLoc_Tex = -1;
     static GLint g_uTexLoc_Tex = -1;
     static GLint g_uColorLoc_Text = -1;
     static GLint g_uTexLoc_Text = -1;
@@ -194,8 +198,6 @@ namespace Framework {
 
         // ----- Colored pipeline -----
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
-        //progCol_ = linkProgramFromFiles("../Shaders/color.vert", "../Shaders/color.frag");
-
 
         glGenVertexArrays(1, &vaoCol_);
         glBindVertexArray(vaoCol_);
@@ -211,8 +213,6 @@ namespace Framework {
 
         // ----- Textured sprite pipeline -----
         progTex_ = linkProgram(VS_TEX, FS_TEX);
-        //progTex_ = linkProgramFromFiles("../Shaders/texture.vert", "../Shaders/texture.frag");
-
 
         glGenVertexArrays(1, &vaoTex_);
         glBindVertexArray(vaoTex_);
@@ -220,24 +220,29 @@ namespace Framework {
         glGenBuffers(1, &vboTex_);
         glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
 
-        // Reserve enough for many sprites in one go:
-        // 6 verts * (x,y,u,v) * MAX_SPRITES
-        const size_t bytes = sizeof(float) * 6 * 4 * MAX_SPRITES_DEFAULT;
+        // 6 verts * (x,y,u,v,r,g,b,a) = 8 floats per vert
+        const size_t bytes = sizeof(float) * 6 * 8 * MAX_SPRITES_DEFAULT;
         glBufferData(GL_ARRAY_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
 
-        glEnableVertexAttribArray(0); // aPos
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-        glEnableVertexAttribArray(1); // aUV
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+        // aPos (location 0): x, y
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0);
+
+        // aUV (location 1): u, v
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 2));
+
+        // aColor (location 2): r, g, b, a
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 4));
 
         g_uTexLoc_Tex = glGetUniformLocation(progTex_, "uTex");
 
         // Pre-size batch CPU buffer to avoid realloc churn
-        g_batchVerts.reserve(6 * 4 * 2048);
+        g_batchVerts.reserve(6 * 8 * 2048);
 
         // ----- Text rendering pipeline -----
         progText_ = linkProgram(VS_TEXT, FS_TEXT);
-        //progText_ = linkProgramFromFiles("../Shaders/text.vert", "../Shaders/text.frag");
 
         glGenVertexArrays(1, &vaoText_);
         glBindVertexArray(vaoText_);
@@ -259,7 +264,7 @@ namespace Framework {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // Create game framebuffer
-		CreateGameFramebuffer(800, 600);
+        CreateGameFramebuffer(800, 600);
     }
 
     void Graphics::Update() {
@@ -394,13 +399,13 @@ namespace Framework {
         Vector2D p3 = rot(-hx, hy);
 
         const float verts[] = {
-            p0.x, p0.y,  minUV.x, minUV.y,
-            p1.x, p1.y,  maxUV.x, minUV.y,
-            p2.x, p2.y,  maxUV.x, maxUV.y,
+            p0.x, p0.y, minUV.x, minUV.y, 1,1,1,1,
+            p1.x, p1.y, maxUV.x, minUV.y, 1,1,1,1,
+            p2.x, p2.y, maxUV.x, maxUV.y, 1,1,1,1,
 
-            p0.x, p0.y,  minUV.x, minUV.y,
-            p2.x, p2.y,  maxUV.x, maxUV.y,
-            p3.x, p3.y,  minUV.x, maxUV.y,
+            p0.x, p0.y, minUV.x, minUV.y, 1,1,1,1,
+            p2.x, p2.y, maxUV.x, maxUV.y, 1,1,1,1,
+            p3.x, p3.y, minUV.x, maxUV.y, 1,1,1,1,
         };
 
         glEnable(GL_BLEND);
@@ -457,7 +462,7 @@ namespace Framework {
     void Graphics::drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites) {
 
         g_batchVerts.clear();
-        g_batchVerts.reserve(sprites.size() * 6 * 4);
+        g_batchVerts.reserve(sprites.size() * 6 * 8);
 
         float aspectCorrection = (float)screenHeight / (float)screenWidth;
 
@@ -488,13 +493,13 @@ namespace Framework {
             Vector2D p3 = rot(-hx, hy);
 
             g_batchVerts.insert(g_batchVerts.end(), {
-                p0.x, p0.y, s.minUV.x, s.minUV.y,
-                p1.x, p1.y, s.maxUV.x, s.minUV.y,
-                p2.x, p2.y, s.maxUV.x, s.maxUV.y,
+                p0.x, p0.y, s.minUV.x, s.minUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p1.x, p1.y, s.maxUV.x, s.minUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p2.x, p2.y, s.maxUV.x, s.maxUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
 
-                p0.x, p0.y, s.minUV.x, s.minUV.y,
-                p2.x, p2.y, s.maxUV.x, s.maxUV.y,
-                p3.x, p3.y, s.minUV.x, s.maxUV.y
+                p0.x, p0.y, s.minUV.x, s.minUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p2.x, p2.y, s.maxUV.x, s.maxUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p3.x, p3.y, s.minUV.x, s.maxUV.y, s.color.r, s.color.g, s.color.b, s.color.a
                 });
         }
         drawSpriteBatchRaw(tex, g_batchVerts.data(), sprites.size());
@@ -508,7 +513,7 @@ namespace Framework {
         }
 
         const size_t vertCount = spriteCount * 6;
-        const size_t byteCount = vertCount * 4 * sizeof(float);
+        const size_t byteCount = vertCount * 8 * sizeof(float);
 
         // === CRITICAL SAFETY CHECK ===
         if (spriteCount > MAX_SPRITES_DEFAULT) {
