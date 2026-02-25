@@ -3471,10 +3471,19 @@ namespace Editor {
 				// Ensure the ID doesn't go below 0
 				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
 			}
-
 			// Handle Name
 			ImGui::InputText("Handle Name", &slider.handleName);
 			if (ImGui::IsItemActive()) activeNow = true;
+			
+			int fillId = static_cast<int>(slider.fillEntity);
+			if (ImGui::InputInt("Fill Entity ID", &fillId)) {
+				// Ensure the ID doesn't go below 0
+				slider.fillEntity = static_cast<Entity>(std::max(0, fillId));
+			}
+			// Fill Name
+			ImGui::InputText("Fill Name", &slider.fillName);
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Current Value
 			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
 			if (ImGui::IsItemActive()) activeNow = true;
