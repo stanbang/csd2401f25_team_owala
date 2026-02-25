@@ -64,6 +64,8 @@ namespace Framework {
 		static GameManager* instance;
 		std::string nextSceneToLoad_ = "";
 		std::function<void()> deferredTask_ = nullptr;
+		std::function<void()> overlayDrawCallback_ = nullptr;
+
 
 		bool queuedLevelLoad_ = false;
 		bool queuedLevelReset_ = false;
@@ -186,6 +188,7 @@ namespace Framework {
 		// Checks if game is currently in play mode or not
 		bool IsGamePlaying() const;
 
+		void SetOverlayCallback(std::function<void()> cb) { overlayDrawCallback_ = cb; }
 		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
 		std::string GetNextScene() const { return nextSceneToLoad_; }
 		void InitiateLevelLoad(const std::string& levelName);

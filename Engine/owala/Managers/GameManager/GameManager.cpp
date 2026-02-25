@@ -500,6 +500,7 @@ namespace Framework {
 		#ifdef BUILD_ENGINE
 		systems_.textRenderer_->Update();
 		systems_.spriteRenderer_->Update();
+		if (overlayDrawCallback_) overlayDrawCallback_();
 		#endif
 
 		// --- END GAME UPDATE ---

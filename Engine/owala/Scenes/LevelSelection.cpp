@@ -15,7 +15,7 @@
 #include "SceneManager.h"
 #include "InputSystem.h"
 #include "SaveManager.h" // NativeScript
-
+#include "TransitionController.h"
 #include "Logger.h"
 
 #pragma region LOCAL LEVEL FUNCTIONS
@@ -296,15 +296,38 @@ namespace LevelSelection {
 		if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
 			if (save && entityMgr.ValidateEntity(save->GetEntity())) {
 				const int levelIndex = levelData[currentIndex].index;
-
-				// If Level has not been unlocked yet
-				if (!save->IsUnlocked(levelIndex)) {
-					return;
-				}
+				if (!save->IsUnlocked(levelIndex)) return;
 			}
-
-			GameManager::GetInstance().InitiateLevelLoad(levelData[currentIndex].sceneName);
+			pendingScene = levelData[currentIndex].sceneName;
+			fadingOut = true;
 			return;
+		}
+
+
+		// Tick fade
+		if (fadingOut) {
+			fadeAlpha += Framework::Time::DeltaTime() * 2.0f; // 0.5s duration, tune multiplier
+			if (fadeAlpha >= 1.0f) {
+				fadeAlpha = 1.0f;
+				fadingOut = false;
+				std::string scene = pendingScene;
+				pendingScene = "";
+				GameManager::GetInstance().InitiateLevelLoad(scene);
+				return;
+			}
+		}
+
+		// Register/clear overlay each frame so it draws on top of all sprites
+		if (fadeAlpha > 0.0f) {
+			GameManager::GetInstance().SetOverlayCallback([]() {
+				Graphics& gfx = *GameManager::GetInstance().GetSystems().gfx_;
+				gfx.setAlphaBlend(true);
+				gfx.drawRectangle({ -1.f, -1.f }, { 1.f, 1.f }, { 0.f, 0.f, 0.f, fadeAlpha });
+				gfx.setAlphaBlend(false);
+				});
+		}
+		else {
+			GameManager::GetInstance().SetOverlayCallback(nullptr);
 		}
 	}
 
@@ -317,5 +340,10 @@ namespace LevelSelection {
 		cached = false;
 		ui = {};
 		save = nullptr;
+
+		fadeAlpha = 0.0f;
+		fadingOut = false;
+		pendingScene = "";
+		GameManager::GetInstance().SetOverlayCallback(nullptr);
 	}
 }
