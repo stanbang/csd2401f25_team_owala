@@ -287,7 +287,9 @@ namespace LevelSelection {
 				sceneMgr.UnloadScene("LevelSelection");
 			}
 			else {
-				GameManager::GetInstance().InitiateLevelLoad("MainMenu");
+				// Queue so LoadScene is deferred to the top of the next frame,
+				// avoiding mutation of the loaded-scenes list mid-iteration.
+				GameManager::GetInstance().QueueLevelLoad("MainMenu");
 			}
 			return;
 		}
@@ -303,7 +305,9 @@ namespace LevelSelection {
 				}
 			}
 
-			GameManager::GetInstance().InitiateLevelLoad(levelData[currentIndex].sceneName);
+			// Queue so LoadScene is deferred to the top of the next frame,
+			// avoiding mutation of the loaded-scenes list mid-iteration.
+			GameManager::GetInstance().QueueLevelLoad(levelData[currentIndex].sceneName);
 			return;
 		}
 	}
