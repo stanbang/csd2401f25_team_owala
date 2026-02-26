@@ -196,7 +196,10 @@ namespace Framework {
         unsigned vboText_ = 0;
 
         float t_ = 0.f;
+      
 
+        float m_MaxFPS = 100.0f; // Default cap
+        bool m_VsyncEnabled = false;
         // Game Frame
 		std::unique_ptr<Framebuffer> gameFramebuffer_;
     };

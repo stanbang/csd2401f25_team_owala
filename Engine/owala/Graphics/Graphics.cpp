@@ -178,101 +178,99 @@ namespace Framework {
     // =========================
 
     void Graphics::Initialize() {
-        // GLEW must be initialized after a valid GL context is current (WindowsSystem did that)
+        // 1. Initialize GLEW
         glewExperimental = GL_TRUE;
         if (glewInit() != GLEW_OK) {
             std::fprintf(stderr, "GLEW init failed\n");
+            return;
         }
 
-        // Back-face culling
+        // 2. Rendering State & V-Sync
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        // Set initial viewport
-        int fbw = 0, fbh = 0;
+        // Disable V-Sync to unlock FPS
+		glfwSwapInterval(0); //0 disables vsync, 1 enables vsync, 2 caps FPS to half your refresh rate 
+
+        // 3. Viewport & Resolution
+        int fbw, fbh;
         glfwGetFramebufferSize(GameManager::GetInstance().GetSystems().win_->window(), &fbw, &fbh);
         glViewport(0, 0, fbw, fbh);
-
         screenWidth = fbw;
         screenHeight = fbh;
 
-        // ----- Colored pipeline -----
+        // 4. Colored Pipeline (Primitives)
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
-
         glGenVertexArrays(1, &vaoCol_);
-        glBindVertexArray(vaoCol_);
-
         glGenBuffers(1, &vboCol_);
+        glBindVertexArray(vaoCol_);
         glBindBuffer(GL_ARRAY_BUFFER, vboCol_);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 3, nullptr, GL_STREAM_DRAW);
-
-        glEnableVertexAttribArray(0); // aPos
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
-
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
         g_uColorLoc = glGetUniformLocation(progCol_, "uColor");
 
-        // ----- Textured sprite pipeline -----
+        // 5. Textured Sprite Pipeline (Batched)
         progTex_ = linkProgram(VS_TEX, FS_TEX);
-
         glGenVertexArrays(1, &vaoTex_);
-        glBindVertexArray(vaoTex_);
-
         glGenBuffers(1, &vboTex_);
+        glBindVertexArray(vaoTex_);
         glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
+        // Pre-allocate buffer for MAX_SPRITES_DEFAULT
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 8 * MAX_SPRITES_DEFAULT, nullptr, GL_DYNAMIC_DRAW);
 
-        // 6 verts * (x,y,u,v,r,g,b,a) = 8 floats per vert
-        const size_t bytes = sizeof(float) * 6 * 8 * MAX_SPRITES_DEFAULT;
-        glBufferData(GL_ARRAY_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
-
-        // aPos (location 0): x, y
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0);
-
-        // aUV (location 1): u, v
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 2));
-
-        // aColor (location 2): r, g, b, a
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 4));
+        glEnableVertexAttribArray(0); // Pos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1); // UV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(2 * sizeof(float)));
+        glEnableVertexAttribArray(2); // Color
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(4 * sizeof(float)));
 
         g_uTexLoc_Tex = glGetUniformLocation(progTex_, "uTex");
-
-        // Pre-size batch CPU buffer to avoid realloc churn
         g_batchVerts.reserve(6 * 8 * 2048);
 
-        // ----- Text rendering pipeline -----
+        // 6. Text Rendering Pipeline
         progText_ = linkProgram(VS_TEXT, FS_TEXT);
-
         glGenVertexArrays(1, &vaoText_);
-        glBindVertexArray(vaoText_);
-
         glGenBuffers(1, &vboText_);
+        glBindVertexArray(vaoText_);
         glBindBuffer(GL_ARRAY_BUFFER, vboText_);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4 * 256, nullptr, GL_STREAM_DRAW);
 
-        glEnableVertexAttribArray(0); // aPos
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-        glEnableVertexAttribArray(1); // aUV
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+        glEnableVertexAttribArray(0); // Pos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1); // UV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
         g_uColorLoc_Text = glGetUniformLocation(progText_, "uColor");
         g_uTexLoc_Text = glGetUniformLocation(progText_, "uTex");
 
-        // Unbind
+        // 7. Final Cleanup & Framebuffer
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Create game framebuffer
         CreateGameFramebuffer(800, 600);
     }
-
     void Graphics::Update() {
+        // 1. Calculate target duration (e.g., 0.01 for 100 FPS)
+        double targetFrameTime = (m_MaxFPS > 0) ? (1.0 / (double)m_MaxFPS) : 0.0;
+
+        // 2. Wait logic (only if cap is enabled and reasonable)
+        if (targetFrameTime > 0.0) {
+            // We measure from the end of the LAST swap to the start of THIS swap
+            static double lastFrameTime = glfwGetTime();
+
+            while ((glfwGetTime() - lastFrameTime) < targetFrameTime) {
+                // Precise busy-wait
+            }
+            lastFrameTime = glfwGetTime();
+        }
+
+        // 3. Engine time update
         t_ += Framework::Time::DeltaTime();
-        // Present the frame (anything drawn since beginFrame)
+
+        // 4. Present frame
         glfwSwapBuffers(GameManager::GetInstance().GetSystems().win_->window());
     }
-
     void Graphics::Shutdown() {
         if (vboCol_) { glDeleteBuffers(1, &vboCol_);  vboCol_ = 0; }
         if (vaoCol_) { glDeleteVertexArrays(1, &vaoCol_); vaoCol_ = 0; }
