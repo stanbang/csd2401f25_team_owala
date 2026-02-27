@@ -66,13 +66,13 @@ set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
 
 # Hide console window for Engine builds (Windows only)
 #if(WIN32)
- #   set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
-  #      WIN32_EXECUTABLE TRUE
-   # )
-    #target_link_options(${CMAKE_PROJECT_NAME}_Engine PRIVATE 
-     #   "/SUBSYSTEM:WINDOWS"
-      #  "/ENTRY:mainCRTStartup"
-    #)
+    set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+    target_link_options(${CMAKE_PROJECT_NAME}_Engine PRIVATE 
+        "/SUBSYSTEM:WINDOWS"
+        "/ENTRY:mainCRTStartup"
+    )
 #endif()
 
 # ======================= Editor Executable =========================
