@@ -19,8 +19,14 @@
 #include "Logger.h"
 #include "FirebaseManager.h"
 
+float LevelSelection::fadeAlpha = 0.0f;
+bool LevelSelection::fadingOut = false;
+std::string LevelSelection::pendingScene = "";
+
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
+
+
 	struct LevelEntry {
 		int index = 1;
 		std::string displayName;
@@ -63,6 +69,7 @@ namespace {
 	std::vector<LevelEntry> levelData;
 	int currentIndex = 0;
 	SaveManager* save = nullptr;
+
 
 
 	bool ConsumeClick(Framework::EntityManager& entityMgr, Framework::InputSystem& inputSystem, Entity entity) {
@@ -148,6 +155,7 @@ namespace {
 		}
 		return nullptr;
 	}
+
 
 	void SetTicketTexture(Framework::EntityManager& entityMgr, Entity ticket, const std::string& key) {
 		using namespace Framework;
@@ -288,6 +296,15 @@ namespace LevelSelection {
 		RefreshUI(entityMgr);
 	}
 
+
+	void ResetFade() {
+		fadeAlpha = 0.0f;
+		fadingOut = false;
+		pendingScene = "";
+		GameManager::GetInstance().SetOverlayCallback(nullptr);
+		Logger::Get().Info(DebugType::GameManager) << "LevelSelection fade reset" << std::endl;
+	}
+
 	void Update() {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		InputSystem& inputSystem = *GameManager::GetInstance().GetSystems().input_;
@@ -329,6 +346,21 @@ namespace LevelSelection {
 			}
 			return;
 		}
+
+		//// Select Button
+		//if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
+		//	if (save && entityMgr.ValidateEntity(save->GetEntity())) {
+		//		const int levelIndex = levelData[currentIndex].index;
+		//		if (!save->IsUnlocked(levelIndex)) return;
+		//	}
+		//	// Load the level directly without fade
+		//	std::string scene = levelData[currentIndex].sceneName;
+		//	GameManager::GetInstance().InitiateLevelLoad(scene);
+		//	return;
+		//}
+
+		//// Ensure overlay is cleared
+		//GameManager::GetInstance().SetOverlayCallback(nullptr);
 
 		// Select Button
 		if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
@@ -385,3 +417,4 @@ namespace LevelSelection {
 		GameManager::GetInstance().SetOverlayCallback(nullptr);
 	}
 }
+

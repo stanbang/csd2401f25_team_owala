@@ -11,9 +11,10 @@ namespace LevelSelection {
 	void Initialize();
 	void Update();
 	void Free();
+	void ResetFade();
 
 	// Fade state
-	static float fadeAlpha = 0.0f;
-	static bool  fadingOut = false;
-	static std::string pendingScene = "";
+    extern float fadeAlpha;
+    extern bool fadingOut;
+    extern std::string pendingScene;
 }

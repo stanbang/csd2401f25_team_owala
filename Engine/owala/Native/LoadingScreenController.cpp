@@ -20,14 +20,22 @@
 #include "GameManager.h"
 #include "Components.h"
 #include "EntityManager.h"
+#include "LevelSelection.h"
 
 namespace Framework {
 
     REGISTER_SCRIPT(LoadingScreenController, "LoadingScreenController")
 
-    void LoadingScreenController::OnCreate() {
-		// Hide curtains immediately on loading screen creation
+        void LoadingScreenController::OnCreate() {
+        // Hide curtains immediately on loading screen creation
         TransitionController::ForceHideAll();
+
+        // Reset all fade-related variables
+        loadFadeAlpha = 0.0f;
+        loadFadingOut = false;
+        loadingDone = false;
+        loadNextScene = "";
+        GameManager::GetInstance().SetOverlayCallback(nullptr);
     }
 
     void LoadingScreenController::OnUpdate() {
@@ -44,7 +52,7 @@ namespace Framework {
         // Update Text Component
         Entity myEntity = GetEntity();
 
-		// Check if entity has TextComponent
+        // Check if entity has TextComponent
         if (entityMgr.HasComponent(myEntity, TextComponentType)) {
 
             // Use EntityManager to get the component reference
@@ -56,7 +64,30 @@ namespace Framework {
             textComp.isDirty = true;
         }
 
-        // Transition when done
+        // COMMENT OUT OR DELETE THIS DIRECT TRANSITION SECTION
+        /*
+        // Transition when done - DIRECT, NO FADE
+        if (rsm_.IsLoadingComplete() && !loadingDone) {
+            std::string nextScene = GameManager::GetInstance().GetNextScene();
+            Logger::Get().Info(DebugType::GameManager) << "Loading complete. Transitioning to: " << nextScene << std::endl;
+
+            loadingDone = true;
+
+            if (!nextScene.empty()) {
+                bool isTargetLevel = GameManager::GetInstance().IsLevelScene(nextScene);
+                TransitionController::s_startNextSceneClosed = isTargetLevel;
+                SceneManager::GetInstance().LoadScene(nextScene);
+                GameManager::GetInstance().SetNextScene("");
+                loadNextScene = "";
+            }
+            GameManager::GetInstance().SetOverlayCallback(nullptr);
+            return;
+        }
+        */
+
+        // ===== FADE EFFECT - NOW UNCOMMENTED =====
+
+        // Transition when done - start fading out
         if (rsm_.IsLoadingComplete() && !loadFadingOut && !loadingDone) {
             loadNextScene = GameManager::GetInstance().GetNextScene();
             Logger::Get().Info(DebugType::GameManager) << "Loading complete. Fading out before transition to: " << loadNextScene << std::endl;
@@ -95,14 +126,16 @@ namespace Framework {
         else {
             GameManager::GetInstance().SetOverlayCallback(nullptr);
         }
+        // =========================================
     }
 
     void LoadingScreenController::OnDestroy() {
-        // Cleanup if necessary
+        // Cleanup
         loadFadeAlpha = 0.0f;
         loadFadingOut = false;
         loadingDone = false;
         loadNextScene = "";
         GameManager::GetInstance().SetOverlayCallback(nullptr);
+        LevelSelection::ResetFade();
     }
 }

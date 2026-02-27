@@ -324,6 +324,8 @@ namespace Framework {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
 					//GetSystems().levelResetter_->RunReset(); // Don't reset the level before the curtains close, do it after inside InitiateLevelLoad
 					//SceneManager::GetInstance().LoadScene("RestartMenu"); //Old code without transitions
+					LevelSelection::ResetFade();
+					SetOverlayCallback(nullptr);
 					this->InitiateLevelLoad("RestartMenu"); // Correct way to load with transitions
 				}
 			}

@@ -26,8 +26,8 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-    // Replace single instance with a list of all active controllers
-    std::vector<TransitionController*> TransitionController::allControllers;
+        // Replace single instance with a list of all active controllers
+        std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
     float TransitionController::s_lastOpenEventTime = -1.0f;
 
@@ -35,12 +35,12 @@ namespace Framework {
     const std::string OPEN_ANIM_TEXTURE = "SB_Curtain_Open_Spritesheet_01.png";
     const std::string IDLE_ANIM_TEXTURE_R = "SB_Curtain_Idle_Spritesheet_R_01.png"; // Renamed for clarity
     const std::string IDLE_ANIM_TEXTURE_L = "SB_Curtain_Idle_Spritesheet_l_01.png";
-    
+
     void TransitionController::OnCreate() {
         // Add this new entity to the global list
         allControllers.push_back(this);
 
-		// Default to Right Curtain idle texture
+        // Default to Right Curtain idle texture
         idleTextureKey_ = IDLE_ANIM_TEXTURE_R;
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
@@ -52,7 +52,7 @@ namespace Framework {
 
             // Assuming 0 is the center of the world/screen
             if (trans.position.x < 0.0f) {
-				Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
+                Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
                 idleTextureKey_ = IDLE_ANIM_TEXTURE_L;
             }
         }
@@ -295,7 +295,7 @@ namespace Framework {
             std::string targetIdleKey = IDLE_ANIM_TEXTURE_R;
             bool shouldFlip = false;
 
-			// Determine if Left or Right Curtain based on position
+            // Determine if Left or Right Curtain based on position
             if (entityMgr.HasComponent(GetEntity(), TransformType)) {
                 if (entityMgr.GetComponent<Transform>(GetEntity()).position.x < 0.0f) {
                     // Left Curtain
@@ -313,23 +313,23 @@ namespace Framework {
             if (tex.textureKey != targetIdleKey || tex.flipHorizontal != shouldFlip) {
                 tex.textureKey = targetIdleKey;
                 tex.flipHorizontal = shouldFlip;
-                
+
                 if (entityMgr.HasComponent(GetEntity(), AnimationComponentType)) {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(GetEntity());
-                    
+
                     ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
                     if (rsm) {
                         if (!rsm->has<AnimationInfo>(idleTextureKey_)) {
                             rsm->loadAnimationInfo(idleTextureKey_);
                         }
-                        
+
                         if (rsm->has<AnimationInfo>(idleTextureKey_)) {
                             AnimationInfo& info = rsm->get<AnimationInfo>(idleTextureKey_);
                             anim.frameCount = info.frameCount;
                             anim.frameDuration = info.frameDuration;
                         }
                     }
-                    
+
                     anim.currentFrame = 0;
                     anim.elapsedTime = 0.0f;
                     anim.isPlaying = true;
@@ -379,7 +379,8 @@ namespace Framework {
                 // Transition to IDLING if in a level, otherwise HIDDEN
                 if (isLevel) {
                     state_ = TransitionState::IDLING;
-                } else {
+                }
+                else {
                     state_ = TransitionState::HIDDEN;
                 }
 

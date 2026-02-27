@@ -17,7 +17,8 @@
 #include "LevelResetSystem.h"
 #include "MessageBus.h"
 #include "GameManager.h"
-#include "TimerSystem.h"  // ADD THIS INCLUDE
+#include "LevelSelection.h"
+#include "TimerSystem.h"
 
 namespace Framework {
 
@@ -81,15 +82,19 @@ namespace Framework {
     void LevelResetSystem::RunReset() {
         GameManager& gm = GameManager::GetInstance();
         TransformationSystem& transformationSys_ = *gm.GetSystems().transformation_;
-
+        LevelSelection::ResetFade();
+        gm.SetOverlayCallback(nullptr);
         // Reset global rotation
         Logger::Get().Info(DebugType::LevelResetSystem) << "Reset global rotation variables" << std::endl;
         transformationSys_.ResetGlobalRotation();
 
-        // ===== ADDED: Reset timer when level resets =====
+        // Reset timer when level resets
         TimerSystem::Get().Reset();
         Logger::Get().Info(DebugType::LevelResetSystem) << "Timer reset due to level reset" << std::endl;
-        // ================================================
+
+        // ===== ADDED: Clear any fade overlay =====
+        gm.SetOverlayCallback(nullptr);
+        // =========================================
 
         EntityManager entityMgr(gm.GetECS());
 
