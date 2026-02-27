@@ -262,6 +262,7 @@ namespace Framework {
     }
 
     void TransitionController::OnUpdate() {
+        ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
         CheckStartClosed(); // Check flag each update in case it was set later
 
         float dt = Framework::Time::UnscaledDeltaTime();
@@ -307,32 +308,60 @@ namespace Framework {
                 }
             }
 
-            // Ensure the idle animation is set and looping
-            if (tex.textureKey != targetIdleKey || tex.flipHorizontal != shouldFlip) {
+			// Prevent texture reset if already playing the correct idle animation to avoid animation restart
+            bool isAlreadyPlayingIdle = false;
+            if (rsm && rsm->has<AnimationInfo>(targetIdleKey)) {
+                AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey);
+
+                // Check if the current texture is the base key or one of the animation's sheets
+                if (tex.textureKey == targetIdleKey) {
+                    isAlreadyPlayingIdle = true;
+                }
+                else {
+                    for (const auto& sheet : info.sheets) {
+                        if (tex.textureKey == sheet.textureKey) {
+                            isAlreadyPlayingIdle = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (tex.textureKey == targetIdleKey) {
+                isAlreadyPlayingIdle = true;
+            }
+
+            // Only initialize the animation if it's not already playing the correct idle
+            if (!isAlreadyPlayingIdle) {
                 tex.textureKey = targetIdleKey;
                 tex.flipHorizontal = shouldFlip;
-                
+
                 if (entityMgr.HasComponent(GetEntity(), AnimationComponentType)) {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(GetEntity());
-                    
-                    ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+
                     if (rsm) {
-                        if (!rsm->has<AnimationInfo>(idleTextureKey_)) {
-                            rsm->loadAnimationInfo(idleTextureKey_);
+                        if (!rsm->has<AnimationInfo>(targetIdleKey)) {
+                            rsm->loadAnimationInfo(targetIdleKey); // Ensure idle animation data is loaded
                         }
-                        
-                        if (rsm->has<AnimationInfo>(idleTextureKey_)) {
-                            AnimationInfo& info = rsm->get<AnimationInfo>(idleTextureKey_);
-                            anim.frameCount = info.frameCount;
+
+                        if (rsm->has<AnimationInfo>(targetIdleKey)) {
+                            AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey); // Get the animation info for the idle texture
+                            anim.frameCount = info.frameCount; // Update frame count and duration to match the idle animation
                             anim.frameDuration = info.frameDuration;
                         }
                     }
-                    
+
                     anim.currentFrame = 0;
                     anim.elapsedTime = 0.0f;
                     anim.isPlaying = true;
                     anim.isLooping = true; // Loop the idle animation
                 }
+            }
+            else {
+                // Already playing — just reset the textureKey to the BASE key each frame
+                // so the AnimationSystem resolves the correct AnimationInfo (with all 5 sheets)
+                // instead of resolving a sub-sheet key that only has 3 frames.
+                tex.textureKey = targetIdleKey;
+                tex.flipHorizontal = shouldFlip;
             }
         }
 
