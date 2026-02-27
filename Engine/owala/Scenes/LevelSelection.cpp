@@ -15,17 +15,26 @@
 #include "SceneManager.h"
 #include "InputSystem.h"
 #include "SaveManager.h" // NativeScript
-
+#include "TransitionController.h"
 #include "Logger.h"
+#include "FirebaseManager.h"
+
+float LevelSelection::fadeAlpha = 0.0f;
+bool LevelSelection::fadingOut = false;
+std::string LevelSelection::pendingScene = "";
 
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
+
+
 	struct LevelEntry {
 		int index = 1;
 		std::string displayName;
 		std::string sceneName;
 		std::string bannerTextureKey;
 	};
+
+	Entity leaderboardTextEntity = 0;
 
 	struct UIRefs {
 		// Buttons
@@ -62,6 +71,7 @@ namespace {
 	SaveManager* save = nullptr;
 
 
+
 	bool ConsumeClick(Framework::EntityManager& entityMgr, Framework::InputSystem& inputSystem, Entity entity) {
 		if (!entityMgr.ValidateEntity(entity)) return false;
 		if (!entityMgr.HasComponent(entity, Framework::ButtonType)) return false;
@@ -88,6 +98,8 @@ namespace {
 			else if (name == "Ticket_Current") ui.ticketCurrent = entity;
 			else if (name == "Ticket_Next") ui.ticketNext = entity;
 			else if (name == "LevelText") ui.levelText = entity;
+			else if (name == "LeaderboardText") leaderboardTextEntity = entity;
+
 		}
 
 		if (!ui.ValidateRef()) {
@@ -96,6 +108,39 @@ namespace {
 		}
 
 		cached = true;
+	}
+
+	void RefreshLeaderboard() {  // no parameter needed
+		if (levelData.empty()) return;
+		std::string levelName = levelData[currentIndex].sceneName;
+
+		FirebaseManager::Get().FetchLeaderboard(levelName,
+			[](std::vector<Framework::LeaderboardEntry> entries) {  // no capture
+				EntityManager mgr(GameManager::GetInstance().GetECS());
+				if (!mgr.ValidateEntity(leaderboardTextEntity)) return;
+				if (!mgr.HasComponent(leaderboardTextEntity, Framework::TextComponentType)) return;
+
+				Framework::TextComponent& text = mgr.GetComponent<Framework::TextComponent>(leaderboardTextEntity);
+
+				if (entries.empty()) {
+					text.textToDraw = "No records yet!";
+					text.isDirty = true;
+					return;
+				}
+
+				std::string display = "-- Best Times --\n";
+				int rank = 1;
+				for (auto& e : entries) {
+					int mins = (int)(e.time / 60);
+					float secs = e.time - mins * 60;
+					char buf[128];
+					std::snprintf(buf, sizeof(buf), "%d. %s  %02d:%05.2f\n",
+						rank++, e.name.c_str(), mins, secs);
+					display += buf;
+				}
+				text.textToDraw = display;
+				text.isDirty = true;
+			});
 	}
 
 	SaveManager* GetSaveManager(Framework::EntityManager& entityMgr) {
@@ -110,6 +155,7 @@ namespace {
 		}
 		return nullptr;
 	}
+
 
 	void SetTicketTexture(Framework::EntityManager& entityMgr, Entity ticket, const std::string& key) {
 		using namespace Framework;
@@ -250,6 +296,15 @@ namespace LevelSelection {
 		RefreshUI(entityMgr);
 	}
 
+
+	void ResetFade() {
+		fadeAlpha = 0.0f;
+		fadingOut = false;
+		pendingScene = "";
+		GameManager::GetInstance().SetOverlayCallback(nullptr);
+		Logger::Get().Info(DebugType::GameManager) << "LevelSelection fade reset" << std::endl;
+	}
+
 	void Update() {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		InputSystem& inputSystem = *GameManager::GetInstance().GetSystems().input_;
@@ -294,21 +349,41 @@ namespace LevelSelection {
 			return;
 		}
 
-		// Select Button
+		// Select Button - WITH FADE EFFECT (Option A)
 		if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
 			if (save && entityMgr.ValidateEntity(save->GetEntity())) {
 				const int levelIndex = levelData[currentIndex].index;
-
-				// If Level has not been unlocked yet
-				if (!save->IsUnlocked(levelIndex)) {
-					return;
-				}
+				if (!save->IsUnlocked(levelIndex)) return;
 			}
+			pendingScene = levelData[currentIndex].sceneName;
+			fadingOut = true;
+			return;  // Let the fade handle the loading, don't queue directly
+		}
 
-			// Queue so LoadScene is deferred to the top of the next frame,
-			// avoiding mutation of the loaded-scenes list mid-iteration.
-			GameManager::GetInstance().QueueLevelLoad(levelData[currentIndex].sceneName);
-			return;
+		// Tick fade
+		if (fadingOut) {
+			fadeAlpha += Framework::Time::DeltaTime() * 2.0f; // 0.5s duration, tune multiplier
+			if (fadeAlpha >= 1.0f) {
+				fadeAlpha = 1.0f;
+				fadingOut = false;
+				std::string scene = pendingScene;
+				pendingScene = "";
+				GameManager::GetInstance().InitiateLevelLoad(scene);
+				return;
+			}
+		}
+
+		// Register/clear overlay each frame so it draws on top of all sprites
+		if (fadeAlpha > 0.0f) {
+			GameManager::GetInstance().SetOverlayCallback([]() {
+				Graphics& gfx = *GameManager::GetInstance().GetSystems().gfx_;
+				gfx.setAlphaBlend(true);
+				gfx.drawRectangle({ -1.f, -1.f }, { 1.f, 1.f }, { 0.f, 0.f, 0.f, fadeAlpha });
+				gfx.setAlphaBlend(false);
+				});
+		}
+		else {
+			GameManager::GetInstance().SetOverlayCallback(nullptr);
 		}
 	}
 
@@ -321,5 +396,10 @@ namespace LevelSelection {
 		cached = false;
 		ui = {};
 		save = nullptr;
+		leaderboardTextEntity = 0;
+		fadeAlpha = 0.0f;
+		fadingOut = false;
+		pendingScene = "";
+		GameManager::GetInstance().SetOverlayCallback(nullptr);
 	}
 }

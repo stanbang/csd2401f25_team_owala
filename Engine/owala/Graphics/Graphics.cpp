@@ -65,19 +65,18 @@ namespace Framework {
     static const char* VS_TEX = R"(#version 330 core
     layout(location=0) in vec2 aPos;
     layout(location=1) in vec2 aUV;
+    layout(location=2) in vec4 aColor;
     out vec2 vUV;
-    void main(){
-        // Output position directly; CameraSystem already handles pixel-snapping
-        gl_Position = vec4(aPos, 0.0, 1.0);
-        vUV = aUV;
-    }
+    out vec4 vColor;
+    void main(){ gl_Position = vec4(aPos, 0.0, 1.0); vUV = aUV; vColor = aColor; }
     )";
 
     static const char* FS_TEX = R"(#version 330 core
     in vec2 vUV;
+    in vec4 vColor;
     uniform sampler2D uTex;
     out vec4 FragColor;
-    void main(){ FragColor = texture(uTex, vUV); }
+    void main(){ FragColor = texture(uTex, vUV) * vColor; }
     )";
 
     // Textured glyphs (pos + uv), alpha from red channel
@@ -163,6 +162,7 @@ namespace Framework {
 
     // Cached uniform locations (avoid glGetUniformLocation per draw)
     static GLint g_uColorLoc = -1;
+    static GLint g_uColorLoc_Tex = -1;
     static GLint g_uTexLoc_Tex = -1;
     static GLint g_uScreenSizeLoc_Tex = -1;
     static GLint g_uColorLoc_Text = -1;
@@ -179,101 +179,99 @@ namespace Framework {
     // =========================
 
     void Graphics::Initialize() {
-        // GLEW must be initialized after a valid GL context is current (WindowsSystem did that)
+        // 1. Initialize GLEW
         glewExperimental = GL_TRUE;
         if (glewInit() != GLEW_OK) {
             std::fprintf(stderr, "GLEW init failed\n");
+            return;
         }
 
-        // Back-face culling
+        // 2. Rendering State & V-Sync
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
-        // Set initial viewport
-        int fbw = 0, fbh = 0;
+        // Disable V-Sync to unlock FPS
+		glfwSwapInterval(0); //0 disables vsync, 1 enables vsync, 2 caps FPS to half your refresh rate 
+
+        // 3. Viewport & Resolution
+        int fbw, fbh;
         glfwGetFramebufferSize(GameManager::GetInstance().GetSystems().win_->window(), &fbw, &fbh);
         glViewport(0, 0, fbw, fbh);
-
         screenWidth = fbw;
         screenHeight = fbh;
 
-        // ----- Colored pipeline -----
+        // 4. Colored Pipeline (Primitives)
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
-        //progCol_ = linkProgramFromFiles("../Shaders/color.vert", "../Shaders/color.frag");
-
-
         glGenVertexArrays(1, &vaoCol_);
-        glBindVertexArray(vaoCol_);
-
         glGenBuffers(1, &vboCol_);
+        glBindVertexArray(vaoCol_);
         glBindBuffer(GL_ARRAY_BUFFER, vboCol_);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 3, nullptr, GL_STREAM_DRAW);
-
-        glEnableVertexAttribArray(0); // aPos
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
-
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
         g_uColorLoc = glGetUniformLocation(progCol_, "uColor");
 
-        // ----- Textured sprite pipeline -----
+        // 5. Textured Sprite Pipeline (Batched)
         progTex_ = linkProgram(VS_TEX, FS_TEX);
-        //progTex_ = linkProgramFromFiles("../Shaders/texture.vert", "../Shaders/texture.frag");
-
-
         glGenVertexArrays(1, &vaoTex_);
-        glBindVertexArray(vaoTex_);
-
         glGenBuffers(1, &vboTex_);
+        glBindVertexArray(vaoTex_);
         glBindBuffer(GL_ARRAY_BUFFER, vboTex_);
+        // Pre-allocate buffer for MAX_SPRITES_DEFAULT
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 8 * MAX_SPRITES_DEFAULT, nullptr, GL_DYNAMIC_DRAW);
 
-        // Reserve enough for many sprites in one go:
-        // 6 verts * (x,y,u,v) * MAX_SPRITES
-        const size_t bytes = sizeof(float) * 6 * 4 * MAX_SPRITES_DEFAULT;
-        glBufferData(GL_ARRAY_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
-
-        glEnableVertexAttribArray(0); // aPos
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-        glEnableVertexAttribArray(1); // aUV
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+        glEnableVertexAttribArray(0); // Pos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1); // UV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(2 * sizeof(float)));
+        glEnableVertexAttribArray(2); // Color
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(4 * sizeof(float)));
 
         g_uTexLoc_Tex = glGetUniformLocation(progTex_, "uTex");
-        g_uScreenSizeLoc_Tex = glGetUniformLocation(progTex_, "uScreenSize");
+        g_batchVerts.reserve(6 * 8 * 2048);
 
-        // Pre-size batch CPU buffer to avoid realloc churn
-        g_batchVerts.reserve(6 * 4 * 2048);
-
-        // ----- Text rendering pipeline -----
+        // 6. Text Rendering Pipeline
         progText_ = linkProgram(VS_TEXT, FS_TEXT);
-        //progText_ = linkProgramFromFiles("../Shaders/text.vert", "../Shaders/text.frag");
-
         glGenVertexArrays(1, &vaoText_);
-        glBindVertexArray(vaoText_);
-
         glGenBuffers(1, &vboText_);
+        glBindVertexArray(vaoText_);
         glBindBuffer(GL_ARRAY_BUFFER, vboText_);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4 * 256, nullptr, GL_STREAM_DRAW);
 
-        glEnableVertexAttribArray(0); // aPos
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-        glEnableVertexAttribArray(1); // aUV
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+        glEnableVertexAttribArray(0); // Pos
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1); // UV
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
         g_uColorLoc_Text = glGetUniformLocation(progText_, "uColor");
         g_uTexLoc_Text = glGetUniformLocation(progText_, "uTex");
 
-        // Unbind
+        // 7. Final Cleanup & Framebuffer
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Create game framebuffer
-		CreateGameFramebuffer(800, 600);
+        CreateGameFramebuffer(800, 600);
     }
-
     void Graphics::Update() {
+        // 1. Calculate target duration (e.g., 0.01 for 100 FPS)
+        double targetFrameTime = (m_MaxFPS > 0) ? (1.0 / (double)m_MaxFPS) : 0.0;
+
+        // 2. Wait logic (only if cap is enabled and reasonable)
+        if (targetFrameTime > 0.0) {
+            // We measure from the end of the LAST swap to the start of THIS swap
+            static double lastFrameTime = glfwGetTime();
+
+            while ((glfwGetTime() - lastFrameTime) < targetFrameTime) {
+                // Precise busy-wait
+            }
+            lastFrameTime = glfwGetTime();
+        }
+
+        // 3. Engine time update
         t_ += Framework::Time::DeltaTime();
-        // Present the frame (anything drawn since beginFrame)
+
+        // 4. Present frame
         glfwSwapBuffers(GameManager::GetInstance().GetSystems().win_->window());
     }
-
     void Graphics::Shutdown() {
         if (vboCol_) { glDeleteBuffers(1, &vboCol_);  vboCol_ = 0; }
         if (vaoCol_) { glDeleteVertexArrays(1, &vaoCol_); vaoCol_ = 0; }
@@ -400,13 +398,13 @@ namespace Framework {
         Vector2D p3 = rot(-hx, hy);
 
         const float verts[] = {
-            p0.x, p0.y,  minUV.x, minUV.y,
-            p1.x, p1.y,  maxUV.x, minUV.y,
-            p2.x, p2.y,  maxUV.x, maxUV.y,
+            p0.x, p0.y, minUV.x, minUV.y, 1,1,1,1,
+            p1.x, p1.y, maxUV.x, minUV.y, 1,1,1,1,
+            p2.x, p2.y, maxUV.x, maxUV.y, 1,1,1,1,
 
-            p0.x, p0.y,  minUV.x, minUV.y,
-            p2.x, p2.y,  maxUV.x, maxUV.y,
-            p3.x, p3.y,  minUV.x, maxUV.y,
+            p0.x, p0.y, minUV.x, minUV.y, 1,1,1,1,
+            p2.x, p2.y, maxUV.x, maxUV.y, 1,1,1,1,
+            p3.x, p3.y, minUV.x, maxUV.y, 1,1,1,1,
         };
 
         glEnable(GL_BLEND);
@@ -463,7 +461,7 @@ namespace Framework {
     void Graphics::drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites) {
 
         g_batchVerts.clear();
-        g_batchVerts.reserve(sprites.size() * 6 * 4);
+        g_batchVerts.reserve(sprites.size() * 6 * 8);
 
         float aspectCorrection = (float)screenHeight / (float)screenWidth;
         float halfW = (float)screenWidth * 0.5f;
@@ -500,13 +498,13 @@ namespace Framework {
             Vector2D p3 = rot(-hx, hy);
 
             g_batchVerts.insert(g_batchVerts.end(), {
-                p0.x, p0.y, s.minUV.x, s.minUV.y,
-                p1.x, p1.y, s.maxUV.x, s.minUV.y,
-                p2.x, p2.y, s.maxUV.x, s.maxUV.y,
+                p0.x, p0.y, s.minUV.x, s.minUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p1.x, p1.y, s.maxUV.x, s.minUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p2.x, p2.y, s.maxUV.x, s.maxUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
 
-                p0.x, p0.y, s.minUV.x, s.minUV.y,
-                p2.x, p2.y, s.maxUV.x, s.maxUV.y,
-                p3.x, p3.y, s.minUV.x, s.maxUV.y
+                p0.x, p0.y, s.minUV.x, s.minUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p2.x, p2.y, s.maxUV.x, s.maxUV.y, s.color.r, s.color.g, s.color.b, s.color.a,
+                p3.x, p3.y, s.minUV.x, s.maxUV.y, s.color.r, s.color.g, s.color.b, s.color.a
                 });
         }
         drawSpriteBatchRaw(tex, g_batchVerts.data(), sprites.size());
@@ -520,7 +518,7 @@ namespace Framework {
         }
 
         const size_t vertCount = spriteCount * 6;
-        const size_t byteCount = vertCount * 4 * sizeof(float);
+        const size_t byteCount = vertCount * 8 * sizeof(float);
 
         // === CRITICAL SAFETY CHECK ===
         if (spriteCount > MAX_SPRITES_DEFAULT) {

@@ -205,6 +205,7 @@ namespace Framework{
 		std::string textureKey; // Key to identify the texture resource
 		Vector2D HalfSize = { 50.f, 50.f };
 		bool flipHorizontal = false;
+		float alpha = 1.0f; // Opacity of the texture (1.0 = fully opaque, 0.0 = fully transparent)
 	};
 
 	struct AudioComponent {

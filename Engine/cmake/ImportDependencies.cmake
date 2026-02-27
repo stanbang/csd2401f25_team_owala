@@ -175,6 +175,23 @@ macro(import_freetype)
     endif()
 endmacro()
 
+# Macro to import curl
+macro(import_curl)
+    if(NOT TARGET CURL::libcurl)
+        FetchContent_Declare(
+            curl
+            GIT_REPOSITORY https://github.com/curl/curl.git
+            GIT_TAG curl-8_6_0
+        )
+        set(BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+        set(CURL_USE_OPENSSL OFF CACHE BOOL "" FORCE)
+        set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)  # Windows native SSL
+        set(HTTP_ONLY ON CACHE BOOL "" FORCE)           # We only need HTTP
+        set(CURL_DISABLE_TESTS ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(curl)
+    endif()
+endmacro()
 
 # Macro to import all dependencies
 macro(importDependencies)
@@ -211,6 +228,10 @@ macro(importDependencies)
     message(STATUS "Importing backward-cpp...")
     import_backward_cpp()
     message(STATUS "backward-cpp imported successfully.")
+    
+    message(STATUS "Importing curl...")
+    import_curl()
+    message(STATUS "curl imported successfully.")
 
     link_libraries(${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib) 
     include_directories(${CMAKE_SOURCE_DIR}/lib/fmod/core/inc) 

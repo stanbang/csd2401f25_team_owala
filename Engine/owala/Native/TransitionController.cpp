@@ -26,8 +26,8 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-    // Replace single instance with a list of all active controllers
-    std::vector<TransitionController*> TransitionController::allControllers;
+        // Replace single instance with a list of all active controllers
+        std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
     float TransitionController::s_lastOpenEventTime = -1.0f;
 
@@ -35,12 +35,12 @@ namespace Framework {
     const std::string OPEN_ANIM_TEXTURE = "SB_Curtain_Open_Spritesheet_01.png";
     const std::string IDLE_ANIM_TEXTURE_R = "SB_Curtain_Idle_Spritesheet_R_01.png"; // Renamed for clarity
     const std::string IDLE_ANIM_TEXTURE_L = "SB_Curtain_Idle_Spritesheet_l_01.png";
-    
+
     void TransitionController::OnCreate() {
         // Add this new entity to the global list
         allControllers.push_back(this);
 
-		// Default to Right Curtain idle texture
+        // Default to Right Curtain idle texture
         idleTextureKey_ = IDLE_ANIM_TEXTURE_R;
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
@@ -52,7 +52,7 @@ namespace Framework {
 
             // Assuming 0 is the center of the world/screen
             if (trans.position.x < 0.0f) {
-				Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
+                Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
                 idleTextureKey_ = IDLE_ANIM_TEXTURE_L;
             }
         }
@@ -276,9 +276,11 @@ namespace Framework {
 
         // If we are in a non-level scene like the menu and the curtain is stuck CLOSED,
         // force it to hide immediately.
-        if (!isLevel && state_ != TransitionState::HIDDEN) {
+        if (!isLevel && state_ != TransitionState::HIDDEN
+            && state_ != TransitionState::CLOSING
+            && state_ != TransitionState::CLOSED) {
             ForceHide();
-            return; // ForceHide changes state, return to avoid processing other logic this frame
+            return;
         }
 
         if (state_ == TransitionState::HIDDEN) {
@@ -294,7 +296,7 @@ namespace Framework {
             std::string targetIdleKey = IDLE_ANIM_TEXTURE_R;
             bool shouldFlip = false;
 
-			// Determine if Left or Right Curtain based on position
+            // Determine if Left or Right Curtain based on position
             if (entityMgr.HasComponent(GetEntity(), TransformType)) {
                 if (entityMgr.GetComponent<Transform>(GetEntity()).position.x < 0.0f) {
                     // Left Curtain
@@ -357,7 +359,7 @@ namespace Framework {
                 }
             }
             else {
-                // Already playing — just reset the textureKey to the BASE key each frame
+                // Already playing ï¿½ just reset the textureKey to the BASE key each frame
                 // so the AnimationSystem resolves the correct AnimationInfo (with all 5 sheets)
                 // instead of resolving a sub-sheet key that only has 3 frames.
                 tex.textureKey = targetIdleKey;
@@ -406,7 +408,8 @@ namespace Framework {
                 // Transition to IDLING if in a level, otherwise HIDDEN
                 if (isLevel) {
                     state_ = TransitionState::IDLING;
-                } else {
+                }
+                else {
                     state_ = TransitionState::HIDDEN;
                 }
 

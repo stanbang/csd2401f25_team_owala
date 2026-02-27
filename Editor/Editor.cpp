@@ -7059,6 +7059,7 @@ namespace Editor {
 		}
 
 		ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
+		ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f");
 		bool activeNow = ImGui::IsItemActive();
 
 		if (activeNow && !editSession.wasItemActive) {

@@ -26,4 +26,9 @@ namespace Framework {
         void OnDestroy() override;
     };
 
+    static float loadFadeAlpha = 0.0f;
+    static bool  loadFadingOut = false;
+    static bool  loadingDone = false;
+    static std::string loadNextScene = "";
+
 }

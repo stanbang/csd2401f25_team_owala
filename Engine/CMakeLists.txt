@@ -24,6 +24,7 @@ set(COMMON_LIBS
   stb_image
   Backward::Interface
   freetype
+  CURL::libcurl
 )
 
 # Editor-specific libraries
@@ -64,7 +65,7 @@ set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
 )
 
 # Hide console window for Engine builds (Windows only)
-if(WIN32)
+#if(WIN32)
     set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
         WIN32_EXECUTABLE TRUE
     )
@@ -72,7 +73,7 @@ if(WIN32)
         "/SUBSYSTEM:WINDOWS"
         "/ENTRY:mainCRTStartup"
     )
-endif()
+#endif()
 
 # ======================= Editor Executable =========================
 add_executable(${CMAKE_PROJECT_NAME}_Editor ${ENGINE_SRC} ${EDITOR_SRC})

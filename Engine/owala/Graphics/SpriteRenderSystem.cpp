@@ -148,7 +148,7 @@ namespace Framework {
             try {
                 const Transform& transform = entityMgr.GetComponent<Transform>(entity);
                 const Vector2D& worldPos = transform.position;
-                bool isUIElement = entityMgr.HasComponent(entity, GUITagType); // Check if entity is a UI element
+                bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
                 bool isScreenSpaceParticle = false;
 
                 // Check if particle is screen space
@@ -173,13 +173,14 @@ namespace Framework {
                         continue;
                     }
                 }
+
                 Vector2D finalScale = { 1.0f, 1.0f };
-                //float finalRotation = 0.0f;
                 // --- Apply Scale ---
                 const Vector2D& scale = transform.scale;
                 finalScale = scale;
                 halfSize.x *= finalScale.x;
                 halfSize.y *= finalScale.y;
+
                 // --- Rotation (degrees → radians) ---
                 float rotationRad = 0.0f;
                 bool hasRotationFlag = entityMgr.HasComponent(entity, RotationFlagType);
@@ -200,7 +201,6 @@ namespace Framework {
                 const EntityProperties& props = entityMgr.GetProperties(entity);
                 int renderOrder = props.customRenderOrder;
 
-                // Use predefined render layer if not custom
                 if (props.renderLayer != RenderLayer::Custom) {
                     renderOrder = static_cast<int>(props.renderLayer);
                 }
@@ -209,12 +209,9 @@ namespace Framework {
                 Vector2D screenPos = worldPos;
                 Vector2D screenHalfSize = halfSize;
 
-                // Check if camera exists AND if this is NOT a UI element
                 if (activeCamera != 0 && cameraSystem_ && !isUIElement && !isScreenSpaceParticle) {
-                    // Convert center position from world to screen
                     screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
-                    // Get camera for zoom and aspect ratio
                     const Camera& cam = cameraSystem_->GetCamera(activeCamera);
 
                     // Convert world-space size to screen-space size
@@ -222,21 +219,12 @@ namespace Framework {
                     screenHalfSize.x = halfSize.x / cam.zoom;
                     screenHalfSize.y = halfSize.y / cam.zoom;
                 }
-
                 else if (isScreenSpaceParticle) {
-                    // Convert 0..1 to -1..1
                     screenPos.x = (worldPos.x * 2.0f) - 1.0f;
                     screenPos.y = (worldPos.y * 2.0f) - 1.0f;
-
-                    // Do NOT apply camera zoom to size. 
-                    // This keeps the particle size constant regardless of camera zoom.
                     screenHalfSize = halfSize;
                 }
-                // Handle UI Elements (GUITag)
                 else if (isUIElement) {
-                    // Graphics.cpp shrinks X by (Height/Width). 
-                    // We must stretch X by (Width/Height) to counteract it, allowing 
-                    // a 1.0 half-size to actually reach the edge of the screen.
                     float aspectRatio = (float)gfx_.getScreenWidth() / (float)gfx_.getScreenHeight();
                     screenHalfSize.x *= aspectRatio;
                 }
@@ -250,6 +238,7 @@ namespace Framework {
                 batchedSprite.topLeft = topLeft;
                 batchedSprite.size = fullSize;
                 batchedSprite.rotation = rotationRad;
+                batchedSprite.color = { 1.0f, 1.0f, 1.0f, sprite.alpha }; // READ ALPHA FROM COMPONENT
 
                 // --- UV Animation ---
                 if (entityMgr.HasComponent(entity, AnimationComponentType)) {
