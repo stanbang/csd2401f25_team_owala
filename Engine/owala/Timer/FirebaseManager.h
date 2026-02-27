@@ -10,6 +10,7 @@ namespace Framework {
         std::string name;
         float       time = 0.0f;
         long long   timestamp = 0;
+        std::string level;  // Add this field
     };
 
     class FirebaseManager {
@@ -20,11 +21,11 @@ namespace Framework {
         }
 
         // Submit a run time to Firebase (non-blocking, runs on background thread)
-        void SubmitRun(float timeSeconds);
+        void SubmitRun(const std::string& levelName, float timeSeconds);
 
-        // Fetch leaderboard from Firebase (non-blocking)
-        // Calls onComplete on the main thread next Update()
-        void FetchLeaderboard(std::function<void(std::vector<LeaderboardEntry>)> onComplete);
+        // Fetch leaderboard for a level (non-blocking, results via callback)
+        void FetchLeaderboard(const std::string& levelName,
+            std::function<void(std::vector<LeaderboardEntry>)> onComplete);
 
         // Call this every frame from your game loop to dispatch callbacks to main thread
         void Update();
@@ -32,9 +33,9 @@ namespace Framework {
     private:
         FirebaseManager() = default;
 
-        // Your Firebase Realtime Database URL — change this to yours
+        // Your Firebase Realtime Database URL
         static constexpr const char* FIREBASE_URL =
-            "https://YOUR-PROJECT-default-rtdb.firebaseio.com";
+            "https://stagebound-1547b-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
         static std::string GetMachineName();
 

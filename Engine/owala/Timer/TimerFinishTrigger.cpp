@@ -6,16 +6,25 @@
 #include "AABB_Collision.h"
 #include "EntityManager.h"
 #include "GameManager.h"
+#include "Logger.h"  // Add this include
 
 REGISTER_SCRIPT(TimerFinishTriggerScript, "TimerFinishTriggerScript")
 
 void TimerFinishTriggerScript::OnCreate() {
     m_fired = false;
+    Framework::Logger::Get().Info(DebugType::PlayerSystem) << "[TimerFinish] Created" << std::endl;
 }
 
 void TimerFinishTriggerScript::OnUpdate() {
-    if (m_fired) return;
-    if (!TimerSystem::Get().IsRunning()) return;
+    if (m_fired) {
+        // Already fired, ignore
+        return;
+    }
+
+    if (!TimerSystem::Get().IsRunning()) {
+        // Timer not running, ignore
+        return;
+    }
 
     EntityStorage& ecs = GameManager::GetInstance().GetECS();
     EntityManager mgr(ecs);
@@ -49,6 +58,11 @@ void TimerFinishTriggerScript::OnUpdate() {
     };
 
     if (CollisionIntersection_RectRect_Static(playerBounds, triggerBounds)) {
+        Framework::Logger::Get().Info(DebugType::PlayerSystem) << "[TimerFinish] *** PORTAL REACHED! Stopping timer... ***" << std::endl;
+
+        float finalTime = TimerSystem::Get().GetElapsed();
+        Framework::Logger::Get().Info(DebugType::PlayerSystem) << "[TimerFinish] Final time: " << finalTime << " seconds" << std::endl;
+
         TimerSystem::Get().StopAndSubmit();
         m_fired = true;
     }

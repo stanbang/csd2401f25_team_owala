@@ -17,6 +17,7 @@
 #include "LevelResetSystem.h"
 #include "MessageBus.h"
 #include "GameManager.h"
+#include "TimerSystem.h"  // ADD THIS INCLUDE
 
 namespace Framework {
 
@@ -42,7 +43,7 @@ namespace Framework {
         //trapPlatformSig.set(TransformType);
         //trapPlatformSig.set(RotationFlagType);
         //trapPlatformSig.set(SceneOwnedType);
-    
+
         //basicPlatformSig.set(ActiveTagType);
         //basicPlatformSig.set(PlatformTagType);
         //basicPlatformSig.set(TransformType);
@@ -74,7 +75,7 @@ namespace Framework {
                     }
                 }
             }
-        });
+            });
     }
 
     void LevelResetSystem::RunReset() {
@@ -85,13 +86,18 @@ namespace Framework {
         Logger::Get().Info(DebugType::LevelResetSystem) << "Reset global rotation variables" << std::endl;
         transformationSys_.ResetGlobalRotation();
 
+        // ===== ADDED: Reset timer when level resets =====
+        TimerSystem::Get().Reset();
+        Logger::Get().Info(DebugType::LevelResetSystem) << "Timer reset due to level reset" << std::endl;
+        // ================================================
+
         EntityManager entityMgr(gm.GetECS());
-        
+
         // Delete all particles
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
-			entityMgr.DestroyEntity(entity);
-		}
-        
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
+            entityMgr.DestroyEntity(entity);
+        }
+
         // Reset entities
         //for (const auto& [entity, signature] : entityMgr.GetEntitySignatures()) {
             // --- Player Reset ---

@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include <chrono>
 
 namespace Framework {
 
@@ -11,18 +10,20 @@ namespace Framework {
             return instance;
         }
 
-        void StartTimer();
-        void StopAndSubmit();   // stops timer, submits to Firebase
-        void Update(float dt);  // call every frame to accumulate time
+        void StartTimer(const std::string& levelName);
+        void StopAndSubmit();
+        void Update(float dt);
+        void Reset();
 
-        bool  IsRunning()    const { return m_running; }
-        float GetElapsed()   const { return m_elapsed; }
+        bool  IsRunning()       const { return m_running; }
+        float GetElapsed()      const { return m_elapsed; }
+        const std::string& GetLevelName() const { return m_levelName; }
 
     private:
         TimerSystem() = default;
 
-        bool  m_running = false;
-        float m_elapsed = 0.0f; // seconds
+        bool        m_running = false;
+        float       m_elapsed = 0.0f;
+        std::string m_levelName = "";
     };
-
 }

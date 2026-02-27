@@ -17,6 +17,7 @@
 #include "SaveManager.h" // NativeScript
 #include "TransitionController.h"
 #include "Logger.h"
+#include "FirebaseManager.h"
 
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
@@ -26,6 +27,8 @@ namespace {
 		std::string sceneName;
 		std::string bannerTextureKey;
 	};
+
+	Entity leaderboardTextEntity = 0;
 
 	struct UIRefs {
 		// Buttons
@@ -88,6 +91,8 @@ namespace {
 			else if (name == "Ticket_Current") ui.ticketCurrent = entity;
 			else if (name == "Ticket_Next") ui.ticketNext = entity;
 			else if (name == "LevelText") ui.levelText = entity;
+			else if (name == "LeaderboardText") leaderboardTextEntity = entity;
+
 		}
 
 		if (!ui.ValidateRef()) {
@@ -96,6 +101,39 @@ namespace {
 		}
 
 		cached = true;
+	}
+
+	void RefreshLeaderboard() {  // no parameter needed
+		if (levelData.empty()) return;
+		std::string levelName = levelData[currentIndex].sceneName;
+
+		FirebaseManager::Get().FetchLeaderboard(levelName,
+			[](std::vector<Framework::LeaderboardEntry> entries) {  // no capture
+				EntityManager mgr(GameManager::GetInstance().GetECS());
+				if (!mgr.ValidateEntity(leaderboardTextEntity)) return;
+				if (!mgr.HasComponent(leaderboardTextEntity, Framework::TextComponentType)) return;
+
+				Framework::TextComponent& text = mgr.GetComponent<Framework::TextComponent>(leaderboardTextEntity);
+
+				if (entries.empty()) {
+					text.textToDraw = "No records yet!";
+					text.isDirty = true;
+					return;
+				}
+
+				std::string display = "-- Best Times --\n";
+				int rank = 1;
+				for (auto& e : entries) {
+					int mins = (int)(e.time / 60);
+					float secs = e.time - mins * 60;
+					char buf[128];
+					std::snprintf(buf, sizeof(buf), "%d. %s  %02d:%05.2f\n",
+						rank++, e.name.c_str(), mins, secs);
+					display += buf;
+				}
+				text.textToDraw = display;
+				text.isDirty = true;
+			});
 	}
 
 	SaveManager* GetSaveManager(Framework::EntityManager& entityMgr) {
@@ -340,7 +378,7 @@ namespace LevelSelection {
 		cached = false;
 		ui = {};
 		save = nullptr;
-
+		leaderboardTextEntity = 0;
 		fadeAlpha = 0.0f;
 		fadingOut = false;
 		pendingScene = "";

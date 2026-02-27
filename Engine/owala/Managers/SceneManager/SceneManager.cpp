@@ -13,6 +13,8 @@
 #include "GameManager.h"
 #include "Logger.h"
 #include "EntitySerializer.h"
+#include "TimerSystem.h"  // ADD THIS INCLUDE
+#include "FirebaseManager.h"  // ADD THIS INCLUDE
 
 namespace Framework {
 	using namespace SceneManagement;
@@ -114,7 +116,7 @@ namespace Framework {
 		for (SceneGUID guid : loadedScenes_) {
 			loaded.insert(guid);
 		}
-		
+
 		for (Entity entity : entityMgr.GetAllEntitiesWithComponent(false, SceneOwnedType)) {
 			const SceneOwned& owned = entityMgr.GetComponent<SceneOwned>(entity);
 
@@ -140,7 +142,7 @@ namespace Framework {
 		prePlayContext.scenes = scenes_;
 		prePlayContext.loadedScenes = loadedScenes_;
 		prePlayContext.activeScene = currentScene_;
-		
+
 		contextCaptured = true;
 		isPlayMode_ = true;
 
@@ -233,7 +235,7 @@ namespace Framework {
 	// ---------------------------------------------------------------------------
 	// Scene Management APIs
 	// ---------------------------------------------------------------------------
-	#pragma region Scene Asset Stuff
+#pragma region Scene Asset Stuff
 	SceneGUID SceneManager::CreateSceneAsset(const std::string& sceneName, const std::string& path, const bool entitiesPopulated) {
 		// Check if scene with the same name already exists
 		if (CheckSceneNameExists(sceneName)) {
@@ -305,6 +307,18 @@ namespace Framework {
 		return true;
 	}
 
+	// Helper function to identify gameplay scenes
+	static bool IsGameplayScene(const std::string& sceneName) {
+		static const std::vector<std::string> gameplayScenes = {
+			"Tutorial 1", "Tutorial 2", "Level 1", "Level 2", "Cutscene Intro"
+		};
+
+		for (const auto& scene : gameplayScenes) {
+			if (sceneName == scene) return true;
+		}
+		return false;
+	}
+
 	void SceneManager::LoadScene(const std::string& sceneName, LoadSceneMode mode) {
 		const SceneAsset& sceneToLoad = GetSceneByName(sceneName);
 		if (!sceneToLoad.IsValid()) {
@@ -323,7 +337,7 @@ namespace Framework {
 		}
 
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
-		
+
 		// If single, unload all scenes.
 		if (mode == LoadSceneMode::Single) {
 			std::vector<SceneGUID> scenesToUnload;
@@ -357,6 +371,20 @@ namespace Framework {
 		RebuildLoadedTags();
 
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneToLoad->name << " with GUID: " << sceneToLoad->sceneIndex << std::endl;
+
+		// ===== TIMER INTEGRATION =====
+		// Start timer for gameplay scenes
+		if (IsGameplayScene(sceneToLoad->name)) {
+			// Reset any previous timer first
+			TimerSystem::Get().Reset();
+
+			// Start timer for this level
+			TimerSystem::Get().StartTimer(sceneToLoad->name);
+
+			Logger::Get().Info(DebugType::PlayerSystem)
+				<< "[SceneManager] Timer started for gameplay scene: " << sceneToLoad->name << std::endl;
+		}
+		// =============================
 	}
 
 	void SceneManager::LoadScene(const SceneAsset& scene, LoadSceneMode mode) {
@@ -376,6 +404,13 @@ namespace Framework {
 	void SceneManager::UnloadScene(SceneGUID sceneIndex) {
 		// Disallow unloading of invalid/ddol scene.
 		if (sceneIndex == INVALID_SCENEID || sceneIndex == DDOL_SCENEID) return;
+
+		// Get scene name before unloading (for timer reset)
+		std::string sceneName = "Unknown";
+		SceneAsset* sceneToUnload = GetSceneAssetMutable(sceneIndex);
+		if (sceneToUnload) {
+			sceneName = sceneToUnload->name;
+		}
 
 		auto it = std::find(loadedScenes_.begin(), loadedScenes_.end(), sceneIndex);
 		if (it == loadedScenes_.end()) {
@@ -401,7 +436,7 @@ namespace Framework {
 
 		loadedScenes_.erase(it);
 
-		if (SceneAsset* sceneToUnload = GetSceneAssetMutable(sceneIndex)) {
+		if (sceneToUnload) {
 			sceneToUnload->isLoaded = false;
 			sceneToUnload->isPopulated = false;
 		}
@@ -419,15 +454,24 @@ namespace Framework {
 
 		RebuildLoadedTags();
 		Logger::Get().Info(DebugType::SceneManager) << "Unloaded Scene GUID: " << sceneIndex << std::endl;
+
+		// ===== TIMER INTEGRATION =====
+		// Reset timer when unloading gameplay scenes
+		if (IsGameplayScene(sceneName)) {
+			TimerSystem::Get().Reset();
+			Logger::Get().Info(DebugType::PlayerSystem)
+				<< "[SceneManager] Timer reset for gameplay scene: " << sceneName << std::endl;
+		}
+		// =============================
 	}
 
 	void SceneManager::UnloadScene(const SceneAsset& scene) {
 		UnloadScene(scene.sceneIndex);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Entity Scene Stuff
+#pragma region Entity Scene Stuff
 	void SceneManager::AddEntityToScene(const std::string& sceneName, Entity entity) {
 		const SceneAsset& targetScene = GetSceneByName(sceneName);
 		if (!targetScene.IsValid()) {
@@ -505,7 +549,7 @@ namespace Framework {
 
 	void SceneManager::SetEntityAsPersistent(Entity entity, bool shouldPersist) {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
-		
+
 		if (shouldPersist) {
 			if (!entityMgr.HasComponent(entity, PersistentTagType)) {
 				entityMgr.AddComponent(entity, PersistentTag{});
@@ -637,7 +681,7 @@ namespace Framework {
 	}
 
 
-	#pragma endregion
+#pragma endregion
 
 	// ---------------------------------------------------------------------------
 	// DEBUG FUNCTIONS
@@ -652,7 +696,7 @@ namespace Framework {
 
 		Logger::Get().Info(DebugType::SceneManager) << "------- All Scenes Info ------" << std::endl;
 		Logger::Get().Info(DebugType::SceneManager) << "Total Scenes: " << scenes.size() << std::endl;
-		
+
 		for (const auto& [sceneName, entities] : scenes) {
 			size_t persistentCount = 0;
 
@@ -677,7 +721,7 @@ namespace Framework {
 			Logger::Get().Info(DebugType::SceneManager) << "No active scene currently loaded." << std::endl;
 			return;
 		}
-		
+
 		Logger::Get().Info(DebugType::SceneManager) << "----- Current Scene Info -----" << std::endl;
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << GetSceneAt(currentScene_).name << std::endl;
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Entities Count: " << entityMgr.GetAllEntitiesWithComponent(false, LoadedTagType).size() << std::endl;
@@ -692,7 +736,7 @@ namespace Framework {
 			logStream << ", ";
 		}
 		logStream << std::endl;
-		
+
 		Logger::Get().Info(DebugType::SceneManager) << "------------------------------" << std::endl;
 	}
 }

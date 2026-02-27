@@ -5,6 +5,7 @@
 #include "AABB_Collision.h"
 #include "EntityManager.h"
 #include "GameManager.h"
+#include "SceneManager.h" 
 
 REGISTER_SCRIPT(TimerStartTriggerScript, "TimerStartTriggerScript")
 
@@ -47,7 +48,9 @@ void TimerStartTriggerScript::OnUpdate() {
     };
 
     if (CollisionIntersection_RectRect_Static(playerBounds, triggerBounds)) {
-        TimerSystem::Get().StartTimer();
+        // Get the current scene name from SceneManager
+        std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
+        TimerSystem::Get().StartTimer(currentSceneName);
         m_fired = true;
     }
 }
