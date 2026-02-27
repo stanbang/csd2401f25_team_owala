@@ -24,6 +24,7 @@ set(COMMON_LIBS
   stb_image
   Backward::Interface
   freetype
+  CURL::libcurl
 )
 
 # Editor-specific libraries
