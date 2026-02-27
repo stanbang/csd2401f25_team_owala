@@ -61,12 +61,16 @@ namespace Framework {
     void main(){ FragColor = uColor; }
     )";
 
-    // Textured quad (pos + uv)
+    // Textured quad (pos + uv) - passthrough, no snap needed
     static const char* VS_TEX = R"(#version 330 core
     layout(location=0) in vec2 aPos;
     layout(location=1) in vec2 aUV;
     out vec2 vUV;
-    void main(){ gl_Position = vec4(aPos, 0.0, 1.0); vUV = aUV; }
+    void main(){
+        // Output position directly; CameraSystem already handles pixel-snapping
+        gl_Position = vec4(aPos, 0.0, 1.0);
+        vUV = aUV;
+    }
     )";
 
     static const char* FS_TEX = R"(#version 330 core
@@ -160,6 +164,7 @@ namespace Framework {
     // Cached uniform locations (avoid glGetUniformLocation per draw)
     static GLint g_uColorLoc = -1;
     static GLint g_uTexLoc_Tex = -1;
+    static GLint g_uScreenSizeLoc_Tex = -1;
     static GLint g_uColorLoc_Text = -1;
     static GLint g_uTexLoc_Text = -1;
 
@@ -231,6 +236,7 @@ namespace Framework {
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
 
         g_uTexLoc_Tex = glGetUniformLocation(progTex_, "uTex");
+        g_uScreenSizeLoc_Tex = glGetUniformLocation(progTex_, "uScreenSize");
 
         // Pre-size batch CPU buffer to avoid realloc churn
         g_batchVerts.reserve(6 * 4 * 2048);
@@ -460,12 +466,18 @@ namespace Framework {
         g_batchVerts.reserve(sprites.size() * 6 * 4);
 
         float aspectCorrection = (float)screenHeight / (float)screenWidth;
+        float halfW = (float)screenWidth * 0.5f;
+        float halfH = (float)screenHeight * 0.5f;
+        // Add a microscopic half-pixel expansion to hide floating-point tearing
+        // Since 'hx' and 'hy' are in vertical NDC space before aspect correction,
+        // 0.5f / halfH represents exactly half a pixel on the screen.
+        float dilation = 1.5f / halfH;
 
         for (const auto& s : sprites) {
             const float cx = s.topLeft.x + s.size.x * 0.5f;
             const float cy = s.topLeft.y + s.size.y * 0.5f;
-            const float hx = s.size.x * 0.5f;
-            const float hy = s.size.y * 0.5f;
+            const float hx = (s.size.x * 0.5f) + dilation;
+            const float hy = (s.size.y * 0.5f) + dilation;
 
             const float c = std::cos(s.rotation);
             const float q = std::sin(s.rotation);
@@ -537,7 +549,7 @@ namespace Framework {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex);
         glUniform1i(g_uTexLoc_Tex, 0);
-
+        glUniform2f(g_uScreenSizeLoc_Tex, static_cast<float>(getScreenWidth()), static_cast<float>(getScreenHeight()));
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertCount));
 
         // Check for OpenGL errors

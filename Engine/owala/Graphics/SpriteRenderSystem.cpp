@@ -219,11 +219,8 @@ namespace Framework {
 
                     // Convert world-space size to screen-space size
                     // The key is to scale by the camera's zoom and aspect ratio
-                    float halfWidth = cam.zoom;
-                    float halfHeight = cam.zoom;
-
-                    screenHalfSize.x = halfSize.x / halfWidth;
-                    screenHalfSize.y = halfSize.y / halfHeight;
+                    screenHalfSize.x = halfSize.x / cam.zoom;
+                    screenHalfSize.y = halfSize.y / cam.zoom;
                 }
 
                 else if (isScreenSpaceParticle) {
@@ -270,12 +267,22 @@ namespace Framework {
                     std::swap(batchedSprite.minUV.x, batchedSprite.maxUV.x);
                 }
 
-                // UV Inset to prevent texture bleeding
-                /*float uvInset = 0.005f;
-                batchedSprite.minUV.x += uvInset;
-                batchedSprite.minUV.y += uvInset;
-                batchedSprite.maxUV.x -= uvInset;
-                batchedSprite.maxUV.y -= uvInset;*/
+                // --- Half-texel UV inset to prevent texture bleeding at tile edges ---
+                // Uses 0.5 / textureDimension so the inset is visually imperceptible.
+                GLint texW = 1, texH = 1;
+                Texture texID = resources_.get<Texture>(sprite.textureKey);
+                glBindTexture(GL_TEXTURE_2D, texID);
+                glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texW);
+                glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texH);
+                glBindTexture(GL_TEXTURE_2D, 0);
+
+                float uInset = 0.5f / static_cast<float>(texW);
+                float vInset = 0.5f / static_cast<float>(texH);
+
+                batchedSprite.minUV.x += uInset;
+                batchedSprite.minUV.y += vInset;
+                batchedSprite.maxUV.x -= uInset;
+                batchedSprite.maxUV.y -= vInset;
 
                 RenderItem item;
                 item.isText = false;
