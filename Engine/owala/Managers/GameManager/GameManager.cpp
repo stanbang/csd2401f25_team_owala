@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file	SceneSystem.cpp
+ * \file	GameManager.cpp
  * \brief	Manager responsible for managing game state
  *
  *
@@ -405,7 +405,16 @@ namespace Framework {
 		if (!queuedSceneUnload_.empty()) {
 			std::string sceneToUnload = std::move(queuedSceneUnload_);
 			queuedSceneUnload_.clear();
+			// If we are unloading a game overlay that paused physics (PauseScene /
+			// OptionsMenu) via a non-Resume path (e.g. "Main Menu" button), we must
+			// unpause physics here. Otherwise the paused state leaks into subsequent
+			// scenes and freezes all animations driven by AnimationSystem.
+			if (sceneToUnload == "PauseScene" || sceneToUnload == "OptionsMenu") {
+				systems_.physics_->SetPaused(false);
+			}
+
 			SceneManager::GetInstance().UnloadScene(sceneToUnload);
+
 		}
 
 		// --- GAME UPDATE HERE ---
@@ -535,10 +544,37 @@ namespace Framework {
 
 	// Helper to trigger the loading process
 	void GameManager::InitiateLevelLoad(const std::string& targetSceneName) {
-
+		systems_.physics_->SetPaused(false);
 		std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
 		bool currentIsLevel = IsLevelScene(currentSceneName);
 		bool targetIsLevel = IsLevelScene(targetSceneName);
+
+		// When a game overlay (PauseScene / OptionsMenu) is additively loaded on top of a
+		// real level, GetActiveScene returns the overlay, not the level. Scan all loaded
+		// scenes to recover the true "current" context so the correct transition branch fires.
+		// The scan is intentionally restricted to known game overlays to avoid falsely
+		// promoting a stale loaded level when transitioning between genuine menu scenes
+		// (e.g. MainMenu -> LevelSelection -> Tutorial 1 where a previous level is still loaded).
+		const bool activeIsGameOverlay = (currentSceneName == "PauseScene" ||
+			currentSceneName == "OptionsMenu");
+		if (!currentIsLevel && activeIsGameOverlay) {
+			// The game overlay paused physics when it was opened. Since we are now
+			// leaving via a scene switch (not the Resume button), we must unpause
+			// physics here. Otherwise the paused state leaks through the loading
+			// screen into the next level, freezing all animations.
+			systems_.physics_->SetPaused(false);
+
+			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const std::vector<SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+			for (SceneGUID id : loadedScenes) {
+				const SceneAsset& scene = sceneMgr.GetSceneAt(id);
+				if (IsLevelScene(scene.name)) {
+					currentSceneName = scene.name;
+					currentIsLevel = true;
+					break;
+				}
+			}
+		}
 
 		previousScene = SceneManager::GetInstance().GetActiveScene().sceneIndex;
 

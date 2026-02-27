@@ -342,27 +342,14 @@ namespace LevelSelection {
 				sceneMgr.UnloadScene("LevelSelection");
 			}
 			else {
-				GameManager::GetInstance().InitiateLevelLoad("MainMenu");
+				// Queue so LoadScene is deferred to the top of the next frame,
+				// avoiding mutation of the loaded-scenes list mid-iteration.
+				GameManager::GetInstance().QueueLevelLoad("MainMenu");
 			}
 			return;
 		}
 
-		//// Select Button
-		//if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
-		//	if (save && entityMgr.ValidateEntity(save->GetEntity())) {
-		//		const int levelIndex = levelData[currentIndex].index;
-		//		if (!save->IsUnlocked(levelIndex)) return;
-		//	}
-		//	// Load the level directly without fade
-		//	std::string scene = levelData[currentIndex].sceneName;
-		//	GameManager::GetInstance().InitiateLevelLoad(scene);
-		//	return;
-		//}
-
-		//// Ensure overlay is cleared
-		//GameManager::GetInstance().SetOverlayCallback(nullptr);
-
-		// Select Button
+		// Select Button - WITH FADE EFFECT (Option A)
 		if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
 			if (save && entityMgr.ValidateEntity(save->GetEntity())) {
 				const int levelIndex = levelData[currentIndex].index;
@@ -370,9 +357,8 @@ namespace LevelSelection {
 			}
 			pendingScene = levelData[currentIndex].sceneName;
 			fadingOut = true;
-			return;
+			return;  // Let the fade handle the loading, don't queue directly
 		}
-
 
 		// Tick fade
 		if (fadingOut) {
@@ -417,4 +403,3 @@ namespace LevelSelection {
 		GameManager::GetInstance().SetOverlayCallback(nullptr);
 	}
 }
-

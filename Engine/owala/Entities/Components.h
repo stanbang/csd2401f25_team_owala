@@ -512,6 +512,9 @@ namespace Framework{
 		Entity handleEntity = 0;
 		std::string handleName = "";
 
+		Entity fillEntity = 0;
+		std::string fillName = "";
+
 		float minValue = 0.0f;
 		float maxValue = 1.0f;
 		float currentValue = 1.0f;

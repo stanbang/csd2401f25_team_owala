@@ -1230,6 +1230,11 @@ namespace Framework {
 		handleNameVal.SetString(hName, static_cast<rapidjson::SizeType>(strlen(hName)), alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_HANDLE_NAME), handleNameVal, alloc);
 
+		rapidjson::Value fillNameVal;
+		const char* fName = slider.fillName.empty() ? "" : slider.fillName.c_str();
+		fillNameVal.SetString(fName, static_cast<rapidjson::SizeType>(strlen(fName)), alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_FILL_NAME), fillNameVal, alloc);
+
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MIN_VALUE), slider.minValue, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MAX_VALUE), slider.maxValue, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_CURRENT_VALUE), slider.currentValue, alloc);
@@ -1936,6 +1941,10 @@ namespace Framework {
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Slider& out) {
 		if (componentData.HasMember(Serialization::SLIDER_HANDLE_NAME) && componentData[Serialization::SLIDER_HANDLE_NAME].IsString()) {
 			out.handleName = componentData[Serialization::SLIDER_HANDLE_NAME].GetString();
+		}
+
+		if (componentData.HasMember(Serialization::SLIDER_FILL_NAME) && componentData[Serialization::SLIDER_FILL_NAME].IsString()) {
+			out.fillName = componentData[Serialization::SLIDER_FILL_NAME].GetString();
 		}
 
 		// When deserializing, we can't set the handle entity yet since it may not exist

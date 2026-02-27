@@ -184,22 +184,22 @@ namespace Framework {
             Slider& slider = entityMgr.GetComponent<Slider>(sliderEntity);
             Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
 
-			// Get the handle entity by resolving its name if needed
-            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity)) {
+			// Get the handle and fill entity by resolving its name if needed
+            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity) || (!slider.fillName.empty() && !entityMgr.ValidateEntity(slider.fillEntity))) {
+				// Attempt to resolve handle and fill entities by name
                 if (!slider.handleName.empty()) {
                     slider.handleEntity = entityMgr.GetEntityByName(slider.handleName);
+                }
+                if (!slider.fillName.empty()) {
+                    slider.fillEntity = entityMgr.GetEntityByName(slider.fillName);
+                }
 
-                    // If found, we don't need to resolve again this session
-                    if (slider.handleEntity != 0) {
-                        slider.needsResolution = false;
-                    }
-                    else {
-                        // If still not found, skip this frame
-                        continue;
-                    }
+				// If handle entity is resolved successfully, we can proceed. Fill entity is optional (for visual fill), so we don't require it to proceed.
+                if (slider.handleEntity != 0) {
+                    slider.needsResolution = false;
                 }
                 else {
-                    continue; // No name provided to search with
+                    continue;
                 }
             }
 
@@ -250,6 +250,27 @@ namespace Framework {
                     normalized = (slider.currentValue - slider.minValue) / range;
                 }
 
+				// Update the fill entity's scale and UVs to visually represent the current value
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TransformType) && entityMgr.HasComponent(slider.fillEntity, TextureComponentType)) {
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+
+                    fillTransform.scale.x = normalized; // Scale the quad's width
+                    // Shift position to keep it anchored to the left
+                    float bgCenterX = bgTransform.position.x + slider.widthOffsetX;
+                    float shiftAmount = fillTex.HalfSize.x * (1.0f - normalized);
+                    fillTransform.position.x = bgCenterX - shiftAmount;
+
+                    // Cut the UVs using the AnimationComponent
+                    if (!entityMgr.HasComponent(slider.fillEntity, AnimationComponentType)) {
+                        entityMgr.AddComponent<AnimationComponent>(slider.fillEntity, AnimationComponent{});
+                    }
+
+                    AnimationComponent& fillAnim = entityMgr.GetComponent<AnimationComponent>(slider.fillEntity);
+                    fillAnim.isPlaying = false; // Crucial: Stop it from actually animating
+                    fillAnim.maxUV.x = normalized;
+                }
+
                 // Snap handle to the correct visual position immediately
                 handleTransform.position.x = minX + (normalized * slider.width);
 
@@ -273,6 +294,27 @@ namespace Framework {
                 // Calculate normalized value (0.0 to 1.0)
                 float normalizedValue = (clampedMouseX - minX) / slider.width;
                 slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
+
+				// Update the fill entity's scale and UVs to visually represent the current value
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TransformType) && entityMgr.HasComponent(slider.fillEntity, TextureComponentType)) {
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+
+                    fillTransform.scale.x = normalizedValue; // Scale the quad's width
+                    // Shift position to keep it anchored to the left
+                    float bgCenterX = bgTransform.position.x + slider.widthOffsetX;
+                    float shiftAmount = fillTex.HalfSize.x * (1.0f - normalizedValue);
+                    fillTransform.position.x = bgCenterX - shiftAmount;
+
+                    // Cut the UVs using the AnimationComponent
+                    if (!entityMgr.HasComponent(slider.fillEntity, AnimationComponentType)) {
+                        entityMgr.AddComponent<AnimationComponent>(slider.fillEntity, AnimationComponent{});
+                    }
+
+                    AnimationComponent& fillAnim = entityMgr.GetComponent<AnimationComponent>(slider.fillEntity);
+                    fillAnim.isPlaying = false; // Crucial: Stop it from actually animating
+                    fillAnim.maxUV.x = normalizedValue;
+                }
 
                 switch (slider.sliderType) {
                 case SliderSoundType::MASTER_VOLUME:
