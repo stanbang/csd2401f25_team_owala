@@ -236,6 +236,7 @@ namespace Framework {
 	void GameManager::Initialize() {
 		CheckSystems();
 		//layerManager_.LoadFromFile(FileIOKeys::LAYER_CONFIG_FILEPATH); // Load all configs directly for layer
+		FileIOSystem::LoadWorldConfig();
 		Logger::Get().Info(DebugType::GameManager)
 			<< "Loaded LayerManager configuration" << std::endl;
 		TransitionController::Reset();

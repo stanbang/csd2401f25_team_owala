@@ -53,7 +53,6 @@ namespace Framework {
 	class CameraSystem;
 	struct SystemTime; // Forward Declaration
 	//class PhysicsSystem; // forward Declaration
-
 }
 
 namespace Editor {
@@ -62,6 +61,9 @@ namespace Editor {
 
 
 	struct EditorSettings {
+		int windowWidth = 1920;
+		int windowHeight = 1080;
+
 		bool showDebugInfo = true;
 		bool showLevelEditor = true;
 		bool showHierarchy = true;
@@ -69,6 +71,8 @@ namespace Editor {
 		bool showGameViewport = true;
 		bool showAssetBrowser = true;
 		bool showToolbar = true;
+		bool showPreferencesWindow = false;
+		bool showProjectSettingsWindow = false;
 		bool showPrefabEditor = false;
 		bool showLayerManager = true;
 		bool showAnimationEditor = false;
@@ -177,7 +181,6 @@ namespace Editor {
 		bool showGrid_ = false;
 		float baseGridCellSize_ = 100.f;   // NEW: World-space size of a cell at zoom 1.0
 
-
 		//Drag and Drop State
 		bool isDraggingPrefab_ = false;
 		DraggablePrefabInfo dragDropPayload_; // Holds info about the prefab being dragged
@@ -204,7 +207,6 @@ namespace Editor {
 
 		//---layer manager variables ----//
 		Framework::LayerManager layerManager_;
-
 
 		// Layer editor state
 		bool showLayerConfigWindow_ = false;
@@ -243,8 +245,6 @@ namespace Editor {
 		DraggableFSMInfo fsmDragDropPayload_;
 		bool isDraggingFSM_ = false;
 
-
-
 		// --- Camera State Management ---
 		struct CameraState {
 			Vector2D position{ 0.0f, 0.0f };
@@ -264,6 +264,10 @@ namespace Editor {
 
 		// Internal Checkers
 		void SanityCheck();
+
+		// Editor Configuration
+		void LoadEditorConfig();
+		void SaveEditorConfig();
 
 		// Handles placing the dragged prefab when the mouse is released.
 		void HandleDragDropPlacement(); // Renamed from HandleTilePlacement	
@@ -301,7 +305,10 @@ namespace Editor {
 		void ShowTilemapEditor();
 		void ShowAssetBrowser(std::vector<std::filesystem::path>& droppedFiles);
 		void ShowGameViewport();
+		void ShowMenuBar();
 		void ShowToolbar();
+		void ShowPreferencesWindow();
+		void ShowProjectSettingsWindow();
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();

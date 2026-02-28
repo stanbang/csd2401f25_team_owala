@@ -140,7 +140,6 @@ namespace Framework {
             Logger::Get().Info(DebugType::PhysicsSystem)
                 << "Collision matrix already initialized, skipping reset" << std::endl;
         }
-        FileIOSystem::LoadWorldConfig(gravity_.y);
         // --- Initialize the Implicit Grid ---
         grid_.resize(GridCellsX * GridCellsY);
         // reserve space for performance

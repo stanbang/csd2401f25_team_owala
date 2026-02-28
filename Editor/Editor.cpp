@@ -37,6 +37,7 @@
 
 // Serialization
 #include "EntitySerializer.h"
+#include "SerializationKeys.h"
 
 // Time Management
 #include "OwalaTime.h"
@@ -233,6 +234,30 @@ namespace Editor {
 	}
 
 	// ----------------------------------------------------------------------------
+	// Edtior Configuration
+	// ----------------------------------------------------------------------------
+	void Editor::LoadEditorConfig() {
+		rapidjson::Document doc;
+		if (Framework::FileIOSystem::ReadFile(FileIOKeys::EDITOR_CFG_PATH, doc)) {
+			if (doc.HasMember(FileIOKeys::EDITOR_HISTORY_STACK) && doc[FileIOKeys::EDITOR_HISTORY_STACK].IsInt()) {
+				historyManager_.SetUndoLimit(doc[FileIOKeys::EDITOR_HISTORY_STACK].GetInt());
+			}
+		}
+	}
+
+	void Editor::SaveEditorConfig() {
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::EDITOR_HISTORY_STACK), historyManager_.GetUndoLimit(), alloc);
+		Logger::Get().Info(DebugType::FileIOSystem) << "Saving Editor Config!" << std::endl;
+		if (Framework::FileIOSystem::WriteFileJson(FileIOKeys::EDITOR_CFG_PATH, doc)) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "Editor Config Saved!" << std::endl;
+		}
+	}
+
+	// ----------------------------------------------------------------------------
 	// Initializes the Editor system
 	// Loads prefabs from file and sets up the ImGui context and backends.
 	// ----------------------------------------------------------------------------
@@ -246,7 +271,7 @@ namespace Editor {
 
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+		io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
@@ -452,56 +477,60 @@ namespace Editor {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-		ImGui::Begin("Owala Editor Dockspace", nullptr, windowFlags);
+		bool dockspace_open = ImGui::Begin("Owala Editor Dockspace", nullptr, windowFlags);
 		ImGui::PopStyleVar(3);
 
-		ImGuiID dockspaceID = ImGui::GetID("EditorDockSpace");
-		ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f));
+		if (dockspace_open) {
+			ImGuiID dockspaceID = ImGui::GetID("EditorDockSpace");
+			ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f));
 
-		if (firstUpdate)
-		{
-			firstUpdate = false;
-			ImGui::DockBuilderRemoveNode(dockspaceID);
-			ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
-			ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->Size);
+			if (firstUpdate)
+			{
+				firstUpdate = false;
+				ImGui::DockBuilderRemoveNode(dockspaceID);
+				ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
+				ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->Size);
 
-			ImGuiID dock_main_id = dockspaceID;
+				ImGuiID dock_main_id = dockspaceID;
 
-			ImGuiID dock_toolbar = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.03f, nullptr, &dock_main_id);
-			ImGui::DockBuilderDockWindow("Toolbar", dock_toolbar);
+				ImGuiID dock_toolbar = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.03f, nullptr, &dock_main_id);
+				ImGui::DockBuilderDockWindow("Toolbar", dock_toolbar);
 
-			if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(dock_toolbar)) {
-				node->LocalFlags |= ImGuiDockNodeFlags_HiddenTabBar | ImGuiDockNodeFlags_NoDocking | ImGuiDockNodeFlags_NoTabBar;
+				if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(dock_toolbar)) {
+					node->LocalFlags |= ImGuiDockNodeFlags_HiddenTabBar | ImGuiDockNodeFlags_NoDocking | ImGuiDockNodeFlags_NoTabBar;
+				}
+
+				ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
+				ImGui::DockBuilderDockWindow("Inspector", dock_right);
+				ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
+				ImGui::DockBuilderDockWindow("Layer", dock_right);
+
+				ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
+				ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
+
+				ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
+				ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
+				ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
+				ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
+				ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
+				ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
+				ImGui::DockBuilderDockWindow("FSM Enemy Editor", dock_bottom);
+
+				ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
+				ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
+
+				ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, nullptr, &dock_main_id);
+				ImGui::DockBuilderDockWindow("Debug Visualization", dock_left);
+				ImGui::DockBuilderDockWindow("Level Editor", dock_left);
+				ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
+
+
+				ImGui::DockBuilderDockWindow("Game", dock_main_id);
+				ImGui::DockBuilderFinish(dockspaceID);
 			}
-
-			ImGuiID dock_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
-			ImGui::DockBuilderDockWindow("Inspector", dock_right);
-			ImGui::DockBuilderDockWindow("Asset Editor", dock_right);
-			ImGui::DockBuilderDockWindow("Layer", dock_right);
-
-			ImGuiID dock_right_bottom = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.35f, nullptr, &dock_right);
-			ImGui::DockBuilderDockWindow("Performance Profiler", dock_right_bottom);
-
-			ImGuiID dock_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.35f, nullptr, &dock_main_id);
-			ImGui::DockBuilderDockWindow("Asset Viewer", dock_bottom);
-			ImGui::DockBuilderDockWindow("Prefab Palette", dock_bottom);
-			ImGui::DockBuilderDockWindow("Prefab Editor", dock_bottom);
-			ImGui::DockBuilderDockWindow("Tile Palette", dock_bottom);
-			ImGui::DockBuilderDockWindow("Animation Editor", dock_bottom);
-			ImGui::DockBuilderDockWindow("FSM Enemy Editor", dock_bottom);
-
-			ImGuiID dock_bottom_left = ImGui::DockBuilderSplitNode(dock_bottom, ImGuiDir_Left, 0.2f, nullptr, &dock_bottom);
-			ImGui::DockBuilderDockWindow("Project Explorer", dock_bottom_left);
-
-			ImGuiID dock_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, nullptr, &dock_main_id);
-			ImGui::DockBuilderDockWindow("Debug Visualization", dock_left);
-			ImGui::DockBuilderDockWindow("Level Editor", dock_left);
-			ImGui::DockBuilderDockWindow("Hierarchy", dock_left);
-			
-
-			ImGui::DockBuilderDockWindow("Game", dock_main_id);
-			ImGui::DockBuilderFinish(dockspaceID);
 		}
+
+		ImGui::End();
 
 		// --- UPDATE VIEWPORT DATA ---
 		UpdateViewportData();
@@ -554,6 +583,12 @@ namespace Editor {
 		}
 
 		// --- RENDER PANELS ---
+		ShowMenuBar();
+		// --- Detached Panels ---
+		if (settings.showPreferencesWindow) ShowPreferencesWindow();
+		if (settings.showProjectSettingsWindow) ShowProjectSettingsWindow();
+
+		// --- Docked Panels ---
 		if (settings.showToolbar) ShowToolbar();
 		if (settings.showInspector) ShowInspector();
 		if (settings.showDebugInfo) ShowPerformanceProfile();
@@ -575,14 +610,10 @@ namespace Editor {
 		ShowCreatePrefabDialog();
 		// To show animation editor beside asset viewer
 		if (settings.showAnimationEditor) {
-			ImGui::SetNextItemWidth(-1);
-			if (ImGui::BeginTabBar("BottomTabBar", ImGuiTabBarFlags_None)) {
-				if (ImGui::BeginTabItem("Animation Editor")) {
-					ShowAnimationEditor();
-					ImGui::EndTabItem();
-				}
-				ImGui::EndTabBar();
+			if (ImGui::Begin("Animation Editor", &settings.showAnimationEditor)) {
+				ShowAnimationEditor();
 			}
+			ImGui::End();
 		}
 
 		// Set editor play/edit mode
@@ -592,8 +623,6 @@ namespace Editor {
 		else if (isGamePlaying) {
 			engine_->SetMode(EngineMode::Play);
 		}
-
-		ImGui::End();
 
 		// --- END IMGUI FRAME ---
 		ImGui::Render();
@@ -1198,9 +1227,6 @@ namespace Editor {
 		// --- BUILD IMGUI INTERFACE ---
 		// Example of a dockable "Level Editor" window.
 		// Create the main dockspace that will fill the entire game window.
-		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
-
 		ImGui::Begin("Level Editor");
 
 		const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
@@ -4783,6 +4809,113 @@ namespace Editor {
 
 #pragma endregion
 
+#pragma region MENUBAR
+
+	void Editor::ShowMenuBar() {
+		ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.05f, 0.05f, 0.05f, 1.f));
+
+		if (ImGui::BeginMainMenuBar()) {
+
+			// Edit Submenu Dropdown
+			if (ImGui::BeginMenu("Edit")) {
+				EntityManager entityMgr(GameManager::GetInstance().GetECS());
+				SceneManager& sceneMgr = SceneManager::GetInstance();
+				const SceneAsset& activeScene = sceneMgr.GetActiveScene();
+
+				// History Subsection
+				ImGui::SeparatorText("HISTORY");
+				if (ImGui::MenuItem("Undo", "Ctrl+Z", false, historyManager_.CanUndo())) {
+					historyManager_.Undo();
+				}
+				if (ImGui::MenuItem("Redo", "Ctrl+Y", false, historyManager_.CanRedo())) {
+					historyManager_.Redo();
+				}
+				// End History Subsection
+
+				// Edit Subsection
+				ImGui::SeparatorText("EDIT");
+				if (ImGui::MenuItem("Copy", "Ctrl+C", false, isEntitySelected_)) {
+					if (isEntitySelected_ && selectedEntityIndex > 0) {
+						CopyEntityToClipboard(selectedEntityIndex - 1);
+					}
+				}
+				if (ImGui::MenuItem("Paste", "Ctrl+V", false, entityClipboard.has_value())) {
+					PasteEntityFromClipboard();
+				}
+				if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, isEntitySelected_)) {
+					Entity selectedEntity = selectedEntityIndex - 1;
+					SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
+					if (entityMgr.HasComponent(selectedEntity, SceneOwnedType)) {
+						ownerSceneID = entityMgr.GetComponent<SceneOwned>(selectedEntity).sceneIndex;
+					}
+
+					const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
+					Entity clonedEntity = entityMgr.CloneEntity(selectedEntity);
+					sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
+					historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
+				}
+				if (ImGui::MenuItem("Delete", "Delete", false, isEntitySelected_)) {
+					Entity selectedEntity = selectedEntityIndex - 1;
+					historyManager_.Record(OpType::Delete, selectedEntity, "Deleted Entity");
+					entityMgr.DestroyEntity(selectedEntity);
+					if (static_cast<unsigned int>((selectedEntityIndex - 1)) == selectedEntity) {
+						selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+						isEntitySelected_ = false;
+					}
+				}
+				// End Edit Subsection
+
+				// Configuration Subsection
+				ImGui::SeparatorText("CONFIGURATION");
+				if (ImGui::MenuItem("Editor Preferences...")) {
+					settings.showPreferencesWindow = true;
+				}
+				if (ImGui::MenuItem("Project Settings...")) {
+					settings.showProjectSettingsWindow = true;
+				}
+				// End Configuration Subsection
+
+				ImGui::EndMenu();
+				// End Edit Submenu
+			}
+
+			// Window Submenu
+			if (ImGui::BeginMenu("Window")) {
+				ImGui::MenuItem("Inspector", NULL, &settings.showInspector);
+				ImGui::MenuItem("Hierarchy", NULL, &settings.showHierarchy);
+				ImGui::MenuItem("Level Editor", NULL, &settings.showLevelEditor);
+				ImGui::MenuItem("LayerManager", NULL, &settings.showLayerManager);
+				ImGui::EndMenu();
+			}
+			// End Window Submenu
+
+			// Tools Submenu
+			if (ImGui::BeginMenu("Tools")) {
+				ImGui::MenuItem("FSM Enemy Editor", NULL, &isFSMEditorOpen_);
+				ImGui::MenuItem("Prefab Editor", NULL, &isPrefabEditorOpen_);
+				if (ImGui::BeginMenu("Debug")) {
+					ImGui::MenuItem("Show Grid", NULL, &showGrid_);
+					Framework::SpriteRenderSystem* spriteRenderer = GameManager::GetInstance().GetSystems().spriteRenderer_;
+					if (spriteRenderer) {
+						bool showColliders = spriteRenderer->IsDrawingColliders();
+						if (ImGui::MenuItem("Show Colliders", NULL, &showColliders)) {
+							spriteRenderer->ToggleColliders();
+						}
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
+			}
+			// End Tools Submenu
+
+			ImGui::EndMainMenuBar();
+		}
+
+		ImGui::PopStyleColor();
+	}
+
+#pragma endregion
+
 #pragma region TOOLBAR
 
 	void Editor::ShowToolbar() {
@@ -4961,12 +5094,138 @@ namespace Editor {
 				ImGui::Button("Redo", historyControlBtnSize);
 				ImGui::EndDisabled();
 			}
-
-			ImGui::End();
 		}
+		ImGui::End();
 
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();
+	}
+
+#pragma endregion
+
+#pragma region CONFIG WINDOWS
+
+	void Editor::ShowPreferencesWindow() {
+		ImGui::SetNextWindowSize(ImVec2(850, 550), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Editor Preferences", &settings.showPreferencesWindow)) {
+			ImGui::SeparatorText("History");
+
+			static int currentLimit = historyManager_.GetUndoLimit();
+
+			ImGui::DragInt("Max History Steps", &currentLimit, 1.f, 1, 100);
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				historyManager_.SetUndoLimit(currentLimit);
+				SaveEditorConfig();
+			}
+
+			if (!ImGui::IsItemActive()) {
+				currentLimit = historyManager_.GetUndoLimit();
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Maximum number of operations stored in the Undo/Redo Stack. Changing this value will wipe the current history stack.");
+			}
+		}
+		ImGui::End();
+	}
+
+	void Editor::ShowProjectSettingsWindow() {
+		ImGui::SetNextWindowSize(ImVec2(850, 550), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Project Settings", &settings.showProjectSettingsWindow)) {
+			static int selectedCategory = 0;
+			const char* categories[] = { "Physics 2D", "Performance" };
+
+			// --- Left Pane (Sidebar) ---
+			ImGui::BeginChild("Sidebar", ImVec2(220, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+			for (int i = 0; i < IM_ARRAYSIZE(categories); ++i) {
+				if (ImGui::Selectable(categories[i], selectedCategory == i)) {
+					selectedCategory = i;
+				}
+			}
+			ImGui::EndChild();
+			// --- Left Pane (Sidebar) ---
+
+			// --- Right Pane (Config) ---
+			ImGui::SameLine();
+			ImGui::BeginChild("Configuration", ImVec2(0, 0), false);
+
+			// Header
+			ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+			ImGui::Text("%s", categories[selectedCategory]);
+			ImGui::PopFont();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			// Body
+			switch (selectedCategory) {
+			case 0: { // Physics2D
+				Framework::PhysicsSystem& physics = *GameManager::GetInstance().GetSystems().physics_;
+
+				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+				if (ImGui::BeginTable("PhysicsProperties", 2, tableFlags)) {
+					ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 200.f);
+					ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
+
+					// Gravity
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("World Gravity");
+
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-FLT_MIN);
+					if (ImGui::DragFloat2("##Gravity", &physics.gravity_.x, 0.1f)) {
+						Framework::FileIOSystem::SaveWorldConfig();
+					}
+					ImGui::PopItemWidth();
+					ImGui::EndTable();
+				}
+				break;
+			}
+			case 1: { // Performance
+				Framework::PhysicsSystem& physics = *GameManager::GetInstance().GetSystems().physics_;
+
+				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+				if (ImGui::BeginTable("PerformanceProperties", 2, tableFlags)) {
+					ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 200.f);
+					ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
+
+					static bool enableFPSLimit = false;
+					static int fpsLimit = 100;
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Enable FPS Limit");
+
+					ImGui::TableSetColumnIndex(1);
+					if (ImGui::Checkbox("##EnableFPS", &enableFPSLimit)) {
+						// Empty by design
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Max FPS");
+
+					ImGui::TableSetColumnIndex(1);
+					if (!enableFPSLimit) ImGui::BeginDisabled();
+					ImGui::PushItemWidth(-FLT_MIN);
+					if (ImGui::DragInt("##MaxFPS", &fpsLimit, 1.f, 15, 240)) {
+						// Empty by design
+					}
+					ImGui::PopItemWidth();
+					if (!enableFPSLimit) ImGui::EndDisabled();
+					ImGui::EndTable();
+				}
+				break;
+			}
+			default: break;
+			}
+			ImGui::EndChild();
+			// -- Right Pane (Config) ---
+		}
+		ImGui::End();
 	}
 
 #pragma endregion

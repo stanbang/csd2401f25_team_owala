@@ -64,7 +64,7 @@ namespace Editor{
 		/* Preservation */
 		std::vector<Operation> undoStack; // Current operations that can be undone.
 		std::vector<Operation> redoStack; // Current operations that can be redone.
-		int maxHistorySteps{ 20 }; // Maximum stack size of the Undo Stack.
+		int maxHistorySteps{ 30 }; // Maximum stack size of the Undo Stack.
 
 		// Might convert grouping system to vector of vector of operations in the future for better readability, see how - Jason.
 		/* Grouping States */
@@ -99,6 +99,8 @@ namespace Editor{
 		std::vector<std::string> GetUndoHistoryDescriptions() const;
 		// Retrieves the descriptions of all operations in the Redo Stack.
 		std::vector<std::string> GetRedoHistoryDescriptions() const;
+		// Gets the current history stack limit (Readonly).
+		const int GetUndoLimit() const { return maxHistorySteps; };
 
 		/* APIs */
 		void ClearHistory();

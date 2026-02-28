@@ -18,6 +18,8 @@
 #include "pch.h"
 #include "FileUtility.h"
 
+#include "GameManager.h"
+
 namespace Framework {
 	std::string FileIOSystem::SanitizeFileName(const std::string& name) {
 		std::string sanitized_name = name;
@@ -36,7 +38,10 @@ namespace Framework {
 	const bool FileIOSystem::ReadFile(const string& fileName, Document& doc) {
 		try {
 			ifstream file(fileName);
-			if (!file) Logger::Get().Error(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
+			if (!file) {
+				Logger::Get().Info(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
+				return false;
+			}
 
 			IStreamWrapper isw(file);
 			doc.ParseStream(isw);
@@ -53,7 +58,10 @@ namespace Framework {
 		try {
 			// Write JSON file
 			std::ofstream os(fileName);
-			if (!os) Logger::Get().Error(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
+			if (!os) {
+				Logger::Get().Info(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
+				return false;
+			}
 
 			// Convert Document to JSON string
 			StringBuffer buffer;
@@ -147,25 +155,65 @@ namespace Framework {
 		kb_y = static_cast<float>(knockback_y.GetDouble());
 	}
 
-	void FileIOSystem::LoadWorldConfig(float& gravity) {
-		rapidjson::Document d;
+	void FileIOSystem::SaveWorldConfig() {
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		/* Physics Config Serialization */
+		rapidjson::Value physicsObj(rapidjson::kObjectType);
+		PhysicsSystem* physicsSystem = GameManager::GetInstance().GetSystems().physics_;
+
+		if (physicsSystem) {
+			physicsObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_GRAVITYX), physicsSystem->gravity_.x, alloc);
+			physicsObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_GRAVITYY), physicsSystem->gravity_.y, alloc);
+		}
+
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::GBL_PHYSICSCAT), physicsObj, alloc);
+
+		/* Performance Config Serialization */
+		rapidjson::Value performanceObj(rapidjson::kObjectType);
+
+		performanceObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_ENABLEFPSLIMIT), true, alloc);
+		performanceObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_MAXFPS), 100, alloc);
+
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::GBL_PERFORMANCECAT), performanceObj, alloc);
+
+		Framework::FileIOSystem::WriteFileJson(FileIOKeys::EDITOR_CFG_PATH, doc);
+		Logger::Get().Info(DebugType::FileIOSystem) << "World Config Saved!" << std::endl;
+	}
+
+	void FileIOSystem::LoadWorldConfig() {
+		rapidjson::Document doc;
 		//Read the file name passed in as a path
-		if (!ReadFile(FileIOKeys::WORLD_CONFIG_FILEPATH, d)) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::WORLD_CONFIG_FILEPATH << std::endl;
+		if (!ReadFile(FileIOKeys::WORLD_CONFIG_FILEPATH, doc)) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::WORLD_CONFIG_FILEPATH << std::endl;
+			return;
 		}
 
-		// Check if gravity member exists && is float
-		if (!(d.HasMember(FileIOKeys::WORLD_GRAVITY) && d[FileIOKeys::WORLD_GRAVITY].IsFloat())) {
-			Logger::Get().Info(DebugType::FileIOSystem) << "Invalid or missing gravity in " << FileIOKeys::WORLD_CONFIG_FILEPATH << std::endl;
+		/* Physics Config Deserialization */
+		if (doc.HasMember(FileIOKeys::GBL_PHYSICSCAT) && doc[FileIOKeys::GBL_PHYSICSCAT].IsObject()) {
+			const rapidjson::Value& physicsObj = doc[FileIOKeys::GBL_PHYSICSCAT];
+			PhysicsSystem* physicsSystem = GameManager::GetInstance().GetSystems().physics_;
+
+			if (physicsSystem) {
+				if (physicsObj.HasMember(FileIOKeys::GBL_GRAVITYX) && physicsObj[FileIOKeys::GBL_GRAVITYX].IsFloat()) {
+					physicsSystem->gravity_.x = physicsObj[FileIOKeys::GBL_GRAVITYX].GetFloat();
+				}
+				if (physicsObj.HasMember(FileIOKeys::GBL_GRAVITYY) && physicsObj[FileIOKeys::GBL_GRAVITYY].IsFloat()) {
+					physicsSystem->gravity_.y = physicsObj[FileIOKeys::GBL_GRAVITYY].GetFloat();
+				}
+				Logger::Get().Info(DebugType::FileIOSystem) << "Physics Configuration Loaded" << std::endl;
+			}
 		}
 
-		const rapidjson::Value& gravityData = d[FileIOKeys::WORLD_GRAVITY];
-
-		// Debugging output
-		Logger::Get().Info(DebugType::FileIOSystem) << "World gravity read from " << FileIOKeys::WORLD_CONFIG_FILEPATH << ": " << gravityData.GetFloat() << std::endl;
-
-		// Set variables
-		gravity = gravityData.GetFloat();
+		/* Performance Config Deserialization */
+		if (doc.HasMember(FileIOKeys::GBL_PERFORMANCECAT) && doc[FileIOKeys::GBL_PERFORMANCECAT].IsObject()) {
+			const rapidjson::Value& performanceObj = doc[FileIOKeys::GBL_PERFORMANCECAT];
+			
+			// Empty for now
+			Logger::Get().Info(DebugType::FileIOSystem) << "Performance Configuration Loaded" << std::endl;
+		}
 	}
 
 	AnimationInfo FileIOSystem::LoadAnimationInfo(std::string filepath) {
