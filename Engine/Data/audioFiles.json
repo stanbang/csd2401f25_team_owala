@@ -1,7 +1,13 @@
 {
     "Player_Jump": [
-        "player_jump.wav",
-        "player_jump2.wav"
+        "Eli-Jump_1.wav",
+        "Eli-Jump_2.wav",
+        "Eli-Jump_3.wav",
+        "Eli-Jump_4.wav",
+        "Eli-Jump_5.wav",
+        "Eli-Jump_6.wav",
+        "Eli-Jump_7.wav",
+        "Eli-Jump_8.wav"
     ],
     "Player_Land": [
         "player_land.wav",
@@ -11,11 +17,26 @@
         "player_walk.wav"
     ],
     "Player_Hurt": [
-        "player_hurt.wav",
-        "player_hurt2.wav"
+        "Eli-Hurt_1.wav",
+        "Eli-Hurt_2.wav",
+        "Eli-Hurt_3.wav",
+        "Eli-Hurt_4.wav",
+        "Eli-Hurt_5.wav",
+        "Eli-Hurt_6.wav",
+        "Eli-Hurt_7.wav",
+        "Eli-Hurt_8.wav",
+        "Eli-Hurt_9.wav",
+        "Eli-Hurt_10.wav",
+        "Eli-Hurt_11.wav",
+        "Eli-Hurt_12.wav"
     ],
     "Player_Death": [
-        "player_death.wav"
+        "Eli-Death_1.wav",
+        "Eli-Death_2.wav",
+        "Eli-Death_3.wav",
+        "Eli-Death_4.wav",
+        "Eli-Death_5.wav",
+        "Eli-Death_6.wav"
     ],
     "Platform_Land": [
         "platform_land.wav"

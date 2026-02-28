@@ -26,8 +26,8 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-    // Replace single instance with a list of all active controllers
-    std::vector<TransitionController*> TransitionController::allControllers;
+        // Replace single instance with a list of all active controllers
+        std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
     float TransitionController::s_lastOpenEventTime = -1.0f;
 
@@ -35,12 +35,12 @@ namespace Framework {
     const std::string OPEN_ANIM_TEXTURE = "SB_Curtain_Open_Spritesheet_01.png";
     const std::string IDLE_ANIM_TEXTURE_R = "SB_Curtain_Idle_Spritesheet_R_01.png"; // Renamed for clarity
     const std::string IDLE_ANIM_TEXTURE_L = "SB_Curtain_Idle_Spritesheet_l_01.png";
-    
+
     void TransitionController::OnCreate() {
         // Add this new entity to the global list
         allControllers.push_back(this);
 
-		// Default to Right Curtain idle texture
+        // Default to Right Curtain idle texture
         idleTextureKey_ = IDLE_ANIM_TEXTURE_R;
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
@@ -52,7 +52,7 @@ namespace Framework {
 
             // Assuming 0 is the center of the world/screen
             if (trans.position.x < 0.0f) {
-				Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
+                Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
                 idleTextureKey_ = IDLE_ANIM_TEXTURE_L;
             }
         }
@@ -262,6 +262,7 @@ namespace Framework {
     }
 
     void TransitionController::OnUpdate() {
+        ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
         CheckStartClosed(); // Check flag each update in case it was set later
 
         float dt = Framework::Time::UnscaledDeltaTime();
@@ -275,9 +276,11 @@ namespace Framework {
 
         // If we are in a non-level scene like the menu and the curtain is stuck CLOSED,
         // force it to hide immediately.
-        if (!isLevel && state_ != TransitionState::HIDDEN) {
+        if (!isLevel && state_ != TransitionState::HIDDEN
+            && state_ != TransitionState::CLOSING
+            && state_ != TransitionState::CLOSED) {
             ForceHide();
-            return; // ForceHide changes state, return to avoid processing other logic this frame
+            return;
         }
 
         if (state_ == TransitionState::HIDDEN) {
@@ -293,7 +296,7 @@ namespace Framework {
             std::string targetIdleKey = IDLE_ANIM_TEXTURE_R;
             bool shouldFlip = false;
 
-			// Determine if Left or Right Curtain based on position
+            // Determine if Left or Right Curtain based on position
             if (entityMgr.HasComponent(GetEntity(), TransformType)) {
                 if (entityMgr.GetComponent<Transform>(GetEntity()).position.x < 0.0f) {
                     // Left Curtain
@@ -307,32 +310,60 @@ namespace Framework {
                 }
             }
 
-            // Ensure the idle animation is set and looping
-            if (tex.textureKey != targetIdleKey || tex.flipHorizontal != shouldFlip) {
+			// Prevent texture reset if already playing the correct idle animation to avoid animation restart
+            bool isAlreadyPlayingIdle = false;
+            if (rsm && rsm->has<AnimationInfo>(targetIdleKey)) {
+                AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey);
+
+                // Check if the current texture is the base key or one of the animation's sheets
+                if (tex.textureKey == targetIdleKey) {
+                    isAlreadyPlayingIdle = true;
+                }
+                else {
+                    for (const auto& sheet : info.sheets) {
+                        if (tex.textureKey == sheet.textureKey) {
+                            isAlreadyPlayingIdle = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (tex.textureKey == targetIdleKey) {
+                isAlreadyPlayingIdle = true;
+            }
+
+            // Only initialize the animation if it's not already playing the correct idle
+            if (!isAlreadyPlayingIdle) {
                 tex.textureKey = targetIdleKey;
                 tex.flipHorizontal = shouldFlip;
-                
+
                 if (entityMgr.HasComponent(GetEntity(), AnimationComponentType)) {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(GetEntity());
-                    
-                    ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
+
                     if (rsm) {
-                        if (!rsm->has<AnimationInfo>(idleTextureKey_)) {
-                            rsm->loadAnimationInfo(idleTextureKey_);
+                        if (!rsm->has<AnimationInfo>(targetIdleKey)) {
+                            rsm->loadAnimationInfo(targetIdleKey); // Ensure idle animation data is loaded
                         }
-                        
-                        if (rsm->has<AnimationInfo>(idleTextureKey_)) {
-                            AnimationInfo& info = rsm->get<AnimationInfo>(idleTextureKey_);
-                            anim.frameCount = info.frameCount;
+
+                        if (rsm->has<AnimationInfo>(targetIdleKey)) {
+                            AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey); // Get the animation info for the idle texture
+                            anim.frameCount = info.frameCount; // Update frame count and duration to match the idle animation
                             anim.frameDuration = info.frameDuration;
                         }
                     }
-                    
+
                     anim.currentFrame = 0;
                     anim.elapsedTime = 0.0f;
                     anim.isPlaying = true;
                     anim.isLooping = true; // Loop the idle animation
                 }
+            }
+            else {
+                // Already playing � just reset the textureKey to the BASE key each frame
+                // so the AnimationSystem resolves the correct AnimationInfo (with all 5 sheets)
+                // instead of resolving a sub-sheet key that only has 3 frames.
+                tex.textureKey = targetIdleKey;
+                tex.flipHorizontal = shouldFlip;
             }
         }
 
@@ -377,7 +408,8 @@ namespace Framework {
                 // Transition to IDLING if in a level, otherwise HIDDEN
                 if (isLevel) {
                     state_ = TransitionState::IDLING;
-                } else {
+                }
+                else {
                     state_ = TransitionState::HIDDEN;
                 }
 

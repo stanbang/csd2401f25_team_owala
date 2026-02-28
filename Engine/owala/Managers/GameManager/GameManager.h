@@ -64,9 +64,13 @@ namespace Framework {
 		static GameManager* instance;
 		std::string nextSceneToLoad_ = "";
 		std::function<void()> deferredTask_ = nullptr;
+		std::function<void()> overlayDrawCallback_ = nullptr;
+
 
 		bool queuedLevelLoad_ = false;
 		bool queuedLevelReset_ = false;
+		bool queuedResume_ = false;
+		std::string queuedSceneUnload_;
 		std::string queuedLevelName_;
 
 		struct SceneCallBacks {
@@ -184,12 +188,22 @@ namespace Framework {
 		// Checks if game is currently in play mode or not
 		bool IsGamePlaying() const;
 
+		void SetOverlayCallback(std::function<void()> cb) { overlayDrawCallback_ = cb; }
 		void SetNextScene(const std::string& sceneName) { nextSceneToLoad_ = sceneName; }
 		std::string GetNextScene() const { return nextSceneToLoad_; }
 		void InitiateLevelLoad(const std::string& levelName);
 
 		// Helper to check if a scene is a level scene
 		bool IsLevelScene(const std::string& name);
+
+		// Queues a level load to be processed safely at the top of the next frame.
+		// Use this instead of InitiateLevelLoad when calling from inside a scene
+		// update callback (e.g. LevelSelection::Update) to avoid mutating the
+		// loaded-scenes list while it is being iterated.
+		void QueueLevelLoad(const std::string& levelName) {
+			queuedLevelName_ = levelName;
+			queuedLevelLoad_ = true;
+		}
 
 		// Getter for Previous scene
 		SceneGUID GetPrevScene() const { return previousScene; }

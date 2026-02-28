@@ -1,5 +1,5 @@
 /*****************************************************************//**
- * \file	SceneSystem.cpp
+ * \file	GameManager.cpp
  * \brief	Manager responsible for managing game state
  *
  *
@@ -242,6 +242,13 @@ namespace Framework {
 		TransitionController::Reset();
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
+			
+			// If the button has a scene to unload on click, queue it for next frame
+			if (!event.sceneToUnload.empty()) {
+				Logger::Get().Info(DebugType::GameManager)
+					<< "Button queuing scene unload: " << event.sceneToUnload << std::endl;
+				queuedSceneUnload_ = event.sceneToUnload;
+			}
 
 			switch (event.action) {
 
@@ -297,7 +304,11 @@ namespace Framework {
 				}
 				break;
 
-				// Note: We do NOT handle PLAYSOUND here. AudioSystem handles that.
+			case ButtonAction::RESUME_GAME:
+				Logger::Get().Info(DebugType::GameManager) << "Button requested RESUME_GAME" << std::endl;
+				queuedResume_ = true;
+				break;
+			// Note: We do NOT handle PLAYSOUND here. AudioSystem handles that.
 			default:
 				break;
 			}
@@ -314,6 +325,8 @@ namespace Framework {
 					Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
 					//GetSystems().levelResetter_->RunReset(); // Don't reset the level before the curtains close, do it after inside InitiateLevelLoad
 					//SceneManager::GetInstance().LoadScene("RestartMenu"); //Old code without transitions
+					LevelSelection::ResetFade();
+					SetOverlayCallback(nullptr);
 					this->InitiateLevelLoad("RestartMenu"); // Correct way to load with transitions
 				}
 			}
@@ -350,8 +363,12 @@ namespace Framework {
 					RegisterScriptToScene(sceneID, LevelSelection::Initialize, LevelSelection::Update, LevelSelection::Free);
 					continue;
 				}
-				// all other scenes use TestScene.cpp for now
-				RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				// Only register TestScene callbacks for actual level scenes.
+				// Overlay/menu scenes (PauseScene, OptionsMenu, etc.) run entirely
+				// through NativeScriptsComponent and do not need lifecycle callbacks.
+				if (IsLevelScene(sceneName)) {
+					RegisterScriptToScene(sceneID, TestScene::Initialize, TestScene::Update, TestScene::Free);
+				}
 			}
 		}
 		else {
@@ -375,6 +392,30 @@ namespace Framework {
 		if (deferredTask_) {
 			deferredTask_();
 			deferredTask_ = nullptr;
+		}
+
+		// Process queued resume (deferred to avoid entity destruction mid frame)
+		if (queuedResume_) {
+			queuedResume_ = false;
+			SceneManager::GetInstance().UnloadScene("PauseScene");
+			SceneManager::GetInstance().UnloadScene("OptionsMenu");
+			systems_.physics_->SetPaused(false);
+		}
+
+		// Process any scene unload queued by a button click last frame
+		if (!queuedSceneUnload_.empty()) {
+			std::string sceneToUnload = std::move(queuedSceneUnload_);
+			queuedSceneUnload_.clear();
+			// If we are unloading a game overlay that paused physics (PauseScene /
+			// OptionsMenu) via a non-Resume path (e.g. "Main Menu" button), we must
+			// unpause physics here. Otherwise the paused state leaks into subsequent
+			// scenes and freezes all animations driven by AnimationSystem.
+			if (sceneToUnload == "PauseScene" || sceneToUnload == "OptionsMenu") {
+				systems_.physics_->SetPaused(false);
+			}
+
+			SceneManager::GetInstance().UnloadScene(sceneToUnload);
+
 		}
 
 		// --- GAME UPDATE HERE ---
@@ -471,6 +512,7 @@ namespace Framework {
 		#ifdef BUILD_ENGINE
 		systems_.textRenderer_->Update();
 		systems_.spriteRenderer_->Update();
+		if (overlayDrawCallback_) overlayDrawCallback_();
 		#endif
 
 		// --- END GAME UPDATE ---
@@ -503,10 +545,37 @@ namespace Framework {
 
 	// Helper to trigger the loading process
 	void GameManager::InitiateLevelLoad(const std::string& targetSceneName) {
-
+		systems_.physics_->SetPaused(false);
 		std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
 		bool currentIsLevel = IsLevelScene(currentSceneName);
 		bool targetIsLevel = IsLevelScene(targetSceneName);
+
+		// When a game overlay (PauseScene / OptionsMenu) is additively loaded on top of a
+		// real level, GetActiveScene returns the overlay, not the level. Scan all loaded
+		// scenes to recover the true "current" context so the correct transition branch fires.
+		// The scan is intentionally restricted to known game overlays to avoid falsely
+		// promoting a stale loaded level when transitioning between genuine menu scenes
+		// (e.g. MainMenu -> LevelSelection -> Tutorial 1 where a previous level is still loaded).
+		const bool activeIsGameOverlay = (currentSceneName == "PauseScene" ||
+			currentSceneName == "OptionsMenu");
+		if (!currentIsLevel && activeIsGameOverlay) {
+			// The game overlay paused physics when it was opened. Since we are now
+			// leaving via a scene switch (not the Resume button), we must unpause
+			// physics here. Otherwise the paused state leaks through the loading
+			// screen into the next level, freezing all animations.
+			systems_.physics_->SetPaused(false);
+
+			SceneManager& sceneMgr = SceneManager::GetInstance();
+			const std::vector<SceneGUID>& loadedScenes = sceneMgr.GetLoadedScenes();
+			for (SceneGUID id : loadedScenes) {
+				const SceneAsset& scene = sceneMgr.GetSceneAt(id);
+				if (IsLevelScene(scene.name)) {
+					currentSceneName = scene.name;
+					currentIsLevel = true;
+					break;
+				}
+			}
+		}
 
 		previousScene = SceneManager::GetInstance().GetActiveScene().sceneIndex;
 
@@ -625,6 +694,7 @@ namespace Framework {
 			name == "LoadingScreen" || 
 			name == "HowToPlay" ||
 			name == "OptionsMenu" ||
+			name == "PauseScene" ||
 			name == "Cutscene Intro")
 			return false;
 		return true;

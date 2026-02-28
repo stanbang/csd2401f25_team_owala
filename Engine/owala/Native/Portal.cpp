@@ -5,6 +5,7 @@
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
+#include "TimerSystem.h"  // ADD THIS INCLUDE
 #include <string>
 
 REGISTER_SCRIPT(Portal, "Portal")
@@ -13,12 +14,12 @@ void Portal::SearchForPlayer() {
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
 	std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
-    for (Entity entity : sceneEntities) {
-        if (entityMgr.HasComponent(entity, PlayerTagType)) {
-            player = entity;
-            return;
-        }
-    }
+	for (Entity entity : sceneEntities) {
+		if (entityMgr.HasComponent(entity, PlayerTagType)) {
+			player = entity;
+			return;
+		}
+	}
 }
 
 void Portal::SearchForSaveManager() {
@@ -54,7 +55,6 @@ void Portal::OnUpdate() {
 	PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
 	AudioSystem& audioSystem = *gm.GetSystems().audio_;
 	EntityManager entityMgr(*gm.GetSystems().ecs_);
-	//SceneManager& sceneMgr = SceneManager::GetInstance();
 
 	Entity self = GetEntity();
 
@@ -65,6 +65,15 @@ void Portal::OnUpdate() {
 	}
 
 	if (physicsSystem.CheckTriggerOverlap(player, self)) {
+		// ===== ADD THIS =====
+		// Stop the timer and submit to Firebase BEFORE resetting
+		if (TimerSystem::Get().IsRunning()) {
+			Framework::Logger::Get().Info(DebugType::PlayerSystem)
+				<< "[Portal] Level complete! Stopping timer and submitting..." << std::endl;
+			TimerSystem::Get().StopAndSubmit();
+		}
+		// ====================
+
 		GameManager::GetInstance().GetSystems().levelResetter_->RunReset();
 		audioSystem.stopAll();
 		save->Unlock(levelIndexToUnlock);

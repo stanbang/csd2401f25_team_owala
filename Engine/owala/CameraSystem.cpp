@@ -81,7 +81,7 @@ namespace Framework {
                 }
             }
 
-            // **NEW: Clamp camera position to map bounds**
+            // *Clamp camera position to map bounds*
             if (camera.useMapBounds) {
                 float halfWidth = camera.size.x * 0.5f;
                 float halfHeight = camera.size.y * 0.5f;

@@ -35,17 +35,20 @@ void PauseMenuController::OnUpdate() {
     // key was just pressed
     if (input.KeyPressed(InputSystem::Key::Escape)) {
         const SceneManagement::SceneAsset& optionsScene = SceneManager::GetInstance().GetSceneByName("OptionsMenu", true);
+        const SceneManagement::SceneAsset& pauseScene = SceneManager::GetInstance().GetSceneByName("PauseScene", true);
 
         // Toggle scene based on whether it is currently loaded
-        if (optionsScene.IsValid() && optionsScene.isLoaded) {
+        if ((optionsScene.IsValid() && optionsScene.isLoaded) 
+            || (pauseScene.IsValid() && pauseScene.isLoaded)) {
 			// Unpause physics
             physics.SetPaused(false);
+            SceneManager::GetInstance().UnloadScene("PauseScene");
             // Close scene if already open
             SceneManager::GetInstance().UnloadScene("OptionsMenu");
         }
         else {
             // Load scene on top of current scene
-            SceneManager::GetInstance().LoadScene("OptionsMenu", LoadSceneMode::Additive);
+            SceneManager::GetInstance().LoadScene("PauseScene", LoadSceneMode::Additive);
             // Pause physics
             physics.SetPaused(true);
         }

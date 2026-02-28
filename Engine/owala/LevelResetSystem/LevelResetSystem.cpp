@@ -17,6 +17,8 @@
 #include "LevelResetSystem.h"
 #include "MessageBus.h"
 #include "GameManager.h"
+#include "LevelSelection.h"
+#include "TimerSystem.h"
 
 namespace Framework {
 
@@ -42,7 +44,7 @@ namespace Framework {
         //trapPlatformSig.set(TransformType);
         //trapPlatformSig.set(RotationFlagType);
         //trapPlatformSig.set(SceneOwnedType);
-    
+
         //basicPlatformSig.set(ActiveTagType);
         //basicPlatformSig.set(PlatformTagType);
         //basicPlatformSig.set(TransformType);
@@ -74,24 +76,33 @@ namespace Framework {
                     }
                 }
             }
-        });
+            });
     }
 
     void LevelResetSystem::RunReset() {
         GameManager& gm = GameManager::GetInstance();
         TransformationSystem& transformationSys_ = *gm.GetSystems().transformation_;
-
+        LevelSelection::ResetFade();
+        gm.SetOverlayCallback(nullptr);
         // Reset global rotation
         Logger::Get().Info(DebugType::LevelResetSystem) << "Reset global rotation variables" << std::endl;
         transformationSys_.ResetGlobalRotation();
 
+        // Reset timer when level resets
+        TimerSystem::Get().Reset();
+        Logger::Get().Info(DebugType::LevelResetSystem) << "Timer reset due to level reset" << std::endl;
+
+        // ===== ADDED: Clear any fade overlay =====
+        gm.SetOverlayCallback(nullptr);
+        // =========================================
+
         EntityManager entityMgr(gm.GetECS());
-        
+
         // Delete all particles
-		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
-			entityMgr.DestroyEntity(entity);
-		}
-        
+        for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, ParticleComponentType)) {
+            entityMgr.DestroyEntity(entity);
+        }
+
         // Reset entities
         //for (const auto& [entity, signature] : entityMgr.GetEntitySignatures()) {
             // --- Player Reset ---

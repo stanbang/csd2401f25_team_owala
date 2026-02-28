@@ -474,7 +474,203 @@ namespace Framework {
     }
 
     // =========================================================
-    // MACRO REGISTRATION FOR STATES
+    // WITCH ENEMY STATE IMPLEMENTATIONS
+    // =========================================================
+
+    // --- WITCH IDLE ---
+    void WitchIdleState::OnEnter(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        // Just waiting for player detection (handled by FSM transitions)
+    }
+
+    void WitchIdleState::SetParameter(const std::string& key, float value) {
+        if (key == "detectionRadius") detectionRadius_ = value;
+    }
+
+    // --- WITCH ALERTED ---
+    void WitchAlertedState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+        // Stop movement during alert animation
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchAlertedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        // Play alert animation here if you have animation system
+    }
+
+    void WitchAlertedState::SetParameter(const std::string& key, float value) {
+        if (key == "alertDuration") alertDuration_ = value;
+    }
+
+    // --- WITCH ENRAGED ---
+    void WitchEnragedState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+        // Stop movement during enrage animation
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchEnragedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        // Play enraged animation here
+    }
+
+    void WitchEnragedState::SetParameter(const std::string& key, float value) {
+        if (key == "enrageDuration") enrageDuration_ = value;
+    }
+
+    // --- WITCH TELEPORT ---
+    void WitchTeleportState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        Entity player = GetPlayer(ecs);
+        if (player == 0 || !mgr.HasComponent(entity, TransformType) ||
+            !mgr.HasComponent(player, TransformType)) return;
+
+        Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
+
+        // Pick a random angle and distance within range of the player
+        static std::mt19937 rng{ std::random_device{}() };
+        std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * 3.14159265f);
+        std::uniform_real_distribution<float> distDist(minTeleportRange_, maxTeleportRange_);
+
+        float angle = angleDist(rng);
+        float dist = distDist(rng);
+
+        Vector2D offset = { std::cos(angle) * dist, std::sin(angle) * dist };
+        Vector2D teleportPos = playerPos + offset;
+
+        // Instantly teleport
+        mgr.GetComponent<Transform>(entity).position = teleportPos;
+
+        // Stop velocity
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchTeleportState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+    }
+
+    void WitchTeleportState::SetParameter(const std::string& key, float value) {
+        if (key == "teleportDuration") teleportDuration_ = value;
+        if (key == "minTeleportRange") minTeleportRange_ = value;
+        if (key == "maxTeleportRange") maxTeleportRange_ = value;
+    }
+
+    // --- WITCH CHARGING ---
+    void WitchChargingState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        // Stop movement during charge
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchChargingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        // Show charging animation/effect
+        // You can visualize the attack radius here in debug mode
+    }
+
+    void WitchChargingState::SetParameter(const std::string& key, float value) {
+        if (key == "chargeDuration") chargeDuration_ = value;
+        if (key == "attackRadius") attackRadius_ = value;
+    }
+
+    // --- WITCH ATTACK ---
+    void WitchAttackState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        currentRadius_ = 0.0f;
+        damageDealt_ = false;
+
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        EntityManager mgr(ecs);
+
+        // Expanding/contracting circle: expand first half, contract second half
+        float halfDuration = attackDuration_ * 0.5f;
+        if (timer_ <= halfDuration) {
+            // Expanding phase: 0 -> maxAttackRadius_
+            currentRadius_ = (timer_ / halfDuration) * maxAttackRadius_;
+        }
+        else {
+            // Contracting phase: maxAttackRadius_ -> 0
+            float contractT = (timer_ - halfDuration) / halfDuration;
+            if (contractT > 1.0f) contractT = 1.0f;
+            currentRadius_ = (1.0f - contractT) * maxAttackRadius_;
+        }
+
+        // Check if player is inside the expanding circle to deal damage
+        if (!damageDealt_) {
+            Entity player = GetPlayer(ecs);
+            if (player != 0 && mgr.HasComponent(entity, TransformType) &&
+                mgr.HasComponent(player, TransformType)) {
+
+                Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
+                Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
+                float distance = myPos.Distance(playerPos);
+
+                if (distance <= currentRadius_) {
+                    damageDealt_ = true;
+
+                    // Hurt the player if they have PlayerState
+                    if (mgr.HasComponent(player, PlayerStateType)) {
+                        PlayerState& ps = mgr.GetComponent<PlayerState>(player);
+                        if (!ps.isHurt && !ps.isDead) {
+                            ps.isHurt = true;
+                            ps.invulnerabilityTimer = 1.5f;
+                            ps.currentLives--;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Write current radius to FSMComponent for visual rendering
+        if (mgr.HasComponent(entity, FSMComponentType)) {
+            mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = currentRadius_;
+        }
+    }
+
+    void WitchAttackState::OnExit(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, FSMComponentType)) {
+            mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = 0.0f;
+        }
+        currentRadius_ = 0.0f;
+    }
+
+    void WitchAttackState::SetParameter(const std::string& key, float value) {
+        if (key == "attackDuration") attackDuration_ = value;
+        if (key == "attackRadius") maxAttackRadius_ = value;
+    }
+
+
+    // =========================================================
+    // MACRO REGISTRATION 
     // =========================================================
     REGISTER_STATE("Idle", BirdIdleState);
     REGISTER_STATE("Waking", BirdWakingState);
@@ -485,6 +681,14 @@ namespace Framework {
     REGISTER_STATE("SimpleChase", BirdSimpleChaseState)
     REGISTER_STATE("Bounce", BirdBounceState)
     REGISTER_STATE("Death", BirdDeathState)
+
+    // witch registration 
+    REGISTER_STATE("WitchIdle", WitchIdleState);
+    REGISTER_STATE("WitchAlerted", WitchAlertedState);
+    REGISTER_STATE("WitchEnraged", WitchEnragedState);
+    REGISTER_STATE("WitchTeleport", WitchTeleportState);
+    REGISTER_STATE("WitchCharging", WitchChargingState);
+    REGISTER_STATE("WitchAttack", WitchAttackState);
 
     // Common Condition Helpers
     REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
@@ -517,11 +721,24 @@ namespace Framework {
             if (auto* rs = dynamic_cast<BirdRecoveryState*>(s))
                 return rs->GetTimer() >= rs->GetDuration();
 
+            // --- WITCH STATES ---
+            if (auto* wa = dynamic_cast<WitchAlertedState*>(s))
+                return wa->GetTimer() >= wa->GetAlertDuration();
+            if (auto* we = dynamic_cast<WitchEnragedState*>(s))
+                return we->GetTimer() >= we->GetEnrageDuration();
+            if (auto* wt = dynamic_cast<WitchTeleportState*>(s))
+                return wt->GetTimer() >= wt->GetTeleportDuration();
+            if (auto* wc = dynamic_cast<WitchChargingState*>(s))
+                return wc->GetTimer() >= wc->GetChargeDuration();
+            if (auto* watt = dynamic_cast<WitchAttackState*>(s))
+                return watt->GetTimer() >= watt->GetAttackDuration();
+
             return false;
         };
     });
 
 
+        // AIStates.cpp, improved collision detection
     REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
         (void)data;
         return [](Entity e, EntityStorage& ecs) {
@@ -552,6 +769,7 @@ namespace Framework {
             return false;
             };
         });
+
 
 
 

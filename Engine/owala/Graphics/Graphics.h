@@ -60,6 +60,7 @@ namespace Framework {
         float rotation = 0;     //!< Rotation in radians
         Vector2D minUV;     //!< Usually (0,0)
         Vector2D maxUV;     //!< Usually (1,1)
+        Color color = { 1.0f, 1.0f, 1.0f, 1.0f }; // ADD THIS
     };
 
     // ------------------------------------------------------------------
@@ -195,7 +196,10 @@ namespace Framework {
         unsigned vboText_ = 0;
 
         float t_ = 0.f;
+      
 
+        float m_MaxFPS = 100.0f; // Default cap
+        bool m_VsyncEnabled = false;
         // Game Frame
 		std::unique_ptr<Framebuffer> gameFramebuffer_;
     };

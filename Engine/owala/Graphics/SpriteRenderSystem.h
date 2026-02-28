@@ -149,6 +149,11 @@ namespace Framework {
          */
         void RenderColliderOutlines();
 
+        /**
+         * \brief Render active attack circle effects for FSM entities.
+         */
+        void RenderAttackCircles();
+
     private:
         bool             drawColliders_ = false; //!< Flag for collider debug rendering.
         Color            clearColor_;   //!< Background clear color.

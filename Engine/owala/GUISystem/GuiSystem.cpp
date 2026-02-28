@@ -61,9 +61,38 @@ namespace Framework {
 		#endif
 
 		bool mouseDown = inputSystem_.MouseDown(InputSystem::MouseButton::Left);
+		bool mouseClicked = inputSystem_.MouseReleased(InputSystem::MouseButton::Left);
+
+		// Build a scene priority order: last loaded scene = highest priority (topmost overlay).
+		// Buttons in higher-priority scenes consume the click before lower scenes can see it.
+		const std::vector<SceneGUID>& loadedScenes = SceneManager::GetInstance().GetLoadedScenes();
+
+		// Collect all button entities grouped by scene, in reverse load order (topmost first)
+		// so we can resolve click priority correctly.
+		std::vector<Entity> allButtons = entityMgr.GetAllEntitiesWithComponents(true, ButtonType, TransformType, TextureComponentType, LoadedTagType);
+
+		// Build a scene-index lookup per entity for priority sorting
+		// Scene priority = index in loadedScenes (higher index = loaded later = on top)
+		std::unordered_map<SceneGUID, int> scenePriority;
+		for (int i = 0; i < static_cast<int>(loadedScenes.size()); ++i) {
+			scenePriority[loadedScenes[i]] = i;
+		}
+
+		// Sort buttons so highest priority scene comes first
+		std::sort(allButtons.begin(), allButtons.end(), [&](Entity a, Entity b) {
+			if (!entityMgr.HasComponent(a, SceneOwnedType) || !entityMgr.HasComponent(b, SceneOwnedType)) return false;
+			SceneGUID sceneA = entityMgr.GetComponent<SceneOwned>(a).sceneIndex;
+			SceneGUID sceneB = entityMgr.GetComponent<SceneOwned>(b).sceneIndex;
+			int prioA = scenePriority.count(sceneA) ? scenePriority[sceneA] : -1;
+			int prioB = scenePriority.count(sceneB) ? scenePriority[sceneB] : -1;
+			return prioA > prioB; // descending: topmost scene first
+		});
+
+		// Track whether this frame's click has already been consumed by a button
+		bool clickConsumed = false;
 
 		// Loop through all active entities with Button, Position and AABB
-		for (const Entity& button : entityMgr.GetAllEntitiesWithComponents(true, ButtonType, TransformType, TextureComponentType, LoadedTagType)){
+		for (const Entity& button : allButtons){
 			Button& buttonComponent = entityMgr.GetComponent<Button>(button);
 			Transform& transform = entityMgr.GetComponent<Transform>(button);
 			TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(button);
@@ -74,13 +103,15 @@ namespace Framework {
 			double minY = static_cast<double>(transform.position.y - tex.HalfSize.y);
 			double maxY = static_cast<double>(transform.position.y + tex.HalfSize.y);
 
-			//Logger::Get().Info(DebugType::GUISystem) << "Mouse At: " << mouseX_ndc << ", " << mouseY_ndc << std::endl;
-			//Logger::Get().Info(DebugType::GUISystem) << "Button At: " << minX << ", " << minY << " to " << maxX << ", " << maxY << std::endl;
-
 			// Check if mouse is hovering over the button
 			bool isHovering = (mouseX_ndc >= minX && mouseX_ndc <= maxX &&
 				mouseY_ndc >= minY && mouseY_ndc <= maxY);
 
+			// If a higher-priority button already consumed the click this frame,
+			// suppress hover and click for all remaining (lower-priority) buttons.
+			if (clickConsumed && isHovering) {
+				isHovering = false;
+			}
 
 			// Update Button Hovering State
 			buttonComponent.isHovered = isHovering;
@@ -111,8 +142,6 @@ namespace Framework {
 			}
 			buttonComponent.wasHoveredLastFrame = isHovering;
 
-			// Check for mouse click release
-			bool mouseClicked = inputSystem_.MouseReleased(InputSystem::MouseButton::Left);
 			// If mouse clicked while hovering, trigger button action
 			if (isHovering && mouseClicked) {
 				Logger::Get().Info(DebugType::GUISystem)
@@ -126,13 +155,17 @@ namespace Framework {
 				// Reset button pressed state
 				buttonComponent.isPressed = false;
 
+				// Consume the click so no lower-priority scene buttons fire this frame
+				clickConsumed = true;
+
 				// Publish the event with the button's specific action
 				// Pass the parameters from the component to the event
 				MessageBus::Instance().Publish(ButtonClickedEvent{
 						button,                     // Entity ID
 						buttonComponent.action,     // The Enum (SWITCH_SCENE, PLAYSOUND, etc.)
 						buttonComponent.targetString, // The payload (Scene Name or Sound Key)
-						buttonComponent.targetValue   // The payload (Volume or other float)
+						buttonComponent.targetValue,   // The payload (Volume or other float)
+                        buttonComponent.sceneToUnloadOnClick // Scene to unload on click (may be empty)
 					});
 			}
 
@@ -151,22 +184,22 @@ namespace Framework {
             Slider& slider = entityMgr.GetComponent<Slider>(sliderEntity);
             Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
 
-			// Get the handle entity by resolving its name if needed
-            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity)) {
+			// Get the handle and fill entity by resolving its name if needed
+            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity) || (!slider.fillName.empty() && !entityMgr.ValidateEntity(slider.fillEntity))) {
+				// Attempt to resolve handle and fill entities by name
                 if (!slider.handleName.empty()) {
                     slider.handleEntity = entityMgr.GetEntityByName(slider.handleName);
+                }
+                if (!slider.fillName.empty()) {
+                    slider.fillEntity = entityMgr.GetEntityByName(slider.fillName);
+                }
 
-                    // If found, we don't need to resolve again this session
-                    if (slider.handleEntity != 0) {
-                        slider.needsResolution = false;
-                    }
-                    else {
-                        // If still not found, skip this frame
-                        continue;
-                    }
+				// If handle entity is resolved successfully, we can proceed. Fill entity is optional (for visual fill), so we don't require it to proceed.
+                if (slider.handleEntity != 0) {
+                    slider.needsResolution = false;
                 }
                 else {
-                    continue; // No name provided to search with
+                    continue;
                 }
             }
 
@@ -217,6 +250,27 @@ namespace Framework {
                     normalized = (slider.currentValue - slider.minValue) / range;
                 }
 
+				// Update the fill entity's scale and UVs to visually represent the current value
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TransformType) && entityMgr.HasComponent(slider.fillEntity, TextureComponentType)) {
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+
+                    fillTransform.scale.x = normalized; // Scale the quad's width
+                    // Shift position to keep it anchored to the left
+                    float bgCenterX = bgTransform.position.x + slider.widthOffsetX;
+                    float shiftAmount = fillTex.HalfSize.x * (1.0f - normalized);
+                    fillTransform.position.x = bgCenterX - shiftAmount;
+
+                    // Cut the UVs using the AnimationComponent
+                    if (!entityMgr.HasComponent(slider.fillEntity, AnimationComponentType)) {
+                        entityMgr.AddComponent<AnimationComponent>(slider.fillEntity, AnimationComponent{});
+                    }
+
+                    AnimationComponent& fillAnim = entityMgr.GetComponent<AnimationComponent>(slider.fillEntity);
+                    fillAnim.isPlaying = false; // Crucial: Stop it from actually animating
+                    fillAnim.maxUV.x = normalized;
+                }
+
                 // Snap handle to the correct visual position immediately
                 handleTransform.position.x = minX + (normalized * slider.width);
 
@@ -240,6 +294,27 @@ namespace Framework {
                 // Calculate normalized value (0.0 to 1.0)
                 float normalizedValue = (clampedMouseX - minX) / slider.width;
                 slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
+
+				// Update the fill entity's scale and UVs to visually represent the current value
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TransformType) && entityMgr.HasComponent(slider.fillEntity, TextureComponentType)) {
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+
+                    fillTransform.scale.x = normalizedValue; // Scale the quad's width
+                    // Shift position to keep it anchored to the left
+                    float bgCenterX = bgTransform.position.x + slider.widthOffsetX;
+                    float shiftAmount = fillTex.HalfSize.x * (1.0f - normalizedValue);
+                    fillTransform.position.x = bgCenterX - shiftAmount;
+
+                    // Cut the UVs using the AnimationComponent
+                    if (!entityMgr.HasComponent(slider.fillEntity, AnimationComponentType)) {
+                        entityMgr.AddComponent<AnimationComponent>(slider.fillEntity, AnimationComponent{});
+                    }
+
+                    AnimationComponent& fillAnim = entityMgr.GetComponent<AnimationComponent>(slider.fillEntity);
+                    fillAnim.isPlaying = false; // Crucial: Stop it from actually animating
+                    fillAnim.maxUV.x = normalizedValue;
+                }
 
                 switch (slider.sliderType) {
                 case SliderSoundType::MASTER_VOLUME:

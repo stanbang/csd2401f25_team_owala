@@ -172,6 +172,7 @@ namespace Framework::Serialization {
 	static constexpr const char* BUTTON_DEFAULT_ANIMATED = "default_is_animated";
 	static constexpr const char* BUTTON_HOVER_ANIMATED = "hover_is_animated";
 	static constexpr const char* BUTTON_PRESSED_ANIMATED = "pressed_is_animated";
+	static constexpr const char* BUTTON_SCENE_TO_UNLOAD = "scene_to_unload_on_click";
 
 	static constexpr const char* SCENE_OWNED_COMPONENT = "SceneOwned";
 	static constexpr const char* COMP_SCENE_ID = "scene_id";
@@ -209,6 +210,7 @@ namespace Framework::Serialization {
 	static constexpr const char* SLIDER = "Slider";
 	static constexpr const char* SLIDER_CURRENT_VALUE = "current_value";
 	static constexpr const char* SLIDER_HANDLE_NAME = "handle_name";
+	static constexpr const char* SLIDER_FILL_NAME = "fill_name";
 	static constexpr const char* SLIDER_MIN_VALUE = "min_value";
 	static constexpr const char* SLIDER_MAX_VALUE = "max_value";
 	static constexpr const char* SLIDER_WIDTH = "width";

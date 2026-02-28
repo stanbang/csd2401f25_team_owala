@@ -26,6 +26,9 @@
 #include "GameMessages.h"
 #include "ParticleEffectManager.h"
 #include "OwalaTime.h"
+#include "TimerSystem.h"
+#include "FirebaseManager.h"
+#include "SceneManager.h" 
 
 namespace Framework {
     void PlayerSystem::Initialize() {
@@ -34,9 +37,18 @@ namespace Framework {
     }
 
     void PlayerSystem::Update() {
+
+
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         if (physics_.IsPaused()) { return; }
+
+        TimerSystem::Get().Update(Framework::Time::DeltaTime());
+        FirebaseManager::Get().Update();
+
+
+        // In PlayerSystem::Update(), at the beginning of the player loop:
+
         InputSystem& input_ = *gm.GetSystems().input_;
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
 
@@ -111,9 +123,8 @@ namespace Framework {
                         vel.Vel.y = jumpVelocity; // Apply the calculated upward velocity
                         state.isWalking = false;
 
-                            float jumpVolume = 0.3f;
                             //messageBus
-                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity, jumpVolume }); //empty cause currently theres nothign to pass and just for testing
+                            MessageBus::Instance().Publish(PlayerJumpedEvent{ entity });
                         }
 
                         // Sets the direction the player is facing based on movement
