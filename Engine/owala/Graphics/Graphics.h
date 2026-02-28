@@ -140,6 +140,19 @@ namespace Framework {
         void drawText(Font& font, const std::string& text,
             const Vector2D& pos, float scale, const Color& color);
 
+        /* -------- Framerate Configuration -------- */
+
+        // Toggles between uncapping or capping the framerate.
+        void ToggleFPSCap() { isFPSCapped = !isFPSCapped; };
+        // Enables or Disables FPS cap.
+        void ToggleFPSCap(bool boolean) { isFPSCapped = boolean; };
+        // Returns true if FPS is currently capped, returns false otherwise.
+        const bool IsFPSCapEnabled() const { return isFPSCapped; };
+        // Sets the FPS Limit. Limit will only take effect if the FPSCap option is enabled.
+        void SetFPSCap(float value);
+        // Returns the max FPS limit if FPSCap option is turned on.
+        const float GetFPSCap() const { return m_MaxFPS; };
+
         // ----- Frame Buffer stuff (For Game Viewport) -----
         struct FramebufferSpecs {
             unsigned width = 800;
@@ -197,7 +210,7 @@ namespace Framework {
 
         float t_ = 0.f;
       
-
+        bool isFPSCapped = false;
         float m_MaxFPS = 100.0f; // Default cap
         bool m_VsyncEnabled = false;
         // Game Frame

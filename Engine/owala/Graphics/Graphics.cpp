@@ -253,7 +253,8 @@ namespace Framework {
     }
     void Graphics::Update() {
         // 1. Calculate target duration (e.g., 0.01 for 100 FPS)
-        double targetFrameTime = (m_MaxFPS > 0) ? (1.0 / (double)m_MaxFPS) : 0.0;
+        float local_maxFPS = isFPSCapped ? m_MaxFPS : 999.0f;
+        double targetFrameTime = (local_maxFPS > 0) ? (1.0 / (double)local_maxFPS) : 0.0;
 
         // 2. Wait logic (only if cap is enabled and reasonable)
         if (targetFrameTime > 0.0) {
@@ -717,6 +718,17 @@ namespace Framework {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_BLEND);
+    }
+
+    // =========================
+    // Framerate Configuration
+    // =========================
+    void Graphics::SetFPSCap(float value) {
+        if (value < 15.f) {
+            value = 15.f;
+        }
+
+        m_MaxFPS = value;
     }
 
     // =========================

@@ -5214,15 +5214,15 @@ namespace Editor {
 				break;
 			}
 			case 1: { // Performance
-				Framework::PhysicsSystem& physics = *GameManager::GetInstance().GetSystems().physics_;
+				Framework::Graphics& gfx = *GameManager::GetInstance().GetSystems().gfx_;
 
 				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
 				if (ImGui::BeginTable("PerformanceProperties", 2, tableFlags)) {
 					ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 200.f);
 					ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
 
-					static bool enableFPSLimit = false;
-					static int fpsLimit = 100;
+					bool enableFPSLimit = gfx.IsFPSCapEnabled();
+					static int fpsLimit = static_cast<int>(gfx.GetFPSCap());
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -5231,7 +5231,8 @@ namespace Editor {
 
 					ImGui::TableSetColumnIndex(1);
 					if (ImGui::Checkbox("##EnableFPS", &enableFPSLimit)) {
-						// Empty by design
+						gfx.ToggleFPSCap();
+						Framework::FileIOSystem::SaveWorldConfig();
 					}
 
 					ImGui::TableNextRow();
@@ -5242,9 +5243,17 @@ namespace Editor {
 					ImGui::TableSetColumnIndex(1);
 					if (!enableFPSLimit) ImGui::BeginDisabled();
 					ImGui::PushItemWidth(-FLT_MIN);
-					if (ImGui::DragInt("##MaxFPS", &fpsLimit, 1.f, 15, 240)) {
-						// Empty by design
+
+					ImGui::DragInt("##MaxFPS", &fpsLimit, 1.f, 15, 240);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						gfx.SetFPSCap(fpsLimit);
+						Framework::FileIOSystem::SaveWorldConfig();
 					}
+
+					if (!ImGui::IsItemActive()) {
+						fpsLimit = static_cast<int>(gfx.GetFPSCap());
+					}
+
 					ImGui::PopItemWidth();
 					if (!enableFPSLimit) ImGui::EndDisabled();
 					ImGui::EndTable();
