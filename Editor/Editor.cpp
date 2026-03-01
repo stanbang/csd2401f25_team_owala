@@ -667,8 +667,12 @@ namespace Editor {
 				return;
 			}
 			if (textureKey.empty()) {
-				Framework::Logger::Get().Error(DebugType::Editor) << "Skipping palette item '" << name << "' due to empty texture key." << std::endl;
-				return; // Don't try to add if key is empty
+				Framework::Logger::Get().Info(DebugType::Editor)
+					<< "Adding palette item '" << name << "' with no texture (placeholder)." << std::endl;
+				// Add with textureID 0 — DrawDragDropPreview and the palette UI
+				// will need to handle this, but the item will at least appear.
+				paletteItems_.push_back({ name, type, 0, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f) });
+				return;
 			}
 			try {
 				// Log before attempting to get the texture
@@ -848,15 +852,39 @@ namespace Editor {
 
 			//ImTextureID texID = (ImTextureID)(intptr_t)previewTextureID;
 
-			// Draw the image
-			drawList->AddImage(
-				texID,
-				rectMin,
-				rectMax,
-				currentPayload.uv0,
-				currentPayload.uv1,
-				tint
-			);
+
+			if (currentPayload.textureID != 0) {
+				// Cast texture ID properly for ImGui
+		
+
+				// Draw the image
+				drawList->AddImage(
+					texID,
+					rectMin,
+					rectMax,
+					currentPayload.uv0,
+					currentPayload.uv1,
+					tint
+				);
+			}
+			else {
+				// No texture — draw a semi-transparent colored rectangle as preview
+				ImU32 placeholderColor = isBrushMode_
+					? IM_COL32(80, 80, 160, 200)
+					: IM_COL32(80, 80, 160, 128);
+				drawList->AddRectFilled(rectMin, rectMax, placeholderColor);
+				drawList->AddRect(rectMin, rectMax, IM_COL32(150, 150, 255, 200), 0.0f, 0, 1.5f);
+			}
+
+			//// Draw the image
+			//drawList->AddImage(
+			//	texID,
+			//	rectMin,
+			//	rectMax,
+			//	currentPayload.uv0,
+			//	currentPayload.uv1,
+			//	tint
+			//);
 
 		}
 		
@@ -1881,13 +1909,28 @@ namespace Editor {
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 1, 0, 0.5f));
 				}
 
-				if (ImGui::ImageButton(item.name.c_str(),
-					textureID,
-					buttonSize,
-					item.uv0,
-					item.uv1,
-					bgCol,
-					tintCol))
+				bool clicked = false;
+
+				if (item.textureID != 0) {
+					// Normal image button for textured prefabs
+					clicked = ImGui::ImageButton(item.name.c_str(),
+						textureID,
+						buttonSize,
+						item.uv0,
+						item.uv1,
+						bgCol,
+						tintCol);
+				}
+				else {
+					// Fallback: colored button for non-textured prefabs (e.g. InvisibleCollider)
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.6f, 1.0f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.7f, 1.0f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.5f, 1.0f));
+					clicked = ImGui::Button(item.name.c_str(), buttonSize);
+					ImGui::PopStyleColor(3);
+				}
+
+				if (clicked)
 				{
 					Framework::Logger::Get().Info(DebugType::Editor)
 						<< "Clicked palette item: " << item.name << std::endl;
@@ -1903,7 +1946,9 @@ namespace Editor {
 					isBrushMode_ = false;
 					ImGui::SetDragDropPayload("PREFAB_TILE_DND", &item, sizeof(DraggablePrefabInfo));
 					ImGui::Text("Placing: %s", item.name.c_str());
-					ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
+					if (item.textureID != 0) {
+						ImGui::Image(textureID, ImVec2(32, 32), item.uv0, item.uv1);
+					}
 					isDraggingPrefab_ = true;
 					dragDropPayload_ = item;
 					ImGui::EndDragDropSource();
@@ -7001,6 +7046,9 @@ namespace Editor {
 				}
 				else if (entityMgr.HasComponent(entity, Framework::ComponentType::TextureComponentType)) {
 					halfSize = entityMgr.GetComponent<Framework::TextureComponent>(entity).HalfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType)) {
+					halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
 				}
 				else {
 					continue;

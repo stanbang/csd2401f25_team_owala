@@ -41,7 +41,41 @@ void GizmoSystem::DrawInvisPlaceholders(ImDrawList* drawList) {
             drawList->AddCircleFilled(gizmoScreenPos, invisCircleRad_, IM_COL32(0, 255, 0, 255), 12);
         }, true, SpawnPointTagType, LoadedTagType, TransformType
     );
+
+    // Draw placeholder rectangles for entities with AABBCollider but no texture (e.g. InvisibleCollider)
+    entityMgr.ForEachEntityWithComponents(
+        [&](Entity en) {
+            // Skip entities that already have a visible texture or text
+            if (entityMgr.HasComponent(en, TextureComponentType)) return;
+            if (entityMgr.HasComponent(en, TextComponentType)) return;
+            // Skip SpawnPoints (already drawn above)
+            if (entityMgr.HasComponent(en, SpawnPointTagType)) return;
+
+            Transform& transform = entityMgr.GetComponent<Transform>(en);
+            AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(en);
+
+            Vector2D scale = transform.scale;
+            float hw = collider.HalfSize.x * scale.x;
+            float hh = collider.HalfSize.y * scale.y;
+
+            Vector2D worldMin = { transform.position.x - hw, transform.position.y - hh };
+            Vector2D worldMax = { transform.position.x + hw, transform.position.y + hh };
+
+            ImVec2 screenMin = editor_->WorldToImGuiScreen(worldMin);
+            ImVec2 screenMax = editor_->WorldToImGuiScreen(worldMax);
+
+            // Normalize so min < max (Y is flipped in screen space)
+            ImVec2 rectMin = ImVec2(std::min(screenMin.x, screenMax.x), std::min(screenMin.y, screenMax.y));
+            ImVec2 rectMax = ImVec2(std::max(screenMin.x, screenMax.x), std::max(screenMin.y, screenMax.y));
+
+            // Draw a dashed-style outline rectangle and a center dot
+            drawList->AddRect(rectMin, rectMax, IM_COL32(0, 200, 255, 180), 0.0f, 0, 2.0f);
+            ImVec2 center = editor_->WorldToImGuiScreen(transform.position);
+            drawList->AddCircleFilled(center, invisCircleRad_, IM_COL32(0, 200, 255, 255), 12);
+        }, true, AABBColliderType, LoadedTagType, TransformType
+    );
 }
+
 
 Entity GizmoSystem::IsInvisEntityClicked() {
     ImVec2 mouseScreenPos = ImGui::GetMousePos();
@@ -50,6 +84,8 @@ Entity GizmoSystem::IsInvisEntityClicked() {
 
     Entity clickedEntity = 0;
     bool found = false;
+
+    // Check SpawnPoint entities (small circle click detection)
     entityMgr.ForEachEntityWithComponents(
         [&](Entity en) {
             if (found) return;
@@ -69,9 +105,46 @@ Entity GizmoSystem::IsInvisEntityClicked() {
         }, true, SpawnPointTagType, LoadedTagType, TransformType
     );
 
+    if (found) return clickedEntity;
+
+    // Check entities with AABBCollider but no texture (e.g. InvisibleCollider)
+    entityMgr.ForEachEntityWithComponents(
+        [&](Entity en) {
+            if (found) return;
+            if (entityMgr.HasComponent(en, TextureComponentType)) return;
+            if (entityMgr.HasComponent(en, TextComponentType)) return;
+            if (entityMgr.HasComponent(en, SpawnPointTagType)) return;
+
+            Transform& transform = entityMgr.GetComponent<Transform>(en);
+            AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(en);
+
+            Vector2D scale = transform.scale;
+            float hw = collider.HalfSize.x * scale.x;
+            float hh = collider.HalfSize.y * scale.y;
+
+            Vector2D worldMin = { transform.position.x - hw, transform.position.y - hh };
+            Vector2D worldMax = { transform.position.x + hw, transform.position.y + hh };
+
+            ImVec2 screenMin = editor_->WorldToImGuiScreen(worldMin);
+            ImVec2 screenMax = editor_->WorldToImGuiScreen(worldMax);
+
+            // Normalize
+            float minX = std::min(screenMin.x, screenMax.x);
+            float maxX = std::max(screenMin.x, screenMax.x);
+            float minY = std::min(screenMin.y, screenMax.y);
+            float maxY = std::max(screenMin.y, screenMax.y);
+
+            if (mouseScreenPos.x >= minX && mouseScreenPos.x <= maxX &&
+                mouseScreenPos.y >= minY && mouseScreenPos.y <= maxY)
+            {
+                found = true;
+                clickedEntity = en;
+            }
+        }, true, AABBColliderType, LoadedTagType, TransformType
+    );
+
     return clickedEntity;
 }
-
 // --- Gizmos Drawing ---
 void GizmoSystem::DrawGizmos(ImDrawList* drawList, int selectedEntityIndex) {
     // no entity selected. no need to draw transform gizmos
@@ -136,8 +209,13 @@ void GizmoSystem::DrawOutline(ImDrawList* drawList, Entity entity) {
     }
     else if (entityMgr.HasComponent(entity, TextComponentType)) {
         TextComponent text = entityMgr.GetComponent<TextComponent>(entity);
-        hw = text.halfSize.x * scale.x; 
+        hw = text.halfSize.x * scale.x;
         hh = text.halfSize.y * scale.y;
+    }
+    else if (entityMgr.HasComponent(entity, AABBColliderType)) {
+        AABBCollider collider = entityMgr.GetComponent<AABBCollider>(entity);
+        hw = collider.HalfSize.x * scale.x;
+        hh = collider.HalfSize.y * scale.y;
     }
 
     // Local corners (TopLeft, TopRight, BotRight, BotLeft)
