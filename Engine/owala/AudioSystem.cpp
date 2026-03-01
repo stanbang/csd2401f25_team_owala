@@ -118,6 +118,15 @@ namespace Framework {
             }
             });
 
+		// Subscribe to Animation Events (for frame-specific SFX)
+        MessageBus::Instance().Subscribe<AnimationEvent>([this](const AnimationEvent& e) {
+            // Filter for the events this system cares about
+            if (e.eventName == "Footstep") {
+                // Empty by design
+				Logger::Get().Info(DebugType::AudioSystem) << "Hi the name's bobby bonkers" << std::endl;
+            }
+            });
+
         // Subscribe to Bird Enemy Events
         MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent&) {this->PlayRandomSound("Bird_Wake", AudioType::SFX, 0.3f); });
         MessageBus::Instance().Subscribe<BirdChaseEvent>([this](const BirdChaseEvent& e) {

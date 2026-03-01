@@ -250,8 +250,15 @@ namespace Framework {
 				//	Check if it's time to switch to the next frame
 				if (animationComponent.elapsedTime >= animationComponent.frameDuration) {
 					animationComponent.elapsedTime -= animationComponent.frameDuration;; // Subtract frame duration(to handle any dt overflow). Eg. elapsedTime = 0.12, 0.12 - 0.1 = 0.02, animation will have 0.08 seconds before next frame change.
-
 					animationComponent.currentFrame++; // Move to the next frame
+
+					if (animationInfo.frameEvents.count(animationComponent.currentFrame)) {
+						// Get whatever string was set in the Editor/JSON for this frame
+						const std::string& eventString = animationInfo.frameEvents.at(animationComponent.currentFrame);
+
+						// Broadcast the generic event
+						MessageBus::Instance().Publish(AnimationEvent{ entity, eventString });
+					}
 
 					//Handle looping at the last frame
 					if (animationComponent.currentFrame >= animationComponent.frameCount) {

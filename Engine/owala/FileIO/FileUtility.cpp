@@ -306,6 +306,17 @@ namespace Framework {
 			}
 		}
 
+		// Map frame events if they exist
+		if (d.HasMember("frameEvents") && d["frameEvents"].IsObject()) {
+			const rapidjson::Value& eventsJson = d["frameEvents"];
+			for (auto it = eventsJson.MemberBegin(); it != eventsJson.MemberEnd(); ++it) {
+				// RapidJSON object keys are always strings, convert back to int
+				int frameIdx = std::stoi(it->name.GetString());
+				std::string evtName = it->value.GetString();
+				anim.frameEvents[frameIdx] = evtName;
+			}
+		}
+
 		return anim;
 	}
 

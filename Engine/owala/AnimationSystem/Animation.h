@@ -29,4 +29,5 @@ struct AnimationInfo {
     int startFrame = 0;
 
     std::vector<SpriteSheetSegment> sheets; // Store relevant spritesheets
+	std::unordered_map<int, std::string> frameEvents; // Map specific frames to event names (e.g., frame 5 triggers "PlaySound")
 };
