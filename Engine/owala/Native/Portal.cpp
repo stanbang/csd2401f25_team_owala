@@ -89,6 +89,7 @@ void Portal::OnCreate() {
 }
 
 void Portal::OnUpdate() {
+	static bool playExitVFX = true;
 	GameManager& gm = GameManager::GetInstance();
 	PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
 	AudioSystem& audioSystem = *gm.GetSystems().audio_;
@@ -115,13 +116,18 @@ void Portal::OnUpdate() {
 		if (input.KeyDown(InputSystem::Key::F)) {
 			interactTimer += Time::DeltaTime();
 
-			// Get the portal's position for VFX spawning
-			Vector2D position = entityMgr.GetComponent<Transform>(self).position;
-			// Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
-			MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
+			// If playExitVFX is true, it means we haven't played the exit VFX for this portal interaction yet, so we play it and set the flag to false to prevent replaying.
+			if (playExitVFX) {
+				playExitVFX = false; // Set to false to prevent replaying the VFX in subsequent frames of this interaction.
+				// Get the portal's position for VFX spawning
+				Vector2D position = entityMgr.GetComponent<Transform>(self).position;
+				// Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
+				MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
+			}
 
 			if (interactTimer >= 1.5f) {
 				interactTimer = 0.f;
+				playExitVFX = true; // Reset for the next time the player interacts with the portal.
 
 				// ===== ADD THIS =====
 				// Stop the timer and submit to Firebase BEFORE resetting
@@ -138,9 +144,11 @@ void Portal::OnUpdate() {
 				SceneManager::GetInstance().LoadScene(SceneManager::GetInstance().GetSceneByName("MainMenu"));
 			}
 		} else {
+			playExitVFX = true; // Reset the VFX flag if player releases the key before completion.
 			interactTimer = 0.f;
 		}
 	} else {
+		playExitVFX = true; // Reset the VFX flag if player steps out of the portal trigger.
 		interactTimer = 0.f;
 	}
 }
