@@ -117,7 +117,6 @@ void GizmoSystem::DrawGizmos(ImDrawList* drawList, int selectedEntityIndex) {
 void GizmoSystem::DrawOutline(ImDrawList* drawList, Entity entity) {
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-    // We need a transform to know how big/rotated the object is
     if (!entityMgr.HasComponent(entity, TransformType)) return;
 
     auto& transform = entityMgr.GetComponent<Transform>(entity);
@@ -125,7 +124,9 @@ void GizmoSystem::DrawOutline(ImDrawList* drawList, Entity entity) {
     Vector2D scale = transform.scale;
 
     // Get Rotation
-    float rotation = transform.rotation.textureAngle;
+    float rotationRads = -transform.rotation.textureAngle;
+    float c = std::cos(rotationRads);
+    float s = std::sin(rotationRads);
 
     float hw = 10.f, hh = 10.f;
 
@@ -136,39 +137,39 @@ void GizmoSystem::DrawOutline(ImDrawList* drawList, Entity entity) {
     }
     else if (entityMgr.HasComponent(entity, TextComponentType)) {
         TextComponent text = entityMgr.GetComponent<TextComponent>(entity);
-        hw = text.halfSize.x * scale.x; 
+        hw = text.halfSize.x * scale.x;
         hh = text.halfSize.y * scale.y;
     }
 
-    // Local corners (TopLeft, TopRight, BotRight, BotLeft)
-    Vector2D corners[4] = {
-        { -hw, -hh },
-        {  hw, -hh },
-        {  hw,  hh },
-        { -hw,  hh }
+    bool isGui = entityMgr.HasComponent(entity, GUITagType);
+
+    ImVec2 screenCenter = isGui ? editor_->NormalizedToImGuiScreen(worldPos)
+        : editor_->WorldToImGuiScreen(worldPos);
+
+    ImVec2 screenEdge = isGui ? editor_->NormalizedToImGuiScreen({ worldPos.x + hw, worldPos.y + hh })
+        : editor_->WorldToImGuiScreen({ worldPos.x + hw, worldPos.y + hh });
+
+    // Use absolute difference to get exact screen-pixel dimensions regardless of axis directions
+    float screenHw = std::abs(screenEdge.x - screenCenter.x);
+    float screenHh = std::abs(screenEdge.y - screenCenter.y);
+
+    // Screen-space local corners (TopLeft, TopRight, BotRight, BotLeft)
+    ImVec2 localScreenCorners[4] = {
+        { -screenHw, -screenHh },
+        {  screenHw, -screenHh },
+        {  screenHw,  screenHh },
+        { -screenHw,  screenHh }
     };
 
     ImVec2 screenCorners[4];
 
-    // Pre-calculate sin/cos for rotation
-    float c = cos(rotation);
-    float s = sin(rotation);
-
     for (int i = 0; i < 4; i++) {
-        // Rotate
-        float rX = corners[i].x * c - corners[i].y * s;
-        float rY = corners[i].x * s + corners[i].y * c;
+        // Rotate in screen space
+        float rX = localScreenCorners[i].x * c - localScreenCorners[i].y * s;
+        float rY = localScreenCorners[i].x * s + localScreenCorners[i].y * c;
 
-        // Translate to World Position
-        Vector2D finalWorldPos = { worldPos.x + rX, worldPos.y + rY };
-
-        // Convert to Screen Coordinates
-        if (entityMgr.HasComponent(entity, GUITagType)) {
-            screenCorners[i] = editor_->NormalizedToImGuiScreen(finalWorldPos);
-        }
-        else {
-            screenCorners[i] = editor_->WorldToImGuiScreen(finalWorldPos);
-        }
+        // Translate to final screen position
+        screenCorners[i] = { screenCenter.x + rX, screenCenter.y + rY };
     }
 
     // Draw the Polyline (Closed loop)
