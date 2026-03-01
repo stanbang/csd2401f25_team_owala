@@ -40,22 +40,14 @@ namespace Framework {
         // Add this new entity to the global list
         allControllers.push_back(this);
 
-        // Default to Right Curtain idle texture
-        idleTextureKey_ = IDLE_ANIM_TEXTURE_R;
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
 
-        // Check position to determine if this is the Left Curtain.
-        // Ensure 'TransformComponentType' matches your enum name for the Transform component.
-        if (entityMgr.HasComponent(e, TransformType)) {
-            Transform& trans = entityMgr.GetComponent<Transform>(e);
-
-            // Assuming 0 is the center of the world/screen
-            if (trans.position.x < 0.0f) {
-                Logger::Get().Info(DebugType::GameManager) << "TransitionController: Detected Left Curtain based on position." << std::endl;
-                idleTextureKey_ = IDLE_ANIM_TEXTURE_L;
-            }
-        }
+        // Determine curtain side by entity name
+        const std::string& entityName = entityMgr.GetProperties(e).name;
+        isLeftCurtain_ = (entityName == "LeftCurtain");
+		// Determine idle texture key based on curtain side (default to right if name doesn't match)
+        idleTextureKey_ = isLeftCurtain_ ? IDLE_ANIM_TEXTURE_L : IDLE_ANIM_TEXTURE_R;
 
         // Preload textures for open/close animations to make it smooth
         // Or else it will lag like hell the first time!!!
@@ -153,19 +145,10 @@ namespace Framework {
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
             tex.textureKey = CLOSE_ANIM_TEXTURE;
-
-            if (entityMgr.HasComponent(e, TransformType)) {
-                if (entityMgr.GetComponent<Transform>(e).position.x < 0.0f) {
-                    tex.flipHorizontal = true;
-                }
-                else {
-                    tex.flipHorizontal = false;
-                }
-            }
+            tex.flipHorizontal = isLeftCurtain_;
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
-
                 ResourceManager* rsm = GameManager::GetInstance().GetSystems().resourceManager_;
                 if (rsm) {
                     // Ensure data is loaded
@@ -216,15 +199,7 @@ namespace Framework {
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
             tex.textureKey = OPEN_ANIM_TEXTURE;
-
-            if (entityMgr.HasComponent(e, TransformType)) {
-                if (entityMgr.GetComponent<Transform>(e).position.x < 0.0f) {
-                    tex.flipHorizontal = true; // Flip the Right Sprite to be Left
-                }
-                else {
-                    tex.flipHorizontal = false;
-                }
-            }
+            tex.flipHorizontal = isLeftCurtain_;
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
                 AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(e);
@@ -293,22 +268,8 @@ namespace Framework {
 
         // If in IDLING state, curtains are visible at the sides with looping animation
         if (state_ == TransitionState::IDLING) {
-            std::string targetIdleKey = IDLE_ANIM_TEXTURE_R;
+            std::string targetIdleKey = idleTextureKey_;
             bool shouldFlip = false;
-
-            // Determine if Left or Right Curtain based on position
-            if (entityMgr.HasComponent(GetEntity(), TransformType)) {
-                if (entityMgr.GetComponent<Transform>(GetEntity()).position.x < 0.0f) {
-                    // Left Curtain
-                    targetIdleKey = IDLE_ANIM_TEXTURE_L;
-                    shouldFlip = false; // Dedicated sprite, DO NOT FLIP
-                }
-                else {
-                    // Right Curtain
-                    targetIdleKey = IDLE_ANIM_TEXTURE_R;
-                    shouldFlip = false;
-                }
-            }
 
 			// Prevent texture reset if already playing the correct idle animation to avoid animation restart
             bool isAlreadyPlayingIdle = false;
@@ -358,13 +319,11 @@ namespace Framework {
                     anim.isLooping = true; // Loop the idle animation
                 }
             }
-            else {
-                // Already playing � just reset the textureKey to the BASE key each frame
-                // so the AnimationSystem resolves the correct AnimationInfo (with all 5 sheets)
-                // instead of resolving a sub-sheet key that only has 3 frames.
-                tex.textureKey = targetIdleKey;
-                tex.flipHorizontal = shouldFlip;
-            }
+            //else {
+            //    // Already playing — just reset to base key so AnimationSystem resolves all sheets correctly
+            //    tex.textureKey = targetIdleKey;
+            //    tex.flipHorizontal = shouldFlip;
+            //}
         }
 
         // If in WAITING state, increment timer, then transition to OPENING after delay
@@ -457,18 +416,8 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
-
-            // Set Visuals to Closed (Frame 0 of Open Sheet)
             tex.textureKey = OPEN_ANIM_TEXTURE;
-
-            if (entityMgr.HasComponent(e, TransformType)) {
-                if (entityMgr.GetComponent<Transform>(e).position.x < 0.0f) {
-                    tex.flipHorizontal = true;
-                }
-                else {
-                    tex.flipHorizontal = false;
-                }
-            }
+            tex.flipHorizontal = isLeftCurtain_;
 
             // Setup Animation
             if (entityMgr.HasComponent(e, AnimationComponentType)) {

@@ -48,7 +48,7 @@ namespace Framework {
         // Static Reset function
         static void Reset();
 
-		// If true, means the scene will start with curtains closed
+        // If true, means the scene will start with curtains closed
         static bool s_startNextSceneClosed;
 
     protected:
@@ -61,15 +61,16 @@ namespace Framework {
         static float s_lastOpenEventTime;
 
         std::string idleTextureKey_;
+        bool isLeftCurtain_ = false; // Cached once in OnCreate — stable across scene loads
 
         TransitionState state_ = TransitionState::HIDDEN;
         std::function<void()> onTransitionComplete_ = nullptr;
 
         // Animation config
         float animTimer_ = 0.0f;
-        float animDuration_ = 1.0f; // Time to open or close
-        float waitTimer_ = 0.0f;      // timer for the delay
-        const float WAIT_DURATION = 1.0f; // 1 second delay
+        float animDuration_ = 1.0f;
+        float waitTimer_ = 0.0f;
+        const float WAIT_DURATION = 1.0f;
 
         void CheckStartClosed();
         void StartWaitingState();
