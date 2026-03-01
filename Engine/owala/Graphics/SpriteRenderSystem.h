@@ -122,6 +122,7 @@ namespace Framework {
             Vector2D screenPos;
             float scale;
             Color color;
+            float rotation = 0;
 
             // Sorting Operator: Sort primarily by Order. 
             // For Sprites in the same layer, we want to group by Texture to optimize batching.

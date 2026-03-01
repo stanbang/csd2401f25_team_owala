@@ -138,7 +138,7 @@ namespace Framework {
         void drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites);
         // -------- Text --------
         void drawText(Font& font, const std::string& text,
-            const Vector2D& pos, float scale, const Color& color);
+            const Vector2D& pos, float scale, const Color& color, float rotationRad);
 
         /* -------- Framerate Configuration -------- */
 
