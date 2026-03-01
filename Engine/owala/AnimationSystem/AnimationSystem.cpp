@@ -30,6 +30,13 @@ namespace Framework {
 		// If physics is paused, skip animation update
 		if (physics_.IsAnimationPaused()) { return; }
 
+		#ifdef BUILD_EDITOR
+		// In editor mode, only update animations when the game is actively playing
+		if (auto* editor = GameManager::GetInstance().GetEditor()) {
+			if (!editor->IsGamePlaying()) { return; }
+		}
+		#endif
+
 		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
 		// Small padding to avoid texture bleeding
 		constexpr float UV_PADDING = 0.003f;

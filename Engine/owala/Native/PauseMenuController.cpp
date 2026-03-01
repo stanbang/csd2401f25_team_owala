@@ -41,7 +41,7 @@ void PauseMenuController::OnUpdate() {
         if ((optionsScene.IsValid() && optionsScene.isLoaded) 
             || (pauseScene.IsValid() && pauseScene.isLoaded)) {
 			// Unpause physics
-            physics.SetPaused(false);
+            physics.SetFullyPaused(false);
             SceneManager::GetInstance().UnloadScene("PauseScene");
             // Close scene if already open
             SceneManager::GetInstance().UnloadScene("OptionsMenu");
@@ -50,7 +50,7 @@ void PauseMenuController::OnUpdate() {
             // Load scene on top of current scene
             SceneManager::GetInstance().LoadScene("PauseScene", LoadSceneMode::Additive);
             // Pause physics
-            physics.SetFullyPaused(true);
+            physics.SetPaused(true);
         }
     }
 }

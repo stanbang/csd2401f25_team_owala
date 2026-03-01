@@ -212,6 +212,12 @@
         },
         {
             "texture_keys": [
+                "SB_DoorExit_VFX.png"
+            ],
+            "animation_path": "Data/AnimationData/portalExitAnim.json"
+        },
+        {
+            "texture_keys": [
                 "SB_Props_AhhSkulls_Spritesheet_01.png",
                 "SB_Props_AhhSkulls_Spritesheet_02.png"
             ],

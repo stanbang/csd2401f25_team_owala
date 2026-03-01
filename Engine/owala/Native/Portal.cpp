@@ -9,6 +9,7 @@
 #include "OwalaTime.h"
 #include "Vector2D.h"
 #include "TimerSystem.h"  // ADD THIS INCLUDE
+#include "MessageBus.h"
 #include <string>
 
 REGISTER_SCRIPT(Portal, "Portal")
@@ -113,6 +114,11 @@ void Portal::OnUpdate() {
 		// Player must hold down for 1.5 seconds to trigger completion flag.
 		if (input.KeyDown(InputSystem::Key::F)) {
 			interactTimer += Time::DeltaTime();
+
+			// Get the portal's position for VFX spawning
+			Vector2D position = entityMgr.GetComponent<Transform>(self).position;
+			// Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
+			MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
 
 			if (interactTimer >= 1.5f) {
 				interactTimer = 0.f;
