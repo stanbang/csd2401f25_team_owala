@@ -77,12 +77,6 @@ void SaveManager::Save() const {
 	doc.AddMember(rapidjson::StringRef(KEY_SKIP_INTRO), skipIntro, alloc);
 
 	Framework::FileIOSystem::WriteFileJson(SAVE_FILEPATH, doc);
-
-	// Check if root Data folder exists and serialize data to root folder
-	if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-		std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + std::string(SAVE_FILEPATH);
-		Framework::FileIOSystem::WriteFileJson(rootFilePath, doc);
-	}
 }
 
 void SaveManager::OnCreate() {

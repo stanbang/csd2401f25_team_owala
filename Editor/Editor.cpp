@@ -406,6 +406,8 @@ namespace Editor {
 			currentEditorCameraState_ = defaultEditorCameraState_;
 		}
 
+		LoadEditorConfig();
+
 		initialized = true;
 		engine_->SetMode(EngineMode::Editor);
 	}
@@ -1365,14 +1367,8 @@ namespace Editor {
 			sceneMgr.UpdateScenePath(currentScene.sceneIndex, filePath);
 		}
 
-		// Serialize Scene name and entities to its own json file in local Data folder
+		// Serialize Scene name and entities to its own json file in Data folder
 		EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
-
-		// Check if root Data folder exists and serialize scene data to root folder
-		if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-			std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + filePath;
-			EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), rootFilePath, currentScene.name);
-		}
 
 		// Save scene asset to json file that stores all scene assets
 		FileIOSystem::SaveSceneAsset(currentScene);
@@ -5247,7 +5243,7 @@ namespace Editor {
 
 					ImGui::DragInt("##MaxFPS", &fpsLimit, 1.f, 15, 240);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
-						gfx.SetFPSCap(fpsLimit);
+						gfx.SetFPSCap(static_cast<float>(fpsLimit));
 						Framework::FileIOSystem::SaveWorldConfig();
 					}
 

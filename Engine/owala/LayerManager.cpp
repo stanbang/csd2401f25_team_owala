@@ -290,7 +290,7 @@ namespace Framework {
                 doc.AddMember("CollisionMatrix", matrixArray, alloc);
             }
 
-            // Write to local Data folder
+            // Write to Data folder
             if (!FileIOSystem::WriteFileJson(filepath, doc)) {
                 Logger::Get().Error(DebugType::FileIOSystem)
                     << "Failed to write layer config to: " << filepath << std::endl;
@@ -298,19 +298,6 @@ namespace Framework {
             }
             Logger::Get().Info(DebugType::FileIOSystem)
                 << "Successfully saved layer config to: " << filepath << std::endl;
-
-            // Check if root Data folder exists and write to it as well
-            if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-                std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filepath;
-                if (!FileIOSystem::WriteFileJson(rootFilePath, doc)) {
-                    Logger::Get().Error(DebugType::FileIOSystem)
-                        << "Failed to write layer config to: " << rootFilePath << std::endl;
-                }
-                else {
-                    Logger::Get().Info(DebugType::FileIOSystem)
-                        << "Successfully saved layer config to: " << rootFilePath << std::endl;
-                }
-            }
 
             return true;
         }
