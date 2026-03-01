@@ -17,8 +17,11 @@
 #include "Transformation.h"
 #include "OwalaTime.h"
 #include "MessageBus.h"
-#include "GameManager.h"
 #include "CameraSystem.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace Framework {
 
@@ -289,8 +292,8 @@ namespace Framework {
         }
         Transform::Rotation& rotComp = transform.rotation;
 
-        float textureRotationDegrees = rotComp.textureAngle * (180.0f / 3.14159265359f);
-        float colliderRotationDegrees = rotComp.colliderAngle * (180.0f / 3.14159265359f);
+        float textureRotationDegrees = rotComp.textureAngle * (180.0f / M_PI);
+        float colliderRotationDegrees = rotComp.colliderAngle * (180.0f / M_PI);
 
         Vector2D textureScale = Vector2D(1.0f, 1.0f);
         if (entityMgr.HasComponent(entity, TextureComponentType)) {
@@ -313,7 +316,7 @@ namespace Framework {
                 colliderRotationDegrees = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
             else {
-                colliderRotationDegrees = rotComp.colliderAngle * (180.0f / 3.14159265359f);
+                colliderRotationDegrees = rotComp.colliderAngle * (180.0f / M_PI);
             }
 
             Vector2D& newscale = entityMgr.GetComponent<Transform>(entity).scale;
