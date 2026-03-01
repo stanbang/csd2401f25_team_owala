@@ -76,7 +76,7 @@ namespace Framework {
         float getMusicVolume();
         float getSFXVolume();
 
-        void stopAll();
+        void stopAll(bool fadeOut = true);
         void unloadSound(const std::string& id);
 
         static void check(FMOD_RESULT r, const char* where);

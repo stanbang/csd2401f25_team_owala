@@ -438,13 +438,20 @@ namespace Framework {
         return vol;
     }
 
-    void AudioSystem::stopAll() {
-        // Stop last-played channel per id
-        for (auto it = channels_.begin(); it != channels_.end(); ++it) {
-            if (it->second) {
-                FadeOutChannel(it->second, 1.0f);
+    void AudioSystem::stopAll(bool fadeOut) {
+        if (fadeOut) {
+            // Stop last-played channel per id
+            for (auto it = channels_.begin(); it != channels_.end(); ++it) {
+                if (it->second) {
+                        FadeOutChannel(it->second, 1.0f);
+                }
             }
         }
+        else if (masterGroup_) {
+            masterGroup_->stop();
+            if (system_) system_->update(); // Force an update so the pause applies instantly
+        }
+
         channels_.clear();
     }
 
