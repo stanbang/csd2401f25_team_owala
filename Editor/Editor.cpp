@@ -4924,6 +4924,7 @@ namespace Editor {
 			if (ImGui::BeginMenu("Tools")) {
 				ImGui::MenuItem("FSM Enemy Editor", NULL, &isFSMEditorOpen_);
 				ImGui::MenuItem("Prefab Editor", NULL, &isPrefabEditorOpen_);
+				ImGui::MenuItem("Animation Editor", NULL, &settings.showAnimationEditor);
 				if (ImGui::BeginMenu("Debug")) {
 					ImGui::MenuItem("Show Grid", NULL, &showGrid_);
 					Framework::SpriteRenderSystem* spriteRenderer = GameManager::GetInstance().GetSystems().spriteRenderer_;
