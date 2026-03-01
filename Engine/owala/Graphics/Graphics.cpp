@@ -470,13 +470,19 @@ namespace Framework {
         // Add a microscopic half-pixel expansion to hide floating-point tearing
         // Since 'hx' and 'hy' are in vertical NDC space before aspect correction,
         // 0.5f / halfH represents exactly half a pixel on the screen.
-        float dilation = 1.5f / halfH;
+        // Dilation is proportional: a 2x tall sprite gets 2x the dilation, keeping
+        // the sub-pixel gap closed consistently regardless of tile count.
+        const float referenceTileH = sprites.empty() ? 1.0f : sprites[0].size.y;
+        const float baseDilation = 1.5f / halfH; // 1.5 pixels worth in NDC
 
         for (const auto& s : sprites) {
             const float cx = s.topLeft.x + s.size.x * 0.5f;
             const float cy = s.topLeft.y + s.size.y * 0.5f;
-            const float hx = (s.size.x * 0.5f) + dilation;
-            const float hy = (s.size.y * 0.5f) + dilation;
+            // Scale dilation proportionally to this sprite's size vs the reference tile
+            float scaleX = (referenceTileH > 0.0f) ? (s.size.x / referenceTileH) : 1.0f;
+            float scaleY = (referenceTileH > 0.0f) ? (s.size.y / referenceTileH) : 1.0f;
+            const float hx = (s.size.x * 0.5f) + baseDilation * scaleX;
+            const float hy = (s.size.y * 0.5f) + baseDilation * scaleY;
 
             const float c = std::cos(s.rotation);
             const float q = std::sin(s.rotation);

@@ -109,6 +109,12 @@ namespace Framework {
          */
         void SetPaused(bool paused) { isPaused_ = paused; }
 
+        /**
+         * @brief Pauses or unpauses both physics and animation updates.
+         * @param paused True to pause animations, false to resume.
+		 */
+        void SetFullyPaused(bool paused) { isPaused_ = paused; isAnimationPaused_ = paused; }
+
         // Debugging controls
          /**
          * @brief Toggles the step-by-step debug mode.
@@ -125,6 +131,12 @@ namespace Framework {
          * @return True if paused, false otherwise.
          */
         bool IsPaused() const { return isPaused_; }
+
+        /**
+		 * @brief Pauses or unpauses animation updates (separate from physics pause).
+		 * @return True if animation updates are paused, false otherwise.
+         */
+        bool IsAnimationPaused() const { return isAnimationPaused_; }
 
         /**
          * @brief Checks if the simulation is in step-by-step debug mode.
@@ -203,6 +215,7 @@ namespace Framework {
         // --- Member Variables ---
         float timeAccumulator_ = 0.0f; // Used to implement a fixed timestep loop.
         bool isPaused_ = false;
+		bool isAnimationPaused_ = false; // Separate pause for animations
         bool stepModeActive_ = false;
         std::vector<Contact> contacts_; // Stores info about collisions from the last frame.
 

@@ -342,6 +342,7 @@ namespace Editor {
 		void ShowAnimationEditor();
 		void LoadAnimationFiles();
 		void SaveAnimationFile(const std::string& animationName);
+		void SaveTextureToAnimationMapping();
 		void ReloadAnimationFromFile(const std::string& animationName);
 		void RefreshAnimationInResourceManager(const std::string& animationName);
 
@@ -401,6 +402,7 @@ namespace Editor {
 			bool isLooping = true;
 			int startFrame = 0;
 			std::vector<std::pair<std::string, int>> spritesheets; // texture, frameCount pairs
+			std::vector<std::string> textureKeys; // keys from textureToAnimationMapping.json
 		};
 
 		std::vector<AnimationFileData> loadedAnimations_;
