@@ -347,6 +347,9 @@ namespace Framework{
 
 			void Reset() noexcept {
 				if (!Instance) return;
+
+				Instance->InvokeOnDestroy();
+
 				if (DestroyScript) DestroyScript(this);
 				else { delete Instance; Instance = nullptr; }
 				Instance = nullptr;

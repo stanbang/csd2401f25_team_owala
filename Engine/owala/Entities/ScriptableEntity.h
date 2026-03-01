@@ -33,5 +33,7 @@ namespace Framework {
 
 		void SetEntity(Entity entity) { entity_ = entity; }
 		Entity GetEntity() const { return entity_; }
+
+		void InvokeOnDestroy() { OnDestroy(); }
 	};
 }
