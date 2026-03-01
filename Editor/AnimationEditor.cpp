@@ -87,6 +87,41 @@ namespace Editor {
 				<< "Error loading animation files: " << e.what() << std::endl;
 		}
 
+		// Load textureToAnimationMapping and populate textureKeys per animation
+		try {
+			rapidjson::Document mappingDoc;
+			if (FileIOSystem::ReadFile("Data/textureToAnimationMapping.json", mappingDoc)) {
+				if (mappingDoc.IsObject() && mappingDoc.HasMember("animations") && mappingDoc["animations"].IsArray()) {
+					const rapidjson::Value& animations = mappingDoc["animations"];
+					for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) {
+						const rapidjson::Value& entry = animations[i];
+						if (!entry.HasMember("animation_path") || !entry["animation_path"].IsString()) continue;
+
+						std::string animPath = entry["animation_path"].GetString();
+
+						// Match by animation name within the path
+						for (AnimationFileData& animData : loadedAnimations_) {
+							if (animPath.find(animData.name) != std::string::npos) {
+								if (entry.HasMember("texture_keys") && entry["texture_keys"].IsArray()) {
+									const rapidjson::Value& keys = entry["texture_keys"];
+									for (rapidjson::SizeType j = 0; j < keys.Size(); ++j) {
+										if (keys[j].IsString()) {
+											animData.textureKeys.push_back(keys[j].GetString());
+										}
+									}
+								}
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		catch (const std::exception& e) {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Error loading texture-to-animation mapping: " << e.what() << std::endl;
+		}
+
 		// Build the const char* array for ImGui using stable storage
 		animationNames_.clear();
 		animationNames_.push_back("-- Select Animation --");
@@ -197,8 +232,75 @@ namespace Editor {
 			RefreshAnimationInResourceManager(animationName);
 		}
 
+		// Sync the texture-to-animation mapping file
+		SaveTextureToAnimationMapping();
+
 		Logger::Get().Info(DebugType::Editor)
 			<< "Animation saved and resource manager refreshed: " << animationName << std::endl;
+	}
+
+	void Editor::SaveTextureToAnimationMapping() {
+		using namespace Framework;
+
+		// Build a fresh mapping document from all loaded animations
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+		rapidjson::Value animationsArray(rapidjson::kArrayType);
+
+		for (const AnimationFileData& animData : loadedAnimations_) {
+			if (animData.textureKeys.empty()) continue;
+
+			rapidjson::Value entry(rapidjson::kObjectType);
+
+			// texture_keys array
+			rapidjson::Value keysArray(rapidjson::kArrayType);
+			for (const std::string& key : animData.textureKeys) {
+				rapidjson::Value keyVal;
+				keyVal.SetString(key.c_str(), static_cast<rapidjson::SizeType>(key.size()), alloc);
+				keysArray.PushBack(keyVal, alloc);
+			}
+			entry.AddMember("texture_keys", keysArray, alloc);
+
+			// animation_path
+			std::string animPath = "Data/AnimationData/" + animData.name + ".json";
+			rapidjson::Value pathVal;
+			pathVal.SetString(animPath.c_str(), static_cast<rapidjson::SizeType>(animPath.size()), alloc);
+			entry.AddMember("animation_path", pathVal, alloc);
+
+			animationsArray.PushBack(entry, alloc);
+		}
+
+		doc.AddMember("animations", animationsArray, alloc);
+
+		auto writeToPath = [&](const std::string& filepath) {
+			try {
+				std::filesystem::create_directories(std::filesystem::path(filepath).parent_path());
+				rapidjson::StringBuffer buffer;
+				rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+				doc.Accept(writer);
+
+				std::ofstream file(filepath);
+				if (file.is_open()) {
+					file << buffer.GetString();
+					file.close();
+					Logger::Get().Info(DebugType::Editor)
+						<< "Saved textureToAnimationMapping: " << filepath << std::endl;
+				}
+				else {
+					Logger::Get().Error(DebugType::Editor)
+						<< "Failed to open for writing: " << filepath << std::endl;
+				}
+			}
+			catch (const std::exception& e) {
+				Logger::Get().Error(DebugType::Editor)
+					<< "Error saving mapping to " << filepath << ": " << e.what() << std::endl;
+			}
+			};
+
+		writeToPath("Data/textureToAnimationMapping.json");
+		writeToPath("../../Data/textureToAnimationMapping.json");
 	}
 
 	void Editor::RefreshAnimationInResourceManager(const std::string& animationName) {
@@ -395,6 +497,53 @@ namespace Editor {
 
 			ImGui::Spacing();
 			ImGui::Separator();
+
+			// --- Texture Keys (from textureToAnimationMapping.json) ---
+			ImGui::Separator();
+			ImGui::SeparatorText("Texture Keys (textureToAnimationMapping)");
+			ImGui::TextDisabled("These keys link this animation to texture lookups at runtime.");
+
+			if (!animData.textureKeys.empty()) {
+				if (ImGui::BeginTable("TextureKeyTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+					ImGui::TableSetupColumn("Texture Key", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+					ImGui::TableHeadersRow();
+
+					for (size_t i = 0; i < animData.textureKeys.size(); ++i) {
+						ImGui::PushID(static_cast<int>(i));
+						ImGui::TableNextRow();
+
+						ImGui::TableNextColumn();
+						ImGui::Text("%s", animData.textureKeys[i].c_str());
+
+						ImGui::TableNextColumn();
+						if (ImGui::Button("Remove##texkey", ImVec2(-1.0f, 0.0f))) {
+							animData.textureKeys.erase(animData.textureKeys.begin() + i);
+						}
+
+						ImGui::PopID();
+					}
+
+					ImGui::EndTable();
+				}
+			}
+			else {
+				ImGui::TextDisabled("No texture keys mapped to this animation.");
+			}
+
+			// Add new texture key
+			ImGui::Spacing();
+			static char newTextureKey[256] = "";
+			ImGui::Text("Add Texture Key:");
+			ImGui::SetNextItemWidth(300.0f);
+			ImGui::InputText("##NewTexKey", newTextureKey, IM_ARRAYSIZE(newTextureKey));
+			ImGui::SameLine();
+			if (ImGui::Button("Add Key")) {
+				if (std::strlen(newTextureKey) > 0) {
+					animData.textureKeys.push_back(newTextureKey);
+					newTextureKey[0] = '\0';
+				}
+			}
 
 			// Save & Reload buttons
 			if (ImGui::Button("Save Animation", ImVec2(150.0f, 0.0f))) {

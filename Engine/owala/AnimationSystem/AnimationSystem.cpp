@@ -28,7 +28,7 @@ namespace Framework {
 		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
 		PhysicsSystem& physics_ = *GameManager::GetInstance().GetSystems().physics_;
 		// If physics is paused, skip animation update
-		if (physics_.IsPaused()) { return; }
+		if (physics_.IsAnimationPaused()) { return; }
 
 		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
 		// Small padding to avoid texture bleeding

@@ -50,7 +50,7 @@ void PauseMenuController::OnUpdate() {
             // Load scene on top of current scene
             SceneManager::GetInstance().LoadScene("PauseScene", LoadSceneMode::Additive);
             // Pause physics
-            physics.SetPaused(true);
+            physics.SetFullyPaused(true);
         }
     }
 }

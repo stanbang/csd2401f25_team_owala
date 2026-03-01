@@ -257,7 +257,9 @@ namespace Framework {
                 }
 
                 // --- Half-texel UV inset to prevent texture bleeding at tile edges ---
-                // Uses 0.5 / textureDimension so the inset is visually imperceptible.
+                // The inset is scaled proportionally to the UV range of this sprite so that
+                // a multi-tile sprite (large UV range) gets the same visual inset as a
+                // single-tile sprite (small UV range), keeping all tiles consistent.
                 GLint texW = 1, texH = 1;
                 Texture texID = resources_.get<Texture>(sprite.textureKey);
                 glBindTexture(GL_TEXTURE_2D, texID);
@@ -265,8 +267,14 @@ namespace Framework {
                 glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texH);
                 glBindTexture(GL_TEXTURE_2D, 0);
 
-                float uInset = 0.5f / static_cast<float>(texW);
-                float vInset = 0.5f / static_cast<float>(texH);
+                // UV range this sprite occupies in the texture (1.0 for a full-texture tile)
+                float uvRangeX = batchedSprite.maxUV.x - batchedSprite.minUV.x;
+                float uvRangeY = batchedSprite.maxUV.y - batchedSprite.minUV.y;
+
+                // Half-texel in UV space, scaled so multi-tile sprites get a proportionally
+                // equivalent inset to a single-tile sprite occupying the full texture.
+                float uInset = (0.5f / static_cast<float>(texW)) * uvRangeX;
+                float vInset = (0.5f / static_cast<float>(texH)) * uvRangeY;
 
                 batchedSprite.minUV.x += uInset;
                 batchedSprite.minUV.y += vInset;
