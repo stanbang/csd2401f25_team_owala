@@ -35,46 +35,85 @@ namespace Framework {
 		return sanitized_name;
 	}
 
-	const bool FileIOSystem::ReadFile(const string& fileName, Document& doc) {
-		try {
-			ifstream file(fileName);
-			if (!file) {
-				Logger::Get().Info(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
-				return false;
-			}
-
-			IStreamWrapper isw(file);
-			doc.ParseStream(isw);
-
-			file.close();
-			return true;
+	bool FileIOSystem::ReadFile(const string& fileName, Document& doc) {
+		ifstream file(fileName);
+		if (!file) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
+			return false;
 		}
-		catch (const exception& e) {
-			throw GameException(DebugType::FileIOSystem, e.what());
-		}
+
+		IStreamWrapper isw(file);
+		doc.ParseStream(isw);
+
+		file.close();
+		return true;
 	}
 
-	const bool FileIOSystem::WriteFileJson(const string& fileName, Document& d) {
-		try {
-			// Write JSON file
-			std::ofstream os(fileName);
-			if (!os) {
-				Logger::Get().Info(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
-				return false;
+	bool FileIOSystem::WriteFileJson(const string& fileName, Document& d, bool writeToRoot) {
+		// Write JSON file
+		std::ofstream os(fileName);
+		if (!os) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Could not open file: " << fileName << std::endl;
+			return false;
+		}
+
+		// Convert Document to JSON string
+		StringBuffer buffer;
+		PrettyWriter<StringBuffer> writer(buffer);
+		d.Accept(writer);
+
+		// Write to local file
+		os << buffer.GetString();
+		Logger::Get().Info(DebugType::FileIOSystem) << "Successfully wrote to: " << fileName << std::endl;
+
+		if (writeToRoot) {
+			// Check if root Data folder exists and serialize data to root folder
+			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+				std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + std::string(fileName);
+				std::ofstream os(rootFilePath);
+				if (!os) {
+					Logger::Get().Error(DebugType::FileIOSystem) << "Could not open file: " << rootFilePath << std::endl;
+				}
+
+				// Write to root file
+				os << buffer.GetString();
+				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully wrote to: " << rootFilePath << std::endl;
 			}
-
-			// Convert Document to JSON string
-			StringBuffer buffer;
-			Writer<StringBuffer> writer(buffer);
-			d.Accept(writer);
-
-			// Write to file
-			os << buffer.GetString();
-			return true;
+			else {
+				Logger::Get().Error(DebugType::FileIOSystem) << "Can't find root Data folder!" << std::endl;
+			}
 		}
-		catch (const exception& e) {
-			throw GameException(DebugType::FileIOSystem, e.what());
+
+		return true;
+	}
+
+	bool FileIOSystem::DeleteFileJson(const string& fileName, bool deleteFromRoot) {
+		if (!fs::exists(fileName)) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Can't find file to delete: " << fileName << std::endl;
+			return false; 
 		}
+
+		fs::remove(fileName);
+		Logger::Get().Info(DebugType::FileIOSystem) << "Deleted file: " << fileName << std::endl;
+
+		if (deleteFromRoot) {
+			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
+				std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + fileName;
+				if (fs::exists(rootFilePath)) {
+					fs::remove(rootFilePath);
+					Logger::Get().Info(DebugType::FileIOSystem)
+						<< "Deleted file from root folder: " << rootFilePath << std::endl;
+				}
+				else {
+					Logger::Get().Error(DebugType::FileIOSystem) << "Can't find file to delete: " << rootFilePath << std::endl;
+				}
+			}
+			else {
+				Logger::Get().Error(DebugType::FileIOSystem) << "Can't find root Data folder!" << std::endl;
+			}
+		}
+
+		return true;
 	}
 
 	WindowConfig FileIOSystem::LoadWindowConfig() {
@@ -173,14 +212,16 @@ namespace Framework {
 
 		/* Performance Config Serialization */
 		rapidjson::Value performanceObj(rapidjson::kObjectType);
+		Graphics* graphicsSystem = GameManager::GetInstance().GetSystems().gfx_;
 
-		performanceObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_ENABLEFPSLIMIT), true, alloc);
-		performanceObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_MAXFPS), 100, alloc);
+		performanceObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_ENABLEFPSLIMIT), graphicsSystem->IsFPSCapEnabled(), alloc);
+		performanceObj.AddMember(rapidjson::StringRef(FileIOKeys::GBL_MAXFPS), graphicsSystem->GetFPSCap(), alloc);
 
 		doc.AddMember(rapidjson::StringRef(FileIOKeys::GBL_PERFORMANCECAT), performanceObj, alloc);
 
-		Framework::FileIOSystem::WriteFileJson(FileIOKeys::EDITOR_CFG_PATH, doc);
-		Logger::Get().Info(DebugType::FileIOSystem) << "World Config Saved!" << std::endl;
+		if (WriteFileJson(FileIOKeys::WORLD_CONFIG_FILEPATH, doc)) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "World Config Saved!" << std::endl;
+		}
 	}
 
 	void FileIOSystem::LoadWorldConfig() {
@@ -210,9 +251,17 @@ namespace Framework {
 		/* Performance Config Deserialization */
 		if (doc.HasMember(FileIOKeys::GBL_PERFORMANCECAT) && doc[FileIOKeys::GBL_PERFORMANCECAT].IsObject()) {
 			const rapidjson::Value& performanceObj = doc[FileIOKeys::GBL_PERFORMANCECAT];
+			Graphics* graphicsSystem = GameManager::GetInstance().GetSystems().gfx_;
 			
-			// Empty for now
-			Logger::Get().Info(DebugType::FileIOSystem) << "Performance Configuration Loaded" << std::endl;
+			if (graphicsSystem) {
+				if (performanceObj.HasMember(FileIOKeys::GBL_ENABLEFPSLIMIT) && performanceObj[FileIOKeys::GBL_ENABLEFPSLIMIT].IsBool()) {
+					graphicsSystem->ToggleFPSCap(performanceObj[FileIOKeys::GBL_ENABLEFPSLIMIT].GetBool());
+				}
+				if (performanceObj.HasMember(FileIOKeys::GBL_MAXFPS) && performanceObj[FileIOKeys::GBL_MAXFPS].IsFloat()) {
+					graphicsSystem->SetFPSCap(performanceObj[FileIOKeys::GBL_MAXFPS].GetFloat());
+				}
+				Logger::Get().Info(DebugType::FileIOSystem) << "Performance Configuration Loaded" << std::endl;
+			}
 		}
 	}
 
@@ -328,16 +377,11 @@ namespace Framework {
 				d.PushBack(asset, alloc);
 			}
 
-			// Write to local Data folder
-			WriteFileJson(FileIOKeys::SCENE_ASSETS_FILEPATH, d);
-			Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved scene asset <" << sceneAsset.name << "> to: " << FileIOKeys::SCENE_ASSETS_FILEPATH << std::endl;
-			
-			// Check if root Data folder exists and write to it as well
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::SCENE_ASSETS_FILEPATH;
-				WriteFileJson(rootFilePath, d);
-				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved scene asset <" << sceneAsset.name << "> to: " << rootFilePath << std::endl;
+			// Write to Data folder
+			if (WriteFileJson(FileIOKeys::SCENE_ASSETS_FILEPATH, d)) {
+				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved scene asset <" << sceneAsset.name << "> to: " << FileIOKeys::SCENE_ASSETS_FILEPATH << std::endl;
 			}
+			else { throw std::runtime_error("Failed to save scene asset."); }
 			
 			return true;
 		}
@@ -364,17 +408,12 @@ namespace Framework {
 				d.PushBack(asset, alloc);
 			}
 
-			// Write to local Data folder
-			WriteFileJson(FileIOKeys::SCENE_ASSETS_FILEPATH, d);
-			Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved all scene assets to: " << FileIOKeys::SCENE_ASSETS_FILEPATH << std::endl;
-			
-			// Check if root Data folder exists and write to it as well
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + FileIOKeys::SCENE_ASSETS_FILEPATH;
-				WriteFileJson(rootFilePath, d);
-				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved all scene assets to: " << rootFilePath << std::endl;
+			// Write to Data folder
+			if (WriteFileJson(FileIOKeys::SCENE_ASSETS_FILEPATH, d)) {
+				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved all scene assets to: " << FileIOKeys::SCENE_ASSETS_FILEPATH << std::endl;
 			}
-
+			else { throw std::runtime_error("Failed to save all scene assets."); }
+			
 			return true;
 		}
 		catch (...) {

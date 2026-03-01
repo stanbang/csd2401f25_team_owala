@@ -390,23 +390,6 @@ namespace Framework {
 
         Logger::Get().Info(DebugType::FileIOSystem) << "Successfully saved custom prefab: " << filepath << std::endl;
 
-        if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-            std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filepath;
-            std::string rootCustomFolderPath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + customFolderPath;
-            if (!fs::exists(rootCustomFolderPath)) {
-                try {
-                    fs::create_directories(rootCustomFolderPath);
-                    Logger::Get().Info(DebugType::FileIOSystem)<< "Created root custom prefab folder: " << rootCustomFolderPath << std::endl;
-                }
-                catch (const std::exception& e) {
-                    Logger::Get().Error(DebugType::FileIOSystem) << "Failed to create root custom prefab folder: " << e.what() << std::endl;
-                }
-            }
-
-            FileIOSystem::WriteFileJson(rootFilePath, doc);
-            Logger::Get().Info(DebugType::FileIOSystem) << "Saved prefab to root folder: " << rootFilePath << std::endl;
-        }
-
         if (LoadSinglePrefabFile(filepath)) {
             Logger::Get().Info(DebugType::FileIOSystem) << "Loaded new prefab '" << prefabName << "' into prefab system" << std::endl;
         }
@@ -419,36 +402,17 @@ namespace Framework {
             Logger::Get().Error(DebugType::FileIOSystem) << "Prefab not found: " << prefabName << std::endl;
             return false;
         }
-        try {
-            if (fs::exists(prefab->sourceFile)) {
-                fs::remove(prefab->sourceFile);
-                Logger::Get().Info(DebugType::FileIOSystem)  << "Deleted prefab file: " << prefab->sourceFile << std::endl;
-            }
+
+        if (FileIOSystem::DeleteFileJson(prefab->sourceFile)) {
+            Logger::Get().Info(DebugType::FileIOSystem)  << "Deleted prefab file: " << prefab->sourceFile << std::endl;
         }
-        catch (const std::exception& e) {
-            Logger::Get().Error(DebugType::FileIOSystem) << "Failed to delete prefab file: " << e.what() << std::endl;
+        else {
+            Logger::Get().Error(DebugType::FileIOSystem) << "Failed to delete prefab file: " << prefab->sourceFile << std::endl;
             return false;
         }
 
-        if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-            std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + prefab->sourceFile;
-            try {
-                if (fs::exists(rootFilePath)) {
-                    fs::remove(rootFilePath);
-                    Logger::Get().Info(DebugType::FileIOSystem)
-                        << "Deleted prefab file from root folder: " << rootFilePath << std::endl;
-                }
-            }
-            catch (const std::exception& e) {
-                Logger::Get().Error(DebugType::FileIOSystem) << "Failed to delete prefab file from root folder: " << e.what() << std::endl;
-            }
-        }
-
         prefabs_.erase(prefabName);
-
-        Logger::Get().Info(DebugType::FileIOSystem)
-            << "Removed prefab from system: " << prefabName << std::endl;
-
+        Logger::Get().Info(DebugType::FileIOSystem) << "Removed prefab from system: " << prefabName << std::endl;
         return true;
     }
 
@@ -820,17 +784,10 @@ namespace Framework {
             }
         }
 
-        FileIOSystem::WriteFileJson(filePath, doc);
-        Logger::Get().Info(DebugType::FileIOSystem)
-            << "Saved prefab to: " << filePath << std::endl;
-
-        if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-            std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + filePath;
-            FileIOSystem::WriteFileJson(rootFilePath, doc);
-            Logger::Get().Info(DebugType::FileIOSystem)  << "Saved prefab to: " << rootFilePath << std::endl;
+        if (FileIOSystem::WriteFileJson(filePath, doc)) {
+            Logger::Get().Info(DebugType::FileIOSystem) << 
+                "Saved prefab <" << prefabName << "> to: " << filePath << std::endl;
         }
-
-        Logger::Get().Info(DebugType::FileIOSystem) << "Prefab saved successfully: " << prefabName << std::endl;
 
         return true;
     }

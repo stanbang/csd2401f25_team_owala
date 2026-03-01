@@ -310,8 +310,10 @@ namespace Framework {
 			SerializeEntities(entities, ecs, entitiesData, alloc);
 			doc.AddMember(rapidjson::StringRef(Serialization::ENTITIES), entitiesData, alloc);
 
-			FileIOSystem::WriteFileJson(filePath, doc);
-			Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filePath << std::endl;
+			if (FileIOSystem::WriteFileJson(filePath, doc)) {
+				Logger::Get().Info(DebugType::EntitySeralizer) << "Successfully saved scene <" << sceneName << "> to: " << filePath << std::endl;
+			}
+			else { throw std::runtime_error("Failed to save scene"); }
 		}
 		catch (...) {
 			Logger::Get().Error(DebugType::EntitySeralizer) << "Failed to save scene <" << sceneName << "> to: " << filePath << std::endl;
