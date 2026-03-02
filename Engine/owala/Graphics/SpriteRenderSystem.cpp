@@ -104,7 +104,7 @@ namespace Framework {
 
                 // Draw the text immediately
                 if (item.font) {
-                    gfx_.drawText(*item.font, item.textLine, item.screenPos, item.scale, item.color);
+                    gfx_.drawText(*item.font, item.textLine, item.screenPos, item.scale, item.color, item.rotation);
                 }
             }
             else {
@@ -330,8 +330,22 @@ namespace Framework {
             }
 
             Font& font = rcm_.get<Font>(textComp.fontKey);
-            const Vector2D& textPos = entityMgr.GetComponent<Transform>(entity).position;
+
+            const Transform& transform = entityMgr.GetComponent<Transform>(entity);
+            const Vector2D& textPos = transform.position;
             bool isUIElement = entityMgr.HasComponent(entity, GUITagType);
+
+            // --- Rotation ---
+            float rotationRad = 0.0f;
+            if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                const RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
+                float worldRotationRad = transform.rotation.textureAngle;
+                float localRotationRad = static_cast<float>(rotationFlag.currentRotation * (M_PI / 180.0));
+                rotationRad = worldRotationRad + localRotationRad;
+            }
+            else {
+                rotationRad = transform.rotation.textureAngle;
+            }
 
             // --- Calculate Screen Position ---
             Vector2D screenTextPos = textPos;
@@ -379,6 +393,7 @@ namespace Framework {
                 item.screenPos = currentLinePos;
                 item.scale = textComp.scale * (isUIElement ? 1.0f : zoomRatio);
                 item.color = textComp.color;
+                item.rotation = rotationRad;
 
                 queue.push_back(item);
 

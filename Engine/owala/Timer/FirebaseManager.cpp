@@ -1,21 +1,20 @@
 #include "pch.h"
 #include "FirebaseManager.h"
-#include "Logger.h"
-#include <curl/curl.h>
+
 #include <thread>
 #include <chrono>
 #include <sstream>
-#include <algorithm>
-#include <random>
 
 // RapidJSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
+// WinHTTP - part of the Windows SDK, no extra dependencies needed
 #ifdef _WIN32
 #include <windows.h>
-// Undefine Windows macros that conflict with RapidJSON
+#include <winhttp.h>
+#pragma comment(lib, "winhttp.lib")
 #undef GetObject
 #undef min
 #undef max
@@ -23,11 +22,89 @@
 
 namespace Framework {
 
-    // --- curl write callback ---
-    static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {
-        output->append((char*)contents, size * nmemb);
-        return size * nmemb;
+    // -----------------------------------------------------------------------
+    // WinHTTP helper: sends an HTTP request and returns the response body.
+    // -----------------------------------------------------------------------
+    static std::string WinHttpRequest(
+        const std::string& url,
+        const std::wstring& method,
+        const std::string& body = "")
+    {
+        std::string result;
+
+#ifdef _WIN32
+        URL_COMPONENTS uc = {};
+        uc.dwStructSize = sizeof(uc);
+
+        wchar_t scheme[32] = {};
+        wchar_t host[256] = {};
+        wchar_t urlPath[1024] = {};
+
+        uc.lpszScheme = scheme;   uc.dwSchemeLength = _countof(scheme);
+        uc.lpszHostName = host;     uc.dwHostNameLength = _countof(host);
+        uc.lpszUrlPath = urlPath;  uc.dwUrlPathLength = _countof(urlPath);
+
+        std::wstring wurl(url.begin(), url.end());
+        if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc)) return result;
+
+        bool isHttps = (uc.nScheme == INTERNET_SCHEME_HTTPS);
+
+        HINTERNET hSession = WinHttpOpen(
+            L"owala/1.0",
+            WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+            WINHTTP_NO_PROXY_NAME,
+            WINHTTP_NO_PROXY_BYPASS, 0);
+        if (!hSession) return result;
+
+        HINTERNET hConnect = WinHttpConnect(hSession, host, uc.nPort, 0);
+        if (!hConnect) { WinHttpCloseHandle(hSession); return result; }
+
+        DWORD flags = isHttps ? WINHTTP_FLAG_SECURE : 0;
+        HINTERNET hRequest = WinHttpOpenRequest(
+            hConnect, method.c_str(), urlPath,
+            nullptr, WINHTTP_NO_REFERER,
+            WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+        if (!hRequest) {
+            WinHttpCloseHandle(hConnect);
+            WinHttpCloseHandle(hSession);
+            return result;
+        }
+
+        if (!body.empty()) {
+            WinHttpAddRequestHeaders(hRequest,
+                L"Content-Type: application/json",
+                (ULONG)-1L,
+                WINHTTP_ADDREQ_FLAG_ADD);
+        }
+
+        BOOL sent = WinHttpSendRequest(
+            hRequest,
+            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+            body.empty() ? nullptr : (LPVOID)body.c_str(),
+            (DWORD)body.size(),
+            (DWORD)body.size(), 0);
+
+        if (sent) {
+            WinHttpReceiveResponse(hRequest, nullptr);
+
+            DWORD bytesAvail = 0;
+            while (WinHttpQueryDataAvailable(hRequest, &bytesAvail) && bytesAvail > 0) {
+                std::string chunk(bytesAvail, '\0');
+                DWORD bytesRead = 0;
+                WinHttpReadData(hRequest, chunk.data(), bytesAvail, &bytesRead);
+                chunk.resize(bytesRead);
+                result += chunk;
+            }
+        }
+
+        WinHttpCloseHandle(hRequest);
+        WinHttpCloseHandle(hConnect);
+        WinHttpCloseHandle(hSession);
+#endif
+        return result;
     }
+
+    // -----------------------------------------------------------------------
 
     std::string FirebaseManager::GetMachineName() {
 #ifdef _WIN32
@@ -40,192 +117,75 @@ namespace Framework {
 #endif
     }
 
-    // Helper to generate a unique push ID (similar to Firebase's push IDs)
-    std::string GeneratePushID() {
-        static const char* PUSH_CHARS = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
-        static std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-        static std::uniform_int_distribution<int> dist(0, 63);
-
-        std::string pushId;
-        auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()).count();
-
-        // 8 characters for timestamp
-        for (int i = 7; i >= 0; i--) {
-            pushId += PUSH_CHARS[(now >> (i * 6)) & 0x3F];
-        }
-
-        // 12 random characters
-        for (int i = 0; i < 12; i++) {
-            pushId += PUSH_CHARS[dist(rng)];
-        }
-
-        return pushId;
-    }
-
     void FirebaseManager::SubmitRun(const std::string& levelName, float timeSeconds) {
         std::string machineName = GetMachineName();
-
-        // Log the submission attempt
-        Logger::Get().Info(DebugType::PlayerSystem)
-            << "[Firebase] Submitting run - Level: " << levelName
-            << ", Time: " << timeSeconds << "s, Machine: " << machineName << std::endl;
 
         auto now = std::chrono::system_clock::now().time_since_epoch();
         long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(now).count();
 
+        // Build JSON payload — now includes level name
         rapidjson::StringBuffer sb;
         rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
         writer.StartObject();
         writer.Key("name");      writer.String(machineName.c_str());
+        writer.Key("level");     writer.String(levelName.c_str());
         writer.Key("time");      writer.Double(static_cast<double>(timeSeconds));
         writer.Key("timestamp"); writer.Int64(timestamp);
-        writer.Key("level");     writer.String(levelName.c_str());
         writer.EndObject();
         std::string payload = sb.GetString();
 
-        // Sanitize level name for URL (replace spaces with underscores)
-        std::string sanitizedLevel = levelName;
-        std::replace(sanitizedLevel.begin(), sanitizedLevel.end(), ' ', '_');
-
-        // === FIXED URL STRUCTURE ===
-        // Using a push ID instead of nested path to avoid 400 errors
-        std::string pushId = GeneratePushID();
+        // URL: /leaderboard/{levelName}/{machine}/{timestamp}.json
         std::string url = std::string(FIREBASE_URL)
-            + "leaderboard/" + sanitizedLevel + "/" + pushId + ".json";
-
-        Logger::Get().Info(DebugType::PlayerSystem) << "[Firebase] URL: " << url << std::endl;
-        Logger::Get().Info(DebugType::PlayerSystem) << "[Firebase] Payload: " << payload << std::endl;
+            + "/leaderboard/" + levelName
+            + "/" + machineName
+            + "/" + std::to_string(timestamp) + ".json";
 
         std::thread([url, payload]() {
-            CURL* curl = curl_easy_init();
-            if (!curl) {
-                Logger::Get().Error(DebugType::PlayerSystem) << "[Firebase] ERROR: curl_easy_init() failed" << std::endl;
-                return;
-            }
-
-            // Bypass SSL verification (for development)
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-
-            struct curl_slist* headers = nullptr;
-            headers = curl_slist_append(headers, "Content-Type: application/json");
-
-            std::string response;
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");  // PUT with unique ID works fine
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)payload.size());
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-
-            CURLcode result = curl_easy_perform(curl);
-
-            long httpCode = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-
-            if (result != CURLE_OK) {
-                Logger::Get().Error(DebugType::PlayerSystem)
-                    << "[Firebase] CURL ERROR: " << curl_easy_strerror(result) << std::endl;
-            }
-            else {
-                if (httpCode >= 200 && httpCode < 300) {
-                    Logger::Get().Info(DebugType::PlayerSystem)
-                        << "[Firebase] SUCCESS! HTTP " << httpCode << " | Response: " << response << std::endl;
-                }
-                else {
-                    Logger::Get().Error(DebugType::PlayerSystem)
-                        << "[Firebase] HTTP ERROR " << httpCode << " | Response: " << response << std::endl;
-                }
-            }
-
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
+            WinHttpRequest(url, L"PUT", payload);
             }).detach();
     }
 
     void FirebaseManager::FetchLeaderboard(const std::string& levelName,
-        std::function<void(std::vector<LeaderboardEntry>)> onComplete) {
+        std::function<void(std::vector<LeaderboardEntry>)> onComplete)
+    {
+        // URL: /leaderboard/{levelName}.json — fetch only this level's entries
+        std::string url = std::string(FIREBASE_URL)
+            + "/leaderboard/" + levelName + ".json";
 
-        std::string sanitizedLevel = levelName;
-        std::replace(sanitizedLevel.begin(), sanitizedLevel.end(), ' ', '_');
+        std::thread([this, url, levelName, onComplete]() {
+            std::string response = WinHttpRequest(url, L"GET");
+            if (response.empty()) return;
 
-        // Simplified URL for fetching
-        std::string url = std::string(FIREBASE_URL) + "leaderboard/" + sanitizedLevel + ".json";
-
-        Logger::Get().Info(DebugType::PlayerSystem) << "[Firebase] Fetching leaderboard for: " << levelName << std::endl;
-
-        std::thread([this, url, onComplete]() {
-            CURL* curl = curl_easy_init();
-            if (!curl) {
-                Logger::Get().Error(DebugType::PlayerSystem) << "[Firebase] ERROR: curl_easy_init() failed for fetch" << std::endl;
-                return;
-            }
-
-            // Bypass SSL verification (for development)
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-
-            std::string response;
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-
-            CURLcode res = curl_easy_perform(curl);
-
-            long httpCode = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-
-            curl_easy_cleanup(curl);
-
-            if (res != CURLE_OK) {
-                Logger::Get().Error(DebugType::PlayerSystem)
-                    << "[Firebase] Fetch CURL ERROR: " << curl_easy_strerror(res) << std::endl;
-                return;
-            }
-
-            if (httpCode != 200) {
-                Logger::Get().Error(DebugType::PlayerSystem)
-                    << "[Firebase] Fetch HTTP Error: " << httpCode << std::endl;
-                return;
-            }
-
+            // Structure: { "MACHINENAME": { "timestamp": { name, level, time, timestamp } } }
             std::vector<LeaderboardEntry> entries;
+
             rapidjson::Document doc;
             doc.Parse(response.c_str());
-
             if (doc.IsObject()) {
-                // Structure: { "pushId": { name, time, timestamp, level } }
-                for (auto& entry : doc.GetObject()) {
-                    if (!entry.value.IsObject()) continue;
-
-                    LeaderboardEntry leaderboardEntry;
-                    if (entry.value.HasMember("name") && entry.value["name"].IsString())
-                        leaderboardEntry.name = entry.value["name"].GetString();
-                    if (entry.value.HasMember("time") && entry.value["time"].IsDouble())
-                        leaderboardEntry.time = (float)entry.value["time"].GetDouble();
-                    if (entry.value.HasMember("timestamp") && entry.value["timestamp"].IsInt64())
-                        leaderboardEntry.timestamp = entry.value["timestamp"].GetInt64();
-                    if (entry.value.HasMember("level") && entry.value["level"].IsString())
-                        leaderboardEntry.level = entry.value["level"].GetString();
-
-                    entries.push_back(leaderboardEntry);
+                for (auto& machine : doc.GetObject()) {
+                    if (!machine.value.IsObject()) continue;
+                    for (auto& run : machine.value.GetObject()) {
+                        if (!run.value.IsObject()) continue;
+                        LeaderboardEntry entry;
+                        if (run.value.HasMember("name") && run.value["name"].IsString())
+                            entry.name = run.value["name"].GetString();
+                        if (run.value.HasMember("level") && run.value["level"].IsString())
+                            entry.level = run.value["level"].GetString();
+                        if (run.value.HasMember("time") && run.value["time"].IsDouble())
+                            entry.time = (float)run.value["time"].GetDouble();
+                        if (run.value.HasMember("timestamp") && run.value["timestamp"].IsInt64())
+                            entry.timestamp = run.value["timestamp"].GetInt64();
+                        entries.push_back(entry);
+                    }
                 }
             }
 
-            // Sort by time (ascending - fastest first)
+            // Sort by time ascending (fastest first)
             std::sort(entries.begin(), entries.end(),
                 [](const LeaderboardEntry& a, const LeaderboardEntry& b) {
                     return a.time < b.time;
                 });
 
-            Logger::Get().Info(DebugType::PlayerSystem)
-                << "[Firebase] Fetched " << entries.size() << " leaderboard entries" << std::endl;
-
-            // Queue the callback to be called on main thread
             std::lock_guard<std::mutex> lock(m_mutex);
             m_pendingCallbacks.push_back([onComplete, entries]() {
                 onComplete(entries);
@@ -239,9 +199,7 @@ namespace Framework {
             std::lock_guard<std::mutex> lock(m_mutex);
             toFire.swap(m_pendingCallbacks);
         }
-        for (auto& cb : toFire) {
-            cb();
-        }
+        for (auto& cb : toFire) cb();
     }
 
 }

@@ -118,6 +118,15 @@ namespace Framework {
             }
             });
 
+		// Subscribe to Animation Events (for frame-specific SFX)
+        MessageBus::Instance().Subscribe<AnimationEvent>([this](const AnimationEvent& e) {
+            // Filter for the events this system cares about
+            if (e.eventName == "Footstep") {
+                // Empty by design
+				Logger::Get().Info(DebugType::AudioSystem) << "Hi the name's bobby bonkers" << std::endl;
+            }
+            });
+
         // Subscribe to Bird Enemy Events
         MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent&) {this->PlayRandomSound("Bird_Wake", AudioType::SFX, 0.3f); });
         MessageBus::Instance().Subscribe<BirdChaseEvent>([this](const BirdChaseEvent& e) {
@@ -438,13 +447,20 @@ namespace Framework {
         return vol;
     }
 
-    void AudioSystem::stopAll() {
-        // Stop last-played channel per id
-        for (auto it = channels_.begin(); it != channels_.end(); ++it) {
-            if (it->second) {
-                FadeOutChannel(it->second, 1.0f);
+    void AudioSystem::stopAll(bool fadeOut) {
+        if (fadeOut) {
+            // Stop last-played channel per id
+            for (auto it = channels_.begin(); it != channels_.end(); ++it) {
+                if (it->second) {
+                        FadeOutChannel(it->second, 1.0f);
+                }
             }
         }
+        else if (masterGroup_) {
+            masterGroup_->stop();
+            if (system_) system_->update(); // Force an update so the pause applies instantly
+        }
+
         channels_.clear();
     }
 

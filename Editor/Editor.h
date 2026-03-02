@@ -403,6 +403,7 @@ namespace Editor {
 			int startFrame = 0;
 			std::vector<std::pair<std::string, int>> spritesheets; // texture, frameCount pairs
 			std::vector<std::string> textureKeys; // keys from textureToAnimationMapping.json
+			std::map<int, std::string> frameEvents; // maps frame numbers to event names for quick lookup when editing events on specific frames
 		};
 
 		std::vector<AnimationFileData> loadedAnimations_;

@@ -663,7 +663,7 @@ namespace Framework {
         }
     }
 
-    void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color) {
+    void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color, float rotationRad) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glUseProgram(progText_);
@@ -681,9 +681,37 @@ namespace Framework {
         std::vector<float> vertices;
         vertices.reserve(textToDraw.length() * 6 * 4);
 
-        float x = (pos.x + 1.0f) * 0.5f * screenWidth;
-        float y = (pos.y + 1.0f) * 0.5f * screenHeight;
-        y -= font.GetAscent(scale);
+        float cos_r = std::cos(rotationRad);
+        float sin_r = std::sin(rotationRad);
+
+        float start_x = (pos.x + 1.0f) * 0.5f * screenWidth;
+        float start_y = (pos.y + 1.0f) * 0.5f * screenHeight;
+
+        // 1. Calculate the exact pixel width of the text block
+        float textWidthPx = 0.0f;
+        for (char c_signed : textToDraw) {
+            unsigned char c = static_cast<unsigned char>(c_signed);
+            textWidthPx += (font.GetCharacters().at(c).Advance >> 6) * scale;
+        }
+
+        // 2. Set pivot to the exact visual center of the text
+        float pivot_x = start_x + (textWidthPx * 0.5f);
+        float pivot_y = start_y - (font.GetAscent(scale) * 0.5f);
+
+        float x = start_x;
+        float y = start_y - font.GetAscent(scale); // Standard baseline
+
+        // Helper lambda to rotate pixel coordinates around the dynamic center
+        auto transformToNDC = [&](float px, float py, float& ndc_x, float& ndc_y) {
+            float dx = px - pivot_x;
+            float dy = py - pivot_y;
+
+            float rot_x = pivot_x + (dx * cos_r - dy * sin_r);
+            float rot_y = pivot_y + (dx * sin_r + dy * cos_r);
+
+            ndc_x = (rot_x / screenWidth) * 2.0f - 1.0f;
+            ndc_y = (rot_y / screenHeight) * 2.0f - 1.0f;
+            };
 
         for (char c_signed : textToDraw) {
             unsigned char c = static_cast<unsigned char>(c_signed);
@@ -694,10 +722,18 @@ namespace Framework {
             float w = ch.Size.x * scale;
             float h = ch.Size.y * scale;
 
-            float ndc_xpos = (xpos / screenWidth) * 2.0f - 1.0f;
-            float ndc_ypos = (ypos / screenHeight) * 2.0f - 1.0f;
-            float ndc_w = (w / screenWidth) * 2.0f;
-            float ndc_h = (h / screenHeight) * 2.0f;
+            // 4 corners of the character quad in pixel space
+            float x1 = xpos, y1 = ypos + h; // Top-Left
+            float x2 = xpos, y2 = ypos;     // Bottom-Left
+            float x3 = xpos + w, y3 = ypos;     // Bottom-Right
+            float x4 = xpos + w, y4 = ypos + h; // Top-Right
+
+            // Rotate and convert to NDC
+            float nx1, ny1, nx2, ny2, nx3, ny3, nx4, ny4;
+            transformToNDC(x1, y1, nx1, ny1);
+            transformToNDC(x2, y2, nx2, ny2);
+            transformToNDC(x3, y3, nx3, ny3);
+            transformToNDC(x4, y4, nx4, ny4);
 
             float u = ch.TexCoords.x;
             float v = ch.TexCoords.y;
@@ -705,13 +741,13 @@ namespace Framework {
             float uvh = ch.TexCoords.w;
 
             vertices.insert(vertices.end(), {
-                ndc_xpos,         ndc_ypos + ndc_h,   u,       v,
-                ndc_xpos,         ndc_ypos,           u,       v + uvh,
-                ndc_xpos + ndc_w, ndc_ypos,           u + uvw, v + uvh,
+                nx1, ny1, u,       v,
+                nx2, ny2, u,       v + uvh,
+                nx3, ny3, u + uvw, v + uvh,
 
-                ndc_xpos,         ndc_ypos + ndc_h,   u,       v,
-                ndc_xpos + ndc_w, ndc_ypos,           u + uvw, v + uvh,
-                ndc_xpos + ndc_w, ndc_ypos + ndc_h,   u + uvw, v
+                nx1, ny1, u,       v,
+                nx3, ny3, u + uvw, v + uvh,
+                nx4, ny4, u + uvw, v
                 });
 
             x += (ch.Advance >> 6) * scale;

@@ -41,24 +41,25 @@ namespace Editor {
 								AnimationFileData animData;
 								animData.name = filename;
 
-							if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
-								animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
-							}
-							if (doc.HasMember(FileIOKeys::FRAME_DURATION)) {
-								animData.frameDuration = doc[FileIOKeys::FRAME_DURATION].GetFloat();
-							}
-							if (doc.HasMember(FileIOKeys::IS_LOOPING)) {
-								animData.isLooping = doc[FileIOKeys::IS_LOOPING].GetBool();
-							}
-							if (doc.HasMember(FileIOKeys::START_FRAME)) {
-								animData.startFrame = doc[FileIOKeys::START_FRAME].GetInt();
-							}
+								if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
+									animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
+								}
+								if (doc.HasMember(FileIOKeys::FRAME_DURATION)) {
+									animData.frameDuration = doc[FileIOKeys::FRAME_DURATION].GetFloat();
+								}
+								if (doc.HasMember(FileIOKeys::IS_LOOPING)) {
+									animData.isLooping = doc[FileIOKeys::IS_LOOPING].GetBool();
+								}
+								if (doc.HasMember(FileIOKeys::START_FRAME)) {
+									animData.startFrame = doc[FileIOKeys::START_FRAME].GetInt();
+								}
 
-							// Load spritesheets
-							if (doc.HasMember("spritesheets") && doc["spritesheets"].IsArray()) {
-								const rapidjson::Value& sheetsJson = doc["spritesheets"];
-								for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
+								// Load spritesheets
+								if (doc.HasMember("spritesheets") && doc["spritesheets"].IsArray()) {
+									const rapidjson::Value& sheetsJson = doc["spritesheets"];
+									for (rapidjson::SizeType i = 0; i < sheetsJson.Size(); ++i) {
 										const rapidjson::Value& sheet = sheetsJson[i];
+										
 										if (sheet.HasMember("texture") && sheet.HasMember("count")) {
 											animData.spritesheets.push_back({
 												sheet["texture"].GetString(),
@@ -68,8 +69,19 @@ namespace Editor {
 									}
 								}
 
-								loadedAnimations_.push_back(animData);
+								// Load frame events
+								animData.frameEvents.clear();
+								if (doc.HasMember("frameEvents") && doc["frameEvents"].IsObject()) {
+									const rapidjson::Value& eventsJson = doc["frameEvents"];
+									for (auto it = eventsJson.MemberBegin(); it != eventsJson.MemberEnd(); ++it) {
+										// JSON object keys must be strings, so we convert the string back to an int frame index
+										int frameIdx = std::stoi(it->name.GetString());
+										std::string evtName = it->value.GetString();
+										animData.frameEvents[frameIdx] = evtName;
+									}
+								}
 
+								loadedAnimations_.push_back(animData);
 								Logger::Get().Info(DebugType::Editor)
 									<< "Loaded animation: " << filename << " (frameCount: " << animData.frameCount << ")" << std::endl;
 							}
@@ -150,25 +162,35 @@ namespace Editor {
 
 		AnimationFileData& animData = loadedAnimations_[animIndex];
 
-	// Create JSON document
-	rapidjson::Document doc;
-	doc.SetObject();
-	rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+		// Create JSON document
+		rapidjson::Document doc;
+		doc.SetObject();
+		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
-	doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_COUNT), animData.frameCount, alloc);
-	doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_DURATION), animData.frameDuration, alloc);
-	doc.AddMember(rapidjson::StringRef(FileIOKeys::IS_LOOPING), animData.isLooping, alloc);
-	doc.AddMember(rapidjson::StringRef(FileIOKeys::START_FRAME), animData.startFrame, alloc);
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_COUNT), animData.frameCount, alloc);
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_DURATION), animData.frameDuration, alloc);
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::IS_LOOPING), animData.isLooping, alloc);
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::START_FRAME), animData.startFrame, alloc);
 
-	// Add spritesheets array
-	rapidjson::Value sheetsArray(rapidjson::kArrayType);
-	for (const auto& sheet : animData.spritesheets) {
-		rapidjson::Value sheetObj(rapidjson::kObjectType);
-		sheetObj.AddMember("texture", rapidjson::StringRef(sheet.first.c_str()), alloc);
-		sheetObj.AddMember("count", sheet.second, alloc);
-		sheetsArray.PushBack(sheetObj, alloc);
-	}
-	doc.AddMember("spritesheets", sheetsArray, alloc);
+		// Add spritesheets array
+		rapidjson::Value sheetsArray(rapidjson::kArrayType);
+		for (const auto& sheet : animData.spritesheets) {
+			rapidjson::Value sheetObj(rapidjson::kObjectType);
+			sheetObj.AddMember("texture", rapidjson::StringRef(sheet.first.c_str()), alloc);
+			sheetObj.AddMember("count", sheet.second, alloc);
+			sheetsArray.PushBack(sheetObj, alloc);
+		}
+		doc.AddMember("spritesheets", sheetsArray, alloc);
+
+		// Add frame events object
+		rapidjson::Value eventsObj(rapidjson::kObjectType);
+		for (const auto& [frame, evtName] : animData.frameEvents) {
+			// RapidJSON requires object keys to be string references
+			rapidjson::Value keyRef(std::to_string(frame).c_str(), alloc);
+			rapidjson::Value valRef(evtName.c_str(), alloc);
+			eventsObj.AddMember(keyRef, valRef, alloc);
+		}
+		doc.AddMember("frameEvents", eventsObj, alloc);
 
 		// Write to Debug folder first
 		std::string debugFilepath = "Data/AnimationData/" + animationName + ".json";
@@ -498,7 +520,7 @@ namespace Editor {
 			ImGui::Spacing();
 			ImGui::Separator();
 
-			// --- Texture Keys (from textureToAnimationMapping.json) ---
+			// Texture Keys (from textureToAnimationMapping.json)
 			ImGui::Separator();
 			ImGui::SeparatorText("Texture Keys (textureToAnimationMapping)");
 			ImGui::TextDisabled("These keys link this animation to texture lookups at runtime.");
@@ -542,6 +564,73 @@ namespace Editor {
 				if (std::strlen(newTextureKey) > 0) {
 					animData.textureKeys.push_back(newTextureKey);
 					newTextureKey[0] = '\0';
+				}
+			}
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::SeparatorText("Frame Events");
+
+			// Display current frame events
+			if (!animData.frameEvents.empty()) {
+				if (ImGui::BeginTable("FrameEventsTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+					ImGui::TableSetupColumn("Frame", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+					ImGui::TableSetupColumn("Event Name", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+					ImGui::TableHeadersRow();
+
+					// Use an iterator loop to allow safe element removal during iteration
+					for (auto it = animData.frameEvents.begin(); it != animData.frameEvents.end(); ) {
+						ImGui::PushID(it->first); // Use frame index as unique ImGui ID
+						ImGui::TableNextRow();
+
+						// Frame Index
+						ImGui::TableNextColumn();
+						ImGui::Text("%d", it->first);
+
+						// Event Name
+						ImGui::TableNextColumn();
+						ImGui::Text("%s", it->second.c_str());
+
+						// Remove Button
+						ImGui::TableNextColumn();
+						if (ImGui::Button("Remove##event", ImVec2(-1.0f, 0.0f))) {
+							it = animData.frameEvents.erase(it);
+						}
+						else {
+							++it;
+						}
+
+						ImGui::PopID();
+					}
+					ImGui::EndTable();
+				}
+			}
+			else {
+				ImGui::TextDisabled("No frame events added yet");
+			}
+
+			// Add new Frame Event
+			ImGui::Spacing();
+			static int newEventFrame = 0;
+			static char newEventName[256] = "";
+
+			ImGui::Text("Add New Frame Event:");
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputInt("Frame##newEvt", &newEventFrame);
+
+			// Clamp the input frame so designers can't assign an event past the animation's length
+			newEventFrame = std::max(0, std::min(newEventFrame, animData.frameCount - 1));
+
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(200.0f);
+			ImGui::InputText("Event Name##newEvt", newEventName, IM_ARRAYSIZE(newEventName));
+
+			ImGui::SameLine();
+			if (ImGui::Button("Add Event")) {
+				if (std::strlen(newEventName) > 0) {
+					animData.frameEvents[newEventFrame] = newEventName;
+					newEventName[0] = '\0'; // Clear the text box after adding
 				}
 			}
 
@@ -620,6 +709,18 @@ namespace Editor {
 							sheet["count"].GetInt()
 						});
 					}
+				}
+			}
+
+			// Load frame events
+			animData.frameEvents.clear();
+			if (doc.HasMember("frameEvents") && doc["frameEvents"].IsObject()) {
+				const rapidjson::Value& eventsJson = doc["frameEvents"];
+				for (auto it = eventsJson.MemberBegin(); it != eventsJson.MemberEnd(); ++it) {
+					// JSON object keys must be strings, so we convert the string back to an int frame index
+					int frameIdx = std::stoi(it->name.GetString());
+					std::string evtName = it->value.GetString();
+					animData.frameEvents[frameIdx] = evtName;
 				}
 			}
 

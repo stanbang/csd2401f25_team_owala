@@ -118,14 +118,10 @@ namespace Framework {
                 if (auto* p = dynamic_cast<PhysicsSystem*>(s)) physSys = p;
             }
 
+            // Stop all audio channels when Editor Mode is toggled
             if (mode_ != previousMode) {
-                if (audioSys) {
-                    if (mode_ == EngineMode::Editor) {
-                        audioSys->SuspendAudio(); // or audioSys->stopAll();
-                    }
-                    else {
-                        audioSys->ResumeAudio();
-                    }
+                if (audioSys && mode_ == EngineMode::Editor) {
+                    audioSys->stopAll(false);
                 }
                 previousMode = mode_;
             }

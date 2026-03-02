@@ -103,6 +103,12 @@ namespace Framework {
 		Vector2D position = { 0.0f, 0.0f };
 	};
 
+	// Events to publish during specific animation frames, e.g. to trigger SFX or VFX at the right timing
+	struct AnimationEvent {
+		Entity entity;
+		std::string eventName;
+	};
+
 	struct TrapPlatformLandEvent {
 		Vector2D position;
 	};
