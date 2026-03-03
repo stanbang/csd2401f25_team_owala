@@ -40,6 +40,8 @@ namespace {
 		// Buttons
 		Entity arrowLeft = 0, arrowRight = 0;
 		Entity backButton = 0, selectButton = 0;
+		Entity leaderboardButton = 0;
+		Entity leaderboardPanel = 0;
 
 		// Tickets
 		Entity ticketPrev = 0, ticketCurrent = 0, ticketNext = 0;
@@ -69,7 +71,7 @@ namespace {
 	std::vector<LevelEntry> levelData;
 	int currentIndex = 0;
 	SaveManager* save = nullptr;
-
+	bool leaderboardOpen = false;
 
 
 	bool ConsumeClick(Framework::EntityManager& entityMgr, Framework::InputSystem& inputSystem, Entity entity) {
@@ -99,7 +101,8 @@ namespace {
 			else if (name == "Ticket_Next") ui.ticketNext = entity;
 			else if (name == "LevelText") ui.levelText = entity;
 			else if (name == "LeaderboardText") leaderboardTextEntity = entity;
-
+			else if (name == "LeaderboardButton") ui.leaderboardButton = entity;
+			else if (name == "LeaderboardPanel")  ui.leaderboardPanel = entity;
 		}
 
 		if (!ui.ValidateRef()) {
@@ -108,6 +111,13 @@ namespace {
 		}
 
 		cached = true;
+	}
+
+	void SetLeaderboardVisible(Framework::EntityManager& entityMgr, bool visible) {
+		if (entityMgr.ValidateEntity(leaderboardTextEntity))
+			entityMgr.GetProperties(leaderboardTextEntity).isActive = visible;
+		if (entityMgr.ValidateEntity(ui.leaderboardPanel))
+			entityMgr.GetProperties(ui.leaderboardPanel).isActive = visible;
 	}
 
 	void RefreshLeaderboard() {  // no parameter needed
@@ -128,15 +138,19 @@ namespace {
 					return;
 				}
 
-				std::string display = "-- Best Times --\n";
+				Logger::Get().Info(DebugType::GameManager)
+					<< "Leaderboard entries: " << entries.size()
+					<< " first name: " << (entries.empty() ? "none" : entries[0].name)
+					<< " time: " << (entries.empty() ? 0.f : entries[0].time)
+					<< std::endl;
+				std::string display = "Best Times:";
 				int rank = 1;
 				for (auto& e : entries) {
-					int mins = (int)(e.time / 60);
-					float secs = e.time - mins * 60;
 					char buf[128];
-					std::snprintf(buf, sizeof(buf), "%d. %s  %02d:%05.2f\n",
-						rank++, e.name.c_str(), mins, secs);
+					std::snprintf(buf, sizeof(buf), "%d. %s  %.2fs\n",
+						rank++, e.name.c_str(), e.time);
 					display += buf;
+					if (rank > 5) break;  // only top 5
 				}
 				text.textToDraw = display;
 				text.isDirty = true;
@@ -279,7 +293,6 @@ namespace LevelSelection {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		CacheUI(entityMgr);
 		save = GetSaveManager(entityMgr);
-
 		bool shouldSkipIntro = (save && save->GetSkipIntro()) ? true : false;
 		std::string firstLevel = shouldSkipIntro ? "Tutorial 1" : "Cutscene Intro";
 
@@ -293,6 +306,8 @@ namespace LevelSelection {
 		HideMenuEntities(entityMgr);
 
 		currentIndex = 0;
+		leaderboardOpen = false;
+		SetLeaderboardVisible(entityMgr, false);
 		RefreshUI(entityMgr);
 	}
 
@@ -306,6 +321,7 @@ namespace LevelSelection {
 	}
 
 	void Update() {
+		FirebaseManager::Get().Update();
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		InputSystem& inputSystem = *GameManager::GetInstance().GetSystems().input_;
 
@@ -347,6 +363,17 @@ namespace LevelSelection {
 				GameManager::GetInstance().QueueLevelLoad("MainMenu");
 			}
 			return;
+		}
+
+		if (ConsumeClick(entityMgr, inputSystem, ui.leaderboardButton)) {
+			leaderboardOpen = !leaderboardOpen;
+			SetLeaderboardVisible(entityMgr, leaderboardOpen);
+			if (leaderboardOpen) {
+				auto& t = entityMgr.GetComponent<Framework::TextComponent>(leaderboardTextEntity);
+				t.textToDraw = "Loading...";
+				t.isDirty = true;
+				RefreshLeaderboard();
+			}
 		}
 
 		// Select Button - WITH FADE EFFECT (Option A)
@@ -392,6 +419,7 @@ namespace LevelSelection {
 		RestoreMainMenuEntities(entityMgr);
 
 		levelData.clear();
+		leaderboardOpen = false;
 		currentIndex = 0;
 		cached = false;
 		ui = {};
