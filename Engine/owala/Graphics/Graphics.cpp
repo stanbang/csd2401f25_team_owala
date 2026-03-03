@@ -479,10 +479,8 @@ namespace Framework {
             const float cx = s.topLeft.x + s.size.x * 0.5f;
             const float cy = s.topLeft.y + s.size.y * 0.5f;
             // Scale dilation proportionally to this sprite's size vs the reference tile
-            float scaleX = (referenceTileH > 0.0f) ? (s.size.x / referenceTileH) : 1.0f;
-            float scaleY = (referenceTileH > 0.0f) ? (s.size.y / referenceTileH) : 1.0f;
-            const float hx = (s.size.x * 0.5f) + baseDilation * scaleX;
-            const float hy = (s.size.y * 0.5f) + baseDilation * scaleY;
+            const float hx = (s.size.x * 0.5f) + baseDilation;
+            const float hy = (s.size.y * 0.5f) + baseDilation;
 
             const float c = std::cos(s.rotation);
             const float q = std::sin(s.rotation);

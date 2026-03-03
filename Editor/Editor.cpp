@@ -7373,7 +7373,33 @@ namespace Editor {
 
 		ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
 		ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f");
-		bool activeNow = ImGui::IsItemActive();
+
+		// UV Override Section
+		ImGui::Separator();
+		ImGui::SeparatorText("UV Override");
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("When enabled, the renderer uses these UV coordinates directly\ninstead of the AnimationSystem (used for slider fills, static crops, etc.)");
+		}
+
+		bool activeNow = false;
+
+		if (ImGui::Checkbox("Override UV", &tex.overrideUV)) activeNow = true;
+
+		if (tex.overrideUV) {
+			ImGui::BeginDisabled(!tex.overrideUV);
+			if (ImGui::InputFloat2("Min UV (U0, V0)", &tex.minUV.x, "%.3f")) activeNow = true;
+			if (ImGui::InputFloat2("Max UV (U1, V1)", &tex.maxUV.x, "%.3f")) activeNow = true;
+			if (ImGui::Button("Reset UV")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				tex.minUV = { 0.0f, 0.0f };
+				tex.maxUV = { 1.0f, 1.0f };
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) {
+					historyManager_.RecordModifyComponent(entity, "Reset UV Override", beforeJSON, afterJSON, compType);
+				}
+			}
+			ImGui::EndDisabled();
+		}
 
 		if (activeNow && !editSession.wasItemActive) {
 			editSession.Begin(entity, compType);

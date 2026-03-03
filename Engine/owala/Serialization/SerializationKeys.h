@@ -114,6 +114,9 @@ namespace Framework::Serialization {
 	static constexpr const char* TEXTURE_KEY = "texture_key";
 	static constexpr const char* HALF_SIZE = "half_size";
 	static constexpr const char* TEXTURE_FLIP_X = "flip_x";
+	static constexpr const char* TEXTURE_OVERRIDE_UV = "override_uv";
+	static constexpr const char* TEXTURE_MIN_UV = "min_uv";
+	static constexpr const char* TEXTURE_MAX_UV = "max_uv";
 	
 	static constexpr const char* AUDIO_COMPONENT = "AudioComponent";
 	static constexpr const char* SOUND_KEY = "sound_key";
@@ -217,6 +220,8 @@ namespace Framework::Serialization {
 	static constexpr const char* SLIDER_WIDTH_OFFSET_X = "width_offset_x";
 	static constexpr const char* SLIDER_IS_DRAGGING = "is_dragging";
 	static constexpr const char* SLIDER_TYPE = "slider_type";
+	static constexpr const char* SLIDER_ORIGINAL_FILL_HALF_SIZE_X = "original_fill_half_size_x";
+	static constexpr const char* SLIDER_ORIGINAL_FILL_LEFT_EDGE_X = "original_fill_left_edge_x";
 
 	// FSM KEYS
 	static constexpr const char* FSM_COMPONENT = "FSMComponent";

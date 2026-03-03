@@ -206,6 +206,12 @@ namespace Framework{
 		Vector2D HalfSize = { 50.f, 50.f };
 		bool flipHorizontal = false;
 		float alpha = 1.0f; // Opacity of the texture (1.0 = fully opaque, 0.0 = fully transparent)
+
+		// Optional UV override. When overrideUV is true, the renderer uses these
+		// instead of AnimationComponent (used by slider fills, static crops, etc.)
+		bool overrideUV = false;
+		Vector2D minUV = { 0.0f, 0.0f };
+		Vector2D maxUV = { 1.0f, 1.0f };
 	};
 
 	struct AudioComponent {
@@ -528,6 +534,10 @@ namespace Framework{
 
 		SliderSoundType sliderType = SliderSoundType::MASTER_VOLUME; //Default to master volume
 		bool isInitialized = false;
+
+		// Cached original fill dimensions
+		float originalFillWidth = 0.0f;
+		float originalLeftEdge = 0.0f;
 	};
 
 	struct PlayerHealthComponent {

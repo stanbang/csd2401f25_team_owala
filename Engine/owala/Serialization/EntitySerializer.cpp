@@ -1004,6 +1004,20 @@ namespace Framework {
 		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), texComp.HalfSize.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_SIZE), halfSize, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_FLIP_X), texComp.flipHorizontal, alloc);
+	
+		// UV override fields - only serialize when override is active to keep old scenes clean
+		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_OVERRIDE_UV), texComp.overrideUV, alloc);
+		if (texComp.overrideUV) {
+			rapidjson::Value minUV(rapidjson::kObjectType);
+			minUV.AddMember(rapidjson::StringRef(Serialization::VEC2_X), texComp.minUV.x, alloc);
+			minUV.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), texComp.minUV.y, alloc);
+			outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_MIN_UV), minUV, alloc);
+
+			rapidjson::Value maxUV(rapidjson::kObjectType);
+			maxUV.AddMember(rapidjson::StringRef(Serialization::VEC2_X), texComp.maxUV.x, alloc);
+			maxUV.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), texComp.maxUV.y, alloc);
+			outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_MAX_UV), maxUV, alloc);
+		}
 	}
 
 	// Audio Component
@@ -1244,6 +1258,7 @@ namespace Framework {
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_WIDTH_OFFSET_X), slider.widthOffsetX, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_IS_DRAGGING), slider.isDragging, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_TYPE), static_cast<int>(slider.sliderType), alloc);
+	
 	}
 
 	// PlayerHealth Component
@@ -1497,6 +1512,31 @@ namespace Framework {
 
 		if (componentData.HasMember(Serialization::TEXTURE_FLIP_X) && componentData[Serialization::TEXTURE_FLIP_X].IsBool()) {
 			out.flipHorizontal = componentData[Serialization::TEXTURE_FLIP_X].GetBool();
+		}
+
+		// UV override - defaults to false if the key is absent
+		if (componentData.HasMember(Serialization::TEXTURE_OVERRIDE_UV) && componentData[Serialization::TEXTURE_OVERRIDE_UV].IsBool()) {
+			out.overrideUV = componentData[Serialization::TEXTURE_OVERRIDE_UV].GetBool();
+		}
+		else {
+			out.overrideUV = false;
+		}
+
+		if (out.overrideUV) {
+			if (componentData.HasMember(Serialization::TEXTURE_MIN_UV) && componentData[Serialization::TEXTURE_MIN_UV].IsObject()) {
+				const rapidjson::Value& minData = componentData[Serialization::TEXTURE_MIN_UV];
+				if (minData.HasMember(Serialization::VEC2_X) && minData[Serialization::VEC2_X].IsFloat()) out.minUV.x = minData[Serialization::VEC2_X].GetFloat();
+				if (minData.HasMember(Serialization::VEC2_Y) && minData[Serialization::VEC2_Y].IsFloat()) out.minUV.y = minData[Serialization::VEC2_Y].GetFloat();
+			}
+			if (componentData.HasMember(Serialization::TEXTURE_MAX_UV) && componentData[Serialization::TEXTURE_MAX_UV].IsObject()) {
+				const rapidjson::Value& maxData = componentData[Serialization::TEXTURE_MAX_UV];
+				if (maxData.HasMember(Serialization::VEC2_X) && maxData[Serialization::VEC2_X].IsFloat()) out.maxUV.x = maxData[Serialization::VEC2_X].GetFloat();
+				if (maxData.HasMember(Serialization::VEC2_Y) && maxData[Serialization::VEC2_Y].IsFloat()) out.maxUV.y = maxData[Serialization::VEC2_Y].GetFloat();
+			}
+		}
+		else {
+			out.minUV = { 0.0f, 0.0f };
+			out.maxUV = { 1.0f, 1.0f };
 		}
 		return true;
 	}

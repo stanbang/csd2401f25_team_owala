@@ -236,19 +236,53 @@ namespace Framework {
                 // --- Create Batched Sprite ---
                 BatchedSprite batchedSprite;
                 batchedSprite.topLeft = topLeft;
-                batchedSprite.size = fullSize;
                 batchedSprite.rotation = rotationRad;
                 batchedSprite.color = { 1.0f, 1.0f, 1.0f, sprite.alpha }; // READ ALPHA FROM COMPONENT
 
-                // --- UV Animation ---
-                if (entityMgr.HasComponent(entity, AnimationComponentType)) {
-                    const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(entity);
-                    batchedSprite.minUV = animComp.minUV;
-                    batchedSprite.maxUV = animComp.maxUV;
+                // --- UV Selection ---
+                if (sprite.overrideUV) {
+                    // maxUV.x stores the fill fraction (0–1), set by GuiSystem.
+                    float fractionX = sprite.maxUV.x - sprite.minUV.x;
+                    float fractionY = sprite.maxUV.y - sprite.minUV.y;
+
+                    batchedSprite.minUV = sprite.minUV;
+                    batchedSprite.maxUV = sprite.maxUV;
+
+                    // Calculate the squashed size
+                    batchedSprite.size = {
+                        screenHalfSize.x * 2.0f * fractionX,
+                        screenHalfSize.y * 2.0f * fractionY
+                    };
+
+                    // Grab the same aspect ratio correction used in Graphics.cpp
+                    float aspectCorrection = (float)gfx_.getScreenHeight() / (float)gfx_.getScreenWidth();
+
+                    // 1. Calculate the TRUE screen-space left edge (accounting for aspect correction)
+                    float trueLeftEdgeX = screenPos.x - (screenHalfSize.x * aspectCorrection);
+
+                    // 2. Calculate what the center (cx) needs to be in Graphics.cpp for this to stay anchored
+                    float targetCx = trueLeftEdgeX + (batchedSprite.size.x * 0.5f * aspectCorrection);
+
+                    // 3. Reverse-engineer topLeft.x so that `cx = topLeft.x + size.x * 0.5f` in Graphics.cpp works perfectly
+                    batchedSprite.topLeft.x = targetCx - (batchedSprite.size.x * 0.5f);
+
+                    // Y axis is NOT affected by aspect correction in Graphics.cpp, so it is just the top edge
+                    batchedSprite.topLeft.y = screenPos.y - screenHalfSize.y;
                 }
+				// If no UV override, use full texture and original size
                 else {
-                    batchedSprite.minUV = { 0.0f, 0.0f };
-                    batchedSprite.maxUV = { 1.0f, 1.0f };
+                    batchedSprite.topLeft = topLeft;
+                    batchedSprite.size = fullSize;
+
+                    if (entityMgr.HasComponent(entity, AnimationComponentType)) {
+                        const AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(entity);
+                        batchedSprite.minUV = animComp.minUV;
+                        batchedSprite.maxUV = animComp.maxUV;
+                    }
+                    else {
+                        batchedSprite.minUV = { 0.0f, 0.0f };
+                        batchedSprite.maxUV = { 1.0f, 1.0f };
+                    }
                 }
 
                 // Swaps the U coordinates if the flipX flag is set on the texture component
@@ -260,27 +294,29 @@ namespace Framework {
                 // The inset is scaled proportionally to the UV range of this sprite so that
                 // a multi-tile sprite (large UV range) gets the same visual inset as a
                 // single-tile sprite (small UV range), keeping all tiles consistent.
-                GLint texW = 1, texH = 1;
-                Texture texID = resources_.get<Texture>(sprite.textureKey);
-                glBindTexture(GL_TEXTURE_2D, texID);
-                glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texW);
-                glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texH);
-                glBindTexture(GL_TEXTURE_2D, 0);
+                // SKIP FOR OVERRIDE UV
+                if (!sprite.overrideUV) {
+                    GLint texW = 1, texH = 1;
+                    Texture texID = resources_.get<Texture>(sprite.textureKey);
+                    glBindTexture(GL_TEXTURE_2D, texID);
+                    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texW);
+                    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texH);
+                    glBindTexture(GL_TEXTURE_2D, 0);
 
-                // UV range this sprite occupies in the texture (1.0 for a full-texture tile)
-                float uvRangeX = batchedSprite.maxUV.x - batchedSprite.minUV.x;
-                float uvRangeY = batchedSprite.maxUV.y - batchedSprite.minUV.y;
+                    // UV range this sprite occupies in the texture (1.0 for a full-texture tile)
+                    float uvRangeX = batchedSprite.maxUV.x - batchedSprite.minUV.x;
+                    float uvRangeY = batchedSprite.maxUV.y - batchedSprite.minUV.y;
 
-                // Half-texel in UV space, scaled so multi-tile sprites get a proportionally
-                // equivalent inset to a single-tile sprite occupying the full texture.
-                float uInset = (0.5f / static_cast<float>(texW)) * uvRangeX;
-                float vInset = (0.5f / static_cast<float>(texH)) * uvRangeY;
+                    // Half-texel in UV space, scaled so multi-tile sprites get a proportionally
+                    // equivalent inset to a single-tile sprite occupying the full texture.
+                    float uInset = (0.5f / static_cast<float>(texW)) * uvRangeX;
+                    float vInset = (0.5f / static_cast<float>(texH)) * uvRangeY;
 
-                batchedSprite.minUV.x += uInset;
-                batchedSprite.minUV.y += vInset;
-                batchedSprite.maxUV.x -= uInset;
-                batchedSprite.maxUV.y -= vInset;
-
+                    batchedSprite.minUV.x += uInset;
+                    batchedSprite.minUV.y += vInset;
+                    batchedSprite.maxUV.x -= uInset;
+                    batchedSprite.maxUV.y -= vInset;
+                }
                 RenderItem item;
                 item.isText = false;
                 item.renderOrder = renderOrder;

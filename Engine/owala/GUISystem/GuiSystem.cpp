@@ -239,6 +239,15 @@ namespace Framework {
                 // Update the slider value
                 slider.currentValue = currentSysVol;
 
+				// Cache the original fill dimensions for later UV cropping calculations
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TextureComponentType) && entityMgr.HasComponent(slider.fillEntity, TransformType)) {
+                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+
+                    slider.originalFillWidth = fillTex.HalfSize.x * 2.0f;
+                    slider.originalLeftEdge = fillTransform.position.x - fillTex.HalfSize.x;
+                }
+
                 // Update the visual Handle Position
                 // Formula: pos = minX + normalized_value * width
                 float widthCenterX = bgTransform.position.x + slider.widthOffsetX;
@@ -249,30 +258,33 @@ namespace Framework {
                 if (range != 0.0f) {
                     normalized = (slider.currentValue - slider.minValue) / range;
                 }
-
-				// Update the fill entity's scale and UVs to visually represent the current value
-                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TransformType) && entityMgr.HasComponent(slider.fillEntity, TextureComponentType)) {
-                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
-                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
-
-                    fillTransform.scale.x = normalized; // Scale the quad's width
-                    // Shift position to keep it anchored to the left
-                    float bgCenterX = bgTransform.position.x + slider.widthOffsetX;
-                    float shiftAmount = fillTex.HalfSize.x * (1.0f - normalized);
-                    fillTransform.position.x = bgCenterX - shiftAmount;
-
-                    // Cut the UVs using the AnimationComponent
-                    if (!entityMgr.HasComponent(slider.fillEntity, AnimationComponentType)) {
-                        entityMgr.AddComponent<AnimationComponent>(slider.fillEntity, AnimationComponent{});
-                    }
-
-                    AnimationComponent& fillAnim = entityMgr.GetComponent<AnimationComponent>(slider.fillEntity);
-                    fillAnim.isPlaying = false; // Crucial: Stop it from actually animating
-                    fillAnim.maxUV.x = normalized;
-                }
-
-                // Snap handle to the correct visual position immediately
                 handleTransform.position.x = minX + (normalized * slider.width);
+                
+                // Update the fill entity's UV to visually represent the current value.
+                // The fill entity's Transform.position and HalfSize are set by the scene
+                // artist to align with the track. We only change the UV fraction here.
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TextureComponentType) && entityMgr.HasComponent(slider.fillEntity, TransformType)) {
+                    TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+
+                    // 1. Get the fixed physical dimensions of the fill graphic set by the artist
+                    float fillOriginalWidth = fillTex.HalfSize.x * 2.0f;
+                    float fillLeftEdge = fillTransform.position.x - fillTex.HalfSize.x;
+
+                    // 2. Calculate the exact world-space distance the fill needs to cover to reach the handle
+                    float desiredFillWidth = handleTransform.position.x - fillLeftEdge;
+                    if (desiredFillWidth < 0.0f) desiredFillWidth = 0.0f;
+
+                    // 3. Convert that world-space distance into a UV percentage (0.0 to 1.0)
+                    float uvFraction = (fillOriginalWidth > 0.0f) ? (desiredFillWidth / fillOriginalWidth) : 0.0f;
+
+                    // Clamp the fraction so we never draw past the graphic's actual bounds
+                    if (uvFraction > 1.0f) uvFraction = 1.0f;
+
+                    fillTex.overrideUV = true;
+                    fillTex.minUV = { 0.0f, 0.0f };
+                    fillTex.maxUV = { uvFraction, 1.0f };
+                }
 
                 slider.isInitialized = true;
             }
@@ -287,7 +299,6 @@ namespace Framework {
 
                 // Clamp mouseX_ndc (from your existing code) to the slider's bounds
                 float clampedMouseX = std::max(minX, std::min(static_cast<float>(mouseX_ndc), maxX));
-
                 // Move the handle
                 handleTransform.position.x = clampedMouseX;
 
@@ -295,25 +306,30 @@ namespace Framework {
                 float normalizedValue = (clampedMouseX - minX) / slider.width;
                 slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
 
-				// Update the fill entity's scale and UVs to visually represent the current value
-                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TransformType) && entityMgr.HasComponent(slider.fillEntity, TextureComponentType)) {
-                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
+                // Update the fill entity's UV to visually represent the current value.
+                // The fill entity's Transform.position and HalfSize are set by the scene
+                // artist to align with the track. We only change the UV fraction here.
+                if (slider.fillEntity != 0 && entityMgr.HasComponent(slider.fillEntity, TextureComponentType) && entityMgr.HasComponent(slider.fillEntity, TransformType)) {
                     TextureComponent& fillTex = entityMgr.GetComponent<TextureComponent>(slider.fillEntity);
+                    Transform& fillTransform = entityMgr.GetComponent<Transform>(slider.fillEntity);
 
-                    fillTransform.scale.x = normalizedValue; // Scale the quad's width
-                    // Shift position to keep it anchored to the left
-                    float bgCenterX = bgTransform.position.x + slider.widthOffsetX;
-                    float shiftAmount = fillTex.HalfSize.x * (1.0f - normalizedValue);
-                    fillTransform.position.x = bgCenterX - shiftAmount;
+                    // 1. Get the fixed physical dimensions of the fill graphic set by the artist
+                    float fillOriginalWidth = fillTex.HalfSize.x * 2.0f;
+                    float fillLeftEdge = fillTransform.position.x - fillTex.HalfSize.x;
 
-                    // Cut the UVs using the AnimationComponent
-                    if (!entityMgr.HasComponent(slider.fillEntity, AnimationComponentType)) {
-                        entityMgr.AddComponent<AnimationComponent>(slider.fillEntity, AnimationComponent{});
-                    }
+                    // 2. Calculate the exact world-space distance the fill needs to cover to reach the handle
+                    float desiredFillWidth = handleTransform.position.x - fillLeftEdge;
+                    if (desiredFillWidth < 0.0f) desiredFillWidth = 0.0f;
 
-                    AnimationComponent& fillAnim = entityMgr.GetComponent<AnimationComponent>(slider.fillEntity);
-                    fillAnim.isPlaying = false; // Crucial: Stop it from actually animating
-                    fillAnim.maxUV.x = normalizedValue;
+                    // 3. Convert that world-space distance into a UV percentage (0.0 to 1.0)
+                    float uvFraction = (fillOriginalWidth > 0.0f) ? (desiredFillWidth / fillOriginalWidth) : 0.0f;
+
+                    // Clamp the fraction so we never draw past the graphic's actual bounds
+                    if (uvFraction > 1.0f) uvFraction = 1.0f;
+
+                    fillTex.overrideUV = true;
+                    fillTex.minUV = { 0.0f, 0.0f };
+                    fillTex.maxUV = { uvFraction, 1.0f };
                 }
 
                 switch (slider.sliderType) {
