@@ -120,12 +120,12 @@ namespace {
 			entityMgr.GetProperties(ui.leaderboardPanel).isActive = visible;
 	}
 
-	void RefreshLeaderboard() {  // no parameter needed
+	void RefreshLeaderboard() {
 		if (levelData.empty()) return;
 		std::string levelName = levelData[currentIndex].sceneName;
 
 		FirebaseManager::Get().FetchLeaderboard(levelName,
-			[](std::vector<Framework::LeaderboardEntry> entries) {  // no capture
+			[](std::vector<Framework::LeaderboardEntry> entries) {
 				EntityManager mgr(GameManager::GetInstance().GetECS());
 				if (!mgr.ValidateEntity(leaderboardTextEntity)) return;
 				if (!mgr.HasComponent(leaderboardTextEntity, Framework::TextComponentType)) return;
@@ -133,30 +133,27 @@ namespace {
 				Framework::TextComponent& text = mgr.GetComponent<Framework::TextComponent>(leaderboardTextEntity);
 
 				if (entries.empty()) {
-					text.textToDraw = "No records yet!";
+					text.textToDraw = "BEST TIMES\n===========\nno records yet";
 					text.isDirty = true;
 					return;
 				}
 
-				Logger::Get().Info(DebugType::GameManager)
-					<< "Leaderboard entries: " << entries.size()
-					<< " first name: " << (entries.empty() ? "none" : entries[0].name)
-					<< " time: " << (entries.empty() ? 0.f : entries[0].time)
-					<< std::endl;
-				std::string display = "Best Times:";
+				std::string display = "BEST TIMES\n===========\n# - NAME - TIME\n-----------\n";
+
 				int rank = 1;
 				for (auto& e : entries) {
 					char buf[128];
-					std::snprintf(buf, sizeof(buf), "%d. %s  %.2fs\n",
-						rank++, e.name.c_str(), e.time);
+					std::string name = e.name.size() > 10 ? e.name.substr(0, 10) : e.name;
+					std::snprintf(buf, sizeof(buf), "%d - %s - %.2fs\n", rank++, name.c_str(), e.time);
 					display += buf;
-					if (rank > 5) break;  // only top 5
+					if (rank > 10) break;
 				}
+
+				display += "===========";
 				text.textToDraw = display;
 				text.isDirty = true;
 			});
 	}
-
 	SaveManager* GetSaveManager(Framework::EntityManager& entityMgr) {
 		using namespace Framework;
 

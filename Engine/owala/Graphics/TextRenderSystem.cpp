@@ -95,28 +95,38 @@ namespace Framework {
         ResourceManager& rcm_ = *GameManager::GetInstance().GetSystems().resourceManager_;
         try {
             Font& font = rcm_.get<Font>(textComp.fontKey);
-
-            std::stringstream ss(textComp.textToDraw);
-            std::string word;
-
-            std::string currentLine;
-            if (ss >> word) currentLine = word;
+            unsigned int fontPixelSize = font.GetPixelSize();
 
             std::vector<std::string> lines{};
 
-            unsigned int fontPixelSize = font.GetPixelSize();
+            // Split on \n first to respect hard line breaks
+            std::stringstream paraStream(textComp.textToDraw);
+            std::string paragraph;
+            while (std::getline(paraStream, paragraph, '\n')) {
 
-            while (ss >> word) {
-                std::string testLine = currentLine + " " + word;
-                if (font.GetStringWidth(testLine, textComp.scale) > (textComp.maxWidth  * fontPixelSize)) {
-                    lines.push_back(currentLine);
-                    currentLine = word;
+                // Then word-wrap each paragraph individually
+                std::stringstream ss(paragraph);
+                std::string word;
+                std::string currentLine;
+
+                if (!(ss >> word)) {
+                    lines.push_back("");  // preserve empty lines
+                    continue;
                 }
-                else {
-                    currentLine = testLine;
+                currentLine = word;
+
+                while (ss >> word) {
+                    std::string testLine = currentLine + " " + word;
+                    if (font.GetStringWidth(testLine, textComp.scale) > (textComp.maxWidth * fontPixelSize)) {
+                        lines.push_back(currentLine);
+                        currentLine = word;
+                    }
+                    else {
+                        currentLine = testLine;
+                    }
                 }
+                lines.push_back(currentLine);
             }
-            lines.push_back(currentLine);
 
             textComp.wrappedLines = lines;
         }
