@@ -55,11 +55,6 @@ namespace Framework {
 		float damage; //just for example, currently not used yet
 	};
 
-	struct PlayerWalkEvent {
-		Entity player;
-		bool isWalking;
-	};
-
 	struct PlayerDeathEvent {
 		Entity player;
 		bool deathAnimationFinished = false;
