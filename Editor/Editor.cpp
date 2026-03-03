@@ -7524,15 +7524,18 @@ namespace Editor {
 		}
 
 		ImGui::Separator();
-		ImGui::SeparatorText("Button Visual States");
+		ImGui::SeparatorText("Button States");
 
-		bool visualStatesChanged = false;
-		std::string visualStatesBeforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+		bool stateChanged = false;
+		std::string stateBeforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 
-		auto HandleStateUI = [&](const char* label, std::string& texKey, bool& isAnim) {
+		// Added optional parameters for sound key and volume
+		auto HandleStateUI = [&](const char* label, std::string& texKey, bool& isAnim, std::string* soundKey = nullptr, float* soundVol = nullptr) {
 			if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+
+				// 1. Texture Properties
 				ImGui::Text("Texture Key:");
-				if (ImGui::InputText("##Texture", &texKey)) visualStatesChanged = true;
+				if (ImGui::InputText("##Texture", &texKey)) stateChanged = true;
 
 				if (ImGui::BeginDragDropTarget()) {
 					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
@@ -7540,26 +7543,54 @@ namespace Editor {
 						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
 						fs::path dropped_file(dropped_path);
 						texKey = dropped_file.filename().string();
-						visualStatesChanged = true;
+						stateChanged = true;
 						resourceManager_->unload<Texture>(texKey);
 						resourceManager_->loadTexture(texKey, dropped_file.string());
 					}
 					ImGui::EndDragDropTarget();
 				}
-				if (ImGui::Checkbox("Is Animated", &isAnim)) visualStatesChanged = true;
+				if (ImGui::Checkbox("Is Animated", &isAnim)) stateChanged = true;
+
+				// 2. Sound Properties (Only renders if sound variables are passed in)
+				if (soundKey && soundVol) {
+					ImGui::Spacing();
+					ImGui::Text("Sound Key:");
+					if (ImGui::InputText("##Sound", soundKey)) stateChanged = true;
+
+					if (ImGui::BeginDragDropTarget()) {
+						const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+						if (payload) {
+							std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+							fs::path dropped_file(dropped_path);
+							std::string ext = dropped_file.extension().string();
+							std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+							if (ext == ".ogg" || ext == ".wav" || ext == ".mp3") {
+								*soundKey = dropped_file.filename().string();
+								stateChanged = true;
+							}
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					ImGui::Text("Volume:");
+					if (ImGui::SliderFloat("##Volume", soundVol, 0.0f, 1.0f, "%.2f")) stateChanged = true;
+				}
+
 				ImGui::TreePop();
 			}
 			ImGui::Spacing();
 			};
 
+		// Pass the specific properties for each state. Default gets no sound pointers.
 		HandleStateUI("Default State", buttonComp.defaultTextureKey, buttonComp.defaultIsAnimated);
-		HandleStateUI("Hover State", buttonComp.hoverTextureKey, buttonComp.hoverIsAnimated);
-		HandleStateUI("Pressed State", buttonComp.pressedTextureKey, buttonComp.pressedIsAnimated);
+		HandleStateUI("Hover State", buttonComp.hoverTextureKey, buttonComp.hoverIsAnimated, &buttonComp.hoverSoundKey, &buttonComp.hoverSoundVolume);
+		HandleStateUI("Pressed State", buttonComp.pressedTextureKey, buttonComp.pressedIsAnimated, &buttonComp.clickSoundKey, &buttonComp.clickSoundVolume);
 
-		if (visualStatesChanged) {
+		if (stateChanged) {
 			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
-			if (visualStatesBeforeJSON != afterJSON) {
-				historyManager_.RecordModifyComponent(entity, "Modified Button Visual States", visualStatesBeforeJSON, afterJSON, compType);
+			if (stateBeforeJSON != afterJSON) {
+				historyManager_.RecordModifyComponent(entity, "Modified Button States", stateBeforeJSON, afterJSON, compType);
 			}
 		}
 
