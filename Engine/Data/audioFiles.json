@@ -10,11 +10,20 @@
         "Eli-Jump_8.wav"
     ],
     "Player_Land": [
-        "player_land.wav",
-        "player_land2.wav"
+        "Footsteps-Wood-Jump-Landing_1.wav",
+        "Footsteps-Wood-Jump-Landing_2.wav",
+        "Footsteps-Wood-Jump-Landing_3.wav",
+        "Footsteps-Wood-Jump-Landing_4.wav",
+        "Footsteps-Wood-Jump-Landing_5.wav"
     ],
-    "Player_Walk": [
-        "player_walk.wav"
+    "Player_Footstep": [
+        "Footsteps-Wood_1.wav",
+        "Footsteps-Wood_2.wav",
+        "Footsteps-Wood_3.wav",
+        "Footsteps-Wood_4.wav",
+        "Footsteps-Wood_5.wav",
+        "Footsteps-Wood_6.wav",
+        "Footsteps-Wood_7.wav"
     ],
     "Player_Hurt": [
         "Eli-Hurt_1.wav",

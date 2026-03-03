@@ -109,7 +109,6 @@ namespace Framework {
         // Subscribe to Player Events
         MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent&) {this->PlayRandomSound("Player_Jump", AudioType::SFX, 0.3f); });
         MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 0.3f);  });
-        MessageBus::Instance().Subscribe<PlayerWalkEvent>([this](const PlayerWalkEvent& e) {this->PlayLoopSound(e.player, "Player_Walk", AudioType::SFX, 0.3f, e.isWalking);  });
 
         MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 0.3f); });
         MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& e) {
@@ -122,8 +121,7 @@ namespace Framework {
         MessageBus::Instance().Subscribe<AnimationEvent>([this](const AnimationEvent& e) {
             // Filter for the events this system cares about
             if (e.eventName == "Footstep") {
-                // Empty by design
-				Logger::Get().Info(DebugType::AudioSystem) << "Hi the name's bobby bonkers" << std::endl;
+                this->PlayRandomSound("Player_Footstep", AudioType::SFX, 0.3f);
             }
             });
 

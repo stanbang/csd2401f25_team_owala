@@ -202,18 +202,6 @@ namespace Framework {
 
                 // Set the animation state
                 animationComponent.currentState = animState;
-
-                // Handle Walk SFX
-                if (state.isWalking != wasWalking) {
-                    if (state.isWalking) {
-                        // State changed from FALSE to TRUE -> START Sound
-                         MessageBus::Instance().Publish(PlayerWalkEvent{ entity, true }); 
-                    }
-                    else {
-                        // State changed from TRUE to FALSE -> STOP Sound
-                        MessageBus::Instance().Publish(PlayerWalkEvent{ entity, false });
-                    }
-                }
             }
         }
     }
