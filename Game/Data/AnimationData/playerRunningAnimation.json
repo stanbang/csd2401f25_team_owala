@@ -1,0 +1,11 @@
+{
+    "frame_count": 8,
+    "frame_duration": 0.10000000149011612,
+    "is_looping": true,
+    "start_frame": 0,
+    "spritesheets": [],
+    "frameEvents": {
+        "1": "Footstep",
+        "4": "Footstep"
+    }
+}

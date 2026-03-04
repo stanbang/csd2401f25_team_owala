@@ -34,10 +34,10 @@ set(EDITOR_LIBS
 # Include path for GLM
 include_directories(${CMAKE_CURRENT_LIST_DIR}/lib/glm)
 
-# ======================= Source Files =========================
+# ======================= Source Directories =========================
 set(ENGINE_DIR ${CMAKE_CURRENT_LIST_DIR}/owala)
-set(EDITOR_DIR ${CMAKE_CURRENT_LIST_DIR}/../Editor)
-
+set(EDITOR_DIR ${CMAKE_CURRENT_LIST_DIR}/Editor)
+set(GAME_DIR ${CMAKE_CURRENT_LIST_DIR}/Game)
 
 # Get all ENGINE source files (from Engine/owala/ folder)
 file(GLOB_RECURSE ENGINE_SRC
@@ -53,29 +53,23 @@ file(GLOB_RECURSE EDITOR_SRC
    "${EDITOR_DIR}/*.hpp"
 )
 
+# Get all GAME source files (from Game/ folder)
+file(GLOB_RECURSE GAME_SRC
+   "${GAME_DIR}/*.cpp"
+   "${GAME_DIR}/*.h"
+   "${GAME_DIR}/*.hpp"
+)
 
-# Add this section right after your executable creation sections
-# ======================= Engine Executable =========================
-add_executable(${CMAKE_PROJECT_NAME}_Engine ${ENGINE_SRC})
+
+# ======================= Engine Library (STATIC) =========================
+add_library(${CMAKE_PROJECT_NAME}_Engine STATIC ${ENGINE_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Engine PRIVATE -DBUILD_ENGINE)
 set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES 
     FOLDER ""
-    OUTPUT_NAME "StageBound"
 )
 
-# Hide console window for Engine builds (Windows only)
-#if(WIN32)
-    set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
-        WIN32_EXECUTABLE TRUE
-    )
-    target_link_options(${CMAKE_PROJECT_NAME}_Engine PRIVATE 
-        "/SUBSYSTEM:WINDOWS"
-        "/ENTRY:mainCRTStartup"
-    )
-#endif()
-
 # ======================= Editor Executable =========================
-add_executable(${CMAKE_PROJECT_NAME}_Editor ${ENGINE_SRC} ${EDITOR_SRC})
+add_executable(${CMAKE_PROJECT_NAME}_Editor ${EDITOR_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Editor PRIVATE -DBUILD_EDITOR)
 set_target_properties(${CMAKE_PROJECT_NAME}_Editor PROPERTIES 
     FOLDER ""
@@ -89,15 +83,33 @@ if(WIN32)
     )
 endif()
 
-#Precompiled Headers
+# ======================= Game Executable =========================
+add_executable(StageBound ${GAME_SRC})
+set_target_properties(StageBound PROPERTIES 
+    FOLDER ""
+    OUTPUT_NAME "StageBound"
+)
+
+# Hide console window for Game builds (Windows only)
+if(WIN32)
+    set_target_properties(StageBound PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+    target_link_options(StageBound PRIVATE 
+        "/SUBSYSTEM:WINDOWS"
+        "/ENTRY:mainCRTStartup"
+    )
+endif()
+
+# Precompiled Headers
 target_precompile_headers(${CMAKE_PROJECT_NAME}_Engine PRIVATE "${ENGINE_DIR}/pch.h")
 target_precompile_headers(${CMAKE_PROJECT_NAME}_Editor PRIVATE "${ENGINE_DIR}/pch.h")
+target_precompile_headers(StageBound PRIVATE "${ENGINE_DIR}/pch.h")
 
 # ======================= File Organization for Visual Studio =========================
 foreach(source IN LISTS ENGINE_SRC)
     # Get relative path from ENGINE_DIR
     file(RELATIVE_PATH source_rel "${ENGINE_DIR}" "${source}")
-    
     # Get just the directory part
     get_filename_component(source_path "${source_rel}" PATH)
     
@@ -113,7 +125,6 @@ endforeach()
 foreach(source IN LISTS EDITOR_SRC)
     # Get relative path from EDITOR_DIR
     file(RELATIVE_PATH source_rel "${EDITOR_DIR}" "${source}")
-    
     # Get just the directory part
     get_filename_component(source_path "${source_rel}" PATH)
     
@@ -127,12 +138,31 @@ foreach(source IN LISTS EDITOR_SRC)
     endif()
 endforeach()
 
+foreach(source IN LISTS GAME_SRC)
+    # Get relative path from GAME_DIR
+    file(RELATIVE_PATH source_rel "${GAME_DIR}" "${source}")
+    # Get just the directory part
+    get_filename_component(source_path "${source_rel}" PATH)
+    
+    if(source_path)
+        # File is in a subdirectory
+        string(REPLACE "/" "\\" group_path "${source_path}")
+        source_group("Game\\${group_path}" FILES "${source}")
+    else()
+        # File is in root Game directory
+        source_group("Game" FILES "${source}")
+    endif()
+endforeach()
+
 # ======================= Set working directory to Debug/Release folders =========================
 set_property(TARGET ${CMAKE_PROJECT_NAME}_Engine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
     "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}_Engine>"
 )
 set_property(TARGET ${CMAKE_PROJECT_NAME}_Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
     "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}_Editor>"
+)
+set_property(TARGET StageBound PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
+    "$<TARGET_FILE_DIR:StageBound>"
 )
 
 # ======================================================
@@ -168,8 +198,9 @@ macro(COPY_ASSETS_AND_DATA target_name)
     )
 endmacro()
 
-COPY_ASSETS_AND_DATA(${CMAKE_PROJECT_NAME}_Engine)
+# Only Executables need the assets copied to their output folder
 COPY_ASSETS_AND_DATA(${CMAKE_PROJECT_NAME}_Editor)
+COPY_ASSETS_AND_DATA(StageBound)
 
 # ======================= Linking =========================
 # ======================================================
@@ -196,20 +227,24 @@ if(WIN32)
         endif()
     endmacro()
     
-    COPY_FMOD_DLL(${CMAKE_PROJECT_NAME}_Engine)
+    # Only Executables need the DLL copied
     COPY_FMOD_DLL(${CMAKE_PROJECT_NAME}_Editor)
+    COPY_FMOD_DLL(StageBound)
 endif()
 
 # ======================= Compiler Settings =========================
 set_property(TARGET ${CMAKE_PROJECT_NAME}_Engine PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${CMAKE_PROJECT_NAME}_Editor PROPERTY CXX_STANDARD 20)
+set_property(TARGET StageBound PROPERTY CXX_STANDARD 20)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${CMAKE_PROJECT_NAME}_Engine PRIVATE -Wall ${DisableWarnings})
     target_compile_options(${CMAKE_PROJECT_NAME}_Editor PRIVATE -Wall ${DisableWarnings})
+    target_compile_options(StageBound PRIVATE -Wall ${DisableWarnings})
 elseif (MSVC)
     target_compile_options(${CMAKE_PROJECT_NAME}_Engine PRIVATE /W4 /WX-)
     target_compile_options(${CMAKE_PROJECT_NAME}_Editor PRIVATE /W4 /WX-)
+    target_compile_options(StageBound PRIVATE /W4 /WX-)
 endif()
 
 # ======================= Include Paths =========================
@@ -232,6 +267,15 @@ foreach(dir ${EDITOR_DIRS})
     endif()
 endforeach()
 
+# Add Game folder and its subdirectories
+file(GLOB_RECURSE GAME_DIRS LIST_DIRECTORIES true "${GAME_DIR}/*")
+set(GAME_INCLUDE_DIRS ${GAME_DIR})
+foreach(dir ${GAME_DIRS})
+    if (IS_DIRECTORY ${dir})
+        list(APPEND GAME_INCLUDE_DIRS ${dir})
+    endif()
+endforeach()
+
 # Engine includes (only owala folder)
 target_include_directories(${CMAKE_PROJECT_NAME}_Engine PRIVATE 
     ${INCLUDE_DIRS}
@@ -245,6 +289,13 @@ target_include_directories(${CMAKE_PROJECT_NAME}_Editor PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/inc
 )
 
+# Game includes (both owala and Game folders)
+target_include_directories(StageBound PRIVATE 
+    ${INCLUDE_DIRS}
+    ${GAME_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/lib/fmod/core/inc
+)
+
 # ======================= Final Linking =========================
 target_link_libraries(${CMAKE_PROJECT_NAME}_Engine
     ${COMMON_LIBS}
@@ -252,8 +303,15 @@ target_link_libraries(${CMAKE_PROJECT_NAME}_Engine
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}_Editor
+    ${CMAKE_PROJECT_NAME}_Engine
     ${COMMON_LIBS}
     ${EDITOR_LIBS}
+    ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
+)
+
+target_link_libraries(StageBound
+    ${CMAKE_PROJECT_NAME}_Engine
+    ${COMMON_LIBS}
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
 )
 

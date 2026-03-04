@@ -1,0 +1,128 @@
+{
+    "initialState": "Idle",
+    "previewTexture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
+    "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
+    "animationProfile": "BirdEnemy",
+    "halfSize": {
+        "x": 25.0,
+        "y": 25.0
+    },
+    "states": [
+        {
+            "name": "Idle",
+            "type": "Idle",
+            "parameters": {
+                "wakeUpRadius": 300.0
+            }
+        },
+        {
+            "name": "Waking",
+            "type": "Waking",
+            "parameters": {
+                "wakeUpTime": 3.5
+            }
+        },
+        {
+            "name": "SimpleChase",
+            "type": "SimpleChase",
+            "parameters": {
+                "accelX": 240,
+                "accelYUp": 120,
+                "accelYDown": 240,
+                "maxSpeedX": 240,
+                "maxSpeedY": 160,
+                "hoverOffset": 180,
+                "turnaroundMult": 0.5
+            }
+        },
+        {
+            "name": "Bounce",
+            "type": "Bounce",
+            "parameters": {
+                "duration": 0.5,
+                "bounceFactor": 0.6,
+                "nudgeAmount": 3
+            }
+        },
+        {
+            "name": "Attack",
+            "type": "Attack",
+            "parameters": {
+                "attackSpeed": 200,
+                "attackAccel": 300,
+                "duration": 1.0
+            }
+        },
+        {
+            "name": "Recovery",
+            "type": "Recovery",
+            "parameters": {
+                "duration": 1.0
+            }
+        },
+        {
+            "name": "Death",
+            "type": "Death",
+            "parameters": {
+                "duration": 0.9
+            }
+        }
+    ],
+    "transitions": [
+        {
+            "from": "Idle",
+            "to": "Waking",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 300.0
+            }
+        },
+        {
+            "from": "Waking",
+            "to": "SimpleChase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Waking"
+            }
+        },
+        {
+            "from": "SimpleChase",
+            "to": "Attack",
+            "condition": {
+                "type": "PlayerInRange",
+                "radius": 150.0
+            }
+        },
+        {
+            "from": "SimpleChase",
+            "to": "Bounce",
+            "condition": {
+                "type": "HitWall"
+            }
+        },
+        {
+            "from": "Bounce",
+            "to": "SimpleChase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Bounce"
+            }
+        },
+        {
+            "from": "Attack",
+            "to": "Recovery",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Attack"
+            }
+        },
+        {
+            "from": "Recovery",
+            "to": "SimpleChase",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "Recovery"
+            }
+        }
+    ]
+}

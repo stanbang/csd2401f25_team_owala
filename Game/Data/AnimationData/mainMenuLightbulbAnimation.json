@@ -1,0 +1,112 @@
+{
+    "frame_count": 52,
+    "frame_duration": 0.029999999329447746,
+    "is_looping": true,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_1.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_2.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_3.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_4.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_5.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_6.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_7.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_8.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_9.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_10.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_11.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_12.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_13.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_14.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_15.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_16.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_17.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_18.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_19.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_20.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_21.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_22.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_23.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_24.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_25.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_MainMenu_Lightbulb_Spritesheet_26.png",
+            "count": 2
+        }
+    ]
+}

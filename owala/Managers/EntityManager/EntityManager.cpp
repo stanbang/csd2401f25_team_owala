@@ -1,0 +1,477 @@
+/*****************************************************************//**
+ * \file	EntityManager.h
+ * \brief	Manager responsible for managing entities and their
+ *			components in the ECS architecture. Also serves as a
+ *			Entity Factory to create entities.
+ *
+ *
+ * \author	Jason Lou
+ * \date	26 September 2025
+ *********************************************************************/
+#include "pch.h"
+#include "EntityManager.h"
+#include "Logger.h"
+#include "ScriptRegistry.h"
+
+namespace Framework {
+#pragma region CURRENT ENTITYMANAGER
+
+	// ---------------------------------------------------------------------------
+	// Constructors
+	// ---------------------------------------------------------------------------
+	EntityManager::EntityManager(EntityStorage& entityStorage) : ecs(entityStorage) {};
+
+	// ---------------------------------------------------------------------------
+	// EntityManager APIs
+	// ---------------------------------------------------------------------------
+	Entity EntityManager::CreateEntity() {
+		ComponentSignature emptySignature; // New entity starts with no components
+		Entity newEntity = nextEntityID++;
+		ecs.entitySignatures[newEntity] = emptySignature;
+
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(newEntity), 0U, UINT_MAX)) + ")";
+		ecs.properties[newEntity] = EntityProperties{ entityName, CollisionLayer::Default };
+		ecs.properties[newEntity].uuid = GenerateUUID();
+
+		return newEntity;
+	}
+
+	Entity EntityManager::CreateEntityWithID(Entity entityID) {
+		ComponentSignature emptySignature; // New entity starts with no components
+		ecs.entitySignatures[entityID] = emptySignature;
+
+		std::string entityName = "GameObject (" + std::to_string(std::clamp(static_cast<unsigned>(entityID), 0U, UINT_MAX)) + ")";
+		ecs.properties[entityID] = EntityProperties{ entityName, CollisionLayer::Default };
+		ecs.properties[entityID].uuid = GenerateUUID();
+
+		if (entityID >= nextEntityID) {
+			nextEntityID = entityID + 1;
+		}
+
+		return entityID;
+	}
+
+	Entity EntityManager::CloneEntity(const Entity& entity) {
+		if (ecs.entitySignatures.find(entity) == ecs.entitySignatures.end()) {
+			throw std::runtime_error("Attempted to clone a non existent entity!");
+		}
+
+		Entity newEntity = CreateEntity();
+		GetProperties(newEntity) = GetProperties(entity);
+		GetProperties(newEntity).uuid = GenerateUUID();
+		ComponentSignature otherSignature = ecs.entitySignatures[entity];
+
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+
+			if (HasComponent(entity, componentType)) {
+				switch (componentType) {
+					case ComponentType::TransformType: AddComponent<Transform>(newEntity, GetComponent<Transform>(entity)); break;
+					case ComponentType::VelocityType: AddComponent<Velocity>(newEntity, GetComponent<Velocity>(entity)); break;
+					case ComponentType::AccelerationType: AddComponent<Acceleration>(newEntity, GetComponent<Acceleration>(entity)); break;
+					case ComponentType::TriangleType: AddComponent<Triangle>(newEntity, GetComponent<Triangle>(entity)); break;
+					case ComponentType::RigidBodyType: AddComponent<RigidBody>(newEntity, GetComponent<RigidBody>(entity)); break;
+					case ComponentType::AABBColliderType: AddComponent<AABBCollider>(newEntity, GetComponent<AABBCollider>(entity)); break;
+					case ComponentType::PlayerStateType: AddComponent<PlayerState>(newEntity, GetComponent<PlayerState>(entity)); break;
+					case ComponentType::RotationFlagType: AddComponent<RotationFlag>(newEntity, GetComponent<RotationFlag>(entity)); break;
+					case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(newEntity, GetComponent<TrapPlatformComponent>(entity)); break;
+					case ComponentType::ButtonType: AddComponent<Button>(newEntity, GetComponent<Button>(entity)); break;
+					case ComponentType::TextureComponentType: AddComponent<TextureComponent>(newEntity, GetComponent<TextureComponent>(entity)); break;
+					case ComponentType::AudioComponentType: AddComponent<AudioComponent>(newEntity, GetComponent<AudioComponent>(entity)); break;
+					case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(newEntity, GetComponent<AnimationComponent>(entity)); break;
+					case ComponentType::TextComponentType: AddComponent<TextComponent>(newEntity, GetComponent<TextComponent>(entity)); break;
+					case ComponentType::CameraType: AddComponent<Camera>(newEntity, GetComponent<Camera>(entity)); break;
+					case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(newEntity, GetComponent<NativeScriptsComponent>(entity)); break;
+					case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(newEntity, GetComponent<SceneOwned>(entity)); break;
+					case ComponentType::FSMComponentType: AddComponent<FSMComponent>(newEntity, GetComponent<FSMComponent>(entity)); break;
+					case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(newEntity, GetComponent<ParticleComponent>(entity)); break;
+					case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(newEntity, GetComponent<ParticleEmitterComponent>(entity)); break;
+					case ComponentType::SliderType: AddComponent<Slider>(newEntity, GetComponent<Slider>(entity)); break;
+					case ComponentType::PlayerHealthComponentType: AddComponent<PlayerHealthComponent>(newEntity, GetComponent<PlayerHealthComponent>(entity)); break;
+					default:
+						break;
+				}
+			}
+		}
+
+		ecs.entitySignatures[newEntity] = otherSignature;
+
+		return newEntity;
+	}
+
+	void EntityManager::DestroyEntity(Entity entity) {
+		// True Destruction of an entity
+		ComponentSignature signature = ecs.entitySignatures[entity];
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (signature.test(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
+		}
+
+		ecs.entitySignatures.erase(entity);
+		ecs.properties.erase(entity);
+
+		Logger::Get().Info(DebugType::GameManager) << "Destroyed Entity with ID: " << entity << std::endl;
+	}
+
+	EntityProperties& EntityManager::GetProperties(Entity entity) { 
+		if (ecs.properties.find(entity) != ecs.properties.end()) {
+			return ecs.properties.at(entity);
+		}
+		else {
+			throw GameException(DebugType::Editor, "Corrupted Object! Properties are invalid. Please use EntityManager's CreateEntity API to instantiate objects!");
+		}
+	}
+
+	bool EntityManager::ValidateEntity(Entity entity) {
+		if (ecs.properties.find(entity) == ecs.properties.end()) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	uint64_t EntityManager::GenerateUUID() {
+		static std::random_device rd;
+		static std::mt19937 rng(rd());
+		static std::uniform_int_distribution<uint64_t> dist;
+
+		uint64_t gen = 0;
+		while (gen == 0) gen = dist(rng);
+		return gen;
+	}
+
+	bool EntityManager::HasComponent(Entity entity, ComponentType componentType) const {
+		std::unordered_map<Entity, ComponentSignature>::iterator it = ecs.entitySignatures.find(entity);
+		if (it == ecs.entitySignatures.end()) return false;
+		return it->second.test(componentType);
+	}
+
+	void EntityManager::AddComponent(Entity entity, ComponentType componentType) {
+		if (!ValidateEntity(entity)) {
+			std::stringstream errorMsg;
+			errorMsg << "AddComponent: Invalid Entity ID: " << entity;
+			throw std::runtime_error(errorMsg.str());
+		}
+
+		if (HasComponent(entity, componentType)) return;
+
+		switch (componentType)
+		{
+		case ComponentType::TransformType: AddComponent<Transform>(entity, Transform{}); break;
+		case ComponentType::VelocityType: AddComponent<Velocity>(entity, Velocity{}); break;
+		case ComponentType::AccelerationType: AddComponent<Acceleration>(entity, Acceleration{}); break;
+		case ComponentType::TriangleType: AddComponent<Triangle>(entity, Triangle{}); break;
+		case ComponentType::RigidBodyType: AddComponent<RigidBody>(entity, RigidBody{}); break;
+		case ComponentType::AABBColliderType: AddComponent<AABBCollider>(entity, AABBCollider{}); break;
+		case ComponentType::PlayerStateType: AddComponent<PlayerState>(entity, PlayerState{}); break;
+		case ComponentType::RotationFlagType: AddComponent<RotationFlag>(entity, RotationFlag{}); break;
+		case ComponentType::TrapPlatformComponentType: AddComponent<TrapPlatformComponent>(entity, TrapPlatformComponent{}); break;
+		case ComponentType::TextureComponentType: AddComponent<TextureComponent>(entity, TextureComponent{}); break;
+		case ComponentType::AudioComponentType: AddComponent<AudioComponent>(entity, AudioComponent{}); break;
+		case ComponentType::AnimationComponentType: AddComponent<AnimationComponent>(entity, AnimationComponent{}); break;
+		case ComponentType::TextComponentType: 	AddComponent<TextComponent>(entity, TextComponent{}); break;
+		case ComponentType::ButtonType: AddComponent<Button>(entity, Button{}); break;
+		case ComponentType::CameraType: AddComponent<Camera>(entity, Camera{}); break;
+		case ComponentType::NativeScriptsComponentType: AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{}); break;
+		case ComponentType::FSMComponentType: AddComponent<FSMComponent>(entity, FSMComponent{}); break;
+		case ComponentType::ParticleComponentType: AddComponent<ParticleComponent>(entity, ParticleComponent{}); break;
+		case ComponentType::ParticleEmitterComponentType: AddComponent<ParticleEmitterComponent>(entity, ParticleEmitterComponent{}); break;
+		case ComponentType::SliderType: AddComponent<Slider>(entity, Slider{}); break;
+		case ComponentType::PlayerHealthComponentType: AddComponent<PlayerHealthComponent>(entity, PlayerHealthComponent{}); break;
+		case ComponentType::PlayerTagType:
+		case ComponentType::PlatformTagType:
+		case ComponentType::BackgroundTagType:
+		case ComponentType::EnemyTagType: ; break;
+		case ComponentType::SceneOwnedType: AddComponent<SceneOwned>(entity, SceneOwned{}); break;
+		case ComponentType::PersistentTagType:
+		case ComponentType::LoadedTagType: break;
+		case ComponentType::GUITagType: break;
+		case ComponentType::SpawnPointTagType: break;
+
+		default:
+			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
+			return;
+		}
+
+		ecs.entitySignatures.at(entity).set(componentType);
+	}
+
+	void EntityManager::RemoveComponent(Entity entity, ComponentType componentType) {
+		if (!HasComponent(entity, componentType)) return;
+
+		switch (componentType) {
+			case TransformType:		ecs.transform.erase(entity); break;
+			case VelocityType:      ecs.velocity.erase(entity); break;
+			case AccelerationType:  ecs.acceleration.erase(entity); break;
+			case TriangleType:      ecs.triangle.erase(entity); break;
+			case RigidBodyType:     ecs.rigidBody.erase(entity); break;
+			case AABBColliderType:  ecs.colliders.erase(entity); break;
+			case PlayerStateType:   ecs.playerState.erase(entity); break;
+			case RotationFlagType:  ecs.rotationFlag.erase(entity); break;
+			case TrapPlatformComponentType: ecs.trapPlatform.erase(entity); break;
+			case TextureComponentType: ecs.tex.erase(entity); break;
+			case AudioComponentType: ecs.audio.erase(entity); break;
+			case AnimationComponentType: ecs.animatedTex.erase(entity); break;
+			case TextComponentType: ecs.text.erase(entity); break;
+			case CameraType: ecs.cameras.erase(entity); break;
+			case ParticleComponentType: ecs.particleComponent.erase(entity); break;
+			case ParticleEmitterComponentType: ecs.particleEmitterComponent.erase(entity); break;
+			case SliderType: ecs.sliders.erase(entity); break;
+			case PlayerHealthComponentType: ecs.playerHealth.erase(entity); break;
+			case NativeScriptsComponentType: {
+				std::unordered_map<Entity, NativeScriptsComponent>::iterator it = ecs.nativeScripts.find(entity);
+				if (it != ecs.nativeScripts.end()) {
+					NativeScriptsComponent& nativeScripts = it->second;
+					for (NativeScriptsComponent::NativeScript& script : nativeScripts.scripts) {
+						script.Reset();
+					}
+
+					ecs.nativeScripts.erase(entity);
+				}
+				break;
+			}
+			case ButtonType: ecs.button.erase(entity); break;
+			case FSMComponentType:ecs.fsmComponent.erase(entity); break;
+			case PlayerTagType:
+			case PlatformTagType:
+			case BackgroundTagType:
+			case EnemyTagType:; break;
+			case SceneOwnedType: ecs.sceneOwned.erase(entity); break;
+			case PersistentTagType:
+			case LoadedTagType: break;
+			case GUITagType: break;
+			case SpawnPointTagType: break;
+			default: 
+				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
+				return;
+		}
+
+		ecs.entitySignatures[entity].reset(componentType);
+	}
+
+	bool EntityManager::IsTagComponent(ComponentType componentType) {
+		switch (componentType)
+		{
+		case ComponentType::PlayerTagType:
+		case ComponentType::PlatformTagType:
+		case ComponentType::BackgroundTagType:
+		case ComponentType::EnemyTagType:
+		case ComponentType::PersistentTagType:
+		case ComponentType::LoadedTagType:
+		case ComponentType::GUITagType:
+		case ComponentType::SpawnPointTagType:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	void EntityManager::ClearTags(Entity entity) {
+		for (int i = 0; i < ComponentType::MAX_COMPONENTS; ++i) {
+			ComponentType componentType = static_cast<ComponentType>(i);
+			if (IsTagComponent(componentType)) {
+				RemoveComponent(entity, componentType);
+			}
+		}
+	}
+
+	bool EntityManager::IsActive(Entity entity) const {
+		auto it = ecs.properties.find(entity);
+		if (it != ecs.properties.end()) {
+			return it->second.isActive;
+		}
+		else {
+			Logger::Get().Info(DebugType::EntityManager) << "IsActive: Entity no longer exists!" << std::endl;
+			return false;
+		}
+	}
+
+	void EntityManager::SetActive(Entity entity, bool value) {
+		auto it = ecs.properties.find(entity);
+		if (it != ecs.properties.end()) {
+			it->second.isActive = value;
+		}
+		else {
+			Logger::Get().Info(DebugType::EntityManager) << "SetActive: Entity no longer exists!" << std::endl;
+			return;
+		}
+	}
+
+	std::size_t EntityManager::AttachScriptByName(Entity entity, std::string typeName, bool enabled) {
+		if (!HasComponent(entity, NativeScriptsComponentType)) {
+			AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{});
+		}
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+		nativeScripts.scripts.emplace_back();
+		NativeScriptsComponent::NativeScript& scriptToAdd = nativeScripts.scripts.back();
+		scriptToAdd.enabled = enabled;
+
+		if (!ScriptRegistry::Get().BindScriptByName(scriptToAdd, typeName)) {
+			nativeScripts.scripts.pop_back();
+			Logger::Get().Error(DebugType::GameManager)	<< "AttachScriptByName: Unknown Script '" << typeName << "'" << std::endl;
+			return static_cast<std::size_t>(-1);
+		}
+
+		return nativeScripts.scripts.size() - 1;
+	}
+
+	void EntityManager::RemoveScriptAt(Entity entity, std::size_t index, bool removeComponentIfEmpty) {
+		if (!HasComponent(entity, NativeScriptsComponentType)) return;
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+
+		if (index >= nativeScripts.scripts.size()) {
+			Logger::Get().Info(DebugType::GameManager) << "RemoveScriptAt: Provided index is greater than the number of scripts this entity has." << std::endl;
+			return;
+		}
+
+		NativeScriptsComponent::NativeScript& targetScript = nativeScripts.scripts[index];
+
+		targetScript.Reset();
+
+		nativeScripts.scripts.erase(nativeScripts.scripts.begin() + index);
+
+		if (removeComponentIfEmpty && nativeScripts.scripts.empty()) RemoveComponent(entity, NativeScriptsComponentType);
+	}
+
+	void EntityManager::SwapScripts(Entity entity, std::size_t a, std::size_t b) {
+		if (!HasComponent(entity, NativeScriptsComponentType)) {
+			Logger::Get().Info(DebugType::GameManager) << "SwapScripts: Entity does not have any scripts!" << std::endl;
+			return;
+		}
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+
+		if (a >= nativeScripts.scripts.size() || b >= nativeScripts.scripts.size() || a < 0 || b < 0) {
+			Logger::Get().Info(DebugType::GameManager) << "SwapScripts: Invalid Index used for swapping!" << std::endl;
+			return;
+		}
+
+		std::swap(nativeScripts.scripts[a], nativeScripts.scripts[b]);
+	}
+
+	std::vector<Entity> EntityManager::GetAllEntities() const {
+		std::vector<Entity> entities;
+		entities.reserve(ecs.entitySignatures.size());
+		for (const auto& pair : ecs.entitySignatures) {
+			entities.push_back(pair.first);
+		}
+		return entities;
+	}
+
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponent(bool activeOnly, ComponentType componentType) const {
+		std::vector<Entity> entities;
+		for (const auto& [entity, signature] : ecs.entitySignatures) {
+			// Check if signature matches the component signature
+			if (!signature.test(componentType)) continue;
+
+			// Check if entity is active.
+			if (activeOnly && !IsActive(entity)) continue;
+
+			entities.push_back(entity);
+		}
+
+		return entities;
+	}
+
+#pragma endregion
+
+#pragma region WIP ENTITYMANAGER
+
+	// ---------------------------------------------------------------------------
+	// Constructors
+	// ---------------------------------------------------------------------------
+	WIPEntityManager::WIPEntityManager(WIPEntityStorage& entityStorage) : ecs(entityStorage) {};
+
+	// ---------------------------------------------------------------------------
+	// EntityManager APIs
+	// ---------------------------------------------------------------------------
+	Entity WIPEntityManager::CreateEntity() {
+		using Archetype = WIPEntityStorage::Archetype;
+
+		ComponentSignature emptySignature; // New entity starts with no components
+		Entity newEntity = nextEntityID++;
+
+		size_t archetypeIndex = ecs.archetypes.size();
+		for (size_t i = 0; i < ecs.archetypes.size(); ++i) {
+			// If an archetype with an empty signature exists, use it
+			if (ecs.archetypes[i].signature.none()) {
+				archetypeIndex = i;
+				break;
+			}
+		}
+
+		// If there is no empty archetype, create one
+		if (archetypeIndex == ecs.archetypes.size()) {
+			Archetype newArch;
+			newArch.signature = emptySignature;
+			ecs.archetypes.push_back(newArch);
+		}
+
+		Archetype& emptyArchetype = ecs.archetypes[archetypeIndex];
+		emptyArchetype.entities.push_back(newEntity);
+
+		ecs.entityToArchetype[newEntity] = archetypeIndex;
+		ecs.entitySignatures[newEntity] = emptySignature;
+
+		return newEntity;
+	}
+
+	Entity WIPEntityManager::CloneEntity(/*Entity& entity*/) {
+		using Archetype = WIPEntityStorage::Archetype;
+
+		ComponentSignature otherSignature;
+		Entity newEntity = nextEntityID++;
+
+		return newEntity;
+	}
+
+	bool WIPEntityManager::HasComponent(Entity entity, ComponentType componentType) const {
+		auto it = ecs.entitySignatures.find(entity);
+		if (it != ecs.entitySignatures.end()) {
+			const ComponentSignature& signature = it->second;
+			return signature.test(componentType);
+		}
+
+		return false; // Entity not found or does not have the component
+	}
+
+	Entity EntityManager::GetEntityByName(const std::string& name) const {
+		// If exact match found, return immediately
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+			if (props.name == name) return entity;
+		}
+
+		Logger::Get().Info(DebugType::EntityManager) << "GetEntityByName: Entity with name '" << name << "' not found." << std::endl;
+		return static_cast<Entity>(-1); // Return invalid entity
+	}
+
+	std::vector<Entity> EntityManager::GetEntitiesBySubstring(const std::string& subStr) const {
+		std::vector<Entity> matches;
+
+		// Iterate through all entities
+		for (const auto& kv : ecs.properties) {
+			const Entity entity = kv.first;
+			const EntityProperties& props = kv.second;
+
+			if (props.name.find(subStr) != std::string::npos) {
+				matches.push_back(entity);
+			}
+		}
+
+		// Log if nothing was found (useful for debugging typos in names)
+		if (matches.empty()) {
+			Logger::Get().Info(DebugType::EntityManager)
+				<< "GetEntitiesBySubstring: No entities found containing '" << subStr << "'." << std::endl;
+		}
+
+		return matches;
+	}
+
+#pragma endregion
+}
