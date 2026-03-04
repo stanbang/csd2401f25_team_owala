@@ -116,8 +116,7 @@ namespace Framework {
             prefab.layer_render_name = doc[Serialization::ENTITY_RENDER_LAYER_NAME].GetString();
         }
 
-        Logger::Get().Info(DebugType::FileIOSystem)
-            << "Loaded prefab: " << prefab.name << " from " << filepath << std::endl;
+        //Logger::Get().Info(DebugType::FileIOSystem) << "Loaded prefab: " << prefab.name << " from " << filepath << std::endl;
         prefabs_[prefab.name] = std::move(prefab);
         return true;
     }

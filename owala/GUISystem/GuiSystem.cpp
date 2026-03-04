@@ -38,27 +38,25 @@ namespace Framework {
 		InputSystem& inputSystem_ = *gm.GetSystems().input_;
 		EntityManager entityMgr(gm.GetECS());
 
-		// Get mouse position in world coordinates
-		double mouseX, mouseY;
-		Vector2D viewPortSize;
+        // Get mouse position in world coordinates
+        double mouseX = 0.0, mouseY = 0.0;
+        double mouseX_ndc = 0.0;
+        double mouseY_ndc = 0.0;
 
-		#ifdef BUILD_EDITOR
-		// Convert to mouse position relative to the viewport's top-left corner
-		// Get ABSOLUTE mouse position from ImGui
-		ImVec2 absoluteMousePos = ImGui::GetIO().MousePos;
-		mouseX = static_cast<double>(absoluteMousePos.x - viewportPos_.x);
-		mouseY = static_cast<double>(absoluteMousePos.y - viewportPos_.y);
-		double mouseX_ndc = static_cast<double>((mouseX / viewportSize_.x) * 2.0f - 1.0f);
-		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / viewportSize_.y) * 2.0f);
-		#endif
-
-		// Engine build uses full window size
-		#ifdef BUILD_ENGINE
-		WindowsSystem& windowsSystem_ = *gm.GetSystems().win_;
-		inputSystem_.GetMousePos(&mouseX, &mouseY); // Get mouse position in window coordinates
-		double mouseX_ndc = static_cast<double>((mouseX / windowsSystem_.getWidth()) * 2.0f - 1.0f);
-		double mouseY_ndc = static_cast<double>(1.0f - (mouseY / windowsSystem_.getHeight()) * 2.0f);
-		#endif
+#ifdef BUILD_EDITOR
+        // Convert to mouse position relative to the viewport's top-left corner
+        ImVec2 absoluteMousePos = ImGui::GetIO().MousePos;
+        mouseX = static_cast<double>(absoluteMousePos.x - viewportPos_.x);
+        mouseY = static_cast<double>(absoluteMousePos.y - viewportPos_.y);
+        mouseX_ndc = static_cast<double>((mouseX / viewportSize_.x) * 2.0f - 1.0f);
+        mouseY_ndc = static_cast<double>(1.0f - (mouseY / viewportSize_.y) * 2.0f);
+#else
+        // Game-only build (StageBound) uses full window size
+        WindowsSystem& windowsSystem_ = *gm.GetSystems().win_;
+        inputSystem_.GetMousePos(&mouseX, &mouseY);
+        mouseX_ndc = static_cast<double>((mouseX / windowsSystem_.getWidth()) * 2.0f - 1.0f);
+        mouseY_ndc = static_cast<double>(1.0f - (mouseY / windowsSystem_.getHeight()) * 2.0f);
+#endif
 
 		bool mouseDown = inputSystem_.MouseDown(InputSystem::MouseButton::Left);
 		bool mouseClicked = inputSystem_.MouseReleased(InputSystem::MouseButton::Left);

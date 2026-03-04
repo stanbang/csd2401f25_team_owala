@@ -29,13 +29,11 @@ namespace Framework {
         void LoadingScreenController::OnCreate() {
         // Hide curtains immediately on loading screen creation
         TransitionController::ForceHideAll();
-
-        // Reset all fade-related variables
-        loadFadeAlpha = 0.0f;
-        loadFadingOut = false;
         loadingDone = false;
         loadNextScene = "";
-        GameManager::GetInstance().SetOverlayCallback(nullptr);
+        // The scene was loaded while the screen was black (GameManager faded out first).
+        // Fade in now to reveal the loading screen.
+        GameManager::GetInstance().FadeIn(0.5f);
     }
 
     void LoadingScreenController::OnUpdate() {
@@ -85,57 +83,30 @@ namespace Framework {
         }
         */
 
-        // ===== FADE EFFECT - NOW UNCOMMENTED =====
-
-        // Transition when done - start fading out
-        if (rsm_.IsLoadingComplete() && !loadFadingOut && !loadingDone) {
+        // Wait for loading to finish and for the fade-in to complete, then fade out to the next scene.
+        if (rsm_.IsLoadingComplete() && !loadingDone && !GameManager::GetInstance().IsFading()) {
+            loadingDone = true;
             loadNextScene = GameManager::GetInstance().GetNextScene();
-            Logger::Get().Info(DebugType::GameManager) << "Loading complete. Fading out before transition to: " << loadNextScene << std::endl;
-            loadFadingOut = true;
-        }
+            Logger::Get().Info(DebugType::GameManager) << "Loading complete. Fading to: " << loadNextScene << std::endl;
 
-        // Tick fade
-        if (loadFadingOut) {
-            loadFadeAlpha += Framework::Time::DeltaTime() * 2.0f; // 0.5s, tune multiplier
-            if (loadFadeAlpha >= 1.0f) {
-                loadFadeAlpha = 1.0f;
-                loadFadingOut = false;
-                loadingDone = true;
-
-                if (!loadNextScene.empty()) {
-                    bool isTargetLevel = GameManager::GetInstance().IsLevelScene(loadNextScene);
-                    TransitionController::s_startNextSceneClosed = isTargetLevel;
-                    SceneManager::GetInstance().LoadScene(loadNextScene);
-                    GameManager::GetInstance().SetNextScene("");
-                    loadNextScene = "";
-                }
-                GameManager::GetInstance().SetOverlayCallback(nullptr);
-                return;
-            }
-        }
-
-        // Draw overlay
-        if (loadFadeAlpha > 0.0f) {
-            GameManager::GetInstance().SetOverlayCallback([]() {
-                Graphics& gfx = *GameManager::GetInstance().GetSystems().gfx_;
-                gfx.setAlphaBlend(true);
-                gfx.drawRectangle({ -1.f, -1.f }, { 1.f, 1.f }, { 0.f, 0.f, 0.f, loadFadeAlpha });
-                gfx.setAlphaBlend(false);
+            const std::string nextScene = loadNextScene;
+            // Fade to black, then load the actual level (which starts with curtains closed
+            // and will fade in on its own via s_startNextSceneClosed / WAITING state).
+            GameManager::GetInstance().FadeOut(0.5f, [nextScene]() {
+                TransitionController::s_startNextSceneClosed = GameManager::GetInstance().IsLevelScene(nextScene);
+                SceneManager::GetInstance().LoadScene(nextScene);
+                GameManager::GetInstance().SetNextScene("");
+                // FadeIn is called automatically in the level's OnCreate or by the
+                // curtain WAITING state completing - no manual FadeIn needed here.
+                GameManager::GetInstance().FadeIn(0.5f);
                 });
         }
-        else {
-            GameManager::GetInstance().SetOverlayCallback(nullptr);
-        }
-        // =========================================
     }
 
     void LoadingScreenController::OnDestroy() {
         // Cleanup
-        loadFadeAlpha = 0.0f;
-        loadFadingOut = false;
         loadingDone = false;
         loadNextScene = "";
-        GameManager::GetInstance().SetOverlayCallback(nullptr);
         LevelSelection::ResetFade();
     }
 }

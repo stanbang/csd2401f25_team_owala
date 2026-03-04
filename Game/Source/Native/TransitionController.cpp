@@ -26,8 +26,8 @@ namespace Framework {
 
     REGISTER_SCRIPT(TransitionController, "TransitionController")
 
-        // Replace single instance with a list of all active controllers
-        std::vector<TransitionController*> TransitionController::allControllers;
+    // Replace single instance with a list of all active controllers
+    std::vector<TransitionController*> TransitionController::allControllers;
     bool TransitionController::s_startNextSceneClosed = false;
     float TransitionController::s_lastOpenEventTime = -1.0f;
 
@@ -258,6 +258,64 @@ namespace Framework {
             return;
         }
 
+		// Evaluate WAITING state before anything else - we want to delay the OPENING animation even if the scene isn't a level
+        if (state_ == TransitionState::WAITING) {
+            waitTimer_ += dt;
+            if (waitTimer_ >= WAIT_DURATION) {
+                PlayOpen(nullptr);
+            }
+        }
+		// If in closing animation, update timer and transition to CLOSED when done
+        else if (state_ == TransitionState::CLOSING) {
+            if (animTimer_ == 0.0f) tex.textureKey = CLOSE_ANIM_TEXTURE;
+
+            // Enforce isLooping = false to prevent AnimationSystem overrides
+            if (entityMgr.HasComponent(GetEntity(), AnimationComponentType)) {
+                entityMgr.GetComponent<AnimationComponent>(GetEntity()).isLooping = false;
+            }
+
+            animTimer_ += dt;
+            float t = std::min(animTimer_ / animDuration_, 1.0f);
+
+            if (t >= 1.0f) {
+                state_ = TransitionState::CLOSED;
+                if (onTransitionComplete_) {
+                    auto callback = onTransitionComplete_;
+                    onTransitionComplete_ = nullptr;
+                    callback();
+                }
+            }
+        }
+		// If in opening animation, update timer and transition to IDLING or HIDDEN when done,  de
+        else if (state_ == TransitionState::OPENING) {
+            if (animTimer_ == 0.0f) tex.textureKey = OPEN_ANIM_TEXTURE;
+
+            // Enforce isLooping = false to prevent AnimationSystem overrides
+            if (entityMgr.HasComponent(GetEntity(), AnimationComponentType)) {
+                entityMgr.GetComponent<AnimationComponent>(GetEntity()).isLooping = false;
+            }
+
+            animTimer_ += dt;
+            float t = std::min(animTimer_ / animDuration_, 1.0f);
+
+            if (t >= 1.0f) {
+                // State changes here will be caught immediately by the passive checks below
+                if (isLevel) {
+                    state_ = TransitionState::IDLING;
+                }
+                else {
+                    state_ = TransitionState::HIDDEN;
+                }
+
+                if (onTransitionComplete_) {
+                    auto callback = onTransitionComplete_;
+                    onTransitionComplete_ = nullptr;
+                    callback();
+                }
+            }
+        }
+
+		// Evaluate passive states after animations - this handles the case where we start in a non-level scene and need to hide immediately, or when we transition to a non-level scene and need to hide immediately, even if we didn't start closed.
         if (state_ == TransitionState::HIDDEN) {
             // If we are NOT in a level (e.g., MainMenu, LoadingScreen), ensure texture is empty.
             // This removes the "hanging curtains" that are preserved from the previous level.
@@ -267,16 +325,18 @@ namespace Framework {
         }
 
         // If in IDLING state, curtains are visible at the sides with looping animation
-        if (state_ == TransitionState::IDLING) {
+        if (state_ == TransitionState::HIDDEN) {
+            if (!isLevel && !tex.textureKey.empty()) {
+                tex.textureKey = "";
+            }
+        }
+        else if (state_ == TransitionState::IDLING) {
             std::string targetIdleKey = idleTextureKey_;
-            bool shouldFlip = false;
 
-			// Prevent texture reset if already playing the correct idle animation to avoid animation restart
             bool isAlreadyPlayingIdle = false;
             if (rsm && rsm->has<AnimationInfo>(targetIdleKey)) {
                 AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey);
 
-                // Check if the current texture is the base key or one of the animation's sheets
                 if (tex.textureKey == targetIdleKey) {
                     isAlreadyPlayingIdle = true;
                 }
@@ -293,89 +353,52 @@ namespace Framework {
                 isAlreadyPlayingIdle = true;
             }
 
-            // Only initialize the animation if it's not already playing the correct idle
             if (!isAlreadyPlayingIdle) {
                 tex.textureKey = targetIdleKey;
-                tex.flipHorizontal = shouldFlip;
+                tex.flipHorizontal = false;
 
                 if (entityMgr.HasComponent(GetEntity(), AnimationComponentType)) {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(GetEntity());
 
                     if (rsm) {
                         if (!rsm->has<AnimationInfo>(targetIdleKey)) {
-                            rsm->loadAnimationInfo(targetIdleKey); // Ensure idle animation data is loaded
+                            rsm->loadAnimationInfo(targetIdleKey);
                         }
-
                         if (rsm->has<AnimationInfo>(targetIdleKey)) {
-                            AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey); // Get the animation info for the idle texture
-                            anim.frameCount = info.frameCount; // Update frame count and duration to match the idle animation
+                            AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey);
+                            anim.frameCount = info.frameCount;
                             anim.frameDuration = info.frameDuration;
+
+                            // AnimationSystem already ran this frame with the open animation's UVs.
+                            // Immediately write correct frame-0 UVs for the idle sheet so the
+                            // renderer never sees the idle texture bound with open-animation UVs.
+                            // This eliminates the one-frame ghost/flash at the transition point.
+                            constexpr float UV_PADDING = 0.003f;
+                            if (!info.sheets.empty()) {
+                                // Multi-sheet: resolve which sheet owns frame 0 and set its key + UVs
+                                tex.textureKey = info.sheets[0].textureKey;
+                                const int sheetFrameCount = info.sheets[0].frameCount;
+                                if (sheetFrameCount > 0) {
+                                    const float frameUVWidth = 1.0f / static_cast<float>(sheetFrameCount);
+                                    anim.minUV.x = UV_PADDING;
+                                    anim.maxUV.x = frameUVWidth - UV_PADDING;
+                                }
+                            }
+                            else if (info.frameCount > 0) {
+                                // Single-sheet: frame 0 UV
+                                const float frameUVWidth = 1.0f / static_cast<float>(info.frameCount);
+                                anim.minUV.x = UV_PADDING;
+                                anim.maxUV.x = frameUVWidth - UV_PADDING;
+                            }
+                            anim.minUV.y = 0.0f;
+                            anim.maxUV.y = 1.0f;
                         }
                     }
 
                     anim.currentFrame = 0;
                     anim.elapsedTime = 0.0f;
                     anim.isPlaying = true;
-                    anim.isLooping = true; // Loop the idle animation
-                }
-            }
-            //else {
-            //    // Already playing — just reset to base key so AnimationSystem resolves all sheets correctly
-            //    tex.textureKey = targetIdleKey;
-            //    tex.flipHorizontal = shouldFlip;
-            //}
-        }
-
-        // If in WAITING state, increment timer, then transition to OPENING after delay
-        if (state_ == TransitionState::WAITING) {
-            waitTimer_ += dt;
-
-            if (waitTimer_ >= WAIT_DURATION) {
-                Logger::Get().Info(DebugType::GameManager) << "TransitionController: Wait complete. Opening..." << std::endl;
-                PlayOpen(nullptr); // Transition to OPENING state
-            }
-        }
-
-        // If in CLOSING state, play close animation
-        else if (state_ == TransitionState::CLOSING) {
-            if (animTimer_ == 0.0f) {
-                tex.textureKey = CLOSE_ANIM_TEXTURE;
-            }
-
-            animTimer_ += dt;
-            float t = std::min(animTimer_ / animDuration_, 1.0f);
-
-            if (t >= 1.0f) {
-                state_ = TransitionState::CLOSED;
-                if (onTransitionComplete_) {
-                    auto callback = onTransitionComplete_;
-                    onTransitionComplete_ = nullptr;
-                    callback();
-                }
-            }
-        }
-        // If in OPENING state, play open animation
-        else if (state_ == TransitionState::OPENING) {
-            if (animTimer_ == 0.0f) {
-                tex.textureKey = OPEN_ANIM_TEXTURE;
-            }
-
-            animTimer_ += dt;
-            float t = std::min(animTimer_ / animDuration_, 1.0f);
-
-            if (t >= 1.0f) {
-                // Transition to IDLING if in a level, otherwise HIDDEN
-                if (isLevel) {
-                    state_ = TransitionState::IDLING;
-                }
-                else {
-                    state_ = TransitionState::HIDDEN;
-                }
-
-                if (onTransitionComplete_) {
-                    auto callback = onTransitionComplete_;
-                    onTransitionComplete_ = nullptr;
-                    callback();
+                    anim.isLooping = true;
                 }
             }
         }
@@ -448,4 +471,5 @@ namespace Framework {
             entityMgr.GetComponent<TextureComponent>(GetEntity()).textureKey = "";
         }
     }
+
 }

@@ -310,7 +310,6 @@ namespace Framework {
 			for (const rapidjson::Value& val : scenesData.GetArray()) {
 				std::string sceneName = val[Serialization::SCENE_ASSET_NAME].GetString();
 				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
-				// NO MORE HARDCODED SCRIPT REGISTRATIONS HERE!
 			}
 		}
 		else {
@@ -325,11 +324,14 @@ namespace Framework {
 		//RegisterScriptToScene(testScene, TestScene::Initialize, TestScene::Update, TestScene::Free);
 
 		Logger::Get().Info(DebugType::GameManager) << "Default Scene: " << sceneMgr.GetSceneAt(testScene).name << ", GUID: " << testScene << std::endl;
-		//sceneMgr.LoadScene(sceneMgr.GetSceneAt(testScene));
-		sceneMgr.LoadScene("MainMenu");
+		// Startup scene loading is now the responsibility of the Application (e.g. StageBoundApp).
+		// Call gm.LoadStartupScene() after Configure() in your Application::Initialize().
 	}
 
 	void GameManager::Update() {
+		// Tick the fade overlay every frame, even during scene transitions
+		TickFadeOverlay(deltaTime > 0.0f ? deltaTime : Framework::Time::UnscaledDeltaTime());
+
 		// Execute any deferred tasks from previous frame
 		if (deferredTask_) {
 			deferredTask_();
@@ -444,11 +446,11 @@ namespace Framework {
 		}
 
 		//Render sprite in engine if not using editor
-		#ifdef BUILD_ENGINE
+#ifndef BUILD_EDITOR
 		systems_.textRenderer_->Update();
 		systems_.spriteRenderer_->Update();
 		if (overlayDrawCallback_) overlayDrawCallback_();
-		#endif
+#endif
 
 		// --- END GAME UPDATE ---
 	}
@@ -476,9 +478,18 @@ namespace Framework {
 	}
 
 	// Helper to trigger the loading process
+	// Fades to black first, then loads the loading scene. The loading scene
+	// itself receives a FadeIn callback so it reveals itself automatically.
 	void GameManager::InitiateLevelLoad(const std::string& targetSceneName) {
 		systems_.physics_->SetPaused(false);
-		SceneManager::GetInstance().LoadScene(targetSceneName);
+		SetNextScene(targetSceneName);
+		PreloadSceneAssets(targetSceneName);
+
+		// Fade to black, then swap to the loading scene while still black.
+		// The loading scene's OnCreate will call FadeIn to reveal itself.
+		FadeOut(0.5f, [this]() {
+			SceneManager::GetInstance().LoadScene(config_.loadingScene);
+			});
 	}
 
 	void GameManager::PreloadSceneAssets(const std::string& sceneName) {
@@ -542,19 +553,67 @@ namespace Framework {
 		}
 	}
 
+	void GameManager::Configure(const GameConfig& config) {
+		config_ = config;
+	}
+
 	// Function to check if a scene is a level scene
 	bool GameManager::IsLevelScene(const std::string& name) {
-		if (name == "MainMenu" || 
-			name == "LevelSelection" || 
-			name == "SplashScreen" || 
-			name == "RestartMenu" || 
-			name == "LoadingScreen" || 
-			name == "HowToPlay" ||
-			name == "OptionsMenu" ||
-			name == "PauseScene" ||
-			name == "Cutscene Intro")
-			return false;
+		for (const std::string& menuScene : config_.menuScenes) {
+			if (name == menuScene) return false;
+		}
 		return true;
+	}
+
+	void GameManager::FadeOut(float duration, std::function<void()> onComplete) {
+		fadeActive_ = true;
+		fadeOut_ = true;
+		fadeAlpha_ = 0.0f;
+		fadeDuration_ = (duration > 0.0f) ? duration : 0.5f;
+		fadeTimer_ = 0.0f;
+		fadeOnComplete_ = onComplete;
+	}
+
+	void GameManager::FadeIn(float duration, std::function<void()> onComplete) {
+		fadeActive_ = true;
+		fadeOut_ = false;
+		fadeAlpha_ = 1.0f;
+		fadeDuration_ = (duration > 0.0f) ? duration : 0.5f;
+		fadeTimer_ = 0.0f;
+		fadeOnComplete_ = onComplete;
+	}
+
+	void GameManager::TickFadeOverlay(float dt) {
+		if (!fadeActive_) return;
+
+		fadeTimer_ += dt;
+		const float t = std::min(fadeTimer_ / fadeDuration_, 1.0f);
+		fadeAlpha_ = fadeOut_ ? t : (1.0f - t);
+
+		if (t >= 1.0f) {
+			fadeActive_ = false;
+			// After a fade-in, ensure alpha is fully clear
+			if (!fadeOut_) {
+				fadeAlpha_ = 0.0f;
+			}
+			if (fadeOnComplete_) {
+				auto cb = std::move(fadeOnComplete_);
+				fadeOnComplete_ = nullptr;
+				cb();
+			}
+		}
+	}
+
+	// Loads the startup scene defined in the GameConfig.
+	// Must be called by the Application after Configure() during its own Initialize().
+	void GameManager::LoadStartupScene() {
+		if (!config_.startupScene.empty()) {
+			SceneManager::GetInstance().LoadScene(config_.startupScene);
+			Logger::Get().Info(DebugType::GameManager) << "Loaded startup scene: " << config_.startupScene << std::endl;
+		}
+		else {
+			Logger::Get().Error(DebugType::GameManager) << "LoadStartupScene called but startupScene is not configured!" << std::endl;
+		}
 	}
 
 }

@@ -60,7 +60,7 @@ namespace Framework {
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 		
-#ifdef BUILD_ENGINE
+#ifndef BUILD_EDITOR
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // disable window resizing in game mode
 
 		// --- Monitor and Video Mode Setup for Full-Screen ---
@@ -150,7 +150,7 @@ namespace Framework {
 		glfwTerminate();
 	}
 
-#ifdef BUILD_ENGINE
+#ifndef BUILD_EDITOR
 	/**
 	 * \brief Toggle between full screen and windowed mode.
 	 */

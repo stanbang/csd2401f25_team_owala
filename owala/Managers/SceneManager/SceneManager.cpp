@@ -270,7 +270,8 @@ namespace Framework {
 	}
 
 	const SceneAsset& SceneManager::GetSceneAt(SceneGUID sceneIndex, bool silenceError) const {
-		if (sceneIndex == DDOL_SCENEID) {
+		// Short-circuit for reserved IDs, return invalidScene without logging
+		if (sceneIndex == INVALID_SCENEID || sceneIndex == DDOL_SCENEID) {
 			return invalidScene;
 		}
 
@@ -286,7 +287,7 @@ namespace Framework {
 	}
 
 	const SceneAsset& SceneManager::GetActiveScene() const {
-		return GetSceneAt(currentScene_);
+		return GetSceneAt(currentScene_, true); // Silence error: no active scene is a valid state
 	}
 
 	bool SceneManager::SetActiveScene(const SceneAsset& scene) {

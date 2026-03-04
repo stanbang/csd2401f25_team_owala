@@ -84,7 +84,7 @@ namespace Framework {
 
         bool IsFocused() const { return isFocused_; }
 
-#ifdef BUILD_ENGINE
+#ifndef BUILD_EDITOR
         /**
          * \brief Toggle between full screen and windowed mode.
          */
@@ -117,7 +117,7 @@ namespace Framework {
         int windowedW_ = 1920, windowedH_ = 1080;
 
         bool isFocused_ = true; // Windows Focus Loss Event
-#ifdef BUILD_ENGINE
+#ifndef BUILD_EDITOR
         int fullW_ = 1920, fullH_ = 1080;
         int x_{}, y_{};                    //!< Window top left x and y positions (0,0 will be top left of monitor)
 #endif

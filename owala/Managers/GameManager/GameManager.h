@@ -59,6 +59,13 @@ namespace Framework {
 	public:
 		// Aliases
 		using SceneFunction = void(*)(void);
+
+		struct GameConfig {
+			std::string startupScene = "";
+			std::string loadingScene = "";
+			std::vector<std::string> overlayScenes; // scenes that pause physics (e.g. pause/options)
+			std::vector<std::string> menuScenes;    // non-level scenes for IsLevelScene()
+		};
 	private:
 		static GameManager* instance;
 		std::string nextSceneToLoad_ = "";
@@ -96,7 +103,6 @@ namespace Framework {
 			CameraSystem* camera_ = nullptr;  
 			TransformationSystem* transformation_ = nullptr;
 			AnimationSystem* animationSystem_ = nullptr;
-			  
 		};
 
 		RegisteredSystems systems_;
@@ -120,6 +126,9 @@ namespace Framework {
 		// Internal Checkers
 		void CheckSystems() const;
 
+		// Game configuration loaded from file or set by the game during initialization. Contains important information such as what the startup scene is, what scenes are considered menu scenes, etc.
+		GameConfig config_;
+
 		CoreEngine* engine_ = nullptr; // Pointer to the core engine for getting all system time
 		//  Members for the system profiler display
 		float profilerUpdateTimer_ = 0.0f;
@@ -133,6 +142,16 @@ namespace Framework {
 
 		bool restartMenuInitialized = false;
 		SceneGUID previousScene = 0;
+
+		// Black Fade Overlay (engine-owned; game scripts call FadeIn/FadeOut upward)
+		bool  fadeActive_ = false;
+		bool  fadeOut_ = false; // true = clear->black, false = black->clear
+		float fadeAlpha_ = 0.0f;
+		float fadeDuration_ = 0.5f;
+		float fadeTimer_ = 0.0f;
+		std::function<void()> fadeOnComplete_ = nullptr;
+
+		void TickFadeOverlay(float dt);
 
 	public:
 		// GLOBAL STATES
@@ -159,6 +178,17 @@ namespace Framework {
 		
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
+
+		void Configure(const GameConfig& config);
+
+		// Starts a full-screen black fade-out (clear to black). Calls onComplete when alpha reaches 1.
+		void FadeOut(float duration, std::function<void()> onComplete = nullptr);
+		// Starts a full-screen black fade-in (black to clear). Calls onComplete when alpha reaches 0.
+		void FadeIn(float duration, std::function<void()> onComplete = nullptr);
+		// True while a fade is in progress.
+		bool IsFading() const { return fadeActive_; }
+		// Current alpha of the black overlay [0, 1] — read by the renderer.
+		float GetFadeAlpha() const { return fadeAlpha_; }
 
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.
@@ -205,6 +235,9 @@ namespace Framework {
 
 		// Getter for Previous scene
 		SceneGUID GetPrevScene() const { return previousScene; }
+
+		// Loads the startup scene defined in the GameConfig.
+		void LoadStartupScene();
 
 		/* Game Cycle Functions */
 		void Initialize() override;

@@ -19,10 +19,6 @@
 #include "Logger.h"
 #include "FirebaseManager.h"
 
-float LevelSelection::fadeAlpha = 0.0f;
-bool LevelSelection::fadingOut = false;
-std::string LevelSelection::pendingScene = "";
-
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
 
@@ -306,14 +302,13 @@ namespace LevelSelection {
 		leaderboardOpen = false;
 		SetLeaderboardVisible(entityMgr, false);
 		RefreshUI(entityMgr);
+
+		// Reveal the scene — it was loaded while black due to the prior FadeOut in InitiateLevelLoad.
+		GameManager::GetInstance().FadeIn(0.5f);
 	}
 
 
 	void ResetFade() {
-		fadeAlpha = 0.0f;
-		fadingOut = false;
-		pendingScene = "";
-		GameManager::GetInstance().SetOverlayCallback(nullptr);
 		Logger::Get().Info(DebugType::GameManager) << "LevelSelection fade reset" << std::endl;
 	}
 
@@ -324,6 +319,9 @@ namespace LevelSelection {
 
 		if (!cached) CacheUI(entityMgr);
 		if (levelData.empty()) return;
+
+		// Block input while a fade is running
+		if (GameManager::GetInstance().IsFading()) return;
 
 		// Keyboard Input Handling
 		HandleSceneKBInputs(inputSystem);
@@ -373,42 +371,14 @@ namespace LevelSelection {
 			}
 		}
 
-		// Select Button - WITH FADE EFFECT (Option A)
+		// Select Button — hand off to GameManager which owns the fade + load sequence
 		if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
 			if (save && entityMgr.ValidateEntity(save->GetEntity())) {
 				const int levelIndex = levelData[currentIndex].index;
 				if (!save->IsUnlocked(levelIndex)) return;
 			}
-			pendingScene = levelData[currentIndex].sceneName;
-			fadingOut = true;
-			return;  // Let the fade handle the loading, don't queue directly
-		}
-
-		// Tick fade
-		if (fadingOut) {
-			fadeAlpha += Framework::Time::DeltaTime() * 2.0f; // 0.5s duration, tune multiplier
-			if (fadeAlpha >= 1.0f) {
-				fadeAlpha = 1.0f;
-				fadingOut = false;
-				std::string scene = pendingScene;
-				pendingScene = "";
-				TransitionController::s_startNextSceneClosed = GameManager::GetInstance().IsLevelScene(scene);
-				GameManager::GetInstance().InitiateLevelLoad(scene);
-				return;
-			}
-		}
-
-		// Register/clear overlay each frame so it draws on top of all sprites
-		if (fadeAlpha > 0.0f) {
-			GameManager::GetInstance().SetOverlayCallback([]() {
-				Graphics& gfx = *GameManager::GetInstance().GetSystems().gfx_;
-				gfx.setAlphaBlend(true);
-				gfx.drawRectangle({ -1.f, -1.f }, { 1.f, 1.f }, { 0.f, 0.f, 0.f, fadeAlpha });
-				gfx.setAlphaBlend(false);
-				});
-		}
-		else {
-			GameManager::GetInstance().SetOverlayCallback(nullptr);
+			const std::string scene = levelData[currentIndex].sceneName;
+			GameManager::GetInstance().InitiateLevelLoad(scene);
 		}
 	}
 
@@ -423,9 +393,5 @@ namespace LevelSelection {
 		ui = {};
 		save = nullptr;
 		leaderboardTextEntity = 0;
-		fadeAlpha = 0.0f;
-		fadingOut = false;
-		pendingScene = "";
-		GameManager::GetInstance().SetOverlayCallback(nullptr);
 	}
 }

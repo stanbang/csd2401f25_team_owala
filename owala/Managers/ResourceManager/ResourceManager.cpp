@@ -148,7 +148,7 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& fi
 		return false;
 	}
 
-	Logger::Get().Info(DebugType::ResourceManager) << "Loaded texture '" << filepath << "'" << std::endl;
+	//Logger::Get().Info(DebugType::ResourceManager) << "Loaded texture '" << filepath << "'" << std::endl;
 
 	add<Texture>(name, tex); // Add to resource manager's unordered_map
     return true;

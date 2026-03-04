@@ -197,7 +197,7 @@ namespace Framework {
             }
         }
 
-#ifdef BUILD_ENGINE
+#ifndef BUILD_EDITOR
         if (KeyPressed(Key::F11)) {
             winSys_->ToggleFullScreen();
         }

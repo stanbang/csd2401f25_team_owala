@@ -676,7 +676,7 @@ namespace Editor {
 			}
 			try {
 				// Log before attempting to get the texture
-				Framework::Logger::Get().Info(DebugType::Editor) << "Attempting to get texture for palette item: '" << name << "' with key: '" << textureKey << "'" << std::endl;
+				//Framework::Logger::Get().Info(DebugType::Editor) << "Attempting to get texture for palette item: '" << name << "' with key: '" << textureKey << "'" << std::endl;
 
 				// Ensure resourceManager_ pointer is valid
 				if (!resourceManager_) {
@@ -689,7 +689,7 @@ namespace Editor {
 
 				if (texID != 0) {
 					paletteItems_.push_back({ name, type, texID , ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
-					Framework::Logger::Get().Info(DebugType::Editor) << " -> Success! Added palette item: '" << name << "' (ID: " << texID << ")" << std::endl;
+					//Framework::Logger::Get().Info(DebugType::Editor) << " -> Success! Added palette item: '" << name << "' (ID: " << texID << ")" << std::endl;
 				}
 				else {
 					// This case might happen if loadTexture returned 0 but didn't throw
@@ -1792,9 +1792,9 @@ namespace Editor {
 
 				if (texID != 0) {
 					tilePaletteItems_.push_back({ name, PrefabType::Tile, texID, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
-					Framework::Logger::Get().Info(DebugType::Editor)
+					/*Framework::Logger::Get().Info(DebugType::Editor)
 						<< " -> Success! Added tile: '" << name
-						<< "' (ID: " << texID << ")" << std::endl;
+						<< "' (ID: " << texID << ")" << std::endl;*/
 				}
 				else {
 					Framework::Logger::Get().Error(DebugType::Editor)

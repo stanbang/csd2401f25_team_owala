@@ -38,6 +38,10 @@ namespace Framework {
             m_Engine.AddSystem(m_PlayerSystem);
             m_Engine.AddSystem(m_LevelResetSystem);
 
+			// Initialize Game Systems
+            m_PlayerSystem->Initialize();
+            m_LevelResetSystem->Initialize();
+
             // Restore transition state that was previously in GameManager::Initialize()
             TransitionController::Reset();
 
@@ -45,6 +49,19 @@ namespace Framework {
             GameManager& gm = GameManager::GetInstance();
             SceneManager& sceneMgr = SceneManager::GetInstance();
 
+            // Game tells the engine what its scene names are — engine knows nothing
+            Framework::GameManager::GameConfig config;
+            config.startupScene = "MainMenu";
+            config.loadingScene = "LoadingScreen";
+            config.overlayScenes = { "PauseScene", "OptionsMenu" };
+            config.menuScenes = {
+                "MainMenu", "LevelSelection", "SplashScreen",
+                "RestartMenu", "LoadingScreen", "HowToPlay",
+                "OptionsMenu", "PauseScene", "Cutscene Intro"
+            };
+            gm.Configure(config);
+
+            // Register scripts to scene
             auto RegisterScene = [&](const std::string& name,
                 GameManager::SceneFunction init,
                 GameManager::SceneFunction update,
@@ -67,6 +84,8 @@ namespace Framework {
             RegisterScene("Level 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
             RegisterScene("Level 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
 
+            // Now that config and callbacks are set, load the startup scene.
+            gm.LoadStartupScene();
         }
 
         void Update() override {

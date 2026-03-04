@@ -36,12 +36,6 @@ namespace Framework {
     void PlayerSystem::Initialize() {
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight, INVULNERABILITY_DURATION, KNOCKBACK_DURATION, KNOCKBACK_FORCE_X, KNOCKBACK_FORCE_Y);
 
-        // Temporary diagnostic — remove after confirming values are correct
-        Logger::Get().Info(DebugType::PlayerSystem)
-            << "PlayerStats loaded: moveSpeed=" << moveSpeed
-            << " jumpHeight=" << jumpHeight
-            << " invulDuration=" << INVULNERABILITY_DURATION << std::endl;
-
         ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
     
         MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
@@ -52,9 +46,12 @@ namespace Framework {
                     Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
                     LevelSelection::ResetFade();
                     GameManager::GetInstance().SetOverlayCallback(nullptr);
-                    // RestartMenu is not a level scene, so curtains aren't needed.
-                    // Just load directly — no PlayAllClose wrapper needed.
-                    GameManager::GetInstance().InitiateLevelLoad("RestartMenu");
+                    // Close curtains first — scene loads inside the close callback,
+                    // so GetNextScene() becomes non-empty immediately, blocking any
+                    // re-entrant calls from subsequent frames.
+                    TransitionController::PlayAllClose([]() {
+                        GameManager::GetInstance().InitiateLevelLoad("RestartMenu");
+                        });
                 }
             }
             });
@@ -72,6 +69,7 @@ namespace Framework {
         // In PlayerSystem::Update(), at the beginning of the player loop:
 
         InputSystem& input_ = *gm.GetSystems().input_;
+
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
 
         UpdateInvulnerability();
