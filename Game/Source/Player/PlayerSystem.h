@@ -58,5 +58,7 @@ namespace Framework {
 		float KNOCKBACK_DURATION = 0.0f;
 		float KNOCKBACK_FORCE_X = 0.0f;
 		float KNOCKBACK_FORCE_Y = 0.0f;
+
+		bool m_deathEventFired = false;
 	};
 } // namespace Framework

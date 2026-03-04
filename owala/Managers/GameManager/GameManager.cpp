@@ -481,6 +481,12 @@ namespace Framework {
 	// Fades to black first, then loads the loading scene. The loading scene
 	// itself receives a FadeIn callback so it reveals itself automatically.
 	void GameManager::InitiateLevelLoad(const std::string& targetSceneName) {
+		std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
+		// Only save the scene if it is an actual playable level
+		if (IsLevelScene(currentScene)) {
+			previousScene = SceneManager::GetInstance().GetActiveScene().sceneIndex;
+		}
+
 		systems_.physics_->SetPaused(false);
 		SetNextScene(targetSceneName);
 		PreloadSceneAssets(targetSceneName);

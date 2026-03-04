@@ -34,6 +34,7 @@
 
 namespace Framework {
     void PlayerSystem::Initialize() {
+        m_deathEventFired = false;
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight, INVULNERABILITY_DURATION, KNOCKBACK_DURATION, KNOCKBACK_FORCE_X, KNOCKBACK_FORCE_Y);
 
         ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
@@ -46,9 +47,10 @@ namespace Framework {
                     Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
                     LevelSelection::ResetFade();
                     GameManager::GetInstance().SetOverlayCallback(nullptr);
-                    // Close curtains first — scene loads inside the close callback,
-                    // so GetNextScene() becomes non-empty immediately, blocking any
-                    // re-entrant calls from subsequent frames.
+                    // Set the next scene immediately to block re-entrant calls
+                    //GameManager::GetInstance().SetNextScene("RestartMenu");
+
+                    // TELL THE CURTAINS TO CLOSE HERE
                     TransitionController::PlayAllClose([]() {
                         GameManager::GetInstance().InitiateLevelLoad("RestartMenu");
                         });
@@ -197,6 +199,7 @@ namespace Framework {
                 AnimationState animState = AnimationState::IDLE; // Default to IDLE
                 if (state.isDead) {
                     animState = AnimationState::DEATH;
+                    animationComponent.isLooping = false;
                 }
                 else if (state.isHurt) {
                     animState = AnimationState::HURT;
@@ -680,9 +683,11 @@ namespace Framework {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
 
                     if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
-                        MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
-                        /*Commented out because we dont want the player death animation to be looping as the curtains are closing*/
-						//state.isDead = false; // Reset death state after handling
+                        // Only publish the event once!
+                        if (!m_deathEventFired) {
+                            MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
+                            m_deathEventFired = true; // Lock it so it doesn't fire again
+                        }
                     }
                 }
             }
