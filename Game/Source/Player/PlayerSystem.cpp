@@ -29,16 +29,38 @@
 #include "TimerSystem.h"
 #include "FirebaseManager.h"
 #include "SceneManager.h" 
+#include "LevelSelection.h"
+#include "TransitionController.h"
 
 namespace Framework {
     void PlayerSystem::Initialize() {
         FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight, INVULNERABILITY_DURATION, KNOCKBACK_DURATION, KNOCKBACK_FORCE_X, KNOCKBACK_FORCE_Y);
-		ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
+
+        // Temporary diagnostic — remove after confirming values are correct
+        Logger::Get().Info(DebugType::PlayerSystem)
+            << "PlayerStats loaded: moveSpeed=" << moveSpeed
+            << " jumpHeight=" << jumpHeight
+            << " invulDuration=" << INVULNERABILITY_DURATION << std::endl;
+
+        ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
+    
+        MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
+            if (event.deathAnimationFinished) {
+                if (!GameManager::GetInstance().GetNextScene().empty()) return;
+
+                if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
+                    Logger::Get().Info(DebugType::GameManager) << "Changing to RestartMenu scene" << std::endl;
+                    LevelSelection::ResetFade();
+                    GameManager::GetInstance().SetOverlayCallback(nullptr);
+                    // RestartMenu is not a level scene, so curtains aren't needed.
+                    // Just load directly — no PlayAllClose wrapper needed.
+                    GameManager::GetInstance().InitiateLevelLoad("RestartMenu");
+                }
+            }
+            });
     }
 
     void PlayerSystem::Update() {
-
-
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
         if (physics_.IsPaused()) { return; }

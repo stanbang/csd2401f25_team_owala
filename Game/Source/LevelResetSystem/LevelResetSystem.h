@@ -26,6 +26,8 @@ namespace Framework {
 namespace Framework {
     class LevelResetSystem : public ISystem {
     private:
+		// Flag to indicate if a reset has been queued (e.g by a button click)
+        bool m_queuedReset = false;
 
         // Store the signatures required for quick checking (built in the constructor)
         //ComponentSignature playerSig;
@@ -44,7 +46,7 @@ namespace Framework {
 
     public:
         void Initialize() override {}
-        void Update() override {}
+        void Update() override;
         void Shutdown() override {}
 
         LevelResetSystem();

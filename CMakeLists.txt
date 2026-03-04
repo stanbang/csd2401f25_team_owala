@@ -69,7 +69,7 @@ set_target_properties(${CMAKE_PROJECT_NAME}_Engine PROPERTIES
 )
 
 # ======================= Editor Executable =========================
-add_executable(${CMAKE_PROJECT_NAME}_Editor ${EDITOR_SRC})
+add_executable(${CMAKE_PROJECT_NAME}_Editor ${EDITOR_SRC} ${GAME_SRC})
 target_compile_definitions(${CMAKE_PROJECT_NAME}_Editor PRIVATE -DBUILD_EDITOR)
 set_target_properties(${CMAKE_PROJECT_NAME}_Editor PROPERTIES 
     FOLDER ""
@@ -283,10 +283,11 @@ target_include_directories(${CMAKE_PROJECT_NAME}_Engine PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/inc
 )
 
-# Editor includes (both owala and Editor folders)
+# Editor includes (owala, Editor, and Game folders)
 target_include_directories(${CMAKE_PROJECT_NAME}_Editor PRIVATE 
     ${INCLUDE_DIRS}
     ${EDITOR_INCLUDE_DIRS}
+    ${GAME_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/inc
 )
 
@@ -303,8 +304,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME}_Engine
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib
 )
 
+# Editor links engine sources directly (not the lib) so BUILD_EDITOR guards compile in.
+target_sources(${CMAKE_PROJECT_NAME}_Editor PRIVATE ${ENGINE_SRC})
 target_link_libraries(${CMAKE_PROJECT_NAME}_Editor
-    ${CMAKE_PROJECT_NAME}_Engine
     ${COMMON_LIBS}
     ${EDITOR_LIBS}
     ${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod_vc.lib

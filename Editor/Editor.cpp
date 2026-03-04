@@ -1386,7 +1386,7 @@ namespace Editor {
 
 		// Reset entity states & stop game on save 
 		isGamePlaying = false;
-		gameManager_->GetSystems().levelResetter_->RunReset();
+		gameManager_->OnEndPlay();
 		std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
 		std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
 
@@ -1527,7 +1527,7 @@ namespace Editor {
 					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
 					if (!isCurrentScene) {
 						isGamePlaying = false;
-						gameManager_->GetSystems().levelResetter_->RunReset();
+						gameManager_->OnEndPlay();
 						//ResetEditorCamera();
 						if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
 							Framework::Logger::Get().Error(DebugType::Editor)

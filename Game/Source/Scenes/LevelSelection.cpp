@@ -392,6 +392,7 @@ namespace LevelSelection {
 				fadingOut = false;
 				std::string scene = pendingScene;
 				pendingScene = "";
+				TransitionController::s_startNextSceneClosed = GameManager::GetInstance().IsLevelScene(scene);
 				GameManager::GetInstance().InitiateLevelLoad(scene);
 				return;
 			}

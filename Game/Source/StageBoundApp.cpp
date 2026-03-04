@@ -2,10 +2,19 @@
 #include "Core/Core.h" 
 #include "Managers/GameManager/GameManager.h"
 
-// Include your game-specific systems! 
-// (These should now be located inside your Game/ folder)
+// Game-specific systems in Game/Sources folder)
 #include "PlayerSystem.h"
 #include "LevelResetSystem.h"
+
+// Scene script headers (only scenes that have Initialize/Update/Free)
+#include "LevelSelection.h"
+#include "SplashScreen.h"
+#include "CutsceneIntro.h"
+#include "HowToPlay.h"
+#include "TransitionController.h"
+#include "TestScene.h"
+#include "MessageBus.h"
+#include "GameMessages.h"
 
 namespace Framework {
 
@@ -21,16 +30,43 @@ namespace Framework {
         void Initialize() override {
             std::cout << "--- StageBound Application Initializing! ---\n";
 
-            // 1. Instantiate Game-Specific Systems
+            // Instantiate Game-Specific Systems
             m_PlayerSystem = new PlayerSystem();
             m_LevelResetSystem = new LevelResetSystem();
 
-            // 2. Inject Game Systems into the Engine
+            // Inject Game Systems into the Engine
             m_Engine.AddSystem(m_PlayerSystem);
             m_Engine.AddSystem(m_LevelResetSystem);
 
-            // Load specific scenes here, eg this is how to load a starting scene
-            // SceneManager::GetInstance().LoadScene("MainMenu");
+            // Restore transition state that was previously in GameManager::Initialize()
+            TransitionController::Reset();
+
+            // Register Scene Lifecycle Callbacks
+            GameManager& gm = GameManager::GetInstance();
+            SceneManager& sceneMgr = SceneManager::GetInstance();
+
+            auto RegisterScene = [&](const std::string& name,
+                GameManager::SceneFunction init,
+                GameManager::SceneFunction update,
+                GameManager::SceneFunction free) {
+                    const SceneAsset& scene = sceneMgr.GetSceneByName(name, true);
+                    if (scene.IsValid()) {
+                        gm.RegisterScriptToScene(scene.sceneIndex, init, update, free);
+                    }
+                };
+
+            // Menu / UI scenes
+            RegisterScene("LevelSelection", LevelSelection::Initialize, LevelSelection::Update, LevelSelection::Free);
+            RegisterScene("SplashScreen", SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
+            RegisterScene("CutsceneIntro", CutsceneIntro::Initialize, CutsceneIntro::Update, CutsceneIntro::Free);
+            RegisterScene("HowToPlay", HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
+        
+            // Gameplay levels - TestScene handles camera setup, player spawn, etc.
+            RegisterScene("Tutorial 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Tutorial 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Level 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Level 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
+
         }
 
         void Update() override {
