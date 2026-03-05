@@ -679,6 +679,11 @@ namespace Framework {
             if (entityMgr.HasComponent(entity, PlayerStateType)) {
                 PlayerState& state = entityMgr.GetComponent<PlayerState>(entity);
 
+				// Reset the death event fired flag if player is not dead anymore (e.g. after respawn)
+                if (!state.isDead) {
+                    m_deathEventFired = false;
+                }
+
                 if (state.isDead && entityMgr.HasComponent(entity, AnimationComponentType)) {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
 

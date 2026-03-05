@@ -488,6 +488,12 @@ namespace Framework {
 		}
 
 		systems_.physics_->SetPaused(false);
+
+		// Reset global rotation in case we are transitioning from a scene that had it (e.g. BossScene)
+		if (systems_.transformation_) {
+			systems_.transformation_->ResetGlobalRotation();
+		}
+
 		SetNextScene(targetSceneName);
 		PreloadSceneAssets(targetSceneName);
 
@@ -495,7 +501,7 @@ namespace Framework {
 		// The loading scene's OnCreate will call FadeIn to reveal itself.
 		FadeOut(0.5f, [this]() {
 			SceneManager::GetInstance().LoadScene(config_.loadingScene);
-			});
+		});
 	}
 
 	void GameManager::PreloadSceneAssets(const std::string& sceneName) {
