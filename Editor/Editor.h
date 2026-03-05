@@ -256,6 +256,32 @@ namespace Editor {
 		CameraState currentEditorCameraState_;
 		bool editorCameraNeedsReset_ = false;
 
+		// -------------------------------------------------------
+		// --- Project Management State (New / Import Project) ---
+		// -------------------------------------------------------
+		bool showNewProjectDialog_ = false;  // Controls "Create New Project" modal visibility
+		bool showImportProjectDialog_ = false;  // Controls "Import Existing Project" modal visibility
+		char newProjectNameBuffer_[256] = "";  // Text input buffer for the new project name
+		char newProjectPathBuffer_[512] = "";  // Root directory where the new project folder will be created
+		char importProjectPathBuffer_[512] = ""; // Path to the folder of an existing project to import
+		std::string projectFeedbackMsg_ = "";  // Feedback message shown inside the modal after an action
+		bool projectActionSucceeded_ = false; // Whether the last project action succeeded (colours the message)
+
+		// Creates the standard game-project folder scaffold under rootDir/projectName/.
+		// Returns true on success.
+		bool ScaffoldNewProject(const std::string& rootDir, const std::string& projectName);
+
+		// Validates that the given path looks like a valid (pre-existing) game project folder.
+		// Returns true when the path exists and contains at least a "Source" or "Assets" subfolder.
+		bool ValidateImportPath(const std::string& path);
+
+		// Renders the "Create New Project" modal pop-up.
+		void ShowNewProjectDialog();
+
+		// Renders the "Import Existing Project" modal pop-up.
+		void ShowImportProjectDialog();
+		// -------------------------------------------------------
+
 		// Camera state functions
 		void ResetEditorCamera();
 		void SaveEditorCameraState();
