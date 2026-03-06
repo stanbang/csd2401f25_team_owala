@@ -2428,8 +2428,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": 0.0,
-                        "y": -0.800000011920929
+                        "x": 49.999977111816406,
+                        "y": -549.9996337890625
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -10347,7 +10347,7 @@
                     "start_frame": 0,
                     "frame_count": 21,
                     "elapsed_time": 0.0,
-                    "is_playing": false,
+                    "is_playing": true,
                     "is_looping": true
                 },
                 "SceneOwned": {

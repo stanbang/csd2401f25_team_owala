@@ -2732,6 +2732,7 @@ namespace Editor {
 			
 			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
 			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
+			ImGui::Checkbox("Is Playing", &animComp.isPlaying); // Is Playing
 			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
 			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
 			break;
