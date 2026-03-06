@@ -234,6 +234,20 @@
                 "SB_Props_SwingingSkulls_Spritesheet.png"
             ],
             "animation_path": "Data/AnimationData/propsSwingingSkullsAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_FallingAmber_Spritesheet.png"
+            ],
+            "animation_path": "Data/AnimationData/fallingAmberAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "Fog_01.png",
+                "Fog_02.png",
+                "Fog_03.png"
+            ],
+            "animation_path": "Data/AnimationData/fogAnimation.json"
         }
     ]
 }

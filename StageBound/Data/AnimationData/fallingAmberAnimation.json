@@ -1,0 +1,12 @@
+{
+  "frame_count": 21,
+  "frame_duration": 0.1,
+  "is_looping": true,
+  "start_frame": 0,
+  "spritesheets": [
+    {
+      "texture": "SB_FallingAmber_Spritesheet.png",
+      "count": 21
+    }
+  ]
+}
