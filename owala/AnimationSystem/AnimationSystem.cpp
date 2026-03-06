@@ -62,66 +62,15 @@ namespace Framework {
 				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
 			}
 
-			if (entityMgr.HasComponent(entity, FSMComponentType)) {
-				if (entityMgr.HasComponent(entity, VelocityType)) {
-					const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
-
-					// Check current FSM state
-					FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
-					std::string stateName = fsm.fsm.GetCurrentState();
-
-					// //During Attack, textureAngle handles full rotation — skip UV flip
-					//if (stateName == "Attack") {
-					//	isFacingRight = true; // Lock to default, no UV flip
-					//}
-					/*else if (entityMgr.HasComponent(entity, VelocityType)) {*/
-						
-						if (vel.x > 0.1f)       isFacingRight = true;  // flip to face right
-						else if (vel.x < -0.1f) isFacingRight = false;   // already faces left
-					//}
-				}
+			if (entityMgr.HasComponent(entity, VelocityType)) {
+				const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
+				if (vel.x > 0.1f)       isFacingRight = true;
+				else if (vel.x < -0.1f) isFacingRight = false;
 			}
 
-			if (entityMgr.HasComponent(entity, FSMComponentType)) {
-				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
-				std::string stateName = fsm.fsm.GetCurrentState();
-
-				// Map FSM States to Animation States for Bird Enemy
-				if (stateName == "Idle") {
-					animationComponent.currentState = AnimationState::IDLE;
-				}
-				else if (stateName == "Waking") {
-					animationComponent.currentState = AnimationState::WAKING;
-				}
-				else if (stateName == "SimpleChase" || stateName == "Bounce" || stateName == "Hover") {
-					animationComponent.currentState = AnimationState::RUNNING;
-				}
-				else if (stateName == "Attack") {
-					animationComponent.currentState = AnimationState::JUMPING;
-				}
-				else if (stateName == "Recovery") {
-					animationComponent.currentState = AnimationState::RUNNING;
-				}
-				else if (stateName == "Death") {
-					animationComponent.currentState = AnimationState::DEATH;
-				}
-				// --- ADD WITCH STATE MAPPINGS ---
-				else if (stateName == "WitchIdle") {
-					animationComponent.currentState = AnimationState::IDLE;
-				}
-				else if (stateName == "WitchAlerted") {
-					animationComponent.currentState = AnimationState::WAKING;
-				}
-				else if (stateName == "WitchEnraged" || stateName == "WitchCharging") {
-					animationComponent.currentState = AnimationState::RUNNING;
-				}
-				else if (stateName == "WitchTeleport") {
-					animationComponent.currentState = AnimationState::JUMPING;
-				}
-				else if (stateName == "WitchAttack") {
-					animationComponent.currentState = AnimationState::HURT;
-				}
-			}
+			// FSM-driven entities: the FSM state name is uppercased and looked up directly
+			// in stateToAnimationMapping.json. No engine-side mapping is needed here.
+			// Add state-to-texture entries to the game's JSON profile instead.
 
 			// Generic Texture Lookup
 			std::string newTextureKey = textureComponent.textureKey; // Default to current
@@ -145,17 +94,9 @@ namespace Framework {
 							[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
 					}
 
-					// Fallback for Player/Non-FSM entities using the legacy AnimationState enum
+					// Non-FSM entities (e.g. player): read state string set directly by game code
 					else {
-						switch (animationComponent.currentState) {
-						case AnimationState::IDLE: targetStateString = "IDLE"; break;
-						case AnimationState::RUNNING: targetStateString = "RUNNING"; break;
-						case AnimationState::JUMPING: targetStateString = "JUMPING"; break;
-						case AnimationState::FALLING: targetStateString = "FALLING"; break;
-						case AnimationState::DEATH: targetStateString = "DEATH"; break;
-						case AnimationState::HURT: targetStateString = "HURT"; break;
-						default: targetStateString = "IDLE"; break; // Fallback
-						}
+						targetStateString = animationComponent.currentState;
 					}
 
 					// Look up the texture using the string directly

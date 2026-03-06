@@ -453,7 +453,7 @@ namespace Framework {
             mgr.GetComponent<AnimationComponent>(entity).isPlaying = false;
         }
         if (mgr.HasComponent(entity, AnimationComponentType)) {
-            mgr.GetComponent<AnimationComponent>(entity).currentState = AnimationState::DEATH;
+            mgr.GetComponent<AnimationComponent>(entity).currentState = "DEATH";
         }
 
         s_lastChaseVel.erase(entity);  // cleanup

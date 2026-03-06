@@ -186,12 +186,12 @@ namespace Framework {
         if (KeyPressed(Key::F)) {
             for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, FakePlayerTagType)) {
                 AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
-                if (animationComponent.currentState != AnimationState::RUNNING) {
-                    animationComponent.currentState = AnimationState::RUNNING;
+                if (animationComponent.currentState != "RUNNING") {
+                    animationComponent.currentState = "RUNNING";
                     Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to RUNNING" << std::endl;
                 }
                 else {
-                    animationComponent.currentState = AnimationState::IDLE;
+                    animationComponent.currentState = "IDLE";
                     Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to IDLE" << std::endl;
                 }
             }

@@ -1037,7 +1037,7 @@ namespace Framework {
 		profileNameVal.SetString(pName, static_cast<rapidjson::SizeType>(strlen(pName)), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::ANIMATION_PROFILE), profileNameVal, alloc);
 
-		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_STATE), static_cast<int>(animComp.currentState), alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_STATE), rapidjson::Value(animComp.currentState.c_str(), alloc), alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::CURRENT_FRAME), animComp.currentFrame, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::FRAME_DURATION), animComp.frameDuration, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::START_FRAME), animComp.startFrame, alloc);
@@ -1574,8 +1574,18 @@ namespace Framework {
 			out.profileName = componentData[Serialization::ANIMATION_PROFILE].GetString();
 		}
 
-		if (componentData.HasMember(Serialization::CURRENT_STATE) && componentData[Serialization::CURRENT_STATE].IsInt()) {
-			out.currentState = static_cast<AnimationState>(componentData[Serialization::CURRENT_STATE].GetInt());
+		if (componentData.HasMember(Serialization::CURRENT_STATE)) {
+			const auto& stateVal = componentData[Serialization::CURRENT_STATE];
+			if (stateVal.IsString()) {
+				out.currentState = stateVal.GetString();
+			}
+			else if (stateVal.IsInt()) {
+				// Backward compat: old scenes serialized currentState as an int enum value
+				static const char* legacyStates[] = { "IDLE", "IDLE", "RUNNING", "JUMPING", "FALLING", "DEATH", "HURT" };
+				int idx = stateVal.GetInt();
+				if (idx >= 0 && idx < static_cast<int>(std::size(legacyStates)))
+					out.currentState = legacyStates[idx];
+			}
 		}
 		if (componentData.HasMember(Serialization::CURRENT_FRAME) && componentData[Serialization::CURRENT_FRAME].IsInt()) {
 			out.currentFrame = componentData[Serialization::CURRENT_FRAME].GetInt();

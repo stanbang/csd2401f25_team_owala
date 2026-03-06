@@ -52,17 +52,6 @@ namespace Framework{
 		Custom = 0  // For entities with custom render order
 	};
 
-	// Enum for animation states
-	enum class AnimationState {
-		IDLE,
-		WAKING,
-		RUNNING,
-		JUMPING,
-		FALLING,
-		DEATH,
-		HURT
-	};
-
 	// For particle emission modes
 	enum class ParticleEmissionMode {
 		CONTINUOUS,    // Emit constantly while active
@@ -223,8 +212,8 @@ namespace Framework{
 	};
 
 	struct AnimationComponent {
-		std::string profileName; // Name of the animation profile to use(can be Player, BirdEnemy etc)
-		AnimationState currentState = AnimationState::IDLE; // Default animation state is IDLE
+		std::string profileName;           // Name of the animation profile (e.g. "Player", "BirdEnemy")
+		std::string currentState = "IDLE"; // Current state key — matched against stateToAnimationMapping.json
 
 		int currentFrame = 0;      // Frame index
 		float frameDuration = 0.1f;

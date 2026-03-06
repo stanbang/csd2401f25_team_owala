@@ -196,30 +196,28 @@ namespace Framework {
                 }
 
                 // ========== ANIMATION STATE HANDLING ==========
-                AnimationState animState = AnimationState::IDLE; // Default to IDLE
+                std::string animState = "IDLE";
                 if (state.isDead) {
-                    animState = AnimationState::DEATH;
+                    animState = "DEATH";
                     animationComponent.isLooping = false;
                 }
                 else if (state.isHurt) {
-                    animState = AnimationState::HURT;
+                    animState = "HURT";
                 }
                 else if (!state.isGrounded) {
-                    // In air states
                     if (vel.Vel.y > 0.01f) {
-                        animState = AnimationState::JUMPING;
+                        animState = "JUMPING";
                     }
                     else {
-                        animState = AnimationState::FALLING;
+                        animState = "FALLING";
                     }
                 }
                 else {
-                    // On ground states
                     if (std::abs(vel.Vel.x) > 0.01f) {
-                        animState = AnimationState::RUNNING;
+                        animState = "RUNNING";
                     }
                     else {
-                        animState = AnimationState::IDLE;
+                        animState = "IDLE";
                     }
                 }
 
@@ -547,7 +545,7 @@ namespace Framework {
             vel.Vel.x = 0.0f;
         }
         if (entityMgr.HasComponent(playerEntity, AnimationComponentType)) {
-            entityMgr.GetComponent<AnimationComponent>(playerEntity).currentState = AnimationState::DEATH;
+            entityMgr.GetComponent<AnimationComponent>(playerEntity).currentState = "DEATH";
         }
         MessageBus::Instance().Publish(PlayerDeathEvent{ playerEntity, false });
 
@@ -687,7 +685,7 @@ namespace Framework {
                 if (state.isDead && entityMgr.HasComponent(entity, AnimationComponentType)) {
                     AnimationComponent& anim = entityMgr.GetComponent<AnimationComponent>(entity);
 
-                    if (anim.currentState == AnimationState::DEATH && !anim.isPlaying) {
+                    if (anim.currentState == "DEATH" && !anim.isPlaying) {
                         // Only publish the event once!
                         if (!m_deathEventFired) {
                             MessageBus::Instance().Publish(PlayerDeathEvent{ entity, true }); // animation finished
