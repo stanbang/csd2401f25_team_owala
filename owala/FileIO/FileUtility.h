@@ -26,6 +26,7 @@
 #include <iostream>
 #include <fstream>
 
+#include "GameConfig.h"
 #include "SceneManager.h"
 #include "Animation.h"
 #include "Components.h"
@@ -80,6 +81,22 @@ namespace Framework {
 
 		// Saves all scenes to scenes.json. Unused for now but might be useful in future
 		static bool SaveAllSceneAssets(const std::unordered_map<SceneGUID, SceneAsset>& allAssets);
+
+		// Load scene categorization config from Data/GameConfig.json.
+		// Returns a default-constructed GameConfig if the file is missing or malformed.
+		static GameConfig LoadGameConfig();
+
+		// Save scene categorization config to Data/GameConfig.json.
+		static bool SaveGameConfig(const GameConfig& config);
+
+		// Set the source project data directory for write-back (e.g. "F:/MyGame/Data").
+		// When set, WriteFileJson/DeleteFileJson mirror saves back to this folder so
+		// edits are preserved in the source project, not just the build output.
+		static void SetSourceDataDir(const std::string& dir) { sourceDataDir_ = dir; }
+		static const std::string& GetSourceDataDir() { return sourceDataDir_; }
+
+	private:
+		static std::string sourceDataDir_; // absolute path to active game's source Data/ folder
 	};
 
 	namespace FileIOKeys {
@@ -98,9 +115,16 @@ namespace Framework {
 
 		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
 		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";
+		static constexpr const char* GAME_CONFIG_FILEPATH = "Data/GameConfig.json";
 
 		// layer manager Json Key
 		static constexpr const char* LAYER_CONFIG_FILEPATH = "Data/LayerConfig.json";
+
+		// GameConfig JSON keys
+		static constexpr const char* GC_STARTUP_SCENE  = "startupScene";
+		static constexpr const char* GC_LOADING_SCENE  = "loadingScene";
+		static constexpr const char* GC_OVERLAY_SCENES = "overlayScenes";
+		static constexpr const char* GC_MENU_SCENES    = "menuScenes";
 
 #ifdef BUILD_EDITOR
 		/* Editor-Only JSON Keys */

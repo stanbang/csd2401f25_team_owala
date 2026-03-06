@@ -14,6 +14,7 @@
 *********************************************************************/
 
 #pragma once
+#include "GameConfig.h"
 #include "SceneManager.h"
 #include "ISystem.h"
 #include "EntityStorage.h"
@@ -60,12 +61,8 @@ namespace Framework {
 		// Aliases
 		using SceneFunction = void(*)(void);
 
-		struct GameConfig {
-			std::string startupScene = "";
-			std::string loadingScene = "";
-			std::vector<std::string> overlayScenes; // scenes that pause physics (e.g. pause/options)
-			std::vector<std::string> menuScenes;    // non-level scenes for IsLevelScene()
-		};
+		// Re-export Framework::GameConfig as GameManager::GameConfig for backwards compatibility.
+		using GameConfig = Framework::GameConfig;
 	private:
 		static GameManager* instance;
 		std::string nextSceneToLoad_ = "";
@@ -181,13 +178,17 @@ namespace Framework {
 
 		void Configure(const GameConfig& config);
 
+		// Returns the current game configuration (mutable for in-editor editing).
+		GameConfig& GetConfig() { return config_; }
+		const GameConfig& GetConfig() const { return config_; }
+
 		// Starts a full-screen black fade-out (clear to black). Calls onComplete when alpha reaches 1.
 		void FadeOut(float duration, std::function<void()> onComplete = nullptr);
 		// Starts a full-screen black fade-in (black to clear). Calls onComplete when alpha reaches 0.
 		void FadeIn(float duration, std::function<void()> onComplete = nullptr);
 		// True while a fade is in progress.
 		bool IsFading() const { return fadeActive_; }
-		// Current alpha of the black overlay [0, 1] — read by the renderer.
+		// Current alpha of the black overlay [0, 1] ï¿½ read by the renderer.
 		float GetFadeAlpha() const { return fadeAlpha_; }
 
 		/* GameManager Config */

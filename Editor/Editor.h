@@ -336,6 +336,7 @@ namespace Editor {
 		void ShowToolbar();
 		void ShowPreferencesWindow();
 		void ShowProjectSettingsWindow();
+		void WriteActiveGameConfig(const std::string& gameDir);
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();

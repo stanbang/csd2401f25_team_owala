@@ -69,6 +69,22 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 }
 #endif
 
+#if defined(BUILD_EDITOR) && !defined(ACTIVE_GAME_INCLUDED)
+// Stub implementation used when owala_Engine is built without any game source.
+// Game builds (StageBound, NewGame, etc.) define their own CreateApplication.
+// When ACTIVE_GAME_INCLUDED is defined (active_game.cmake set), the game's
+// own CreateApplication is compiled in instead.
+namespace Framework {
+    class NullApplication : public Application {
+    public:
+        void Initialize() override {}
+        void Update()     override {}
+        void Shutdown()   override {}
+    };
+    Application* CreateApplication(CoreEngine&) { return new NullApplication(); }
+}
+#endif
+
 int main() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 

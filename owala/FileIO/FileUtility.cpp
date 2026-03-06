@@ -21,6 +21,8 @@
 #include "GameManager.h"
 
 namespace Framework {
+	std::string FileIOSystem::sourceDataDir_;
+
 	std::string FileIOSystem::SanitizeFileName(const std::string& name) {
 		std::string sanitized_name = name;
 		/*std::transform(sanitized_name.begin(), sanitized_name.end(), sanitized_name.begin(),
@@ -66,21 +68,33 @@ namespace Framework {
 		os << buffer.GetString();
 		Logger::Get().Info(DebugType::FileIOSystem) << "Successfully wrote to: " << fileName << std::endl;
 
-		if (writeToRoot) {
-			// Check if root Data folder exists and serialize data to root folder
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = FileIOKeys::ROOT_FOLDER_PREFIX + std::string(fileName);
-				std::ofstream os(rootFilePath);
-				if (!os) {
-					Logger::Get().Error(DebugType::FileIOSystem) << "Could not open file: " << rootFilePath << std::endl;
-				}
-
-				// Write to root file
-				os << buffer.GetString();
-				Logger::Get().Info(DebugType::FileIOSystem) << "Successfully wrote to: " << rootFilePath << std::endl;
+		if (writeToRoot && !sourceDataDir_.empty()) {
+			// Mirror the save back to the source project's Data folder so edits
+			// are preserved in source control, not just the build output.
+			namespace fs = std::filesystem;
+			// fileName is relative like "Data/Scenes/foo.json" — replace the
+			// leading "Data" segment with the absolute sourceDataDir_.
+			std::string relative = fileName; // e.g. "Data/Scenes/foo.json"
+			const std::string dataPrefix = "Data/";
+			std::string sourceFilePath;
+			if (relative.rfind(dataPrefix, 0) == 0) {
+				sourceFilePath = sourceDataDir_ + "/" + relative.substr(dataPrefix.size());
+			} else {
+				sourceFilePath = sourceDataDir_ + "/" + relative;
 			}
-			else {
-				Logger::Get().Error(DebugType::FileIOSystem) << "Can't find root Data folder!" << std::endl;
+			// Ensure the parent directory exists before writing.
+			fs::path sourcePath(sourceFilePath);
+			if (!fs::exists(sourcePath.parent_path())) {
+				fs::create_directories(sourcePath.parent_path());
+			}
+			std::ofstream rootOs(sourceFilePath);
+			if (!rootOs) {
+				Logger::Get().Error(DebugType::FileIOSystem)
+					<< "Could not write back to source project: " << sourceFilePath << std::endl;
+			} else {
+				rootOs << buffer.GetString();
+				Logger::Get().Info(DebugType::FileIOSystem)
+					<< "Mirrored save to source project: " << sourceFilePath << std::endl;
 			}
 		}
 
@@ -96,20 +110,23 @@ namespace Framework {
 		fs::remove(fileName);
 		Logger::Get().Info(DebugType::FileIOSystem) << "Deleted file: " << fileName << std::endl;
 
-		if (deleteFromRoot) {
-			if (std::filesystem::exists(FileIOKeys::ROOT_DATA_FOLDER)) {
-				std::string rootFilePath = std::string(FileIOKeys::ROOT_FOLDER_PREFIX) + fileName;
-				if (fs::exists(rootFilePath)) {
-					fs::remove(rootFilePath);
-					Logger::Get().Info(DebugType::FileIOSystem)
-						<< "Deleted file from root folder: " << rootFilePath << std::endl;
-				}
-				else {
-					Logger::Get().Error(DebugType::FileIOSystem) << "Can't find file to delete: " << rootFilePath << std::endl;
-				}
+		if (deleteFromRoot && !sourceDataDir_.empty()) {
+			namespace fs = std::filesystem;
+			std::string relative = fileName;
+			const std::string dataPrefix = "Data/";
+			std::string sourceFilePath;
+			if (relative.rfind(dataPrefix, 0) == 0) {
+				sourceFilePath = sourceDataDir_ + "/" + relative.substr(dataPrefix.size());
+			} else {
+				sourceFilePath = sourceDataDir_ + "/" + relative;
 			}
-			else {
-				Logger::Get().Error(DebugType::FileIOSystem) << "Can't find root Data folder!" << std::endl;
+			if (fs::exists(sourceFilePath)) {
+				fs::remove(sourceFilePath);
+				Logger::Get().Info(DebugType::FileIOSystem)
+					<< "Deleted from source project: " << sourceFilePath << std::endl;
+			} else {
+				Logger::Get().Error(DebugType::FileIOSystem)
+					<< "Can't find file to delete in source project: " << sourceFilePath << std::endl;
 			}
 		}
 
@@ -122,22 +139,16 @@ namespace Framework {
 		bool fullScreen = true;
 
 		//Read the file name passed in as a path
-		if (!ReadFile(FileIOKeys::WIN_CONFIG_FILEPATH, d)) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read config.json. Defaulting to 1920x1080" << std::endl;
-			windowSize = Vector2D(1920.0f, 1080.0f);
-		}
-
-		// Check if the JSON file is an object
-		if (!d.IsObject()) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;
-			windowSize = Vector2D(1920.0f, 1080.0f);
+		if (!ReadFile(FileIOKeys::WIN_CONFIG_FILEPATH, d) || !d.IsObject()) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read or parse config.json. Defaulting to 1920x1080" << std::endl;
+			return WindowConfig(windowSize, fullScreen);
 		}
 
 		// Check that extracted data has the expected properties
 		if (!d.HasMember(FileIOKeys::WINDOW_W) || !d[FileIOKeys::WINDOW_W].IsInt() ||
 			!d.HasMember(FileIOKeys::WINDOW_H) || !d[FileIOKeys::WINDOW_H].IsInt()) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in config.json. Defaulting to 1920x1080" << std::endl;
-			windowSize = Vector2D(1920.0f, 1080.0f);
+			return WindowConfig(windowSize, fullScreen);
 		}
 
 		windowSize = { d[FileIOKeys::WINDOW_W].GetFloat() ,d[FileIOKeys::WINDOW_H].GetFloat() };
@@ -431,5 +442,64 @@ namespace Framework {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Failed to save all scene assets." << std::endl;
 			return false;
 		}
+	}
+
+	GameConfig FileIOSystem::LoadGameConfig() {
+		GameConfig config;
+		rapidjson::Document doc;
+
+		if (!FileIOSystem::ReadFile(FileIOKeys::GAME_CONFIG_FILEPATH, doc) || !doc.IsObject()) {
+			Logger::Get().Info(DebugType::FileIOSystem)
+				<< "GameConfig.json not found or invalid - using empty config." << std::endl;
+			return config;
+		}
+
+		if (doc.HasMember(FileIOKeys::GC_STARTUP_SCENE) && doc[FileIOKeys::GC_STARTUP_SCENE].IsString())
+			config.startupScene = doc[FileIOKeys::GC_STARTUP_SCENE].GetString();
+
+		if (doc.HasMember(FileIOKeys::GC_LOADING_SCENE) && doc[FileIOKeys::GC_LOADING_SCENE].IsString())
+			config.loadingScene = doc[FileIOKeys::GC_LOADING_SCENE].GetString();
+
+		if (doc.HasMember(FileIOKeys::GC_OVERLAY_SCENES) && doc[FileIOKeys::GC_OVERLAY_SCENES].IsArray())
+			for (const auto& v : doc[FileIOKeys::GC_OVERLAY_SCENES].GetArray())
+				if (v.IsString()) config.overlayScenes.push_back(v.GetString());
+
+		if (doc.HasMember(FileIOKeys::GC_MENU_SCENES) && doc[FileIOKeys::GC_MENU_SCENES].IsArray())
+			for (const auto& v : doc[FileIOKeys::GC_MENU_SCENES].GetArray())
+				if (v.IsString()) config.menuScenes.push_back(v.GetString());
+
+		Logger::Get().Info(DebugType::FileIOSystem)
+			<< "Loaded GameConfig.json: startup='" << config.startupScene
+			<< "', loading='" << config.loadingScene << "'" << std::endl;
+		return config;
+	}
+
+	bool FileIOSystem::SaveGameConfig(const GameConfig& config) {
+		rapidjson::Document doc;
+		doc.SetObject();
+		auto& alloc = doc.GetAllocator();
+
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::GC_STARTUP_SCENE),
+			rapidjson::Value(config.startupScene.c_str(), alloc), alloc);
+
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::GC_LOADING_SCENE),
+			rapidjson::Value(config.loadingScene.c_str(), alloc), alloc);
+
+		rapidjson::Value overlayArr(rapidjson::kArrayType);
+		for (const auto& s : config.overlayScenes)
+			overlayArr.PushBack(rapidjson::Value(s.c_str(), alloc), alloc);
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::GC_OVERLAY_SCENES), overlayArr, alloc);
+
+		rapidjson::Value menuArr(rapidjson::kArrayType);
+		for (const auto& s : config.menuScenes)
+			menuArr.PushBack(rapidjson::Value(s.c_str(), alloc), alloc);
+		doc.AddMember(rapidjson::StringRef(FileIOKeys::GC_MENU_SCENES), menuArr, alloc);
+
+		if (WriteFileJson(FileIOKeys::GAME_CONFIG_FILEPATH, doc)) {
+			Logger::Get().Info(DebugType::FileIOSystem) << "Saved GameConfig.json." << std::endl;
+			return true;
+		}
+		Logger::Get().Error(DebugType::FileIOSystem) << "Failed to save GameConfig.json." << std::endl;
+		return false;
 	}
 }

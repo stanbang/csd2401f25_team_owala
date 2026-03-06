@@ -1,9 +1,0 @@
-{
-  "frame_count": 13,
-  "frame_duration": 0.1,
-  "is_looping": true,
-  "start_frame": 0,
-  "spritesheets": [
-	{ "texture": "SB_Props_Lamp_spritesheet.png", "count": 13 }
-  ]
-}

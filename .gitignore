@@ -12,3 +12,4 @@ Installer/GAMEDIRECTORY/StageBound.exe
 /Installer/INSTALLER
 /Engine/Data/save.json
 /build
+active_game.cmake

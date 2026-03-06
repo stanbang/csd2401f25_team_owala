@@ -1,9 +1,0 @@
-{
-  "frame_count": 9,
-  "frame_duration": 0.1,
-  "is_looping": false,
-  "start_frame": 0,
-  "spritesheets": [
-    { "texture": "SB_Poof_VFX.png", "count": 9 }
-  ]
-}

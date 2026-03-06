@@ -1,0 +1,19 @@
+{
+    "startupScene": "MainMenu",
+    "loadingScene": "LoadingScreen",
+    "overlayScenes": [
+        "PauseScene",
+        "OptionsMenu"
+    ],
+    "menuScenes": [
+        "MainMenu",
+        "LevelSelection",
+        "SplashScreen",
+        "RestartMenu",
+        "LoadingScreen",
+        "HowToPlay",
+        "OptionsMenu",
+        "PauseScene",
+        "Cutscene Intro"
+    ]
+}

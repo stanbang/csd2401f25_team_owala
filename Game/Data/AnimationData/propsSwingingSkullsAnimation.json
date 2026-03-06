@@ -1,9 +1,0 @@
-{
-  "frame_count": 16,
-  "frame_duration": 0.1,
-  "is_looping": true,
-  "start_frame": 0,
-  "spritesheets": [
-	{ "texture": "SB_Props_SwingingSkulls_Spritesheet.png", "count": 16 }
-  ]
-}
