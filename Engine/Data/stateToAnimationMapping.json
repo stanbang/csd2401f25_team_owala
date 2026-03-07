@@ -21,12 +21,12 @@
         "ATTACK": "SB_BirdEnemy_DiveAttack_Spritesheet.png",
         "RECOVERY": "SB_BirdEnemy_Fly_Spritesheet_1.png"
     },
-    "witchEnemy": {
-        "WITCHIDLE": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
-        "WITCHALERTED": "SB_BirdEnemy_Wake_Spritesheet_1.png",
-        "WITCHENRAGED": "SB_BirdEnemy_Fly_Spritesheet_1.png",
-        "WITCHTELEPORT": "SB_BirdEnemy_Fly_Spritesheet_1.png",
-        "WITCHCHARGING": "SB_BirdEnemy_Fly_Spritesheet_1.png",
-        "WITCHATTACK": "SB_BirdEnemy_DiveAttack_Spritesheet.png"
-    }
+  "witchEnemy": {
+    "WITCHIDLE": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "WITCHALERTED": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "WITCHENRAGED": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "WITCHTELEPORT": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "WITCHCHARGING": "SB_Witch_Charge_Wand_Raise_Spritesheet_1.png",
+    "WITCHATTACK": "SB_Witch_Attack_Spritesheet.png"
+  }
 }

@@ -1,109 +1,109 @@
 {
-    "initialState": "WitchIdle",
-    "previewTexture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
-    "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
-    "animationProfile": "witchEnemy",
-    "hasCollision": false,
-    "halfSize": {
-        "x": 30,
-        "y": 40
+  "initialState": "WitchIdle",
+  "previewTexture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+  "texture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+  "animationProfile": "witchEnemy",
+  "hasCollision": false,
+  "halfSize": {
+    "x": 30,
+    "y": 40
+  },
+  "states": [
+    {
+      "name": "WitchIdle",
+      "type": "WitchIdle",
+      "parameters": {
+        "detectionRadius": 400
+      }
     },
-    "states": [
-        {
-            "name": "WitchIdle",
-            "type": "WitchIdle",
-            "parameters": {
-                "detectionRadius": 400
-            }
-        },
-        {
-            "name": "WitchAlerted",
-            "type": "WitchAlerted",
-            "parameters": {
-                "alertDuration": 1
-            }
-        },
-        {
-            "name": "WitchEnraged",
-            "type": "WitchEnraged",
-            "parameters": {
-                "enrageDuration": 0.5
-            }
-        },
-        {
-            "name": "WitchTeleport",
-            "type": "WitchTeleport",
-            "parameters": {
-                "teleportDuration": 0.3,
-                "minTeleportRange": 80,
-                "maxTeleportRange": 200
-            }
-        },
-        {
-            "name": "WitchCharging",
-            "type": "WitchCharging",
-            "parameters": {
-                "chargeDuration": 1.5,
-                "attackRadius": 150
-            }
-        },
-        {
-            "name": "WitchAttack",
-            "type": "WitchAttack",
-            "parameters": {
-                "attackDuration": 2.0,
-                "attackRadius": 200
-            }
-        }
-    ],
-    "transitions": [
-        {
-            "from": "WitchIdle",
-            "to": "WitchAlerted",
-            "condition": {
-                "type": "PlayerInRange",
-                "radius": 400
-            }
-        },
-        {
-            "from": "WitchAlerted",
-            "to": "WitchEnraged",
-            "condition": {
-                "type": "TimerExpired",
-                "state": "WitchAlerted"
-            }
-        },
-        {
-            "from": "WitchEnraged",
-            "to": "WitchTeleport",
-            "condition": {
-                "type": "TimerExpired",
-                "state": "WitchEnraged"
-            }
-        },
-        {
-            "from": "WitchTeleport",
-            "to": "WitchCharging",
-            "condition": {
-                "type": "TimerExpired",
-                "state": "WitchTeleport"
-            }
-        },
-        {
-            "from": "WitchCharging",
-            "to": "WitchAttack",
-            "condition": {
-                "type": "TimerExpired",
-                "state": "WitchCharging"
-            }
-        },
-        {
-            "from": "WitchAttack",
-            "to": "WitchEnraged",
-            "condition": {
-                "type": "TimerExpired",
-                "state": "WitchAttack"
-            }
-        }
-    ]
+    {
+      "name": "WitchAlerted",
+      "type": "WitchAlerted",
+      "parameters": {
+        "alertDuration": 1
+      }
+    },
+    {
+      "name": "WitchEnraged",
+      "type": "WitchEnraged",
+      "parameters": {
+        "enrageDuration": 0.5
+      }
+    },
+    {
+      "name": "WitchTeleport",
+      "type": "WitchTeleport",
+      "parameters": {
+        "teleportDuration": 0.3,
+        "minTeleportRange": 80,
+        "maxTeleportRange": 200
+      }
+    },
+    {
+      "name": "WitchCharging",
+      "type": "WitchCharging",
+      "parameters": {
+        "chargeDuration": 1.5,
+        "attackRadius": 150
+      }
+    },
+    {
+      "name": "WitchAttack",
+      "type": "WitchAttack",
+      "parameters": {
+        "attackDuration": 2.0,
+        "attackRadius": 200
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "from": "WitchIdle",
+      "to": "WitchAlerted",
+      "condition": {
+        "type": "PlayerInRange",
+        "radius": 400
+      }
+    },
+    {
+      "from": "WitchAlerted",
+      "to": "WitchEnraged",
+      "condition": {
+        "type": "TimerExpired",
+        "state": "WitchAlerted"
+      }
+    },
+    {
+      "from": "WitchEnraged",
+      "to": "WitchTeleport",
+      "condition": {
+        "type": "TimerExpired",
+        "state": "WitchEnraged"
+      }
+    },
+    {
+      "from": "WitchTeleport",
+      "to": "WitchCharging",
+      "condition": {
+        "type": "TimerExpired",
+        "state": "WitchTeleport"
+      }
+    },
+    {
+      "from": "WitchCharging",
+      "to": "WitchAttack",
+      "condition": {
+        "type": "TimerExpired",
+        "state": "WitchCharging"
+      }
+    },
+    {
+      "from": "WitchAttack",
+      "to": "WitchEnraged",
+      "condition": {
+        "type": "TimerExpired",
+        "state": "WitchAttack"
+      }
+    }
+  ]
 }
