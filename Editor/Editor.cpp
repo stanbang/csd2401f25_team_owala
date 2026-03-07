@@ -2933,7 +2933,7 @@ namespace Editor {
 				const std::string& dataDir = FileIOSystem::GetSourceDataDir();
 				if (!dataDir.empty()) {
 					namespace fs = std::filesystem;
-					sourceDir = (fs::path(dataDir).parent_path() / "Source").string();
+					sourceDir = (fs::path(dataDir).parent_path() / "Source" / "Native").string();
 				}
 				else {
 					sourceDir = "../../owala/Native/";
