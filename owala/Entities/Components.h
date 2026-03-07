@@ -56,7 +56,8 @@ namespace Framework{
 	enum class ParticleEmissionMode {
 		CONTINUOUS,    // Emit constantly while active
 		BURST,         // Emit once on trigger
-		LOOP_BURST     // Emit multiple bursts on trigger
+		LOOP_BURST,     // Emit multiple bursts on trigger
+		RANDOM_BURST	// Emit in random time intervals
 	};
 
 	// To separate different audio types
@@ -466,6 +467,12 @@ namespace Framework{
 		bool isParticleAnimated = false; // Is the particle texture animated
 		bool isScreenSpace = false;   // Are the particles rendered in screen space
 		ParticleEmissionMode emissionMode = ParticleEmissionMode::CONTINUOUS;
+
+		// for RANDOM_BURST mode
+		float minBurstInterval = 1.0f;
+		float maxBurstInterval = 3.0f;
+		int minBurstCount = 1;
+		int maxBurstCount = 5;
 
 		// For BURST/LOOP_BURST modes
 		std::string triggerEventName;  // Name of the event to listen for

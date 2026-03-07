@@ -3246,7 +3246,7 @@ namespace Editor {
 			ImGui::SeparatorText("Emission Mode");
 
 			// Emission Mode Dropdown
-			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST" };
+			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST", "RANDOM_BURST"};
 			int currentModeIndex = static_cast<int>(emitter.emissionMode);
 
 			if (ImGui::Combo("Emission Mode##emitter", &currentModeIndex, emissionModeItems, IM_ARRAYSIZE(emissionModeItems))) {
@@ -3261,8 +3261,8 @@ namespace Editor {
 				}
 			}
 
-			// Trigger Event Name (only show if not CONTINUOUS)
-			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS) {
+			// Trigger Event Name (only show if not CONTINUOUS or RANDOM)
+			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS && emitter.emissionMode != ParticleEmissionMode::RANDOM_BURST) {
 				ImGui::Text("Trigger Event Name:");
 				if (ImGui::InputText("##TriggerEventName", &emitter.triggerEventName)) {
 				}
@@ -3286,6 +3286,27 @@ namespace Editor {
 
 				ImGui::Text("Burst Interval (seconds):");
 				ImGui::DragFloat("##BurstInterval", &emitter.burstInterval, 0.01f, 0.01f, 5.0f, "%.2f");
+			}
+
+			// RANDOM_BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::RANDOM_BURST) {
+				ImGui::Text("Burst Count Range (Min / Max):");
+				ImGui::DragInt("##MinBurstCount", &emitter.minBurstCount, 1, 1, 100);
+				ImGui::DragInt("##MaxBurstCount", &emitter.maxBurstCount, 1, 1, 100);
+
+				// Ensure min does not exceed max
+				if (emitter.minBurstCount > emitter.maxBurstCount) {
+					emitter.minBurstCount = emitter.maxBurstCount;
+				}
+
+				ImGui::Text("Burst Interval Range (Min / Max seconds):");
+				ImGui::DragFloat("##MinBurstInterval", &emitter.minBurstInterval, 0.01f, 0.01f, 10.0f, "%.2f");
+				ImGui::DragFloat("##MaxBurstInterval", &emitter.maxBurstInterval, 0.01f, 0.01f, 10.0f, "%.2f");
+
+				// Ensure min does not exceed max
+				if (emitter.minBurstInterval > emitter.maxBurstInterval) {
+					emitter.minBurstInterval = emitter.maxBurstInterval;
+				}
 			}
 
 			// Texture Key

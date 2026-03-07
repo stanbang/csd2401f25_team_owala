@@ -211,6 +211,10 @@ namespace Framework::Serialization {
 	static constexpr const char* EMISSION_MODE = "emission_mode";
 	static constexpr const char* BURST_COUNT = "burst_count";
 	static constexpr const char* BURST_INTERVAL = "burst_interval";
+	static constexpr const char* MIN_BURST_COUNT = "min_burst_count";
+	static constexpr const char* MAX_BURST_COUNT = "max_burst_count";
+	static constexpr const char* MIN_BURST_INTERVAL = "min_burst_interval";
+	static constexpr const char* MAX_BURST_INTERVAL = "max_burst_interval";
 
 	static constexpr const char* SLIDER = "Slider";
 	static constexpr const char* SLIDER_CURRENT_VALUE = "current_value";
