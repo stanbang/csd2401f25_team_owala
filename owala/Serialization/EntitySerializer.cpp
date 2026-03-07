@@ -1045,6 +1045,8 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::ELAPSED_TIME), animComp.elapsedTime, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_PLAYING), animComp.isPlaying, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_LOOPING), animComp.isLooping, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::START_DELAY), animComp.startDelay, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::START_DELAY_RANGE), animComp.startDelayRange, alloc);
 	}
 
 	// Text Component
@@ -1608,6 +1610,14 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::IS_LOOPING) && componentData[Serialization::IS_LOOPING].IsBool()) {
 			out.isLooping = componentData[Serialization::IS_LOOPING].GetBool();
 		}
+		if (componentData.HasMember(Serialization::START_DELAY) && componentData[Serialization::START_DELAY].IsFloat()) {
+			out.startDelay = componentData[Serialization::START_DELAY].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::START_DELAY_RANGE) && componentData[Serialization::START_DELAY_RANGE].IsFloat()) {
+			out.startDelayRange = componentData[Serialization::START_DELAY_RANGE].GetFloat();
+		}
+		// delayRemaining is runtime state — always start uninitialised
+		out.delayRemaining = -1.0f;
 
 		if (out.frameCount > 0) {
 			float frameUVWidth = 1.0f / (float)out.frameCount;

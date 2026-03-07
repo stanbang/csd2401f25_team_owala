@@ -2735,6 +2735,15 @@ namespace Editor {
 			ImGui::Checkbox("Is Playing", &animComp.isPlaying); // Is Playing
 			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
 			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
+
+			ImGui::Separator();
+			ImGui::Text("Start Delay");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
+			ImGui::InputFloat("Delay (seconds)", &animComp.startDelay);
+			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
+			ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
+			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
 			break;
 		}
 		case ComponentType::TextComponentType: {
@@ -6656,6 +6665,31 @@ namespace Editor {
 								compData.data["is_looping"].SetBool(isLooping);
 								prefabModified = true;
 							}
+						}
+
+						// Start delay controls
+						{
+							rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+
+							float startDelay = compData.data.HasMember("start_delay") ? compData.data["start_delay"].GetFloat() : 0.0f;
+							if (ImGui::DragFloat("Start Delay (s)", &startDelay, 0.01f, 0.0f, 60.0f)) {
+								if (compData.data.HasMember("start_delay"))
+									compData.data["start_delay"].SetFloat(startDelay);
+								else
+									compData.data.AddMember("start_delay", startDelay, alloc);
+								prefabModified = true;
+							}
+							if (ImGui::IsItemHovered()) ImGui::SetTooltip("Seconds to wait before the animation begins playing");
+
+							float startDelayRange = compData.data.HasMember("start_delay_range") ? compData.data["start_delay_range"].GetFloat() : 0.0f;
+							if (ImGui::DragFloat("Delay Range (s)", &startDelayRange, 0.01f, 0.0f, 60.0f)) {
+								if (compData.data.HasMember("start_delay_range"))
+									compData.data["start_delay_range"].SetFloat(startDelayRange);
+								else
+									compData.data.AddMember("start_delay_range", startDelayRange, alloc);
+								prefabModified = true;
+							}
+							if (ImGui::IsItemHovered()) ImGui::SetTooltip("Randomises an extra delay in [0, range] on top of the base delay");
 						}
 					}
 					// === TEXT COMPONENT ===

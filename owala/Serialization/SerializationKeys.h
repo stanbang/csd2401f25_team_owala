@@ -134,6 +134,8 @@ namespace Framework::Serialization {
 	static constexpr const char* FRAME_COUNT = "frame_count";
 	static constexpr const char* IS_PLAYING = "is_playing";
 	static constexpr const char* IS_LOOPING = "is_looping";
+	static constexpr const char* START_DELAY = "start_delay";
+	static constexpr const char* START_DELAY_RANGE = "start_delay_range";
 
 	static constexpr const char* TEXT_COMPONENT = "TextComponent";
 	static constexpr const char* TEXT = "text";

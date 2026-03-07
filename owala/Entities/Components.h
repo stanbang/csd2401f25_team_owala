@@ -223,6 +223,10 @@ namespace Framework{
 		bool isPlaying = true; // Is the animation currently playing
 		bool isLooping = true; // Should the animation loop when it reaches the end
 
+		float startDelay = 0.0f;      // Seconds to wait before the animation begins playing
+		float startDelayRange = 0.0f; // If > 0, randomises the delay in [startDelay, startDelay + startDelayRange]
+		float delayRemaining = -1.0f; // Runtime countdown; -1 means uninitialised (set on first update)
+
 		Vector2D minUV = { 0.0f, 0.0f }; // Top-Left UV of the current frame
 		Vector2D maxUV = { 1.0f, 1.0f }; // Bottom-Right UV of the current frame
 	};
