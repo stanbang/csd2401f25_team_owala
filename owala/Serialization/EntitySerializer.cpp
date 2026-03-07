@@ -1237,6 +1237,11 @@ namespace Framework {
 
 		outData.AddMember(rapidjson::StringRef(Serialization::BURST_COUNT), particleEmitter.burstCount, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::BURST_INTERVAL), particleEmitter.burstInterval, alloc);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::MIN_BURST_COUNT), particleEmitter.minBurstCount, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MAX_BURST_COUNT), particleEmitter.maxBurstCount, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MIN_BURST_INTERVAL), particleEmitter.minBurstInterval, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MAX_BURST_INTERVAL), particleEmitter.maxBurstInterval, alloc);
 	}
 
 	// Slider Component
@@ -1996,6 +2001,20 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::BURST_INTERVAL) && componentData[Serialization::BURST_INTERVAL].IsFloat()) {
 			out.burstInterval = componentData[Serialization::BURST_INTERVAL].GetFloat();
 		}
+		// for RANDOM_BURST emission mode
+		if (componentData.HasMember(Serialization::MIN_BURST_COUNT) && componentData[Serialization::MIN_BURST_COUNT].IsInt()) {
+			out.minBurstCount = componentData[Serialization::MIN_BURST_COUNT].GetInt();
+		}
+		if (componentData.HasMember(Serialization::MAX_BURST_COUNT) && componentData[Serialization::MAX_BURST_COUNT].IsInt()) {
+			out.maxBurstCount = componentData[Serialization::MAX_BURST_COUNT].GetInt();
+		}
+		if (componentData.HasMember(Serialization::MIN_BURST_INTERVAL) && componentData[Serialization::MIN_BURST_INTERVAL].IsFloat()) {
+			out.minBurstInterval = componentData[Serialization::MIN_BURST_INTERVAL].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::MAX_BURST_INTERVAL) && componentData[Serialization::MAX_BURST_INTERVAL].IsFloat()) {
+			out.maxBurstInterval = componentData[Serialization::MAX_BURST_INTERVAL].GetFloat();
+		}
+
 		return true;
 	}
 
