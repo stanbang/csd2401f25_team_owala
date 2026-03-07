@@ -2428,8 +2428,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": 49.999977111816406,
-                        "y": -549.9996337890625
+                        "x": 50.0,
+                        "y": -550.0
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -10284,19 +10284,19 @@
             "tags": []
         },
         {
-            "name": "fallingamber",
+            "name": "FallingAmberVFX",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
+            "render_layer": 0,
+            "custom_render_order": -2,
+            "layer_render_name": "Custom",
             "active": true,
             "uuid": 5665125265875127613,
             "components": {
                 "Transform": {
                     "Position": {
                         "x": -400.0,
-                        "y": 400.0
+                        "y": 100.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -10334,7 +10334,7 @@
                     "texture_key": "SB_FallingAmber_Spritesheet.png",
                     "half_size": {
                         "x": 50.0,
-                        "y": 50.0
+                        "y": 100.0
                     },
                     "flip_x": false,
                     "override_uv": false
@@ -10343,12 +10343,38 @@
                     "profile_name": "",
                     "current_state": "IDLE",
                     "current_frame": 0,
-                    "frame_duration": 0.10000000149011612,
+                    "frame_duration": 0.07999999821186066,
                     "start_frame": 0,
                     "frame_count": 21,
                     "elapsed_time": 0.0,
                     "is_playing": true,
                     "is_looping": true
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "FogEmitterScript",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 4515741867004982811,
+            "components": {
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "FogEmitter",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
                 },
                 "SceneOwned": {
                     "scene_id": 7,
