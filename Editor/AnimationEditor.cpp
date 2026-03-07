@@ -192,61 +192,14 @@ namespace Editor {
 		}
 		doc.AddMember("frameEvents", eventsObj, alloc);
 
-		// Write to Debug folder first
-		std::string debugFilepath = "Data/AnimationData/" + animationName + ".json";
+		// Write to Debug folder & root folder
+		std::string filePath = "Data/AnimationData/" + animationName + ".json";
 		bool debugSaveSuccess = false;
-		try {
-			rapidjson::StringBuffer buffer;
-			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-			doc.Accept(writer);
-
-			std::ofstream file(debugFilepath);
-			if (file.is_open()) {
-				file << buffer.GetString();
-				file.close();
-				debugSaveSuccess = true;
-
-				Logger::Get().Info(DebugType::Editor)
-					<< "Saved animation file: " << debugFilepath << std::endl;
-			}
-			else {
-				Logger::Get().Error(DebugType::Editor)
-					<< "Failed to open file for writing: " << debugFilepath << std::endl;
-			}
+		if (FileIOSystem::WriteFileJson(filePath, doc)) {
+			debugSaveSuccess = true;
 		}
-		catch (const std::exception& e) {
-			Logger::Get().Error(DebugType::Editor)
-				<< "Error saving animation file to Debug: " << e.what() << std::endl;
-		}
-
-		// Also save to root Data folder - using correct relative path
-		// From Debug folder, we need to go up: ../../Data/AnimationData/
-		std::string rootFilepath = "../../Data/AnimationData/" + animationName + ".json";
-		try {
-			// Ensure the directory exists
-			std::filesystem::path rootPath(rootFilepath);
-			std::filesystem::create_directories(rootPath.parent_path());
-
-			rapidjson::StringBuffer buffer;
-			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-			doc.Accept(writer);
-
-			std::ofstream file(rootFilepath);
-			if (file.is_open()) {
-				file << buffer.GetString();
-				file.close();
-
-				Logger::Get().Info(DebugType::Editor)
-					<< "Saved animation file to root: " << rootFilepath << std::endl;
-			}
-			else {
-				Logger::Get().Error(DebugType::Editor)
-					<< "Failed to open file for writing to root: " << rootFilepath << std::endl;
-			}
-		}
-		catch (const std::exception& e) {
-			Logger::Get().Error(DebugType::Editor)
-				<< "Error saving animation file to root: " << e.what() << std::endl;
+		else {
+			Logger::Get().Error(DebugType::Editor) << "Error saving animation data to: " << filePath << std::endl;
 		}
 
 		// Reload animation from file into ResourceManager if successfully saved
@@ -296,33 +249,15 @@ namespace Editor {
 
 		doc.AddMember("animations", animationsArray, alloc);
 
-		auto writeToPath = [&](const std::string& filepath) {
-			try {
-				std::filesystem::create_directories(std::filesystem::path(filepath).parent_path());
-				rapidjson::StringBuffer buffer;
-				rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-				doc.Accept(writer);
-
-				std::ofstream file(filepath);
-				if (file.is_open()) {
-					file << buffer.GetString();
-					file.close();
-					Logger::Get().Info(DebugType::Editor)
-						<< "Saved textureToAnimationMapping: " << filepath << std::endl;
-				}
-				else {
-					Logger::Get().Error(DebugType::Editor)
-						<< "Failed to open for writing: " << filepath << std::endl;
-				}
-			}
-			catch (const std::exception& e) {
-				Logger::Get().Error(DebugType::Editor)
-					<< "Error saving mapping to " << filepath << ": " << e.what() << std::endl;
-			}
-			};
-
-		writeToPath("Data/textureToAnimationMapping.json");
-		writeToPath("../../Data/textureToAnimationMapping.json");
+		std::string filePath = "Data/textureToAnimationMapping.json";
+		if (FileIOSystem::WriteFileJson(filePath, doc)) {
+			Logger::Get().Info(DebugType::Editor)
+				<< "Saved textureToAnimationMapping: " << filePath << std::endl;
+		}
+		else {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Error saving mapping to " << filePath << std::endl;
+		}
 	}
 
 	void Editor::RefreshAnimationInResourceManager(const std::string& animationName) {

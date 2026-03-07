@@ -102,8 +102,8 @@ namespace Framework {
 	namespace FileIOKeys {
 		// Filepath constants
 		static constexpr const char* ROOT_FOLDER_PREFIX = "../../";
-		static constexpr const char* ROOT_DATA_FOLDER = "../../Data";
-		static constexpr const char* ROOT_ASSETS_FOLDER = "../../Assets";
+		//static constexpr const char* ROOT_DATA_FOLDER = "../../Data";
+		//static constexpr const char* ROOT_ASSETS_FOLDER = "../../Assets";
 
 		static constexpr const char* WIN_CONFIG_FILEPATH = "Data/config.json";
 		static constexpr const char* PLAYER_CONFIG_FILEPATH = "Data/player.json";
