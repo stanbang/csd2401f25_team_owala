@@ -42,6 +42,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
+#include <RopeSystem.h>
 
 
 namespace Framework {
@@ -98,6 +99,7 @@ namespace Framework {
 			LevelResetSystem* levelResetter_ = nullptr;
 			TransformationSystem* transformation_ = nullptr;
 			AnimationSystem* animationSystem_ = nullptr;
+			RopeSystem* ropeSystem_ = nullptr;
 			  
 		};
 
@@ -168,7 +170,8 @@ namespace Framework {
 			WindowsSystem& win, InputSystem& input, PhysicsSystem& physics,
 			AudioSystem& audio, SpriteRenderSystem& renderer, TextRenderSystem& textRenderer,
 			CameraSystem& camera, AISystem& ai, GuiSystem& gui, LevelResetSystem& levelResetter, TransformationSystem& transformation,
-			AnimationSystem& animSys);
+			AnimationSystem& animSys,
+			RopeSystem& ropeSys);
 				
 #ifdef BUILD_EDITOR
 		void RegisterEditor(Editor::Editor& editor); // Register the ImGui Editor to the GameManager

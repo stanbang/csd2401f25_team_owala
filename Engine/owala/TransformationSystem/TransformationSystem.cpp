@@ -14,6 +14,7 @@
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "Components.h"
+#include "RopeComponent.h"
 #include "Transformation.h"
 #include "OwalaTime.h"
 #include "MessageBus.h"
@@ -39,9 +40,9 @@ namespace Framework {
     }
 
     void TransformationSystem::Update() {
-        ProcessRotationInput();     // queues rotation intent (Q/E)
-        UpdateRotateCinematic();    // drives zoom-out / hold / zoom-in phases
-        UpdateGlobalRotation();     // rotates world while isGlobalRotating == true
+        ProcessRotationInput(); 
+        UpdateRotateCinematic();
+        UpdateGlobalRotation();
         UpdateAllTransforms();
     }
 
@@ -196,6 +197,11 @@ namespace Framework {
 
                 Vector2D originalPos = entityMgr.GetComponent<Transform>(entity).position;
                 entityMgr.GetComponent<Transform>(entity).position = rotationMat * originalPos;
+
+                if (entityMgr.HasComponent(entity, RopeComponentType)) {
+                    RopeComponent& rc = entityMgr.GetComponent<RopeComponent>(entity);
+                    rc.ceilingAttachmentPoint = rotationMat * rc.ceilingAttachmentPoint;
+                }
 
                 // Update entity's local rotation angle (except for players/enemies)
                 if (!entityMgr.HasComponent(entity, PlayerTagType) && !entityMgr.HasComponent(entity, EnemyTagType)) {

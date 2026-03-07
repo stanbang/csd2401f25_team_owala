@@ -974,6 +974,14 @@ namespace Editor {
 
 		if (newEntity != 0) {
 			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
+			if (info.type == PrefabType::TrapPlatform) {
+				if (info.name.find("MultiAxis") == std::string::npos &&
+					(info.name.find("Vertical") != std::string::npos || info.name.find("Horizontal") != std::string::npos)) {
+					if (gameManager_->GetSystems().ropeSystem_) {
+						gameManager_->GetSystems().ropeSystem_->AttachRopeToPlatform(newEntity);
+					}
+				}
+			}
 //			historyManager_.Record(OpType::Create, newEntity, "Brush Place"); //CRASH
 		}
 	}

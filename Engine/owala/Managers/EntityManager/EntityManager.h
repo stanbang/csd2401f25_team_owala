@@ -88,6 +88,8 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) ecs.particleEmitterComponent[entity] = component;
 			else if constexpr (std::is_same_v<T, Slider>) ecs.sliders[entity] = component;
 			else if constexpr (std::is_same_v<T, PlayerHealthComponent>) ecs.playerHealth[entity] = component;
+			else if constexpr (std::is_same_v<T, RopeComponent>) ecs.ropeComponents[entity] = component;
+
 			else {
 				// If this is a tag-only type, no storage is necessary.
 				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
@@ -142,6 +144,8 @@ namespace Framework {
 			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) return ecs.particleEmitterComponent.at(entity);
 			else if constexpr (std::is_same_v<T, Slider>) return ecs.sliders.at(entity);
 			else if constexpr (std::is_same_v<T, PlayerHealthComponent>) return ecs.playerHealth.at(entity);
+			else if constexpr (std::is_same_v<T, RopeComponent>) return ecs.ropeComponents.at(entity);
+
 			else {
 				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
 			}

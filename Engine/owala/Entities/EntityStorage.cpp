@@ -45,6 +45,8 @@ namespace Framework {
 		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
 		playerHealth = other.playerHealth;
+		ropeComponents = other.ropeComponents;
+
 
 		for (const auto& [entity, scripts] : other.nativeScripts) {
 			nativeScripts[entity] = scripts;
@@ -84,6 +86,7 @@ namespace Framework {
 		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
 		playerHealth = other.playerHealth;
+		ropeComponents = other.ropeComponents;
 
 		nativeScripts.clear();
 		for (const auto& [entity, scripts] : other.nativeScripts) {
@@ -127,6 +130,8 @@ namespace Framework {
 		std::swap(sliders, other.sliders);
 		std::swap(sceneOwned, other.sceneOwned);
 		std::swap(playerHealth, other.playerHealth);
+		std::swap(ropeComponents, other.ropeComponents);
+
 
 		std::swap(nativeScripts, other.nativeScripts);
 	}

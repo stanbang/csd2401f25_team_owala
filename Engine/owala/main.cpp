@@ -41,6 +41,7 @@
 #include "CameraSystem.h"
 #include "PlatformBehaviorSystem.h"
 #include "AISystem.h" 
+#include "RopeSystem.h"
 #include "VFXSystem.h"
 
 #ifdef BUILD_EDITOR
@@ -116,7 +117,9 @@ int main() {
         SpriteRenderSystem* renderer = new SpriteRenderSystem(false);
         TextRenderSystem* textRenderer = new TextRenderSystem();
         LevelResetSystem* levelResetter = new LevelResetSystem();
-        gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter, *transformation, *animation);
+		RopeSystem* rope = new RopeSystem();
+
+        gm->RegisterSystemsToUse(*rcm, *ecs, *gfx, *win, *input, *phx, *audio, *renderer, *textRenderer, *camera, *aiSystem, *gui, *levelResetter, *transformation, *animation, *rope);
 
         // Lazy create SceneManager.
         SceneManager::GetInstance();
@@ -140,6 +143,7 @@ int main() {
         engine.AddSystem(aiSystem);
         engine.AddSystem(vfx);
         engine.AddSystem(gm);
+        engine.AddSystem(rope);
         engine.AddSystem(rcm);
         engine.AddSystem(camera);
         engine.AddSystem(animation);

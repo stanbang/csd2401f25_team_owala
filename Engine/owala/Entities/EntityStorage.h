@@ -15,6 +15,8 @@
  *********************************************************************/
 #pragma once
 #include "Entity.h"
+#include "RopeComponent.h"
+
 #include "Components.h"
 #include "SceneComponents.h"
 #include "CameraSystem.h"
@@ -73,6 +75,7 @@ namespace Framework {
 		ParticleEmitterComponentType,
 		SliderType,
 		PlayerHealthComponentType,
+		RopeComponentType,
 		MAX_COMPONENTS
 	};
 
@@ -119,6 +122,8 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<PlayerHealthComponent> { static constexpr ComponentType value = PlayerHealthComponentType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<SpawnPointTag> { static constexpr ComponentType value = SpawnPointTagType; };
+	template <> struct ComponentTypeTrait<RopeComponent> { static constexpr ComponentType value = RopeComponentType; };
+
 
 #pragma endregion
 
@@ -159,6 +164,9 @@ namespace Framework {
 
 		/* Scene Components */
 		std::unordered_map<Entity, SceneOwned>		sceneOwned; // Tag to indicate which scene this entity belongs to
+
+		std::unordered_map<Entity, RopeComponent> ropeComponents;
+
 	public:
 		/* Constructors */
 		EntityStorage() = default;

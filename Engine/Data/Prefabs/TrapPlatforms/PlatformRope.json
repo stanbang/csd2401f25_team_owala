@@ -1,0 +1,37 @@
+{
+    "name": "Rope",
+    "components": {
+        "Transform": {
+            "Position": {"x": 0.0, "y": 0.0},
+            "Rotation": {"angle": 0.0, "texture_angle": 0.0, "collider_angle": 0.0},
+            "Scale": {"x": 1.0, "y": 1.0}
+        },
+        "TextureComponent": {
+            "texture_key": "SB_PlatformRope.png",
+            "half_size": {"x": 100.0, "y": 100.0},
+            "flip_x": false
+        },
+        "RopeComponent": {
+            "attached_platform": 0,
+            "texture_key": "SB_PlatformRope.png",
+            "original_length": 0.0,
+            "current_length": 0.0,
+            "ceiling_attachment_point": {"x": 0.0, "y": 0.0},
+            "platform_attachment_point": {"x": 0.0, "y": 0.0},
+            "is_active": true,
+            "rope_width": 100.0,
+            "segment_height": 20.0
+        },
+        "RotationFlag":{
+            "is_rotating":false,
+            "current_rotation":0.0,
+            "target_rotation":0.0
+        }
+    },
+    "tags": [],
+    "layer": 0,
+    "render_layer": 50,
+    "custom_render_order": 0,
+    "layer_collision_name": "Default",
+    "layer_render_name": "Platform"
+}
