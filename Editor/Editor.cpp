@@ -2169,6 +2169,9 @@ namespace Editor {
 
 				if (open) {
 					std::vector<Entity> list = sceneMgr.GetEntitiesInScene(sceneID);
+					std::sort(list.begin(), list.end(), [&entityMgr](Entity a, Entity b) {
+						return entityMgr.GetProperties(a).name < entityMgr.GetProperties(b).name;
+					});
 
 					if (list.empty()) {
 						ImGui::TextDisabled("(Empty)");
