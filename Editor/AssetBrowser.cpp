@@ -39,9 +39,9 @@ void AssetBrowser::Initialize(const fs::path& rootPath)
     localDataPath_ = rootPath_ / "Data";
 
     // Get the path to the project root (two levels up from Debug)
-    fs::path projectRoot = fs::absolute(rootPath_ / "../../");
-    repoAssetsPath_ = projectRoot / "Assets";
-    repoDataPath_ = projectRoot / "Data";
+    fs::path projectRoot = fs::absolute(rootPath_ / "../../../");
+    repoAssetsPath_ = projectRoot / "Game" / "Assets";
+    repoDataPath_ = projectRoot / "Game" / "Data";
 
     // Check if all 4 directories exist to enable sync
     bool localAssetsExists = fs::exists(localAssetsPath_) && fs::is_directory(localAssetsPath_);
