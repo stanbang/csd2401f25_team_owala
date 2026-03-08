@@ -298,6 +298,36 @@ namespace Editor {
 		fs::path rootPath = fs::absolute(exePath / ""); // Moves out of Debug/Release, then out of build, to reach Engine root
 		assetBrowser.Initialize(rootPath);
 
+		// Restore source data dir from active_game.cmake if one was previously set.
+		// This ensures saves are mirrored back to the source project across editor restarts.
+		{
+			fs::path repoRoot   = fs::current_path().parent_path().parent_path();
+			fs::path cmakePath  = repoRoot / "active_game.cmake";
+			if (fs::exists(cmakePath)) {
+				std::ifstream cmakeFile(cmakePath);
+				std::string line;
+				while (std::getline(cmakeFile, line)) {
+					// Parse the game name; reconstruct the absolute path from the known repo root.
+					// ACTIVE_GAME_DIR is written as a CMake variable expression and cannot be
+					// used directly from C++, so we derive the path here instead.
+					const std::string prefix = "set(ACTIVE_GAME_NAME \"";
+					auto pos = line.find(prefix);
+					if (pos != std::string::npos) {
+						std::string gameName = line.substr(pos + prefix.size());
+						if (!gameName.empty() && gameName.back() == ')') gameName.pop_back();
+						if (!gameName.empty() && gameName.back() == '"') gameName.pop_back();
+						fs::path dir = repoRoot / gameName;
+						if (fs::exists(dir)) {
+							FileIOSystem::SetSourceDataDir((dir / "Data").string());
+							Logger::Get().Info(DebugType::Editor)
+								<< "[Editor] Restored source data dir: " << dir.string() << "/Data" << std::endl;
+						}
+						break;
+					}
+				}
+			}
+		}
+
 		// Prepare Dropdown arrays for Entity Inspector
 		componentNames.clear();
 		componentItems.clear();
@@ -676,7 +706,7 @@ namespace Editor {
 			}
 			try {
 				// Log before attempting to get the texture
-				Framework::Logger::Get().Info(DebugType::Editor) << "Attempting to get texture for palette item: '" << name << "' with key: '" << textureKey << "'" << std::endl;
+				//Framework::Logger::Get().Info(DebugType::Editor) << "Attempting to get texture for palette item: '" << name << "' with key: '" << textureKey << "'" << std::endl;
 
 				// Ensure resourceManager_ pointer is valid
 				if (!resourceManager_) {
@@ -689,7 +719,7 @@ namespace Editor {
 
 				if (texID != 0) {
 					paletteItems_.push_back({ name, type, texID , ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
-					Framework::Logger::Get().Info(DebugType::Editor) << " -> Success! Added palette item: '" << name << "' (ID: " << texID << ")" << std::endl;
+					//Framework::Logger::Get().Info(DebugType::Editor) << " -> Success! Added palette item: '" << name << "' (ID: " << texID << ")" << std::endl;
 				}
 				else {
 					// This case might happen if loadTexture returned 0 but didn't throw
@@ -1386,7 +1416,7 @@ namespace Editor {
 
 		// Reset entity states & stop game on save 
 		isGamePlaying = false;
-		gameManager_->GetSystems().levelResetter_->RunReset();
+		gameManager_->OnEndPlay();
 		std::string fileName = FileIOSystem::SanitizeFileName(currentScene.name) + ".json";
 		std::string filePath = FileIOKeys::SCENES_FILEPATH_PREFIX + fileName;
 
@@ -1527,7 +1557,7 @@ namespace Editor {
 					Logger::Get().Info(DebugType::Editor) << "Attempting to load scene: " << scene.name << std::endl;
 					if (!isCurrentScene) {
 						isGamePlaying = false;
-						gameManager_->GetSystems().levelResetter_->RunReset();
+						gameManager_->OnEndPlay();
 						//ResetEditorCamera();
 						if (!prefabSystem_.LoadPrefabsFromFolder("Data/Prefabs/")) {
 							Framework::Logger::Get().Error(DebugType::Editor)
@@ -1792,9 +1822,9 @@ namespace Editor {
 
 				if (texID != 0) {
 					tilePaletteItems_.push_back({ name, PrefabType::Tile, texID, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f) });
-					Framework::Logger::Get().Info(DebugType::Editor)
+					/*Framework::Logger::Get().Info(DebugType::Editor)
 						<< " -> Success! Added tile: '" << name
-						<< "' (ID: " << texID << ")" << std::endl;
+						<< "' (ID: " << texID << ")" << std::endl;*/
 				}
 				else {
 					Framework::Logger::Get().Error(DebugType::Editor)
@@ -2139,6 +2169,9 @@ namespace Editor {
 
 				if (open) {
 					std::vector<Entity> list = sceneMgr.GetEntitiesInScene(sceneID);
+					std::sort(list.begin(), list.end(), [&entityMgr](Entity a, Entity b) {
+						return entityMgr.GetProperties(a).name < entityMgr.GetProperties(b).name;
+					});
 
 					if (list.empty()) {
 						ImGui::TextDisabled("(Empty)");
@@ -2702,8 +2735,18 @@ namespace Editor {
 			
 			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
 			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
+			ImGui::Checkbox("Is Playing", &animComp.isPlaying); // Is Playing
 			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
 			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
+
+			ImGui::Separator();
+			ImGui::Text("Start Delay");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
+			ImGui::InputFloat("Delay (seconds)", &animComp.startDelay);
+			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
+			ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
+			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
 			break;
 		}
 		case ComponentType::TextComponentType: {
@@ -2896,7 +2939,18 @@ namespace Editor {
 			ImGui::InputText("##New Script Name", newScriptName, IM_ARRAYSIZE(newScriptName));
 			ImGui::SameLine();
 			if (ImGui::Button("Create New Script")) {
-				NativeScriptMaker::CreateScriptPair(newScriptName, "../../owala/Native/", popupMsg);
+				// Derive the game's Source/ folder from the active game's Data/ dir.
+				// Falls back to the legacy path when no game is imported.
+				std::string sourceDir;
+				const std::string& dataDir = FileIOSystem::GetSourceDataDir();
+				if (!dataDir.empty()) {
+					namespace fs = std::filesystem;
+					sourceDir = (fs::path(dataDir).parent_path() / "Source" / "Native").string();
+				}
+				else {
+					sourceDir = "../../owala/Native/";
+				}
+				NativeScriptMaker::CreateScriptPair(newScriptName, sourceDir, popupMsg);
 				gameManager_->GetSystems().input_->SetKeyboardLocked(true);
 				ImGui::OpenPopup("Script Result");
 				ImGui::SetNextWindowSize(ImVec2(300, 150), ImGuiCond_Appearing);
@@ -3195,7 +3249,7 @@ namespace Editor {
 			ImGui::SeparatorText("Emission Mode");
 
 			// Emission Mode Dropdown
-			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST" };
+			const char* emissionModeItems[] = { "CONTINUOUS", "BURST", "LOOP_BURST", "RANDOM_BURST"};
 			int currentModeIndex = static_cast<int>(emitter.emissionMode);
 
 			if (ImGui::Combo("Emission Mode##emitter", &currentModeIndex, emissionModeItems, IM_ARRAYSIZE(emissionModeItems))) {
@@ -3210,8 +3264,8 @@ namespace Editor {
 				}
 			}
 
-			// Trigger Event Name (only show if not CONTINUOUS)
-			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS) {
+			// Trigger Event Name (only show if not CONTINUOUS or RANDOM)
+			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS && emitter.emissionMode != ParticleEmissionMode::RANDOM_BURST) {
 				ImGui::Text("Trigger Event Name:");
 				if (ImGui::InputText("##TriggerEventName", &emitter.triggerEventName)) {
 				}
@@ -3235,6 +3289,27 @@ namespace Editor {
 
 				ImGui::Text("Burst Interval (seconds):");
 				ImGui::DragFloat("##BurstInterval", &emitter.burstInterval, 0.01f, 0.01f, 5.0f, "%.2f");
+			}
+
+			// RANDOM_BURST-specific settings
+			if (emitter.emissionMode == ParticleEmissionMode::RANDOM_BURST) {
+				ImGui::Text("Burst Count Range (Min / Max):");
+				ImGui::DragInt("##MinBurstCount", &emitter.minBurstCount, 1, 1, 100);
+				ImGui::DragInt("##MaxBurstCount", &emitter.maxBurstCount, 1, 1, 100);
+
+				// Ensure min does not exceed max
+				if (emitter.minBurstCount > emitter.maxBurstCount) {
+					emitter.minBurstCount = emitter.maxBurstCount;
+				}
+
+				ImGui::Text("Burst Interval Range (Min / Max seconds):");
+				ImGui::DragFloat("##MinBurstInterval", &emitter.minBurstInterval, 0.01f, 0.01f, 10.0f, "%.2f");
+				ImGui::DragFloat("##MaxBurstInterval", &emitter.maxBurstInterval, 0.01f, 0.01f, 10.0f, "%.2f");
+
+				// Ensure min does not exceed max
+				if (emitter.minBurstInterval > emitter.maxBurstInterval) {
+					emitter.minBurstInterval = emitter.maxBurstInterval;
+				}
 			}
 
 			// Texture Key
@@ -4887,6 +4962,28 @@ namespace Editor {
 		ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.05f, 0.05f, 0.05f, 1.f));
 
 		if (ImGui::BeginMainMenuBar()) {
+			// File Submenu Dropdown
+			if (ImGui::BeginMenu("File")) {
+				if (ImGui::MenuItem("Create New Project...")) {
+					// Reset buffers and open the modal next frame
+					memset(newProjectNameBuffer_, 0, sizeof(newProjectNameBuffer_));
+					memset(newProjectPathBuffer_, 0, sizeof(newProjectPathBuffer_));
+					projectFeedbackMsg_.clear();
+					// Default the root path to one level above cwd (typical repo layout)
+					std::string defaultRoot = std::filesystem::current_path().parent_path().parent_path().string();
+					strncpy_s(newProjectPathBuffer_, sizeof(newProjectPathBuffer_),
+						defaultRoot.c_str(), _TRUNCATE);
+					showNewProjectDialog_ = true;
+				}
+
+				if (ImGui::MenuItem("Import Existing Project...")) {
+					memset(importProjectPathBuffer_, 0, sizeof(importProjectPathBuffer_));
+					projectFeedbackMsg_.clear();
+					showImportProjectDialog_ = true;
+				}
+
+				ImGui::EndMenu();
+			}
 
 			// Edit Submenu Dropdown
 			if (ImGui::BeginMenu("Edit")) {
@@ -4985,6 +5082,473 @@ namespace Editor {
 		}
 
 		ImGui::PopStyleColor();
+
+		// Render project management modals (they open via ImGui::OpenPopup below)
+		if (showNewProjectDialog_)    ShowNewProjectDialog();
+		if (showImportProjectDialog_) ShowImportProjectDialog();
+	}
+
+#pragma endregion
+
+	// ============================================================
+	// PROJECT MANAGEMENT IMPLEMENTATIONS
+	// ============================================================
+
+#pragma region PROJECT MANAGEMENT
+
+	void Editor::WriteActiveGameConfig(const std::string& gameDir) {
+		namespace fs = std::filesystem;
+		fs::path repoRoot = fs::current_path().parent_path().parent_path();
+		fs::path configFile = repoRoot / "active_game.cmake";
+
+		std::string gameDirFwd = gameDir;
+		std::replace(gameDirFwd.begin(), gameDirFwd.end(), '\\', '/');
+
+		std::string gameName = fs::path(gameDir).filename().string();
+
+		std::ofstream out(configFile);
+		if (out.is_open()) {
+			out << "# Auto-generated by owala Engine Editor. Do not edit manually.\n";
+			out << "set(ACTIVE_GAME_NAME \"" << gameName   << "\")\n";
+			out << "set(ACTIVE_GAME_DIR  \"${CMAKE_CURRENT_LIST_DIR}/${ACTIVE_GAME_NAME}\")\n";
+			Logger::Get().Info(DebugType::Editor)
+				<< "Wrote active_game.cmake: " << gameName << " at " << gameDirFwd << std::endl;
+		}
+		else {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Failed to write active_game.cmake to: " << configFile.string() << std::endl;
+		}
+	}
+
+	bool Editor::ScaffoldNewProject(const std::string& rootDir, const std::string& projectName) {
+		namespace fs = std::filesystem;
+
+		if (projectName.empty() || rootDir.empty()) return false;
+
+		fs::path projectRoot = fs::path(rootDir) / projectName;
+
+		// Game-specific raw asset folders
+		const std::vector<std::string> assetDirs = {
+			"Assets/Audio/SFX",
+			"Assets/Audio/Music",
+			"Assets/Fonts",
+			"Assets/Sprites",
+		};
+
+		// Engine runtime data folders
+		const std::vector<std::string> dataDirs = {
+			"Data/AnimationData",
+			"Data/Scenes",
+			"Data/Prefabs",
+			"Data/Config",
+			"Data/FSM",
+			"Data/ParticleEffects"
+		};
+
+		const std::vector<std::string> sourceDirs = { "Source" };
+
+		std::error_code ec;
+		auto createDirs = [&](const std::vector<std::string>& dirs) -> bool {
+			for (const std::string& dir : dirs) {
+				fs::create_directories(projectRoot / dir, ec);
+				if (ec) {
+					Logger::Get().Error(DebugType::Editor)
+						<< "Failed to create directory: " << (projectRoot / dir).string()
+						<< " (" << ec.message() << ")" << std::endl;
+					return false;
+				}
+			}
+			return true;
+			};
+
+		if (!createDirs(assetDirs))  return false;
+		if (!createDirs(dataDirs))   return false;
+		if (!createDirs(sourceDirs)) return false;
+
+		// Helper lambda: only writes file if it doesn't already exist
+		auto WriteFile = [&](const fs::path& filePath, const std::string& contents) {
+			if (!fs::exists(filePath)) {
+				std::ofstream out(filePath);
+				if (out.is_open()) out << contents;
+			}
+			};
+
+		// -----------------------------------------------------------------
+		// Data/config.json  — project + engine settings
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "config.json",
+			"{\n"
+			"  \"window_width\": 1920,\n"
+			"  \"window_height\": 1080,\n"
+			"  \"full_screen\": false\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Data/GameConfig.json  — scene categorization config
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "GameConfig.json",
+			"{\n"
+			"    \"startupScene\": \"\",\n"
+			"    \"loadingScene\": \"\",\n"
+			"    \"overlayScenes\": [],\n"
+			"    \"menuScenes\": []\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Data/scenes.json  — registry of all scene assets
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "scenes.json",
+			"{\n"
+			"    \"scenes\": []\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Data/audioFiles.json  — registry of all loaded audio assets
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "audioFiles.json",
+			"{\n"
+			"    \"sfx\": [],\n"
+			"    \"music\": []\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Data/LayerConfig.json  — collision & render layer configuration
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "LayerConfig.json",
+			"{\n"
+			"    \"collisionLayers\": [\n"
+			"        { \"id\": 0, \"name\": \"Default\",  \"isBuiltIn\": true },\n"
+			"        { \"id\": 1, \"name\": \"Player\",   \"isBuiltIn\": true },\n"
+			"        { \"id\": 2, \"name\": \"Platform\", \"isBuiltIn\": true },\n"
+			"        { \"id\": 3, \"name\": \"Enemy\",    \"isBuiltIn\": true },\n"
+			"        { \"id\": 4, \"name\": \"Trigger\",  \"isBuiltIn\": true }\n"
+			"    ],\n"
+			"    \"renderLayers\": [\n"
+			"        { \"name\": \"Background\", \"renderOrder\": -100, \"isBuiltIn\": true },\n"
+			"        { \"name\": \"Default\",    \"renderOrder\": 0,    \"isBuiltIn\": true },\n"
+			"        { \"name\": \"UI\",         \"renderOrder\": 100,  \"isBuiltIn\": true }\n"
+			"    ],\n"
+			"    \"collisionMatrix\": {}\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Data/stateToAnimationMapping.json  — FSM state → animation name
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "stateToAnimationMapping.json",
+			"{\n"
+			"    \"mappings\": {}\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Data/textureToAnimationMapping.json  — texture key → animation data
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Data" / "textureToAnimationMapping.json",
+			"{\n"
+			"    \"mappings\": {}\n"
+			"}\n");
+
+		// -----------------------------------------------------------------
+		// Source entry-point stub
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "Source" / (projectName + "App.cpp"),
+			"#include \"Core/Application.h\"\n"
+			"#include \"Core/Core.h\"\n"
+			"#include \"Managers/GameManager/GameManager.h\"\n"
+			"#include \"FileIO/FileUtility.h\"\n"
+			"\n"
+			"namespace Framework {\n"
+			"\n"
+			"    class " + projectName + "App : public Application {\n"
+			"    public:\n"
+			"        " + projectName + "App(CoreEngine& engine) : m_Engine(engine) {}\n"
+			"\n"
+			"        void Initialize() override {\n"
+			"            auto& gm = GameManager::GetInstance();\n"
+			"\n"
+			"            // Load scene categorization from Data/GameConfig.json.\n"
+			"            // Edit it via Edit > Project Settings in the editor.\n"
+			"            GameManager::GameConfig config = FileIOSystem::LoadGameConfig();\n"
+			"            gm.Configure(config);\n"
+			"\n"
+			"            // TODO: Register per-scene script callbacks, e.g.:\n"
+			"            // gm.RegisterScriptToScene(sceneIndex, Init, Update, Free);\n"
+			"\n"
+			"            // Load the startup scene (skipped automatically in editor mode).\n"
+			"            if (!m_Engine.IsEditorMode()) {\n"
+			"                gm.LoadStartupScene();\n"
+			"            }\n"
+			"        }\n"
+			"\n"
+			"        void Update() override {}\n"
+			"\n"
+			"        void Shutdown() override {}\n"
+			"\n"
+			"    private:\n"
+			"        CoreEngine& m_Engine;\n"
+			"    };\n"
+			"\n"
+			"    Application* CreateApplication(CoreEngine& engine) {\n"
+			"        return new " + projectName + "App(engine);\n"
+			"    }\n"
+			"\n"
+			"} // namespace Framework\n");
+
+		// -----------------------------------------------------------------
+		// README
+		// -----------------------------------------------------------------
+		WriteFile(projectRoot / "README.md",
+			"# " + projectName + "\n\n"
+			"Game project created with the Owala Engine editor.\n\n"
+			"## Folder Structure\n\n"
+			"| Path | Purpose |\n"
+			"|------|---------|\n"
+			"| `Assets/Audio/` | Raw audio files (SFX / Music) |\n"
+			"| `Assets/Fonts/` | Font files (.ttf / .otf) |\n"
+			"| `Assets/Sprites/` | Raw sprite / texture images |\n"
+			"| `Data/AnimationData/` | Animation definition JSON files |\n"
+			"| `Data/Config/` | Additional engine config files |\n"
+			"| `Data/FSM/` | Finite-state machine definition files |\n"
+			"| `Data/ParticleEffects/` | Particle effect preset files |\n"
+			"| `Data/Prefabs/` | Entity prefab JSON files |\n"
+			"| `Data/Scenes/` | Serialised scene JSON files |\n"
+			"| `Data/audioFiles.json` | Registry of all audio assets |\n"
+			"| `Data/config.json` | Project and engine configuration |\n"
+			"| `Data/LayerConfig.json` | Collision and render layer setup |\n"
+			"| `Data/scenes.json` | Registry of all scene assets |\n"
+			"| `Data/stateToAnimationMapping.json` | FSM state to animation mapping |\n"
+			"| `Data/textureToAnimationMapping.json` | Texture to animation data mapping |\n"
+			"| `Source/` | C++ game code and `CreateApplication` entry point |\n");
+
+		Logger::Get().Info(DebugType::Editor)
+			<< "Scaffolded new project \"" << projectName
+			<< "\" at: " << projectRoot.string() << std::endl;
+
+		return true;
+	}
+
+	bool Editor::ValidateImportPath(const std::string& path) {
+		namespace fs = std::filesystem;
+
+		if (path.empty()) return false;
+
+		fs::path root(path);
+		std::error_code ec;
+
+		if (!fs::exists(root, ec) || !fs::is_directory(root, ec)) return false;
+
+		// A valid project must have at least one of these canonical sub-folders
+		const std::vector<std::string> expectedFolders = { "Source", "Assets" };
+		for (const std::string& folder : expectedFolders) {
+			if (fs::exists(root / folder, ec) && fs::is_directory(root / folder, ec)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void Editor::ShowNewProjectDialog() {
+		// Open the modal on the first call each time the flag is raised
+		if (!ImGui::IsPopupOpen("Create New Project##modal")) {
+			ImGui::OpenPopup("Create New Project##modal");
+		}
+
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		ImGui::SetNextWindowSize(ImVec2(560, 280), ImGuiCond_Appearing);
+
+		if (ImGui::BeginPopupModal("Create New Project##modal", &showNewProjectDialog_,
+			ImGuiWindowFlags_NoResize)) {
+
+			ImGui::TextWrapped("Enter a name and choose a parent directory for the new game project.");
+			ImGui::Spacing();
+
+			// Project name field
+			ImGui::Text("Project Name:");
+			ImGui::SetNextItemWidth(-1.f);
+			ImGui::InputText("##NewProjectName", newProjectNameBuffer_, sizeof(newProjectNameBuffer_));
+
+			ImGui::Spacing();
+
+			// Root directory field + drag-and-drop hint
+			ImGui::Text("Parent Directory (project folder will be created inside this):");
+			ImGui::SetNextItemWidth(-80.f);
+			ImGui::InputText("##NewProjectPath", newProjectPathBuffer_, sizeof(newProjectPathBuffer_));
+			ImGui::SameLine();
+			if (ImGui::Button("Browse##np", ImVec2(70.f, 0.f))) {
+				// Lightweight fallback: open the folder in Explorer so the user can copy the path
+				std::string cmd = "explorer \"" + std::string(newProjectPathBuffer_) + "\"";
+				std::system(cmd.c_str());
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Opens the current path in File Explorer.\n"
+					"You can also drag a folder from the Asset Browser\n"
+					"into the path field above.");
+			}
+
+			// Drag-and-drop target on the path field
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string dropped(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					namespace fs = std::filesystem;
+					fs::path p(dropped);
+					std::string dir = fs::is_directory(p) ? p.string() : p.parent_path().string();
+					strncpy_s(newProjectPathBuffer_, sizeof(newProjectPathBuffer_), dir.c_str(), _TRUNCATE);
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			// Feedback message from the last attempt
+			if (!projectFeedbackMsg_.empty()) {
+				ImVec4 colour = projectActionSucceeded_
+					? ImVec4(0.2f, 0.9f, 0.3f, 1.f)
+					: ImVec4(1.f, 0.3f, 0.3f, 1.f);
+				ImGui::TextColored(colour, "%s", projectFeedbackMsg_.c_str());
+				ImGui::Spacing();
+			}
+
+			bool canCreate = (strlen(newProjectNameBuffer_) > 0) && (strlen(newProjectPathBuffer_) > 0);
+			if (!canCreate) ImGui::BeginDisabled();
+
+			if (ImGui::Button("Create", ImVec2(120.f, 0.f))) {
+				projectActionSucceeded_ = ScaffoldNewProject(
+					std::string(newProjectPathBuffer_),
+					std::string(newProjectNameBuffer_));
+
+				if (projectActionSucceeded_) {
+					namespace fs = std::filesystem;
+					fs::path projectPath = fs::path(std::string(newProjectPathBuffer_)) / std::string(newProjectNameBuffer_);
+					WriteActiveGameConfig(projectPath.string());
+					assetBrowser.Initialize(projectPath);
+					// Tell FileIOSystem where to mirror saves back to source.
+					FileIOSystem::SetSourceDataDir((projectPath / "Data").string());
+					projectFeedbackMsg_ = "Project \"" + std::string(newProjectNameBuffer_)
+						+ "\" created! Re-run CMake & rebuild to compile the new game.";
+					// Close automatically on success after the user reads the message
+					// (leave the modal open so they can read it; they close via the X or Close button)
+				}
+				else {
+					projectFeedbackMsg_ = "Failed to create project. Check the path and try again.";
+				}
+			}
+
+			if (!canCreate) ImGui::EndDisabled();
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Close", ImVec2(120.f, 0.f))) {
+				projectFeedbackMsg_.clear();
+				showNewProjectDialog_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+		else {
+			// Modal was closed via the X button
+			showNewProjectDialog_ = false;
+		}
+	}
+
+	void Editor::ShowImportProjectDialog() {
+		if (!ImGui::IsPopupOpen("Import Existing Project##modal")) {
+			ImGui::OpenPopup("Import Existing Project##modal");
+		}
+
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		ImGui::SetNextWindowSize(ImVec2(560, 250), ImGuiCond_Appearing);
+
+		if (ImGui::BeginPopupModal("Import Existing Project##modal", &showImportProjectDialog_,
+			ImGuiWindowFlags_NoResize)) {
+
+			ImGui::TextWrapped(
+				"Point to an existing game project folder.\n"
+				"The folder must contain a \"Source\" or \"Assets\" sub-folder.");
+			ImGui::Spacing();
+
+			ImGui::Text("Project Folder Path:");
+			ImGui::SetNextItemWidth(-80.f);
+			ImGui::InputText("##ImportPath", importProjectPathBuffer_, sizeof(importProjectPathBuffer_));
+			ImGui::SameLine();
+			if (ImGui::Button("Browse##ip", ImVec2(70.f, 0.f))) {
+				std::string cmd = "explorer \"" + std::string(importProjectPathBuffer_) + "\"";
+				std::system(cmd.c_str());
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Opens File Explorer so you can locate and copy the project path.\n"
+					"You can also drag a folder from the Asset Browser into the field above.");
+			}
+
+			// Drag-and-drop target
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					std::string dropped(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					namespace fs = std::filesystem;
+					fs::path p(dropped);
+					std::string dir = fs::is_directory(p) ? p.string() : p.parent_path().string();
+					strncpy_s(importProjectPathBuffer_, sizeof(importProjectPathBuffer_), dir.c_str(), _TRUNCATE);
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			if (!projectFeedbackMsg_.empty()) {
+				ImVec4 colour = projectActionSucceeded_
+					? ImVec4(0.2f, 0.9f, 0.3f, 1.f)
+					: ImVec4(1.f, 0.3f, 0.3f, 1.f);
+				ImGui::TextColored(colour, "%s", projectFeedbackMsg_.c_str());
+				ImGui::Spacing();
+			}
+
+			bool canImport = (strlen(importProjectPathBuffer_) > 0);
+			if (!canImport) ImGui::BeginDisabled();
+
+			if (ImGui::Button("Validate & Import", ImVec2(150.f, 0.f))) {
+				std::string importPath(importProjectPathBuffer_);
+				projectActionSucceeded_ = ValidateImportPath(importPath);
+
+				if (projectActionSucceeded_) {
+					// Expand the Asset Browser to show the imported project root
+					namespace fs = std::filesystem;
+					WriteActiveGameConfig(importPath);
+					assetBrowser.Initialize(fs::path(importPath));
+					// Tell FileIOSystem where to mirror saves back to source.
+					FileIOSystem::SetSourceDataDir((fs::path(importPath) / "Data").string());
+
+					projectFeedbackMsg_ = "Project imported! Re-run CMake & rebuild to compile. Asset Browser now shows: " + importPath;
+					Logger::Get().Info(DebugType::Editor)
+						<< "Imported project from: " << importPath << std::endl;
+				}
+				else {
+					projectFeedbackMsg_ = "Invalid project folder. No \"Source\" or \"Assets\" sub-folder found.";
+					Logger::Get().Error(DebugType::Editor)
+						<< "Import failed — invalid project path: " << importPath << std::endl;
+				}
+			}
+
+			if (!canImport) ImGui::EndDisabled();
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Close", ImVec2(120.f, 0.f))) {
+				projectFeedbackMsg_.clear();
+				showImportProjectDialog_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+		else {
+			showImportProjectDialog_ = false;
+		}
 	}
 
 #pragma endregion
@@ -5206,7 +5770,7 @@ namespace Editor {
 		ImGui::SetNextWindowSize(ImVec2(850, 550), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin("Project Settings", &settings.showProjectSettingsWindow)) {
 			static int selectedCategory = 0;
-			const char* categories[] = { "Physics 2D", "Performance" };
+			const char* categories[] = { "Game", "Physics 2D", "Performance" };
 
 			// --- Left Pane (Sidebar) ---
 			ImGui::BeginChild("Sidebar", ImVec2(220, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
@@ -5231,7 +5795,123 @@ namespace Editor {
 
 			// Body
 			switch (selectedCategory) {
-			case 0: { // Physics2D
+			case 0: { // Game Settings
+				GameManager& gm = GameManager::GetInstance();
+				SceneManager& sceneMgr = SceneManager::GetInstance();
+				const auto& allScenes = sceneMgr.GetAllSceneAssets();
+
+				// Collect scene names (excluding reserved scenes)
+				static std::vector<std::string> sceneNames;
+				sceneNames.clear();
+				sceneNames.push_back("(none)");
+				for (const auto& [id, asset] : allScenes) {
+					if (asset.IsValid() &&
+						id != SceneManager::GetDDOLSceneID() &&
+						id != SceneManager::GetInvalidSceneID()) {
+						sceneNames.push_back(asset.name);
+					}
+				}
+				// Sort for stable display
+				std::sort(sceneNames.begin() + 1, sceneNames.end());
+
+				GameManager::GameConfig& cfg = gm.GetConfig();
+
+				auto FindIdx = [&](const std::string& val) -> int {
+					for (int i = 0; i < (int)sceneNames.size(); ++i)
+						if (sceneNames[i] == val) return i;
+					return 0;
+				};
+
+				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
+				if (ImGui::BeginTable("GameConfigProperties", 2, tableFlags)) {
+					ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 200.f);
+					ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
+
+					// Startup Scene
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Startup Scene");
+					ImGui::TableSetColumnIndex(1);
+					{
+						int startupIdx = FindIdx(cfg.startupScene);
+						std::vector<const char*> items;
+						for (const auto& s : sceneNames) items.push_back(s.c_str());
+						ImGui::PushItemWidth(-FLT_MIN);
+						if (ImGui::Combo("##Startup", &startupIdx, items.data(), (int)items.size()))
+							cfg.startupScene = (startupIdx == 0) ? "" : sceneNames[startupIdx];
+						ImGui::PopItemWidth();
+					}
+
+					// Loading Scene
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Loading Scene");
+					ImGui::TableSetColumnIndex(1);
+					{
+						int loadingIdx = FindIdx(cfg.loadingScene);
+						std::vector<const char*> items;
+						for (const auto& s : sceneNames) items.push_back(s.c_str());
+						ImGui::PushItemWidth(-FLT_MIN);
+						if (ImGui::Combo("##Loading", &loadingIdx, items.data(), (int)items.size()))
+							cfg.loadingScene = (loadingIdx == 0) ? "" : sceneNames[loadingIdx];
+						ImGui::PopItemWidth();
+					}
+
+					ImGui::EndTable();
+				}
+
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::TextUnformatted("Scene Tags");
+				ImGui::Spacing();
+
+				// Per-scene checkboxes for menu / overlay categories
+				if (ImGui::BeginTable("SceneTagTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+					ImGui::TableSetupColumn("Scene Name", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn("Menu Scene", ImGuiTableColumnFlags_WidthFixed, 100.f);
+					ImGui::TableSetupColumn("Overlay Scene", ImGuiTableColumnFlags_WidthFixed, 110.f);
+					ImGui::TableHeadersRow();
+
+					// Skip "(none)" at index 0
+					for (int i = 1; i < (int)sceneNames.size(); ++i) {
+						const std::string& name = sceneNames[i];
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(name.c_str());
+
+						auto Contains = [](const std::vector<std::string>& vec, const std::string& val) {
+							return std::find(vec.begin(), vec.end(), val) != vec.end();
+						};
+						auto Toggle = [](std::vector<std::string>& vec, const std::string& val, bool add) {
+							auto it = std::find(vec.begin(), vec.end(), val);
+							if (add && it == vec.end()) vec.push_back(val);
+							else if (!add && it != vec.end()) vec.erase(it);
+						};
+
+						ImGui::TableSetColumnIndex(1);
+						bool isMenu = Contains(cfg.menuScenes, name);
+						ImGui::PushID(("menu_" + name).c_str());
+						if (ImGui::Checkbox("##m", &isMenu)) Toggle(cfg.menuScenes, name, isMenu);
+						ImGui::PopID();
+
+						ImGui::TableSetColumnIndex(2);
+						bool isOverlay = Contains(cfg.overlayScenes, name);
+						ImGui::PushID(("overlay_" + name).c_str());
+						if (ImGui::Checkbox("##o", &isOverlay)) Toggle(cfg.overlayScenes, name, isOverlay);
+						ImGui::PopID();
+					}
+					ImGui::EndTable();
+				}
+
+				ImGui::Spacing();
+				if (ImGui::Button("Save Game Config")) {
+					FileIOSystem::SaveGameConfig(cfg);
+				}
+				break;
+			}
+			case 1: { // Physics2D
 				Framework::PhysicsSystem& physics = *GameManager::GetInstance().GetSystems().physics_;
 
 				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
@@ -5255,7 +5935,7 @@ namespace Editor {
 				}
 				break;
 			}
-			case 1: { // Performance
+			case 2: { // Performance
 				Framework::Graphics& gfx = *GameManager::GetInstance().GetSystems().gfx_;
 
 				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX;
@@ -6009,6 +6689,31 @@ namespace Editor {
 								compData.data["is_looping"].SetBool(isLooping);
 								prefabModified = true;
 							}
+						}
+
+						// Start delay controls
+						{
+							rapidjson::Document::AllocatorType& alloc = compData.data.GetAllocator();
+
+							float startDelay = compData.data.HasMember("start_delay") ? compData.data["start_delay"].GetFloat() : 0.0f;
+							if (ImGui::DragFloat("Start Delay (s)", &startDelay, 0.01f, 0.0f, 60.0f)) {
+								if (compData.data.HasMember("start_delay"))
+									compData.data["start_delay"].SetFloat(startDelay);
+								else
+									compData.data.AddMember("start_delay", startDelay, alloc);
+								prefabModified = true;
+							}
+							if (ImGui::IsItemHovered()) ImGui::SetTooltip("Seconds to wait before the animation begins playing");
+
+							float startDelayRange = compData.data.HasMember("start_delay_range") ? compData.data["start_delay_range"].GetFloat() : 0.0f;
+							if (ImGui::DragFloat("Delay Range (s)", &startDelayRange, 0.01f, 0.0f, 60.0f)) {
+								if (compData.data.HasMember("start_delay_range"))
+									compData.data["start_delay_range"].SetFloat(startDelayRange);
+								else
+									compData.data.AddMember("start_delay_range", startDelayRange, alloc);
+								prefabModified = true;
+							}
+							if (ImGui::IsItemHovered()) ImGui::SetTooltip("Randomises an extra delay in [0, range] on top of the base delay");
 						}
 					}
 					// === TEXT COMPONENT ===

@@ -1,0 +1,96 @@
+{
+    "name": "VerticalFallingTrap_NEW_04",
+    "layer": 6,
+    "layer_collision_name": "Invulnrabilty",
+    "render_layer": 50,
+    "custom_render_order": 0,
+    "components": {
+        "Transform": {
+            "Position": {
+                "x": 60.0,
+                "y": 240.0
+            },
+            "Rotation": {
+                "angle": 0.0,
+                "texture_angle": -1.5707963705062866,
+                "collider_angle": 0.0,
+                "texture_matrix": [
+                    -0.000013113416571286507,
+                    120.0,
+                    60.0,
+                    -300.0,
+                    -0.000005245366537565133,
+                    240.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "collider_matrix": [
+                    3.0,
+                    0.0,
+                    60.0,
+                    0.0,
+                    3.0,
+                    240.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Scale": {
+                "x": 3.0,
+                "y": 3.0
+            }
+        },
+        "Velocity": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "RigidBody": {
+            "mass": 0.0,
+            "inv_mass": 0.0,
+            "is_affected_by_gravity": true,
+            "force": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        "AABBCollider": {
+            "half_width": 60.0,
+            "half_height": 260.0,
+            "offset_x": -5.0,
+            "offset_y": 0.0
+        },
+        "RotationFlag": {
+            "is_rotating": false,
+            "current_rotation": 0.0,
+            "target_rotation": 0.0
+        },
+        "TrapPlatform": {
+            "is_triggered": false,
+            "has_fallen": false,
+            "trigger_delay": 0.0,
+            "current_delay": 0.0,
+            "fall_speed": 502.0,
+            "original_position": {
+                "x": 50.0,
+                "y": 200.0
+            }
+        },
+        "TextureComponent": {
+            "texture_key": "SB_TrapPlatform_Horizontal.png",
+            "half_size": {
+                "x": 100.0,
+                "y": 40.0
+            },
+            "flip_x": false
+        },
+        "SceneOwned": {
+            "scene_id": 10,
+            "sceneName": "Level 2"
+        }
+    },
+    "tags": [
+        "PlatformTag"
+    ]
+}
