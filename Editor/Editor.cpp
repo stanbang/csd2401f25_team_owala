@@ -2032,12 +2032,8 @@ namespace Editor {
 #pragma endregion
 
 #pragma region HIERARCHY PANEL
-
 	void Editor::ShowHierarchy() {
 		using namespace Framework;
-
-		//ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 1500, 20), ImGuiCond_FirstUseEver);
-		//ImGui::SetNextWindowSize(ImVec2(380, ImGui::GetIO().DisplaySize.y - 300), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Hierarchy");
 
@@ -2053,13 +2049,17 @@ namespace Editor {
 
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
+		// Add Search Bar
+		static char searchBuffer[256] = "";
+		ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
+		ImGui::Spacing();
+
 		if (ImGui::BeginChild("HierarchyList", ImVec2{ 0, 0 }, true)) {
 
 			auto drawEntityItem = [&](Entity entity) {
 				if (!entityMgr.ValidateEntity(entity)) return;
-				
-				const std::string& name = entityMgr.GetProperties(entity).name;
 
+				const std::string& name = entityMgr.GetProperties(entity).name;
 
 				ImGui::PushID(static_cast<int>(entity));
 
@@ -2134,7 +2134,7 @@ namespace Editor {
 					ImGui::EndPopup();
 				}
 				ImGui::PopID();
-			}; // End lambda: drawEntityItem
+				}; // End lambda: drawEntityItem
 
 			auto drawSceneDropdown = [&](const SceneManagement::SceneGUID sceneID, const std::string& sceneName) {
 				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
@@ -2169,12 +2169,27 @@ namespace Editor {
 
 				if (open) {
 					std::vector<Entity> list = sceneMgr.GetEntitiesInScene(sceneID);
+
+					// Apply Search Filter
+					std::string searchQuery = searchBuffer;
+					if (!searchQuery.empty()) {
+						// Convert query to lowercase for case-insensitive search
+						std::transform(searchQuery.begin(), searchQuery.end(), searchQuery.begin(), ::tolower);
+
+						list.erase(std::remove_if(list.begin(), list.end(), [&](Entity e) {
+							std::string entityName = entityMgr.GetProperties(e).name;
+							std::transform(entityName.begin(), entityName.end(), entityName.begin(), ::tolower);
+							return entityName.find(searchQuery) == std::string::npos;
+							}), list.end());
+					}
+
+					// Sort A-Z
 					std::sort(list.begin(), list.end(), [&entityMgr](Entity a, Entity b) {
 						return entityMgr.GetProperties(a).name < entityMgr.GetProperties(b).name;
-					});
+						});
 
 					if (list.empty()) {
-						ImGui::TextDisabled("(Empty)");
+						ImGui::TextDisabled(searchQuery.empty() ? "(Empty)" : "(No results)");
 					}
 					else {
 						// Clipper for large list optimization(This only process entities in view in the list)
