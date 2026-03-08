@@ -6,6 +6,8 @@
 #include "EntityManager.h"
 #include "GameManager.h"
 #include "SceneManager.h" 
+#include "GameStateFlags.h"  // Add this include
+#include "Logger.h"          // Add this include
 
 REGISTER_SCRIPT(TimerStartTriggerScript, "TimerStartTriggerScript")
 
@@ -46,10 +48,28 @@ void TimerStartTriggerScript::OnUpdate() {
         { selfTf.position.x + triggerCol.HalfSize.x + triggerCol.Offset.x,
           selfTf.position.y + triggerCol.HalfSize.y + triggerCol.Offset.y }
     };
-
+    // In TimerStartTrigger.cpp - OnUpdate() when collision detected
     if (CollisionIntersection_RectRect_Static(playerBounds, triggerBounds)) {
+
+        Framework::Logger::Get().Info(DebugType::PlayerSystem)
+            << "[TimerFinish] COLLISION DETECTED - Current state:" << std::endl;
+        Framework::Logger::Get().Info(DebugType::PlayerSystem)
+            << "  shouldRecordTime = " << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
+        Framework::Logger::Get().Info(DebugType::PlayerSystem)
+            << "  currentLevelName = " << GameStateFlags::currentLevelName << std::endl;
         // Get the current scene name from SceneManager
         std::string currentSceneName = SceneManager::GetInstance().GetActiveScene().name;
+
+        // CRITICAL: Set the level name in GameStateFlags
+        GameStateFlags::currentLevelName = currentSceneName;
+
+        // Log the current state to verify it's preserved
+        Framework::Logger::Get().Info(DebugType::PlayerSystem)
+            << "[TimerStart] Starting timer for level: " << currentSceneName << std::endl;
+        Framework::Logger::Get().Info(DebugType::PlayerSystem)
+            << "[TimerStart] GameStateFlags::shouldRecordTime = "
+            << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
+
         TimerSystem::Get().StartTimer(currentSceneName);
         m_fired = true;
     }

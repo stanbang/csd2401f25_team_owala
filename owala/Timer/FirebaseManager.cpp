@@ -5,7 +5,8 @@
 #include <chrono>
 #include <sstream>
 #include "PlayerNameManager.h"
-
+#include "GameStateFlags.h"
+#include "Logger.h"          // Add this include
 // RapidJSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -124,10 +125,40 @@ namespace Framework {
     //   #include "PlayerNameManager.h"
 
     void FirebaseManager::SubmitRun(const std::string& levelName, float timeSeconds) {
+        Logger::Get().Info(DebugType::FireBaseManager)
+            << "[Firebase] ===== SUBMIT RUN CALLED =====" << std::endl;
+        Logger::Get().Info(DebugType::FireBaseManager)
+            << "[Firebase] Level: " << levelName << ", Time: " << timeSeconds << "s" << std::endl;
+
+        // CRITICAL: Check if the player wanted to record this time
+        Logger::Get().Info(DebugType::FireBaseManager)
+            << "[Firebase] GameStateFlags::shouldRecordTime = "
+            << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
+
+        if (!GameStateFlags::shouldRecordTime) {
+            Logger::Get().Info(DebugType::FireBaseManager)
+                << "[Firebase] Skipping submission - player chose not to record" << std::endl;
+            return;
+        }
+
         // Use player's chosen name; fall back to machine name if none set
         std::string playerName = Framework::PlayerNameManager::Get().HasName()
             ? Framework::PlayerNameManager::Get().GetName()
             : GetMachineName();
+
+        Logger::Get().Info(DebugType::FireBaseManager)
+            << "[Firebase] Player name: '" << playerName << "'" << std::endl;
+
+        // Don't submit if name is empty
+        if (playerName.empty()) {
+            Logger::Get().Info(DebugType::FireBaseManager)
+                << "[Firebase] Skipping submission - player name is empty" << std::endl;
+            return;
+        }
+
+        Logger::Get().Info(DebugType::FireBaseManager)
+            << "[Firebase] Submitting run for level: " << levelName
+            << ", player: " << playerName << ", time: " << timeSeconds << "s" << std::endl;
 
         auto now = std::chrono::system_clock::now().time_since_epoch();
         long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(now).count();
@@ -149,11 +180,16 @@ namespace Framework {
             + "/" + playerName
             + "/" + std::to_string(timestamp) + ".json";
 
+        Logger::Get().Info(DebugType::FireBaseManager)
+            << "[Firebase] Sending to URL: " << url << std::endl;
+
         std::thread([url, payload]() {
-            WinHttpRequest(url, L"PUT", payload);
+            std::string response = WinHttpRequest(url, L"PUT", payload);
+            // We can't use Logger here because it might not be thread-safe
+            // But we could print to console directly for debugging
+            // OutputDebugStringA(("[Firebase] Response: " + response + "\n").c_str());
             }).detach();
     }
-
     void FirebaseManager::FetchLeaderboard(const std::string& levelName,
         std::function<void(std::vector<LeaderboardEntry>)> onComplete)
     {

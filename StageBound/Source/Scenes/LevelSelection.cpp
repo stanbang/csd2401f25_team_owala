@@ -19,7 +19,7 @@
 #include "Logger.h"
 #include "FirebaseManager.h"
 #include "PlayerNameManager.h"
-
+#include "GameStateFlags.h"
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
 
@@ -77,8 +77,11 @@ namespace {
 	// Name entry state
 	bool        nameEntryActive = false;
 	bool        nameEntryJustOpened = false;
+	bool        recordPromptActive = false;
+	bool        recordPromptJustOpened = false;
 	std::string nameInput;
 	std::string namePendingScene;
+	//static bool shouldRecordTime = false;
 
 	// Use InputSystem directly - this respects keyboardLocked_ and uses GLFW state
 
@@ -92,14 +95,97 @@ namespace {
 		tc.isDirty = true;
 	}
 
+	// Forward declaration
+	void OpenNameEntry(Framework::EntityManager& entityMgr, const std::string& scene);
+
+	// Show the "record your time?" prompt using the same overlay entity
+	void OpenRecordPrompt(Framework::EntityManager& entityMgr, const std::string& scene) {
+		recordPromptActive = true;
+		recordPromptJustOpened = true;
+		namePendingScene = scene;
+
+		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(true);
+
+		if (entityMgr.ValidateEntity(ui.nameEntryBG))
+			entityMgr.GetProperties(ui.nameEntryBG).isActive = true;
+		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
+			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = true;
+
+		SetNameOverlayText(entityMgr, "record your time?\n(y) yes   (n) no");
+	}
+
+	void CloseRecordPrompt(Framework::EntityManager& entityMgr) {
+		recordPromptActive = false;
+		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(false);
+
+		if (entityMgr.ValidateEntity(ui.nameEntryBG))
+			entityMgr.GetProperties(ui.nameEntryBG).isActive = false;
+		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
+			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = false;
+	}
+
+	void UpdateRecordPrompt(Framework::EntityManager& entityMgr) {
+		GLFWwindow* win = GameManager::GetInstance().GetSystems().win_->window();
+		if (!win) return;
+
+		struct KeyState { bool prev = false; };
+		static KeyState yKey, nKey;
+
+		if (recordPromptJustOpened) {
+			yKey = nKey = {};
+			recordPromptJustOpened = false;
+		}
+
+		auto Just = [](KeyState& ks, int glfwKey, GLFWwindow* w) -> bool {
+			bool cur = (glfwGetKey(w, glfwKey) == GLFW_PRESS);
+			bool just = cur && !ks.prev;
+			ks.prev = cur;
+			return just;
+			};
+
+		if (Just(yKey, GLFW_KEY_Y, win)) {
+			// Player wants to record
+			GameStateFlags::shouldRecordTime = true;
+			Logger::Get().Info(DebugType::GameManager)
+				<< "[LevelSelection] *** PLAYER PRESSED Y - shouldRecordTime set to TRUE ***" << std::endl;
+			CloseRecordPrompt(entityMgr);
+			OpenNameEntry(entityMgr, namePendingScene);
+			return;
+		}
+
+		if (Just(nKey, GLFW_KEY_N, win)) {
+			// Player doesn't want to record
+			GameStateFlags::shouldRecordTime = false;  // Clear the shared flag
+			CloseRecordPrompt(entityMgr);
+
+			// Load the level directly
+			GameManager::GetInstance().InitiateLevelLoad(namePendingScene);
+			return;
+		}
+	}
+
 	// Show overlay panel + text, store which scene to load
+// Show overlay panel + text, store which scene to load
 	void OpenNameEntry(Framework::EntityManager& entityMgr, const std::string& scene) {
+		Logger::Get().Info(DebugType::GameManager)
+			<< "[LevelSelection] Opening name entry for scene: " << scene << std::endl;
+		Logger::Get().Info(DebugType::GameManager)
+			<< "[LevelSelection] Current shouldRecordTime: " << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
+
 		nameEntryActive = true;
 		nameEntryJustOpened = true;
 		namePendingScene = scene;
-		nameInput = Framework::PlayerNameManager::Get().GetName();
+		nameInput = "";  // Start with empty name
 
-		// Lock so InputSystem::Update() global shortcuts (N/R/Z/X/P...) don't fire while typing
+		// CRITICAL: Flush the keyboard state to prevent the 'Y' key from being carried over
+		GLFWwindow* win = GameManager::GetInstance().GetSystems().win_->window();
+		if (win) {
+			// Read all key states to clear any pending key presses
+			for (int i = GLFW_KEY_SPACE; i <= GLFW_KEY_LAST; i++) {
+				glfwGetKey(win, i);  // This just reads and clears the state
+			}
+		}
+
 		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(true);
 
 		if (entityMgr.ValidateEntity(ui.nameEntryBG))
@@ -156,9 +242,20 @@ namespace {
 				SetNameOverlayText(entityMgr, "enter your name:\n_\n(cannot be empty)");
 				return;
 			}
+
+			Logger::Get().Info(DebugType::GameManager)
+				<< "[NameEntry] Player entered name: '" << nameInput << "'" << std::endl;
+			Logger::Get().Info(DebugType::GameManager)
+				<< "[NameEntry] shouldRecordTime BEFORE save: " << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
+
+			// Save the name
 			Framework::PlayerNameManager::Get().SetName(nameInput);
+
 			Logger::Get().Info(DebugType::GameManager)
 				<< "[NameEntry] Saved: \"" << nameInput << "\", loading: " << namePendingScene << std::endl;
+			Logger::Get().Info(DebugType::GameManager)
+				<< "[NameEntry] shouldRecordTime AFTER save: " << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
+
 			CloseNameEntry(entityMgr);
 			GameManager::GetInstance().InitiateLevelLoad(namePendingScene);
 			return;
@@ -442,6 +539,7 @@ namespace LevelSelection {
 		currentIndex = 0;
 		leaderboardOpen = false;
 		nameEntryActive = false;
+		recordPromptActive = false;
 		nameInput.clear();
 
 		// Ensure overlay starts hidden regardless of JSON state
@@ -466,6 +564,12 @@ namespace LevelSelection {
 
 		if (!cached) CacheUI(entityMgr);
 		if (levelData.empty()) return;
+
+		// While record prompt is open, only process Y/N
+		if (recordPromptActive) {
+			UpdateRecordPrompt(entityMgr);
+			return;
+		}
 
 		// While name entry is open, only process typing — don't block on fading
 		if (nameEntryActive) {
@@ -530,12 +634,12 @@ namespace LevelSelection {
 			}
 			const std::string scene = levelData[currentIndex].sceneName;
 
-			// Always ask for a name before each run so different players on the
-			// same machine get their own leaderboard entry. The overlay pre-fills
-			// the last used name so returning players can just press Enter.
-			// If the overlay entity is missing for any reason, fall through safely.
+			// Set the current level name in game state flags
+			GameStateFlags::currentLevelName = scene;
+
+			// Ask player if they want their time recorded before loading the level.
 			if (entityMgr.ValidateEntity(ui.nameEntryOverlay)) {
-				OpenNameEntry(entityMgr, scene);
+				OpenRecordPrompt(entityMgr, scene);
 			}
 			else {
 				GameManager::GetInstance().InitiateLevelLoad(scene);
@@ -550,6 +654,7 @@ namespace LevelSelection {
 		levelData.clear();
 		leaderboardOpen = false;
 		nameEntryActive = false;
+		recordPromptActive = false;
 		nameInput.clear();
 		namePendingScene.clear();
 		currentIndex = 0;
@@ -557,5 +662,8 @@ namespace LevelSelection {
 		ui = {};
 		save = nullptr;
 		leaderboardTextEntity = 0;
+
+		// Reset game state flags
+		// 
 	}
 }

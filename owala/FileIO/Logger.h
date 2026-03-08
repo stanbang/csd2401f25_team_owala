@@ -48,7 +48,8 @@ const enum class DebugType {
     LevelResetSystem,
     GUISystem,
     VFXSystem,
-	CameraSystem
+	CameraSystem,
+	FireBaseManager
 };
 
 const std::string DebugTypeLabels[] = {
