@@ -18,6 +18,7 @@
 #include "TransitionController.h"
 #include "Logger.h"
 #include "FirebaseManager.h"
+#include "PlayerNameManager.h"
 
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
@@ -45,6 +46,10 @@ namespace {
 		// Dynamic Texts
 		Entity levelText = 0;
 
+		// Name entry (optional - game works fine without it)
+		Entity nameEntryOverlay = 0;
+		Entity nameEntryBG = 0;
+
 		bool ValidateRef() const {
 			return arrowLeft != 0 && arrowRight != 0 && backButton != 0 && selectButton != 0
 				&& ticketPrev != 0 && ticketCurrent != 0 && ticketNext != 0
@@ -69,6 +74,135 @@ namespace {
 	SaveManager* save = nullptr;
 	bool leaderboardOpen = false;
 
+	// Name entry state
+	bool        nameEntryActive = false;
+	bool        nameEntryJustOpened = false;
+	std::string nameInput;
+	std::string namePendingScene;
+
+	// Use InputSystem directly - this respects keyboardLocked_ and uses GLFW state
+
+	// Push text to the NameEntryOverlay TextComponent
+	void SetNameOverlayText(Framework::EntityManager& entityMgr, const std::string& str) {
+		using namespace Framework;
+		if (!entityMgr.ValidateEntity(ui.nameEntryOverlay)) return;
+		if (!entityMgr.HasComponent(ui.nameEntryOverlay, TextComponentType)) return;
+		TextComponent& tc = entityMgr.GetComponent<TextComponent>(ui.nameEntryOverlay);
+		tc.textToDraw = str;
+		tc.isDirty = true;
+	}
+
+	// Show overlay panel + text, store which scene to load
+	void OpenNameEntry(Framework::EntityManager& entityMgr, const std::string& scene) {
+		nameEntryActive = true;
+		nameEntryJustOpened = true;
+		namePendingScene = scene;
+		nameInput = Framework::PlayerNameManager::Get().GetName();
+
+		// Lock so InputSystem::Update() global shortcuts (N/R/Z/X/P...) don't fire while typing
+		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(true);
+
+		if (entityMgr.ValidateEntity(ui.nameEntryBG))
+			entityMgr.GetProperties(ui.nameEntryBG).isActive = true;
+		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
+			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = true;
+
+		SetNameOverlayText(entityMgr, "enter your name:\n" + nameInput + "_");
+
+		Logger::Get().Info(DebugType::GameManager)
+			<< "[NameEntry] Opened for: " << scene << std::endl;
+	}
+
+	// Hide overlay, clear state
+	void CloseNameEntry(Framework::EntityManager& entityMgr) {
+		nameEntryActive = false;
+		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(false);
+
+		if (entityMgr.ValidateEntity(ui.nameEntryBG))
+			entityMgr.GetProperties(ui.nameEntryBG).isActive = false;
+		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
+			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = false;
+	}
+
+	// Called every frame while nameEntryActive is true - handles typing.
+	// Uses SetKeyboardLocked(true) to silence InputSystem::Update() global shortcuts
+	// (N=scene switch, R=camera reset, etc.) and reads GLFW directly since
+	// keyboardLocked_ also blocks InputSystem::KeyPressed.
+	void UpdateNameEntry(Framework::EntityManager& entityMgr) {
+		GLFWwindow* win = GameManager::GetInstance().GetSystems().win_->window();
+		if (!win) return;
+
+		struct KeyState { bool prev = false; };
+		static KeyState enter, escape, backspace, space;
+		static KeyState letters[26], digits[10];
+
+		if (nameEntryJustOpened) {
+			enter = escape = backspace = space = {};
+			for (auto& k : letters) k = {};
+			for (auto& k : digits)  k = {};
+			nameEntryJustOpened = false;
+		}
+
+		auto Just = [](KeyState& ks, int glfwKey, GLFWwindow* w) -> bool {
+			bool cur = (glfwGetKey(w, glfwKey) == GLFW_PRESS);
+			bool just = cur && !ks.prev;
+			ks.prev = cur;
+			return just;
+			};
+
+		// Confirm
+		if (Just(enter, GLFW_KEY_ENTER, win)) {
+			if (nameInput.empty()) {
+				SetNameOverlayText(entityMgr, "enter your name:\n_\n(cannot be empty)");
+				return;
+			}
+			Framework::PlayerNameManager::Get().SetName(nameInput);
+			Logger::Get().Info(DebugType::GameManager)
+				<< "[NameEntry] Saved: \"" << nameInput << "\", loading: " << namePendingScene << std::endl;
+			CloseNameEntry(entityMgr);
+			GameManager::GetInstance().InitiateLevelLoad(namePendingScene);
+			return;
+		}
+
+		// Cancel
+		if (Just(escape, GLFW_KEY_ESCAPE, win)) {
+			CloseNameEntry(entityMgr);
+			return;
+		}
+
+		bool changed = false;
+
+		// Backspace
+		if (Just(backspace, GLFW_KEY_BACKSPACE, win)) {
+			if (!nameInput.empty()) { nameInput.pop_back(); changed = true; }
+		}
+		else {
+			// A-Z always uppercase
+			for (int i = 0; i < 26; ++i) {
+				if (Just(letters[i], GLFW_KEY_A + i, win) && nameInput.size() < 20) {
+					nameInput += static_cast<char>('a' + i);
+					changed = true;
+					break;
+				}
+			}
+			// 0-9
+			for (int i = 0; i < 10; ++i) {
+				if (Just(digits[i], GLFW_KEY_0 + i, win) && nameInput.size() < 20) {
+					nameInput += static_cast<char>('0' + i);
+					changed = true;
+					break;
+				}
+			}
+			// Space
+			if (Just(space, GLFW_KEY_SPACE, win) && nameInput.size() < 20) {
+				nameInput += ' ';
+				changed = true;
+			}
+		}
+
+		if (changed)
+			SetNameOverlayText(entityMgr, "enter your name:\n" + nameInput + "_");
+	}
 
 	bool ConsumeClick(Framework::EntityManager& entityMgr, Framework::InputSystem& inputSystem, Entity entity) {
 		if (!entityMgr.ValidateEntity(entity)) return false;
@@ -88,19 +222,22 @@ namespace {
 		for (const Entity entity : entities) {
 			const std::string& name = entityMgr.GetProperties(entity).name;
 
-			if (name == "ArrowLeft") ui.arrowLeft = entity;
-			else if (name == "ArrowRight") ui.arrowRight = entity;
-			else if (name == "BackButton") ui.backButton = entity;
-			else if (name == "SelectLevelButton") ui.selectButton = entity;
-			else if (name == "Ticket_Prev") ui.ticketPrev = entity;
-			else if (name == "Ticket_Current") ui.ticketCurrent = entity;
-			else if (name == "Ticket_Next") ui.ticketNext = entity;
-			else if (name == "LevelText") ui.levelText = entity;
-			else if (name == "LeaderboardText") leaderboardTextEntity = entity;
-			else if (name == "LeaderboardButton") ui.leaderboardButton = entity;
-			else if (name == "LeaderboardPanel")  ui.leaderboardPanel = entity;
+			if (name == "ArrowLeft")          ui.arrowLeft = entity;
+			else if (name == "ArrowRight")         ui.arrowRight = entity;
+			else if (name == "BackButton")         ui.backButton = entity;
+			else if (name == "SelectLevelButton")  ui.selectButton = entity;
+			else if (name == "Ticket_Prev")        ui.ticketPrev = entity;
+			else if (name == "Ticket_Current")     ui.ticketCurrent = entity;
+			else if (name == "Ticket_Next")        ui.ticketNext = entity;
+			else if (name == "LevelText")          ui.levelText = entity;
+			else if (name == "LeaderboardText")    leaderboardTextEntity = entity;
+			else if (name == "LeaderboardButton")  ui.leaderboardButton = entity;
+			else if (name == "LeaderboardPanel")   ui.leaderboardPanel = entity;
+			else if (name == "NameEntryOverlay")   ui.nameEntryOverlay = entity;
+			else if (name == "NameEntryOverlayBG") ui.nameEntryBG = entity;
 		}
 
+		// Only the core UI must be present - name entry is optional
 		if (!ui.ValidateRef()) {
 			Logger::Get().Info(DebugType::GameManager) << "Not all UI elements in LevelSelection Scene was cached!" << std::endl;
 			return;
@@ -150,6 +287,7 @@ namespace {
 				text.isDirty = true;
 			});
 	}
+
 	SaveManager* GetSaveManager(Framework::EntityManager& entityMgr) {
 		using namespace Framework;
 
@@ -228,7 +366,7 @@ namespace {
 		}
 
 		if (mainMenuID == SceneManager::GetInvalidSceneID()) return;
-		
+
 		const std::vector<Entity> menuEntities = sceneMgr.GetEntitiesInScene(mainMenuID);
 
 		hiddenMenuEntities.reserve(menuEntities.size());
@@ -286,6 +424,9 @@ namespace LevelSelection {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		CacheUI(entityMgr);
 		save = GetSaveManager(entityMgr);
+
+		Framework::PlayerNameManager::Get().Load();
+
 		bool shouldSkipIntro = (save && save->GetSkipIntro()) ? true : false;
 		std::string firstLevel = shouldSkipIntro ? "Tutorial 1" : "Cutscene Intro";
 
@@ -300,6 +441,12 @@ namespace LevelSelection {
 
 		currentIndex = 0;
 		leaderboardOpen = false;
+		nameEntryActive = false;
+		nameInput.clear();
+
+		// Ensure overlay starts hidden regardless of JSON state
+		CloseNameEntry(entityMgr);
+
 		SetLeaderboardVisible(entityMgr, false);
 		RefreshUI(entityMgr);
 
@@ -320,7 +467,13 @@ namespace LevelSelection {
 		if (!cached) CacheUI(entityMgr);
 		if (levelData.empty()) return;
 
-		// Block input while a fade is running
+		// While name entry is open, only process typing — don't block on fading
+		if (nameEntryActive) {
+			UpdateNameEntry(entityMgr);
+			return;
+		}
+
+		// Block navigation input while a fade is running
 		if (GameManager::GetInstance().IsFading()) return;
 
 		// Keyboard Input Handling
@@ -353,8 +506,6 @@ namespace LevelSelection {
 				sceneMgr.UnloadScene("LevelSelection");
 			}
 			else {
-				// Queue so LoadScene is deferred to the top of the next frame,
-				// avoiding mutation of the loaded-scenes list mid-iteration.
 				GameManager::GetInstance().QueueLevelLoad("MainMenu");
 			}
 			return;
@@ -371,14 +522,24 @@ namespace LevelSelection {
 			}
 		}
 
-		// Select Button — hand off to GameManager which owns the fade + load sequence
+		// Select Button
 		if (ConsumeClick(entityMgr, inputSystem, ui.selectButton)) {
 			if (save && entityMgr.ValidateEntity(save->GetEntity())) {
 				const int levelIndex = levelData[currentIndex].index;
 				if (!save->IsUnlocked(levelIndex)) return;
 			}
 			const std::string scene = levelData[currentIndex].sceneName;
-			GameManager::GetInstance().InitiateLevelLoad(scene);
+
+			// Always ask for a name before each run so different players on the
+			// same machine get their own leaderboard entry. The overlay pre-fills
+			// the last used name so returning players can just press Enter.
+			// If the overlay entity is missing for any reason, fall through safely.
+			if (entityMgr.ValidateEntity(ui.nameEntryOverlay)) {
+				OpenNameEntry(entityMgr, scene);
+			}
+			else {
+				GameManager::GetInstance().InitiateLevelLoad(scene);
+			}
 		}
 	}
 
@@ -388,6 +549,9 @@ namespace LevelSelection {
 
 		levelData.clear();
 		leaderboardOpen = false;
+		nameEntryActive = false;
+		nameInput.clear();
+		namePendingScene.clear();
 		currentIndex = 0;
 		cached = false;
 		ui = {};

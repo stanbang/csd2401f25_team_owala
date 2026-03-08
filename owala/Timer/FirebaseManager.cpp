@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 #include <sstream>
+#include "PlayerNameManager.h"
 
 // RapidJSON
 #include <rapidjson/document.h>
@@ -117,27 +118,35 @@ namespace Framework {
 #endif
     }
 
+    // Updated section only — replace SubmitRun() in your FirebaseManager.cpp
+
+    // Add this include at the top of FirebaseManager.cpp:
+    //   #include "PlayerNameManager.h"
+
     void FirebaseManager::SubmitRun(const std::string& levelName, float timeSeconds) {
-        std::string machineName = GetMachineName();
+        // Use player's chosen name; fall back to machine name if none set
+        std::string playerName = Framework::PlayerNameManager::Get().HasName()
+            ? Framework::PlayerNameManager::Get().GetName()
+            : GetMachineName();
 
         auto now = std::chrono::system_clock::now().time_since_epoch();
         long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(now).count();
 
-        // Build JSON payload — now includes level name
+        // Build JSON payload
         rapidjson::StringBuffer sb;
         rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
         writer.StartObject();
-        writer.Key("name");      writer.String(machineName.c_str());
+        writer.Key("name");      writer.String(playerName.c_str());
         writer.Key("level");     writer.String(levelName.c_str());
         writer.Key("time");      writer.Double(static_cast<double>(timeSeconds));
         writer.Key("timestamp"); writer.Int64(timestamp);
         writer.EndObject();
         std::string payload = sb.GetString();
 
-        // URL: /leaderboard/{levelName}/{machine}/{timestamp}.json
+        // URL: /leaderboard/{levelName}/{playerName}/{timestamp}.json
         std::string url = std::string(FIREBASE_URL)
             + "/leaderboard/" + levelName
-            + "/" + machineName
+            + "/" + playerName
             + "/" + std::to_string(timestamp) + ".json";
 
         std::thread([url, payload]() {
