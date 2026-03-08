@@ -24,6 +24,8 @@ void RestartButtonScript::OnCreate() {
 }
 
 void RestartButtonScript::OnUpdate() {
+	if (initiatedNextLevelLoad) return;
+
 	GameManager &gameMgr = GameManager::GetInstance();
 	EntityManager entityMgr(gameMgr.GetECS());
 
@@ -36,6 +38,7 @@ void RestartButtonScript::OnUpdate() {
 			const SceneAsset& prevScene = sceneMgr.GetSceneAt(gameMgr.GetPrevScene());
 
 			gameMgr.InitiateLevelLoad(prevScene.name);
+			initiatedNextLevelLoad = true;
 		}
 	}
 }

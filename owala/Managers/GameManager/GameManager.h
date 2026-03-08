@@ -137,7 +137,6 @@ namespace Framework {
 		// Preload all assets for a scene
 		void PreloadSceneAssets(const std::string& sceneName);
 
-		bool restartMenuInitialized = false;
 		SceneGUID previousScene = 0;
 
 		// Black Fade Overlay (engine-owned; game scripts call FadeIn/FadeOut upward)

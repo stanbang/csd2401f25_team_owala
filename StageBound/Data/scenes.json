@@ -54,5 +54,9 @@
     {
         "name": "PauseScene",
         "path": "Data/Scenes/pausescene.json"
+    },
+    {
+        "name": "GameWinScreen",
+        "path": "Data/Scenes/gamewinscreen.json"
     }
 ]

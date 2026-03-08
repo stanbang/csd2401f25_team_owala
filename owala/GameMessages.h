@@ -109,6 +109,7 @@ namespace Framework {
 	};
 
 	// Empty structs for signalling
+	struct LevelClearEvent {};
 	struct WorldRotationEvent {};
 	struct PlatformLandEvent {};
 

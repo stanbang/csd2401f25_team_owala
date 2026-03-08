@@ -56,7 +56,23 @@ namespace Framework {
                         });
                 }
             }
-            });
+        });
+
+        MessageBus::Instance().Subscribe<LevelClearEvent>([this](const LevelClearEvent&) {
+            if (!GameManager::GetInstance().GetNextScene().empty()) return;
+
+            if (SceneManager::GetInstance().GetActiveScene().name != "GameWinScreen") {
+                Logger::Get().Info(DebugType::GameManager) << "Changing to GameWinScreen scene" << std::endl;
+                LevelSelection::ResetFade();
+                GameManager::GetInstance().SetOverlayCallback(nullptr);
+                // Set the next scene immediately to block re-entrant calls
+
+                // TELL THE CURTAINS TO CLOSE HERE
+                TransitionController::PlayAllClose([]() {
+                    GameManager::GetInstance().InitiateLevelLoad("GameWinScreen");
+                    });
+            }
+        });
     }
 
     void PlayerSystem::Update() {

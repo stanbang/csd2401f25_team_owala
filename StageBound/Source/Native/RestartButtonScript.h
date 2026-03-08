@@ -26,4 +26,5 @@ protected:
 	void OnDestroy() override;
 private:
 	Entity self_;
+	bool initiatedNextLevelLoad = false;
 };

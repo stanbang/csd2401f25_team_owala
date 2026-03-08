@@ -143,7 +143,7 @@ void Portal::OnUpdate() {
 				LevelResetSystem().RunReset();
 				audioSystem.stopAll();
 				save->Unlock(levelIndexToUnlock);
-				SceneManager::GetInstance().LoadScene(SceneManager::GetInstance().GetSceneByName("MainMenu"));
+				MessageBus::Instance().Publish(LevelClearEvent{});
 			}
 		} else {
 			playExitVFX = true; // Reset the VFX flag if player releases the key before completion.

@@ -1,0 +1,517 @@
+{
+    "scene_name": "GameWinScreen",
+    "entities": [
+        {
+            "name": "ExitButtonText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 5,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 1825766348878929972,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.5,
+                        "y": -0.1899999976158142
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextComponent": {
+                    "text": "exit",
+                    "font_key": "SB_Font.otf",
+                    "font_color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "font_size": 1.600000023841858,
+                    "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "ContinueButtonText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 5,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 15686174524504355455,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.5,
+                        "y": 0.10999999940395355
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextComponent": {
+                    "text": "continue",
+                    "font_key": "SB_Font.otf",
+                    "font_color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "font_size": 1.600000023841858,
+                    "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "ExitButton",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 4,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 13485928533913533228,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.5,
+                        "y": -0.20000000298023224
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_DefaultButton.png",
+                    "half_size": {
+                        "x": 0.20000000298023224,
+                        "y": 0.17000000178813934
+                    },
+                    "flip_x": false,
+                    "override_uv": false
+                },
+                "ButtonComponent": {
+                    "is_hovered": false,
+                    "is_pressed": false,
+                    "is_released": false,
+                    "action": 3,
+                    "target_string": "MainMenu",
+                    "target_value": 0.0,
+                    "hover_sound_key": "button_hover.wav",
+                    "hover_sound_volume": 0.5,
+                    "click_sound_key": "mechanical_click.wav",
+                    "click_sound_volume": 0.5,
+                    "default_texture_key": "SB_DefaultButton.png",
+                    "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
+                    "pressed_texture_key": "SB_SelectButton.png",
+                    "default_is_animated": false,
+                    "hover_is_animated": true,
+                    "pressed_is_animated": false,
+                    "scene_to_unload_on_click": ""
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "GameWinBackground",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": -5,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 17063274875878869615,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.0,
+                        "y": 0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_GameWin_Background.png",
+                    "half_size": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "flip_x": false,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "BackgroundTag",
+                "GUITag"
+            ]
+        },
+        {
+            "name": "ContinueButton",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 4,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 18243549054247826309,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.5,
+                        "y": 0.10000000149011612
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_DefaultButton.png",
+                    "half_size": {
+                        "x": 0.20000000298023224,
+                        "y": 0.17000000178813934
+                    },
+                    "flip_x": false,
+                    "override_uv": false
+                },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "ContinueButtonScript",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
+                },
+                "ButtonComponent": {
+                    "is_hovered": false,
+                    "is_pressed": false,
+                    "is_released": false,
+                    "action": 0,
+                    "target_string": "Test Scene",
+                    "target_value": 0.0,
+                    "hover_sound_key": "button_hover.wav",
+                    "hover_sound_volume": 0.5,
+                    "click_sound_key": "mechanical_click.wav",
+                    "click_sound_volume": 0.5,
+                    "default_texture_key": "SB_DefaultButton.png",
+                    "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
+                    "pressed_texture_key": "SB_SelectButton.png",
+                    "default_is_animated": false,
+                    "hover_is_animated": true,
+                    "pressed_is_animated": false,
+                    "scene_to_unload_on_click": ""
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "EscapedTextBg",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 0,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 7586826037013834275,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.5,
+                        "y": 0.6000000238418579
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Sign.png",
+                    "half_size": {
+                        "x": 0.4000000059604645,
+                        "y": 0.30000001192092896
+                    },
+                    "flip_x": false,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "EscapedText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 5,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 7397251051738065674,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.5,
+                        "y": 0.6200000047683716
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextComponent": {
+                    "text": "escaped",
+                    "font_key": "SB_Font.otf",
+                    "font_color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "font_size": 2.799999952316284,
+                    "max_width": 20.0
+                },
+                "SceneOwned": {
+                    "scene_id": 15,
+                    "sceneName": "GameWinScreen"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        }
+    ]
+}
