@@ -180,6 +180,30 @@ namespace Framework {
 				animationComponent.isPlaying = true;
 				animationComponent.currentFrame = animationComponent.startFrame;
 				animationComponent.elapsedTime = 0.0f;
+				// Reset delay so it re-applies after each state change
+				animationComponent.delayRemaining = -1.0f;
+			}
+
+			// Initialise start delay on first encounter (delayRemaining == -1) or after a state change
+			if (animationComponent.delayRemaining < 0.0f) {
+				float delay = animationComponent.startDelay;
+				if (animationComponent.startDelayRange > 0.0f) {
+					float random01 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+					delay += random01 * animationComponent.startDelayRange;
+				}
+				animationComponent.delayRemaining = delay;
+				if (delay > 0.0f) {
+					animationComponent.isPlaying = false; // Hold playback until delay expires
+				}
+			}
+
+			// Count down the start delay before allowing frames to advance
+			if (animationComponent.delayRemaining > 0.0f) {
+				animationComponent.delayRemaining -= Framework::Time::DeltaTime();
+				if (animationComponent.delayRemaining <= 0.0f) {
+					animationComponent.delayRemaining = 0.0f;
+					animationComponent.isPlaying = true; // Delay has elapsed, begin playback
+				}
 			}
 
 			//	Check if animation is playing
@@ -205,6 +229,7 @@ namespace Framework {
 					if (animationComponent.currentFrame >= animationComponent.frameCount) {
 						if (animationComponent.isLooping) {
 							animationComponent.currentFrame = 0; // Loop back to the first frame
+							animationComponent.delayRemaining = -1.0f; // Re-trigger delay between loops
 						}
 
 						else {

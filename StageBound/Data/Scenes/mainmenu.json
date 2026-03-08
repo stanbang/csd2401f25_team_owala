@@ -993,7 +993,7 @@
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 33,
                     "frame_duration": 0.029999999329447746,
                     "start_frame": 0,
@@ -1080,7 +1080,7 @@
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 33,
                     "frame_duration": 0.009999999776482582,
                     "start_frame": 0,
@@ -1167,7 +1167,7 @@
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 0,
                     "frame_duration": 0.029999999329447746,
                     "start_frame": 0,

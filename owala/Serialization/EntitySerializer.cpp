@@ -1045,6 +1045,8 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::ELAPSED_TIME), animComp.elapsedTime, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_PLAYING), animComp.isPlaying, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::IS_LOOPING), animComp.isLooping, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::START_DELAY), animComp.startDelay, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::START_DELAY_RANGE), animComp.startDelayRange, alloc);
 	}
 
 	// Text Component
@@ -1235,6 +1237,11 @@ namespace Framework {
 
 		outData.AddMember(rapidjson::StringRef(Serialization::BURST_COUNT), particleEmitter.burstCount, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::BURST_INTERVAL), particleEmitter.burstInterval, alloc);
+
+		outData.AddMember(rapidjson::StringRef(Serialization::MIN_BURST_COUNT), particleEmitter.minBurstCount, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MAX_BURST_COUNT), particleEmitter.maxBurstCount, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MIN_BURST_INTERVAL), particleEmitter.minBurstInterval, alloc);
+		outData.AddMember(rapidjson::StringRef(Serialization::MAX_BURST_INTERVAL), particleEmitter.maxBurstInterval, alloc);
 	}
 
 	// Slider Component
@@ -1608,6 +1615,14 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::IS_LOOPING) && componentData[Serialization::IS_LOOPING].IsBool()) {
 			out.isLooping = componentData[Serialization::IS_LOOPING].GetBool();
 		}
+		if (componentData.HasMember(Serialization::START_DELAY) && componentData[Serialization::START_DELAY].IsFloat()) {
+			out.startDelay = componentData[Serialization::START_DELAY].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::START_DELAY_RANGE) && componentData[Serialization::START_DELAY_RANGE].IsFloat()) {
+			out.startDelayRange = componentData[Serialization::START_DELAY_RANGE].GetFloat();
+		}
+		// delayRemaining is runtime state — always start uninitialised
+		out.delayRemaining = -1.0f;
 
 		if (out.frameCount > 0) {
 			float frameUVWidth = 1.0f / (float)out.frameCount;
@@ -1986,6 +2001,20 @@ namespace Framework {
 		if (componentData.HasMember(Serialization::BURST_INTERVAL) && componentData[Serialization::BURST_INTERVAL].IsFloat()) {
 			out.burstInterval = componentData[Serialization::BURST_INTERVAL].GetFloat();
 		}
+		// for RANDOM_BURST emission mode
+		if (componentData.HasMember(Serialization::MIN_BURST_COUNT) && componentData[Serialization::MIN_BURST_COUNT].IsInt()) {
+			out.minBurstCount = componentData[Serialization::MIN_BURST_COUNT].GetInt();
+		}
+		if (componentData.HasMember(Serialization::MAX_BURST_COUNT) && componentData[Serialization::MAX_BURST_COUNT].IsInt()) {
+			out.maxBurstCount = componentData[Serialization::MAX_BURST_COUNT].GetInt();
+		}
+		if (componentData.HasMember(Serialization::MIN_BURST_INTERVAL) && componentData[Serialization::MIN_BURST_INTERVAL].IsFloat()) {
+			out.minBurstInterval = componentData[Serialization::MIN_BURST_INTERVAL].GetFloat();
+		}
+		if (componentData.HasMember(Serialization::MAX_BURST_INTERVAL) && componentData[Serialization::MAX_BURST_INTERVAL].IsFloat()) {
+			out.maxBurstInterval = componentData[Serialization::MAX_BURST_INTERVAL].GetFloat();
+		}
+
 		return true;
 	}
 

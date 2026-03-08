@@ -31,13 +31,6 @@ namespace Framework {
 				this->OnParticleBurst(e);
 			});
 		
-		// Subscribe to world rotation event
-		//MessageBus::Instance().Subscribe<WorldRotationEvent>(
-		//	[this](const WorldRotationEvent& e) {
-		//		// This handles BOTH the dust (emitter) and any other effects
-		//		this->TriggerVFX("WorldRotationEvent");
-		//	});
-		
 		MessageBus::Instance().Subscribe<VFXTriggerEvent>(
 			[this](const VFXTriggerEvent& event) {
 				Logger::Get().Info(DebugType::VFXSystem)
@@ -274,6 +267,51 @@ namespace Framework {
 				}
 				break;
 			}
+
+			case ParticleEmissionMode::RANDOM_BURST: {
+				if (!emitter.isEmitting) {
+					emitter.timeSinceBurst = 0.0f;
+					break;
+				}
+
+				// Initialize the very first random interval if it's 0
+				if (emitter.burstInterval <= 0.0f) {
+					float range = std::max(0.001f, emitter.maxBurstInterval - emitter.minBurstInterval);
+					emitter.burstInterval = emitter.minBurstInterval + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / range));
+				}
+
+				emitter.timeSinceBurst += Time::DeltaTime();
+
+				if (emitter.timeSinceBurst >= emitter.burstInterval) {
+					// Calculate dynamic origin
+					Vector2D emitterPos = { 0.0f, 0.0f };
+					if (entityMgr.HasComponent(entity, TransformType)) {
+						emitterPos = entityMgr.GetComponent<Transform>(entity).position;
+					}
+
+					Vector2D calculationOrigin = emitterPos;
+					if (emitter.isScreenSpace) {
+						calculationOrigin = WorldToScreenSpace(emitterPos);
+					}
+
+					// Determine random burst count
+					int rangeCount = std::max(1, emitter.maxBurstCount - emitter.minBurstCount + 1);
+					int currentBurstCount = emitter.minBurstCount + (rand() % rangeCount);
+
+					// Emit the random burst
+					for (int i = 0; i < currentBurstCount; ++i) {
+						SpawnSingleParticle(entityMgr, emitter, calculationOrigin);
+					}
+
+					// Reset timer, preserving any overflow
+					emitter.timeSinceBurst -= emitter.burstInterval;
+
+					// Calculate the NEXT random interval
+					float rangeTime = std::max(0.001f, emitter.maxBurstInterval - emitter.minBurstInterval);
+					emitter.burstInterval = emitter.minBurstInterval + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / rangeTime));
+				}
+				break;
+			}
 			}
 		}
 	}
@@ -391,28 +429,48 @@ namespace Framework {
 
 	case EmissionStyle::FROM_TOP_VIEWPORT: {
 		if (isScreenSpace) {
-			// Screen space: 0 to 1, so spawn at top (y=1)
-			float x = rand01; // Random x from 0 to 1
-			result = Vector2D{ x, 1.0f }; // Top of screen
+			float x = rand01;
+			result = Vector2D{ x, 1.0f };
 		}
 		else {
-			// World space: use viewport bounds
-			float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
-			result = Vector2D{ x, emitter.viewportMax.y };
+			// Dynamically fetch actual camera bounds
+			CameraSystem* camSys = GameManager::GetInstance().GetSystems().camera_;
+			if (camSys && camSys->GetActiveCamera() != 0) {
+				float left, right, bottom, top;
+				camSys->GetViewBounds(camSys->GetActiveCamera(), left, right, bottom, top);
+
+				float x = left + rand01 * (right - left);
+				result = Vector2D{ x, top };
+			}
+			else {
+				// Fallback if no camera exists
+				float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
+				result = Vector2D{ x, emitter.viewportMax.y };
+			}
 		}
 		break;
 	}
-
 	case EmissionStyle::FROM_LEFT_VIEWPORT: {
 		if (isScreenSpace) {
 			// Screen space: spawn at left edge (x=0)
-			float y = rand01; // Random y from 0 to 1
-			result = Vector2D{ 0.0f, y }; // Left edge
+			float y = rand01;
+			result = Vector2D{ 0.0f, y };
 		}
 		else {
-			// World space: use viewport bounds
-			float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
-			result = Vector2D{ emitter.viewportMin.x, y };
+			// Dynamically fetch actual camera bounds
+			CameraSystem* camSys = GameManager::GetInstance().GetSystems().camera_;
+			if (camSys && camSys->GetActiveCamera() != 0) {
+				float left, right, bottom, top;
+				camSys->GetViewBounds(camSys->GetActiveCamera(), left, right, bottom, top);
+
+				float y = bottom + rand01 * (top - bottom);
+				result = Vector2D{ left, y };
+			}
+			else {
+				// Fallback
+				float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
+				result = Vector2D{ emitter.viewportMin.x, y };
+			}
 		}
 		break;
 	}
@@ -420,13 +478,24 @@ namespace Framework {
 	case EmissionStyle::FROM_RIGHT_VIEWPORT: {
 		if (isScreenSpace) {
 			// Screen space: spawn at right edge (x=1)
-			float y = rand01; // Random y from 0 to 1
-			result = Vector2D{ 1.0f, y }; // Right edge
+			float y = rand01;
+			result = Vector2D{ 1.0f, y };
 		}
 		else {
-			// World space: use viewport bounds
-			float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
-			result = Vector2D{ emitter.viewportMax.x, y };
+			// Dynamically fetch actual camera bounds
+			CameraSystem* camSys = GameManager::GetInstance().GetSystems().camera_;
+			if (camSys && camSys->GetActiveCamera() != 0) {
+				float left, right, bottom, top;
+				camSys->GetViewBounds(camSys->GetActiveCamera(), left, right, bottom, top);
+
+				float y = bottom + rand01 * (top - bottom);
+				result = Vector2D{ right, y };
+			}
+			else {
+				// Fallback
+				float y = emitter.viewportMin.y + rand01 * (emitter.viewportMax.y - emitter.viewportMin.y);
+				result = Vector2D{ emitter.viewportMax.x, y };
+			}
 		}
 		break;
 	}
@@ -434,13 +503,24 @@ namespace Framework {
 	case EmissionStyle::FROM_BOTTOM_VIEWPORT: {
 		if (isScreenSpace) {
 			// Screen space: spawn at bottom (y=0)
-			float x = rand01; // Random x from 0 to 1
-			result = Vector2D{ x, 0.0f }; // Bottom of screen
+			float x = rand01;
+			result = Vector2D{ x, 0.0f };
 		}
 		else {
-			// World space: use viewport bounds
-			float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
-			result = Vector2D{ x, emitter.viewportMin.y };
+			// Dynamically fetch actual camera bounds
+			CameraSystem* camSys = GameManager::GetInstance().GetSystems().camera_;
+			if (camSys && camSys->GetActiveCamera() != 0) {
+				float left, right, bottom, top;
+				camSys->GetViewBounds(camSys->GetActiveCamera(), left, right, bottom, top);
+
+				float x = left + rand01 * (right - left);
+				result = Vector2D{ x, bottom };
+			}
+			else {
+				// Fallback
+				float x = emitter.viewportMin.x + rand01 * (emitter.viewportMax.x - emitter.viewportMin.x);
+				result = Vector2D{ x, emitter.viewportMin.y };
+			}
 		}
 		break;
 	}

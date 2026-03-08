@@ -56,7 +56,8 @@ namespace Framework{
 	enum class ParticleEmissionMode {
 		CONTINUOUS,    // Emit constantly while active
 		BURST,         // Emit once on trigger
-		LOOP_BURST     // Emit multiple bursts on trigger
+		LOOP_BURST,     // Emit multiple bursts on trigger
+		RANDOM_BURST	// Emit in random time intervals
 	};
 
 	// To separate different audio types
@@ -222,6 +223,10 @@ namespace Framework{
 		float elapsedTime = 0.0f; // Time elapsed since the last frame change
 		bool isPlaying = true; // Is the animation currently playing
 		bool isLooping = true; // Should the animation loop when it reaches the end
+
+		float startDelay = 0.0f;      // Seconds to wait before the animation begins playing
+		float startDelayRange = 0.0f; // If > 0, randomises the delay in [startDelay, startDelay + startDelayRange]
+		float delayRemaining = -1.0f; // Runtime countdown; -1 means uninitialised (set on first update)
 
 		Vector2D minUV = { 0.0f, 0.0f }; // Top-Left UV of the current frame
 		Vector2D maxUV = { 1.0f, 1.0f }; // Bottom-Right UV of the current frame
@@ -462,6 +467,12 @@ namespace Framework{
 		bool isParticleAnimated = false; // Is the particle texture animated
 		bool isScreenSpace = false;   // Are the particles rendered in screen space
 		ParticleEmissionMode emissionMode = ParticleEmissionMode::CONTINUOUS;
+
+		// for RANDOM_BURST mode
+		float minBurstInterval = 1.0f;
+		float maxBurstInterval = 3.0f;
+		int minBurstCount = 1;
+		int maxBurstCount = 5;
 
 		// For BURST/LOOP_BURST modes
 		std::string triggerEventName;  // Name of the event to listen for

@@ -134,6 +134,8 @@ namespace Framework::Serialization {
 	static constexpr const char* FRAME_COUNT = "frame_count";
 	static constexpr const char* IS_PLAYING = "is_playing";
 	static constexpr const char* IS_LOOPING = "is_looping";
+	static constexpr const char* START_DELAY = "start_delay";
+	static constexpr const char* START_DELAY_RANGE = "start_delay_range";
 
 	static constexpr const char* TEXT_COMPONENT = "TextComponent";
 	static constexpr const char* TEXT = "text";
@@ -209,6 +211,10 @@ namespace Framework::Serialization {
 	static constexpr const char* EMISSION_MODE = "emission_mode";
 	static constexpr const char* BURST_COUNT = "burst_count";
 	static constexpr const char* BURST_INTERVAL = "burst_interval";
+	static constexpr const char* MIN_BURST_COUNT = "min_burst_count";
+	static constexpr const char* MAX_BURST_COUNT = "max_burst_count";
+	static constexpr const char* MIN_BURST_INTERVAL = "min_burst_interval";
+	static constexpr const char* MAX_BURST_INTERVAL = "max_burst_interval";
 
 	static constexpr const char* SLIDER = "Slider";
 	static constexpr const char* SLIDER_CURRENT_VALUE = "current_value";
