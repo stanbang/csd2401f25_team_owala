@@ -556,6 +556,12 @@ namespace Framework {
             }
         }
 
+        //// Enemy vs Trap: skip collision resolution entirely.
+        //// Let them overlap so the kill system can detect the hit.
+        //if ((isE1Enemy && isE2DynamicTrap) || (isE2Enemy && isE1DynamicTrap)) {
+        //    return;
+        //}
+
         // Determine which entity is dynamic (needs RigidBody + Velocity)
         bool e1IsDynamic = entityMgr.HasComponent(e1, RigidBodyType) && entityMgr.HasComponent(e1, VelocityType);
         bool e2IsDynamic = entityMgr.HasComponent(e2, RigidBodyType) && entityMgr.HasComponent(e2, VelocityType);
@@ -577,6 +583,12 @@ namespace Framework {
 
         // trap v player, make trap static to avoid player pushing
         if ((e1IsTrap && isE2Player) || (e2IsTrap && isE1Player)) {
+            if (e1IsTrap) e1IsDynamic = false;
+            if (e2IsTrap) e2IsDynamic = false;
+        }
+
+        // trap v enemy, make trap static to avoid enemy pushing
+        if ((e1IsTrap && isE2Enemy) || (e2IsTrap && isE1Enemy)) {
             if (e1IsTrap) e1IsDynamic = false;
             if (e2IsTrap) e2IsDynamic = false;
         }
