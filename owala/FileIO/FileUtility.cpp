@@ -162,47 +162,32 @@ namespace Framework {
 		// Debugging output
 		return WindowConfig(windowSize, fullScreen);
 	}
-
-	void FileIOSystem::LoadPlayerStats(float& moveSpeed, float& jumpHeight, float& invuln, float& kb_dur, float& kb_x, float& kb_y) {
+	void FileIOSystem::LoadPlayerStats(PlayerStats& stats) {
 		rapidjson::Document d;
-		//Read the file name passed in as a path
+
 		if (!ReadFile(FileIOKeys::PLAYER_CONFIG_FILEPATH, d)) {
 			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+			return;
 		}
 
-		// Check if move_speed member exists && is float
-		if (!(d.HasMember(FileIOKeys::PLAYER_MV_SPEED) && d[FileIOKeys::PLAYER_MV_SPEED].IsFloat())) {
-			Logger::Get().Info(DebugType::FileIOSystem) << "Invalid or missing move_speed in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
-		}
-		// Check if jump_height member exists && is float
-		if (!(d.HasMember(FileIOKeys::PLAYER_JUMP_HEIGHT)) && d[FileIOKeys::PLAYER_JUMP_HEIGHT].IsFloat()) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing jump_height in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
-		}
+		// Helper lambda to safely read floats without crashing
+		auto SafeReadFloat = [&](const char* key, float& outValue) {
+			if (d.HasMember(key) && d[key].IsNumber()) {
+				outValue = d[key].GetFloat();
+			}
+			else {
+				Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing '" << key << "' in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+			}
+			};
 
-		if (d.HasMember(FileIOKeys::PLAYER_INVULNERABILITY_DURATION)) invuln = d[FileIOKeys::PLAYER_INVULNERABILITY_DURATION].GetFloat();
-		if (d.HasMember(FileIOKeys::PLAYER_KNOCKBACK_DURATION)) kb_dur = d[FileIOKeys::PLAYER_KNOCKBACK_DURATION].GetFloat();
-		if (d.HasMember(FileIOKeys::PLAYER_KNOCKBACK_FORCE_X)) kb_x = d[FileIOKeys::PLAYER_KNOCKBACK_FORCE_X].GetFloat();
-		if (d.HasMember(FileIOKeys::PLAYER_KNOCKBACK_FORCE_Y)) kb_y = d[FileIOKeys::PLAYER_KNOCKBACK_FORCE_Y].GetFloat();
+		SafeReadFloat(FileIOKeys::PLAYER_MV_SPEED, stats.moveSpeed);
+		SafeReadFloat(FileIOKeys::PLAYER_JUMP_HEIGHT, stats.jumpHeight);
+		SafeReadFloat(FileIOKeys::PLAYER_INVULNERABILITY_DURATION, stats.invulnerabilityDuration);
+		SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_DURATION, stats.knockbackDuration);
+		SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_FORCE_X, stats.knockbackForceX);
+		SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_FORCE_Y, stats.knockbackForceY);
 
-		const rapidjson::Value& mvSpeed = d[FileIOKeys::PLAYER_MV_SPEED];
-		const rapidjson::Value& jmpHeight = d[FileIOKeys::PLAYER_JUMP_HEIGHT]; 
-		const rapidjson::Value& invul_dur = d[FileIOKeys::PLAYER_INVULNERABILITY_DURATION];
-		const rapidjson::Value& knockback_dur = d[FileIOKeys::PLAYER_KNOCKBACK_DURATION];
-		const rapidjson::Value& knockback_x = d[FileIOKeys::PLAYER_KNOCKBACK_FORCE_X];
-		const rapidjson::Value& knockback_y = d[FileIOKeys::PLAYER_KNOCKBACK_FORCE_Y];
-
-		// Debugging output
-		Logger::Get().Info(DebugType::FileIOSystem) << "Player data read from " << FileIOKeys::PLAYER_CONFIG_FILEPATH 
-			<< ", moveSpeed: " << mvSpeed.GetFloat() << " jumpHeight: " << jmpHeight.GetFloat() << "invulnerability duration: " << invul_dur.GetDouble() << "knockback_duration" 
-			<< knockback_dur.GetDouble() << "knockback_x" << knockback_x.GetDouble() << "knockback_y"  << knockback_y.GetDouble() << std::endl;
-
-		// Set variables
-		moveSpeed = mvSpeed.GetFloat();
-		jumpHeight = jmpHeight.GetFloat();
-		invuln = static_cast<float>(invul_dur.GetDouble());
-		kb_dur = static_cast<float>(knockback_dur.GetDouble());
-		kb_x = static_cast<float>(knockback_x.GetDouble());
-		kb_y = static_cast<float>(knockback_y.GetDouble());
+		Logger::Get().Info(DebugType::FileIOSystem) << "Player data read successfully." << std::endl;
 	}
 
 	void FileIOSystem::SaveWorldConfig() {

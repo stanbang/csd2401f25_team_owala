@@ -35,7 +35,7 @@
 namespace Framework {
     void PlayerSystem::Initialize() {
         m_deathEventFired = false;
-        FileIOSystem::LoadPlayerStats(moveSpeed, jumpHeight, INVULNERABILITY_DURATION, KNOCKBACK_DURATION, KNOCKBACK_FORCE_X, KNOCKBACK_FORCE_Y);
+        FileIOSystem::FileIOSystem::LoadPlayerStats(m_stats);
 
         ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
     
@@ -82,7 +82,7 @@ namespace Framework {
 
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_.gravity_.y);
-        const float jumpVelocity = std::sqrt(2.0f * gravity * jumpHeight);
+        const float jumpVelocity = std::sqrt(2.0f * gravity * m_stats.jumpHeight);
 
         // Loop through each entity that is in the playerTag map
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
@@ -136,8 +136,8 @@ namespace Framework {
                 if (!state.isDead) {
                     float targetVelX = 0.0f;
                     if (!state.isKnockedBack) {
-                        if (input_.KeyDown(InputSystem::Key::A)) targetVelX = -moveSpeed;
-                        if (input_.KeyDown(InputSystem::Key::D)) targetVelX = moveSpeed;
+                        if (input_.KeyDown(InputSystem::Key::A)) targetVelX = -m_stats.moveSpeed;
+                        if (input_.KeyDown(InputSystem::Key::D)) targetVelX = m_stats.moveSpeed;
                         vel.Vel.x = targetVelX;
 
 				    // Apply Jumping
@@ -240,7 +240,7 @@ namespace Framework {
                 if (state.isHurt) {
                     state.invulnerabilityTimer += Framework::Time::DeltaTime();
 
-                    if (state.invulnerabilityTimer >= INVULNERABILITY_DURATION) {
+                    if (state.invulnerabilityTimer >= m_stats.invulnerabilityDuration) {
                         // End invulnerability
                         state.isHurt = false;
 
@@ -268,13 +268,13 @@ namespace Framework {
         PlayerState& playerState = entityMgr.GetComponent<PlayerState>(playerEntity);
 
         // Only start separating in the last 20% of invulnerability time
-        float separationStartTime = INVULNERABILITY_DURATION * 0.8f;
+        float separationStartTime = m_stats.invulnerabilityDuration * 0.8f;
         if (playerState.invulnerabilityTimer < separationStartTime) {
             return; // Too early, don't separate yet
         }
 
         // Calculate separation strength (0 to 1, where 1 is end of invulnerability)
-        float separationProgress = (playerState.invulnerabilityTimer - separationStartTime) / (INVULNERABILITY_DURATION - separationStartTime);
+        float separationProgress = (playerState.invulnerabilityTimer - separationStartTime) / (m_stats.invulnerabilityDuration - separationStartTime);
         float separationSpeed = 50.0f * Framework::Time::DeltaTime() * separationProgress; // Gradual separation
 
         AABB_Bounds playerBounds = {
@@ -486,11 +486,11 @@ namespace Framework {
                 float directionX = (sourcePos.x > playerPos.x) ? -1.0f : 1.0f;
 
                 // Apply knockback impulse
-                vel.Vel.x = directionX * KNOCKBACK_FORCE_X;
-                vel.Vel.y = KNOCKBACK_FORCE_Y;
+                vel.Vel.x = directionX * m_stats.knockbackForceX;
+                vel.Vel.y = m_stats.knockbackForceY;
 
                 playerState.isKnockedBack = true;
-                playerState.knockbackTimer = KNOCKBACK_DURATION;
+                playerState.knockbackTimer = m_stats.knockbackDuration;
                 playerState.isGrounded = false;
                 playerState.isFacingRight = (directionX < 0);
 

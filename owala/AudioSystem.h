@@ -90,13 +90,8 @@ namespace Framework {
         // Random SFX helpers
         std::string getRandomSound(std::string eventKey);
 
-        float GetProximityVol(const Vector2D& pos, float maxVol);
-        void TriggerProximitySFX(const Vector2D& pos, const std::string eventKey, AudioType audiotype, float maxVol = 1.0f);
-
         void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
-
-        void PlayLoopSound(Entity entity, std::string eventKey, AudioType audiotype, float volume, bool play,
-            bool proximity = false, Vector2D pos = { 0.0f,0.0f });
+        void PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist);
 
         // Fade helper
         void FadeOutChannel(FMOD::Channel* channel, float duration);
@@ -134,6 +129,8 @@ namespace Framework {
 
         // Spatial audio tunables
         float distanceFactor_ = 1.0f;
+        float minHearingRange = 50.0f;
+        float maxHearingRange = 700.0f;
     };
 
 } // namespace Framework

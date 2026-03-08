@@ -32,6 +32,7 @@
 #include "Components.h"
 #include "Logger.h"
 #include "SerializationKeys.h"
+#include "PlayerSystem.h"
 
 using namespace std;
 using namespace rapidjson;
@@ -59,7 +60,7 @@ namespace Framework {
 		static WindowConfig LoadWindowConfig();
 
 		// Load PlayerStats from player config json file
-		static void LoadPlayerStats(float& moveSpeed, float& jumpHeight , float& invuln, float& kb_dur, float& kb_x, float& kb_y);
+		static void LoadPlayerStats(PlayerStats& stats);
 
 		// Saves world config variables to world config json file
 		static void SaveWorldConfig();

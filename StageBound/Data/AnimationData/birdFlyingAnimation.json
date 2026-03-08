@@ -1,10 +1,19 @@
 {
-  "frame_count": 7,
-  "frame_duration": 0.1,
-  "is_looping": true,
-  "start_frame": 0,
-  "spritesheets": [
-	{ "texture": "SB_BirdEnemy_Fly_Spritesheet_1.png", "count": 4 },
-	{ "texture": "SB_BirdEnemy_Fly_Spritesheet_2.png", "count": 3 }
-  ]
+    "frame_count": 7,
+    "frame_duration": 0.10000000149011612,
+    "is_looping": true,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_BirdEnemy_Fly_Spritesheet_1.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_BirdEnemy_Fly_Spritesheet_2.png",
+            "count": 3
+        }
+    ],
+    "frameEvents": {
+        "1": "Bird_Fly"
+    }
 }

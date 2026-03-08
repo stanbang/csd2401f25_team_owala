@@ -23,6 +23,16 @@
 namespace Framework {
 	class TransformationSystem;
 	class WindowsSystem; // Forward declare to get window handle for input
+
+	struct PlayerStats {
+		float moveSpeed = 0.0f;
+		float jumpHeight = 0.0f;
+		float invulnerabilityDuration = 0.0f;
+		float knockbackDuration = 0.0f;
+		float knockbackForceX = 0.0f;
+		float knockbackForceY = 0.0f;
+	};
+
 	class PlayerSystem : public ISystem {
 	public:
 	
@@ -45,20 +55,12 @@ namespace Framework {
 		void HandlePlayerDeath();
 		void SeparatePlayerFromDynamicObjects(Entity playerEntity);
 		
-		//player movement
-		float moveSpeed = 0.0f;
-		float jumpHeight = 0.0f;
-
 		//enemy death
 		void CheckEnemyDeathFromTraps();
 		void TriggerEnemyDeath(Entity enemyEntity, const std::string& killerType = "Unknown");
 		void UpdateInvulnerability();
 
-		float INVULNERABILITY_DURATION = 0.0f;
-		float KNOCKBACK_DURATION = 0.0f;
-		float KNOCKBACK_FORCE_X = 0.0f;
-		float KNOCKBACK_FORCE_Y = 0.0f;
-
+		PlayerStats m_stats;
 		bool m_deathEventFired = false;
 	};
 } // namespace Framework

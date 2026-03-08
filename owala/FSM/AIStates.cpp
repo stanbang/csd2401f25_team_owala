@@ -78,7 +78,11 @@ namespace Framework {
         (void)ecs;
         timer_ = 0.0f;
 
-        MessageBus::Instance().Publish(BirdWakeEvent());
+        EntityManager mgr(ecs);
+        if (mgr.HasComponent(entity, TransformType)) {
+            Vector2D position = mgr.GetComponent<Transform>(entity).position;
+            MessageBus::Instance().Publish(BirdWakeEvent(entity, position));
+        }
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
@@ -97,13 +101,6 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
         }
-
-        Vector2D position;
-        if (mgr.HasComponent(entity, TransformType)) {
-            position = mgr.GetComponent<Transform>(entity).position;
-        }
-
-        MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, position));
     }
 
     void BirdSimpleChaseState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -115,7 +112,6 @@ namespace Framework {
 
         if (player == 0 || !mgr.HasComponent(entity, TransformType) || !mgr.HasComponent(player, TransformType)) {
             // Safety stop if player dies mid-chase
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
             return;
         }
 
@@ -161,11 +157,7 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             Transform transform = mgr.GetComponent<Transform>(entity);
             transform.rotation.textureAngle = 0.0f;
-
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, transform.position));
         }
-        
-
     }
     
     void BirdSimpleChaseState::SetParameter(const std::string& key, float value) {
@@ -270,10 +262,8 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             Transform transform = mgr.GetComponent<Transform>(entity);
             transform.position.x += collisionNormalX_ * nudgeAmount_;
-            // Reset texture rotation � Bounce uses the fly animation flat
+            // Reset texture rotation, Bounce uses the fly animation flat
             transform.rotation.textureAngle = 0.0f;
-
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, transform.position));
         }
     }
 
@@ -284,12 +274,6 @@ namespace Framework {
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, VelocityType)) {
             s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
-        }
-
-        // Safety: If player is dead, kill sound immediately
-        if (GetPlayer(ecs) == 0) {
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
-            return;
         }
     }
 
@@ -361,8 +345,7 @@ namespace Framework {
             }
         }
 
-        MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
-        MessageBus::Instance().Publish(BirdAttackEvent());
+        MessageBus::Instance().Publish(BirdAttackEvent(entity, myPos));
     }
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
@@ -405,8 +388,6 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             Transform transform = mgr.GetComponent<Transform>(entity);
             transform.rotation.textureAngle = 0.0f;
-            
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, true, transform.position));
         }
 
 
@@ -416,12 +397,6 @@ namespace Framework {
         (void)entity;
         (void)ecs;
         timer_ += dt;
-
-        // Safety: If player is dead, kill sound immediately
-        if (GetPlayer(ecs) == 0) {
-            MessageBus::Instance().Publish(BirdChaseEvent(ownerID_, false));
-            return;
-        }
     }
     void BirdRecoveryState::SetParameter(const std::string& key, float value) {
         if (key == "duration") duration_ = value;

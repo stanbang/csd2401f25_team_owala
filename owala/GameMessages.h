@@ -120,12 +120,13 @@ namespace Framework {
 	struct CurtainsOpenEvent {};
 	struct CurtainsCloseEvent {};
 
-	struct BirdAttackEvent {};
-	struct BirdWakeEvent {};
-	struct BirdChaseEvent {
-		Entity entityID;
-		bool isCurrentlyChasing;
-		Vector2D pos;
+	struct BirdAttackEvent {
+		Entity entity;
+		Vector2D position;
+	};
+	struct BirdWakeEvent {
+		Entity entity;
+		Vector2D position;
 	};
 
 } // namespace Framework
