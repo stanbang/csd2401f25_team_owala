@@ -581,6 +581,13 @@ namespace Framework {
             if (e2IsTrap) e2IsDynamic = false;
         }
 
+        // trap v enemy, make trap static to avoid enemy pushing
+        if ((e1IsTrap && isE2Enemy) || (e2IsTrap && isE1Enemy)) {
+            if (e1IsTrap) e1IsDynamic = false;
+            if (e2IsTrap) e2IsDynamic = false;
+        }
+
+
         // trap v trap, allows stacking (top trap lands on bottom trap)
         if (e1IsTrap && e2IsTrap && e1IsDynamic && e2IsDynamic) {
             const Vector2D& pos1 = entityMgr.GetComponent<Transform>(e1).position;
