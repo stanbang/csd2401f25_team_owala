@@ -3150,8 +3150,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": -300.00006103515625,
-                        "y": 200.00003051757813
+                        "x": -300.0,
+                        "y": 200.0
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -7420,6 +7420,109 @@
                     },
                     "flip_x": false,
                     "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "FallingAmberVFX",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 7712829855658693934,
+            "components": {
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                },
+                "ParticleEmitterComponent": {
+                    "is_emitting": true,
+                    "is_particle_animated": true,
+                    "is_screen_space": false,
+                    "particle_texture_key": "SB_FallingAmber_Spritesheet.png",
+                    "particle_lifetime": 1.399999976158142,
+                    "emit_rate": 3.0,
+                    "emit_interval": 0.0,
+                    "particle_effect_type": 1,
+                    "effect_strength": 1.0,
+                    "emission_style": 2,
+                    "particle_speed": 0.0,
+                    "particle_size": {
+                        "x": 150.0,
+                        "y": 480.0
+                    },
+                    "is_affected_by_gravity": false,
+                    "particle_start_velocity": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "particle_acceleration": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "emission_radius": 0.5,
+                    "circle_radius": 0.5,
+                    "line_start": {
+                        "x": -1.0,
+                        "y": 0.0
+                    },
+                    "line_end": {
+                        "x": 1.0,
+                        "y": 0.0
+                    },
+                    "viewport_min": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "viewport_max": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "emission_direction": {
+                        "x": 0.0,
+                        "y": -1.0
+                    },
+                    "emission_offset": {
+                        "x": 0.0,
+                        "y": -400.0
+                    },
+                    "emission_mode": 3,
+                    "trigger_event_name": "",
+                    "burst_count": 1,
+                    "burst_interval": 0.5,
+                    "min_burst_count": 1,
+                    "max_burst_count": 3,
+                    "min_burst_interval": 3.0,
+                    "max_burst_interval": 8.0
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "FogEmitterVFX",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 5682592963946774381,
+            "components": {
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "FogEmitter",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
                 },
                 "SceneOwned": {
                     "scene_id": 7,
