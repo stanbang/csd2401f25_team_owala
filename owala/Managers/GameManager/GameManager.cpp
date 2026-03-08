@@ -262,7 +262,6 @@ namespace Framework {
 					Logger::Get().Info(DebugType::GameManager)
 						<< "Additively Loading and Switching Scene to: " << event.stringParam << std::endl;
 
-					// If not loaded yet, load additively.
 					SceneManager& sceneMgr = SceneManager::GetInstance();
 					const SceneAsset& scene = sceneMgr.GetSceneByName(event.stringParam, true);
 					if (!scene.IsValid()) {
@@ -271,11 +270,19 @@ namespace Framework {
 						break;
 					}
 
-					if (!scene.isLoaded) {
-						sceneMgr.LoadScene(event.stringParam, SceneManagement::LoadSceneMode::Additive);
-					}
+					std::string targetScene = event.stringParam;
+					FadeOut(0.3f, [this, targetScene]() {
+						SceneManager& sceneMgr = SceneManager::GetInstance();
+						const SceneAsset& scene = sceneMgr.GetSceneByName(targetScene, true);
+						if (!scene.IsValid()) return;
 
-					sceneMgr.SetActiveScene(sceneMgr.GetSceneByName(event.stringParam, true));
+						if (!scene.isLoaded) {
+							sceneMgr.LoadScene(targetScene, SceneManagement::LoadSceneMode::Additive);
+						}
+						sceneMgr.SetActiveScene(sceneMgr.GetSceneByName(targetScene, true));
+
+						FadeIn(0.3f);
+						});
 				}
 				else {
 					Logger::Get().Error(DebugType::GameManager)
@@ -359,7 +366,6 @@ namespace Framework {
 			}
 
 			SceneManager::GetInstance().UnloadScene(sceneToUnload);
-
 		}
 
 		// --- GAME UPDATE HERE ---
@@ -440,16 +446,22 @@ namespace Framework {
 			for (Entity entity : persistentEntities) {
 				if (entityMgr.ValidateEntity(entity)) {
 					std::cout << "Entity ID: " << entity << " | Entity Name: " << entityMgr.GetProperties(entity).name << std::endl;
-;				}
+				}
 			}
 			std::cout << "== End Persistent Entities == " << std::endl;
 		}
 
 		//Render sprite in engine if not using editor
 #ifndef BUILD_EDITOR
+	// First, render all normal game sprites and text
 		systems_.textRenderer_->Update();
 		systems_.spriteRenderer_->Update();
-		if (overlayDrawCallback_) overlayDrawCallback_();
+
+		// THEN, after all game rendering is complete, draw the fade overlay on top
+		// This ensures the fade appears above everything else
+		if (overlayDrawCallback_) {
+			overlayDrawCallback_();
+		}
 #endif
 
 		// --- END GAME UPDATE ---
@@ -597,7 +609,9 @@ namespace Framework {
 
 	void GameManager::TickFadeOverlay(float dt) {
 		if (!fadeActive_) return;
-
+		Logger::Get().Info(DebugType::GameManager)
+			<< "[TickFade] dt=" << dt << " timer=" << fadeTimer_
+			<< " alpha=" << fadeAlpha_ << std::endl;
 		fadeTimer_ += dt;
 		const float t = std::min(fadeTimer_ / fadeDuration_, 1.0f);
 		fadeAlpha_ = fadeOut_ ? t : (1.0f - t);

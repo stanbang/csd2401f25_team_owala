@@ -55,7 +55,8 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "ButtonComponent": {
                     "is_hovered": true,
@@ -207,7 +208,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -272,7 +274,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -337,7 +340,8 @@
                         "y": 0.4000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -402,7 +406,8 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -467,7 +472,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -532,7 +538,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -597,7 +604,8 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "ButtonComponent": {
                     "is_hovered": false,
@@ -749,7 +757,8 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "ButtonComponent": {
                     "is_hovered": false,
@@ -979,7 +988,8 @@
                         "y": 1.0
                     },
                     "flip_x": true,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "AnimationComponent": {
                     "profile_name": "",
@@ -1065,7 +1075,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "AnimationComponent": {
                     "profile_name": "",
@@ -1151,7 +1162,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "AnimationComponent": {
                     "profile_name": "",
@@ -1253,7 +1265,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1376,7 +1389,8 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1456,7 +1470,8 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1536,7 +1551,8 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1616,7 +1632,8 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false
+                    "override_uv": false,
+                    "alpha": 1.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1627,6 +1644,82 @@
                         },
                         {
                             "type": "StageGearRotate",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
+                },
+                "SceneOwned": {
+                    "scene_id": 3,
+                    "sceneName": "MainMenu"
+                }
+            },
+            "tags": [
+                "PersistentTag",
+                "GUITag"
+            ]
+        },
+        {
+            "name": "FadeController",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 999,
+            "custom_render_order": 999,
+            "layer_render_name": "UI",
+            "active": true,
+            "uuid": 1234567890123456789,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "",
+                    "half_size": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "flip_x": false,
+                    "override_uv": false,
+                    "alpha": 1.0
+                },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "FadeController",
                             "enabled": true,
                             "execute_in_edit": false
                         }

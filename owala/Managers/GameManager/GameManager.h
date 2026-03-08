@@ -173,6 +173,8 @@ namespace Framework {
 		EntityStorage& GetECS() { return *systems_.ecs_; };
 		const EntityStorage& GetECS() const { return *systems_.ecs_; }
 		
+		void SetOverlayDrawCallback(std::function<void()> cb) { overlayDrawCallback_ = cb; }
+		float GetFadeAlpha() const { return fadeAlpha_; }
 
 		void SetEngine(CoreEngine& engine) { engine_ = &engine; } //  Setter for core Engine 
 
@@ -188,8 +190,6 @@ namespace Framework {
 		void FadeIn(float duration, std::function<void()> onComplete = nullptr);
 		// True while a fade is in progress.
 		bool IsFading() const { return fadeActive_; }
-		// Current alpha of the black overlay [0, 1] � read by the renderer.
-		float GetFadeAlpha() const { return fadeAlpha_; }
 
 		/* GameManager Config */
 		// Registers all the systems that the GameManager will use. Must be called before Initialize.

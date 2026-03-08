@@ -94,15 +94,15 @@ set_target_properties(StageBound PROPERTIES
 )
 
 # Hide console window for the game build
-if(WIN32)
-    set_target_properties(StageBound PROPERTIES
-        WIN32_EXECUTABLE TRUE
-    )
-    target_link_options(StageBound PRIVATE
-        "/SUBSYSTEM:WINDOWS"
-        "/ENTRY:mainCRTStartup"
-    )
-endif()
+#if(WIN32)
+ #   set_target_properties(StageBound PROPERTIES
+  #      WIN32_EXECUTABLE TRUE
+   # )
+    #target_link_options(StageBound PRIVATE
+    #    "/SUBSYSTEM:WINDOWS"
+     #   "/ENTRY:mainCRTStartup"
+    #)
+#endif()
 
 
 # ======================= Precompiled Headers =========================
