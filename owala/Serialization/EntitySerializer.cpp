@@ -412,7 +412,7 @@ namespace Framework {
 			SerializeComponent(entityMgr.GetComponent<Button>(entity), componentData, alloc);
 			break;
 		case FSMComponentType:
-			SerializeComponent(entityMgr.GetComponent<Button>(entity), componentData, alloc);
+			SerializeComponent(entityMgr.GetComponent<FSMComponent>(entity), componentData, alloc);
 			break;
 		case SceneOwnedType:
 			SerializeComponent(entityMgr.GetComponent<SceneOwned>(entity), componentData, alloc);
