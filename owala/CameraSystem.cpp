@@ -45,9 +45,9 @@ namespace Framework {
     /**
      * \brief Updates all camera entities.
      *
-     * Computes the camera’s size based on zoom and aspect ratio.
+     * Computes the camera's size based on zoom and aspect ratio.
      * If a camera follows a target, interpolates its position toward
-     * the target’s position using an exponential decay function.
+     * the targetï¿½s position using an exponential decay function.
      */
     void CameraSystem::Update() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
@@ -64,7 +64,7 @@ namespace Framework {
                 continue;
             }
 
-            // Keep square coordinates — no aspect ratio scaling
+            // Keep square coordinates ï¿½ no aspect ratio scaling
             camera.size.x = 2.0f * camera.zoom * camera.aspectRatio;
             camera.size.y = 2.0f * camera.zoom;
 
@@ -229,9 +229,20 @@ namespace Framework {
 
     /**
      * \brief Retrieves the currently active camera entity.
-     * \return The entity ID of the active camera.
+     * Validates that the stored entity still has a Camera component;
+     * resets activeCamera_ to 0 if the reference has gone stale.
+     * \return The entity ID of the active camera, or 0 if none is valid.
      */
-    Entity CameraSystem::GetActiveCamera() const {
+    Entity CameraSystem::GetActiveCamera() {
+        if (activeCamera_ != 0) {
+            EntityManager entityMgr(GameManager::GetInstance().GetECS());
+            if (!entityMgr.HasComponent(activeCamera_, CameraType)) {
+                Logger::Get().Error(DebugType::CameraSystem)
+                    << "Active camera entity " << activeCamera_
+                    << " is stale (Camera component missing). Resetting to 0.\n";
+                activeCamera_ = 0;
+            }
+        }
         return activeCamera_;
     }
 

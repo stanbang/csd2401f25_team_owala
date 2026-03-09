@@ -347,11 +347,18 @@ namespace Framework {
         Vector2D camSize = { (float)gfx_.getScreenWidth(), (float)gfx_.getScreenHeight() };
 
         if (activeCamera != 0 && cameraSystem_) {
-            const Camera& cam = cameraSystem_->GetCamera(activeCamera);
-            zoom = cam.zoom;
-            camPos = cam.position;
-            camSize = cam.size;
-            zoomRatio = zoomRefSize / zoom;
+            try {
+                const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+                zoom = cam.zoom;
+                camPos = cam.position;
+                camSize = cam.size;
+                zoomRatio = zoomRefSize / zoom;
+            }
+            catch (const std::exception& e) {
+                Logger::Get().Error(DebugType::SpriteRenderSystem)
+                    << "CollectText: failed to get camera " << activeCamera
+                    << ": " << e.what() << std::endl;
+            }
         }
 
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponents(true, TextComponentType, TransformType, LoadedTagType)) {
@@ -490,17 +497,25 @@ namespace Framework {
             Vector2D screenHalfSize = halfSize;
 
             if (activeCamera != 0 && cameraSystem_) {
-                screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+                try {
+                    screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
 
-                // Get camera for zoom and aspect ratio
-                const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+                    // Get camera for zoom and aspect ratio
+                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
 
-                // Convert world-space size to screen-space size
-                float halfWidth = cam.zoom * cam.aspectRatio;
-                float halfHeight = cam.zoom;
+                    // Convert world-space size to screen-space size
+                    float halfWidth = cam.zoom * cam.aspectRatio;
+                    float halfHeight = cam.zoom;
 
-                screenHalfSize.x = halfSize.x / halfWidth;
-                screenHalfSize.y = halfSize.y / halfHeight;
+                    screenHalfSize.x = halfSize.x / halfWidth;
+                    screenHalfSize.y = halfSize.y / halfHeight;
+                }
+                catch (const std::exception& e) {
+                    Logger::Get().Error(DebugType::SpriteRenderSystem)
+                        << "RenderColliderOutlines: failed to get camera " << activeCamera
+                        << ": " << e.what() << std::endl;
+                    continue;
+                }
             }
 
             Vector2D scaledHalfSize = halfSize;

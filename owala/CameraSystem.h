@@ -78,9 +78,11 @@ namespace Framework {
 
         /**
          * \brief Retrieves the currently active camera entity.
-         * \return Entity ID of the active camera.
+         * Validates that the stored entity still has a Camera component;
+         * resets activeCamera_ to 0 if the reference has gone stale.
+         * \return Entity ID of the active camera, or 0 if none is valid.
          */
-        Entity GetActiveCamera() const;
+        Entity GetActiveCamera();
 
         /**
          * \brief Sets a camera as the active camera in the system.
