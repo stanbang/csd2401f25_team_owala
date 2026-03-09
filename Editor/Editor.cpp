@@ -5628,8 +5628,11 @@ namespace Editor {
 				physics_->SetPaused(true);
 			}
 
-			// Lock game keyboard if !isGamePlaying
-			gameManager_->GetSystems().input_->SetKeyboardLocked(!isGamePlaying);
+			// Lock game keyboard when not playing. When playing, let the game
+			// manage the lock itself (e.g. LevelSelection locks keyboard for prompts).
+			if (!isGamePlaying) {
+				gameManager_->GetSystems().input_->SetKeyboardLocked(true);
+			}
 
 			if (ImGui::Button(isGamePlaying ? "Stop" : "Play", ImVec2(buttonWidth, buttonHeight)))
 			{
@@ -5638,9 +5641,11 @@ namespace Editor {
 				if (isGamePlaying) {
 					gameManager_->OnEndPlay();
 					ResetEditorCamera();
+					gameManager_->GetSystems().input_->SetKeyboardLocked(true);
 				}
 				else {
 					gameManager_->OnBeginPlay();
+					gameManager_->GetSystems().input_->SetKeyboardLocked(false);
 				}
 
 				isGamePlaying = !isGamePlaying;
