@@ -45,7 +45,6 @@ const enum class DebugType {
     Font,
     EntitySeralizer,
     AISystem,
-    LevelResetSystem,
     GUISystem,
     VFXSystem,
 	CameraSystem,
@@ -73,7 +72,6 @@ const std::string DebugTypeLabels[] = {
     "Font",
     "EntitySeralizer",
     "AISystem",
-    "LevelResetSystem",
     "GUISystem",
     "VFXSystem",
 	"CameraSystem"

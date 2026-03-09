@@ -5,7 +5,6 @@
 
 // Game-specific systems in Game/Sources folder)
 #include "PlayerSystem.h"
-#include "LevelResetSystem.h"
 
 // Scene script headers (only scenes that have Initialize/Update/Free)
 #include "LevelSelection.h"
@@ -23,7 +22,6 @@ namespace Framework {
     private:
         CoreEngine& m_Engine;
         PlayerSystem* m_PlayerSystem;
-        LevelResetSystem* m_LevelResetSystem;
 
     public:
         StageBoundApp(CoreEngine& engine) : m_Engine(engine) {}
@@ -33,15 +31,12 @@ namespace Framework {
 
             // Instantiate Game-Specific Systems
             m_PlayerSystem = new PlayerSystem();
-            m_LevelResetSystem = new LevelResetSystem();
 
             // Inject Game Systems into the Engine
             m_Engine.AddSystem(m_PlayerSystem);
-            m_Engine.AddSystem(m_LevelResetSystem);
 
 			// Initialize Game Systems
             m_PlayerSystem->Initialize();
-            m_LevelResetSystem->Initialize();
 
             // Restore transition state that was previously in GameManager::Initialize()
             TransitionController::Reset();
@@ -90,7 +85,7 @@ namespace Framework {
 
         void Shutdown() override {
             // The engine's DestroySystems() automatically deletes m_PlayerSystem 
-            // and m_LevelResetSystem because we added them via AddSystem().
+            // because we added them via AddSystem().
             std::cout << "--- StageBound Application Shutting Down! ---\n";
         }
     };

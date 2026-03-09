@@ -38,6 +38,26 @@ namespace Framework {
         FileIOSystem::FileIOSystem::LoadPlayerStats(m_stats);
 
         ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
+
+        MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
+            if (event.action == ButtonAction::RESETPLAYERPOS) {
+                EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+                Entity spawnPtEntity = 0;
+                std::vector<Entity> spawnPtEntities = entityMgr.GetAllEntitiesWithComponents(true, TransformType, SpawnPointTagType);
+                if (spawnPtEntities.size() > 0) spawnPtEntity = spawnPtEntities[0];
+
+                for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+                    if (entityMgr.HasComponent(entity, TransformType) && spawnPtEntity > 0 && entityMgr.HasComponent(spawnPtEntity, TransformType)) {
+                        Transform& spawnPt = entityMgr.GetComponent<Transform>(spawnPtEntity);
+                        entityMgr.GetComponent<Transform>(entity).position = spawnPt.position;
+                    }
+                    else {
+                        Logger::Get().Error(DebugType::PlayerSystem) << "Player spawn point not found!" << std::endl;
+                    }
+                }
+            }
+        });
     
         MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
             if (event.deathAnimationFinished) {

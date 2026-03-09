@@ -3,7 +3,6 @@
 
 // Dependencies
 #include "Core.h"
-#include "LevelResetSystem.h"
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
@@ -140,7 +139,6 @@ void Portal::OnUpdate() {
 				}
 				// ====================
 
-				LevelResetSystem().RunReset();
 				audioSystem.stopAll();
 				save->Unlock(levelIndexToUnlock);
 				MessageBus::Instance().Publish(LevelClearEvent{});
