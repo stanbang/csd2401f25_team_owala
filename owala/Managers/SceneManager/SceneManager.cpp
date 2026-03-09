@@ -373,10 +373,10 @@ namespace Framework {
 
 		Logger::Get().Info(DebugType::SceneManager) << "Loaded Scene: " << sceneToLoad->name << " with GUID: " << sceneToLoad->sceneIndex << std::endl;
 
-		// ===== TIMER INTEGRATION =====
-		// Start timer for gameplay scenes
 		if (IsGameplayScene(sceneToLoad->name)) {
 			// Reset any previous timer first
+			// ===== TIMER INTEGRATION =====
+			// Start timer for gameplay scenes
 			TimerSystem::Get().Reset();
 
 			// Start timer for this level
@@ -384,8 +384,10 @@ namespace Framework {
 
 			Logger::Get().Info(DebugType::PlayerSystem)
 				<< "[SceneManager] Timer started for gameplay scene: " << sceneToLoad->name << std::endl;
+			// =============================
+
+			MessageBus::Instance().Publish(LevelStartEvent{});
 		}
-		// =============================
 	}
 
 	void SceneManager::LoadScene(const SceneAsset& scene, LoadSceneMode mode) {

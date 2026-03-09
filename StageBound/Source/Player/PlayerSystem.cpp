@@ -60,7 +60,7 @@ namespace Framework {
         });
     
         MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& event) {
-            if (event.deathAnimationFinished) {
+            if (event.deathAnimationFinished && !m_lvlClearEventFired) {
                 if (!GameManager::GetInstance().GetNextScene().empty()) return;
 
                 if (SceneManager::GetInstance().GetActiveScene().name != "RestartMenu") {
@@ -79,12 +79,14 @@ namespace Framework {
         });
 
         MessageBus::Instance().Subscribe<LevelClearEvent>([this](const LevelClearEvent&) {
+            if (m_lvlClearEventFired || m_deathEventFired) return;
             if (!GameManager::GetInstance().GetNextScene().empty()) return;
 
             if (SceneManager::GetInstance().GetActiveScene().name != "GameWinScreen") {
                 Logger::Get().Info(DebugType::GameManager) << "Changing to GameWinScreen scene" << std::endl;
                 LevelSelection::ResetFade();
                 GameManager::GetInstance().SetOverlayCallback(nullptr);
+                m_lvlClearEventFired = true;
                 // Set the next scene immediately to block re-entrant calls
 
                 // TELL THE CURTAINS TO CLOSE HERE
@@ -92,6 +94,11 @@ namespace Framework {
                     GameManager::GetInstance().InitiateLevelLoad("GameWinScreen");
                     });
             }
+        });
+
+        MessageBus::Instance().Subscribe<LevelStartEvent>([this](const LevelStartEvent&) {
+            m_deathEventFired = false;
+            m_lvlClearEventFired = false;
         });
     }
 
@@ -111,10 +118,14 @@ namespace Framework {
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
 
         UpdateInvulnerability();
-        CheckPlayerDeathFromTraps();
-        CheckPlayerDeathFromEnemies();
-        HandlePlayerDeath();
-        CheckEnemyDeathFromTraps();
+
+        // Skip death checks if level already cleared / already died
+        if (!m_lvlClearEventFired && !m_deathEventFired) {
+            CheckPlayerDeathFromTraps();
+            CheckPlayerDeathFromEnemies();
+            HandlePlayerDeath();
+            CheckEnemyDeathFromTraps();
+        }
 
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_.gravity_.y);

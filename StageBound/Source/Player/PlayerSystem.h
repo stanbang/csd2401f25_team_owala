@@ -62,5 +62,6 @@ namespace Framework {
 
 		PlayerStats m_stats;
 		bool m_deathEventFired = false;
+		bool m_lvlClearEventFired = false;
 	};
 } // namespace Framework
