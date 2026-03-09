@@ -102,7 +102,7 @@ void FogEmitter::OnUpdate() {
                 if (entityMgr.HasComponent(fogEntity, TransformType) && entityMgr.HasComponent(fogEntity, VelocityType)) {
                     if (wallIndex == 0) { // Left Wall
                         Transform& transform = entityMgr.GetComponent<Transform>(fogEntity);
-                        transform.position.x = mapLeft;
+                        transform.position.x = mapLeft - fogTextureHalfSize.x;
                         transform.position.y = spawnY;
 
                         Velocity& vel = entityMgr.GetComponent<Velocity>(fogEntity);
@@ -110,7 +110,7 @@ void FogEmitter::OnUpdate() {
                     }
                     else { // Right Wall
                         Transform& transform = entityMgr.GetComponent<Transform>(fogEntity);
-                        transform.position.x = mapRight;
+                        transform.position.x = mapRight + fogTextureHalfSize.x;
                         transform.position.y = spawnY;
 
                         Velocity& vel = entityMgr.GetComponent<Velocity>(fogEntity);

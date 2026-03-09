@@ -55,7 +55,7 @@
             "half_width": 450.0,
             "half_height": 20.0,
             "offset_x": 0.0,
-            "offset_y": 52.0
+            "offset_y": 0.0
         },
         "RotationFlag": {
             "is_rotating": false,

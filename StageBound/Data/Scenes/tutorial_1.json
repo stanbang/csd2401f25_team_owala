@@ -7445,7 +7445,7 @@
                 "ParticleEmitterComponent": {
                     "is_emitting": true,
                     "is_particle_animated": true,
-                    "is_screen_space": false,
+                    "is_screen_space": true,
                     "particle_texture_key": "SB_FallingAmber_Spritesheet.png",
                     "particle_lifetime": 1.399999976158142,
                     "emit_rate": 3.0,
@@ -7455,8 +7455,8 @@
                     "emission_style": 2,
                     "particle_speed": 0.0,
                     "particle_size": {
-                        "x": 150.0,
-                        "y": 480.0
+                        "x": 0.4000000059604645,
+                        "y": 1.0
                     },
                     "is_affected_by_gravity": false,
                     "particle_start_velocity": {
@@ -7491,14 +7491,14 @@
                     },
                     "emission_offset": {
                         "x": 0.0,
-                        "y": -400.0
+                        "y": -0.5
                     },
                     "emission_mode": 3,
                     "trigger_event_name": "",
                     "burst_count": 1,
                     "burst_interval": 0.5,
                     "min_burst_count": 1,
-                    "max_burst_count": 3,
+                    "max_burst_count": 2,
                     "min_burst_interval": 3.0,
                     "max_burst_interval": 8.0
                 }

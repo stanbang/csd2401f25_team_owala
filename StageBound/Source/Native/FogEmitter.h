@@ -38,7 +38,7 @@ private:
 
 	Vector2D fogTextureHalfSize = { 200.0f, 200.0f };
 	float fogVelocity = 50.0f;
-	float fogLifeSpan = 10.0f; // 10sec
+	float fogLifeSpan = 15.0f; // 15sec
 
 	float minSpawnInterval = 4.0f;
 	float maxSpawnInterval = 8.0f;
