@@ -66,7 +66,13 @@ namespace Framework{
 		MUSIC
 	};
 
-
+	// Config loaded from game data that maps an animation event name to a sound to play
+	struct AnimationEventAudioConfig {
+		std::string soundKey;
+		AudioType   audioType = AudioType::SFX;
+		float       volume    = 1.0f;
+		bool        is3D      = false;
+	};
 
 	// Different slider sound types
 	enum class SliderSoundType {

@@ -2,9 +2,10 @@
  * \file   AudioSystem.cpp
  *
  * \primary_author
- *      Ng Jordain Ying Zhe (80%)
+ *      Ng Jordain Ying Zhe (75%)
  * \secondary_author
- *      Yar Xuan  (20%)
+ *      Yar Xuan  (15%)
+ *      Ng Jing Wen (10%)
  *
  * \brief
  *   Audio system wrapper around FMOD for loading, playing, and managing
@@ -118,20 +119,20 @@ namespace Framework {
             });
 
 		// Subscribe to Animation Events (for frame-specific SFX)
+		FileIOSystem::LoadAnimationEventAudio(animationEventAudioMap_);
         MessageBus::Instance().Subscribe<AnimationEvent>([this](const AnimationEvent& e) {
-            // Filter for the events this system cares about
-            if (e.eventName == "Footstep") {
-                this->PlayRandomSound("Player_Footstep", AudioType::SFX, 0.5f);
-            }
-            else if (e.eventName == "Bird_Fly") {
-                EntityManager entityMgr(GameManager::GetInstance().GetECS());
-                Vector2D position{};
-                if (entityMgr.HasComponent(e.entity, TransformType)) {
-                    position = entityMgr.GetComponent<Transform>(e.entity).position;
-                }
-                else return;
+            auto it = animationEventAudioMap_.find(e.eventName);
+            if (it == animationEventAudioMap_.end()) return;
 
-                this->PlayRandomSound3D("Bird_Fly", AudioType::SFX, 0.3f, position, minHearingRange, maxHearingRange);
+            const AnimationEventAudioConfig& cfg = it->second;
+            if (cfg.is3D) {
+                EntityManager entityMgr(GameManager::GetInstance().GetECS());
+                if (!entityMgr.HasComponent(e.entity, TransformType)) return;
+                Vector2D position = entityMgr.GetComponent<Transform>(e.entity).position;
+                this->PlayRandomSound3D(cfg.soundKey, cfg.audioType, cfg.volume, position, minHearingRange, maxHearingRange);
+            }
+            else {
+                this->PlayRandomSound(cfg.soundKey, cfg.audioType, cfg.volume);
             }
             });
 

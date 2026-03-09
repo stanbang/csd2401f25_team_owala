@@ -35,7 +35,29 @@
 namespace Framework {
     void PlayerSystem::Initialize() {
         m_deathEventFired = false;
-        FileIOSystem::FileIOSystem::LoadPlayerStats(m_stats);
+
+        // Load player stats from config
+        {
+            rapidjson::Document d;
+            if (FileIOSystem::ReadFile(FileIOKeys::PLAYER_CONFIG_FILEPATH, d)) {
+                auto SafeReadFloat = [&](const char* key, float& outValue) {
+                    if (d.HasMember(key) && d[key].IsNumber())
+                        outValue = d[key].GetFloat();
+                    else
+                        Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing '" << key << "' in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+                };
+                SafeReadFloat(FileIOKeys::PLAYER_MV_SPEED,                  m_stats.moveSpeed);
+                SafeReadFloat(FileIOKeys::PLAYER_JUMP_HEIGHT,                m_stats.jumpHeight);
+                SafeReadFloat(FileIOKeys::PLAYER_INVULNERABILITY_DURATION,   m_stats.invulnerabilityDuration);
+                SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_DURATION,         m_stats.knockbackDuration);
+                SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_FORCE_X,          m_stats.knockbackForceX);
+                SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_FORCE_Y,          m_stats.knockbackForceY);
+                Logger::Get().Info(DebugType::FileIOSystem) << "Player data read successfully." << std::endl;
+            }
+            else {
+                Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
+            }
+        }
 
         ParticleEffectManager::GetInstance().LoadEffectPresets("Data/ParticleEffects/particleEffects.json");
 
