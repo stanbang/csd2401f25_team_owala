@@ -75,11 +75,12 @@ namespace Framework {
                 check(r, "sfxGroup_->addDSP(reverb)");
 
                 // Starter preset (subtle room)
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_WETLEVEL, -12.0f);     // dB
+                // 1. Lower the Wet Level to make it "softer" (-20dB to -30dB is very subtle)
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_WETLEVEL, -25.0f);     // dB
                 sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DRYLEVEL, 0.0f);      // dB
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DECAYTIME, 900.0f);   // ms
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DENSITY, 0.6f);       // 0..1
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DIFFUSION, 0.7f);     // 0..1
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DECAYTIME, 3000.0f);   // ms
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DENSITY, 0.8f);       // 0..1
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DIFFUSION, 0.8f);     // 0..1
                 sfxReverbDSP_->setBypass(true); // off by default
             }
         }
