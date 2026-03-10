@@ -1,4 +1,4 @@
-/*****************************************************************//**
+﻿/*****************************************************************//**
  * \file	EntityManager.h
  * \brief	Manager responsible for managing entities and their
  *			components in the ECS architecture. Also serves as a
@@ -189,6 +189,7 @@ namespace Framework {
 		case ComponentType::LoadedTagType: break;
 		case ComponentType::GUITagType: break;
 		case ComponentType::SpawnPointTagType: break;
+		case ComponentType::ViewportConstrainedTagType: break;
 
 		default:
 			Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
@@ -243,7 +244,7 @@ namespace Framework {
 			case LoadedTagType: break;
 			case GUITagType: break;
 			case SpawnPointTagType: break;
-			default: 
+			case ViewportConstrainedTagType: break;default: 
 				Logger::Get().Error(DebugType::GameManager) << "AddComponent: Unsupported ComponentType " << static_cast<int>(componentType) << std::endl;
 				return;
 		}
@@ -263,6 +264,7 @@ namespace Framework {
 		case ComponentType::GUITagType:
 		case ComponentType::SpawnPointTagType:
 			return true;
+case ComponentType::ViewportConstrainedTagType: return true;
 		default:
 			return false;
 		}

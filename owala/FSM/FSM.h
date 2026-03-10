@@ -46,6 +46,10 @@ namespace Framework {
         virtual void SetParameter(const std::string& key, float value) { (void)key; (void)value; }
         virtual void SetParameter(const std::string& key, const std::string& value) { (void)key; (void)value; }
 
+        // Returns true when the state has naturally completed (e.g. a death animation timer expires).
+        // Override in terminal states so callers need no knowledge of derived types.
+        virtual bool IsFinished() const { return false; }
+
         // Dependency Injection 
         virtual void SetNavGrid(NavigationGrid* grid) { (void)grid; }
     };

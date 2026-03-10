@@ -263,11 +263,8 @@ namespace Framework {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
         std::vector<Entity> constrainedEntities;
 
-        auto players = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
-        constrainedEntities.insert(constrainedEntities.end(), players.begin(), players.end());
-
-        auto trapPlatforms = entityMgr.GetAllEntitiesWithComponent(true, TrapPlatformComponentType);
-        constrainedEntities.insert(constrainedEntities.end(), trapPlatforms.begin(), trapPlatforms.end());
+        auto constrained = entityMgr.GetAllEntitiesWithComponent(true, ViewportConstrainedTagType);
+        constrainedEntities.insert(constrainedEntities.end(), constrained.begin(), constrained.end());
 
         for (const Entity& entity : constrainedEntities) {
             if (entityMgr.HasComponent(entity, TransformType) && entityMgr.HasComponent(entity, VelocityType) && entityMgr.HasComponent(entity, AABBColliderType)) {
@@ -706,16 +703,7 @@ namespace Framework {
                         entityMgr.GetComponent<PlayerState>(dynE).isGrounded = true;
                     }
 
-                    if (entityMgr.HasComponent(dynE, TrapPlatformComponentType)) {
-                        TrapPlatformComponent& trap = entityMgr.GetComponent<TrapPlatformComponent>(dynE);
-                        if (trap.hasFallen && trap.airTime > 0.1f) {
-                            Vector2D pos = entityMgr.GetComponent<Transform>(dynE).position;
-                            MessageBus::Instance().Publish(TrapPlatformLandEvent(pos));
-                            MessageBus::Instance().Publish(PlaySound3DEvent{ "Platform_Land", AudioType::SFX, 1.0f, pos });
-                        }
-                        trap.hasFallen = false;
-                        trap.isGrounded = true;
-                    }
+                    MessageBus::Instance().Publish(EntityLandedEvent{ dynE, entityMgr.GetComponent<Transform>(dynE).position });
                 }
             }
             else {

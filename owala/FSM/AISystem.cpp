@@ -20,7 +20,6 @@
 #include "GameManager.h"
 #include "Logger.h"
 #include "OwalaTime.h"
-#include "AIStates.h" 
 
 #ifdef BUILD_EDITOR
 #include "Editor.h"
@@ -89,10 +88,8 @@ namespace Framework {
 
             if (ai.fsm.GetCurrentState() == "Death") {
                 State* deathState = ai.fsm.GetState("Death");
-                if (auto* ds = dynamic_cast<BirdDeathState*>(deathState)) {
-                    if (ds->GetTimer() >= ds->GetDuration()) {
-                        entitiesToDestroy.push_back(entity);
-                    }
+                if (deathState && deathState->IsFinished()) {
+                    entitiesToDestroy.push_back(entity);
                 }
             }
         }

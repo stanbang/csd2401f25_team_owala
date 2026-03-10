@@ -155,4 +155,12 @@ namespace Framework {
 		Vector2D position;
 	};
 
+	// Generic engine-level event: any entity has landed on a surface.
+	// Game systems (TrapPlatformSystem, etc.) subscribe to this instead of
+	// having physics publish game-specific events.
+	struct EntityLandedEvent {
+		Entity   entity;
+		Vector2D position;
+	};
+
 } // namespace Framework

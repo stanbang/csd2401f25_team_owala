@@ -73,6 +73,7 @@ namespace Framework {
 		ParticleEmitterComponentType,
 		SliderType,
 		PlayerHealthComponentType,
+		ViewportConstrainedTagType,
 		MAX_COMPONENTS
 	};
 
@@ -119,6 +120,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<PlayerHealthComponent> { static constexpr ComponentType value = PlayerHealthComponentType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<SpawnPointTag> { static constexpr ComponentType value = SpawnPointTagType; };
+	template <> struct ComponentTypeTrait<ViewportConstrainedTag> { static constexpr ComponentType value = ViewportConstrainedTagType; };
 
 #pragma endregion
 

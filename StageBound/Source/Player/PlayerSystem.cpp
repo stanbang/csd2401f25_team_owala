@@ -155,6 +155,11 @@ namespace Framework {
 
         // Loop through each entity that is in the playerTag map
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
+            // Tag player entities for viewport clamping if not already tagged.
+            if (!entityMgr.HasComponent(entity, ViewportConstrainedTagType)) {
+                entityMgr.AddComponent(entity, ViewportConstrainedTag{});
+            }
+
             // Check if Player Entity is active in the scene. Handle player controller if active.
             if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
 

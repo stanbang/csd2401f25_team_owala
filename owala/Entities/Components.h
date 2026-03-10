@@ -257,6 +257,10 @@ namespace Framework{
 	/*	SpawnPoint tag for player spawn point*/
 	struct SpawnPointTag {};
 
+	// Tag for entities that should be constrained to the viewport.
+	// Add to any entity (player, trap platforms, etc.) that EnforceViewportBounds should clamp.
+	struct ViewportConstrainedTag {};
+
 	struct RotationFlag {
 		
 		bool isRotating = false;
