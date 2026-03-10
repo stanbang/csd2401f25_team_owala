@@ -602,9 +602,6 @@ namespace Framework {
 
 	void GameManager::TickFadeOverlay(float dt) {
 		if (!fadeActive_) return;
-		Logger::Get().Info(DebugType::GameManager)
-			<< "[TickFade] dt=" << dt << " timer=" << fadeTimer_
-			<< " alpha=" << fadeAlpha_ << std::endl;
 		fadeTimer_ += dt;
 		const float t = std::min(fadeTimer_ / fadeDuration_, 1.0f);
 		fadeAlpha_ = fadeOut_ ? t : (1.0f - t);
