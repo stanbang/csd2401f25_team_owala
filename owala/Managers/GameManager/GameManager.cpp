@@ -357,14 +357,9 @@ namespace Framework {
 		if (!queuedSceneUnload_.empty()) {
 			std::string sceneToUnload = std::move(queuedSceneUnload_);
 			queuedSceneUnload_.clear();
-			// If we are unloading a game overlay that paused physics (PauseScene /
-			// OptionsMenu) via a non-Resume path (e.g. "Main Menu" button), we must
-			// unpause physics here. Otherwise the paused state leaks into subsequent
-			// scenes and freezes all animations driven by AnimationSystem.
 			if (sceneToUnload == "PauseScene" || sceneToUnload == "OptionsMenu") {
 				systems_.physics_->SetPaused(false);
 			}
-
 			SceneManager::GetInstance().UnloadScene(sceneToUnload);
 		}
 
@@ -373,7 +368,6 @@ namespace Framework {
 			std::string targetSceneName = queuedLevelName_;
 			queuedLevelName_.clear();
 			queuedLevelLoad_ = false;
-
 			InitiateLevelLoad(targetSceneName);
 		}
 
@@ -387,13 +381,11 @@ namespace Framework {
 		// Free Scenes that are no longer loaded
 		for (auto it = initializedScenes_.begin(); it != initializedScenes_.end();) {
 			const SceneGUID sceneID = *it;
-
 			if (loadedSet.find(sceneID) == loadedSet.end()) {
 				std::unordered_map<SceneGUID, SceneCallBacks>::iterator callback = sceneCallbacks_.find(sceneID);
 				if (callback != sceneCallbacks_.end() && callback->second.fpFree) {
 					callback->second.fpFree();
 				}
-
 				it = initializedScenes_.erase(it);
 			}
 			else {
@@ -405,14 +397,9 @@ namespace Framework {
 		for (SceneGUID sceneID : loadedScenes) {
 			auto callback = sceneCallbacks_.find(sceneID);
 			const bool hasLifecycle = (callback != sceneCallbacks_.end()) && (callback->second.fpInitialize || callback->second.fpFree);
-
-			if (!hasLifecycle) {
-				continue;
-			}
-
+			if (!hasLifecycle) continue;
 			const bool firstTime = initializedScenes_.insert(sceneID).second;
 			if (!firstTime) continue;
-
 			if (callback->second.fpInitialize) {
 				callback->second.fpInitialize();
 			}
@@ -451,15 +438,17 @@ namespace Framework {
 			std::cout << "== End Persistent Entities == " << std::endl;
 		}
 
-		//Render sprite in engine if not using editor
+		// Render sprites and text, then draw fade overlay on top
 #ifndef BUILD_EDITOR
-	// First, render all normal game sprites and text
 		systems_.textRenderer_->Update();
 		systems_.spriteRenderer_->Update();
-
-		// THEN, after all game rendering is complete, draw the fade overlay on top
-		// This ensures the fade appears above everything else
 		if (overlayDrawCallback_) {
+			overlayDrawCallback_();
+		}
+#else
+	// In editor, sprites/text are rendered by the Core system loop.
+	// Only draw the fade overlay during play mode.
+		if (IsGamePlaying() && overlayDrawCallback_) {
 			overlayDrawCallback_();
 		}
 #endif
@@ -485,6 +474,10 @@ namespace Framework {
 		systems_.textRenderer_->Shutdown();
 		delete systems_.textRenderer_;
 		systems_.textRenderer_ = nullptr;
+
+
+		overlayDrawCallback_ = nullptr;
+		fadeOnComplete_ = nullptr;
 
 		instance = nullptr; // Reset instance pointer
 	}
