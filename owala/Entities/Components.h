@@ -60,12 +60,6 @@ namespace Framework{
 		RANDOM_BURST	// Emit in random time intervals
 	};
 
-	// To separate different audio types
-	enum class AudioType {
-		SFX,
-		MUSIC
-	};
-
 	// Config loaded from game data that maps an animation event name to a sound to play
 	struct AnimationEventAudioConfig {
 		std::string soundKey;

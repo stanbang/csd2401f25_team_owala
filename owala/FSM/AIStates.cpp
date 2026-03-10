@@ -82,6 +82,7 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
             MessageBus::Instance().Publish(BirdWakeEvent(entity, position));
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Wake", AudioType::SFX, 0.3f, position });
         }
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -346,6 +347,7 @@ namespace Framework {
         }
 
         MessageBus::Instance().Publish(BirdAttackEvent(entity, myPos));
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Attack", AudioType::SFX, 0.3f, myPos });
     }
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;

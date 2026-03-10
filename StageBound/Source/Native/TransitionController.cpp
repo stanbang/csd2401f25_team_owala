@@ -111,6 +111,7 @@ namespace Framework {
         }
 
         MessageBus::Instance().Publish(CurtainsCloseEvent());
+        MessageBus::Instance().Publish(PlaySoundEvent{ "Curtains_Close", AudioType::SFX, 1.0f });
 
         bool callbackAssigned = false;
 
@@ -190,6 +191,7 @@ namespace Framework {
         // Only publish if enough time has passed since the last one
         if (currentTime - s_lastOpenEventTime > 0.1f) {
             MessageBus::Instance().Publish(CurtainsOpenEvent());
+            MessageBus::Instance().Publish(PlaySoundEvent{ "Curtains_Open", AudioType::SFX, 1.0f });
             s_lastOpenEventTime = currentTime;
         }
 

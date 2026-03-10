@@ -107,16 +107,13 @@ namespace Framework {
         // Load in audio file names
         FileIOSystem::LoadAudioFileNames(soundPaths_);
 
-        // Subscribe to Player Events
-        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent&) {this->PlayRandomSound("Player_Jump", AudioType::SFX, 0.3f); });
-        MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 0.3f);  });
-
-        MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 0.3f); });
-        MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& e) {
-            if (!e.deathAnimationFinished) {  // Only play sound on the initial death, not after animation ends
-                this->PlayRandomSound("Player_Death", AudioType::SFX, 0.3f);
-            }
-            });
+        // Subscribe to generic audio trigger events - all game/engine sound decisions happen at the publisher
+        MessageBus::Instance().Subscribe<PlaySoundEvent>([this](const PlaySoundEvent& e) {
+            this->PlayRandomSound(e.soundKey, e.audioType, e.volume);
+        });
+        MessageBus::Instance().Subscribe<PlaySound3DEvent>([this](const PlaySound3DEvent& e) {
+            this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist);
+        });
 
 		// Subscribe to Animation Events (for frame-specific SFX)
 		FileIOSystem::LoadAnimationEventAudio(animationEventAudioMap_);
@@ -135,24 +132,6 @@ namespace Framework {
                 this->PlayRandomSound(cfg.soundKey, cfg.audioType, cfg.volume);
             }
             });
-
-        // Subscribe to Bird Enemy Events
-        MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent& e) {
-            this->PlayRandomSound3D("Bird_Wake", AudioType::SFX, 0.3f, e.position, minHearingRange, maxHearingRange); 
-        });
-        MessageBus::Instance().Subscribe<BirdAttackEvent>([this](const BirdAttackEvent& e) {
-            this->PlayRandomSound3D("Bird_Attack", AudioType::SFX, 0.3f, e.position, minHearingRange, maxHearingRange); 
-        });
-
-        // Subscribe to World Rotation Event
-        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
-        // Subscribe to Trap Platform Land Event
-        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& e) {
-            this->PlayRandomSound3D("Platform_Land", AudioType::SFX, 1.0f, e.position, minHearingRange, maxHearingRange);
-        });
-        // Subscribe to Curtains Open/Close Event
-        MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent&) {this->PlayRandomSound("Curtains_Open", AudioType::SFX, 1.0f); });
-        MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent&) {this->PlayRandomSound("Curtains_Close", AudioType::SFX, 1.0f); });
 
         // Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& e) {this->OnButtonClicked(e); });
