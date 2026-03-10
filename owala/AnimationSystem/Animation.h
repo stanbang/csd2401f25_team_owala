@@ -17,11 +17,19 @@
 using stateToTextureMap = std::unordered_map<int, std::string>; // Map state index (int) to texture key (string)
 using animationProfileMap = std::unordered_map<std::string, stateToTextureMap>; // Map entity type (string) to stateToTextureMap
 
+/**
+ * This struct represents a segment of a spritesheet used in an animation, 
+ * containing the texture key and the number of frames it contributes to the animation.
+ */
 struct SpriteSheetSegment {
     std::string textureKey;
     int frameCount;
 };
 
+/**
+ * AnimationInfo struct that holds all necessary information about an animation, 
+ * including frame count, duration, looping, and associated spritesheets.
+ */
 struct AnimationInfo {
     int frameCount = 0;
     float frameDuration = 0;

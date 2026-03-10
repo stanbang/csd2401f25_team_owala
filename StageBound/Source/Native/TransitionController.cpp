@@ -95,6 +95,9 @@ namespace Framework {
         CheckStartClosed();
     }
 
+    /**
+	 * During destruction, we need to remove this instance from the global list to prevent dangling pointers.
+     */
     void TransitionController::OnDestroy() {
         auto it = std::remove(allControllers.begin(), allControllers.end(), this);
         if (it != allControllers.end()) {
@@ -110,6 +113,7 @@ namespace Framework {
             return;
         }
 
+		// Publish the event for any systems that need to react to curtains closing (e.g., to hide UI)
         MessageBus::Instance().Publish(CurtainsCloseEvent());
         MessageBus::Instance().Publish(PlaySoundEvent{ "Curtains_Close", AudioType::SFX, 1.0f });
 
@@ -135,6 +139,7 @@ namespace Framework {
         }
     }
 
+	// Static Function to force all curtains to HIDDEN immediately (e.g., when starting a new scene)
     void TransitionController::PlayClose(std::function<void()> onComplete) {
         state_ = TransitionState::CLOSING;
         animTimer_ = 0.0f;
@@ -145,6 +150,8 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
+
+			// Set the texture to the closing animation. The AnimationComponent will handle the frame updates.
             tex.textureKey = CLOSE_ANIM_TEXTURE;
             tex.flipHorizontal = isLeftCurtain_;
 
@@ -173,6 +180,7 @@ namespace Framework {
                     }
                 }
 
+				// Reset animation to start from the beginning
                 anim.currentFrame = 0;
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = true;
@@ -181,13 +189,14 @@ namespace Framework {
         }
     }
 
+	// Non-static Function to trigger OPEN on this curtain
     void TransitionController::PlayOpen(std::function<void()> onComplete) {
         state_ = TransitionState::OPENING;
         animTimer_ = 0.0f;
         onTransitionComplete_ = onComplete;
 
+		// Publish the event for any systems that need to react to curtains opening (e.g., to show UI)
         float currentTime = Framework::Time::TotalRuntime();
-
         // Only publish if enough time has passed since the last one
         if (currentTime - s_lastOpenEventTime > 0.1f) {
             MessageBus::Instance().Publish(CurtainsOpenEvent());
@@ -200,7 +209,7 @@ namespace Framework {
 
         if (entityMgr.HasComponent(e, TextureComponentType)) {
             TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(e);
-            tex.textureKey = OPEN_ANIM_TEXTURE;
+			tex.textureKey = OPEN_ANIM_TEXTURE; // Set the texture to the opening animation. The AnimationComponent will handle the frame updates.
             tex.flipHorizontal = isLeftCurtain_;
 
             if (entityMgr.HasComponent(e, AnimationComponentType)) {
@@ -213,6 +222,7 @@ namespace Framework {
                         rsm->loadAnimationInfo(OPEN_ANIM_TEXTURE);
                     }
 
+					// If the animation info exists, use it to set frame counts and durations. This ensures that if the anim data changes, we don't have to hardcode it here.
                     if (rsm->has<AnimationInfo>(OPEN_ANIM_TEXTURE)) {
                         AnimationInfo& info = rsm->get<AnimationInfo>(OPEN_ANIM_TEXTURE);
 
@@ -226,6 +236,7 @@ namespace Framework {
                     }
                 }
 
+				// Reset animation to start from the beginning
                 anim.currentFrame = 0;
                 anim.elapsedTime = 0.0f;
                 anim.isPlaying = true;
@@ -234,6 +245,7 @@ namespace Framework {
         }
     }
 
+	// Static Function to force this curtain to CLOSED immediately without animation (e.g., when starting directly in a loading screen)
     void TransitionController::SetClosed() {
         state_ = TransitionState::CLOSED;
     }
@@ -279,6 +291,9 @@ namespace Framework {
             animTimer_ += dt;
             float t = std::min(animTimer_ / animDuration_, 1.0f);
 
+			// When closing animation finishes, we switch to CLOSED state and invoke the callback to trigger the scene load. 
+            // We wait until the animation finishes to switch states so that the curtains remain visible during the transition, 
+            // instead of snapping away immediately when the scene loads.
             if (t >= 1.0f) {
                 state_ = TransitionState::CLOSED;
                 if (onTransitionComplete_) {
@@ -309,6 +324,7 @@ namespace Framework {
                     state_ = TransitionState::HIDDEN;
                 }
 
+				// Invoke callback after animation finishes and state is updated, so that any logic triggered by the callback can check the correct state of the curtains.
                 if (onTransitionComplete_) {
                     auto callback = onTransitionComplete_;
                     onTransitionComplete_ = nullptr;
@@ -326,22 +342,32 @@ namespace Framework {
             }
         }
 
-        // If in IDLING state, curtains are visible at the sides with looping animation
+		// If the curtains are supposed to be hidden but the texture is still set 
+        // (e.g., we transitioned to a non-level scene but the curtain texture is still there from the previous level), 
+        // clear the texture to hide them. This is important for ensuring that if we start in a non-level scene, we don't show the curtains until we want to.
         if (state_ == TransitionState::HIDDEN) {
             if (!isLevel && !tex.textureKey.empty()) {
                 tex.textureKey = "";
             }
         }
+
+		// When idling, we want to ensure the correct idle texture is playing. This is important for two reasons:
         else if (state_ == TransitionState::IDLING) {
             std::string targetIdleKey = idleTextureKey_;
 
+			// Check if the target idle animation is already playing to avoid resetting it and 
+            // causing a visual hiccup. We check both the main texture key and any associated spritesheet 
+            // segments in the AnimationInfo, since some animations use separate textures for each frame.
             bool isAlreadyPlayingIdle = false;
             if (rsm && rsm->has<AnimationInfo>(targetIdleKey)) {
                 AnimationInfo& info = rsm->get<AnimationInfo>(targetIdleKey);
 
+				// First check if the main texture key matches the target idle key
                 if (tex.textureKey == targetIdleKey) {
                     isAlreadyPlayingIdle = true;
                 }
+
+				// If not, check if any of the spritesheet segments match the target idle key
                 else {
                     for (const auto& sheet : info.sheets) {
                         if (tex.textureKey == sheet.textureKey) {
@@ -355,6 +381,8 @@ namespace Framework {
                 isAlreadyPlayingIdle = true;
             }
 
+			// If we're not already playing the correct idle animation, switch to it. This ensures that if we just finished the opening animation, 
+            // we transition smoothly into the idle animation without any visual hiccups or flashes.
             if (!isAlreadyPlayingIdle) {
                 tex.textureKey = targetIdleKey;
                 tex.flipHorizontal = false;
@@ -414,11 +442,13 @@ namespace Framework {
         }
     }
 
+	// Static function to reset all controllers - useful when starting a new game or returning to main menu to clear any lingering states
     void TransitionController::Reset() {
         allControllers.clear();
         s_startNextSceneClosed = false;
     }
 
+	// Static function to check if we need to start with curtains closed, and if so, apply it to all controllers. This is called on each controller's OnCreate, but the flag is only applied once to all controllers to ensure consistency.
     void TransitionController::CheckStartClosed() {
         // If the flag is set, we apply the state to ALL controllers immediately
         // This ensures the first one to update doesn't steal the flag from the others.
@@ -435,6 +465,10 @@ namespace Framework {
         }
     }
 
+	// This function is called on each controller when the Start Closed flag is set. It sets the curtain to the 
+    // OPEN animation but immediately pauses it at the first frame, effectively showing the closed curtain without 
+    // playing any animation. After a short wait, it will then play the opening animation as normal. This allows us 
+    // to start in a scene with the curtains closed and then have them open smoothly after a brief pause.
     void TransitionController::StartWaitingState() {
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);
         Entity e = GetEntity();
@@ -459,12 +493,21 @@ namespace Framework {
         }
     }
 
+	// This function is used to immediately hide the curtains without 
+    // playing any animations. It sets the state to HIDDEN and clears the texture key, 
+    // effectively making the curtains invisible. This is useful for non-level scenes 
+    // where we don't want the curtains to be visible at all, or if we need to force 
+    // them hidden for any reason.
     void TransitionController::ForceHideAll() {
         for (auto* controller : allControllers) {
             controller->ForceHide();
         }
     }
 
+	// This function forces this curtain to be hidden immediately by setting the state 
+    // to HIDDEN and clearing the texture key. This is used in non-level scenes to ensure 
+    // that the curtains are not visible when they shouldn't be, such as in the main menu or 
+    // loading screens.
     void TransitionController::ForceHide() {
         state_ = TransitionState::HIDDEN;
         EntityManager entityMgr(*GameManager::GetInstance().GetSystems().ecs_);

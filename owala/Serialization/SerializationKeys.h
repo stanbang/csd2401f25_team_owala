@@ -2,9 +2,9 @@
 * \file   SerializationKeys.h
 *
 * \primary_author
-*       Jason Lou
+*       Jason Lou (90%)
 * \secondary_author
-*
+*		Ng Jing Wen (10%)
 *
 * \brief    This file is a centralized list of static strings that serves
 *			as JSON keys.

@@ -1,8 +1,15 @@
-/*********************************************************************//**
+/*****************************************************************//**
 * \file   ProjectScaffold.h
 *
-* \brief  Declares free utility functions for creating and importing
-*         game projects in the Owala Engine editor.
+* \primary_author
+*       Ng Jing Wen
+* \secondary_author
+*
+*
+* \brief    This file contains the declarations of project scaffolding functions for the owala Engine Editor,
+*			including creating a new project directory structure and writing the active game configuration file.
+*			Used when creating a new project from the editor, and when switching active projects to update the CMake
+*			configuration.
 *
 * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
 * Reproduction or disclosure of this file or its contents without the prior
@@ -12,14 +19,31 @@
 #include <string>
 
 namespace Editor {
-	// Creates the standard game-project folder scaffold under rootDir/projectName/.
-	// Returns true on success.
+	/**
+	 * Creates a new project directory structure with the specified root directory and project name.
+	 * Generates the standard folders for assets, data, and source code, and populates them with default configuration files.
+	 *
+	 * \param rootDir
+	 * \param projectName
+	 * \return
+	 */
 	bool ScaffoldNewProject(const std::string& rootDir, const std::string& projectName);
 
-	// Validates that the given path looks like a valid (pre-existing) game project folder.
-	// Returns true when the path exists and contains at least a "Source" or "Assets" subfolder.
+	/**
+	 * Checks if the given path is a valid project directory by verifying that it exists, is a directory,
+	 * and contains at least one of the expected subfolders (e.g. "Source" or "Assets").
+	 *
+	 * \param path
+	 * \return
+	 */
 	bool ValidateImportPath(const std::string& path);
 
-	// Writes active_game.cmake at the repository root to point the build system at gameDir.
+	/**
+	 * Writes the active_game.cmake file with the given game directory.
+	 * This file is used by CMake to determine which game project to build
+	 * and run when using the editor's Play button.
+	 *
+	 * \param gameDir
+	 */
 	void WriteActiveGameConfig(const std::string& gameDir);
 }

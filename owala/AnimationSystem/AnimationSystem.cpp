@@ -23,10 +23,18 @@
 
 namespace Framework {
 
+	/**
+	 * Update the animation system for all entities with AnimationComponent. This involves:
+	 * Checking if the entity is active and has a TextureComponent, determining the correct 
+	 * animation frame based on the entity's state (e.g. FSM state or player state), and 
+	 * updating the UV coordinates of the TextureComponent to display the correct frame of 
+	 * the animation.
+	 */
 	void AnimationSystem::Update() {
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
 		PhysicsSystem& physics_ = *GameManager::GetInstance().GetSystems().physics_;
+
 		// If physics is paused, skip animation update
 		if (physics_.IsAnimationPaused()) { return; }
 
@@ -37,6 +45,7 @@ namespace Framework {
 		}
 		#endif
 
+		// Get the animation profiles mapping from the ResourceManager
 		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
 		// Small padding to avoid texture bleeding
 		constexpr float UV_PADDING = 0.003f;
@@ -58,19 +67,18 @@ namespace Framework {
 
 			// Default facing direction
 			bool isFacingRight = true;
+
+			// For player entities, we can determine facing direction from PlayerState or Velocity
 			if (entityMgr.HasComponent(entity, PlayerStateType)) {
 				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
 			}
 
+			// For non-player entities, we can infer facing direction from Velocity (if available)
 			if (entityMgr.HasComponent(entity, VelocityType)) {
 				const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
-				if (vel.x > 0.1f)       isFacingRight = true;
-				else if (vel.x < -0.1f) isFacingRight = false;
+				if (vel.x > 0.1f)       isFacingRight = true; // Moving right
+				else if (vel.x < -0.1f) isFacingRight = false; // Moving left
 			}
-
-			// FSM-driven entities: the FSM state name is uppercased and looked up directly
-			// in stateToAnimationMapping.json. No engine-side mapping is needed here.
-			// Add state-to-texture entries to the game's JSON profile instead.
 
 			// Generic Texture Lookup
 			std::string newTextureKey = textureComponent.textureKey; // Default to current
@@ -85,10 +93,10 @@ namespace Framework {
 					// If entity has FSM, the FSM state will determine the animation state
 					if (entityMgr.HasComponent(entity, FSMComponentType)) {
 						FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
-						targetStateString = fsm.fsm.GetCurrentState();
+						targetStateString = fsm.fsm.GetCurrentState(); // Get current FSM state as string
 
 						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
-						//std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
+						// std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(), ::toupper);
 						// Convert FSM state to uppercase to match JSON keys (e.g. "Chase" -> "CHASE")
 						std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(),
 							[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
@@ -106,6 +114,7 @@ namespace Framework {
 				}
 			}
 
+			// When the texture key changes, we need to check if the new texture has animation info and update the animation component accordingly
 			std::string baseTextureKey = newTextureKey;
 
 			// Load animation info using base texture key
@@ -120,17 +129,21 @@ namespace Framework {
 				}
 			}
 
+			// If there's still no animation info, this texture is not animated. We can skip the rest of the loop and treat it as a static image.
 			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
 				// Fallback and treat as static image without animation
 				// Reset UVs here to show full image
 				animationComponent.isPlaying = false;
 				animationComponent.frameCount = 1;
 				animationComponent.currentFrame = 0;
+
 				// Force full image display
 				animationComponent.minUV = { 0.0f, 0.0f };
 				animationComponent.maxUV = { 1.0f, 1.0f };
 				continue;
 			}
+
+			// If we have animation info, we can update the animation component properties accordingly
 			AnimationInfo& animationInfo = resourceManager_.get<AnimationInfo>(baseTextureKey);
 
 			// Check if the texture key has changed
@@ -139,7 +152,7 @@ namespace Framework {
 			// Special check: If we are in a multi-sheet animation, previousTextureKey might be "Part_2" 
 			// while base is "Part_1". We need to check if previousTextureKey is valid for this animation.
 			if (animationStateChanged && !animationInfo.sheets.empty()) {
-				for (const auto& sheet : animationInfo.sheets) {
+				for (const auto& sheet : animationInfo.sheets) { // Iterate through all sheets in this animation
 					if (sheet.textureKey == previousTextureKey) {
 						animationStateChanged = false; // It's just a different part of the same animation
 						break;
@@ -187,11 +200,16 @@ namespace Framework {
 			// Initialise start delay on first encounter (delayRemaining == -1) or after a state change
 			if (animationComponent.delayRemaining < 0.0f) {
 				float delay = animationComponent.startDelay;
+				// If startDelayRange is set, add a random amount in [0, startDelayRange] to the delay
 				if (animationComponent.startDelayRange > 0.0f) {
 					float random01 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 					delay += random01 * animationComponent.startDelayRange;
 				}
+
+				// Set the delayRemaining to the calculated delay
 				animationComponent.delayRemaining = delay;
+
+				// If there's a delay, we should hold playback until the delay expires
 				if (delay > 0.0f) {
 					animationComponent.isPlaying = false; // Hold playback until delay expires
 				}
@@ -287,19 +305,22 @@ namespace Framework {
 				// Ensure texture key matches the base key
 				textureComponent.textureKey = baseTextureKey;
 
-				float frameUVWidth = 1.0f / (float)animationComponent.frameCount;
-				float u_min = ((float)animationComponent.currentFrame * frameUVWidth) + UV_PADDING;
-				float u_max = (((float)animationComponent.currentFrame + 1.0f) * frameUVWidth) - UV_PADDING;
+				float frameUVWidth = 1.0f / (float)animationComponent.frameCount; // Calculate UVs based on the current frame index
+				float u_min = ((float)animationComponent.currentFrame * frameUVWidth) + UV_PADDING; // Add small padding to avoid texture bleeding
+				float u_max = (((float)animationComponent.currentFrame + 1.0f) * frameUVWidth) - UV_PADDING; // Subtract padding on the max UV as well
 
+				// Handle horizontal flipping by swapping UVs
 				if (isFacingRight) {
 					animationComponent.minUV.x = u_min;
 					animationComponent.maxUV.x = u_max;
 				}
+				// If not facing right, we flip the UVs to mirror the image
 				else {
 					animationComponent.minUV.x = u_max;
 					animationComponent.maxUV.x = u_min;
 				}
 
+				// UV.y is standard 0-1 for horizontal strips
 				animationComponent.minUV.y = 0.0f;
 				animationComponent.maxUV.y = 1.0f;
 			}
