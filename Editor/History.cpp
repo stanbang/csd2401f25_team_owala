@@ -328,6 +328,26 @@ namespace Editor {
 				}
 				break;
 			}
+			case ComponentType::SliderType: {
+				Slider newSlider;
+				if (EntitySerializer::DeserializeComponent(doc, newSlider)) {
+					if (entityMgr.HasComponent(entity, ComponentType::SliderType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::SliderType);
+					}
+					entityMgr.AddComponent<Slider>(entity, newSlider);
+				}
+				break;
+			}
+			case ComponentType::PlayerHealthComponentType: {
+				PlayerHealthComponent newPlayerHealth;
+				if (EntitySerializer::DeserializeComponent(doc, newPlayerHealth)) {
+					if (entityMgr.HasComponent(entity, ComponentType::PlayerHealthComponentType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::PlayerHealthComponentType);
+					}
+					entityMgr.AddComponent<PlayerHealthComponent>(entity, newPlayerHealth);
+				}
+				break;
+			}
 			default:
 				Logger::Info(DebugType::Editor) << "HistoryManager::ApplyComponentSnapshot: Unsupported component type. No Changes applied" << std::endl;
 		}

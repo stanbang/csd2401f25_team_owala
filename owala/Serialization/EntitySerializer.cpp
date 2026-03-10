@@ -423,6 +423,9 @@ namespace Framework {
 		case SliderType:
 			SerializeComponent(entityMgr.GetComponent<Slider>(entity), componentData, alloc);
 			break;
+		case PlayerHealthComponentType:
+			SerializeComponent(entityMgr.GetComponent<PlayerHealthComponent>(entity), componentData, alloc);
+			break;
 		}
 		doc.CopyFrom(componentData, alloc);
 

@@ -3576,18 +3576,42 @@ namespace Editor {
 
 			int handleId = static_cast<int>(slider.handleEntity);
 			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
 				// Ensure the ID doesn't go below 0
 				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Handle Name
 			ImGui::InputText("Handle Name", &slider.handleName);
 			if (ImGui::IsItemActive()) activeNow = true;
 			
 			int fillId = static_cast<int>(slider.fillEntity);
 			if (ImGui::InputInt("Fill Entity ID", &fillId)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
 				// Ensure the ID doesn't go below 0
 				slider.fillEntity = static_cast<Entity>(std::max(0, fillId));
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Fill Name
 			ImGui::InputText("Fill Name", &slider.fillName);
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -3625,7 +3649,21 @@ namespace Editor {
 		
 		case ComponentType::PlayerHealthComponentType: {
 			PlayerHealthComponent& healthComp = entityMgr.GetComponent<PlayerHealthComponent>(selectedEntity);
-			ImGui::InputInt("Life number:", &healthComp.lifeNum);
+
+			int newLifeNum = healthComp.lifeNum;
+			if (ImGui::InputInt("Life number:", &newLifeNum)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				healthComp.lifeNum = std::max(0, newLifeNum);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified PlayerHealth in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
 			break;
 		}
 		default:
