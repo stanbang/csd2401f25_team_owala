@@ -173,6 +173,8 @@ namespace {
 			GameStateFlags::shouldRecordTime = false;  // Clear the shared flag
 			CloseRecordPrompt(entityMgr);
 
+			// Stop Menu BGM before loading level
+			entityMgr.DestroyEntity(entityMgr.GetEntityByName("MenuBGM"));
 			// Load the level directly
 			GameManager::GetInstance().InitiateLevelLoad(namePendingScene);
 			return;
@@ -272,6 +274,10 @@ namespace {
 				<< "[NameEntry] shouldRecordTime AFTER save: " << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
 
 			CloseNameEntry(entityMgr);
+
+			// Stop Menu BGM before loading level
+			entityMgr.DestroyEntity(entityMgr.GetEntityByName("MenuBGM"));
+			// Load the level directly
 			GameManager::GetInstance().InitiateLevelLoad(namePendingScene);
 			return;
 		}
