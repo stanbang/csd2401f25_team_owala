@@ -3104,56 +3104,79 @@ namespace Editor {
 
 		case ComponentType::FSMComponentType:
 		{
-			if (ImGui::CollapsingHeader("FSM Component", ImGuiTreeNodeFlags_DefaultOpen)) {
-				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+			FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+			bool activeNow = false;
 
-				// 1. Definition Path Input
-				char buffer[256];
-				strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
-				if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
-					fsm.fsmDefinitionPath = buffer;
-					fsm.initialized = false; // Force rebuild
-				}
+			// 1. Definition Path Input
+			char buffer[256];
+			strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
 
-				// --- DRAG AND DROP TARGET ---
-				// Allows dragging a .json file from the Asset Browser into this field
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-						const char* path = (const char*)payload->Data;
-						std::string pathStr = path;
-
-						// Simple check for JSON extension
-						if (pathStr.find(".json") != std::string::npos) {
-							fsm.fsmDefinitionPath = pathStr;
-							fsm.initialized = false; // Force rebuild
-							Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << pathStr << std::endl;
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-				// -----------------------------
-
-				// 2. Initial State Override (Optional)
-				char initBuffer[256];
-				strcpy_s(initBuffer, fsm.initialStateOverride.c_str());
-				if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
-					fsm.initialStateOverride = initBuffer;
-				}
-
-				// 3. Current State Display (Read-Only)
-				std::string currentState = fsm.fsm.GetCurrentState();
-				ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
-
-				// 4. Reload Button
-				if (ImGui::Button("Reload FSM")) {
-					fsm.initialized = false;
-				}
-
-				// 5. Remove Component Button
-				if (ImGui::Button("Remove Component")) {
-					entityMgr.RemoveComponent(selectedEntity, ComponentType::FSMComponentType);
-				}
+			if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
+				fsm.fsmDefinitionPath = buffer;
+				fsm.initialized = false; // Force rebuild
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// --- DRAG AND DROP TARGET ---
+			// Allows dragging a .json file from the Asset Browser into this field
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".json") {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						fs::path relative_path = fs::relative(dropped_path, fs::current_path());
+						fsm.fsmDefinitionPath = relative_path.generic_string();
+						fsm.initialized = false; // Force rebuild
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified FSM Definition Path (DragDrop) in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+						Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << dropped_path << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+			// -----------------------------
+
+			// 2. Initial State Override (Optional)
+			char initBuffer[256];
+			strcpy_s(initBuffer, sizeof(initBuffer), fsm.initialStateOverride.c_str());
+			if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
+				fsm.initialStateOverride = initBuffer;
+			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// 3. Current State Display (Read-Only)
+			std::string currentState = fsm.fsm.GetCurrentState();
+			ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
+
+			// 4. Reload Button
+			if (ImGui::Button("Reload FSM")) {
+				fsm.initialized = false;
+			}
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified FSM Component in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+			editSession.wasItemActive = activeNow;
+
 			break;
 		}
 

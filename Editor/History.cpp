@@ -306,13 +306,10 @@ namespace Editor {
 			case ComponentType::FSMComponentType:
 			{
 				FSMComponent newFSM;
-				// Deserialize data from the JSON snapshot
 				if (EntitySerializer::DeserializeComponent(doc, newFSM)) {
-					// Remove existing if present to ensure clean state
 					if (entityMgr.HasComponent(entity, ComponentType::FSMComponentType)) {
 						entityMgr.RemoveComponent(entity, ComponentType::FSMComponentType);
 					}
-					// Add the restored component
 					entityMgr.AddComponent<FSMComponent>(entity, newFSM);
 				}
 				break;
