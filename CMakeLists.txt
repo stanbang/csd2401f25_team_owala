@@ -196,17 +196,19 @@ COPY_ASSETS_AND_DATA(StageBound "${GAME_DIR}")
 # ======================= Post-Build: Copy FMOD DLLs =========================
 if(WIN32)
     macro(COPY_FMOD_DLL target_name)
+        # Always copy the release DLL
         add_custom_command(TARGET ${target_name} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
                     "${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmod.dll"
                     "$<TARGET_FILE_DIR:${target_name}>"
             COMMENT "Copying FMOD DLL to output directory for ${target_name}"
         )
+        # Only copy the debug DLL in Debug builds
         add_custom_command(TARGET ${target_name} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    "${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmodL.dll"
-                    "$<TARGET_FILE_DIR:${target_name}>"
-            COMMENT "Copying FMOD logging DLL to output directory for ${target_name}"
+            COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> $<$<CONFIG:Debug>:-E> $<$<CONFIG:Debug>:copy>
+                    $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/lib/fmod/core/lib/x64/fmodL.dll>
+                    $<$<CONFIG:Debug>:$<TARGET_FILE_DIR:${target_name}>>
+            COMMENT "Copying FMOD debug DLL (Debug only) for ${target_name}"
         )
     endmacro()
 

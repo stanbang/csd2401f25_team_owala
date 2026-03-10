@@ -2,9 +2,10 @@
  * \file   AudioSystem.cpp
  *
  * \primary_author
- *      Ng Jordain Ying Zhe (80%)
+ *      Ng Jordain Ying Zhe (75%)
  * \secondary_author
- *      Yar Xuan  (20%)
+ *      Yar Xuan  (15%)
+ *      Ng Jing Wen (10%)
  *
  * \brief
  *   Audio system wrapper around FMOD for loading, playing, and managing
@@ -75,11 +76,12 @@ namespace Framework {
                 check(r, "sfxGroup_->addDSP(reverb)");
 
                 // Starter preset (subtle room)
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_WETLEVEL, -12.0f);     // dB
+                // 1. Lower the Wet Level to make it "softer" (-20dB to -30dB is very subtle)
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_WETLEVEL, -25.0f);     // dB
                 sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DRYLEVEL, 0.0f);      // dB
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DECAYTIME, 900.0f);   // ms
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DENSITY, 0.6f);       // 0..1
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DIFFUSION, 0.7f);     // 0..1
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DECAYTIME, 3000.0f);   // ms
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DENSITY, 0.8f);       // 0..1
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DIFFUSION, 0.8f);     // 0..1
                 sfxReverbDSP_->setBypass(true); // off by default
             }
         }
@@ -106,52 +108,31 @@ namespace Framework {
         // Load in audio file names
         FileIOSystem::LoadAudioFileNames(soundPaths_);
 
-        // Subscribe to Player Events
-        MessageBus::Instance().Subscribe<PlayerJumpedEvent>([this](const PlayerJumpedEvent&) {this->PlayRandomSound("Player_Jump", AudioType::SFX, 0.3f); });
-        MessageBus::Instance().Subscribe<PlayerLandEvent>([this](const PlayerLandEvent&) {this->PlayRandomSound("Player_Land", AudioType::SFX, 0.3f);  });
-
-        MessageBus::Instance().Subscribe<PlayerDamagedEvent>([this](const PlayerDamagedEvent&) { this->PlayRandomSound("Player_Hurt", AudioType::SFX, 0.3f); });
-        MessageBus::Instance().Subscribe<PlayerDeathEvent>([this](const PlayerDeathEvent& e) {
-            if (!e.deathAnimationFinished) {  // Only play sound on the initial death, not after animation ends
-                this->PlayRandomSound("Player_Death", AudioType::SFX, 0.3f);
-            }
-            });
+        // Subscribe to generic audio trigger events - all game/engine sound decisions happen at the publisher
+        MessageBus::Instance().Subscribe<PlaySoundEvent>([this](const PlaySoundEvent& e) {
+            this->PlayRandomSound(e.soundKey, e.audioType, e.volume);
+        });
+        MessageBus::Instance().Subscribe<PlaySound3DEvent>([this](const PlaySound3DEvent& e) {
+            this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist);
+        });
 
 		// Subscribe to Animation Events (for frame-specific SFX)
+		FileIOSystem::LoadAnimationEventAudio(animationEventAudioMap_);
         MessageBus::Instance().Subscribe<AnimationEvent>([this](const AnimationEvent& e) {
-            // Filter for the events this system cares about
-            if (e.eventName == "Footstep") {
-                this->PlayRandomSound("Player_Footstep", AudioType::SFX, 0.5f);
-            }
-            else if (e.eventName == "Bird_Fly") {
-                EntityManager entityMgr(GameManager::GetInstance().GetECS());
-                Vector2D position{};
-                if (entityMgr.HasComponent(e.entity, TransformType)) {
-                    position = entityMgr.GetComponent<Transform>(e.entity).position;
-                }
-                else return;
+            auto it = animationEventAudioMap_.find(e.eventName);
+            if (it == animationEventAudioMap_.end()) return;
 
-                this->PlayRandomSound3D("Bird_Fly", AudioType::SFX, 0.3f, position, minHearingRange, maxHearingRange);
+            const AnimationEventAudioConfig& cfg = it->second;
+            if (cfg.is3D) {
+                EntityManager entityMgr(GameManager::GetInstance().GetECS());
+                if (!entityMgr.HasComponent(e.entity, TransformType)) return;
+                Vector2D position = entityMgr.GetComponent<Transform>(e.entity).position;
+                this->PlayRandomSound3D(cfg.soundKey, cfg.audioType, cfg.volume, position, minHearingRange, maxHearingRange);
+            }
+            else {
+                this->PlayRandomSound(cfg.soundKey, cfg.audioType, cfg.volume);
             }
             });
-
-        // Subscribe to Bird Enemy Events
-        MessageBus::Instance().Subscribe<BirdWakeEvent>([this](const BirdWakeEvent& e) {
-            this->PlayRandomSound3D("Bird_Wake", AudioType::SFX, 0.3f, e.position, minHearingRange, maxHearingRange); 
-        });
-        MessageBus::Instance().Subscribe<BirdAttackEvent>([this](const BirdAttackEvent& e) {
-            this->PlayRandomSound3D("Bird_Attack", AudioType::SFX, 0.3f, e.position, minHearingRange, maxHearingRange); 
-        });
-
-        // Subscribe to World Rotation Event
-        MessageBus::Instance().Subscribe<WorldRotationEvent>([this](const WorldRotationEvent&) {this->PlayRandomSound("Stage_Rotate", AudioType::SFX, 1.0f); });
-        // Subscribe to Trap Platform Land Event
-        MessageBus::Instance().Subscribe<TrapPlatformLandEvent>([this](const TrapPlatformLandEvent& e) {
-            this->PlayRandomSound3D("Platform_Land", AudioType::SFX, 1.0f, e.position, minHearingRange, maxHearingRange);
-        });
-        // Subscribe to Curtains Open/Close Event
-        MessageBus::Instance().Subscribe<CurtainsOpenEvent>([this](const CurtainsOpenEvent&) {this->PlayRandomSound("Curtains_Open", AudioType::SFX, 1.0f); });
-        MessageBus::Instance().Subscribe<CurtainsCloseEvent>([this](const CurtainsCloseEvent&) {this->PlayRandomSound("Curtains_Close", AudioType::SFX, 1.0f); });
 
         // Subscribe to ButtonClickedEvent
         MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& e) {this->OnButtonClicked(e); });

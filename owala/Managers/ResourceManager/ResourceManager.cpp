@@ -571,7 +571,7 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 
 	int profilesLoaded = 0;
 
-	// Iterate over profiles: "Player", "BirdEnemy", "FakePlayer"
+	// Iterate over profiles: "Player", "BirdEnemy"
 	const auto& docObj = doc.GetObject();
 	for (auto it = docObj.MemberBegin(); it != docObj.MemberEnd(); ++it) {
 		std::string profileName = it->name.GetString();

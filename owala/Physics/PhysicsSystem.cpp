@@ -711,6 +711,7 @@ namespace Framework {
                         if (trap.hasFallen && trap.airTime > 0.1f) {
                             Vector2D pos = entityMgr.GetComponent<Transform>(dynE).position;
                             MessageBus::Instance().Publish(TrapPlatformLandEvent(pos));
+                            MessageBus::Instance().Publish(PlaySound3DEvent{ "Platform_Land", AudioType::SFX, 1.0f, pos });
                         }
                         trap.hasFallen = false;
                         trap.isGrounded = true;
