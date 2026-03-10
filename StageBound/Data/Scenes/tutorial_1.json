@@ -3365,7 +3365,7 @@
             "components": {
                 "AudioComponent": {
                     "sound_key": "Nightshift BGM_Loop_70bpm.wav",
-                    "should_loop": false,
+                    "should_loop": true,
                     "is_streaming": false,
                     "volume": 0.5,
                     "audio_type": 1
@@ -3389,10 +3389,10 @@
             "components": {
                 "AudioComponent": {
                     "sound_key": "28.Night_Forest_Field_Stars_Lo-Pass_Loop.wav",
-                    "should_loop": false,
+                    "should_loop": true,
                     "is_streaming": false,
                     "volume": 0.5,
-                    "audio_type": 1
+                    "audio_type": 0
                 },
                 "SceneOwned": {
                     "scene_id": 7,
