@@ -61,6 +61,11 @@
                 "attackDuration": 2.0,
                 "attackRadius": 200
             }
+        },
+        {
+            "name": "Death",
+            "type": "WitchDeath",
+            "parameters": {}
         }
     ],
     "transitions": [

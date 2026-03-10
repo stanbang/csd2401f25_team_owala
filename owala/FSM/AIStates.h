@@ -289,6 +289,22 @@ namespace Framework {
         float attackRadius_ = 150.0f;
     };
 
+    // --- WITCH DEATH STATE ---
+    class WitchDeathState : public State {
+    public:
+        const char* GetName() const override { return "Death"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetDuration() const { return duration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float duration_ = 0.9f;
+    };
+
     // --- WITCH ATTACK STATE ---
     class WitchAttackState : public State {
     public:
