@@ -76,11 +76,12 @@ namespace Framework {
                 check(r, "sfxGroup_->addDSP(reverb)");
 
                 // Starter preset (subtle room)
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_WETLEVEL, -12.0f);     // dB
+                // 1. Lower the Wet Level to make it "softer" (-20dB to -30dB is very subtle)
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_WETLEVEL, -25.0f);     // dB
                 sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DRYLEVEL, 0.0f);      // dB
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DECAYTIME, 900.0f);   // ms
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DENSITY, 0.6f);       // 0..1
-                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DIFFUSION, 0.7f);     // 0..1
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DECAYTIME, 3000.0f);   // ms
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DENSITY, 0.8f);       // 0..1
+                sfxReverbDSP_->setParameterFloat(FMOD_DSP_SFXREVERB_DIFFUSION, 0.8f);     // 0..1
                 sfxReverbDSP_->setBypass(true); // off by default
             }
         }
@@ -509,16 +510,36 @@ namespace Framework {
 
     std::string AudioSystem::getRandomSound(std::string eventKey) {
         auto it = soundPaths_.find(eventKey);
+
         if (it != soundPaths_.end()) {
             const std::vector<std::string>& files = it->second;
-            if (!files.empty()) {
-                int index = 0;
-                if (files.size() > 1) {
-                    index = rand() % (int)files.size();
+            int size = (int)files.size();
+
+            if (size > 0) {
+                if (size == 1) {
+                    return files[0]; // Only one sound available, must play it
                 }
+
+                int index = rand() % size;
+
+                // Check against the last played index for this specific eventKey
+                auto lastPlayedIt = lastPlayedIndices_.find(eventKey);
+                if (lastPlayedIt != lastPlayedIndices_.end()) {
+                    int lastIndex = lastPlayedIt->second;
+
+                    // If the same index is picked, shift to the next one (wrapping around)
+                    if (index == lastIndex) {
+                        index = (index + 1) % size;
+                    }
+                }
+
+                // Update the record with the newly chosen index
+                lastPlayedIndices_[eventKey] = index;
+
                 return files[index];
             }
         }
+
         return "";
     }
 

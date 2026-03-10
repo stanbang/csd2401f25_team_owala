@@ -248,7 +248,6 @@ namespace Framework{
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */
 	struct PlayerTag {};
-	struct FakePlayerTag {};
 	struct PlatformTag {};
 	struct BackgroundTag {};
 	struct EnemyTag {};

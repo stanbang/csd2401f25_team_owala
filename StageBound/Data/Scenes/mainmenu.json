@@ -2,6 +2,154 @@
     "scene_name": "MainMenu",
     "entities": [
         {
+            "name": "TurningGearR",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 199,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 7400018941285908318,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -0.4000000059604645,
+                        "y": 0.7699999809265137
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Props_Gears_02.png",
+                    "half_size": {
+                        "x": 0.10000000149011612,
+                        "y": 0.20000000298023224
+                    },
+                    "flip_x": false,
+                    "override_uv": false
+                },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "TransitionFrame",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        },
+                        {
+                            "type": "StageGearRotate",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
+                },
+                "SceneOwned": {
+                    "scene_id": 3,
+                    "sceneName": "MainMenu"
+                }
+            },
+            "tags": [
+                "PersistentTag",
+                "GUITag"
+            ]
+        },
+        {
+            "name": "HowToPlayText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 200,
+            "custom_render_order": 200,
+            "layer_render_name": "UI",
+            "active": true,
+            "uuid": 6956199841610582111,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": -0.4300000071525574
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextComponent": {
+                    "text": "how to play",
+                    "font_key": "SB_Font.otf",
+                    "font_color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "font_size": 1.100000023841858,
+                    "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 3,
+                    "sceneName": "MainMenu"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
             "name": "StartButton",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -64,9 +212,9 @@
                     "action": 4,
                     "target_string": "LevelSelection",
                     "target_value": 0.0,
-                    "hover_sound_key": "UI Hover New 1 1.wav",
+                    "hover_sound_key": "button_hover.wav",
                     "hover_sound_volume": 0.30000001192092896,
-                    "click_sound_key": "Approved-Menu Select-SFX 1.wav",
+                    "click_sound_key": "mechanical_click.wav",
                     "click_sound_volume": 0.30000001192092896,
                     "default_texture_key": "SB_DefaultButton.png",
                     "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
@@ -606,9 +754,9 @@
                     "action": 5,
                     "target_string": "Test Scene",
                     "target_value": 0.0,
-                    "hover_sound_key": "UI Hover New 1 1.wav",
+                    "hover_sound_key": "button_hover.wav",
                     "hover_sound_volume": 0.30000001192092896,
-                    "click_sound_key": "Approved-Menu Select-SFX 1.wav",
+                    "click_sound_key": "mechanical_click.wav",
                     "click_sound_volume": 0.30000001192092896,
                     "default_texture_key": "SB_DefaultButton.png",
                     "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
@@ -758,9 +906,9 @@
                     "action": 3,
                     "target_string": "HowToPlay",
                     "target_value": 0.0,
-                    "hover_sound_key": "UI Hover New 1 1.wav",
+                    "hover_sound_key": "button_hover.wav",
                     "hover_sound_volume": 0.30000001192092896,
-                    "click_sound_key": "Approved-Menu Select-SFX 1.wav",
+                    "click_sound_key": "mechanical_click.wav",
                     "click_sound_volume": 0.30000001192092896,
                     "default_texture_key": "SB_DefaultButton.png",
                     "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
@@ -769,74 +917,6 @@
                     "hover_is_animated": true,
                     "pressed_is_animated": false,
                     "scene_to_unload_on_click": ""
-                },
-                "SceneOwned": {
-                    "scene_id": 3,
-                    "sceneName": "MainMenu"
-                }
-            },
-            "tags": [
-                "GUITag"
-            ]
-        },
-        {
-            "name": "HowToPlayText",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 200,
-            "custom_render_order": 200,
-            "layer_render_name": "UI",
-            "active": true,
-            "uuid": 6956199841610582111,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 0.0,
-                        "y": -0.4300000071525574
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "TextComponent": {
-                    "text": "how to play",
-                    "font_key": "SB_Font.otf",
-                    "font_color": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0
-                    ],
-                    "font_size": 1.100000023841858,
-                    "max_width": 10.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -1326,7 +1406,9 @@
                     "sceneName": "MainMenu"
                 }
             },
-            "tags": []
+            "tags": [
+                "PersistentTag"
+            ]
         },
         {
             "name": "TurningGearR",
@@ -1502,86 +1584,6 @@
                     "Position": {
                         "x": 0.20000000298023224,
                         "y": 0.9000000357627869
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_Props_Gears_02.png",
-                    "half_size": {
-                        "x": 0.10000000149011612,
-                        "y": 0.20000000298023224
-                    },
-                    "flip_x": false,
-                    "override_uv": false
-                },
-                "NativeScripts": {
-                    "scripts": [
-                        {
-                            "type": "TransitionFrame",
-                            "enabled": true,
-                            "execute_in_edit": false
-                        },
-                        {
-                            "type": "StageGearRotate",
-                            "enabled": true,
-                            "execute_in_edit": false
-                        }
-                    ]
-                },
-                "SceneOwned": {
-                    "scene_id": 3,
-                    "sceneName": "MainMenu"
-                }
-            },
-            "tags": [
-                "PersistentTag",
-                "GUITag"
-            ]
-        },
-        {
-            "name": "TurningGearR",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 0,
-            "custom_render_order": 199,
-            "layer_render_name": "Custom",
-            "active": true,
-            "uuid": 7400018941285908318,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -0.4000000059604645,
-                        "y": 0.7699999809265137
                     },
                     "Rotation": {
                         "angle": 0.0,

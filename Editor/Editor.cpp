@@ -33,7 +33,6 @@
 
 // Debug
 #include "Logger.h"
-#include "Fake_Player.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -1369,35 +1368,6 @@ namespace Editor {
 		else {
 			ImGui::Text("Selected Entity: None");
 			ImGui::TextDisabled("(Click on an object in the game view)");
-		}
-
-
-		// --- Section for Spawning 1000 objects -----//
-		ImGui::SeparatorText("Spawn Game Objects");
-		// In your Editor.cpp spawning section:
-		if (ImGui::Button("Spawn 1000 Objects")) {
-			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
-
-			if (ecs) {
-				// Create a grid of 2500 entities spread out
-				//int gridSize = 50; // 50x50 grid = 2500 entities
-				//float spacing = 0.1f; // Adjust this for proper spacing
-
-				for (int i = 0; i < 1000; ++i) {
-					// Calculate random position from -1.0 to 1.0
-					float x = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-					float y = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-					Vector2D position = { x, y };
-
-					// Pass the calculated position, not halfSize
-					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
-					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
-
-
-				}
-				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
-			}
 		}
 
 		if (ImGui::Button("Open FSM Editor")) {
@@ -2743,28 +2713,9 @@ namespace Editor {
 		}
 
 		case ComponentType::AnimationComponentType: {
-			AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(selectedEntity);
-
-			// Show the profile name for AnimationComponent
-			ImGui::InputText("Animation Profile", &animComp.profileName);
-			
-			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
-			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
-			ImGui::Checkbox("Is Playing", &animComp.isPlaying); // Is Playing
-			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
-			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
-
-			ImGui::Separator();
-			ImGui::Text("Start Delay");
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
-			ImGui::InputFloat("Delay (seconds)", &animComp.startDelay);
-			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
-			ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange);
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
-			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
+			DrawAnimationInspector(selectedEntity);
 			break;
-		}
-		case ComponentType::TextComponentType: {
+		}		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
@@ -3153,56 +3104,79 @@ namespace Editor {
 
 		case ComponentType::FSMComponentType:
 		{
-			if (ImGui::CollapsingHeader("FSM Component", ImGuiTreeNodeFlags_DefaultOpen)) {
-				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+			FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+			bool activeNow = false;
 
-				// 1. Definition Path Input
-				char buffer[256];
-				strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
-				if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
-					fsm.fsmDefinitionPath = buffer;
-					fsm.initialized = false; // Force rebuild
-				}
+			// 1. Definition Path Input
+			char buffer[256];
+			strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
 
-				// --- DRAG AND DROP TARGET ---
-				// Allows dragging a .json file from the Asset Browser into this field
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-						const char* path = (const char*)payload->Data;
-						std::string pathStr = path;
-
-						// Simple check for JSON extension
-						if (pathStr.find(".json") != std::string::npos) {
-							fsm.fsmDefinitionPath = pathStr;
-							fsm.initialized = false; // Force rebuild
-							Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << pathStr << std::endl;
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-				// -----------------------------
-
-				// 2. Initial State Override (Optional)
-				char initBuffer[256];
-				strcpy_s(initBuffer, fsm.initialStateOverride.c_str());
-				if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
-					fsm.initialStateOverride = initBuffer;
-				}
-
-				// 3. Current State Display (Read-Only)
-				std::string currentState = fsm.fsm.GetCurrentState();
-				ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
-
-				// 4. Reload Button
-				if (ImGui::Button("Reload FSM")) {
-					fsm.initialized = false;
-				}
-
-				// 5. Remove Component Button
-				if (ImGui::Button("Remove Component")) {
-					entityMgr.RemoveComponent(selectedEntity, ComponentType::FSMComponentType);
-				}
+			if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
+				fsm.fsmDefinitionPath = buffer;
+				fsm.initialized = false; // Force rebuild
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// --- DRAG AND DROP TARGET ---
+			// Allows dragging a .json file from the Asset Browser into this field
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".json") {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						fs::path relative_path = fs::relative(dropped_path, fs::current_path());
+						fsm.fsmDefinitionPath = relative_path.generic_string();
+						fsm.initialized = false; // Force rebuild
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified FSM Definition Path (DragDrop) in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+						Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << dropped_path << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+			// -----------------------------
+
+			// 2. Initial State Override (Optional)
+			char initBuffer[256];
+			strcpy_s(initBuffer, sizeof(initBuffer), fsm.initialStateOverride.c_str());
+			if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
+				fsm.initialStateOverride = initBuffer;
+			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// 3. Current State Display (Read-Only)
+			std::string currentState = fsm.fsm.GetCurrentState();
+			ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
+
+			// 4. Reload Button
+			if (ImGui::Button("Reload FSM")) {
+				fsm.initialized = false;
+			}
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified FSM Component in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+			editSession.wasItemActive = activeNow;
+
 			break;
 		}
 
@@ -3625,18 +3599,42 @@ namespace Editor {
 
 			int handleId = static_cast<int>(slider.handleEntity);
 			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
 				// Ensure the ID doesn't go below 0
 				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Handle Name
 			ImGui::InputText("Handle Name", &slider.handleName);
 			if (ImGui::IsItemActive()) activeNow = true;
 			
 			int fillId = static_cast<int>(slider.fillEntity);
 			if (ImGui::InputInt("Fill Entity ID", &fillId)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
 				// Ensure the ID doesn't go below 0
 				slider.fillEntity = static_cast<Entity>(std::max(0, fillId));
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Fill Name
 			ImGui::InputText("Fill Name", &slider.fillName);
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -3674,7 +3672,21 @@ namespace Editor {
 		
 		case ComponentType::PlayerHealthComponentType: {
 			PlayerHealthComponent& healthComp = entityMgr.GetComponent<PlayerHealthComponent>(selectedEntity);
-			ImGui::InputInt("Life number:", &healthComp.lifeNum);
+
+			int newLifeNum = healthComp.lifeNum;
+			if (ImGui::InputInt("Life number:", &newLifeNum)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				healthComp.lifeNum = std::max(0, newLifeNum);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified PlayerHealth in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
 			break;
 		}
 		default:
@@ -7363,6 +7375,8 @@ namespace Editor {
 		);
 	}
 
+#pragma region COMPONENT INSPECTOR
+
 	void Editor::DrawTransformInspector(Entity entity) {
 		using namespace Framework;
 		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
@@ -7615,6 +7629,8 @@ namespace Editor {
 
 		// Manual input field
 		static std::string newTextureKey = "";
+		bool activeNow = false;
+
 		ImGui::InputText("New Texture Key", &newTextureKey);
 
 		if (ImGui::Button("Update Texture")) {
@@ -7630,11 +7646,16 @@ namespace Editor {
 		}
 
 		if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
+			activeNow = true;
 			if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 		}
+		if (ImGui::IsItemActive()) activeNow = true;
 
-		ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
-		ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f");
+		if (ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f")) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
 
 		// UV Override Section
 		ImGui::Separator();
@@ -7643,14 +7664,17 @@ namespace Editor {
 			ImGui::SetTooltip("When enabled, the renderer uses these UV coordinates directly\ninstead of the AnimationSystem (used for slider fills, static crops, etc.)");
 		}
 
-		bool activeNow = false;
-
 		if (ImGui::Checkbox("Override UV", &tex.overrideUV)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
 
 		if (tex.overrideUV) {
 			ImGui::BeginDisabled(!tex.overrideUV);
 			if (ImGui::InputFloat2("Min UV (U0, V0)", &tex.minUV.x, "%.3f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			if (ImGui::InputFloat2("Max UV (U1, V1)", &tex.maxUV.x, "%.3f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			if (ImGui::Button("Reset UV")) {
 				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 				tex.minUV = { 0.0f, 0.0f };
@@ -7669,6 +7693,72 @@ namespace Editor {
 		if (!activeNow && editSession.wasItemActive) {
 			std::stringstream ss;
 			ss << "Modified Texture Properties in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawAnimationInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(entity);
+		ComponentType compType = ComponentType::AnimationComponentType;
+
+		bool activeNow = false;
+
+		// Show the profile name for AnimationComponent
+		if (ImGui::InputText("Animation Profile", &animComp.profileName)) {
+			// Trigger a refresh/reload if necessary in the future
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputInt("Frame Count", &animComp.frameCount)) {
+			if (animComp.frameCount < 1) animComp.frameCount = 1;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputFloat("Frame Duration", &animComp.frameDuration)) {
+			if (animComp.frameDuration < 0.001f) animComp.frameDuration = 0.001f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::Checkbox("Is Playing", &animComp.isPlaying)) {
+			// If we unpause, we might want to reset elapsed time, but for now just toggle
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::Checkbox("Is Looping", &animComp.isLooping)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputInt("Start Frame", &animComp.startFrame)) {
+			if (animComp.startFrame < 0) animComp.startFrame = 0;
+			if (animComp.startFrame >= animComp.frameCount) animComp.startFrame = animComp.frameCount - 1;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		ImGui::Separator();
+		ImGui::Text("Start Delay");
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
+
+		if (ImGui::InputFloat("Delay (seconds)", &animComp.startDelay)) {
+			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange)) {
+			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
+
+		// History Tracking
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Animation Properties in " << entityMgr.GetProperties(entity).name << std::endl;
 			editSession.End(entity, compType, ss.str(), historyManager_);
 		}
 		editSession.wasItemActive = activeNow;
@@ -7906,5 +7996,7 @@ namespace Editor {
 			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Data", beforeJSON, afterJSON, compType);
 		}
 	}
+
+#pragma endregion
 
 }

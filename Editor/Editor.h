@@ -336,6 +336,7 @@ namespace Editor {
 		void DrawTransformInspector(Entity entity);
 		void DrawRigidBodyInspector(Entity entity);
 		void DrawTextureInspector(Entity entity);
+		void DrawAnimationInspector(Entity entity);
 		void DrawAudioInspector(Entity entity);
 		void DrawButtonInspector(Entity entity);
 
