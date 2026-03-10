@@ -2,9 +2,9 @@
  * \file   FileUtility.cpp
  *
  * \primary_author
- *      Yar Xuan
+ *      Yar Xuan (80%)
  * \secondary_author
- *
+ *		Ng Jing Wen (20%)
  *
  * \brief
  *		Defines the FileIOSystem class, a utility for reading and writing game
@@ -162,34 +162,6 @@ namespace Framework {
 		// Debugging output
 		return WindowConfig(windowSize, fullScreen);
 	}
-	void FileIOSystem::LoadPlayerStats(PlayerStats& stats) {
-		rapidjson::Document d;
-
-		if (!ReadFile(FileIOKeys::PLAYER_CONFIG_FILEPATH, d)) {
-			Logger::Get().Error(DebugType::FileIOSystem) << "Unable to read file: " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
-			return;
-		}
-
-		// Helper lambda to safely read floats without crashing
-		auto SafeReadFloat = [&](const char* key, float& outValue) {
-			if (d.HasMember(key) && d[key].IsNumber()) {
-				outValue = d[key].GetFloat();
-			}
-			else {
-				Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing '" << key << "' in " << FileIOKeys::PLAYER_CONFIG_FILEPATH << std::endl;
-			}
-			};
-
-		SafeReadFloat(FileIOKeys::PLAYER_MV_SPEED, stats.moveSpeed);
-		SafeReadFloat(FileIOKeys::PLAYER_JUMP_HEIGHT, stats.jumpHeight);
-		SafeReadFloat(FileIOKeys::PLAYER_INVULNERABILITY_DURATION, stats.invulnerabilityDuration);
-		SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_DURATION, stats.knockbackDuration);
-		SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_FORCE_X, stats.knockbackForceX);
-		SafeReadFloat(FileIOKeys::PLAYER_KNOCKBACK_FORCE_Y, stats.knockbackForceY);
-
-		Logger::Get().Info(DebugType::FileIOSystem) << "Player data read successfully." << std::endl;
-	}
-
 	void FileIOSystem::SaveWorldConfig() {
 		rapidjson::Document doc;
 		doc.SetObject();
@@ -316,6 +288,7 @@ namespace Framework {
 		return anim;
 	}
 
+	// Load audio file paths from game data (audioFileNames.json) into a map of soundKey -> list of file paths for that sound
 	void FileIOSystem::LoadAudioFileNames(std::unordered_map<std::string, std::vector<std::string>>& audioFilesMap) {
 		rapidjson::Document d;
 		ReadFile(FileIOKeys::AUDIO_NAMES_FILEPATH, d); //Read the file name passed in as a path
@@ -337,6 +310,40 @@ namespace Framework {
 					}
 				}
 			}
+		}
+	}
+
+	// Load animation event -> audio mappings from game data (animationEventAudio.json)
+	void FileIOSystem::LoadAnimationEventAudio(std::unordered_map<std::string, AnimationEventAudioConfig>& outMap) {
+		rapidjson::Document d;
+		if (!ReadFile(FileIOKeys::ANIM_EVENT_AUDIO_FILEPATH, d) || !d.IsObject()) {
+			Logger::Get().Error(DebugType::FileIOSystem) << "Invalid or missing data in " << FileIOKeys::ANIM_EVENT_AUDIO_FILEPATH << std::endl;
+			return;
+		}
+		// Each member of the root object should be an animation event name mapping to an audio config object
+		for (auto itr = d.MemberBegin(); itr != d.MemberEnd(); ++itr) {
+			if (!itr->value.IsObject()) continue;
+
+			const auto& obj = itr->value;
+			AnimationEventAudioConfig cfg;
+
+			if (obj.HasMember("soundKey") && obj["soundKey"].IsString())
+				cfg.soundKey = obj["soundKey"].GetString();
+
+			if (obj.HasMember("audioType") && obj["audioType"].IsString()) {
+				std::string t = obj["audioType"].GetString();
+				cfg.audioType = (t == "MUSIC") ? AudioType::MUSIC : AudioType::SFX;
+			}
+
+			if (obj.HasMember("volume") && obj["volume"].IsNumber())
+				cfg.volume = obj["volume"].GetFloat();
+
+			if (obj.HasMember("is3D") && obj["is3D"].IsBool())
+				cfg.is3D = obj["is3D"].GetBool();
+
+			// Only add to map if a valid soundKey is provided, otherwise skip this event since it has no audio
+			if (!cfg.soundKey.empty())
+				outMap[itr->name.GetString()] = cfg;
 		}
 	}
 

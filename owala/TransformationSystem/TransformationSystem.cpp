@@ -86,6 +86,7 @@ namespace Framework {
 
                 MessageBus::Instance().Publish(VFXTriggerEvent{"WorldRotationEvent", true});
                 MessageBus::Instance().Publish(WorldRotationEvent{});
+                MessageBus::Instance().Publish(PlaySoundEvent{ "Stage_Rotate", AudioType::SFX, 1.0f });
 
                 rotatePhase_ = RotatePhase::Rotating;
             }

@@ -32,7 +32,6 @@
 #include "Components.h"
 #include "Logger.h"
 #include "SerializationKeys.h"
-#include "PlayerSystem.h"
 
 using namespace std;
 using namespace rapidjson;
@@ -59,9 +58,6 @@ namespace Framework {
 		// Load window width and height from json file
 		static WindowConfig LoadWindowConfig();
 
-		// Load PlayerStats from player config json file
-		static void LoadPlayerStats(PlayerStats& stats);
-
 		// Saves world config variables to world config json file
 		static void SaveWorldConfig();
 
@@ -73,6 +69,9 @@ namespace Framework {
 
 		// Load audio file names from audio json file
 		static void LoadAudioFileNames(std::unordered_map<std::string, std::vector<std::string>>& audioFilesMap);
+
+		// Load animation event -> audio mappings from game data (animationEventAudio.json)
+		static void LoadAnimationEventAudio(std::unordered_map<std::string, AnimationEventAudioConfig>& outMap);
 
 		// Reads SceneAssets file (scenes.json) and assigns its data to doc
 		static bool LoadSceneAssets(Document& doc);
@@ -112,7 +111,8 @@ namespace Framework {
 		static constexpr const char* EDITOR_CFG_PATH = "Data/Config/editorConfig.json";
 #endif
 		static constexpr const char* WORLD_CONFIG_FILEPATH = "Data/Config/worldConfig.json";
-		static constexpr const char* AUDIO_NAMES_FILEPATH = "Data/audioFiles.json";
+		static constexpr const char* AUDIO_NAMES_FILEPATH       = "Data/audioFiles.json";
+		static constexpr const char* ANIM_EVENT_AUDIO_FILEPATH   = "Data/animationEventAudio.json";
 
 		static constexpr const char* SCENE_ASSETS_FILEPATH = "Data/scenes.json";
 		static constexpr const char* SCENES_FILEPATH_PREFIX = "Data/Scenes/";
