@@ -55,8 +55,7 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "ButtonComponent": {
                     "is_hovered": true,
@@ -208,8 +207,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -274,8 +272,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -340,8 +337,7 @@
                         "y": 0.4000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -406,8 +402,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -472,8 +467,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -538,8 +532,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -604,8 +597,7 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "ButtonComponent": {
                     "is_hovered": false,
@@ -757,8 +749,7 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "ButtonComponent": {
                     "is_hovered": false,
@@ -988,8 +979,7 @@
                         "y": 1.0
                     },
                     "flip_x": true,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
@@ -1000,7 +990,9 @@
                     "frame_count": 45,
                     "elapsed_time": 0.010928215458989143,
                     "is_playing": true,
-                    "is_looping": false
+                    "is_looping": false,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1075,8 +1067,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
@@ -1087,7 +1078,9 @@
                     "frame_count": 56,
                     "elapsed_time": 0.010928215458989143,
                     "is_playing": true,
-                    "is_looping": false
+                    "is_looping": false,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1162,8 +1155,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
@@ -1174,7 +1166,9 @@
                     "frame_count": 52,
                     "elapsed_time": 0.00042659995961003006,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "SceneOwned": {
                     "scene_id": 3,
@@ -1265,8 +1259,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1389,8 +1382,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1470,8 +1462,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1551,8 +1542,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1632,8 +1622,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -1713,8 +1702,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false,
-                    "alpha": 1.0
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
