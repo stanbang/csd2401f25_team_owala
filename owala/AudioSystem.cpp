@@ -510,16 +510,36 @@ namespace Framework {
 
     std::string AudioSystem::getRandomSound(std::string eventKey) {
         auto it = soundPaths_.find(eventKey);
+
         if (it != soundPaths_.end()) {
             const std::vector<std::string>& files = it->second;
-            if (!files.empty()) {
-                int index = 0;
-                if (files.size() > 1) {
-                    index = rand() % (int)files.size();
+            int size = (int)files.size();
+
+            if (size > 0) {
+                if (size == 1) {
+                    return files[0]; // Only one sound available, must play it
                 }
+
+                int index = rand() % size;
+
+                // Check against the last played index for this specific eventKey
+                auto lastPlayedIt = lastPlayedIndices_.find(eventKey);
+                if (lastPlayedIt != lastPlayedIndices_.end()) {
+                    int lastIndex = lastPlayedIt->second;
+
+                    // If the same index is picked, shift to the next one (wrapping around)
+                    if (index == lastIndex) {
+                        index = (index + 1) % size;
+                    }
+                }
+
+                // Update the record with the newly chosen index
+                lastPlayedIndices_[eventKey] = index;
+
                 return files[index];
             }
         }
+
         return "";
     }
 

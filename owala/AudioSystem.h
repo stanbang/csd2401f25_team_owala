@@ -135,6 +135,9 @@ namespace Framework {
 
         // Data-driven animation event to audio mapping (loaded from animationEventAudio.json)
         std::unordered_map<std::string, AnimationEventAudioConfig> animationEventAudioMap_;
+
+        // Track the last played sound index for each event key
+        std::unordered_map<std::string, int> lastPlayedIndices_;
     };
 
 } // namespace Framework
