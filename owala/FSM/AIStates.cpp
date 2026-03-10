@@ -506,8 +506,27 @@ namespace Framework {
         if (key == "enrageDuration") enrageDuration_ = value;
     }
 
-    // --- WITCH TELEPORT ---
-    void WitchTeleportState::OnEnter(Entity entity, EntityStorage& ecs) {
+    // --- WITCH TELEPORT SPIN ---
+    void WitchTeleportSpinState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        // Stop velocity during spin
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchTeleportSpinState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+    }
+
+    void WitchTeleportSpinState::SetParameter(const std::string& key, float value) {
+        if (key == "spinDuration") spinDuration_ = value;
+    }
+
+    // --- WITCH TELEPORT FALL ---
+    void WitchTeleportFallState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
         EntityManager mgr(ecs);
 
@@ -528,7 +547,7 @@ namespace Framework {
         Vector2D offset = { std::cos(angle) * dist, std::sin(angle) * dist };
         Vector2D teleportPos = playerPos + offset;
 
-        // Instantly teleport
+        // Instantly teleport to new position
         mgr.GetComponent<Transform>(entity).position = teleportPos;
 
         // Stop velocity
@@ -537,12 +556,12 @@ namespace Framework {
         }
     }
 
-    void WitchTeleportState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+    void WitchTeleportFallState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
     }
 
-    void WitchTeleportState::SetParameter(const std::string& key, float value) {
-        if (key == "teleportDuration") teleportDuration_ = value;
+    void WitchTeleportFallState::SetParameter(const std::string& key, float value) {
+        if (key == "fallDuration") fallDuration_ = value;
         if (key == "minTeleportRange") minTeleportRange_ = value;
         if (key == "maxTeleportRange") maxTeleportRange_ = value;
     }
@@ -661,7 +680,8 @@ namespace Framework {
     REGISTER_STATE("WitchIdle", WitchIdleState);
     REGISTER_STATE("WitchAlerted", WitchAlertedState);
     REGISTER_STATE("WitchEnraged", WitchEnragedState);
-    REGISTER_STATE("WitchTeleport", WitchTeleportState);
+    REGISTER_STATE("WitchTeleportSpin", WitchTeleportSpinState);
+    REGISTER_STATE("WitchTeleportFall", WitchTeleportFallState);
     REGISTER_STATE("WitchCharging", WitchChargingState);
     REGISTER_STATE("WitchAttack", WitchAttackState);
 
@@ -701,8 +721,10 @@ namespace Framework {
                 return wa->GetTimer() >= wa->GetAlertDuration();
             if (auto* we = dynamic_cast<WitchEnragedState*>(s))
                 return we->GetTimer() >= we->GetEnrageDuration();
-            if (auto* wt = dynamic_cast<WitchTeleportState*>(s))
-                return wt->GetTimer() >= wt->GetTeleportDuration();
+            if (auto* wt = dynamic_cast<WitchTeleportSpinState*>(s))
+                return wt->GetTimer() >= wt->GetSpinDuration();
+            if (auto* wtf = dynamic_cast<WitchTeleportFallState*>(s))
+                return wtf->GetTimer() >= wtf->GetFallDuration();
             if (auto* wc = dynamic_cast<WitchChargingState*>(s))
                 return wc->GetTimer() >= wc->GetChargeDuration();
             if (auto* watt = dynamic_cast<WitchAttackState*>(s))
