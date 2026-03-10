@@ -52,18 +52,17 @@ void FadeController::OnUpdate() {
 
 // -----------------------------------------------------------------------
 void FadeController::OnDestroy() {
-    // Unregister callback so GameManager doesn't call a dangling lambda
-    GameManager::GetInstance().SetOverlayDrawCallback(nullptr);
+    if (GameManager::Exists()) {
+        GameManager::GetInstance().SetOverlayDrawCallback(nullptr);
+    }
 
     if (m_blackTex != 0) {
         glDeleteTextures(1, &m_blackTex);
         m_blackTex = 0;
     }
-
     if (s_instance == this) {
         s_instance = nullptr;
     }
-
     Logger::Get().Info(DebugType::GameManager)
         << "[FadeController] Destroyed." << std::endl;
 }

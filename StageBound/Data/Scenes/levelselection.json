@@ -1305,9 +1305,9 @@
       "name": "LeaderboardButton",
       "layer": 0,
       "layer_collision_name": "Default",
-      "render_layer": 0,
-      "custom_render_order": 60,
-      "layer_render_name": "Custom",
+      "render_layer": 50,
+      "custom_render_order": 0,
+      "layer_render_name": "",
       "active": true,
       "uuid": 1111111111111111111,
       "components": {
@@ -1344,17 +1344,19 @@
             ]
           },
           "Scale": {
-            "x": 0.874834418296814,
-            "y": 0.874834418296814
+            "x": 1.0,
+            "y": 1.0
           }
         },
         "TextureComponent": {
-          "texture_key": "SB_HUD_Board.png",
+          "texture_key": "SB_DefaultButton.png",
           "half_size": {
-            "x": 0.10000000149011612,
-            "y": 0.20000000298023224
+            "x": 0.1899999976158142,
+            "y": 0.14000000059604645
           },
-          "flip_x": false
+          "flip_x": false,
+          "override_uv": false,
+          "alpha": 1.0
         },
         "ButtonComponent": {
           "is_hovered": false,
@@ -1363,16 +1365,85 @@
           "action": 0,
           "target_string": "",
           "target_value": 0.0,
-          "hover_sound_key": "button_hover.wav",
-          "hover_sound_volume": 0.5,
-          "click_sound_key": "mechanical_click.wav",
-          "click_sound_volume": 0.5,
-          "default_texture_key": "SB_HUD_Board.png",
-          "hover_texture_key": "SB_HUD_Board.png",
-          "pressed_texture_key": "SB_HUD_Board.png",
+          "hover_sound_key": "UI Hover New 1 1.wav",
+          "hover_sound_volume": 0.30000001192092896,
+          "click_sound_key": "Approved-Menu Select-SFX 1.wav",
+          "click_sound_volume": 0.30000001192092896,
+          "default_texture_key": "SB_DefaultButton.png",
+          "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
+          "pressed_texture_key": "SB_SelectButton.png",
           "default_is_animated": false,
-          "hover_is_animated": false,
-          "pressed_is_animated": false
+          "hover_is_animated": true,
+          "pressed_is_animated": false,
+          "scene_to_unload_on_click": ""
+        },
+        "SceneOwned": {
+          "scene_id": 13,
+          "sceneName": "LevelSelection"
+        }
+      },
+      "tags": [
+        "GUITag"
+      ]
+    },
+    {
+      "name": "LeaderboardButtonText",
+      "layer": 0,
+      "layer_collision_name": "Default",
+      "render_layer": 200,
+      "custom_render_order": 200,
+      "layer_render_name": "UI",
+      "active": true,
+      "uuid": 4444444444444444444,
+      "components": {
+        "Transform": {
+          "Position": {
+            "x": 0.75,
+            "y": 0.758
+          },
+          "Rotation": {
+            "angle": 0.0,
+            "texture_angle": 0.0,
+            "collider_angle": 0.0,
+            "texture_matrix": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "collider_matrix": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          "Scale": {
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        "TextComponent": {
+          "text": "leaderboard",
+          "font_key": "SB_Font.otf",
+          "font_color": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "font_size": 1.100000023841858,
+          "max_width": 10.0
         },
         "SceneOwned": {
           "scene_id": 13,
