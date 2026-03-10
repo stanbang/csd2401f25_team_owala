@@ -58,7 +58,6 @@ namespace Framework {
 		CameraType,
 		NativeScriptsComponentType,
 		PlayerTagType,
-		FakePlayerTagType,
 		ButtonType,
 		PlatformTagType,
 		BackgroundTagType,
@@ -104,7 +103,6 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
 	template <> struct ComponentTypeTrait<NativeScriptsComponent> { static constexpr ComponentType value = NativeScriptsComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
-	template <> struct ComponentTypeTrait<FakePlayerTag> { static constexpr ComponentType value = FakePlayerTagType; };
 	template <> struct ComponentTypeTrait<Button> { static constexpr ComponentType value = ButtonType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };

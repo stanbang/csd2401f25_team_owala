@@ -182,21 +182,6 @@ namespace Framework {
             sceneMgr.LoadScene(nextScene.name);
         }
 
-        // FAKE PLAYER SWITCH ANIMATIONS
-        if (KeyPressed(Key::F)) {
-            for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, FakePlayerTagType)) {
-                AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
-                if (animationComponent.currentState != "RUNNING") {
-                    animationComponent.currentState = "RUNNING";
-                    Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to RUNNING" << std::endl;
-                }
-                else {
-                    animationComponent.currentState = "IDLE";
-                    Logger::Get().Info(DebugType::PlayerSystem) << "Fake Player Animation set to IDLE" << std::endl;
-                }
-            }
-        }
-
 #ifndef BUILD_EDITOR
         if (KeyPressed(Key::F11)) {
             winSys_->ToggleFullScreen();

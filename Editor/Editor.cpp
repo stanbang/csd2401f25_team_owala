@@ -33,7 +33,6 @@
 
 // Debug
 #include "Logger.h"
-#include "Fake_Player.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -1369,35 +1368,6 @@ namespace Editor {
 		else {
 			ImGui::Text("Selected Entity: None");
 			ImGui::TextDisabled("(Click on an object in the game view)");
-		}
-
-
-		// --- Section for Spawning 1000 objects -----//
-		ImGui::SeparatorText("Spawn Game Objects");
-		// In your Editor.cpp spawning section:
-		if (ImGui::Button("Spawn 1000 Objects")) {
-			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
-
-			if (ecs) {
-				// Create a grid of 2500 entities spread out
-				//int gridSize = 50; // 50x50 grid = 2500 entities
-				//float spacing = 0.1f; // Adjust this for proper spacing
-
-				for (int i = 0; i < 1000; ++i) {
-					// Calculate random position from -1.0 to 1.0
-					float x = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-					float y = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-					Vector2D position = { x, y };
-
-					// Pass the calculated position, not halfSize
-					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
-					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
-
-
-				}
-				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
-			}
 		}
 
 		if (ImGui::Button("Open FSM Editor")) {
