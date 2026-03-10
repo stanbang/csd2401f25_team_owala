@@ -2743,28 +2743,9 @@ namespace Editor {
 		}
 
 		case ComponentType::AnimationComponentType: {
-			AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(selectedEntity);
-
-			// Show the profile name for AnimationComponent
-			ImGui::InputText("Animation Profile", &animComp.profileName);
-			
-			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
-			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
-			ImGui::Checkbox("Is Playing", &animComp.isPlaying); // Is Playing
-			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
-			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
-
-			ImGui::Separator();
-			ImGui::Text("Start Delay");
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
-			ImGui::InputFloat("Delay (seconds)", &animComp.startDelay);
-			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
-			ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange);
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
-			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
+			DrawAnimationInspector(selectedEntity);
 			break;
-		}
-		case ComponentType::TextComponentType: {
+		}		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
@@ -7826,6 +7807,8 @@ namespace Editor {
 		);
 	}
 
+#pragma region COMPONENT INSPECTOR
+
 	void Editor::DrawTransformInspector(Entity entity) {
 		using namespace Framework;
 		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
@@ -8078,6 +8061,8 @@ namespace Editor {
 
 		// Manual input field
 		static std::string newTextureKey = "";
+		bool activeNow = false;
+
 		ImGui::InputText("New Texture Key", &newTextureKey);
 
 		if (ImGui::Button("Update Texture")) {
@@ -8093,11 +8078,16 @@ namespace Editor {
 		}
 
 		if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
+			activeNow = true;
 			if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 		}
+		if (ImGui::IsItemActive()) activeNow = true;
 
-		ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
-		ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f");
+		if (ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f")) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
 
 		// UV Override Section
 		ImGui::Separator();
@@ -8106,14 +8096,17 @@ namespace Editor {
 			ImGui::SetTooltip("When enabled, the renderer uses these UV coordinates directly\ninstead of the AnimationSystem (used for slider fills, static crops, etc.)");
 		}
 
-		bool activeNow = false;
-
 		if (ImGui::Checkbox("Override UV", &tex.overrideUV)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
 
 		if (tex.overrideUV) {
 			ImGui::BeginDisabled(!tex.overrideUV);
 			if (ImGui::InputFloat2("Min UV (U0, V0)", &tex.minUV.x, "%.3f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			if (ImGui::InputFloat2("Max UV (U1, V1)", &tex.maxUV.x, "%.3f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			if (ImGui::Button("Reset UV")) {
 				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 				tex.minUV = { 0.0f, 0.0f };
@@ -8132,6 +8125,72 @@ namespace Editor {
 		if (!activeNow && editSession.wasItemActive) {
 			std::stringstream ss;
 			ss << "Modified Texture Properties in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawAnimationInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(entity);
+		ComponentType compType = ComponentType::AnimationComponentType;
+
+		bool activeNow = false;
+
+		// Show the profile name for AnimationComponent
+		if (ImGui::InputText("Animation Profile", &animComp.profileName)) {
+			// Trigger a refresh/reload if necessary in the future
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputInt("Frame Count", &animComp.frameCount)) {
+			if (animComp.frameCount < 1) animComp.frameCount = 1;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputFloat("Frame Duration", &animComp.frameDuration)) {
+			if (animComp.frameDuration < 0.001f) animComp.frameDuration = 0.001f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::Checkbox("Is Playing", &animComp.isPlaying)) {
+			// If we unpause, we might want to reset elapsed time, but for now just toggle
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::Checkbox("Is Looping", &animComp.isLooping)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputInt("Start Frame", &animComp.startFrame)) {
+			if (animComp.startFrame < 0) animComp.startFrame = 0;
+			if (animComp.startFrame >= animComp.frameCount) animComp.startFrame = animComp.frameCount - 1;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		ImGui::Separator();
+		ImGui::Text("Start Delay");
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
+
+		if (ImGui::InputFloat("Delay (seconds)", &animComp.startDelay)) {
+			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange)) {
+			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
+
+		// History Tracking
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Animation Properties in " << entityMgr.GetProperties(entity).name << std::endl;
 			editSession.End(entity, compType, ss.str(), historyManager_);
 		}
 		editSession.wasItemActive = activeNow;
@@ -8369,5 +8428,7 @@ namespace Editor {
 			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Data", beforeJSON, afterJSON, compType);
 		}
 	}
+
+#pragma endregion
 
 }

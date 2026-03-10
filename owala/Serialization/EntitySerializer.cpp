@@ -1004,7 +1004,8 @@ namespace Framework {
 		halfSize.AddMember(rapidjson::StringRef(Serialization::VEC2_Y), texComp.HalfSize.y, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_SIZE), halfSize, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_FLIP_X), texComp.flipHorizontal, alloc);
-	
+		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_ALPHA), texComp.alpha, alloc);
+		
 		// UV override fields - only serialize when override is active to keep old scenes clean
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_OVERRIDE_UV), texComp.overrideUV, alloc);
 		if (texComp.overrideUV) {
@@ -1519,6 +1520,10 @@ namespace Framework {
 
 		if (componentData.HasMember(Serialization::TEXTURE_FLIP_X) && componentData[Serialization::TEXTURE_FLIP_X].IsBool()) {
 			out.flipHorizontal = componentData[Serialization::TEXTURE_FLIP_X].GetBool();
+		}
+
+		if (componentData.HasMember(Serialization::TEXTURE_ALPHA) && componentData[Serialization::TEXTURE_ALPHA].IsFloat()) {
+			out.alpha = componentData[Serialization::TEXTURE_ALPHA].GetFloat();
 		}
 
 		// UV override - defaults to false if the key is absent
