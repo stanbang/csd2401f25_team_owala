@@ -478,6 +478,10 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
+        if (mgr.HasComponent(entity, TransformType)) {
+            Vector2D position = mgr.GetComponent<Transform>(entity).position;
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Alert", AudioType::SFX, 0.3f, position });
+        }
     }
 
     void WitchAlertedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -516,6 +520,10 @@ namespace Framework {
         // Stop velocity during spin
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+        if (mgr.HasComponent(entity, TransformType)) {
+            Vector2D position = mgr.GetComponent<Transform>(entity).position;
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, position });
         }
     }
 
@@ -587,6 +595,9 @@ namespace Framework {
 
         // Teleport to valid position (falls back to current position if all attempts overlap)
         mgr.GetComponent<Transform>(entity).position = teleportPos;
+
+        // Play teleport sound at new position
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, teleportPos });
 
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };

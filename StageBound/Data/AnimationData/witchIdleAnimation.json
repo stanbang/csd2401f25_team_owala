@@ -1,0 +1,17 @@
+{
+  "frame_count": 10,
+  "frame_duration": 0.1,
+  "is_looping": true,
+  "start_frame": 0,
+  "spritesheets": [
+    {
+      "texture": "SB_Witch_Idle_Spritesheet_1.png",
+      "count": 6
+    },
+    {
+      "texture": "SB_Witch_Idle_Spritesheet_2.png",
+      "count": 4
+    }
+  ],
+  "frameEvents": {}
+}
