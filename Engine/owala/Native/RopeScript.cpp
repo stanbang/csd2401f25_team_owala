@@ -125,7 +125,22 @@ void RopeScript::OnDestroy() {
 // ---------------------------------------------------------------------------
 EntityManager* RopeScript::GetEntityManager() const {
     if (!GameManager::Exists()) return nullptr;
-    return new EntityManager(GameManager::GetInstance().GetECS());
+
+    // Obtain reference to current EntityStorage from GameManager
+    EntityStorage& ecs = GameManager::GetInstance().GetECS();
+
+    // Cache an EntityManager that wraps the current ECS reference. If the underlying
+    // ECS instance changes (e.g. editor play/stop swapping storages), recreate the
+    // cached EntityManager to point to the new storage.
+    static EntityStorage* cachedEcs = nullptr;
+    static std::unique_ptr<EntityManager> cachedManager;
+
+    if (cachedEcs != &ecs) {
+        cachedEcs = &ecs;
+        cachedManager.reset(new EntityManager(ecs));
+    }
+
+    return cachedManager.get();
 }
 
 bool RopeScript::HasTwoRopes(EntityManager& entityMgr) const {
@@ -153,7 +168,7 @@ void RopeScript::InitializeRopesForPlatform() {
     if (!entityMgr) return;
 
     int numRopes = HasTwoRopes(*entityMgr) ? 2 : 1;
-   
+
     for (int idx = 0; idx < numRopes; ++idx) {
         CreateSingleRope(idx);
     }
@@ -268,6 +283,7 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     rc.textureKey = "SB_PlatformRope.png";
     rc.isActive = true;
     rc.segmentHeight = 20.0f;
+    rc.ropeWidth = 200.0f;
     rc.ropeIndex = ropeIndex;
     rc.ceilingAttachmentPoint = fixedAnchor;
     rc.platformAttachmentPoint = dynamicAnchor;
@@ -282,7 +298,7 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     ropeTf.position = (fixedAnchor + dynamicAnchor) * 0.5f;
     float angleRad = atan2(delta.x, -delta.y);
     ropeTf.rotation.angle = angleRad * (180.0f / 3.14159265f);
-    ropeTf.rotation.textureAngle = angleRad; 
+    ropeTf.rotation.textureAngle = angleRad;
     entityMgr->AddComponent(rope, ropeTf);
 
     // Texture component

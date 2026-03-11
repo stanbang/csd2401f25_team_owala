@@ -552,7 +552,7 @@ namespace Framework{
 		Vector2D    ceilingAttachmentPoint = { 0.0f, 0.0f }; 
 		Vector2D    platformAttachmentPoint = { 0.0f, 0.0f }; 
 		bool        isActive = true;
-		float       ropeWidth = 100.0f;
+		float       ropeWidth = 0.0f;
 		float       segmentHeight = 20.0f;
 		int         ropeIndex = 0; 
 		bool        hasFoundCeiling = false;
