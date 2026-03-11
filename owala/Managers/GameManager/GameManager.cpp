@@ -341,19 +341,22 @@ namespace Framework {
 			deferredTask_ = nullptr;
 		}
 
-		// Process queued resume (deferred to avoid entity destruction mid frame)
+		// Process queued resume (deferred to avoid entity destruction mid frame).
+		// Unloads all overlay scenes (configured in GameConfig::overlayScenes) and unpauses physics.
 		if (queuedResume_) {
 			queuedResume_ = false;
-			SceneManager::GetInstance().UnloadScene("PauseScene");
-			SceneManager::GetInstance().UnloadScene("OptionsMenu");
+			for (const std::string& overlayScene : config_.overlayScenes) { // This is reading from Data/GameConfig.json to determine what scenes are considered overlays that should be unloaded on resume
+				SceneManager::GetInstance().UnloadScene(overlayScene);
+			}
 			systems_.physics_->SetPaused(false);
 		}
 
 		// Process queued instant additive scene swap (e.g., PauseScene <-> OptionsMenu).
-		// No fade is applied — overlay menus swap instantly.
+		// No fade is applied - overlay menus swap instantly.
 		if (queuedAdditiveSwap_) {
 			queuedAdditiveSwap_ = false;
 			SceneManager& sm = SceneManager::GetInstance();
+			// First unload the currently loaded additive scene if there is one, then load the new additive scene. This ensures that we don't have two additive scenes loaded at the same time, which could cause issues with entity management and callbacks.
 			if (!queuedAdditiveUnload_.empty()) {
 				Logger::Get().Info(DebugType::GameManager)
 					<< "SWITCH_SCENE_ADD unloading scene: " << queuedAdditiveUnload_ << std::endl;
@@ -369,12 +372,16 @@ namespace Framework {
 			}
 		}
 
-		// Process any scene unload queued by a button click last frame
+		// Process any scene unload queued by a button click last frame.
+		// If the unloaded scene is an overlay (configured in GameConfig::overlayScenes), unpause physics.
 		if (!queuedSceneUnload_.empty()) {
 			std::string sceneToUnload = std::move(queuedSceneUnload_);
 			queuedSceneUnload_.clear();
-			if (sceneToUnload == "PauseScene" || sceneToUnload == "OptionsMenu") {
-				systems_.physics_->SetPaused(false);
+			for (const std::string& overlayScene : config_.overlayScenes) {
+				if (sceneToUnload == overlayScene) {
+					systems_.physics_->SetPaused(false);
+					break;
+				}
 			}
 			SceneManager::GetInstance().UnloadScene(sceneToUnload);
 		}
