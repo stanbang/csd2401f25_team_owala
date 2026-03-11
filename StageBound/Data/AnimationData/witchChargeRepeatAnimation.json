@@ -1,0 +1,25 @@
+{
+    "frame_count": 15,
+    "frame_duration": 0.10000000149011612,
+    "is_looping": true,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Charge_Repeat_Spritesheet_2.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Charge_Repeat_Spritesheet_3.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Charge_Repeat_Spritesheet_4.png",
+            "count": 3
+        }
+    ],
+    "frameEvents": {}
+}

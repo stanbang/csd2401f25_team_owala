@@ -234,20 +234,36 @@ namespace Framework {
         float enrageDuration_ = 0.5f;
     };
 
-    // --- WITCH TELEPORT STATE ---
-    class WitchTeleportState : public State {
+    // --- WITCH TELEPORT SPIN STATE ---
+    class WitchTeleportSpinState : public State {
     public:
-        const char* GetName() const override { return "WitchTeleport"; }
+        const char* GetName() const override { return "WitchTeleportSpin"; }
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
         void SetParameter(const std::string& key, float value) override;
 
         float GetTimer() const { return timer_; }
-        float GetTeleportDuration() const { return teleportDuration_; }
+        float GetSpinDuration() const { return spinDuration_; }
 
     private:
         float timer_ = 0.0f;
-        float teleportDuration_ = 0.3f;
+        float spinDuration_ = 1.0f;
+    };
+
+    // --- WITCH TELEPORT FALL STATE ---
+    class WitchTeleportFallState : public State {
+    public:
+        const char* GetName() const override { return "WitchTeleportFall"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetFallDuration() const { return fallDuration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float fallDuration_ = 1.0f;
         float minTeleportRange_ = 80.0f;
         float maxTeleportRange_ = 200.0f;
     };
@@ -268,6 +284,22 @@ namespace Framework {
         float timer_ = 0.0f;
         float chargeDuration_ = 1.5f;
         float attackRadius_ = 150.0f;
+    };
+
+    // --- WITCH DEATH STATE ---
+    class WitchDeathState : public State {
+    public:
+        const char* GetName() const override { return "Death"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
+        void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
+        void SetParameter(const std::string& key, float value) override;
+
+        float GetTimer() const { return timer_; }
+        float GetDuration() const { return duration_; }
+
+    private:
+        float timer_ = 0.0f;
+        float duration_ = 0.9f;
     };
 
     // --- WITCH ATTACK STATE ---

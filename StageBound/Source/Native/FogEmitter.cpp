@@ -32,10 +32,15 @@ void FogEmitter::OnCreate() {
 
 void FogEmitter::OnUpdate() {
     float dt = Time::DeltaTime();
+    nextSpawnTimer -= dt;
+
+    // Stop fog VFX logic if current scene is not level scene (eg: pause/options menu)
+    const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
+    if (!GameManager::GetInstance().IsLevelScene(currentScene.name)) return;
+
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
     // Handle Spawning
-    nextSpawnTimer -= dt;
     if (nextSpawnTimer <= 0.0f) {
         CameraSystem* cameraSys = GameManager::GetInstance().GetSystems().camera_;
         Entity activeCamera = cameraSys->GetActiveCamera();
@@ -128,7 +133,6 @@ void FogEmitter::OnUpdate() {
                 activeFogs.push_back({ fogEntity, fogLifeSpan, fogLifeSpan });
         
                 // Add entity to scene
-                const SceneAsset& currentScene = SceneManager::GetInstance().GetActiveScene();
                 SceneManager::GetInstance().AddEntityToScene(currentScene, fogEntity);
             }
         }
