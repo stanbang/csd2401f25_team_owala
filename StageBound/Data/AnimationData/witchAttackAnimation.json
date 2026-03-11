@@ -1,0 +1,21 @@
+{
+  "frame_count": 12,
+  "frame_duration": 0.1,
+  "is_looping": false,
+  "start_frame": 0,
+  "spritesheets": [
+    {
+      "texture": "SB_Witch_Attack_Spritesheet_1.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Attack_Spritesheet_2.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Attack_Spritesheet_3.png",
+      "count": 4
+    }
+  ],
+  "frameEvents": {}
+}

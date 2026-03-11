@@ -1,0 +1,32 @@
+{
+    "frame_count": 21,
+    "frame_duration": 0.05,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_Witch_Teleport_Fall_Spritesheet_1.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Teleport_Fall_Spritesheet_2.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Teleport_Fall_Spritesheet_3.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Teleport_Fall_Spritesheet_4.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Teleport_Fall_Spritesheet_5.png",
+            "count": 4
+        },
+        {
+            "texture": "SB_Witch_Teleport_Fall_Spritesheet_6.png",
+            "count": 1
+        }
+    ]
+}

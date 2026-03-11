@@ -1,0 +1,40 @@
+{
+    "frame_count": 22,
+    "frame_duration": 0.05,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_1.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_2.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_3.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_4.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_5.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_6.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_7.png",
+            "count": 3
+        },
+        {
+            "texture": "SB_Witch_Teleport_Spin_Spritesheet_8.png",
+            "count": 1
+        }
+    ]
+}

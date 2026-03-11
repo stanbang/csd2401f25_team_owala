@@ -1,7 +1,7 @@
 {
     "initialState": "WitchIdle",
-    "previewTexture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
-    "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
+    "previewTexture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "texture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
     "animationProfile": "witchEnemy",
     "hasCollision": false,
     "halfSize": {
@@ -31,10 +31,17 @@
             }
         },
         {
-            "name": "WitchTeleport",
-            "type": "WitchTeleport",
+            "name": "WitchTeleportSpin",
+            "type": "WitchTeleportSpin",
             "parameters": {
-                "teleportDuration": 0.3,
+                "spinDuration": 1.0
+            }
+        },
+        {
+            "name": "WitchTeleportFall",
+            "type": "WitchTeleportFall",
+            "parameters": {
+                "fallDuration": 1.0,
                 "minTeleportRange": 80,
                 "maxTeleportRange": 200
             }
@@ -54,6 +61,11 @@
                 "attackDuration": 2.0,
                 "attackRadius": 200
             }
+        },
+        {
+            "name": "Death",
+            "type": "WitchDeath",
+            "parameters": {}
         }
     ],
     "transitions": [
@@ -75,18 +87,26 @@
         },
         {
             "from": "WitchEnraged",
-            "to": "WitchTeleport",
+            "to": "WitchTeleportSpin",
             "condition": {
                 "type": "TimerExpired",
                 "state": "WitchEnraged"
             }
         },
         {
-            "from": "WitchTeleport",
+            "from": "WitchTeleportSpin",
+            "to": "WitchTeleportFall",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "WitchTeleportSpin"
+            }
+        },
+        {
+            "from": "WitchTeleportFall",
             "to": "WitchCharging",
             "condition": {
                 "type": "TimerExpired",
-                "state": "WitchTeleport"
+                "state": "WitchTeleportFall"
             }
         },
         {
