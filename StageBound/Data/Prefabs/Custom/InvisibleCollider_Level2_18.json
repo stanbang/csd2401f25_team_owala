@@ -1,0 +1,73 @@
+{
+    "name": "InvisibleCollider_Level2_18",
+    "layer": 2,
+    "layer_collision_name": "Platform",
+    "render_layer": 50,
+    "custom_render_order": 0,
+    "components": {
+        "Transform": {
+            "Position": {
+                "x": 450.0,
+                "y": 250.0
+            },
+            "Rotation": {
+                "angle": 0.0,
+                "texture_angle": 0.0,
+                "collider_angle": 0.0,
+                "texture_matrix": [
+                    1.0,
+                    0.0,
+                    450.0,
+                    0.0,
+                    1.0,
+                    250.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "collider_matrix": [
+                    1.0,
+                    0.0,
+                    450.0,
+                    0.0,
+                    1.0,
+                    250.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Scale": {
+                "x": 1.0,
+                "y": 1.0
+            }
+        },
+        "RigidBody": {
+            "mass": 0.0,
+            "inv_mass": 0.0,
+            "is_affected_by_gravity": false,
+            "force": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        "AABBCollider": {
+            "half_width": 320.0,
+            "half_height": 20.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0
+        },
+        "RotationFlag": {
+            "is_rotating": false,
+            "current_rotation": 0.0,
+            "target_rotation": 0.0
+        },
+        "SceneOwned": {
+            "scene_id": 10,
+            "sceneName": "Level 2"
+        }
+    },
+    "tags": [
+        "PlatformTag"
+    ]
+}

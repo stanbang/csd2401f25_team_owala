@@ -1,0 +1,8 @@
+{
+    "move_speed": 400,
+    "jump_height": 200,
+    "invulnerability_duration": 1.5,
+    "knockback_duration": 0.3,
+    "knockback_force_x": 500,
+    "knockback_force_y": 300
+}

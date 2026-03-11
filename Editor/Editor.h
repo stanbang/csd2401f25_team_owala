@@ -36,6 +36,7 @@
 // Editor Modules
 #include "History.h"
 #include "Gizmo.h"
+#include "ProjectScaffold.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -256,7 +257,23 @@ namespace Editor {
 		CameraState currentEditorCameraState_;
 		bool editorCameraNeedsReset_ = false;
 
-		// Camera state functions
+		// -------------------------------------------------------
+		// --- Project Management State (New / Import Project) ---
+		// -------------------------------------------------------
+		bool showNewProjectDialog_ = false;  // Controls "Create New Project" modal visibility
+		bool showImportProjectDialog_ = false;  // Controls "Import Existing Project" modal visibility
+		char newProjectNameBuffer_[256] = "";  // Text input buffer for the new project name
+		char newProjectPathBuffer_[512] = "";  // Root directory where the new project folder will be created
+		char importProjectPathBuffer_[512] = ""; // Path to the folder of an existing project to import
+		std::string projectFeedbackMsg_ = "";  // Feedback message shown inside the modal after an action
+		bool projectActionSucceeded_ = false; // Whether the last project action succeeded (colours the message)
+
+		// Renders the "Create New Project" modal pop-up.
+		void ShowNewProjectDialog();
+
+		// Renders the "Import Existing Project" modal pop-up.
+		void ShowImportProjectDialog();
+		// -------------------------------------------------------
 		void ResetEditorCamera();
 		void SaveEditorCameraState();
 		void RestoreEditorCameraState();
@@ -319,6 +336,7 @@ namespace Editor {
 		void DrawTransformInspector(Entity entity);
 		void DrawRigidBodyInspector(Entity entity);
 		void DrawTextureInspector(Entity entity);
+		void DrawAnimationInspector(Entity entity);
 		void DrawAudioInspector(Entity entity);
 		void DrawButtonInspector(Entity entity);
 

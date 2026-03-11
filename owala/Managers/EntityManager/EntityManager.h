@@ -1,0 +1,307 @@
+/*****************************************************************//**
+* \file   EntityManager.h
+*
+* \primary_author
+*      Jason Lou
+* \secondary_author
+*
+*
+* \brief	Manager responsible for managing entities and their
+*			components in the ECS architecture. Also serves as a
+*			Entity Factory/Game Object Factory to create entities.
+*
+* \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+* Reproduction or disclosure of this file or its contents without the prior
+* written consent of DigiPen Institute of Technology is prohibited.
+*********************************************************************/
+#pragma once
+#include "EntityStorage.h"
+#include <stdexcept>
+#include <bitset>
+#include <sstream>
+#include <type_traits>
+
+namespace Framework {
+
+	// THIS CLASS IS A UTILITY CLASS. Its not meant to store any data. Use it for API calls only.
+	class EntityManager {
+	private:
+		EntityStorage& ecs;
+	public:
+		/* Constructors */
+		EntityManager(EntityStorage& entityStorage);
+
+		/* EntityManager APIs */
+		// Creates a new entity and returns its ID.
+		Entity CreateEntity();
+		// Creates a new entity with the specified ID.
+		// Use with caution, this will overwrite any existing entity with conflicting ID.
+		Entity CreateEntityWithID(Entity entityID);
+		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
+		Entity CloneEntity(const Entity& entity);
+		// Destroys the specified entity, the entity and all its components are destroyed together.
+		void DestroyEntity(Entity entity);
+
+		// Gets the property data of the specified entity.
+		EntityProperties& GetProperties(Entity entity);
+
+		// Validate if Entity exists. Returns true if Entity is a valid entity.
+		bool ValidateEntity(Entity entity);
+
+		// Generates a UUID
+		static uint64_t GenerateUUID();
+
+		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
+		bool HasComponent(Entity entity, ComponentType componentType) const;
+		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
+		template <typename T>
+		void AddComponent(Entity entity, const T& component) {
+			if (!ValidateEntity(entity)) {
+				std::stringstream errorMsg;
+				errorMsg << "AddComponent: Invalid Entity ID: " << entity;
+				throw std::runtime_error(errorMsg.str());
+			}
+
+			constexpr ComponentType type = ComponentTypeTrait<T>::value;
+
+			if (HasComponent(entity, type)) return;
+
+			if constexpr (std::is_same_v<T, Transform>) ecs.transform[entity] = component;
+			else if constexpr (std::is_same_v<T, Velocity>) ecs.velocity[entity] = component;
+			else if constexpr (std::is_same_v<T, Acceleration>) ecs.acceleration[entity] = component;
+			else if constexpr (std::is_same_v<T, Triangle>)  ecs.triangle[entity] = component;
+			else if constexpr (std::is_same_v<T, RigidBody>) ecs.rigidBody[entity] = component;
+			else if constexpr (std::is_same_v<T, AABBCollider>) ecs.colliders[entity] = component;
+			else if constexpr (std::is_same_v<T, PlayerState>) ecs.playerState[entity] = component;
+			else if constexpr (std::is_same_v<T, RotationFlag>) ecs.rotationFlag[entity] = component;
+			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) ecs.trapPlatform[entity] = component;
+			else if constexpr (std::is_same_v<T, TextureComponent>) ecs.tex[entity] = component;
+			else if constexpr (std::is_same_v<T, AudioComponent>) ecs.audio[entity] = component;
+			else if constexpr (std::is_same_v<T, AnimationComponent>) ecs.animatedTex[entity] = component;
+			else if constexpr (std::is_same_v<T, TextComponent>) ecs.text[entity] = component;
+			else if constexpr (std::is_same_v<T, Button>) ecs.button[entity] = component;
+			else if constexpr (std::is_same_v<T, SceneOwned>) ecs.sceneOwned[entity] = component;
+			else if constexpr (std::is_same_v<T, Camera>) ecs.cameras[entity] = component;
+			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) ecs.nativeScripts[entity] = component;
+			else if constexpr (std::is_same_v<T, FSMComponent>) ecs.fsmComponent[entity] = component;
+			else if constexpr (std::is_same_v<T, ParticleComponent>) ecs.particleComponent[entity] = component;
+			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) ecs.particleEmitterComponent[entity] = component;
+			else if constexpr (std::is_same_v<T, Slider>) ecs.sliders[entity] = component;
+			else if constexpr (std::is_same_v<T, PlayerHealthComponent>) ecs.playerHealth[entity] = component;
+			else if constexpr (std::is_same_v<T, RopeComponent>) ecs.ropeComponents[entity] = component;
+
+			else {
+				// If this is a tag-only type, no storage is necessary.
+				static_assert(std::is_same_v<T, T>, "Unsupported component type"); // will never be triggered when all types are handled
+			}
+
+			ecs.entitySignatures.at(entity).set(type);
+		}
+		// Adds a empty component of specified ComponentType ID to the entity.
+		void AddComponent(Entity entity, ComponentType componentType);
+		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
+		void RemoveComponent(Entity entity, ComponentType componentType);
+		// Gets the component of type T attached to the specified entity. Throws an error if the entity does not have the component.
+		template <typename T>
+		T& GetComponent(Entity entity) {
+			// Get the component type from the trait
+			constexpr ComponentType type = ComponentTypeTrait<T>::value;
+
+			// Validate Entity
+			if (!ValidateEntity(entity)) {
+				std::stringstream errorMsg;
+				errorMsg << "GetComponent: Invalid Entity ID: " << entity << " requested component with ID: " << static_cast<int>(type);
+				throw std::runtime_error(errorMsg.str());
+			}
+
+			// Ensure the entity actually has this component
+			if (!HasComponent(entity, type)) {
+				std::stringstream errorMsg;
+				errorMsg << "GetComponent: Entity: " << GetProperties(entity).name << " does not have the requested component with ID: " << static_cast<int>(type);
+				throw std::runtime_error(errorMsg.str());
+			}
+
+			// Return a reference to the component in the map
+			if constexpr (std::is_same_v<T, Transform>) return ecs.transform.at(entity);
+			else if constexpr (std::is_same_v<T, Velocity>) return ecs.velocity.at(entity);
+			else if constexpr (std::is_same_v<T, Acceleration>) return ecs.acceleration.at(entity);
+			else if constexpr (std::is_same_v<T, Triangle>) return ecs.triangle.at(entity);
+			else if constexpr (std::is_same_v<T, RigidBody>) return ecs.rigidBody.at(entity);
+			else if constexpr (std::is_same_v<T, AABBCollider>) return ecs.colliders.at(entity);
+			else if constexpr (std::is_same_v<T, PlayerState>) return ecs.playerState.at(entity);
+			else if constexpr (std::is_same_v<T, RotationFlag>) return ecs.rotationFlag.at(entity);
+			else if constexpr (std::is_same_v<T, TrapPlatformComponent>) return ecs.trapPlatform.at(entity);
+			else if constexpr (std::is_same_v<T, TextureComponent>) return ecs.tex.at(entity);
+			else if constexpr (std::is_same_v<T, AudioComponent>) return ecs.audio.at(entity);
+			else if constexpr (std::is_same_v<T, AnimationComponent>) return ecs.animatedTex.at(entity);
+			else if constexpr (std::is_same_v<T, Button>) return ecs.button.at(entity);
+			else if constexpr (std::is_same_v<T, TextComponent>) return ecs.text.at(entity);
+			else if constexpr (std::is_same_v<T, SceneOwned>) return ecs.sceneOwned.at(entity);
+			else if constexpr (std::is_same_v<T, Camera>) return ecs.cameras.at(entity);
+			else if constexpr (std::is_same_v<T, NativeScriptsComponent>) return ecs.nativeScripts.at(entity);
+			else if constexpr (std::is_same_v<T, FSMComponent>) return ecs.fsmComponent.at(entity);
+			else if constexpr (std::is_same_v<T, ParticleComponent>) return ecs.particleComponent.at(entity);
+			else if constexpr (std::is_same_v<T, ParticleEmitterComponent>) return ecs.particleEmitterComponent.at(entity);
+			else if constexpr (std::is_same_v<T, Slider>) return ecs.sliders.at(entity);
+			else if constexpr (std::is_same_v<T, PlayerHealthComponent>) return ecs.playerHealth.at(entity);
+			else if constexpr (std::is_same_v<T, RopeComponent>) return ecs.ropeComponents.at(entity);
+
+			else {
+				static_assert(!std::is_same_v<T, T>, "Unsupported component type");
+			}
+		}
+		// Checks if given component is a Tag Component. Returns false if it is a regular component.
+		bool IsTagComponent(ComponentType componentType);
+		// Clears all tag components from the specified entity.
+		void ClearTags(Entity entity);
+		// The active state of the entity. True if active, false if inactive. (Read Only)
+		bool IsActive(Entity entity) const;
+		// Activates or deactivates the entity to be used by systems and scripts. 
+		void SetActive(Entity entity, bool value);
+		// Attaches a custom C++ script to an entity.
+		template<class T>
+		std::size_t AttachScript(Entity entity, const char* displayName = nullptr, bool enabled = true);
+		// Attaches a custom C++ script to an entity.
+		std::size_t AttachScriptByName(Entity entity, std::string typeName, bool enabled = true);
+		// Removes a custom C++ script at the provided script index from an entity.
+		void RemoveScriptAt(Entity entity, std::size_t index, bool removeComponentIfEmpty = true);
+		// Swaps the index of an existing script with another bounded script.
+		void SwapScripts(Entity entity, std::size_t a, std::size_t b);
+		// Gets the script of type T attached to the specified entity. Returns a null pointer if the entity does not have the script.
+		template<class T>
+		T* GetScript(Entity entity);
+		// Gets all entities that have been created. Note that this includes entities that have no components.
+		std::vector<Entity> GetAllEntities() const;
+		// Gets all entities that have the specified component type attached to them.
+		std::vector<Entity> GetAllEntitiesWithComponent(bool activeOnly, ComponentType componentType) const;
+		// Gets all entities that have all the specified component types attached to them. (Multiple component support)
+		template<typename... Args>
+		std::vector<Entity> GetAllEntitiesWithComponents(bool activeOnly, Args... componentTypes) const;
+		template<typename Func, typename... Types>
+		void ForEachEntityWithComponents(Func&& fn, bool activeOnly, Types... componentTypes);
+		// Get entity signatures
+		inline const auto& GetEntitySignatures() const {
+			return ecs.entitySignatures;
+		}
+
+		//Get entity by name
+		Entity GetEntityByName(const std::string& name) const;
+		std::vector<Entity> GetEntitiesBySubstring(const std::string& subStr) const;
+		Entity GetEntityByUUID(uint64_t uuid) const;
+
+	};
+
+	// BELOW IS STILL WIP. DO NOT USE.
+	class WIPEntityManager {
+	private:
+		WIPEntityStorage& ecs;
+	public:
+		/* Constructors */
+		WIPEntityManager(WIPEntityStorage& entityStorage);
+
+		/* EntityManager APIs */
+		// Creates a new entity and returns its ID.
+		Entity CreateEntity();
+		// Clones the specified entity, creating a new entity with the same components and data, and returns the new entity's ID.
+		Entity CloneEntity(/*Entity& entity*/);
+
+		// Checks if the specified entity has the specified component type attached to it. Returns true if the component is present, false otherwise.
+		bool HasComponent(Entity entity, ComponentType componentType) const;
+		// Adds a component of type T to the specified entity. The Component must be a valid component type defined in Components.h
+		//template <typename T>
+		//void AddComponent(Entity entity, const T& component);
+		// Adds a component of the specified ComponentType to the specified entity.
+		//void AddComponent(Entity entity, ComponentType componentType);
+		// Removes a component of type T from the specified entity. The Component must be a valid component type defined in Components.h
+		//void RemoveComponent(Entity entity, ComponentType componentType);
+	};
+
+	template<class T>
+	std::size_t EntityManager::AttachScript(Entity entity, const char* displayName, bool enabled)
+	{
+		if (!HasComponent(entity, NativeScriptsComponentType)) {
+			AddComponent<NativeScriptsComponent>(entity, NativeScriptsComponent{});
+		}
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+
+		nativeScripts.scripts.emplace_back();
+		NativeScriptsComponent::NativeScript& scriptToAdd = nativeScripts.scripts.back();
+		scriptToAdd.enabled = enabled;
+		scriptToAdd.Bind<T>(displayName ? displayName : typeid(T).name());
+
+		return nativeScripts.scripts.size() - 1;
+	}
+
+	template<class T>
+	T* EntityManager::GetScript(Entity entity) {
+		static_assert(std::is_base_of<ScriptableEntity, T>::value, "T must derive from ScriptableEntity");
+
+		if (!ValidateEntity(entity)) return nullptr;
+		if (!HasComponent(entity, NativeScriptsComponentType)) return nullptr;
+
+		NativeScriptsComponent& nativeScripts = GetComponent<NativeScriptsComponent>(entity);
+		for (NativeScriptsComponent::NativeScript& script : nativeScripts.scripts) {
+			if (!script.Instance) continue;
+			if (!script.enabled) continue;
+			if (script.missing) continue;
+
+			if (T* casted = dynamic_cast<T*>(script.Instance)) {
+				return casted;
+			}
+		}
+		return nullptr;
+	}
+
+	template<typename... Args>
+	std::vector<Entity> EntityManager::GetAllEntitiesWithComponents(bool activeOnly, Args... componentTypes) const {
+		// Create the required signature bitset
+		ComponentSignature requiredSignature;
+
+		// This sets a bit for each component type passed in
+		(requiredSignature.set(static_cast<size_t>(componentTypes)), ...);
+
+		std::vector<Entity> entities;
+		for (const auto& [entity, entitySignature] : ecs.entitySignatures) {
+			// Check if signatures match
+			if ((entitySignature & requiredSignature) != requiredSignature) continue;
+
+			// Check for Entity's existence
+			auto it = ecs.properties.find(entity);
+			if (it == ecs.properties.end()) continue;
+
+			if (ecs.properties.find(entity) == ecs.properties.end()) continue;
+
+			// Check if Entity is Active
+			if (activeOnly && !it->second.isActive) continue;
+
+			entities.push_back(entity);
+		}
+
+		return entities;
+	}
+
+	template <typename Func, typename... Types>
+	void EntityManager::ForEachEntityWithComponents(Func&& fn, bool activeOnly, Types... componentTypes) {
+		// Create the required signature bitset
+		ComponentSignature requiredSignature;
+
+		// This sets a bit for each component type passed in
+		(requiredSignature.set(static_cast<size_t>(componentTypes)), ...);
+
+		for (auto& [entity, entitySignature] : ecs.entitySignatures) {
+			// Check for signature
+			if ((entitySignature & requiredSignature) != requiredSignature) continue;
+
+			// Check for Entity's existence
+			auto it = ecs.properties.find(entity);
+			if (it == ecs.properties.end()) continue;
+
+			// Check if Entity is Active
+			if (activeOnly && !it->second.isActive) continue;
+
+			// Passed all checks. Can execute lambda.
+			fn(entity);
+		}
+	}
+}

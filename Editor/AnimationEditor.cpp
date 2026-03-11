@@ -19,20 +19,23 @@
 #include "FileUtility.h"
 
 namespace Editor {
-
+	/**
+	 * Function to load animation data from JSON files in the Data/AnimationData folder.
+	 */
 	void Editor::LoadAnimationFiles() {
 		using namespace Framework;
 
+		// Clear previously loaded data to avoid duplicates on multiple loads
 		loadedAnimations_.clear();
 		animationNames_.clear();
 
 		try {
 			// Look for animation JSON files in Data/AnimationData folder
 			std::string animDir = "Data/AnimationData/";
-			if (std::filesystem::exists(animDir)) {
-				for (const auto& entry : std::filesystem::directory_iterator(animDir)) {
-					if (entry.is_regular_file() && entry.path().extension() == ".json") {
-						std::string filename = entry.path().stem().string();
+			if (std::filesystem::exists(animDir)) { // Check if the directory exists before iterating
+				for (const auto& entry : std::filesystem::directory_iterator(animDir)) { // Iterate through files in the directory
+					if (entry.is_regular_file() && entry.path().extension() == ".json") { // Only process regular files with .json extension
+						std::string filename = entry.path().stem().string(); // Use filename without extension as the animation name
 
 						// Try to load animation data from file
 						rapidjson::Document doc;
@@ -41,6 +44,7 @@ namespace Editor {
 								AnimationFileData animData;
 								animData.name = filename;
 
+								// Load basic animation properties
 								if (doc.HasMember(FileIOKeys::FRAME_COUNT)) {
 									animData.frameCount = doc[FileIOKeys::FRAME_COUNT].GetInt();
 								}
@@ -80,7 +84,7 @@ namespace Editor {
 										animData.frameEvents[frameIdx] = evtName;
 									}
 								}
-
+								// Add the loaded animation data to our list
 								loadedAnimations_.push_back(animData);
 								Logger::Get().Info(DebugType::Editor)
 									<< "Loaded animation: " << filename << " (frameCount: " << animData.frameCount << ")" << std::endl;
@@ -167,6 +171,7 @@ namespace Editor {
 		doc.SetObject();
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
+		// Add basic properties
 		doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_COUNT), animData.frameCount, alloc);
 		doc.AddMember(rapidjson::StringRef(FileIOKeys::FRAME_DURATION), animData.frameDuration, alloc);
 		doc.AddMember(rapidjson::StringRef(FileIOKeys::IS_LOOPING), animData.isLooping, alloc);
@@ -192,61 +197,14 @@ namespace Editor {
 		}
 		doc.AddMember("frameEvents", eventsObj, alloc);
 
-		// Write to Debug folder first
-		std::string debugFilepath = "Data/AnimationData/" + animationName + ".json";
+		// Write to Debug folder & root folder
+		std::string filePath = "Data/AnimationData/" + animationName + ".json";
 		bool debugSaveSuccess = false;
-		try {
-			rapidjson::StringBuffer buffer;
-			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-			doc.Accept(writer);
-
-			std::ofstream file(debugFilepath);
-			if (file.is_open()) {
-				file << buffer.GetString();
-				file.close();
-				debugSaveSuccess = true;
-
-				Logger::Get().Info(DebugType::Editor)
-					<< "Saved animation file: " << debugFilepath << std::endl;
-			}
-			else {
-				Logger::Get().Error(DebugType::Editor)
-					<< "Failed to open file for writing: " << debugFilepath << std::endl;
-			}
+		if (FileIOSystem::WriteFileJson(filePath, doc)) {
+			debugSaveSuccess = true;
 		}
-		catch (const std::exception& e) {
-			Logger::Get().Error(DebugType::Editor)
-				<< "Error saving animation file to Debug: " << e.what() << std::endl;
-		}
-
-		// Also save to root Data folder - using correct relative path
-		// From Debug folder, we need to go up: ../../Data/AnimationData/
-		std::string rootFilepath = "../../Data/AnimationData/" + animationName + ".json";
-		try {
-			// Ensure the directory exists
-			std::filesystem::path rootPath(rootFilepath);
-			std::filesystem::create_directories(rootPath.parent_path());
-
-			rapidjson::StringBuffer buffer;
-			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-			doc.Accept(writer);
-
-			std::ofstream file(rootFilepath);
-			if (file.is_open()) {
-				file << buffer.GetString();
-				file.close();
-
-				Logger::Get().Info(DebugType::Editor)
-					<< "Saved animation file to root: " << rootFilepath << std::endl;
-			}
-			else {
-				Logger::Get().Error(DebugType::Editor)
-					<< "Failed to open file for writing to root: " << rootFilepath << std::endl;
-			}
-		}
-		catch (const std::exception& e) {
-			Logger::Get().Error(DebugType::Editor)
-				<< "Error saving animation file to root: " << e.what() << std::endl;
+		else {
+			Logger::Get().Error(DebugType::Editor) << "Error saving animation data to: " << filePath << std::endl;
 		}
 
 		// Reload animation from file into ResourceManager if successfully saved
@@ -261,6 +219,11 @@ namespace Editor {
 			<< "Animation saved and resource manager refreshed: " << animationName << std::endl;
 	}
 
+	/** 
+	 * Saves the mapping of texture keys to animation paths based on the currently loaded animations and their 
+	 * associated texture keys. This function is called after saving an animation file to ensure that the mapping 
+	 * file stays in sync with any changes made to animations and their texture associations.
+	 */
 	void Editor::SaveTextureToAnimationMapping() {
 		using namespace Framework;
 
@@ -270,7 +233,7 @@ namespace Editor {
 		rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 
 		rapidjson::Value animationsArray(rapidjson::kArrayType);
-
+		// Iterate through all loaded animations and construct the mapping entries
 		for (const AnimationFileData& animData : loadedAnimations_) {
 			if (animData.textureKeys.empty()) continue;
 
@@ -278,9 +241,9 @@ namespace Editor {
 
 			// texture_keys array
 			rapidjson::Value keysArray(rapidjson::kArrayType);
-			for (const std::string& key : animData.textureKeys) {
+			for (const std::string& key : animData.textureKeys) { // Use the texture key as the identifier for the animation in the mapping
 				rapidjson::Value keyVal;
-				keyVal.SetString(key.c_str(), static_cast<rapidjson::SizeType>(key.size()), alloc);
+				keyVal.SetString(key.c_str(), static_cast<rapidjson::SizeType>(key.size()), alloc); // Ensure the string is copied into the document's allocator
 				keysArray.PushBack(keyVal, alloc);
 			}
 			entry.AddMember("texture_keys", keysArray, alloc);
@@ -294,37 +257,20 @@ namespace Editor {
 			animationsArray.PushBack(entry, alloc);
 		}
 
-		doc.AddMember("animations", animationsArray, alloc);
+		doc.AddMember("animations", animationsArray, alloc); // Add the array of animation mappings to the document
 
-		auto writeToPath = [&](const std::string& filepath) {
-			try {
-				std::filesystem::create_directories(std::filesystem::path(filepath).parent_path());
-				rapidjson::StringBuffer buffer;
-				rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-				doc.Accept(writer);
-
-				std::ofstream file(filepath);
-				if (file.is_open()) {
-					file << buffer.GetString();
-					file.close();
-					Logger::Get().Info(DebugType::Editor)
-						<< "Saved textureToAnimationMapping: " << filepath << std::endl;
-				}
-				else {
-					Logger::Get().Error(DebugType::Editor)
-						<< "Failed to open for writing: " << filepath << std::endl;
-				}
-			}
-			catch (const std::exception& e) {
-				Logger::Get().Error(DebugType::Editor)
-					<< "Error saving mapping to " << filepath << ": " << e.what() << std::endl;
-			}
-			};
-
-		writeToPath("Data/textureToAnimationMapping.json");
-		writeToPath("../../Data/textureToAnimationMapping.json");
+		std::string filePath = "Data/textureToAnimationMapping.json";
+		if (FileIOSystem::WriteFileJson(filePath, doc)) {
+			Logger::Get().Info(DebugType::Editor)
+				<< "Saved textureToAnimationMapping: " << filePath << std::endl;
+		}
+		else {
+			Logger::Get().Error(DebugType::Editor)
+				<< "Error saving mapping to " << filePath << std::endl;
+		}
 	}
 
+	// Refreshes the ResourceManager's animation cache for any texture keys associated with the given animation name.
 	void Editor::RefreshAnimationInResourceManager(const std::string& animationName) {
 		using namespace Framework;
 
@@ -341,13 +287,18 @@ namespace Editor {
 		try {
 			rapidjson::Document mappingDoc;
 			if (FileIOSystem::ReadFile("Data/textureToAnimationMapping.json", mappingDoc)) {
-				if (mappingDoc.IsObject() && mappingDoc.HasMember("animations") && mappingDoc["animations"].IsArray()) {
+				if (mappingDoc.IsObject() && mappingDoc.HasMember("animations") && mappingDoc["animations"].IsArray()) { // Validate the structure of the mapping file before accessing
 					const rapidjson::Value& animations = mappingDoc["animations"];
-					for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) {
+					for (rapidjson::SizeType i = 0; i < animations.Size(); ++i) { // Iterate through the mapping entries to find any that reference the given animation name
 						const rapidjson::Value& entry = animations[i];
+
+						// Check if this entry's animation_path contains the animation name we're refreshing. 
+						// This allows for flexible matching even if the path includes directories or other identifiers.
 						if (entry.HasMember("animation_path") && entry["animation_path"].IsString()) {
 							std::string animPath = entry["animation_path"].GetString();
 							if (animPath.find(animationName) != std::string::npos) {
+
+								// If this entry references our animation, we need to refresh all associated texture keys in the ResourceManager.
 								if (entry.HasMember("texture_keys") && entry["texture_keys"].IsArray()) {
 									const rapidjson::Value& keys = entry["texture_keys"];
 									for (rapidjson::SizeType j = 0; j < keys.Size(); ++j) {
@@ -356,6 +307,8 @@ namespace Editor {
 										}
 									}
 								}
+
+								// If there are no texture_keys array, we can also check for a single texture_key string as a fallback for older mapping formats
 								else if (entry.HasMember("texture_key") && entry["texture_key"].IsString()) {
 									textureKeysToRefresh.push_back(entry["texture_key"].GetString());
 								}
@@ -661,6 +614,11 @@ namespace Editor {
 		ImGui::End();
 	}
 
+	/**
+	 * Reloads the specified animation's data from its JSON file on disk, updates the in-memory representation in the editor,
+	 * 
+	 * \param animationName
+	 */
 	void Editor::ReloadAnimationFromFile(const std::string& animationName) {
 		using namespace Framework;
 

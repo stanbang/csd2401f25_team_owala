@@ -1,0 +1,96 @@
+{
+    "name": "MultiAxisFallingTrap_BOX_NEW_01",
+    "layer": 6,
+    "layer_collision_name": "Invulnrabilty",
+    "render_layer": 50,
+    "custom_render_order": 0,
+    "components": {
+        "Transform": {
+            "Position": {
+                "x": 674.0,
+                "y": -1020.0
+            },
+            "Rotation": {
+                "angle": 0.0,
+                "texture_angle": 0.0,
+                "collider_angle": 0.0,
+                "texture_matrix": [
+                    108.0,
+                    0.0,
+                    674.0,
+                    0.0,
+                    100.0,
+                    -1020.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "collider_matrix": [
+                    0.8999999761581421,
+                    0.0,
+                    674.0,
+                    0.0,
+                    1.0,
+                    -1020.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Scale": {
+                "x": 0.6000000238418579,
+                "y": 0.75
+            }
+        },
+        "Velocity": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "RigidBody": {
+            "mass": 0.0,
+            "inv_mass": 0.0,
+            "is_affected_by_gravity": true,
+            "force": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        "AABBCollider": {
+            "half_width": 70.0,
+            "half_height": 70.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0
+        },
+        "RotationFlag": {
+            "is_rotating": false,
+            "current_rotation": 0.0,
+            "target_rotation": 0.0
+        },
+        "TrapPlatform": {
+            "is_triggered": false,
+            "has_fallen": false,
+            "trigger_delay": 0.0,
+            "current_delay": 0.0,
+            "fall_speed": 702.0,
+            "original_position": {
+                "x": 700.0,
+                "y": -1000.0
+            }
+        },
+        "TextureComponent": {
+            "texture_key": "SB_MovableBox_01.png",
+            "half_size": {
+                "x": 120.0,
+                "y": 100.0
+            },
+            "flip_x": false
+        },
+        "SceneOwned": {
+            "scene_id": 16,
+            "sceneName": "Level 4"
+        }
+    },
+    "tags": [
+        "PlatformTag"
+    ]
+}
