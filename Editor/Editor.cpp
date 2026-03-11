@@ -4687,9 +4687,10 @@ namespace Editor {
 	// Helper function to show entity collision layer
 	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
 
+		EntityStorage& ecs = GameManager::GetInstance().GetECS();
 		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
-		const auto& collisionLayers = layerManager_.GetCollisionLayers();
+		const std::vector<Framework::CollisionLayerData>& collisionLayers = layerManager_.GetCollisionLayers();
 
 		// Find current layer index
 		int currentIdx = -1;
@@ -4704,11 +4705,11 @@ namespace Editor {
 		std::vector<std::string> layerNames;
 		std::vector<const char*> layerItems;
 
-		for (const auto& layer : collisionLayers) {
+		for (const Framework::CollisionLayerData& layer : collisionLayers) {
 			layerNames.push_back(layer.name);
 		}
 
-		for (const auto& name : layerNames) {
+		for (const std::string& name : layerNames) {
 			layerItems.push_back(name.c_str());
 		}
 
@@ -4717,10 +4718,20 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##CollisionLayer", &currentIdx, layerItems.data(),
-			static_cast<int>(layerItems.size()))) {
+		if (ImGui::Combo("##CollisionLayer", &currentIdx, layerItems.data(), static_cast<int>(layerItems.size()))) {
 			if (currentIdx >= 0 && currentIdx < static_cast<int>(collisionLayers.size())) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+				
 				entityLayer = static_cast<Framework::CollisionLayer>(collisionLayers[currentIdx].id);
+				entityMgr.GetProperties(selectedEntity).collisionLayerName = collisionLayers[currentIdx].name;
+
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Collision Layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
 		}
 
@@ -4757,6 +4768,7 @@ namespace Editor {
 	// Helper function to show entity render layer
 	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
 
+		EntityStorage& ecs = GameManager::GetInstance().GetECS();
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
 		const std::vector<RenderLayerData>& renderLayers = layerManager_.GetRenderLayers();
@@ -4769,7 +4781,7 @@ namespace Editor {
 		}
 
 		// Determine current selection
-		static int currentIdx = 0; // Default to Custom
+		int currentIdx = 0; // Default to Custom
 
 		if (props.renderLayer != RenderLayer::Custom) {
 			// Try to find matching layer by render order
@@ -4789,8 +4801,9 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##RenderLayer", &currentIdx, layerItems.data(),
-			static_cast<int>(layerItems.size()))) {
+		if (ImGui::Combo("##RenderLayer", &currentIdx, layerItems.data(), static_cast<int>(layerItems.size()))) {
+
+			std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 
 			if (currentIdx == 0) {
 				// Custom selected
@@ -4806,6 +4819,14 @@ namespace Editor {
 					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
 				}
 			}
+
+			std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+			if (beforeJSON != afterJSON) {
+				std::stringstream ss;
+				ss << "Modified Render Layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+			}
 		}
 
 		ImGui::Spacing();
@@ -4813,21 +4834,51 @@ namespace Editor {
 
 		// Custom render order
 		if (props.renderLayerName == "Custom" || props.renderLayerName.empty()) {
+			static std::string beforeRenderOrderJSON;
+			int newRenderOrder = props.customRenderOrder;
+
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing();
 
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
-			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+			ImGui::DragInt("##CustomRenderOrder", &newRenderOrder, 1.0f, -1000, 1000);
+
+			if (ImGui::IsItemActivated()) {
+				beforeRenderOrderJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+			}
+
+			if (newRenderOrder != props.customRenderOrder) {
+				props.customRenderOrder = newRenderOrder;
 				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom"; // Mark as truly custom
 			}
+
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeRenderOrderJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Custom Render Order in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeRenderOrderJSON, afterJSON);
+				}
+			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
 				props.customRenderOrder = 0;
 				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom";
+
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Reset Custom Render Order in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
 
 			ImGui::Spacing();
