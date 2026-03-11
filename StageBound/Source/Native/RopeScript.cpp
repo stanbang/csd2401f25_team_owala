@@ -483,7 +483,6 @@ float RopeScript::FindCeilingAnchorY(EntityManager& entityMgr, float attachX, fl
             if (entityMgr.HasComponent(e, TrapPlatformComponentType)) continue;
             if (entityMgr.HasComponent(e, PlatformTagType)) continue;
             if (entityMgr.HasComponent(e, PlayerTagType)) continue;
-            if (entityMgr.HasComponent(e, FakePlayerTagType)) continue;
             if (entityMgr.HasComponent(e, EnemyTagType)) continue;
             if (entityMgr.HasComponent(e, GUITagType)) continue;
             if (entityMgr.HasComponent(e, RopeComponentType)) continue;
@@ -551,7 +550,6 @@ float RopeScript::FindWallAnchorX(EntityManager& entityMgr, float attachY, float
     auto ShouldSkip = [&](const Entity& e) -> bool {
         if (entityMgr.HasComponent(e, TrapPlatformComponentType)) return true;
         if (entityMgr.HasComponent(e, PlayerTagType))             return true;
-        if (entityMgr.HasComponent(e, FakePlayerTagType))         return true;
         if (entityMgr.HasComponent(e, EnemyTagType))              return true;
         if (entityMgr.HasComponent(e, GUITagType))                return true;
         if (entityMgr.HasComponent(e, RopeComponentType))         return true;
