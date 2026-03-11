@@ -54,7 +54,9 @@
                         "x": 0.10000000149011612,
                         "y": 0.10000000149011612
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -148,18 +150,22 @@
                         "x": 50.0,
                         "y": 100.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 0,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 1,
                     "elapsed_time": 0.0,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -245,7 +251,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -333,7 +341,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -421,7 +431,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -509,7 +521,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -597,7 +611,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -685,7 +701,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -784,7 +802,9 @@
                         "x": 100.0,
                         "y": 40.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -872,7 +892,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -960,7 +982,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1092,7 +1116,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1178,7 +1204,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1242,7 +1270,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1322,18 +1352,22 @@
                         "x": 100.0,
                         "y": 100.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 0,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 1,
                     "elapsed_time": 0.0,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1419,7 +1453,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1507,7 +1543,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1595,7 +1633,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1683,7 +1723,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1758,18 +1800,22 @@
                         "x": 40.0,
                         "y": 40.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 11,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 13,
                     "elapsed_time": 0.04292702302336693,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1855,7 +1901,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -1943,7 +1991,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2031,7 +2081,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2119,7 +2171,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2207,7 +2261,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2295,7 +2351,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2359,7 +2417,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2423,7 +2483,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2443,7 +2505,7 @@
             "uuid": 12659069064853179973,
             "components": {
                 "AudioComponent": {
-                    "sound_key": "bgm.wav",
+                    "sound_key": "Nightshift BGM_Loop_70bpm.wav",
                     "should_loop": true,
                     "is_streaming": true,
                     "volume": 0.4000000059604645,
@@ -2509,7 +2571,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2599,18 +2663,22 @@
                         "x": 60.0,
                         "y": 60.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "Player",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 2,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 14,
                     "elapsed_time": 0.04034522920846939,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -2679,7 +2747,11 @@
                     "emission_mode": 1,
                     "trigger_event_name": "PlayerLandedEvent",
                     "burst_count": 1,
-                    "burst_interval": 0.5
+                    "burst_interval": 0.5,
+                    "min_burst_count": 1,
+                    "max_burst_count": 5,
+                    "min_burst_interval": 1.0,
+                    "max_burst_interval": 3.0
                 }
             },
             "tags": [
@@ -2739,7 +2811,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2760,8 +2834,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": 0.0,
-                        "y": -0.800000011920929
+                        "x": 249.99996948242188,
+                        "y": -49.999473571777344
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -2832,7 +2906,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -2962,7 +3038,9 @@
                         "x": 600.0,
                         "y": 600.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3024,7 +3102,9 @@
                         "x": 0.10000000149011612,
                         "y": 0.10000000149011612
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AudioComponent": {
                     "sound_key": "jingle.ogg",
@@ -3114,7 +3194,9 @@
                         "x": 0.10000000149011612,
                         "y": 0.10000000149011612
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "ButtonComponent": {
                     "is_hovered": false,
@@ -3238,7 +3320,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3326,7 +3410,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3414,7 +3500,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3502,7 +3590,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3590,7 +3680,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3678,7 +3770,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3766,7 +3860,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3854,7 +3950,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -3942,7 +4040,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4030,7 +4130,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4118,7 +4220,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4206,7 +4310,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4294,7 +4400,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4382,7 +4490,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4470,7 +4580,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4558,7 +4670,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4646,7 +4760,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4734,7 +4850,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4822,7 +4940,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4910,7 +5030,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -4998,7 +5120,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5062,7 +5186,9 @@
                         "x": 1.0,
                         "y": 1.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5150,7 +5276,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5238,7 +5366,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5326,7 +5456,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5414,7 +5546,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5502,7 +5636,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5590,7 +5726,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5678,7 +5816,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5766,7 +5906,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5854,7 +5996,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -5942,7 +6086,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6030,7 +6176,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6118,7 +6266,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6206,7 +6356,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6294,7 +6446,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6382,7 +6536,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6470,7 +6626,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6558,7 +6716,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6646,7 +6806,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6734,7 +6896,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6822,7 +6986,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6910,7 +7076,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -6998,7 +7166,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7086,7 +7256,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7174,7 +7346,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7262,7 +7436,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7350,7 +7526,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7438,7 +7616,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7526,7 +7706,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7614,7 +7796,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7702,18 +7886,22 @@
                         "x": 25.0,
                         "y": 25.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "BirdEnemy",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 3,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 6,
                     "elapsed_time": 0.09018473327159882,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "FSMComponent": {
                     "DefinitionPath": "Data/FSM/birdEnemy.json",
@@ -7806,7 +7994,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7894,7 +8084,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -7976,7 +8168,9 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -8084,18 +8278,22 @@
                         "x": 50.0,
                         "y": 100.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "AnimationComponent": {
                     "profile_name": "",
-                    "current_state": 0,
+                    "current_state": "IDLE",
                     "current_frame": 0,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 1,
                     "elapsed_time": 0.0,
                     "is_playing": true,
-                    "is_looping": true
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -8157,7 +8355,9 @@
                         "x": 0.10000000149011612,
                         "y": 0.10000000149011612
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -8233,7 +8433,9 @@
                         "x": 0.10000000149011612,
                         "y": 0.10000000149011612
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "NativeScripts": {
                     "scripts": [
@@ -8344,7 +8546,9 @@
                         "x": 70.0,
                         "y": 60.0
                     },
-                    "flip_x": false
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 2,
@@ -8372,25 +8576,25 @@
                     },
                     "Rotation": {
                         "angle": 0.04126095771789551,
-                        "texture_angle": 0.04126095771789551,
-                        "collider_angle": 0.04126095771789551,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
                         "texture_matrix": [
-                            3.047574043273926,
-                            -0.004628305789083242,
+                            1.0,
+                            0.0,
                             -150.0,
-                            0.1258172243833542,
-                            0.11210789531469345,
+                            0.0,
+                            1.0,
                             100.0,
                             0.0,
                             0.0,
                             1.0
                         ],
                         "collider_matrix": [
-                            3.0501699447631836,
+                            1.0,
                             0.0,
                             -150.0,
                             0.0,
-                            0.11220338940620422,
+                            1.0,
                             100.0,
                             0.0,
                             0.0,
@@ -8398,8 +8602,8 @@
                         ]
                     },
                     "Scale": {
-                        "x": 3.0501699447631836,
-                        "y": 0.11220338940620422
+                        "x": 1.0,
+                        "y": 1.0
                     }
                 },
                 "RigidBody": {
@@ -8412,8 +8616,8 @@
                     }
                 },
                 "AABBCollider": {
-                    "half_width": 199.9999237060547,
-                    "half_height": 24.9999942779541,
+                    "half_width": 200.0,
+                    "half_height": 25.0,
                     "offset_x": 0.0,
                     "offset_y": 0.0
                 },
