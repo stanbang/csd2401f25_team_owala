@@ -5,8 +5,8 @@
     "animationProfile": "witchEnemy",
     "hasCollision": false,
     "halfSize": {
-        "x": 30,
-        "y": 40
+        "x": 50,
+        "y": 70
     },
     "states": [
         {
