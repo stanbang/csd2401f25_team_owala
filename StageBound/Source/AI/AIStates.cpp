@@ -508,8 +508,27 @@ namespace Framework {
         if (key == "enrageDuration") enrageDuration_ = value;
     }
 
-    // --- WITCH TELEPORT ---
-    void WitchTeleportState::OnEnter(Entity entity, EntityStorage& ecs) {
+    // --- WITCH TELEPORT SPIN ---
+    void WitchTeleportSpinState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        // Stop velocity during spin
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
+        }
+    }
+
+    void WitchTeleportSpinState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+    }
+
+    void WitchTeleportSpinState::SetParameter(const std::string& key, float value) {
+        if (key == "spinDuration") spinDuration_ = value;
+    }
+
+    // --- WITCH TELEPORT FALL ---
+    void WitchTeleportFallState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
         EntityManager mgr(ecs);
 
@@ -518,33 +537,68 @@ namespace Framework {
             !mgr.HasComponent(player, TransformType)) return;
 
         Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
+        Vector2D witchScale = mgr.GetComponent<Transform>(entity).scale;
+        Vector2D witchHS = witchScale * 0.5f;
 
-        // Pick a random angle and distance within range of the player
+        // Gather all platform AABBs for collision checking
+        auto platforms = mgr.GetAllEntitiesWithComponent(true, PlatformTagType);
+
         static std::mt19937 rng{ std::random_device{}() };
         std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * 3.14159265f);
         std::uniform_real_distribution<float> distDist(minTeleportRange_, maxTeleportRange_);
 
-        float angle = angleDist(rng);
-        float dist = distDist(rng);
+        const int maxAttempts = 15;
+        Vector2D teleportPos = mgr.GetComponent<Transform>(entity).position;
 
-        Vector2D offset = { std::cos(angle) * dist, std::sin(angle) * dist };
-        Vector2D teleportPos = playerPos + offset;
+        for (int attempt = 0; attempt < maxAttempts; ++attempt) {
+            float angle = angleDist(rng);
+            float dist = distDist(rng);
+            Vector2D candidatePos = playerPos + Vector2D{ std::cos(angle) * dist, std::sin(angle) * dist };
 
-        // Instantly teleport
+            // Build AABB for witch at candidate position
+            AABB_Bounds witchBounds = {
+                { candidatePos.x - witchHS.x, candidatePos.y - witchHS.y },
+                { candidatePos.x + witchHS.x, candidatePos.y + witchHS.y }
+            };
+
+            bool overlaps = false;
+            for (Entity platEntity : platforms) {
+                if (!mgr.HasComponent(platEntity, TransformType)) continue;
+                Transform& pt = mgr.GetComponent<Transform>(platEntity);
+                Vector2D platHS = pt.scale * 0.5f;
+
+                float platRotation = 0.0f;
+                if (mgr.HasComponent(platEntity, RotationFlagType)) {
+                    platRotation = mgr.GetComponent<RotationFlag>(platEntity).currentRotation;
+                }
+                AABB_Bounds platBounds = PhysicsSystem::GetRotatedAABB(pt.position, platHS, platRotation);
+
+                if (CollisionIntersection_RectRect_Static(witchBounds, platBounds)) {
+                    overlaps = true;
+                    break;
+                }
+            }
+
+            if (!overlaps) {
+                teleportPos = candidatePos;
+                break;
+            }
+        }
+
+        // Teleport to valid position (falls back to current position if all attempts overlap)
         mgr.GetComponent<Transform>(entity).position = teleportPos;
 
-        // Stop velocity
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
     }
 
-    void WitchTeleportState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+    void WitchTeleportFallState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
     }
 
-    void WitchTeleportState::SetParameter(const std::string& key, float value) {
-        if (key == "teleportDuration") teleportDuration_ = value;
+    void WitchTeleportFallState::SetParameter(const std::string& key, float value) {
+        if (key == "fallDuration") fallDuration_ = value;
         if (key == "minTeleportRange") minTeleportRange_ = value;
         if (key == "maxTeleportRange") maxTeleportRange_ = value;
     }
@@ -620,6 +674,21 @@ namespace Framework {
                             ps.isHurt = true;
                             ps.invulnerabilityTimer = 1.5f;
                             ps.currentLives--;
+
+                            // Kill the player when lives reach 0
+                            if (ps.currentLives <= 0) {
+                                ps.isDead = true;
+                                ps.currentLives = 0;
+                                if (mgr.HasComponent(player, VelocityType)) {
+                                    mgr.GetComponent<Velocity>(player).Vel = { 0.f, 0.f };
+                                }
+                                if (mgr.HasComponent(player, AnimationComponentType)) {
+                                    auto& anim = mgr.GetComponent<AnimationComponent>(player);
+                                    anim.currentState = "DEATH";
+                                    anim.isPlaying = true;
+                                }
+                                MessageBus::Instance().Publish(PlayerDeathEvent{ player, false });
+                            }
                         }
                     }
                 }
@@ -645,6 +714,44 @@ namespace Framework {
         if (key == "attackRadius") maxAttackRadius_ = value;
     }
 
+    // --- WITCH DEATH ---
+    void WitchDeathState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        EntityManager mgr(ecs);
+
+        Vector2D deathPosition = { 0.0f, 0.0f };
+        if (mgr.HasComponent(entity, TransformType)) {
+            deathPosition = mgr.GetComponent<Transform>(entity).position;
+        }
+
+        if (mgr.HasComponent(entity, VelocityType)) {
+            mgr.GetComponent<Velocity>(entity).Vel = Vector2D::Zero();
+        }
+        if (mgr.HasComponent(entity, RigidBodyType)) {
+            mgr.GetComponent<RigidBody>(entity).SetMass(0.0f);
+        }
+        if (mgr.HasComponent(entity, TextureComponentType)) {
+            mgr.GetComponent<TextureComponent>(entity).textureKey.clear();
+        }
+        if (mgr.HasComponent(entity, AnimationComponentType)) {
+            mgr.GetComponent<AnimationComponent>(entity).isPlaying = false;
+            mgr.GetComponent<AnimationComponent>(entity).currentState = "DEATH";
+        }
+
+        MessageBus::Instance().Publish(VFXTriggerEvent{ "EnemyDeathEvent", true, deathPosition });
+        Logger::Get().Info(DebugType::AISystem) << "Witch death VFX triggered at (" << deathPosition.x << ", " << deathPosition.y << ")" << std::endl;
+    }
+
+    void WitchDeathState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity;
+        (void)ecs;
+        timer_ += dt;
+    }
+
+    void WitchDeathState::SetParameter(const std::string& key, float value) {
+        if (key == "duration") duration_ = value;
+    }
+
 
     // =========================================================
     // MACRO REGISTRATION 
@@ -663,9 +770,11 @@ namespace Framework {
     REGISTER_STATE("WitchIdle", WitchIdleState);
     REGISTER_STATE("WitchAlerted", WitchAlertedState);
     REGISTER_STATE("WitchEnraged", WitchEnragedState);
-    REGISTER_STATE("WitchTeleport", WitchTeleportState);
+    REGISTER_STATE("WitchTeleportSpin", WitchTeleportSpinState);
+    REGISTER_STATE("WitchTeleportFall", WitchTeleportFallState);
     REGISTER_STATE("WitchCharging", WitchChargingState);
     REGISTER_STATE("WitchAttack", WitchAttackState);
+    REGISTER_STATE("WitchDeath", WitchDeathState);
 
     // Common Condition Helpers
     REGISTER_CONDITION(PlayerInRange, [](const rapidjson::Value& data) {
@@ -703,8 +812,10 @@ namespace Framework {
                 return wa->GetTimer() >= wa->GetAlertDuration();
             if (auto* we = dynamic_cast<WitchEnragedState*>(s))
                 return we->GetTimer() >= we->GetEnrageDuration();
-            if (auto* wt = dynamic_cast<WitchTeleportState*>(s))
-                return wt->GetTimer() >= wt->GetTeleportDuration();
+            if (auto* wt = dynamic_cast<WitchTeleportSpinState*>(s))
+                return wt->GetTimer() >= wt->GetSpinDuration();
+            if (auto* wtf = dynamic_cast<WitchTeleportFallState*>(s))
+                return wtf->GetTimer() >= wtf->GetFallDuration();
             if (auto* wc = dynamic_cast<WitchChargingState*>(s))
                 return wc->GetTimer() >= wc->GetChargeDuration();
             if (auto* watt = dynamic_cast<WitchAttackState*>(s))

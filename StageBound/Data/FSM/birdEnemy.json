@@ -4,8 +4,8 @@
     "texture": "SB_BirdEnemy_SleepIdle_Spritesheet.png",
     "animationProfile": "BirdEnemy",
     "halfSize": {
-        "x": 25.0,
-        "y": 25.0
+        "x": 50.0,
+        "y": 50.0
     },
     "states": [
         {
