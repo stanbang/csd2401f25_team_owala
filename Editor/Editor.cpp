@@ -3217,6 +3217,40 @@ namespace Editor {
 			break;
 		}
 
+		case ComponentType::ParticleComponentType: {
+			ParticleComponent& particle = entityMgr.GetComponent<ParticleComponent>(selectedEntity);
+
+			std::string effectTypeName = "NONE";
+			switch (particle.effectType) {
+			case EffectType::NONE: effectTypeName = "NONE"; break;
+			case EffectType::DRIFT: effectTypeName = "DRIFT"; break;
+			case EffectType::RANDOM: effectTypeName = "RANDOM"; break;
+			default: break;
+			}
+
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+
+			char effectBuffer[128];
+			strcpy_s(effectBuffer, sizeof(effectBuffer), effectTypeName.c_str());
+			ImGui::InputText("Effect Type", effectBuffer, sizeof(effectBuffer), ImGuiInputTextFlags_ReadOnly);
+
+			float lifetime = particle.lifetime;
+			ImGui::InputFloat("Lifetime", &lifetime, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+			float age = particle.age;
+			ImGui::InputFloat("Age", &age, 0.f, 0.f, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+			ImGui::PopStyleColor(2);
+
+			bool isScreenSpace = particle.isScreenSpace;
+			ImGui::BeginDisabled();
+			ImGui::Checkbox("Screen Space?", &isScreenSpace);
+			ImGui::EndDisabled();
+
+			break;
+		}
+
 		case ComponentType::ParticleEmitterComponentType: {
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
 			bool isEmittingLocal = emitter.isEmitting;
@@ -3670,46 +3704,32 @@ namespace Editor {
 			ImGui::Separator();
 
 			int handleId = static_cast<int>(slider.handleEntity);
-			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				// Ensure the ID doesn't go below 0
-				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
-
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-			if (ImGui::IsItemActive()) activeNow = true;
+			ImGui::BeginDisabled();
+			ImGui::InputInt("Handle Entity ID", &handleId, 0, 0, ImGuiInputTextFlags_ReadOnly);
+			ImGui::EndDisabled();
 
 			// Handle Name
 			ImGui::InputText("Handle Name", &slider.handleName);
 			if (ImGui::IsItemActive()) activeNow = true;
+
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				slider.handleEntity = 0;
+				slider.needsResolution = true;
+			}
 			
 			int fillId = static_cast<int>(slider.fillEntity);
-			if (ImGui::InputInt("Fill Entity ID", &fillId)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				// Ensure the ID doesn't go below 0
-				slider.fillEntity = static_cast<Entity>(std::max(0, fillId));
-
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
-				}
-			}
-			if (ImGui::IsItemActive()) activeNow = true;
+			ImGui::BeginDisabled();
+			ImGui::InputInt("Fill Entity ID", &fillId);
+			ImGui::EndDisabled();
 
 			// Fill Name
 			ImGui::InputText("Fill Name", &slider.fillName);
 			if (ImGui::IsItemActive()) activeNow = true;
+
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				slider.fillEntity = 0;
+				slider.needsResolution = true;
+			}
 
 			// Current Value
 			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
@@ -7988,11 +8008,14 @@ namespace Editor {
 		Button& buttonComp = entityMgr.GetComponent<Button>(entity);
 		ComponentType compType = ComponentType::ButtonType;
 
+		bool activeNow = false;
+
 		bool isPressedLocal = buttonComp.isPressed;
 		if (ImGui::Checkbox("Is Pressed?", &isPressedLocal)) {
 			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 			buttonComp.isPressed = isPressedLocal;
 			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
 			if (beforeJSON != afterJSON) {
 				historyManager_.RecordModifyComponent(entity, "Modified Button Pressed State", beforeJSON, afterJSON, compType);
 			}
@@ -8006,19 +8029,24 @@ namespace Editor {
 
 		// Added optional parameters for sound key and volume
 		auto HandleStateUI = [&](const char* label, std::string& texKey, bool& isAnim, std::string* soundKey = nullptr, float* soundVol = nullptr) {
+			ImGui::PushID(label);
+
 			if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_DefaultOpen)) {
 
 				// 1. Texture Properties
 				ImGui::Text("Texture Key:");
-				if (ImGui::InputText("##Texture", &texKey)) stateChanged = true;
+				ImGui::InputText("##Texture", &texKey);
+				if (ImGui::IsItemActive()) activeNow = true;
 
 				if (ImGui::BeginDragDropTarget()) {
 					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
 					if (payload) {
 						std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
 						fs::path dropped_file(dropped_path);
+
 						texKey = dropped_file.filename().string();
 						stateChanged = true;
+
 						resourceManager_->unload<Texture>(texKey);
 						resourceManager_->loadTexture(texKey, dropped_file.string());
 					}
@@ -8030,7 +8058,8 @@ namespace Editor {
 				if (soundKey && soundVol) {
 					ImGui::Spacing();
 					ImGui::Text("Sound Key:");
-					if (ImGui::InputText("##Sound", soundKey)) stateChanged = true;
+					ImGui::InputText("##Sound", soundKey);
+					if (ImGui::IsItemActive()) activeNow = true;
 
 					if (ImGui::BeginDragDropTarget()) {
 						const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
@@ -8049,11 +8078,14 @@ namespace Editor {
 					}
 
 					ImGui::Text("Volume:");
-					if (ImGui::SliderFloat("##Volume", soundVol, 0.0f, 1.0f, "%.2f")) stateChanged = true;
+					if (ImGui::SliderFloat("##Volume", soundVol, 0.0f, 1.0f, "%.2f"));
+					if (ImGui::IsItemActive()) activeNow = true;
 				}
 
 				ImGui::TreePop();
 			}
+
+			ImGui::PopID();
 			ImGui::Spacing();
 			};
 
@@ -8079,15 +8111,17 @@ namespace Editor {
 			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 			buttonComp.action = static_cast<ButtonAction>(currentItemIndex);
 			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
 			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Action", beforeJSON, afterJSON, compType);
 		}
 
 		bool dataChanged = false;
-		std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+		std::string dataBeforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 
 		if (buttonComp.action == ButtonAction::SWITCH_SCENE || buttonComp.action == ButtonAction::SWITCH_SCENE_ADD) {
 			ImGui::Text("Target Scene Name:");
-			if (ImGui::InputText("##SceneName", &buttonComp.targetString)) dataChanged = true;
+			ImGui::InputText("##SceneName", &buttonComp.targetString);
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
@@ -8100,24 +8134,41 @@ namespace Editor {
 			}
 
 			ImGui::Text("Scene to Unload on Click:");
-			if (ImGui::InputText("##SceneToUnload", &buttonComp.sceneToUnloadOnClick)) dataChanged = true;
+			ImGui::InputText("##SceneToUnload", &buttonComp.sceneToUnloadOnClick);
+			if (ImGui::IsItemActive()) activeNow = true;
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("Optional: Name of the scene to unload when this button is clicked.\nLeave empty to skip unloading.");
 			}
 		}
 		else if (buttonComp.action == ButtonAction::PLAYSOUND) {
 			ImGui::Text("Sound Key:");
-			if (ImGui::InputText("##SoundKey", &buttonComp.targetString)) dataChanged = true;
+			ImGui::InputText("##SoundKey", &buttonComp.targetString);
+			if (ImGui::IsItemActive()) activeNow = true;
 		}
 		else if (buttonComp.action == ButtonAction::DEFAULT) {
 			ImGui::Text("Event Value:");
-			if (ImGui::DragFloat("##Val", &buttonComp.targetValue)) dataChanged = true;
+			ImGui::DragFloat("##Val", &buttonComp.targetValue);
+			if (ImGui::IsItemActive()) activeNow = true;
 		}
 
 		if (dataChanged) {
 			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
-			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Data", beforeJSON, afterJSON, compType);
+			std::stringstream ss;
+			ss << "Modified Button Data in " << entityMgr.GetProperties(entity).name << std::endl;
+			if (dataBeforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, ss.str(), dataBeforeJSON, afterJSON, compType);
 		}
+
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Button Data in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+
+		editSession.wasItemActive = activeNow;
 	}
 
 #pragma endregion

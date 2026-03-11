@@ -315,6 +315,15 @@ namespace Editor {
 				break;
 			}
 
+			case ComponentType::ParticleComponentType: {
+				ParticleComponent newParticleComponent;
+				if (entityMgr.HasComponent(entity, ComponentType::ParticleComponentType)) {
+					entityMgr.RemoveComponent(entity, ComponentType::ParticleComponentType);
+				}
+				entityMgr.AddComponent<ParticleComponent>(entity, newParticleComponent);
+				break;
+			}
+
 			case ComponentType::ParticleEmitterComponentType: {
 				ParticleEmitterComponent newParticleEmitterComponent;
 				if (EntitySerializer::DeserializeComponent(doc, newParticleEmitterComponent)) {
