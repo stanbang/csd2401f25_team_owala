@@ -311,7 +311,7 @@ namespace Framework {
 	// Helper function to identify gameplay scenes
 	static bool IsGameplayScene(const std::string& sceneName) {
 		static const std::vector<std::string> gameplayScenes = {
-			"Tutorial 1", "Tutorial 2", "Level 1", "Level 2", "Cutscene Intro"
+			"Tutorial 1", "Tutorial 2", "Level 1", "Level 2", "Level 3", "Level 4", "Cutscene Intro"
 		};
 
 		for (const auto& scene : gameplayScenes) {

@@ -587,8 +587,8 @@ namespace LevelSelection {
 		levelData = {
 			{1, "act i: the forest", firstLevel, "SB__ForestTicketGlow.png"},
 			{2, "act ii: the hut", "Tutorial 2", "SB__WitchHutTicketGlow.png"},
-			{3, "act iii: workshop", "Level 1", "SB__WorkshopTicketGlow.png"},
-			{4, "act iv: backstage", "Level 2", "SB__BackstageTicketGlow.png"}
+			{3, "act iii: workshop", "Level 3", "SB__WorkshopTicketGlow.png"},
+			{4, "act iv: backstage", "Level 4", "SB__BackstageTicketGlow.png"}
 		};
 
 		HideMenuEntities(entityMgr);
