@@ -183,6 +183,7 @@ namespace Framework {
 		//Get entity by name
 		Entity GetEntityByName(const std::string& name) const;
 		std::vector<Entity> GetEntitiesBySubstring(const std::string& subStr) const;
+		Entity GetEntityByUUID(uint64_t uuid) const;
 
 	};
 

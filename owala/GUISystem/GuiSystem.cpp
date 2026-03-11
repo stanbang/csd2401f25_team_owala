@@ -183,13 +183,13 @@ namespace Framework {
             Transform& bgTransform = entityMgr.GetComponent<Transform>(sliderEntity);
 
 			// Get the handle and fill entity by resolving its name if needed
-            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity) || (!slider.fillName.empty() && !entityMgr.ValidateEntity(slider.fillEntity))) {
-				// Attempt to resolve handle and fill entities by name
-                if (!slider.handleName.empty()) {
-                    slider.handleEntity = entityMgr.GetEntityByName(slider.handleName);
+            if (slider.needsResolution || !entityMgr.ValidateEntity(slider.handleEntity) || (slider.fillUUID != 0 && !entityMgr.ValidateEntity(slider.fillEntity))) {
+				// Resolve handle and fill entities by their persistent UUIDs.
+                if (slider.handleUUID != 0) {
+                    slider.handleEntity = entityMgr.GetEntityByUUID(slider.handleUUID);
                 }
-                if (!slider.fillName.empty()) {
-                    slider.fillEntity = entityMgr.GetEntityByName(slider.fillName);
+                if (slider.fillUUID != 0) {
+                    slider.fillEntity = entityMgr.GetEntityByUUID(slider.fillUUID);
                 }
 
 				// If handle entity is resolved successfully, we can proceed. Fill entity is optional (for visual fill), so we don't require it to proceed.

@@ -522,10 +522,10 @@ namespace Framework{
 
 	struct Slider {
 		Entity handleEntity = 0;
-		std::string handleName = "";
+		uint64_t handleUUID = 0; // Persistent reference to the handle entity
 
 		Entity fillEntity = 0;
-		std::string fillName = "";
+		uint64_t fillUUID = 0;   // Persistent reference to the fill entity (optional)
 
 		float minValue = 0.0f;
 		float maxValue = 1.0f;

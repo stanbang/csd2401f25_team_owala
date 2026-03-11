@@ -1250,17 +1250,9 @@ namespace Framework {
 
 	// Slider Component
 	void EntitySerializer::SerializeComponent(const Slider& slider, rapidjson::Value& componentData, rapidjson::Document::AllocatorType& alloc) {
-		// Dont serialize handle ids as ids can change
-
-		rapidjson::Value handleNameVal;
-		const char* hName = slider.handleName.empty() ? "" : slider.handleName.c_str();
-		handleNameVal.SetString(hName, static_cast<rapidjson::SizeType>(strlen(hName)), alloc);
-		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_HANDLE_NAME), handleNameVal, alloc);
-
-		rapidjson::Value fillNameVal;
-		const char* fName = slider.fillName.empty() ? "" : slider.fillName.c_str();
-		fillNameVal.SetString(fName, static_cast<rapidjson::SizeType>(strlen(fName)), alloc);
-		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_FILL_NAME), fillNameVal, alloc);
+		// Entity IDs are runtime-only; persist stable UUID references instead.
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_HANDLE_UUID), slider.handleUUID, alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_FILL_UUID),   slider.fillUUID,   alloc);
 
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MIN_VALUE), slider.minValue, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MAX_VALUE), slider.maxValue, alloc);
@@ -2028,17 +2020,17 @@ namespace Framework {
 
 	// Slider Component Deserialization
 	bool EntitySerializer::DeserializeComponent(const rapidjson::Value& componentData, Slider& out) {
-		if (componentData.HasMember(Serialization::SLIDER_HANDLE_NAME) && componentData[Serialization::SLIDER_HANDLE_NAME].IsString()) {
-			out.handleName = componentData[Serialization::SLIDER_HANDLE_NAME].GetString();
+		if (componentData.HasMember(Serialization::SLIDER_HANDLE_UUID) && componentData[Serialization::SLIDER_HANDLE_UUID].IsUint64()) {
+			out.handleUUID = componentData[Serialization::SLIDER_HANDLE_UUID].GetUint64();
 		}
 
-		if (componentData.HasMember(Serialization::SLIDER_FILL_NAME) && componentData[Serialization::SLIDER_FILL_NAME].IsString()) {
-			out.fillName = componentData[Serialization::SLIDER_FILL_NAME].GetString();
+		if (componentData.HasMember(Serialization::SLIDER_FILL_UUID) && componentData[Serialization::SLIDER_FILL_UUID].IsUint64()) {
+			out.fillUUID = componentData[Serialization::SLIDER_FILL_UUID].GetUint64();
 		}
 
-		// When deserializing, we can't set the handle entity yet since it may not exist
-		// Set needs Resolution to true to resolve the entity id by its name
+		// Runtime entity IDs must be re-resolved after load.
 		out.handleEntity = 0;
+		out.fillEntity   = 0;
 		out.needsResolution = true;
 
 		if (componentData.HasMember(Serialization::SLIDER_MIN_VALUE))

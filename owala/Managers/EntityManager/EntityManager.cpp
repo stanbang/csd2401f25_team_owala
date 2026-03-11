@@ -453,6 +453,15 @@ case ComponentType::ViewportConstrainedTagType: return true;
 		return static_cast<Entity>(-1); // Return invalid entity
 	}
 
+	Entity EntityManager::GetEntityByUUID(uint64_t uuid) const {
+		if (uuid == 0) return static_cast<Entity>(-1);
+		for (const auto& kv : ecs.properties) {
+			if (kv.second.uuid == uuid) return kv.first;
+		}
+		Logger::Get().Info(DebugType::EntityManager) << "GetEntityByUUID: Entity with UUID " << uuid << " not found." << std::endl;
+		return static_cast<Entity>(-1);
+	}
+
 	std::vector<Entity> EntityManager::GetEntitiesBySubstring(const std::string& subStr) const {
 		std::vector<Entity> matches;
 

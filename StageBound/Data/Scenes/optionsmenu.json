@@ -55,6 +55,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -188,6 +189,7 @@
                         "y": 0.15000000596046448
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -195,17 +197,15 @@
                     "sceneName": "OptionsMenu"
                 },
                 "Slider": {
-                    "handle_name": "Sound Bar Handle",
-                    "fill_name": "Sound Bar Fill",
+                    "handle_uuid": 15500144033815325784,
+                    "fill_uuid": 2604347049038014031,
                     "min_value": 0.0,
                     "max_value": 1.0,
                     "current_value": 1.0,
                     "width": 0.800000011920929,
                     "width_offset_x": 0.05000000074505806,
                     "is_dragging": false,
-                    "slider_type": 2,
-                    "original_fill_half_size_x": 0.0,
-                    "original_fill_left_edge_x": 0.0
+                    "slider_type": 2
                 }
             },
             "tags": [
@@ -266,6 +266,7 @@
                         "y": 0.15000000596046448
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -273,17 +274,15 @@
                     "sceneName": "OptionsMenu"
                 },
                 "Slider": {
-                    "handle_name": "Music Bar Handle",
-                    "fill_name": "Music Bar Fill",
+                    "handle_uuid": 7162823138064866068,
+                    "fill_uuid": 16861496996222963141,
                     "min_value": 0.0,
                     "max_value": 1.0,
                     "current_value": 1.0,
                     "width": 0.800000011920929,
                     "width_offset_x": 0.05000000074505806,
                     "is_dragging": false,
-                    "slider_type": 1,
-                    "original_fill_half_size_x": 0.0,
-                    "original_fill_left_edge_x": 0.0
+                    "slider_type": 1
                 }
             },
             "tags": [
@@ -344,6 +343,7 @@
                         "y": 0.10000000149011612
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -428,6 +428,7 @@
                         "y": 0.10000000149011612
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -512,6 +513,7 @@
                         "y": 0.15000000596046448
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "NativeScripts": {
@@ -605,6 +607,7 @@
                         "y": 0.05000000074505806
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": true,
                     "min_uv": {
                         "x": 0.0,
@@ -678,6 +681,7 @@
                         "y": 0.05000000074505806
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": true,
                     "min_uv": {
                         "x": 0.0,

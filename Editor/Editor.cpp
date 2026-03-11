@@ -3598,47 +3598,65 @@ namespace Editor {
 			}
 			ImGui::Separator();
 
-			int handleId = static_cast<int>(slider.handleEntity);
-			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				// Ensure the ID doesn't go below 0
-				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
-
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+			// Helper to render a drag-drop entity reference slot.
+			// Displays the assigned entity name and accepts HIERARCHY_ENTITY drag-drop to assign by UUID.
+			auto EntityRefSlot = [&](const char* label, uint64_t& uuid, Entity& cachedEntity) {
+				// Resolve display name from cached entity or UUID lookup
+				std::string displayName = "(None)";
+				if (uuid != 0) {
+					if (!entityMgr.ValidateEntity(cachedEntity)) {
+						cachedEntity = entityMgr.GetEntityByUUID(uuid);
+					}
+					displayName = entityMgr.ValidateEntity(cachedEntity)
+						? entityMgr.GetProperties(cachedEntity).name
+						: "(Missing)";
 				}
-			}
-			if (ImGui::IsItemActive()) activeNow = true;
 
-			// Handle Name
-			ImGui::InputText("Handle Name", &slider.handleName);
-			if (ImGui::IsItemActive()) activeNow = true;
-			
-			int fillId = static_cast<int>(slider.fillEntity);
-			if (ImGui::InputInt("Fill Entity ID", &fillId)) {
-				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				// Button acts as the drag-drop target
+				ImGui::Button((displayName + "##" + label).c_str(), ImVec2(-60.f, 0.f));
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY")) {
+						Entity droppedEntity = *static_cast<const Entity*>(payload->Data);
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 
-				// Ensure the ID doesn't go below 0
-				slider.fillEntity = static_cast<Entity>(std::max(0, fillId));
+						uuid        = entityMgr.GetProperties(droppedEntity).uuid;
+						cachedEntity = droppedEntity;
+						slider.needsResolution = true;
 
-				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
-
-				if (beforeJSON != afterJSON) {
-					std::stringstream ss;
-					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
-					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Assigned " << label << " in " << entityMgr.GetProperties(selectedEntity).name;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+					}
+					ImGui::EndDragDropTarget();
 				}
-			}
-			if (ImGui::IsItemActive()) activeNow = true;
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Drag an entity from the Hierarchy");
 
-			// Fill Name
-			ImGui::InputText("Fill Name", &slider.fillName);
-			if (ImGui::IsItemActive()) activeNow = true;
+				ImGui::SameLine();
+				if (ImGui::Button(("Clear##" + std::string(label)).c_str())) {
+					std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+					uuid         = 0;
+					cachedEntity = 0;
+					slider.needsResolution = true;
+
+					std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+					if (beforeJSON != afterJSON) {
+						std::stringstream ss;
+						ss << "Cleared " << label << " in " << entityMgr.GetProperties(selectedEntity).name;
+						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+					}
+				}
+				ImGui::SameLine();
+				ImGui::TextDisabled("UUID: %llu", uuid);
+			};
+
+			ImGui::Text("Handle Entity"); ImGui::SameLine();
+			EntityRefSlot("Handle", slider.handleUUID, slider.handleEntity);
+			ImGui::Text("Fill Entity  "); ImGui::SameLine();
+			EntityRefSlot("Fill", slider.fillUUID, slider.fillEntity);
 
 			// Current Value
 			ImGui::InputFloat("Current Value", &slider.currentValue, 0.1f, 1.0f, "%.2f");
