@@ -100,6 +100,12 @@
         },
         {
             "texture_keys": [
+                "SB_HitImpact_VFX.png"
+            ],
+            "animation_path": "Data/AnimationData/playerHitImpactEffect.json"
+        },
+        {
+            "texture_keys": [
                 "SB_FallingDust_Spritesheet.png"
             ],
             "animation_path": "Data/AnimationData/fallingDustAnimation.json"

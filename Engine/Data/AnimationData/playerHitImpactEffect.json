@@ -1,0 +1,9 @@
+{
+  "frame_count": 5,
+  "frame_duration": 0.08,
+  "is_looping": false,
+  "start_frame": 0,
+  "spritesheets": [
+    { "texture": "SB_HitImpact_VFX.png", "count": 5 }
+  ]
+}

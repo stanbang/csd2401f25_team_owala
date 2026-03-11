@@ -478,6 +478,11 @@ namespace Framework {
                     << ", directionX=" << directionX << std::endl;
             }
 
+            if (entityMgr.HasComponent(playerEntity, TransformType)) {
+                const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
+                MessageBus::Instance().Publish(VFXTriggerEvent{ "PlayerHitEvent", true, playerPos });
+            }
+
             MessageBus::Instance().Publish(PlayerDamagedEvent{ playerEntity, playerState.currentLives });
         }
     }
