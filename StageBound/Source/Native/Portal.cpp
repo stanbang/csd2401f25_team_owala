@@ -55,8 +55,8 @@ void Portal::SearchForSaveManager() {
 }
 
 void Portal::UpdateChildren(EntityManager& entityMgr) {
-	if (!entityMgr.HasComponent(player, TransformType) && !entityMgr.HasComponent(portalText, TransformType)
-		&& !entityMgr.HasComponent(portalText, TextComponentType)) return;
+	if (!entityMgr.HasComponent(player, TransformType) || !entityMgr.HasComponent(portalText, TransformType)
+		|| !entityMgr.HasComponent(portalText, TextComponentType)) return;
 
 	Vector2D& playerPos = entityMgr.GetComponent<Transform>(player).position;
 	Vector2D& portalPos = entityMgr.GetComponent<Transform>(GetEntity()).position;
@@ -109,6 +109,8 @@ void Portal::OnUpdate() {
 	if (player != 0 && portalText != 0) {
 		UpdateChildren(entityMgr);
 	}
+
+	if (player == 0) return; // No valid player found; can't check overlap
 
 	if (physicsSystem.CheckTriggerOverlap(player, self)) {
 		InputSystem& input = *gm.GetSystems().input_;

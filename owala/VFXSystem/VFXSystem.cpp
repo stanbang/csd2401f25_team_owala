@@ -277,7 +277,7 @@ namespace Framework {
 				// Initialize the very first random interval if it's 0
 				if (emitter.burstInterval <= 0.0f) {
 					float range = std::max(0.001f, emitter.maxBurstInterval - emitter.minBurstInterval);
-					emitter.burstInterval = emitter.minBurstInterval + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / range));
+					emitter.burstInterval = emitter.minBurstInterval + (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * range;
 				}
 
 				emitter.timeSinceBurst += Time::DeltaTime();
@@ -308,7 +308,7 @@ namespace Framework {
 
 					// Calculate the NEXT random interval
 					float rangeTime = std::max(0.001f, emitter.maxBurstInterval - emitter.minBurstInterval);
-					emitter.burstInterval = emitter.minBurstInterval + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / rangeTime));
+					emitter.burstInterval = emitter.minBurstInterval + (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * rangeTime;
 				}
 				break;
 			}

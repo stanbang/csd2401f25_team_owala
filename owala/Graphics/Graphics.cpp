@@ -687,9 +687,11 @@ namespace Framework {
 
         // 1. Calculate the exact pixel width of the text block
         float textWidthPx = 0.0f;
+        const auto& characters = font.GetCharacters();
         for (char c_signed : textToDraw) {
-            unsigned char c = static_cast<unsigned char>(c_signed);
-            textWidthPx += (font.GetCharacters().at(c).Advance >> 6) * scale;
+            auto it = characters.find(c_signed);
+            if (it == characters.end()) continue;
+            textWidthPx += (it->second.Advance >> 6) * scale;
         }
 
         // 2. Set pivot to the exact visual center of the text
@@ -712,8 +714,9 @@ namespace Framework {
             };
 
         for (char c_signed : textToDraw) {
-            unsigned char c = static_cast<unsigned char>(c_signed);
-            const auto& ch = font.GetCharacters().at(c);
+            auto chIt = characters.find(c_signed);
+            if (chIt == characters.end()) continue;
+            const auto& ch = chIt->second;
 
             float xpos = x + ch.Bearing.x * scale;
             float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
