@@ -3221,6 +3221,8 @@ namespace Editor {
 			ParticleEmitterComponent& emitter = entityMgr.GetComponent<ParticleEmitterComponent>(selectedEntity);
 			bool isEmittingLocal = emitter.isEmitting;
 			bool isParticleAnimatedLocal = emitter.isParticleAnimated;
+			bool isScreenSpaceLocal = emitter.isScreenSpace;
+			bool activeNow = false;
 
 			// Is Emitting Checkbox
 			if (ImGui::Checkbox("Is Emitting?", &isEmittingLocal)) {
@@ -3230,7 +3232,7 @@ namespace Editor {
 
 				if (beforeJSON != afterJSON) {
 					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 			}
@@ -3243,13 +3245,23 @@ namespace Editor {
 
 				if (beforeJSON != afterJSON) {
 					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 			}
 
 			// Screen space toggle
-			ImGui::Checkbox("Screen Space##screenspace", &emitter.isScreenSpace);
+			if (ImGui::Checkbox("Screen Space##screenspace", &isScreenSpaceLocal)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				emitter.isScreenSpace = isScreenSpaceLocal;
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("If enabled, particles emit in screen/UI space (fixed to screen)\n"
 					"If disabled, particles emit in world space (moves with camera)");
@@ -3269,7 +3281,7 @@ namespace Editor {
 
 				if (beforeJSON != afterJSON) {
 					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 			}
@@ -3277,8 +3289,8 @@ namespace Editor {
 			// Trigger Event Name (only show if not CONTINUOUS or RANDOM)
 			if (emitter.emissionMode != ParticleEmissionMode::CONTINUOUS && emitter.emissionMode != ParticleEmissionMode::RANDOM_BURST) {
 				ImGui::Text("Trigger Event Name:");
-				if (ImGui::InputText("##TriggerEventName", &emitter.triggerEventName)) {
-				}
+				ImGui::InputText("##TriggerEventName", &emitter.triggerEventName);
+				if (ImGui::IsItemActive()) activeNow = true;
 
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Name of the event that triggers this emitter\n"
@@ -3290,22 +3302,27 @@ namespace Editor {
 			if (emitter.emissionMode == ParticleEmissionMode::BURST) {
 				ImGui::Text("Burst Count (particles per burst):");
 				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+				if (ImGui::IsItemActive()) activeNow = true;
 			}
 
 			// LOOP_BURST-specific settings
 			if (emitter.emissionMode == ParticleEmissionMode::LOOP_BURST) {
 				ImGui::Text("Burst Count (particles per burst):");
 				ImGui::DragInt("##BurstCount", &emitter.burstCount, 1, 1, 100);
+				if (ImGui::IsItemActive()) activeNow = true;
 
 				ImGui::Text("Burst Interval (seconds):");
 				ImGui::DragFloat("##BurstInterval", &emitter.burstInterval, 0.01f, 0.01f, 5.0f, "%.2f");
+				if (ImGui::IsItemActive()) activeNow = true;
 			}
 
 			// RANDOM_BURST-specific settings
 			if (emitter.emissionMode == ParticleEmissionMode::RANDOM_BURST) {
 				ImGui::Text("Burst Count Range (Min / Max):");
 				ImGui::DragInt("##MinBurstCount", &emitter.minBurstCount, 1, 1, 100);
+				if (ImGui::IsItemActive()) activeNow = true;
 				ImGui::DragInt("##MaxBurstCount", &emitter.maxBurstCount, 1, 1, 100);
+				if (ImGui::IsItemActive()) activeNow = true;
 
 				// Ensure min does not exceed max
 				if (emitter.minBurstCount > emitter.maxBurstCount) {
@@ -3314,7 +3331,9 @@ namespace Editor {
 
 				ImGui::Text("Burst Interval Range (Min / Max seconds):");
 				ImGui::DragFloat("##MinBurstInterval", &emitter.minBurstInterval, 0.01f, 0.01f, 10.0f, "%.2f");
+				if (ImGui::IsItemActive()) activeNow = true;
 				ImGui::DragFloat("##MaxBurstInterval", &emitter.maxBurstInterval, 0.01f, 0.01f, 10.0f, "%.2f");
+				if (ImGui::IsItemActive()) activeNow = true;
 
 				// Ensure min does not exceed max
 				if (emitter.minBurstInterval > emitter.maxBurstInterval) {
@@ -3342,7 +3361,7 @@ namespace Editor {
 
 						if (beforeJSON != afterJSON) {
 							std::stringstream ss;
-							ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 						}
 
@@ -3366,7 +3385,7 @@ namespace Editor {
 
 					if (beforeJSON != afterJSON) {
 						std::stringstream ss;
-						ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+						ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 						historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 					}
 				}
@@ -3375,10 +3394,10 @@ namespace Editor {
 			ImGui::Separator();
 			ImGui::SeparatorText("Emission Properties");
 
-			bool activeNow = false;
 			ImGui::InputFloat("Particle Lifetime", &emitter.particleLifetime);
 			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat("Emission Per Second", &emitter.emissionRate);
+			if (ImGui::IsItemActive()) activeNow = true;
 			// Speed with tooltip based on space
 			ImGui::InputFloat("Particle Speed", &emitter.particleSpeed);
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -3404,7 +3423,7 @@ namespace Editor {
 
 				if (beforeJSON != afterJSON) {
 					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 			}
@@ -3420,7 +3439,7 @@ namespace Editor {
 
 				if (beforeJSON != afterJSON) {
 					std::stringstream ss;
-					ss << "Modified " << ComponentToString(selectedComponent) << " in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
 					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
 				}
 			}
@@ -3451,7 +3470,15 @@ namespace Editor {
 			int currentStyleIndex = static_cast<int>(emitter.emissionStyle);
 
 			if (ImGui::Combo("Emission Style", &currentStyleIndex, styleItems, IM_ARRAYSIZE(styleItems))) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				emitter.emissionStyle = static_cast<EmissionStyle>(currentStyleIndex);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			// Emission Offset
@@ -3459,6 +3486,7 @@ namespace Editor {
 			ImGui::Text("Emission Offset:");
 			ImGui::SetNextItemWidth(200.0f);
 			ImGui::DragFloat2("Offset (X, Y)", &emitter.emissionOffset.x, 0.01f, -10.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			if (ImGui::IsItemHovered()) {
 				if (emitter.isScreenSpace) {
@@ -3474,7 +3502,15 @@ namespace Editor {
 			// Add quick reset button
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Reset##offset")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
 				emitter.emissionOffset = { 0.0f, 0.0f };
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified ParticleEmitter in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
 
 			ImGui::Spacing();
@@ -3491,6 +3527,7 @@ namespace Editor {
 
 			case EmissionStyle::FROM_RADIUS:
 				ImGui::InputFloat("Emission Radius##fromradius", &emitter.emissionRadius, 0.05f, 0.1f);
+				if (ImGui::IsItemActive()) activeNow = true;
 				if (emitter.isScreenSpace) {
 					ImGui::TextWrapped("Particles spawn randomly within a radius (normalized screen coords 0-1)");
 				}
@@ -3502,7 +3539,9 @@ namespace Editor {
 			case EmissionStyle::FROM_TOP_VIEWPORT:
 				if (!emitter.isScreenSpace) {
 					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 				}
 				ImGui::TextWrapped("Particles spawn at the top and fall down");
 				if (emitter.isScreenSpace) {
@@ -3513,7 +3552,9 @@ namespace Editor {
 			case EmissionStyle::FROM_LEFT_VIEWPORT:
 				if (!emitter.isScreenSpace) {
 					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 				}
 				ImGui::TextWrapped("Particles spawn at the left edge and move right");
 				if (emitter.isScreenSpace) {
@@ -3524,7 +3565,9 @@ namespace Editor {
 			case EmissionStyle::FROM_RIGHT_VIEWPORT:
 				if (!emitter.isScreenSpace) {
 					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 				}
 				ImGui::TextWrapped("Particles spawn at the right edge and move left");
 				if (emitter.isScreenSpace) {
@@ -3535,7 +3578,9 @@ namespace Editor {
 			case EmissionStyle::FROM_BOTTOM_VIEWPORT:
 				if (!emitter.isScreenSpace) {
 					ImGui::InputFloat2("Viewport Min (bottom-left)", &emitter.viewportMin.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 					ImGui::InputFloat2("Viewport Max (top-right)", &emitter.viewportMax.x, "%.2f");
+					if (ImGui::IsItemActive()) activeNow = true;
 				}
 				ImGui::TextWrapped("Particles spawn at the bottom and move up");
 				if (emitter.isScreenSpace) {
@@ -3545,7 +3590,9 @@ namespace Editor {
 
 			case EmissionStyle::FROM_LINE:
 				ImGui::InputFloat2("Line Start", &emitter.lineStart.x, "%.2f");
+				if (ImGui::IsItemActive()) activeNow = true;
 				ImGui::InputFloat2("Line End", &emitter.lineEnd.x, "%.2f");
+				if (ImGui::IsItemActive()) activeNow = true;
 				ImGui::TextWrapped("Particles spawn randomly along a line");
 				if (emitter.isScreenSpace) {
 					ImGui::TextDisabled("(Using screen space: 0-1 normalized coordinates)");
@@ -3554,6 +3601,7 @@ namespace Editor {
 
 			case EmissionStyle::FROM_CIRCLE_EDGE:
 				ImGui::InputFloat("Circle Radius##circleradius", &emitter.circleRadius, 0.05f, 0.1f);
+				if (ImGui::IsItemActive()) activeNow = true;
 				if (emitter.isScreenSpace) {
 					ImGui::TextWrapped("Particles spawn on circle edge (normalized screen coords 0-1)");
 				}
@@ -3571,13 +3619,16 @@ namespace Editor {
 				emitter.emissionStyle <= EmissionStyle::FROM_BOTTOM_VIEWPORT) {
 				ImGui::Separator();
 				ImGui::InputFloat2("Emission Direction", &emitter.emissionDirection.x, "%.2f");
+				if (ImGui::IsItemActive()) activeNow = true;
 				ImGui::TextWrapped("Direction vector for particle movement (normalize for consistent speed)");
 			}
 
 			ImGui::Separator();
 			ImGui::SeparatorText("Advanced");
 			ImGui::InputFloat2("Particle Start Velocity", &emitter.particleStartVelocity.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 			ImGui::InputFloat2("Particle Acceleration", &emitter.particleAcceleration.x, "%.2f");
+			if (ImGui::IsItemActive()) activeNow = true;
 
 			if (activeNow && !editSession.wasItemActive) {
 				editSession.Begin(selectedEntity, selectedComponent);
