@@ -1,1 +1,4 @@
-{"highest_unlocked_level":2,"skip_intro":true}
+{
+    "highest_unlocked_level": 3,
+    "skip_intro": true
+}

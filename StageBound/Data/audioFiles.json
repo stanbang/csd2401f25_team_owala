@@ -72,5 +72,11 @@
     "Bird_Attack": [
         "bird_attack.wav",
         "bird_attack2.wav"
+    ],
+    "Witch_Alert": [
+        "witch_alert.wav"
+    ],
+    "Witch_Teleport": [
+        "witch_teleport.wav"
     ]
 }
