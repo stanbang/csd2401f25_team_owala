@@ -1004,7 +1004,13 @@ namespace Editor {
 
 		if (newEntity != 0) {
 			sceneMgr.AddEntityToScene(sceneMgr.GetActiveScene(), newEntity);
-//			historyManager_.Record(OpType::Create, newEntity, "Brush Place"); //CRASH
+
+			if (isBrushMode_) {
+				historyManager_.Record(OpType::Create, newEntity, "Brush Paint");
+			}
+			else {
+				historyManager_.Record(OpType::Create, newEntity, "Placed Prefab/Tile");
+			}
 		}
 	}
 
@@ -1017,6 +1023,11 @@ namespace Editor {
 		Framework::InputSystem* input = gameManager_->GetSystems().input_;
 		if (input->MousePressed(Framework::InputSystem::MouseButton::Right) ||
 			input->KeyPressed(Framework::InputSystem::Key::Escape) || !isTileEditorActive_){
+
+			if (historyManager_.IsGroupActive()) {
+				historyManager_.EndGroup();
+			}
+
 			isBrushMode_ = false;
 			lastPlacedPos_ = { -99999.0f, -99999.0f };
 			return;
@@ -1024,6 +1035,9 @@ namespace Editor {
 
 		//Painting Logic (Left Mouse Held)
 		if (input->MouseDown(Framework::InputSystem::MouseButton::Left) && isMouseOverGameViewport_) {
+			if (!historyManager_.IsGroupActive()) {
+				historyManager_.BeginGroup();
+			}
 
 			Vector2D worldMousePos = GetMouseWorldPosition();
 			Vector2D snappedPos = SnapToGrid(worldMousePos);
@@ -1046,6 +1060,10 @@ namespace Editor {
 		else if (input->MouseReleased(Framework::InputSystem::MouseButton::Left)) {
 			// Reset last placed when mouse is let go 
 			lastPlacedPos_ = { -99999.0f, -99999.0f };
+
+			if (historyManager_.IsGroupActive()) {
+				historyManager_.EndGroup();
+			}
 		}
 	}
 
@@ -1080,6 +1098,8 @@ namespace Editor {
 		}
 
 		if (entityToErase != 0) {
+			historyManager_.Record(OpType::Delete, entityToErase, "Brush Erase");
+
 			entityMgr.DestroyEntity(entityToErase);
 			selectedEntityIndex = 0;
 			isEntitySelected_ = false;
