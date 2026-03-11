@@ -259,9 +259,20 @@ namespace Framework {
         if (!entityMgr.HasComponent(GetEntity(), TextureComponentType)) return;
 
         TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(GetEntity());
-        // Get current scene and check if it's a level
-        std::string currentScene = SceneManager::GetInstance().GetActiveScene().name;
-        bool isLevel = GameManager::GetInstance().IsLevelScene(currentScene);
+        // Check if any currently loaded scene (excluding DDOL) is a gameplay level.
+        // This ensures curtains remain visible when overlay menus (PauseScene, OptionsMenu)
+        // are additively loaded on top of a level.
+        const std::vector<SceneGUID>& loadedScenes = SceneManager::GetInstance().GetLoadedScenes();
+        const SceneGUID ddolId = SceneManager::GetDDOLSceneID();
+        bool isLevel = false;
+        for (SceneGUID guid : loadedScenes) {
+            if (guid == ddolId) continue;
+            const SceneAsset& scene = SceneManager::GetInstance().GetSceneAt(guid);
+            if (scene.IsValid() && GameManager::GetInstance().IsLevelScene(scene.name)) {
+                isLevel = true;
+                break;
+            }
+        }
 
         // If we are in a non-level scene like the menu and the curtain is stuck CLOSED,
         // force it to hide immediately.

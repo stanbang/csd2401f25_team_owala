@@ -76,6 +76,10 @@ namespace Framework {
 		std::string queuedSceneUnload_;
 		std::string queuedLevelName_;
 
+		bool queuedAdditiveSwap_ = false;
+		std::string queuedAdditiveLoad_;
+		std::string queuedAdditiveUnload_;
+
 		struct SceneCallBacks {
 			SceneFunction fpInitialize = nullptr;
 			SceneFunction fpUpdate = nullptr;

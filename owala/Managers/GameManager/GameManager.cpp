@@ -230,8 +230,10 @@ namespace Framework {
 		// Subscribe to Button Events for Scene Management and Game Flow
 		MessageBus::Instance().Subscribe<ButtonClickedEvent>([this](const ButtonClickedEvent& event) {
 			
-			// If the button has a scene to unload on click, queue it for next frame
-			if (!event.sceneToUnload.empty()) {
+			// If the button has a scene to unload on click, queue it for next frame.
+			// Exception: SWITCH_SCENE_ADD handles its own unload via the queued additive swap
+			// mechanism so that the unload and load happen atomically on the next frame.
+			if (!event.sceneToUnload.empty() && event.action != ButtonAction::SWITCH_SCENE_ADD) {
 				Logger::Get().Info(DebugType::GameManager)
 					<< "Button queuing scene unload: " << event.sceneToUnload << std::endl;
 				queuedSceneUnload_ = event.sceneToUnload;
@@ -270,19 +272,13 @@ namespace Framework {
 						break;
 					}
 
-					std::string targetScene = event.stringParam;
-					FadeOut(0.3f, [this, targetScene]() {
-						SceneManager& sceneMgr = SceneManager::GetInstance();
-						const SceneAsset& scene = sceneMgr.GetSceneByName(targetScene, true);
-						if (!scene.IsValid()) return;
-
-						if (!scene.isLoaded) {
-							sceneMgr.LoadScene(targetScene, SceneManagement::LoadSceneMode::Additive);
-						}
-						sceneMgr.SetActiveScene(sceneMgr.GetSceneByName(targetScene, true));
-
-						FadeIn(0.3f);
-						});
+					// Queue an instant additive swap for next frame to avoid
+					// entity destruction issues mid-frame. No fade is applied
+					// because additive overlay scenes (e.g. pause/options menus)
+					// should appear and disappear instantly.
+					queuedAdditiveSwap_ = true;
+					queuedAdditiveLoad_ = event.stringParam;
+					queuedAdditiveUnload_ = event.sceneToUnload;
 				}
 				else {
 					Logger::Get().Error(DebugType::GameManager)
@@ -351,6 +347,26 @@ namespace Framework {
 			SceneManager::GetInstance().UnloadScene("PauseScene");
 			SceneManager::GetInstance().UnloadScene("OptionsMenu");
 			systems_.physics_->SetPaused(false);
+		}
+
+		// Process queued instant additive scene swap (e.g., PauseScene <-> OptionsMenu).
+		// No fade is applied — overlay menus swap instantly.
+		if (queuedAdditiveSwap_) {
+			queuedAdditiveSwap_ = false;
+			SceneManager& sm = SceneManager::GetInstance();
+			if (!queuedAdditiveUnload_.empty()) {
+				Logger::Get().Info(DebugType::GameManager)
+					<< "SWITCH_SCENE_ADD unloading scene: " << queuedAdditiveUnload_ << std::endl;
+				sm.UnloadScene(queuedAdditiveUnload_);
+				queuedAdditiveUnload_.clear();
+			}
+			if (!queuedAdditiveLoad_.empty()) {
+				const SceneAsset& scene = sm.GetSceneByName(queuedAdditiveLoad_, true);
+				if (scene.IsValid() && !scene.isLoaded) {
+					sm.LoadScene(queuedAdditiveLoad_, SceneManagement::LoadSceneMode::Additive);
+				}
+				queuedAdditiveLoad_.clear();
+			}
 		}
 
 		// Process any scene unload queued by a button click last frame
