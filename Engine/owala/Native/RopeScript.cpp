@@ -525,45 +525,103 @@ float RopeScript::FindCeilingAnchorY(EntityManager& entityMgr, float attachX, fl
 }
 
 float RopeScript::FindWallAnchorX(EntityManager& entityMgr, float attachY, float maxX, float fallbackX) const {
-    float bestRight = fallbackX;
-    bool found = false;
+    auto GetWorldAABB = [&](const Transform& tf, const AABBCollider& col,
+        float& outRight, float& outTop, float& outBottom) {
+            float colAngle = tf.rotation.colliderAngle;
+            float cosA = std::abs(std::cos(colAngle));
+            float sinA = std::abs(std::sin(colAngle));
 
-    for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(false, AABBColliderType)) {
-        if (!entityMgr.HasComponent(e, TransformType)) continue;
+            float hw = col.HalfSize.x;
+            float hh = col.HalfSize.y;
 
-        // Skip unwanted entity types
-        if (entityMgr.HasComponent(e, TrapPlatformComponentType)) continue;
-        if (entityMgr.HasComponent(e, PlayerTagType)) continue;
-        if (entityMgr.HasComponent(e, FakePlayerTagType)) continue;
-        if (entityMgr.HasComponent(e, EnemyTagType)) continue;
-        if (entityMgr.HasComponent(e, GUITagType)) continue;
-        if (entityMgr.HasComponent(e, RopeComponentType)) continue;
-        if (entityMgr.HasComponent(e, SpawnPointTagType)) continue;
-        if (entityMgr.HasComponent(e, ButtonType)) continue;
+            float worldHalfX = hw * cosA + hh * sinA;
+            float worldHalfY = hw * sinA + hh * cosA;
 
-        const Transform& tf = entityMgr.GetComponent<Transform>(e);
-        const AABBCollider& col = entityMgr.GetComponent<AABBCollider>(e);
+            float offX = col.Offset.x * std::cos(colAngle) - col.Offset.y * std::sin(colAngle);
+            float offY = col.Offset.x * std::sin(colAngle) + col.Offset.y * std::cos(colAngle);
 
-        float colCentreX = tf.position.x + col.Offset.x;
-        float colCentreY = tf.position.y + col.Offset.y;
-        float top = colCentreY + col.HalfSize.y;
-        float bottom = colCentreY - col.HalfSize.y;
-        float right = colCentreX + col.HalfSize.x;
+            float centreX = tf.position.x + offX;
+            float centreY = tf.position.y + offY;
 
-        // Must vertically overlap with the rope attachment point
-        constexpr float kYTol = 5.0f;
-        if (attachY < (bottom - kYTol) || attachY >(top + kYTol)) continue;
+            outRight = centreX + worldHalfX;
+            outTop = centreY + worldHalfY;
+            outBottom = centreY - worldHalfY;
+        };
 
-        constexpr float kXTol = 2.0f;
-        if ((right - kXTol) >= maxX) continue;
+    auto ShouldSkip = [&](const Entity& e) -> bool {
+        if (entityMgr.HasComponent(e, TrapPlatformComponentType)) return true;
+        if (entityMgr.HasComponent(e, PlayerTagType))             return true;
+        if (entityMgr.HasComponent(e, FakePlayerTagType))         return true;
+        if (entityMgr.HasComponent(e, EnemyTagType))              return true;
+        if (entityMgr.HasComponent(e, GUITagType))                return true;
+        if (entityMgr.HasComponent(e, RopeComponentType))         return true;
+        if (entityMgr.HasComponent(e, SpawnPointTagType))         return true;
+        if (entityMgr.HasComponent(e, ButtonType))                return true;
+        return false;
+        };
 
-        if (!found || right > bestRight) {
-            bestRight = right;
-            found = true;
+    {
+        float bestRight = fallbackX;
+        bool  found = false;
+
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(false, AABBColliderType)) {
+            if (!entityMgr.HasComponent(e, TransformType)) continue;
+            if (ShouldSkip(e)) continue;
+
+            const Transform& tf = entityMgr.GetComponent<Transform>(e);
+            const AABBCollider& col = entityMgr.GetComponent<AABBCollider>(e);
+
+            float right, top, bottom;
+            GetWorldAABB(tf, col, right, top, bottom);
+
+            // Wall must end at or before the platform's left edge
+            if (right > maxX + 6.0f) continue;
+
+            constexpr float kYTol = 5.0f;
+            if (attachY < (bottom - kYTol) || attachY >(top + kYTol)) continue;
+
+            if (!found || right > bestRight) {
+                bestRight = right;
+                found = true;
+            }
         }
+
+        if (found) return bestRight;
     }
 
-    return bestRight;
+    {
+        float bestRight = fallbackX;
+        float bestHeight = 0.0f;
+        bool  found = false;
+
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(false, AABBColliderType)) {
+            if (!entityMgr.HasComponent(e, TransformType)) continue;
+            if (ShouldSkip(e)) continue;
+
+            const Transform& tf = entityMgr.GetComponent<Transform>(e);
+            const AABBCollider& col = entityMgr.GetComponent<AABBCollider>(e);
+
+            float right, top, bottom;
+            GetWorldAABB(tf, col, right, top, bottom);
+            float height = top - bottom;
+
+            if (right > maxX + 6.0f) continue;
+
+            bool isBetter = !found
+                || right > bestRight
+                || (std::abs(right - bestRight) < 1.0f && height > bestHeight);
+
+            if (isBetter) {
+                bestRight = right;
+                bestHeight = height;
+                found = true;
+            }
+        }
+
+        if (found) return bestRight;
+    }
+
+    return fallbackX;
 }
 
 Vector2D RopeScript::CalculateFixedAnchor(const Vector2D& originalPosition,
