@@ -15,7 +15,6 @@
  *********************************************************************/
 #pragma once
 #include "Entity.h"
-#include "RopeComponent.h"
 
 #include "Components.h"
 #include "SceneComponents.h"

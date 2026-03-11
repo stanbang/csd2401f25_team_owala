@@ -273,6 +273,37 @@ namespace Framework {
         for (const ComponentData& compData : prefab.components) {
             DeserializeComponent(storage, entity, compData);
         }
+        if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
+            const std::string& entityName = entityMgr.GetProperties(entity).name;
+            const bool isRopePlatform = (entityName.find("Vertical") != std::string::npos ||
+                entityName.find("Horizontal") != std::string::npos) &&
+                entityName.find("MultiAxis") == std::string::npos;
+
+            if (isRopePlatform) {
+                bool hasRopeScript = false;
+                if (entityMgr.HasComponent(entity, NativeScriptsComponentType)) {
+                    NativeScriptsComponent& scripts = entityMgr.GetComponent<NativeScriptsComponent>(entity);
+                    for (auto& script : scripts.scripts) {
+                        if (script.serializedTypeName == "RopeScript" ||
+                            (script.scriptName && std::string(script.scriptName) == "RopeScript")) {
+                            script.executeInEditMode = true;
+                            hasRopeScript = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasRopeScript) {
+                    std::size_t idx = entityMgr.AttachScriptByName(entity, "RopeScript", true);
+                    if (idx != static_cast<std::size_t>(-1)) {
+                        NativeScriptsComponent& scripts = entityMgr.GetComponent<NativeScriptsComponent>(entity);
+                        if (idx < scripts.scripts.size()) {
+                            scripts.scripts[idx].executeInEditMode = true;
+                        }
+                    }
+                }
+            }
+        }
 
         if (entityMgr.HasComponent(entity, TransformType)) {
             entityMgr.GetComponent<Transform>(entity).position = position;
@@ -321,6 +352,37 @@ namespace Framework {
         auto& alloc = doc.GetAllocator();
         doc.AddMember("name", rapidjson::Value(prefabName.c_str(), alloc), alloc);
         EntityProperties& props = entityMgr.GetProperties(entity);
+        if (entityMgr.HasComponent(entity, TrapPlatformComponentType)) {
+            const std::string& entityName = entityMgr.GetProperties(entity).name;
+            const bool isRopePlatform = (entityName.find("Vertical") != std::string::npos ||
+                entityName.find("Horizontal") != std::string::npos) &&
+                entityName.find("MultiAxis") == std::string::npos;
+
+            if (isRopePlatform) {
+                bool hasRopeScript = false;
+                if (entityMgr.HasComponent(entity, NativeScriptsComponentType)) {
+                    NativeScriptsComponent& scripts = entityMgr.GetComponent<NativeScriptsComponent>(entity);
+                    for (auto& script : scripts.scripts) {
+                        if (script.serializedTypeName == "RopeScript" ||
+                            (script.scriptName && std::string(script.scriptName) == "RopeScript")) {
+                            script.executeInEditMode = true;
+                            hasRopeScript = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasRopeScript) {
+                    std::size_t idx = entityMgr.AttachScriptByName(entity, "RopeScript", true);
+                    if (idx != static_cast<std::size_t>(-1)) {
+                        NativeScriptsComponent& scripts = entityMgr.GetComponent<NativeScriptsComponent>(entity);
+                        if (idx < scripts.scripts.size()) {
+                            scripts.scripts[idx].executeInEditMode = true;
+                        }
+                    }
+                }
+            }
+        }
 
         // Save collision layer ID
         doc.AddMember(rapidjson::Value(Serialization::ENTITY_LAYER, alloc).Move(),

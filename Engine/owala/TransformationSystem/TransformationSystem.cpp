@@ -14,7 +14,6 @@
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "Components.h"
-#include "RopeComponent.h"
 #include "Transformation.h"
 #include "OwalaTime.h"
 #include "MessageBus.h"
