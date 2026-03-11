@@ -76,6 +76,8 @@ namespace Framework {
             RegisterScene("Tutorial 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
             RegisterScene("Level 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
             RegisterScene("Level 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Level 3", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Level 4", TestScene::Initialize, TestScene::Update, TestScene::Free);
 
             // Now that config and callbacks are set, load the startup scene.
             // In editor mode the editor manages scene loading — skip this.
