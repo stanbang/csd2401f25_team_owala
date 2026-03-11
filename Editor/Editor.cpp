@@ -86,7 +86,8 @@ namespace Editor {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::LoadedTagType:					return "LoadedTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
+		case ComponentType::SpawnPointTagType:				return "SpawnPointTag";
+		case ComponentType::ViewportConstrainedTagType:		return "ViewportConstrainedTag";
 
 		default:											return "Unknown";
 		}
