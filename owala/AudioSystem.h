@@ -2,9 +2,10 @@
  * \file   AudioSystem.h
  *
  * \primary_author
- *      Ng Jordain Ying Zhe (80%)
+ *      Ng Jordain Ying Zhe (75%)
  * \secondary_author
- *      Yar Xuan  (20%)
+ *      Yar Xuan  (15%)
+ *      Ng Jing Wen (10%)
  *
  * \brief
  *   Audio system wrapper around FMOD for loading, playing, and managing
@@ -131,6 +132,12 @@ namespace Framework {
         float distanceFactor_ = 1.0f;
         float minHearingRange = 50.0f;
         float maxHearingRange = 700.0f;
+
+        // Data-driven animation event to audio mapping (loaded from animationEventAudio.json)
+        std::unordered_map<std::string, AnimationEventAudioConfig> animationEventAudioMap_;
+
+        // Track the last played sound index for each event key
+        std::unordered_map<std::string, int> lastPlayedIndices_;
     };
 
 } // namespace Framework

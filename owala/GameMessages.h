@@ -16,8 +16,31 @@
 #pragma once
 #include "Entity.h"
 #include "Vector2D.h"
+#include <string>
 
 namespace Framework {
+
+	// Separates different audio channel groups
+	enum class AudioType {
+		SFX,
+		MUSIC
+	};
+
+	// Generic audio trigger events — consumed by AudioSystem, published by any game/engine system
+	struct PlaySoundEvent {
+		std::string soundKey;
+		AudioType   audioType = AudioType::SFX;
+		float       volume    = 1.0f;
+	};
+
+	struct PlaySound3DEvent {
+		std::string soundKey;
+		AudioType   audioType = AudioType::SFX;
+		float       volume    = 1.0f;
+		Vector2D    position;
+		float       minDist   = 50.0f;
+		float       maxDist   = 700.0f;
+	};
 
 	enum class ButtonAction{
 		DEFAULT,
@@ -129,6 +152,14 @@ namespace Framework {
 	};
 	struct BirdWakeEvent {
 		Entity entity;
+		Vector2D position;
+	};
+
+	// Generic engine-level event: any entity has landed on a surface.
+	// Game systems (TrapPlatformSystem, etc.) subscribe to this instead of
+	// having physics publish game-specific events.
+	struct EntityLandedEvent {
+		Entity   entity;
 		Vector2D position;
 	};
 

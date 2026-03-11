@@ -68,17 +68,12 @@ namespace Framework {
         void SetParameter(const std::string& key, float value) override;
 
     private:
-        //float moveSpeed_ = 150.0f;
-        //float bounceForce_ = 200.0f;
-        //float verticalBias_ = 0.3f; // How much to favor upward movement when hitting walls
-
-        float accelX_ = 240.0f;   // horizontal acceleration  (units/s�)
-        float accelYUp_ = 120.0f;   // vertical accel when moving UP toward target
-        float accelYDown_ = 240.0f;   // vertical accel when coming DOWN
-        float maxSpeedX_ = 240.0f;   // horizontal speed cap
-        float maxSpeedY_ = 160.0f;   // vertical speed cap
-        float hoverOffset_ = 75.0f;   // how far ABOVE the player to aim
-        // Turnaround boost when velocity opposes target direction
+        float accelX_ = 240.0f;
+        float accelYUp_ = 120.0f;
+        float accelYDown_ = 240.0f;
+        float maxSpeedX_ = 240.0f;
+        float maxSpeedY_ = 160.0f;
+        float hoverOffset_ = 75.0f;
         float turnaroundMult_ = 0.5f;
         Entity ownerID_ = 0;
     };
@@ -112,10 +107,9 @@ namespace Framework {
     private:
         float timer_ = 0.0f;
         float bounceDuration_ = 0.5f;
-        float bounceFactor_ = 1.f;    // energy retained after bounce (Demon Eye = 0.6)
-        float nudgeAmount_ = 3.0f;    // pixels to push out of wall on enter
-        // Store the collision normal so we know which way to nudge
-        float collisionNormalX_ = 0.0f;  // -1 or +1, set in OnEnter
+        float bounceFactor_ = 1.f;
+        float nudgeAmount_ = 3.0f;
+        float collisionNormalX_ = 0.0f;
         Vector2D bounceDirection_;
         Entity ownerID_ = 0;
     };
@@ -133,7 +127,7 @@ namespace Framework {
         float hoverRadius_ = 200.0f;
         float hoverSpeed_ = 50.0f;
         float attackTimer_ = 0.0f;
-        float attackCooldown_ = 3.0f; // Time before it can attack
+        float attackCooldown_ = 3.0f;
     };
 
     // --- ATTACK STATE (Dive) ---
@@ -148,8 +142,8 @@ namespace Framework {
 
     private:
         Vector2D direction_;
-        float attackAccel_ = 600.0f; // acceleration along dive direction
-        float attackMaxSpeed_ = 400.0f; // speed cap during dive
+        float attackAccel_ = 600.0f;
+        float attackMaxSpeed_ = 400.0f;
         float duration_ = 2.0f;
         float timer_ = 0.0f;
         Entity ownerID_ = 0;
@@ -180,6 +174,9 @@ namespace Framework {
         void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
         void SetParameter(const std::string& key, float value) override;
+
+        // Returns true once the death animation timer has elapsed.
+        bool IsFinished() const override { return timer_ >= duration_; }
 
         float GetTimer() const { return timer_; }
         float GetDuration() const { return duration_; }

@@ -58,7 +58,6 @@ namespace Framework {
 		CameraType,
 		NativeScriptsComponentType,
 		PlayerTagType,
-		FakePlayerTagType,
 		ButtonType,
 		PlatformTagType,
 		BackgroundTagType,
@@ -73,6 +72,7 @@ namespace Framework {
 		ParticleEmitterComponentType,
 		SliderType,
 		PlayerHealthComponentType,
+		ViewportConstrainedTagType,
 		MAX_COMPONENTS
 	};
 
@@ -104,7 +104,6 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<Camera> { static constexpr ComponentType value = CameraType;};
 	template <> struct ComponentTypeTrait<NativeScriptsComponent> { static constexpr ComponentType value = NativeScriptsComponentType; };
 	template <> struct ComponentTypeTrait<PlayerTag> { static constexpr ComponentType value = PlayerTagType; };
-	template <> struct ComponentTypeTrait<FakePlayerTag> { static constexpr ComponentType value = FakePlayerTagType; };
 	template <> struct ComponentTypeTrait<Button> { static constexpr ComponentType value = ButtonType; };
 	template <> struct ComponentTypeTrait<PlatformTag> { static constexpr ComponentType value = PlatformTagType; };
 	template <> struct ComponentTypeTrait<BackgroundTag> { static constexpr ComponentType value = BackgroundTagType; };
@@ -119,6 +118,7 @@ namespace Framework {
 	template <> struct ComponentTypeTrait<PlayerHealthComponent> { static constexpr ComponentType value = PlayerHealthComponentType; };
 	template <> struct ComponentTypeTrait<GUITag> { static constexpr ComponentType value = GUITagType; };
 	template <> struct ComponentTypeTrait<SpawnPointTag> { static constexpr ComponentType value = SpawnPointTagType; };
+	template <> struct ComponentTypeTrait<ViewportConstrainedTag> { static constexpr ComponentType value = ViewportConstrainedTagType; };
 
 #pragma endregion
 

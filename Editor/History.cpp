@@ -306,13 +306,10 @@ namespace Editor {
 			case ComponentType::FSMComponentType:
 			{
 				FSMComponent newFSM;
-				// Deserialize data from the JSON snapshot
 				if (EntitySerializer::DeserializeComponent(doc, newFSM)) {
-					// Remove existing if present to ensure clean state
 					if (entityMgr.HasComponent(entity, ComponentType::FSMComponentType)) {
 						entityMgr.RemoveComponent(entity, ComponentType::FSMComponentType);
 					}
-					// Add the restored component
 					entityMgr.AddComponent<FSMComponent>(entity, newFSM);
 				}
 				break;
@@ -325,6 +322,26 @@ namespace Editor {
 						entityMgr.RemoveComponent(entity, ComponentType::ParticleEmitterComponentType);
 					}
 					entityMgr.AddComponent<ParticleEmitterComponent>(entity, newParticleEmitterComponent);
+				}
+				break;
+			}
+			case ComponentType::SliderType: {
+				Slider newSlider;
+				if (EntitySerializer::DeserializeComponent(doc, newSlider)) {
+					if (entityMgr.HasComponent(entity, ComponentType::SliderType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::SliderType);
+					}
+					entityMgr.AddComponent<Slider>(entity, newSlider);
+				}
+				break;
+			}
+			case ComponentType::PlayerHealthComponentType: {
+				PlayerHealthComponent newPlayerHealth;
+				if (EntitySerializer::DeserializeComponent(doc, newPlayerHealth)) {
+					if (entityMgr.HasComponent(entity, ComponentType::PlayerHealthComponentType)) {
+						entityMgr.RemoveComponent(entity, ComponentType::PlayerHealthComponentType);
+					}
+					entityMgr.AddComponent<PlayerHealthComponent>(entity, newPlayerHealth);
 				}
 				break;
 			}

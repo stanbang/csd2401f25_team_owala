@@ -5,6 +5,7 @@
 
 // Game-specific systems in Game/Sources folder)
 #include "PlayerSystem.h"
+#include "TrapPlatformSystem.h"
 
 // Scene script headers (only scenes that have Initialize/Update/Free)
 #include "LevelSelection.h"
@@ -22,6 +23,7 @@ namespace Framework {
     private:
         CoreEngine& m_Engine;
         PlayerSystem* m_PlayerSystem;
+        TrapPlatformSystem* m_TrapPlatformSystem;
 
     public:
         StageBoundApp(CoreEngine& engine) : m_Engine(engine) {}
@@ -31,12 +33,15 @@ namespace Framework {
 
             // Instantiate Game-Specific Systems
             m_PlayerSystem = new PlayerSystem();
+            m_TrapPlatformSystem = new TrapPlatformSystem();
 
             // Inject Game Systems into the Engine
             m_Engine.AddSystem(m_PlayerSystem);
+            m_Engine.AddSystem(m_TrapPlatformSystem);
 
 			// Initialize Game Systems
             m_PlayerSystem->Initialize();
+            m_TrapPlatformSystem->Initialize();
 
             // Restore transition state that was previously in GameManager::Initialize()
             TransitionController::Reset();
@@ -71,6 +76,8 @@ namespace Framework {
             RegisterScene("Tutorial 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
             RegisterScene("Level 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
             RegisterScene("Level 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Level 3", TestScene::Initialize, TestScene::Update, TestScene::Free);
+            RegisterScene("Level 4", TestScene::Initialize, TestScene::Update, TestScene::Free);
 
             // Now that config and callbacks are set, load the startup scene.
             // In editor mode the editor manages scene loading — skip this.

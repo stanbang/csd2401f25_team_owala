@@ -33,7 +33,6 @@
 
 // Debug
 #include "Logger.h"
-#include "Fake_Player.h"
 
 // Serialization
 #include "EntitySerializer.h"
@@ -87,7 +86,8 @@ namespace Editor {
 		case ComponentType::PersistentTagType:				return "PersistentTag";
 		case ComponentType::LoadedTagType:					return "LoadedTag";
 		case ComponentType::GUITagType:						return "GUITag";
-		case ComponentType::SpawnPointTagType:					return "SpawnPointTag";
+		case ComponentType::SpawnPointTagType:				return "SpawnPointTag";
+		case ComponentType::ViewportConstrainedTagType:		return "ViewportConstrainedTag";
 
 		default:											return "Unknown";
 		}
@@ -1369,35 +1369,6 @@ namespace Editor {
 		else {
 			ImGui::Text("Selected Entity: None");
 			ImGui::TextDisabled("(Click on an object in the game view)");
-		}
-
-
-		// --- Section for Spawning 1000 objects -----//
-		ImGui::SeparatorText("Spawn Game Objects");
-		// In your Editor.cpp spawning section:
-		if (ImGui::Button("Spawn 1000 Objects")) {
-			Framework::EntityStorage* ecs = gameManager_->GetSystems().ecs_;
-			Framework::ResourceManager* rcm = gameManager_->GetSystems().resourceManager_;
-
-			if (ecs) {
-				// Create a grid of 2500 entities spread out
-				//int gridSize = 50; // 50x50 grid = 2500 entities
-				//float spacing = 0.1f; // Adjust this for proper spacing
-
-				for (int i = 0; i < 1000; ++i) {
-					// Calculate random position from -1.0 to 1.0
-					float x = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-					float y = static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f;
-					Vector2D position = { x, y };
-
-					// Pass the calculated position, not halfSize
-					Entity fake_player = createFakePlayer(*ecs, *rcm, position, "Eli_Idle_Spritesheet.png");
-					SceneManager::GetInstance().AddEntityToScene(currentScene, fake_player);
-
-
-				}
-				Logger::Get().Info(DebugType::Editor) << "Successfully spawned 1000 objects" << std::endl;
-			}
 		}
 
 		if (ImGui::Button("Open FSM Editor")) {
@@ -2743,28 +2714,9 @@ namespace Editor {
 		}
 
 		case ComponentType::AnimationComponentType: {
-			AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(selectedEntity);
-
-			// Show the profile name for AnimationComponent
-			ImGui::InputText("Animation Profile", &animComp.profileName);
-			
-			ImGui::InputInt("Frame Count", &animComp.frameCount); // Frame Count
-			ImGui::InputFloat("Frame Duration", &animComp.frameDuration); //Frame Duration
-			ImGui::Checkbox("Is Playing", &animComp.isPlaying); // Is Playing
-			ImGui::Checkbox("Is Looping", &animComp.isLooping); // Is Looping
-			ImGui::InputInt("Start Frame", &animComp.startFrame); // Start Frame
-
-			ImGui::Separator();
-			ImGui::Text("Start Delay");
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
-			ImGui::InputFloat("Delay (seconds)", &animComp.startDelay);
-			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
-			ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange);
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
-			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
+			DrawAnimationInspector(selectedEntity);
 			break;
-		}
-		case ComponentType::TextComponentType: {
+		}		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
@@ -3153,56 +3105,79 @@ namespace Editor {
 
 		case ComponentType::FSMComponentType:
 		{
-			if (ImGui::CollapsingHeader("FSM Component", ImGuiTreeNodeFlags_DefaultOpen)) {
-				FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+			FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
+			bool activeNow = false;
 
-				// 1. Definition Path Input
-				char buffer[256];
-				strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
-				if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
-					fsm.fsmDefinitionPath = buffer;
-					fsm.initialized = false; // Force rebuild
-				}
+			// 1. Definition Path Input
+			char buffer[256];
+			strcpy_s(buffer, fsm.fsmDefinitionPath.c_str());
 
-				// --- DRAG AND DROP TARGET ---
-				// Allows dragging a .json file from the Asset Browser into this field
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")) {
-						const char* path = (const char*)payload->Data;
-						std::string pathStr = path;
-
-						// Simple check for JSON extension
-						if (pathStr.find(".json") != std::string::npos) {
-							fsm.fsmDefinitionPath = pathStr;
-							fsm.initialized = false; // Force rebuild
-							Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << pathStr << std::endl;
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-				// -----------------------------
-
-				// 2. Initial State Override (Optional)
-				char initBuffer[256];
-				strcpy_s(initBuffer, fsm.initialStateOverride.c_str());
-				if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
-					fsm.initialStateOverride = initBuffer;
-				}
-
-				// 3. Current State Display (Read-Only)
-				std::string currentState = fsm.fsm.GetCurrentState();
-				ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
-
-				// 4. Reload Button
-				if (ImGui::Button("Reload FSM")) {
-					fsm.initialized = false;
-				}
-
-				// 5. Remove Component Button
-				if (ImGui::Button("Remove Component")) {
-					entityMgr.RemoveComponent(selectedEntity, ComponentType::FSMComponentType);
-				}
+			if (ImGui::InputText("Definition Path", buffer, sizeof(buffer))) {
+				fsm.fsmDefinitionPath = buffer;
+				fsm.initialized = false; // Force rebuild
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// --- DRAG AND DROP TARGET ---
+			// Allows dragging a .json file from the Asset Browser into this field
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH");
+				if (payload) {
+					std::string dropped_path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+					fs::path dropped_file(dropped_path);
+
+					std::string ext = dropped_file.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(::tolower(c)); });
+
+					if (ext == ".json") {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						fs::path relative_path = fs::relative(dropped_path, fs::current_path());
+						fsm.fsmDefinitionPath = relative_path.generic_string();
+						fsm.initialized = false; // Force rebuild
+
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Modified FSM Definition Path (DragDrop) in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+						Logger::Get().Info(DebugType::Editor) << "Assigned FSM Path: " << dropped_path << std::endl;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+			// -----------------------------
+
+			// 2. Initial State Override (Optional)
+			char initBuffer[256];
+			strcpy_s(initBuffer, sizeof(initBuffer), fsm.initialStateOverride.c_str());
+			if (ImGui::InputText("Initial State Override", initBuffer, sizeof(initBuffer))) {
+				fsm.initialStateOverride = initBuffer;
+			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			// 3. Current State Display (Read-Only)
+			std::string currentState = fsm.fsm.GetCurrentState();
+			ImGui::Text("Current State: %s", currentState.empty() ? "Uninitialized" : currentState.c_str());
+
+			// 4. Reload Button
+			if (ImGui::Button("Reload FSM")) {
+				fsm.initialized = false;
+			}
+
+			if (activeNow && !editSession.wasItemActive) {
+				editSession.Begin(selectedEntity, selectedComponent);
+			}
+
+			if (!activeNow && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Modified FSM Component in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				editSession.End(selectedEntity, selectedComponent, ss.str(), historyManager_);
+			}
+			editSession.wasItemActive = activeNow;
+
 			break;
 		}
 
@@ -3625,18 +3600,42 @@ namespace Editor {
 
 			int handleId = static_cast<int>(slider.handleEntity);
 			if (ImGui::InputInt("Handle Entity ID", &handleId)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
 				// Ensure the ID doesn't go below 0
 				slider.handleEntity = static_cast<Entity>(std::max(0, handleId));
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Handle Name
 			ImGui::InputText("Handle Name", &slider.handleName);
 			if (ImGui::IsItemActive()) activeNow = true;
 			
 			int fillId = static_cast<int>(slider.fillEntity);
 			if (ImGui::InputInt("Fill Entity ID", &fillId)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
 				// Ensure the ID doesn't go below 0
 				slider.fillEntity = static_cast<Entity>(std::max(0, fillId));
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Slider in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
 			}
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			// Fill Name
 			ImGui::InputText("Fill Name", &slider.fillName);
 			if (ImGui::IsItemActive()) activeNow = true;
@@ -3674,7 +3673,21 @@ namespace Editor {
 		
 		case ComponentType::PlayerHealthComponentType: {
 			PlayerHealthComponent& healthComp = entityMgr.GetComponent<PlayerHealthComponent>(selectedEntity);
-			ImGui::InputInt("Life number:", &healthComp.lifeNum);
+
+			int newLifeNum = healthComp.lifeNum;
+			if (ImGui::InputInt("Life number:", &newLifeNum)) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				healthComp.lifeNum = std::max(0, newLifeNum);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified PlayerHealth in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+				}
+			}
 			break;
 		}
 		default:
@@ -4675,9 +4688,10 @@ namespace Editor {
 	// Helper function to show entity collision layer
 	void Editor::ShowEntityCollisionLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
 
+		EntityStorage& ecs = GameManager::GetInstance().GetECS();
 		Framework::CollisionLayer& entityLayer = entityMgr.GetProperties(selectedEntity).layer;
 
-		const auto& collisionLayers = layerManager_.GetCollisionLayers();
+		const std::vector<Framework::CollisionLayerData>& collisionLayers = layerManager_.GetCollisionLayers();
 
 		// Find current layer index
 		int currentIdx = -1;
@@ -4692,11 +4706,11 @@ namespace Editor {
 		std::vector<std::string> layerNames;
 		std::vector<const char*> layerItems;
 
-		for (const auto& layer : collisionLayers) {
+		for (const Framework::CollisionLayerData& layer : collisionLayers) {
 			layerNames.push_back(layer.name);
 		}
 
-		for (const auto& name : layerNames) {
+		for (const std::string& name : layerNames) {
 			layerItems.push_back(name.c_str());
 		}
 
@@ -4705,10 +4719,20 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##CollisionLayer", &currentIdx, layerItems.data(),
-			static_cast<int>(layerItems.size()))) {
+		if (ImGui::Combo("##CollisionLayer", &currentIdx, layerItems.data(), static_cast<int>(layerItems.size()))) {
 			if (currentIdx >= 0 && currentIdx < static_cast<int>(collisionLayers.size())) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+				
 				entityLayer = static_cast<Framework::CollisionLayer>(collisionLayers[currentIdx].id);
+				entityMgr.GetProperties(selectedEntity).collisionLayerName = collisionLayers[currentIdx].name;
+
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Collision Layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
 		}
 
@@ -4745,6 +4769,7 @@ namespace Editor {
 	// Helper function to show entity render layer
 	void Editor::ShowEntityRenderLayer(Framework::EntityManager& entityMgr, Entity selectedEntity) {
 
+		EntityStorage& ecs = GameManager::GetInstance().GetECS();
 		Framework::EntityProperties& props = entityMgr.GetProperties(selectedEntity);
 
 		const std::vector<RenderLayerData>& renderLayers = layerManager_.GetRenderLayers();
@@ -4757,7 +4782,7 @@ namespace Editor {
 		}
 
 		// Determine current selection
-		static int currentIdx = 0; // Default to Custom
+		int currentIdx = 0; // Default to Custom
 
 		if (props.renderLayer != RenderLayer::Custom) {
 			// Try to find matching layer by render order
@@ -4777,8 +4802,9 @@ namespace Editor {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(200.0f);
 
-		if (ImGui::Combo("##RenderLayer", &currentIdx, layerItems.data(),
-			static_cast<int>(layerItems.size()))) {
+		if (ImGui::Combo("##RenderLayer", &currentIdx, layerItems.data(), static_cast<int>(layerItems.size()))) {
+
+			std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
 
 			if (currentIdx == 0) {
 				// Custom selected
@@ -4794,6 +4820,14 @@ namespace Editor {
 					props.renderLayerName = renderLayers[layerIdx].name; // Store the layer name
 				}
 			}
+
+			std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+			if (beforeJSON != afterJSON) {
+				std::stringstream ss;
+				ss << "Modified Render Layer in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+				historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+			}
 		}
 
 		ImGui::Spacing();
@@ -4801,21 +4835,51 @@ namespace Editor {
 
 		// Custom render order
 		if (props.renderLayerName == "Custom" || props.renderLayerName.empty()) {
+			static std::string beforeRenderOrderJSON;
+			int newRenderOrder = props.customRenderOrder;
+
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing();
 
 			ImGui::Text("Custom Render Order:");
 			ImGui::SetNextItemWidth(150.0f);
-			if (ImGui::DragInt("##CustomRenderOrder", &props.customRenderOrder, 1.0f, -1000, 1000)) {
+			ImGui::DragInt("##CustomRenderOrder", &newRenderOrder, 1.0f, -1000, 1000);
+
+			if (ImGui::IsItemActivated()) {
+				beforeRenderOrderJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+			}
+
+			if (newRenderOrder != props.customRenderOrder) {
+				props.customRenderOrder = newRenderOrder;
 				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom"; // Mark as truly custom
 			}
+
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeRenderOrderJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Modified Custom Render Order in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeRenderOrderJSON, afterJSON);
+				}
+			}
 			ImGui::SameLine();
 			if (ImGui::Button("Reset to 0")) {
+				std::string beforeJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
 				props.customRenderOrder = 0;
 				props.renderLayer = RenderLayer::Custom;
 				props.renderLayerName = "Custom";
+
+				std::string afterJSON = EntitySerializer::SerializeEntityPropertiesToString(selectedEntity, ecs);
+
+				if (beforeJSON != afterJSON) {
+					std::stringstream ss;
+					ss << "Reset Custom Render Order in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+					historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON);
+				}
 			}
 
 			ImGui::Spacing();
@@ -5101,469 +5165,6 @@ namespace Editor {
 		// Render project management modals (they open via ImGui::OpenPopup below)
 		if (showNewProjectDialog_)    ShowNewProjectDialog();
 		if (showImportProjectDialog_) ShowImportProjectDialog();
-	}
-
-#pragma endregion
-
-	// ============================================================
-	// PROJECT MANAGEMENT IMPLEMENTATIONS
-	// ============================================================
-
-#pragma region PROJECT MANAGEMENT
-
-	void Editor::WriteActiveGameConfig(const std::string& gameDir) {
-		namespace fs = std::filesystem;
-		fs::path repoRoot = fs::current_path().parent_path().parent_path();
-		fs::path configFile = repoRoot / "active_game.cmake";
-
-		std::string gameDirFwd = gameDir;
-		std::replace(gameDirFwd.begin(), gameDirFwd.end(), '\\', '/');
-
-		std::string gameName = fs::path(gameDir).filename().string();
-
-		std::ofstream out(configFile);
-		if (out.is_open()) {
-			out << "# Auto-generated by owala Engine Editor. Do not edit manually.\n";
-			out << "set(ACTIVE_GAME_NAME \"" << gameName   << "\")\n";
-			out << "set(ACTIVE_GAME_DIR  \"${CMAKE_CURRENT_LIST_DIR}/${ACTIVE_GAME_NAME}\")\n";
-			Logger::Get().Info(DebugType::Editor)
-				<< "Wrote active_game.cmake: " << gameName << " at " << gameDirFwd << std::endl;
-		}
-		else {
-			Logger::Get().Error(DebugType::Editor)
-				<< "Failed to write active_game.cmake to: " << configFile.string() << std::endl;
-		}
-	}
-
-	bool Editor::ScaffoldNewProject(const std::string& rootDir, const std::string& projectName) {
-		namespace fs = std::filesystem;
-
-		if (projectName.empty() || rootDir.empty()) return false;
-
-		fs::path projectRoot = fs::path(rootDir) / projectName;
-
-		// Game-specific raw asset folders
-		const std::vector<std::string> assetDirs = {
-			"Assets/Audio/SFX",
-			"Assets/Audio/Music",
-			"Assets/Fonts",
-			"Assets/Sprites",
-		};
-
-		// Engine runtime data folders
-		const std::vector<std::string> dataDirs = {
-			"Data/AnimationData",
-			"Data/Scenes",
-			"Data/Prefabs",
-			"Data/Config",
-			"Data/FSM",
-			"Data/ParticleEffects"
-		};
-
-		const std::vector<std::string> sourceDirs = { "Source" };
-
-		std::error_code ec;
-		auto createDirs = [&](const std::vector<std::string>& dirs) -> bool {
-			for (const std::string& dir : dirs) {
-				fs::create_directories(projectRoot / dir, ec);
-				if (ec) {
-					Logger::Get().Error(DebugType::Editor)
-						<< "Failed to create directory: " << (projectRoot / dir).string()
-						<< " (" << ec.message() << ")" << std::endl;
-					return false;
-				}
-			}
-			return true;
-			};
-
-		if (!createDirs(assetDirs))  return false;
-		if (!createDirs(dataDirs))   return false;
-		if (!createDirs(sourceDirs)) return false;
-
-		// Helper lambda: only writes file if it doesn't already exist
-		auto WriteFile = [&](const fs::path& filePath, const std::string& contents) {
-			if (!fs::exists(filePath)) {
-				std::ofstream out(filePath);
-				if (out.is_open()) out << contents;
-			}
-			};
-
-		// -----------------------------------------------------------------
-		// Data/config.json  — project + engine settings
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "config.json",
-			"{\n"
-			"  \"window_width\": 1920,\n"
-			"  \"window_height\": 1080,\n"
-			"  \"full_screen\": false\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Data/GameConfig.json  — scene categorization config
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "GameConfig.json",
-			"{\n"
-			"    \"startupScene\": \"\",\n"
-			"    \"loadingScene\": \"\",\n"
-			"    \"overlayScenes\": [],\n"
-			"    \"menuScenes\": []\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Data/scenes.json  — registry of all scene assets
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "scenes.json",
-			"{\n"
-			"    \"scenes\": []\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Data/audioFiles.json  — registry of all loaded audio assets
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "audioFiles.json",
-			"{\n"
-			"    \"sfx\": [],\n"
-			"    \"music\": []\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Data/LayerConfig.json  — collision & render layer configuration
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "LayerConfig.json",
-			"{\n"
-			"    \"collisionLayers\": [\n"
-			"        { \"id\": 0, \"name\": \"Default\",  \"isBuiltIn\": true },\n"
-			"        { \"id\": 1, \"name\": \"Player\",   \"isBuiltIn\": true },\n"
-			"        { \"id\": 2, \"name\": \"Platform\", \"isBuiltIn\": true },\n"
-			"        { \"id\": 3, \"name\": \"Enemy\",    \"isBuiltIn\": true },\n"
-			"        { \"id\": 4, \"name\": \"Trigger\",  \"isBuiltIn\": true }\n"
-			"    ],\n"
-			"    \"renderLayers\": [\n"
-			"        { \"name\": \"Background\", \"renderOrder\": -100, \"isBuiltIn\": true },\n"
-			"        { \"name\": \"Default\",    \"renderOrder\": 0,    \"isBuiltIn\": true },\n"
-			"        { \"name\": \"UI\",         \"renderOrder\": 100,  \"isBuiltIn\": true }\n"
-			"    ],\n"
-			"    \"collisionMatrix\": {}\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Data/stateToAnimationMapping.json  — FSM state → animation name
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "stateToAnimationMapping.json",
-			"{\n"
-			"    \"mappings\": {}\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Data/textureToAnimationMapping.json  — texture key → animation data
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Data" / "textureToAnimationMapping.json",
-			"{\n"
-			"    \"mappings\": {}\n"
-			"}\n");
-
-		// -----------------------------------------------------------------
-		// Source entry-point stub
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "Source" / (projectName + "App.cpp"),
-			"#include \"Core/Application.h\"\n"
-			"#include \"Core/Core.h\"\n"
-			"#include \"Managers/GameManager/GameManager.h\"\n"
-			"#include \"FileIO/FileUtility.h\"\n"
-			"\n"
-			"namespace Framework {\n"
-			"\n"
-			"    class " + projectName + "App : public Application {\n"
-			"    public:\n"
-			"        " + projectName + "App(CoreEngine& engine) : m_Engine(engine) {}\n"
-			"\n"
-			"        void Initialize() override {\n"
-			"            auto& gm = GameManager::GetInstance();\n"
-			"\n"
-			"            // Load scene categorization from Data/GameConfig.json.\n"
-			"            // Edit it via Edit > Project Settings in the editor.\n"
-			"            GameManager::GameConfig config = FileIOSystem::LoadGameConfig();\n"
-			"            gm.Configure(config);\n"
-			"\n"
-			"            // TODO: Register per-scene script callbacks, e.g.:\n"
-			"            // gm.RegisterScriptToScene(sceneIndex, Init, Update, Free);\n"
-			"\n"
-			"            // Load the startup scene (skipped automatically in editor mode).\n"
-			"            if (!m_Engine.IsEditorMode()) {\n"
-			"                gm.LoadStartupScene();\n"
-			"            }\n"
-			"        }\n"
-			"\n"
-			"        void Update() override {}\n"
-			"\n"
-			"        void Shutdown() override {}\n"
-			"\n"
-			"    private:\n"
-			"        CoreEngine& m_Engine;\n"
-			"    };\n"
-			"\n"
-			"    Application* CreateApplication(CoreEngine& engine) {\n"
-			"        return new " + projectName + "App(engine);\n"
-			"    }\n"
-			"\n"
-			"} // namespace Framework\n");
-
-		// -----------------------------------------------------------------
-		// README
-		// -----------------------------------------------------------------
-		WriteFile(projectRoot / "README.md",
-			"# " + projectName + "\n\n"
-			"Game project created with the Owala Engine editor.\n\n"
-			"## Folder Structure\n\n"
-			"| Path | Purpose |\n"
-			"|------|---------|\n"
-			"| `Assets/Audio/` | Raw audio files (SFX / Music) |\n"
-			"| `Assets/Fonts/` | Font files (.ttf / .otf) |\n"
-			"| `Assets/Sprites/` | Raw sprite / texture images |\n"
-			"| `Data/AnimationData/` | Animation definition JSON files |\n"
-			"| `Data/Config/` | Additional engine config files |\n"
-			"| `Data/FSM/` | Finite-state machine definition files |\n"
-			"| `Data/ParticleEffects/` | Particle effect preset files |\n"
-			"| `Data/Prefabs/` | Entity prefab JSON files |\n"
-			"| `Data/Scenes/` | Serialised scene JSON files |\n"
-			"| `Data/audioFiles.json` | Registry of all audio assets |\n"
-			"| `Data/config.json` | Project and engine configuration |\n"
-			"| `Data/LayerConfig.json` | Collision and render layer setup |\n"
-			"| `Data/scenes.json` | Registry of all scene assets |\n"
-			"| `Data/stateToAnimationMapping.json` | FSM state to animation mapping |\n"
-			"| `Data/textureToAnimationMapping.json` | Texture to animation data mapping |\n"
-			"| `Source/` | C++ game code and `CreateApplication` entry point |\n");
-
-		Logger::Get().Info(DebugType::Editor)
-			<< "Scaffolded new project \"" << projectName
-			<< "\" at: " << projectRoot.string() << std::endl;
-
-		return true;
-	}
-
-	bool Editor::ValidateImportPath(const std::string& path) {
-		namespace fs = std::filesystem;
-
-		if (path.empty()) return false;
-
-		fs::path root(path);
-		std::error_code ec;
-
-		if (!fs::exists(root, ec) || !fs::is_directory(root, ec)) return false;
-
-		// A valid project must have at least one of these canonical sub-folders
-		const std::vector<std::string> expectedFolders = { "Source", "Assets" };
-		for (const std::string& folder : expectedFolders) {
-			if (fs::exists(root / folder, ec) && fs::is_directory(root / folder, ec)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	void Editor::ShowNewProjectDialog() {
-		// Open the modal on the first call each time the flag is raised
-		if (!ImGui::IsPopupOpen("Create New Project##modal")) {
-			ImGui::OpenPopup("Create New Project##modal");
-		}
-
-		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-		ImGui::SetNextWindowSize(ImVec2(560, 280), ImGuiCond_Appearing);
-
-		if (ImGui::BeginPopupModal("Create New Project##modal", &showNewProjectDialog_,
-			ImGuiWindowFlags_NoResize)) {
-
-			ImGui::TextWrapped("Enter a name and choose a parent directory for the new game project.");
-			ImGui::Spacing();
-
-			// Project name field
-			ImGui::Text("Project Name:");
-			ImGui::SetNextItemWidth(-1.f);
-			ImGui::InputText("##NewProjectName", newProjectNameBuffer_, sizeof(newProjectNameBuffer_));
-
-			ImGui::Spacing();
-
-			// Root directory field + drag-and-drop hint
-			ImGui::Text("Parent Directory (project folder will be created inside this):");
-			ImGui::SetNextItemWidth(-80.f);
-			ImGui::InputText("##NewProjectPath", newProjectPathBuffer_, sizeof(newProjectPathBuffer_));
-			ImGui::SameLine();
-			if (ImGui::Button("Browse##np", ImVec2(70.f, 0.f))) {
-				// Lightweight fallback: open the folder in Explorer so the user can copy the path
-				std::string cmd = "explorer \"" + std::string(newProjectPathBuffer_) + "\"";
-				std::system(cmd.c_str());
-			}
-			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("Opens the current path in File Explorer.\n"
-					"You can also drag a folder from the Asset Browser\n"
-					"into the path field above.");
-			}
-
-			// Drag-and-drop target on the path field
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string dropped(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-					namespace fs = std::filesystem;
-					fs::path p(dropped);
-					std::string dir = fs::is_directory(p) ? p.string() : p.parent_path().string();
-					strncpy_s(newProjectPathBuffer_, sizeof(newProjectPathBuffer_), dir.c_str(), _TRUNCATE);
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			ImGui::Spacing();
-			ImGui::Separator();
-			ImGui::Spacing();
-
-			// Feedback message from the last attempt
-			if (!projectFeedbackMsg_.empty()) {
-				ImVec4 colour = projectActionSucceeded_
-					? ImVec4(0.2f, 0.9f, 0.3f, 1.f)
-					: ImVec4(1.f, 0.3f, 0.3f, 1.f);
-				ImGui::TextColored(colour, "%s", projectFeedbackMsg_.c_str());
-				ImGui::Spacing();
-			}
-
-			bool canCreate = (strlen(newProjectNameBuffer_) > 0) && (strlen(newProjectPathBuffer_) > 0);
-			if (!canCreate) ImGui::BeginDisabled();
-
-			if (ImGui::Button("Create", ImVec2(120.f, 0.f))) {
-				projectActionSucceeded_ = ScaffoldNewProject(
-					std::string(newProjectPathBuffer_),
-					std::string(newProjectNameBuffer_));
-
-				if (projectActionSucceeded_) {
-					namespace fs = std::filesystem;
-					fs::path projectPath = fs::path(std::string(newProjectPathBuffer_)) / std::string(newProjectNameBuffer_);
-					WriteActiveGameConfig(projectPath.string());
-					assetBrowser.Initialize(projectPath);
-					// Tell FileIOSystem where to mirror saves back to source.
-					FileIOSystem::SetSourceDataDir((projectPath / "Data").string());
-					projectFeedbackMsg_ = "Project \"" + std::string(newProjectNameBuffer_)
-						+ "\" created! Re-run CMake & rebuild to compile the new game.";
-					// Close automatically on success after the user reads the message
-					// (leave the modal open so they can read it; they close via the X or Close button)
-				}
-				else {
-					projectFeedbackMsg_ = "Failed to create project. Check the path and try again.";
-				}
-			}
-
-			if (!canCreate) ImGui::EndDisabled();
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Close", ImVec2(120.f, 0.f))) {
-				projectFeedbackMsg_.clear();
-				showNewProjectDialog_ = false;
-				ImGui::CloseCurrentPopup();
-			}
-
-			ImGui::EndPopup();
-		}
-		else {
-			// Modal was closed via the X button
-			showNewProjectDialog_ = false;
-		}
-	}
-
-	void Editor::ShowImportProjectDialog() {
-		if (!ImGui::IsPopupOpen("Import Existing Project##modal")) {
-			ImGui::OpenPopup("Import Existing Project##modal");
-		}
-
-		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-		ImGui::SetNextWindowSize(ImVec2(560, 250), ImGuiCond_Appearing);
-
-		if (ImGui::BeginPopupModal("Import Existing Project##modal", &showImportProjectDialog_,
-			ImGuiWindowFlags_NoResize)) {
-
-			ImGui::TextWrapped(
-				"Point to an existing game project folder.\n"
-				"The folder must contain a \"Source\" or \"Assets\" sub-folder.");
-			ImGui::Spacing();
-
-			ImGui::Text("Project Folder Path:");
-			ImGui::SetNextItemWidth(-80.f);
-			ImGui::InputText("##ImportPath", importProjectPathBuffer_, sizeof(importProjectPathBuffer_));
-			ImGui::SameLine();
-			if (ImGui::Button("Browse##ip", ImVec2(70.f, 0.f))) {
-				std::string cmd = "explorer \"" + std::string(importProjectPathBuffer_) + "\"";
-				std::system(cmd.c_str());
-			}
-			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("Opens File Explorer so you can locate and copy the project path.\n"
-					"You can also drag a folder from the Asset Browser into the field above.");
-			}
-
-			// Drag-and-drop target
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					std::string dropped(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-					namespace fs = std::filesystem;
-					fs::path p(dropped);
-					std::string dir = fs::is_directory(p) ? p.string() : p.parent_path().string();
-					strncpy_s(importProjectPathBuffer_, sizeof(importProjectPathBuffer_), dir.c_str(), _TRUNCATE);
-				}
-				ImGui::EndDragDropTarget();
-			}
-
-			ImGui::Spacing();
-			ImGui::Separator();
-			ImGui::Spacing();
-
-			if (!projectFeedbackMsg_.empty()) {
-				ImVec4 colour = projectActionSucceeded_
-					? ImVec4(0.2f, 0.9f, 0.3f, 1.f)
-					: ImVec4(1.f, 0.3f, 0.3f, 1.f);
-				ImGui::TextColored(colour, "%s", projectFeedbackMsg_.c_str());
-				ImGui::Spacing();
-			}
-
-			bool canImport = (strlen(importProjectPathBuffer_) > 0);
-			if (!canImport) ImGui::BeginDisabled();
-
-			if (ImGui::Button("Validate & Import", ImVec2(150.f, 0.f))) {
-				std::string importPath(importProjectPathBuffer_);
-				projectActionSucceeded_ = ValidateImportPath(importPath);
-
-				if (projectActionSucceeded_) {
-					// Expand the Asset Browser to show the imported project root
-					namespace fs = std::filesystem;
-					WriteActiveGameConfig(importPath);
-					assetBrowser.Initialize(fs::path(importPath));
-					// Tell FileIOSystem where to mirror saves back to source.
-					FileIOSystem::SetSourceDataDir((fs::path(importPath) / "Data").string());
-
-					projectFeedbackMsg_ = "Project imported! Re-run CMake & rebuild to compile. Asset Browser now shows: " + importPath;
-					Logger::Get().Info(DebugType::Editor)
-						<< "Imported project from: " << importPath << std::endl;
-				}
-				else {
-					projectFeedbackMsg_ = "Invalid project folder. No \"Source\" or \"Assets\" sub-folder found.";
-					Logger::Get().Error(DebugType::Editor)
-						<< "Import failed — invalid project path: " << importPath << std::endl;
-				}
-			}
-
-			if (!canImport) ImGui::EndDisabled();
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Close", ImVec2(120.f, 0.f))) {
-				projectFeedbackMsg_.clear();
-				showImportProjectDialog_ = false;
-				ImGui::CloseCurrentPopup();
-			}
-
-			ImGui::EndPopup();
-		}
-		else {
-			showImportProjectDialog_ = false;
-		}
 	}
 
 #pragma endregion
@@ -7826,6 +7427,8 @@ namespace Editor {
 		);
 	}
 
+#pragma region COMPONENT INSPECTOR
+
 	void Editor::DrawTransformInspector(Entity entity) {
 		using namespace Framework;
 		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
@@ -8078,6 +7681,8 @@ namespace Editor {
 
 		// Manual input field
 		static std::string newTextureKey = "";
+		bool activeNow = false;
+
 		ImGui::InputText("New Texture Key", &newTextureKey);
 
 		if (ImGui::Button("Update Texture")) {
@@ -8093,11 +7698,16 @@ namespace Editor {
 		}
 
 		if (ImGui::InputFloat2("Half Size", &tex.HalfSize.x, "%.2f")) {
+			activeNow = true;
 			if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 		}
+		if (ImGui::IsItemActive()) activeNow = true;
 
-		ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal);
-		ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f");
+		if (ImGui::Checkbox("Flip Horizontal", &tex.flipHorizontal)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::SliderFloat("Opacity", &tex.alpha, 0.0f, 1.0f, "%.2f")) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
 
 		// UV Override Section
 		ImGui::Separator();
@@ -8106,14 +7716,17 @@ namespace Editor {
 			ImGui::SetTooltip("When enabled, the renderer uses these UV coordinates directly\ninstead of the AnimationSystem (used for slider fills, static crops, etc.)");
 		}
 
-		bool activeNow = false;
-
 		if (ImGui::Checkbox("Override UV", &tex.overrideUV)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
 
 		if (tex.overrideUV) {
 			ImGui::BeginDisabled(!tex.overrideUV);
 			if (ImGui::InputFloat2("Min UV (U0, V0)", &tex.minUV.x, "%.3f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			if (ImGui::InputFloat2("Max UV (U1, V1)", &tex.maxUV.x, "%.3f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
 			if (ImGui::Button("Reset UV")) {
 				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
 				tex.minUV = { 0.0f, 0.0f };
@@ -8132,6 +7745,72 @@ namespace Editor {
 		if (!activeNow && editSession.wasItemActive) {
 			std::stringstream ss;
 			ss << "Modified Texture Properties in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawAnimationInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(entity);
+		ComponentType compType = ComponentType::AnimationComponentType;
+
+		bool activeNow = false;
+
+		// Show the profile name for AnimationComponent
+		if (ImGui::InputText("Animation Profile", &animComp.profileName)) {
+			// Trigger a refresh/reload if necessary in the future
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputInt("Frame Count", &animComp.frameCount)) {
+			if (animComp.frameCount < 1) animComp.frameCount = 1;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputFloat("Frame Duration", &animComp.frameDuration)) {
+			if (animComp.frameDuration < 0.001f) animComp.frameDuration = 0.001f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::Checkbox("Is Playing", &animComp.isPlaying)) {
+			// If we unpause, we might want to reset elapsed time, but for now just toggle
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::Checkbox("Is Looping", &animComp.isLooping)) activeNow = true;
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputInt("Start Frame", &animComp.startFrame)) {
+			if (animComp.startFrame < 0) animComp.startFrame = 0;
+			if (animComp.startFrame >= animComp.frameCount) animComp.startFrame = animComp.frameCount - 1;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		ImGui::Separator();
+		ImGui::Text("Start Delay");
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delays the animation before it begins playing");
+
+		if (ImGui::InputFloat("Delay (seconds)", &animComp.startDelay)) {
+			if (animComp.startDelay < 0.0f) animComp.startDelay = 0.0f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+
+		if (ImGui::InputFloat("Delay Range (seconds)", &animComp.startDelayRange)) {
+			if (animComp.startDelayRange < 0.0f) animComp.startDelayRange = 0.0f;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds a random extra delay in [0, range] on top of the base delay");
+
+		// History Tracking
+		if (activeNow && !editSession.wasItemActive) {
+			editSession.Begin(entity, compType);
+		}
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Animation Properties in " << entityMgr.GetProperties(entity).name << std::endl;
 			editSession.End(entity, compType, ss.str(), historyManager_);
 		}
 		editSession.wasItemActive = activeNow;
@@ -8369,5 +8048,7 @@ namespace Editor {
 			if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Modified Button Data", beforeJSON, afterJSON, compType);
 		}
 	}
+
+#pragma endregion
 
 }

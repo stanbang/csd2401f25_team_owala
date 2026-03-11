@@ -51,7 +51,11 @@
         "platform_land.wav"
     ],
     "Stage_Rotate": [
-        "stage_rotation.wav"
+        "Room-Rotation SFX_1.wav",
+        "Room-Rotation SFX_2.wav",
+        "Room-Rotation SFX_3.wav",
+        "Room-Rotation SFX_4.wav",
+        "Room-Rotation SFX_5.wav"
     ],
     "Curtains_Open": [
         "curtains_open.wav"

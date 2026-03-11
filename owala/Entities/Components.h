@@ -60,13 +60,13 @@ namespace Framework{
 		RANDOM_BURST	// Emit in random time intervals
 	};
 
-	// To separate different audio types
-	enum class AudioType {
-		SFX,
-		MUSIC
+	// Config loaded from game data that maps an animation event name to a sound to play
+	struct AnimationEventAudioConfig {
+		std::string soundKey;
+		AudioType   audioType = AudioType::SFX;
+		float       volume    = 1.0f;
+		bool        is3D      = false;
 	};
-
-
 
 	// Different slider sound types
 	enum class SliderSoundType {
@@ -248,7 +248,6 @@ namespace Framework{
 	/* TAG SECTION */
 	/* Used for ID-ing an entity */
 	struct PlayerTag {};
-	struct FakePlayerTag {};
 	struct PlatformTag {};
 	struct BackgroundTag {};
 	struct EnemyTag {};
@@ -256,6 +255,10 @@ namespace Framework{
 
 	/*	SpawnPoint tag for player spawn point*/
 	struct SpawnPointTag {};
+
+	// Tag for entities that should be constrained to the viewport.
+	// Add to any entity (player, trap platforms, etc.) that EnforceViewportBounds should clamp.
+	struct ViewportConstrainedTag {};
 
 	struct RotationFlag {
 		

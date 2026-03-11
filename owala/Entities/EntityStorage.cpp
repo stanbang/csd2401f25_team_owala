@@ -19,7 +19,12 @@
 
 namespace Framework {
 
-
+	/**
+	 * Copy Constructor - Performs a deep copy of all components, including properly 
+	 * handling the NativeScriptsComponent to ensure that script instances are not shared between EntityStorage copies.
+	 * 
+	 * \param other
+	 */
 	EntityStorage::EntityStorage(const EntityStorage& other) {
 		entitySignatures = other.entitySignatures;
 
@@ -46,14 +51,23 @@ namespace Framework {
 		sceneOwned = other.sceneOwned;
 		playerHealth = other.playerHealth;
 
+		// Copy NativeScriptsComponent with care to avoid sharing script instances
 		for (const auto& [entity, scripts] : other.nativeScripts) {
 			nativeScripts[entity] = scripts;
 		}
 	}
 
+	/**
+	 * Copy Assignment Operator - Performs a deep copy of all components, including properly
+	 * handling the NativeScriptsComponent to ensure that script instances are not shared between EntityStorage copies.
+	 * 
+	 * \param other
+	 * \return 
+	 */
 	EntityStorage& EntityStorage::operator=(const EntityStorage& other) {
 		if (this == &other) return *this;
 
+		// Reset all existing NativeScript instances before copying new data
 		for (auto& [entity, scripts] : nativeScripts) {
 			for (NativeScriptsComponent::NativeScript& script : scripts.scripts) {
 				script.Reset();
@@ -86,6 +100,8 @@ namespace Framework {
 		playerHealth = other.playerHealth;
 
 		nativeScripts.clear();
+
+		// Copy NativeScriptsComponent with care to avoid sharing script instances
 		for (const auto& [entity, scripts] : other.nativeScripts) {
 			nativeScripts[entity] = scripts;
 		}
@@ -100,6 +116,15 @@ namespace Framework {
 		}
 	}
 
+	/**
+	 * Swaps the contents of this EntityStorage with another. 
+	 * This is a noexcept operation that efficiently exchanges all component data and 
+	 * metadata between the two storages without copying, including properly handling the 
+	 * NativeScriptsComponent to ensure that script instances are not shared after the swap.
+	 * 
+	 * \param other
+	 * \return 
+	 */
 	void EntityStorage::SwapWith(EntityStorage& other) noexcept {
 		// Metadata
 		std::swap(entitySignatures, other.entitySignatures);

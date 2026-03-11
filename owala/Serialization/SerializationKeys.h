@@ -2,9 +2,9 @@
 * \file   SerializationKeys.h
 *
 * \primary_author
-*       Jason Lou
+*       Jason Lou (90%)
 * \secondary_author
-*
+*		Ng Jing Wen (10%)
 *
 * \brief    This file is a centralized list of static strings that serves
 *			as JSON keys.
@@ -114,6 +114,7 @@ namespace Framework::Serialization {
 	static constexpr const char* TEXTURE_KEY = "texture_key";
 	static constexpr const char* HALF_SIZE = "half_size";
 	static constexpr const char* TEXTURE_FLIP_X = "flip_x";
+	static constexpr const char* TEXTURE_ALPHA = "alpha";
 	static constexpr const char* TEXTURE_OVERRIDE_UV = "override_uv";
 	static constexpr const char* TEXTURE_MIN_UV = "min_uv";
 	static constexpr const char* TEXTURE_MAX_UV = "max_uv";

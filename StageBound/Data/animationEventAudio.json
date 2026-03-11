@@ -1,0 +1,14 @@
+{
+    "Footstep": {
+        "soundKey": "Player_Footstep",
+        "audioType": "SFX",
+        "volume": 0.5,
+        "is3D": false
+    },
+    "Bird_Fly": {
+        "soundKey": "Bird_Fly",
+        "audioType": "SFX",
+        "volume": 0.3,
+        "is3D": true
+    }
+}

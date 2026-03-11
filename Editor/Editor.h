@@ -36,6 +36,7 @@
 // Editor Modules
 #include "History.h"
 #include "Gizmo.h"
+#include "ProjectScaffold.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -267,22 +268,12 @@ namespace Editor {
 		std::string projectFeedbackMsg_ = "";  // Feedback message shown inside the modal after an action
 		bool projectActionSucceeded_ = false; // Whether the last project action succeeded (colours the message)
 
-		// Creates the standard game-project folder scaffold under rootDir/projectName/.
-		// Returns true on success.
-		bool ScaffoldNewProject(const std::string& rootDir, const std::string& projectName);
-
-		// Validates that the given path looks like a valid (pre-existing) game project folder.
-		// Returns true when the path exists and contains at least a "Source" or "Assets" subfolder.
-		bool ValidateImportPath(const std::string& path);
-
 		// Renders the "Create New Project" modal pop-up.
 		void ShowNewProjectDialog();
 
 		// Renders the "Import Existing Project" modal pop-up.
 		void ShowImportProjectDialog();
 		// -------------------------------------------------------
-
-		// Camera state functions
 		void ResetEditorCamera();
 		void SaveEditorCameraState();
 		void RestoreEditorCameraState();
@@ -336,7 +327,6 @@ namespace Editor {
 		void ShowToolbar();
 		void ShowPreferencesWindow();
 		void ShowProjectSettingsWindow();
-		void WriteActiveGameConfig(const std::string& gameDir);
 		void ShowDebugVisualizationPanel();
 		void ShowPrefabEditor();
 		void ShowTilePalette();
@@ -346,6 +336,7 @@ namespace Editor {
 		void DrawTransformInspector(Entity entity);
 		void DrawRigidBodyInspector(Entity entity);
 		void DrawTextureInspector(Entity entity);
+		void DrawAnimationInspector(Entity entity);
 		void DrawAudioInspector(Entity entity);
 		void DrawButtonInspector(Entity entity);
 
