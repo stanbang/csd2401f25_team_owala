@@ -301,8 +301,10 @@ namespace Framework {
                 handleTransform.position.x = clampedMouseX;
 
                 // Calculate normalized value (0.0 to 1.0)
-                float normalizedValue = (clampedMouseX - minX) / slider.width;
-                slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
+                if (slider.width > 0.0f) {
+                    float normalizedValue = (clampedMouseX - minX) / slider.width;
+                    slider.currentValue = slider.minValue + normalizedValue * (slider.maxValue - slider.minValue);
+                }
 
                 // Update the fill entity's UV to visually represent the current value.
                 // The fill entity's Transform.position and HalfSize are set by the scene
@@ -455,9 +457,11 @@ namespace Framework {
                     if (!animInfo.sheets.empty()) {
                         // Use first sheet
                         const SpriteSheetSegment& firstSheet = animInfo.sheets[0];
-                        float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
-                        animComp.minUV = { 0.0f, 0.0f };
-                        animComp.maxUV = { frameUVWidth, 1.0f };
+                        if (firstSheet.frameCount > 0) {
+                            float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
+                            animComp.minUV = { 0.0f, 0.0f };
+                            animComp.maxUV = { frameUVWidth, 1.0f };
+                        }
                     }
                     else {
                         // Single sheet
@@ -487,9 +491,11 @@ namespace Framework {
                         if (animInfo.frameCount > 0) {
                             if (!animInfo.sheets.empty()) {
                                 const auto& firstSheet = animInfo.sheets[0];
-                                float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
-                                animComp.minUV = { 0.0f, 0.0f };
-                                animComp.maxUV = { frameUVWidth, 1.0f };
+                                if (firstSheet.frameCount > 0) {
+                                    float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
+                                    animComp.minUV = { 0.0f, 0.0f };
+                                    animComp.maxUV = { frameUVWidth, 1.0f };
+                                }
                             }
                             else {
                                 float frameUVWidth = 1.0f / (float)animInfo.frameCount;

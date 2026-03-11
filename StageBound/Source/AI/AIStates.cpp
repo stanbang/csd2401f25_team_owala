@@ -156,7 +156,7 @@ namespace Framework {
         s_lastChaseVel[entity] = vel;
 
         if (mgr.HasComponent(entity, TransformType)) {
-            Transform transform = mgr.GetComponent<Transform>(entity);
+            Transform& transform = mgr.GetComponent<Transform>(entity);
             transform.rotation.textureAngle = 0.0f;
         }
     }
@@ -261,7 +261,7 @@ namespace Framework {
 
         
         if (mgr.HasComponent(entity, TransformType)) {
-            Transform transform = mgr.GetComponent<Transform>(entity);
+            Transform& transform = mgr.GetComponent<Transform>(entity);
             transform.position.x += collisionNormalX_ * nudgeAmount_;
             // Reset texture rotation, Bounce uses the fly animation flat
             transform.rotation.textureAngle = 0.0f;
@@ -388,7 +388,7 @@ namespace Framework {
         }
 
         if (mgr.HasComponent(entity, TransformType)) {
-            Transform transform = mgr.GetComponent<Transform>(entity);
+            Transform& transform = mgr.GetComponent<Transform>(entity);
             transform.rotation.textureAngle = 0.0f;
         }
 

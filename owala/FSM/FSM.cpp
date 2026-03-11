@@ -43,8 +43,9 @@ namespace Framework {
     void FSM::Initialize(Entity entity, EntityStorage& ecs) {
         if (initialState_.empty()) return;
         currentState_ = initialState_;
-        if (states_[currentState_]) {
-            states_[currentState_]->OnEnter(entity, ecs);
+        auto it = states_.find(currentState_);
+        if (it != states_.end() && it->second) {
+            it->second->OnEnter(entity, ecs);
         }
     }
 
@@ -62,8 +63,9 @@ namespace Framework {
         }
 
         // Update Current State
-        if (states_[currentState_]) {
-            states_[currentState_]->OnUpdate(entity, ecs, dt);
+        auto it = states_.find(currentState_);
+        if (it != states_.end() && it->second) {
+            it->second->OnUpdate(entity, ecs, dt);
         }
     }
 
@@ -71,12 +73,14 @@ namespace Framework {
         if (newState == currentState_) return;
         if (states_.find(newState) == states_.end()) return;
 
-        if (states_[currentState_]) states_[currentState_]->OnExit(entity, ecs);
+        auto curIt = states_.find(currentState_);
+        if (curIt != states_.end() && curIt->second) curIt->second->OnExit(entity, ecs);
 
         previousState_ = currentState_;
         currentState_ = newState;
 
-        if (states_[currentState_]) states_[currentState_]->OnEnter(entity, ecs);
+        auto newIt = states_.find(currentState_);
+        if (newIt != states_.end() && newIt->second) newIt->second->OnEnter(entity, ecs);
     }
 
     State* FSM::GetState(const std::string& name) {

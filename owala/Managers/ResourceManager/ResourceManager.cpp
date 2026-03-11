@@ -61,7 +61,9 @@ void ResourceManager::Initialize() {
 
 void ResourceManager::Update() {
 	// Systems used by ResourceManager
-	Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+	Graphics* gfxPtr = GameManager::GetInstance().GetSystems().gfx_;
+	if (!gfxPtr) return;
+	Graphics& gfx_ = *gfxPtr;
 
 	// Upload a limited number of textures per frame to maintain high FPS
 	int uploadsThisFrame = 0;
@@ -499,7 +501,12 @@ void ResourceManager::LoadTextureAsync(const std::string& filepath) {
 
 // Background worker thread loop for loading resources asynchronously
 void ResourceManager::WorkerThreadLoop() {
-	Graphics& gfx_ = *GameManager::GetInstance().GetSystems().gfx_;
+	Graphics* gfxPtr = GameManager::GetInstance().GetSystems().gfx_;
+	if (!gfxPtr) {
+		Logger::Get().Error(DebugType::ResourceManager) << "WorkerThreadLoop: Graphics system is null, aborting worker thread.\n";
+		return;
+	}
+	Graphics& gfx_ = *gfxPtr;
 
 	while (m_isLoading) {
 		std::string filePath;
