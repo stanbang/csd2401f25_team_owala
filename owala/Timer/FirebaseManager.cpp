@@ -1,3 +1,32 @@
+/*********************************************************************//**
+ * \file   FirebaseManager.cpp
+ *
+ * \primary_author
+ *      Jordain Ng Ying Zhe (100%)
+ *
+ * \brief
+ *      Implementation of the FirebaseManager class for cloud-based
+ *      leaderboard functionality using Firebase Realtime Database.
+ *
+ * \details
+ *      This file contains the implementation of all FirebaseManager methods,
+ *      along with internal helper functions for HTTP communication. Key
+ *      features implemented include:
+ *        - Asynchronous HTTP requests using WinHTTP
+ *        - JSON serialization/deserialization with RapidJSON
+ *        - Thread-safe callback marshaling
+ *        - Error handling and logging
+ *
+ *      The WinHttpRequest helper function handles all low-level HTTP
+ *      communication, supporting both GET and PUT methods with proper
+ *      SSL/TLS handling for HTTPS endpoints.
+ *
+ * \copyright
+ *      Copyright (C) 2025 DigiPen Institute of Technology.
+ *      Reproduction or disclosure of this file or its contents without
+ *      the prior written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "pch.h"
 #include "FirebaseManager.h"
 
@@ -6,7 +35,7 @@
 #include <sstream>
 #include "Logger.h"
 
-// RapidJSON
+ // RapidJSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
@@ -26,6 +55,30 @@ namespace Framework {
     // -----------------------------------------------------------------------
     // WinHTTP helper: sends an HTTP request and returns the response body.
     // -----------------------------------------------------------------------
+    /**
+     * @brief Internal helper function to send HTTP requests using WinHTTP.
+     *
+     * This function handles the complete lifecycle of an HTTP request including
+     * URL parsing, connection establishment, request sending, and response
+     * reading. It supports both HTTP and HTTPS endpoints with proper SSL
+     * handling for secure connections.
+     *
+     * @param url    The complete URL to send the request to
+     * @param method HTTP method as wide string (L"GET", L"PUT", etc.)
+     * @param body   Optional request body for PUT/POST requests (JSON string)
+     * @return std::string The response body from the server, or empty on failure
+     *
+     * @note This function is Windows-specific and uses the WinHTTP API.
+     * @warning Returns empty string on any error - caller must check for empty response.
+     *
+     * Implementation details:
+     * 1. Parses URL into components (scheme, host, port, path)
+     * 2. Creates WinHTTP session and connection handles
+     * 3. Opens request with appropriate SSL flags for HTTPS
+     * 4. Adds Content-Type header for requests with body
+     * 5. Sends request and reads response in chunks
+     * 6. Cleans up all handles before returning
+     */
     static std::string WinHttpRequest(
         const std::string& url,
         const std::wstring& method,
@@ -55,7 +108,10 @@ namespace Framework {
         if (!hSession) return result;
 
         HINTERNET hConnect = WinHttpConnect(hSession, host, uc.nPort, 0);
-        if (!hConnect) { WinHttpCloseHandle(hSession); return result; }
+        if (!hConnect) {
+            WinHttpCloseHandle(hSession);
+            return result;
+        }
 
         DWORD     flags = isHttps ? WINHTTP_FLAG_SECURE : 0;
         HINTERNET hRequest = WinHttpOpenRequest(
@@ -99,7 +155,28 @@ namespace Framework {
     }
 
     // -----------------------------------------------------------------------
+    // Public Interface Implementation
+    // -----------------------------------------------------------------------
 
+    /**
+     * @brief Submits a new run to the Firebase leaderboard asynchronously.
+     *
+     * This method constructs a JSON payload with the run data and sends it
+     * to Firebase via a PUT request. The operation runs on a detached thread
+     * to avoid blocking the main game loop.
+     *
+     * Database path: /leaderboard/{levelName}/{playerName}/{timestamp}.json
+     *
+     * @param levelName   Name of the level where the run occurred
+     * @param playerName  Name of the player who achieved the run
+     * @param timeSeconds Completion time in seconds
+     *
+     * @note The method performs validation checks:
+     *       - Verifies database URL is set (logs error if not)
+     *       - Skips submission if player name is empty (logs warning)
+     * @warning No callback is provided for submission completion - failures
+     *          are only logged, not reported back to the game.
+     */
     void FirebaseManager::SubmitRun(const std::string& levelName,
         const std::string& playerName,
         float              timeSeconds)
@@ -149,6 +226,32 @@ namespace Framework {
             }).detach();
     }
 
+    /**
+     * @brief Fetches the leaderboard for a specific level asynchronously.
+     *
+     * This method sends a GET request to Firebase for all entries under the
+     * specified level. The response is parsed from JSON, sorted by time
+     * (ascending), and passed to the provided callback on the main thread
+     * via the Update() method.
+     *
+     * Database path: /leaderboard/{levelName}.json
+     *
+     * @param levelName   Name of the level to fetch leaderboard for
+     * @param onComplete  Callback function that receives the sorted entries
+     *
+     * @note The callback is guaranteed to execute on the main thread when
+     *       Update() is called. If the network request fails or returns
+     *       empty data, the callback is not invoked.
+     *
+     * JSON structure expected from Firebase:
+     * {
+     *   "player1": {
+     *     "timestamp1": { "name": "player1", "level": "Level1", "time": 45.67, "timestamp": 1234567890 },
+     *     "timestamp2": { ... }
+     *   },
+     *   "player2": { ... }
+     * }
+     */
     void FirebaseManager::FetchLeaderboard(const std::string& levelName,
         std::function<void(std::vector<LeaderboardEntry>)> onComplete)
     {
@@ -163,10 +266,14 @@ namespace Framework {
             doc.Parse(response.c_str());
 
             if (doc.IsObject()) {
-                for (auto& machine : doc.GetObject()) {
-                    if (!machine.value.IsObject()) continue;
-                    for (auto& run : machine.value.GetObject()) {
+                // Iterate through players (first level keys)
+                for (auto& player : doc.GetObject()) {
+                    if (!player.value.IsObject()) continue;
+
+                    // Iterate through runs for this player (timestamp keys)
+                    for (auto& run : player.value.GetObject()) {
                         if (!run.value.IsObject()) continue;
+
                         LeaderboardEntry entry;
                         if (run.value.HasMember("name") && run.value["name"].IsString())
                             entry.name = run.value["name"].GetString();
@@ -181,11 +288,13 @@ namespace Framework {
                 }
             }
 
+            // Sort entries by time (ascending - fastest first)
             std::sort(entries.begin(), entries.end(),
                 [](const LeaderboardEntry& a, const LeaderboardEntry& b) {
                     return a.time < b.time;
                 });
 
+            // Queue callback for main thread execution
             std::lock_guard<std::mutex> lock(m_mutex);
             m_pendingCallbacks.push_back([onComplete, entries]() {
                 onComplete(entries);
@@ -193,13 +302,32 @@ namespace Framework {
             }).detach();
     }
 
+    /**
+     * @brief Processes all pending callbacks on the main thread.
+     *
+     * This method must be called every frame from the game's main loop.
+     * It safely transfers callbacks from the background thread queue to
+     * the main thread and executes them in order.
+     *
+     * The method uses a double-buffering technique via swap() to minimize
+     * lock duration - the mutex is only held while swapping the queues,
+     * not during callback execution.
+     *
+     * @note This method is NOT thread-safe and should ONLY be called from
+     *       the main thread.
+     */
     void FirebaseManager::Update() {
         std::vector<std::function<void()>> toFire;
         {
+            // Minimize lock duration - just swap queues
             std::lock_guard<std::mutex> lock(m_mutex);
             toFire.swap(m_pendingCallbacks);
         }
-        for (auto& cb : toFire) cb();
+
+        // Execute all callbacks on main thread
+        for (auto& cb : toFire) {
+            cb();
+        }
     }
 
 } // namespace Framework

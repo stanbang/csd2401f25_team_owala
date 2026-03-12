@@ -2,9 +2,9 @@
  * \file   LoadingScreenController.cpp
  *
  * \primary_author
- *      Ng Jing Wen
+ *      Ng Jing Wen (80%)
  * \secondary_author
- *
+ *      Jordain Ng Ying Zhe (20%)
  *
  * \brief	Implements the LoadingScreenController script to manage loading
  *          and transitioning between scenes with a loading screen.

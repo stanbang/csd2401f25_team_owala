@@ -40,6 +40,7 @@ namespace Framework {
 		Vector2D    position;
 		float       minDist   = 50.0f;
 		float       maxDist   = 700.0f;
+		Entity      entity = 0;
 	};
 
 	enum class ButtonAction{

@@ -26,14 +26,15 @@
 #include "EntityManager.h"
 #include <vector>
 #include <string>
+#include <unordered_map>
 
- // Use the Framework namespace for types, but class is in global namespace
 using namespace Framework;
 
 class RopeScript : public ScriptableEntity {
 public:
     static constexpr float MIN_ROPE_LENGTH = 20.0f;
     static constexpr float ROPE_OVERHEAD = 20.0f;
+    static constexpr float HORIZONTAL_FALLBACK_LENGTH = 160.0f;
 
 protected:
     void OnCreate() override;
@@ -41,6 +42,21 @@ protected:
     void OnDestroy() override;
 
 private:
+    struct RopeRuntimeData {
+        Entity attachedPlatform = 0;
+        std::string textureKey = "SB_PlatformRope.png";
+        float originalLength = 0.0f;
+        float currentLength = 0.0f;
+        Vector2D ceilingAttachmentPoint = { 0.0f, 0.0f };
+        Vector2D platformAttachmentPoint = { 0.0f, 0.0f };
+        bool isActive = true;
+        float ropeWidth = 200.0f;
+        float segmentHeight = 20.0f;
+        int ropeIndex = 0;
+        bool hasFoundCeiling = true;
+        float lastWorldRotationDeg = 0.0f;
+    };
+
     // Helper methods
     EntityManager* GetEntityManager() const;
     bool HasTwoRopes(EntityManager& entityMgr) const;
@@ -67,6 +83,7 @@ private:
 
     Entity platformEntity_ = 0;
     std::vector<Entity> ropeEntities_;
+    mutable std::unordered_map<Entity, RopeRuntimeData> ropeRuntimeData_;
     bool hasInitialized_ = false;
     std::string platformType_;
     float originalHalfWidth_ = 40.0f;

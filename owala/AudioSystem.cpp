@@ -24,6 +24,7 @@
 #include "EntityManager.h"
 #include "GameManager.h"
 #include "Logger.h"
+#include "TransformationSystem.h"
 
 namespace Framework {
 
@@ -113,9 +114,24 @@ namespace Framework {
             this->PlayRandomSound(e.soundKey, e.audioType, e.volume);
         });
         MessageBus::Instance().Subscribe<PlaySound3DEvent>([this](const PlaySound3DEvent& e) {
-            this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist);
+            FMOD::Channel* ch = this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist);
+            // Store in the dedicated 3D map so AudioComponent channels cannot overwrite it.
+            if (ch && e.entity != 0) {
+                entity3DChannels_[e.entity] = ch;
+                // DEBUG: confirm the channel was registered and the spawn position
+                std::fprintf(stderr,
+                    "[Audio3D][REGISTERED] key='%s' entity=%llu ch=%p spawnPos=(%.1f, %.1f)\n",
+                    e.soundKey.c_str(), (unsigned long long)e.entity, (void*)ch,
+                    e.position.x, e.position.y);
+            }
+            else {
+                // DEBUG: find out why registration was skipped
+                std::fprintf(stderr,
+                    "[Audio3D][SKIP] key='%s' entity=%llu ch=%p  (ch==null? %s | entity==0? %s)\n",
+                    e.soundKey.c_str(), (unsigned long long)e.entity, (void*)ch,
+                    ch ? "no" : "YES", e.entity == 0 ? "YES" : "no");
+            }
         });
-
 		// Subscribe to Animation Events (for frame-specific SFX)
 		FileIOSystem::LoadAnimationEventAudio(animationEventAudioMap_);
         MessageBus::Instance().Subscribe<AnimationEvent>([this](const AnimationEvent& e) {
@@ -127,7 +143,10 @@ namespace Framework {
                 EntityManager entityMgr(GameManager::GetInstance().GetECS());
                 if (!entityMgr.HasComponent(e.entity, TransformType)) return;
                 Vector2D position = entityMgr.GetComponent<Transform>(e.entity).position;
-                this->PlayRandomSound3D(cfg.soundKey, cfg.audioType, cfg.volume, position, minHearingRange, maxHearingRange);
+                FMOD::Channel* ch = this->PlayRandomSound3D(cfg.soundKey, cfg.audioType, cfg.volume, position, minHearingRange, maxHearingRange);
+                if (ch && e.entity != 0) {
+                    entity3DChannels_[e.entity] = ch;
+                }
             }
             else {
                 this->PlayRandomSound(cfg.soundKey, cfg.audioType, cfg.volume);
@@ -144,25 +163,27 @@ namespace Framework {
         SetGroupReverbRoom(AudioType::SFX, 0.8f);
      }
 
-    void AudioSystem::UpdateListenerFromPlayer_() {
-        if (!system_) return;
+     void AudioSystem::UpdateListenerFromPlayer_() {
+         if (!system_) return;
 
-        EntityManager entityMgr(GameManager::GetInstance().GetECS());
-        std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
-        if (playerEntities.empty()) return;
+         EntityManager entityMgr(GameManager::GetInstance().GetECS());
+         std::vector<Entity> playerEntities = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
+         if (playerEntities.empty()) return;
 
-        Entity playerID = playerEntities[0];
-        Vector2D p2 = entityMgr.GetComponent<Transform>(playerID).position;
+         Entity playerID = playerEntities[0];
+         Vector2D p2 = entityMgr.GetComponent<Transform>(playerID).position;
 
-        // Map your 2D (x,y) to FMOD 3D (x,z). Keep y=0.
-        FMOD_VECTOR pos{ p2.x, 0.0f, p2.y };
-        FMOD_VECTOR vel{ 0.0f, 0.0f, 0.0f };
+         // Map your 2D (x,y) to FMOD 3D (x,z). Keep y=0.
+         FMOD_VECTOR pos{ p2.x, 0.0f, p2.y };
+         FMOD_VECTOR vel{ 0.0f, 0.0f, 0.0f };
 
-        FMOD_VECTOR forward{ 0.0f, 0.0f, 1.0f };
-        FMOD_VECTOR up{ 0.0f, 1.0f, 0.0f };
+         // The listener always faces into the screen in a 2D-on-XZ-plane setup.
+         // Spatial panning is determined purely by relative XZ position, not orientation.
+         FMOD_VECTOR forward{ 0.0f, 0.0f, 1.0f };
+         FMOD_VECTOR up{ 0.0f, 1.0f, 0.0f };
 
-        system_->set3DListenerAttributes(0, &pos, &vel, &forward, &up);
-    }
+         system_->set3DListenerAttributes(0, &pos, &vel, &forward, &up);
+     }
 
     void AudioSystem::Update() {
         GameManager& gm = GameManager::GetInstance();
@@ -201,6 +222,9 @@ namespace Framework {
         // --- Update Listener for Spatial Audio ---
         UpdateListenerFromPlayer_();
 
+        // --- Sync 3D channel positions with current entity transforms ---
+        Update3DChannelPositions_();
+
         // --- Update FMOD System ---
         if (system_) {
             FMOD_RESULT r = system_->update();
@@ -238,42 +262,60 @@ namespace Framework {
         // --- Start New Sounds ---
         for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AudioComponentType)) {
 
-            // Check if Entity is active in the scene. Loads if active.
             if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
-            // Check if entity is tied to a button
-            if (entityMgr.HasComponent(entity, ButtonType)) {
-                continue; //Skip button entities, handle separately.
-            }
-            // Check if entity has AudioComponent
+            if (entityMgr.HasComponent(entity, ButtonType)) continue;
             if (!entityMgr.HasComponent(entity, AudioComponentType)) continue;
 
             AudioComponent& comp = entityMgr.GetComponent<AudioComponent>(entity);
             if (comp.soundKey.empty()) continue;
 
+            // Entities with a Transform and EnemyTagType play in 3D so their
+            // ambient sound tracks with their world position every frame.
+            const bool playAs3D = entityMgr.HasComponent(entity, EnemyTagType)
+                                && entityMgr.HasComponent(entity, TransformType);
+
             try {
                 FMOD::Sound& sound = resourceManager_.get<FMOD::Sound>(comp.soundKey);
 
-                // check if sound is already playing
                 bool isPlaying = false;
-                auto it = channels_.find(comp.soundKey);
-                if (it != channels_.end() && it->second) {
-                    it->second->isPlaying(&isPlaying);
-                }
 
-                // play if not playing
-                if (!isPlaying) {
-                    FMOD::Channel* newChannel = this->play(sound, comp.audioType, comp.volume, false);
+                if (playAs3D) {
+                    // For 3D enemy sounds, check per-entity channel � NOT the shared
+                    // channels_ map � so each enemy instance is tracked independently.
+                    auto it3D = entity3DChannels_.find(entity);
+                    if (it3D != entity3DChannels_.end() && it3D->second) {
+                        it3D->second->isPlaying(&isPlaying);
+                    }
 
-                    // Save to the map so the next frame knows it is playing
-                    if (newChannel) {
-                        channels_[comp.soundKey] = newChannel;
-                        entityChannels_[entity] = newChannel;
+                    if (!isPlaying) {
+                        Vector2D worldPos = entityMgr.GetComponent<Transform>(entity).position;
+                        FMOD::Channel* newChannel = this->play3D(
+                            sound, comp.audioType, comp.volume,
+                            worldPos, minHearingRange, maxHearingRange, false);
+
+                        if (newChannel) {
+                            entity3DChannels_[entity] = newChannel;
+                        }
                     }
                 }
+                else {
+                    // For non-enemy 2D sounds, use the shared sound-key channel map.
+                    auto it = channels_.find(comp.soundKey);
+                    if (it != channels_.end() && it->second) {
+                        it->second->isPlaying(&isPlaying);
+                    }
 
+                    if (!isPlaying) {
+                        FMOD::Channel* newChannel = this->play(sound, comp.audioType, comp.volume, false);
+                        if (newChannel) {
+                            channels_[comp.soundKey] = newChannel;
+                            entityChannels_[entity] = newChannel;
+                        }
+                    }
+                }
             }
             catch (const GameException& e) {
-                (void)e; //Suppress unused variable warning
+                (void)e;
                 std::fprintf(stderr, "[Audio] Sound '%s' not found in ResourceManager\n", comp.soundKey.c_str());
             }
         }
@@ -579,20 +621,21 @@ namespace Framework {
         }
     }
 
-    void AudioSystem::PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist) {
+    FMOD::Channel* AudioSystem::PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist) {
         std::string soundPath = getRandomSound(eventKey);
 
         if (!soundPath.empty()) {
-            // Load and Play
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
-                this->play3D(sound, audiotype, volume, position, minDist, maxDist, false);
+                FMOD::Channel* ch = this->play3D(sound, audiotype, volume, position, minDist, maxDist, false);
                 Logger::Get().Info(DebugType::AudioSystem) << "Playing sound: " << soundPath << std::endl;
+                return ch;
             }
             catch (...) {
                 Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
             }
         }
+        return nullptr;
     }
 
     // ---------------- Reverb Controls ----------------
@@ -639,6 +682,65 @@ namespace Framework {
         if (!system_) return;
         distanceFactor_ = distanceFactor;
         system_->set3DSettings(dopplerScale, distanceFactor, rolloffScale);
+    }
+
+	// Update positions of all 3D channels based on their associated entity's current transform.
+    void AudioSystem::Update3DChannelPositions_() {
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+        // DEBUG: report map size every 120 frames so the log does not flood
+        static int s_frameCounter = 0;
+        bool logThisFrame = (++s_frameCounter % 120 == 0);
+        if (logThisFrame)
+            std::fprintf(stderr, "[Audio3D][UPDATE] entity3DChannels_ size=%zu\n", entity3DChannels_.size());
+
+        for (auto it = entity3DChannels_.begin(); it != entity3DChannels_.end(); ) {
+            Entity entity = it->first;
+            FMOD::Channel* channel = it->second;
+
+            if (!channel) {
+                std::fprintf(stderr, "[Audio3D][UPDATE] entity=%llu ERASED (null channel)\n",
+                    (unsigned long long)entity);
+                it = entity3DChannels_.erase(it); continue;
+            }
+
+            bool isPlaying = false;
+            channel->isPlaying(&isPlaying);
+
+            if (!isPlaying) {
+                if (logThisFrame)
+                    std::fprintf(stderr, "[Audio3D][UPDATE] entity=%llu ERASED (stopped playing)\n",
+                        (unsigned long long)entity);
+                it = entity3DChannels_.erase(it); continue;
+            }
+
+            if (!entityMgr.HasComponent(entity, TransformType)) {
+                std::fprintf(stderr, "[Audio3D][UPDATE] entity=%llu SKIPPED (no TransformType)\n",
+                    (unsigned long long)entity);
+                ++it; continue;
+            }
+
+            // Push the current world position of the entity into FMOD every frame.
+            Vector2D pos2D = entityMgr.GetComponent<Transform>(entity).position;
+            FMOD_VECTOR fmodPos{ pos2D.x, 0.0f, pos2D.y };
+            FMOD_VECTOR fmodVel{ 0.0f, 0.0f, 0.0f };
+            FMOD_RESULT r = channel->set3DAttributes(&fmodPos, &fmodVel);
+
+            if (logThisFrame)
+                std::fprintf(stderr,
+                    "[Audio3D][UPDATE] entity=%llu pos=(%.1f, %.1f) set3DAttributes result=%d\n",
+                    (unsigned long long)entity, pos2D.x, pos2D.y, (int)r);
+            ++it;
+        }
+
+        // DEBUG: log listener position at the same cadence
+        if (logThisFrame && system_) {
+            FMOD_VECTOR lpos{}, lvel{}, lfwd{}, lup{};
+            system_->get3DListenerAttributes(0, &lpos, &lvel, &lfwd, &lup);
+            std::fprintf(stderr,
+                "[Audio3D][LISTENER] pos=(%.1f, %.1f, %.1f) fwd=(%.2f, %.2f, %.2f)\n",
+                lpos.x, lpos.y, lpos.z, lfwd.x, lfwd.y, lfwd.z);
+        }
     }
 
 } // namespace Framework
