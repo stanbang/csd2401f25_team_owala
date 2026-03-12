@@ -64,7 +64,7 @@ namespace Framework {
             // Only play effects if the platform actually fell and was airborne
             if (trap.hasFallen && trap.airTime > 0.1f) {
                 MessageBus::Instance().Publish(TrapPlatformLandEvent{ ev.position });
-                MessageBus::Instance().Publish(PlaySound3DEvent{ "Platform_Land", AudioType::SFX, 1.0f, ev.position });
+                MessageBus::Instance().Publish(PlaySound3DEvent{ "Platform_Land", AudioType::SFX, 0.4f, ev.position });
             }
 
             // Reset state for next fall
