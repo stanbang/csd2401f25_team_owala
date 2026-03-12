@@ -30,6 +30,35 @@
 // Internal Helpers - Will move this and the Editor's version to a global utils file later.
 namespace {
 	using namespace Framework;
+
+	bool IsRuntimeRopeEntity(EntityManager& entityMgr, Entity entity) {
+		if (!entityMgr.HasComponent(entity, ComponentType::TextureComponentType)) {
+			return false;
+		}
+		const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(entity);
+		return tex.textureKey == "SB_PlatformRope.png";
+	}
+
+	bool IsRuntimeRopeJson(const rapidjson::Value& en) {
+		if (!en.HasMember(Serialization::COMPONENTS) || !en[Serialization::COMPONENTS].IsObject()) {
+			return false;
+		}
+
+		const rapidjson::Value& componentLists = en[Serialization::COMPONENTS];
+		if (componentLists.HasMember("RopeComponent")) {
+			return true;
+		}
+
+		if (!componentLists.HasMember(Serialization::TEXTURE_COMPONENT) ||
+			!componentLists[Serialization::TEXTURE_COMPONENT].IsObject()) {
+			return false;
+		}
+
+		const rapidjson::Value& texObj = componentLists[Serialization::TEXTURE_COMPONENT];
+		return texObj.HasMember(Serialization::TEXTURE_KEY) &&
+			texObj[Serialization::TEXTURE_KEY].IsString() &&
+			std::string(texObj[Serialization::TEXTURE_KEY].GetString()) == "SB_PlatformRope.png";
+	}
 }
 
 namespace Framework {
@@ -65,6 +94,10 @@ namespace Framework {
 		EntityManager entityMgr(ecs);
 		for (Entity entity : entities)
 		{
+			// Rope entities are runtime-generated from RopeScript and should never be persisted.
+			if (IsRuntimeRopeEntity(entityMgr, entity)) {
+				continue;
+			}
 
 			rapidjson::Value entityObject(rapidjson::kObjectType);
 			SerializeEntityInternal(entity, ecs, entityObject, alloc);
@@ -838,6 +871,11 @@ namespace Framework {
 
 			if (entitiesData.IsArray()) {
 				for (const rapidjson::Value& en : entitiesData.GetArray()) {
+					// Ignore runtime rope entities from scene files to prevent duplicate ropes on reload.
+					if (IsRuntimeRopeJson(en)) {
+						continue;
+					}
+
 					bool wantsPersistent = false;
 
 					if (en.HasMember(Serialization::TAGS) && en[Serialization::TAGS].IsArray()) {
@@ -1009,7 +1047,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::HALF_SIZE), halfSize, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_FLIP_X), texComp.flipHorizontal, alloc);
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_ALPHA), texComp.alpha, alloc);
-		
+
 		// UV override fields - only serialize when override is active to keep old scenes clean
 		outData.AddMember(rapidjson::StringRef(Serialization::TEXTURE_OVERRIDE_UV), texComp.overrideUV, alloc);
 		if (texComp.overrideUV) {
@@ -1253,7 +1291,7 @@ namespace Framework {
 	void EntitySerializer::SerializeComponent(const Slider& slider, rapidjson::Value& componentData, rapidjson::Document::AllocatorType& alloc) {
 		// Entity IDs are runtime-only; persist stable UUID references instead.
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_HANDLE_UUID), slider.handleUUID, alloc);
-		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_FILL_UUID),   slider.fillUUID,   alloc);
+		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_FILL_UUID), slider.fillUUID, alloc);
 
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MIN_VALUE), slider.minValue, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_MAX_VALUE), slider.maxValue, alloc);
@@ -1262,7 +1300,7 @@ namespace Framework {
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_WIDTH_OFFSET_X), slider.widthOffsetX, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_IS_DRAGGING), slider.isDragging, alloc);
 		componentData.AddMember(rapidjson::StringRef(Serialization::SLIDER_TYPE), static_cast<int>(slider.sliderType), alloc);
-	
+
 	}
 	// PlayerHealth Component
 	void EntitySerializer::SerializeComponent(const PlayerHealthComponent& playerHealthComp, rapidjson::Value& componentData, rapidjson::Document::AllocatorType& alloc) {
@@ -2030,7 +2068,7 @@ namespace Framework {
 
 		// Runtime entity IDs must be re-resolved after load.
 		out.handleEntity = 0;
-		out.fillEntity   = 0;
+		out.fillEntity = 0;
 		out.needsResolution = true;
 
 		if (componentData.HasMember(Serialization::SLIDER_MIN_VALUE))
