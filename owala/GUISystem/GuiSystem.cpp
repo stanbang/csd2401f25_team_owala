@@ -203,8 +203,9 @@ namespace Framework {
 
             Entity handle = slider.handleEntity;
 
-			// Safety check just in case the handle entity does not have a Button component
+			// Safety check just in case the handle entity does not have a Button or Transform component
             if (!entityMgr.HasComponent(handle, ComponentType::ButtonType)) {continue;}
+            if (!entityMgr.HasComponent(handle, ComponentType::TransformType)) {continue;}
 			// Get handle components
             Button& handleButton = entityMgr.GetComponent<Button>(handle);
             Transform& handleTransform = entityMgr.GetComponent<Transform>(handle);

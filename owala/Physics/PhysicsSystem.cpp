@@ -666,7 +666,9 @@ namespace Framework {
         if (contact.State == CollisionState::Overlapping) {
             // Determine which is dynamic
             Entity dynE = e1IsDynamic ? e1 : e2;
-            //Entity staticE = e1IsDynamic ? e2 : e1;
+
+            // Defensive: skip resolution if dynamic entity somehow lost its Velocity component
+            if (!entityMgr.HasComponent(dynE, VelocityType)) return;
 
             Vector2D& dynPos = entityMgr.GetComponent<Transform>(dynE).position;
             Vector2D& dynVel = entityMgr.GetComponent<Velocity>(dynE).Vel;

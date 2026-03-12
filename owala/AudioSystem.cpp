@@ -570,6 +570,8 @@ namespace Framework {
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
                 this->play(sound, audiotype, volume, false);
+				// Log the audio that is being played for debugging purposes
+				Logger::Get().Info(DebugType::AudioSystem) << "Playing sound: " << soundPath << std::endl;
             }
             catch (...) {
                 Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
@@ -585,6 +587,7 @@ namespace Framework {
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
                 this->play3D(sound, audiotype, volume, position, minDist, maxDist, false);
+                Logger::Get().Info(DebugType::AudioSystem) << "Playing sound: " << soundPath << std::endl;
             }
             catch (...) {
                 Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;

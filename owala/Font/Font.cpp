@@ -101,6 +101,12 @@ bool Font::Load(FT_Library library, const std::string& fontPath, unsigned int si
             break;
         }
 
+        // Skip any glyph that is too wide to fit in the atlas at all
+        if (static_cast<int>(m_face->glyph->bitmap.width) > ATLAS_WIDTH) {
+            Logger::Error(DebugType::Font) << "Glyph for char " << static_cast<int>(c) << " exceeds atlas width — skipping." << std::endl;
+            continue;
+        }
+
         // Copy the glyph bitmap to the texture atlas
         glTexSubImage2D(
             GL_TEXTURE_2D,

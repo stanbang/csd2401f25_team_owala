@@ -55,8 +55,14 @@ void ResourceManager::Initialize() {
 	}
 
 	// Start worker thread for asynchronous loading if needed
-	m_isLoading = true;
-	m_workerThread = std::thread(&ResourceManager::WorkerThreadLoop, this);
+	try {
+		m_isLoading = true;
+		m_workerThread = std::thread(&ResourceManager::WorkerThreadLoop, this);
+	}
+	catch (const std::system_error& e) {
+		m_isLoading = false;
+		Logger::Get().Error(DebugType::ResourceManager) << "Failed to start worker thread: " << e.what();
+	}
 }
 
 void ResourceManager::Update() {
@@ -381,6 +387,13 @@ bool ResourceManager::loadPrefab(const std::string& name, const std::string& fil
 void ResourceManager::Shutdown() {
 	Logger::Get().Info(DebugType::ResourceManager) << "ResourceManager shutdown: freeing all resources." << std::endl;
 
+	// Cache gfx pointer NOW, before stopping the worker thread, while GameManager is still alive.
+	// After thread join, GameManager/Graphics may already be destroyed.
+	Graphics* gfx = nullptr;
+	if (GameManager::Exists()) {
+		gfx = GameManager::GetInstance().GetSystems().gfx_;
+	}
+
 	// Stop thread
 	m_isLoading = false;
 	if (m_workerThread.joinable()) {
@@ -390,14 +403,6 @@ void ResourceManager::Shutdown() {
 	// Clear upload queue and free any pending raw data
 	{
 		std::lock_guard<std::mutex> lock(m_queueMutex);
-
-		// We need access to the Graphics system to free the raw data.
-		// ResourceManager MUST shut down b4 Graphics/GameManager, 
-		// otherwise GetSystems() might be invalid or null.
-		Graphics* gfx = nullptr;
-		if (GameManager::Exists()) {
-			gfx = GameManager::GetInstance().GetSystems().gfx_;
-		}
 
 		while (!m_dataReadyToUpload.empty()) {
 			AsyncTextureData item = m_dataReadyToUpload.front();

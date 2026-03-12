@@ -166,14 +166,6 @@ namespace Framework {
                 else
                     halfSize = sprite.HalfSize;
 
-                // --- Frustum Culling ---
-                if (activeCamera != 0 && cameraSystem_ && !isUIElement && !isScreenSpaceParticle) {
-                    if (worldPos.x + halfSize.x < left || worldPos.x - halfSize.x > right ||
-                        worldPos.y + halfSize.y < bottom || worldPos.y - halfSize.y > top) {
-                        continue;
-                    }
-                }
-
                 Vector2D finalScale = { 1.0f, 1.0f };
                 // --- Apply Scale ---
                 const Vector2D& scale = transform.scale;
@@ -195,6 +187,20 @@ namespace Framework {
                 else {
                     const Transform::Rotation& rotation = transform.rotation;
                     rotationRad = rotation.textureAngle;
+                }
+
+                // --- Frustum Culling (rotation-aware AABB) ---
+                if (activeCamera != 0 && cameraSystem_ && !isUIElement && !isScreenSpaceParticle) {
+                    // Project the rotated quad onto the axes to get a tight AABB for culling.
+                    // For a rectangle rotated by θ: AABB half-extents = |hx·cosθ| + |hy·sinθ| , |hx·sinθ| + |hy·cosθ|
+                    float cosA = std::abs(std::cos(rotationRad));
+                    float sinA = std::abs(std::sin(rotationRad));
+                    float cullHalfX = halfSize.x * cosA + halfSize.y * sinA;
+                    float cullHalfY = halfSize.x * sinA + halfSize.y * cosA;
+                    if (worldPos.x + cullHalfX < left || worldPos.x - cullHalfX > right ||
+                        worldPos.y + cullHalfY < bottom || worldPos.y - cullHalfY > top) {
+                        continue;
+                    }
                 }
 
                 // --- Determine Render Order using EntityProperties ---
@@ -372,7 +378,15 @@ namespace Framework {
                 renderOrder = static_cast<int>(props.renderLayer);
             }
 
-            Font& font = rcm_.get<Font>(textComp.fontKey);
+            Font* fontPtr = nullptr;
+            try {
+                fontPtr = &rcm_.get<Font>(textComp.fontKey);
+            }
+            catch (const std::runtime_error&) {
+                Logger::Get().Error(DebugType::SpriteRenderSystem) << "Missing font '" << textComp.fontKey << "' — skipping text entity " << entity << std::endl;
+                continue;
+            }
+            Font& font = *fontPtr;
 
             const Transform& transform = entityMgr.GetComponent<Transform>(entity);
             const Vector2D& textPos = transform.position;

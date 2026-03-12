@@ -51,7 +51,9 @@ namespace Framework {
         CameraSystem* cameraSystem = gm.GetSystems().camera_;
         if (!cameraSystem) return;
 
-        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        PhysicsSystem* physicsPtr = gm.GetSystems().physics_;
+        if (!physicsPtr) return;
+        PhysicsSystem& physics_ = *physicsPtr;
         EntityManager camMgr(gm.GetECS());
         Entity camEnt = cameraSystem->GetActiveCamera();
         if (camEnt == 0 || !camMgr.HasComponent(camEnt, CameraType)) return;
@@ -157,8 +159,9 @@ namespace Framework {
         if (!isGlobalRotating) return;
 
         GameManager& gm = GameManager::GetInstance();
-        //InputSystem& input_ = *gm.GetSystems().input_;
-        PhysicsSystem& physics_ = *gm.GetSystems().physics_;
+        PhysicsSystem* physicsPtr = gm.GetSystems().physics_;
+        if (!physicsPtr) return;
+        PhysicsSystem& physics_ = *physicsPtr;
         EntityManager entityMgr(gm.GetECS());
 
         float rotationSpeed = 270.0f; // Degrees per second
