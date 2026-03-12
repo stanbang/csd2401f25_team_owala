@@ -2,6 +2,86 @@
     "scene_name": "Level 1",
     "entities": [
         {
+            "name": "StagePlatform_08_Right",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 15586602894980350207,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 550.0,
+                        "y": -50.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": -1.5707963705062866,
+                        "collider_angle": -1.5707963705062866,
+                        "texture_matrix": [
+                            -0.000002185569428547751,
+                            50.0,
+                            550.0,
+                            -50.0,
+                            -0.000002185569428547751,
+                            -50.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            550.0,
+                            0.0,
+                            1.0,
+                            -50.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_08.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StagePlatform_02_Left",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -679,6 +759,30 @@
                     ],
                     "font_size": 1.0,
                     "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "Level1_Ambience",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 1158192922209717855,
+            "components": {
+                "AudioComponent": {
+                    "sound_key": "28.Night_Forest_Field_Stars_Lo-Pass_Loop.wav",
+                    "should_loop": true,
+                    "is_streaming": false,
+                    "volume": 0.5,
+                    "audio_type": 0
                 },
                 "SceneOwned": {
                     "scene_id": 9,
@@ -3435,6 +3539,182 @@
             ]
         },
         {
+            "name": "Player",
+            "layer": 1,
+            "layer_collision_name": "Player",
+            "render_layer": 100,
+            "custom_render_order": 100,
+            "layer_render_name": "Player",
+            "active": true,
+            "uuid": 17728760807047715108,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 450.0,
+                        "y": 400.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            60.0,
+                            0.0,
+                            450.0,
+                            0.0,
+                            60.0,
+                            400.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            450.0,
+                            0.0,
+                            1.0,
+                            400.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "Velocity": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "RigidBody": {
+                    "mass": 1.0,
+                    "inv_mass": 1.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "AABBCollider": {
+                    "half_width": 21.0,
+                    "half_height": 55.0,
+                    "offset_x": 0.0,
+                    "offset_y": -4.0
+                },
+                "PlayerState": {
+                    "is_facing_right": false,
+                    "is_grounded": true
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Eli_Idle_Spritesheet_2.png",
+                    "half_size": {
+                        "x": 60.0,
+                        "y": 60.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "AnimationComponent": {
+                    "profile_name": "Player",
+                    "current_state": "IDLE",
+                    "current_frame": 11,
+                    "frame_duration": 0.10000000149011612,
+                    "start_frame": 0,
+                    "frame_count": 14,
+                    "elapsed_time": 0.0710095688700676,
+                    "is_playing": true,
+                    "is_looping": true,
+                    "start_delay": 0.0,
+                    "start_delay_range": 0.0
+                },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "PrintEntityName",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                },
+                "ParticleEmitterComponent": {
+                    "is_emitting": true,
+                    "is_particle_animated": true,
+                    "is_screen_space": true,
+                    "particle_texture_key": "SB_LightOrb.png",
+                    "particle_lifetime": 20.0,
+                    "emit_rate": 5.0,
+                    "emit_interval": 0.0,
+                    "particle_effect_type": 1,
+                    "effect_strength": 1.0,
+                    "emission_style": 5,
+                    "particle_speed": 0.10000000149011612,
+                    "particle_size": {
+                        "x": 0.014999999664723873,
+                        "y": 0.019999999552965164
+                    },
+                    "is_affected_by_gravity": false,
+                    "particle_start_velocity": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "particle_acceleration": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "emission_radius": 0.5,
+                    "circle_radius": 0.5,
+                    "line_start": {
+                        "x": -1.0,
+                        "y": 0.0
+                    },
+                    "line_end": {
+                        "x": 1.0,
+                        "y": 0.0
+                    },
+                    "viewport_min": {
+                        "x": -1.0,
+                        "y": -1.0
+                    },
+                    "viewport_max": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "emission_direction": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "emission_offset": {
+                        "x": -0.5,
+                        "y": 0.0
+                    },
+                    "emission_mode": 1,
+                    "trigger_event_name": "PlayerLandedEvent",
+                    "burst_count": 1,
+                    "burst_interval": 0.5,
+                    "min_burst_count": 1,
+                    "max_burst_count": 5,
+                    "min_burst_interval": 1.0,
+                    "max_burst_interval": 3.0
+                }
+            },
+            "tags": [
+                "PlayerTag"
+            ]
+        },
+        {
             "name": "StagePlatform_02",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -3751,6 +4031,32 @@
             ]
         },
         {
+            "name": "FogEmitterVFX",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 13376453684582625866,
+            "components": {
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "FogEmitter",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
             "name": "SpawnPoint",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -4045,6 +4351,75 @@
             "tags": [
                 "PlatformTag"
             ]
+        },
+        {
+            "name": "VerticalFallingTrap_02_465_RopeL",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 12170601981564644494,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -135.0,
+                        "y": 465.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            -135.0,
+                            0.0,
+                            50.0,
+                            465.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
         },
         {
             "name": "StagePlatform_08",
@@ -8075,86 +8450,6 @@
             ]
         },
         {
-            "name": "StagePlatform_08_Right",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 15586602894980350207,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 550.0,
-                        "y": -50.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": -1.5707963705062866,
-                        "collider_angle": -1.5707963705062866,
-                        "texture_matrix": [
-                            -0.000002185569428547751,
-                            50.0,
-                            550.0,
-                            -50.0,
-                            -0.000002185569428547751,
-                            -50.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            550.0,
-                            0.0,
-                            1.0,
-                            -50.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_08.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 9,
-                    "sceneName": "Level 1"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StagePlatform_02",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -9859,182 +10154,6 @@
             ]
         },
         {
-            "name": "Player",
-            "layer": 1,
-            "layer_collision_name": "Player",
-            "render_layer": 100,
-            "custom_render_order": 100,
-            "layer_render_name": "Player",
-            "active": true,
-            "uuid": 17728760807047715108,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 450.0,
-                        "y": 400.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            60.0,
-                            0.0,
-                            450.0,
-                            0.0,
-                            60.0,
-                            400.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            450.0,
-                            0.0,
-                            1.0,
-                            400.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "Velocity": {
-                    "x": 0.0,
-                    "y": 0.0
-                },
-                "RigidBody": {
-                    "mass": 1.0,
-                    "inv_mass": 1.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "AABBCollider": {
-                    "half_width": 21.0,
-                    "half_height": 55.0,
-                    "offset_x": 0.0,
-                    "offset_y": -4.0
-                },
-                "PlayerState": {
-                    "is_facing_right": false,
-                    "is_grounded": true
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_Eli_Idle_Spritesheet_2.png",
-                    "half_size": {
-                        "x": 60.0,
-                        "y": 60.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "AnimationComponent": {
-                    "profile_name": "Player",
-                    "current_state": "IDLE",
-                    "current_frame": 11,
-                    "frame_duration": 0.10000000149011612,
-                    "start_frame": 0,
-                    "frame_count": 14,
-                    "elapsed_time": 0.0710095688700676,
-                    "is_playing": true,
-                    "is_looping": true,
-                    "start_delay": 0.0,
-                    "start_delay_range": 0.0
-                },
-                "NativeScripts": {
-                    "scripts": [
-                        {
-                            "type": "PrintEntityName",
-                            "enabled": true,
-                            "execute_in_edit": false
-                        }
-                    ]
-                },
-                "SceneOwned": {
-                    "scene_id": 9,
-                    "sceneName": "Level 1"
-                },
-                "ParticleEmitterComponent": {
-                    "is_emitting": true,
-                    "is_particle_animated": true,
-                    "is_screen_space": true,
-                    "particle_texture_key": "SB_LightOrb.png",
-                    "particle_lifetime": 20.0,
-                    "emit_rate": 5.0,
-                    "emit_interval": 0.0,
-                    "particle_effect_type": 1,
-                    "effect_strength": 1.0,
-                    "emission_style": 5,
-                    "particle_speed": 0.10000000149011612,
-                    "particle_size": {
-                        "x": 0.014999999664723873,
-                        "y": 0.019999999552965164
-                    },
-                    "is_affected_by_gravity": false,
-                    "particle_start_velocity": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
-                    "particle_acceleration": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
-                    "emission_radius": 0.5,
-                    "circle_radius": 0.5,
-                    "line_start": {
-                        "x": -1.0,
-                        "y": 0.0
-                    },
-                    "line_end": {
-                        "x": 1.0,
-                        "y": 0.0
-                    },
-                    "viewport_min": {
-                        "x": -1.0,
-                        "y": -1.0
-                    },
-                    "viewport_max": {
-                        "x": 1.0,
-                        "y": 1.0
-                    },
-                    "emission_direction": {
-                        "x": 1.0,
-                        "y": 1.0
-                    },
-                    "emission_offset": {
-                        "x": -0.5,
-                        "y": 0.0
-                    },
-                    "emission_mode": 1,
-                    "trigger_event_name": "PlayerLandedEvent",
-                    "burst_count": 1,
-                    "burst_interval": 0.5,
-                    "min_burst_count": 1,
-                    "max_burst_count": 5,
-                    "min_burst_interval": 1.0,
-                    "max_burst_interval": 3.0
-                }
-            },
-            "tags": [
-                "PlayerTag"
-            ]
-        },
-        {
             "name": "Level1_BGM",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -10050,30 +10169,6 @@
                     "is_streaming": false,
                     "volume": 0.5,
                     "audio_type": 1
-                },
-                "SceneOwned": {
-                    "scene_id": 9,
-                    "sceneName": "Level 1"
-                }
-            },
-            "tags": []
-        },
-        {
-            "name": "Level1_Ambience",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 1158192922209717855,
-            "components": {
-                "AudioComponent": {
-                    "sound_key": "28.Night_Forest_Field_Stars_Lo-Pass_Loop.wav",
-                    "should_loop": true,
-                    "is_streaming": false,
-                    "volume": 0.5,
-                    "audio_type": 0
                 },
                 "SceneOwned": {
                     "scene_id": 9,
@@ -10160,27 +10255,253 @@
             "tags": []
         },
         {
-            "name": "FogEmitterVFX",
+            "name": "HorizontalFallingTrap_446_RopeL",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 8209353181242933523,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -172.0,
+                        "y": 300.0
+                    },
+                    "Rotation": {
+                        "angle": 90.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            -172.0,
+                            0.0,
+                            10.0,
+                            300.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 90.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 10.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "HorizontalFallingTrap_461_RopeL",
             "layer": 0,
             "layer_collision_name": "Default",
             "render_layer": 50,
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
-            "uuid": 13376453684582625866,
+            "uuid": 17687439358003157729,
             "components": {
-                "NativeScripts": {
-                    "scripts": [
-                        {
-                            "type": "FogEmitter",
-                            "enabled": true,
-                            "execute_in_edit": false
-                        }
-                    ]
+                "Transform": {
+                    "Position": {
+                        "x": -92.0,
+                        "y": 0.0
+                    },
+                    "Rotation": {
+                        "angle": 90.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            -92.0,
+                            0.0,
+                            423.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 90.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 423.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 9,
                     "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "LightOrbs",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 11604789654542869380,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 1200.0,
+                        "y": -1150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                },
+                "ParticleEmitterComponent": {
+                    "is_emitting": true,
+                    "is_particle_animated": true,
+                    "is_screen_space": false,
+                    "particle_texture_key": "SB_LightOrb.png",
+                    "particle_lifetime": 80.0,
+                    "emit_rate": 0.20000000298023224,
+                    "emit_interval": 0.0,
+                    "particle_effect_type": 1,
+                    "effect_strength": 1.0,
+                    "emission_style": 4,
+                    "particle_speed": 75.0,
+                    "particle_size": {
+                        "x": 20.0,
+                        "y": 20.0
+                    },
+                    "is_affected_by_gravity": false,
+                    "particle_start_velocity": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "particle_acceleration": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "emission_radius": 0.5,
+                    "circle_radius": 0.5,
+                    "line_start": {
+                        "x": -1.0,
+                        "y": 0.0
+                    },
+                    "line_end": {
+                        "x": 1.0,
+                        "y": 0.0
+                    },
+                    "viewport_min": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "viewport_max": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "emission_direction": {
+                        "x": -1.0,
+                        "y": 0.0
+                    },
+                    "emission_offset": {
+                        "x": 500.0,
+                        "y": 0.0
+                    },
+                    "emission_mode": 0,
+                    "trigger_event_name": "",
+                    "burst_count": 1,
+                    "burst_interval": 0.5,
+                    "min_burst_count": 1,
+                    "max_burst_count": 5,
+                    "min_burst_interval": 1.0,
+                    "max_burst_interval": 3.0
                 }
             },
             "tags": []

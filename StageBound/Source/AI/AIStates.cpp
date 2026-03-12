@@ -82,7 +82,7 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
             MessageBus::Instance().Publish(BirdWakeEvent(entity, position));
-            MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Wake", AudioType::SFX, 0.3f, position });
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Wake", AudioType::SFX, 0.3f, position, 50.0f, 700.0f, entity });
         }
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -347,7 +347,7 @@ namespace Framework {
         }
 
         MessageBus::Instance().Publish(BirdAttackEvent(entity, myPos));
-        MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Attack", AudioType::SFX, 0.3f, myPos });
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Attack", AudioType::SFX, 0.3f, myPos, 50.0f, 700.0f, entity });
     }
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
@@ -464,6 +464,7 @@ namespace Framework {
 
     void WitchIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         // Just waiting for player detection (handled by FSM transitions)
+        (void)entity; (void)ecs; (void)dt; 
     }
 
     void WitchIdleState::SetParameter(const std::string& key, float value) {
@@ -485,6 +486,7 @@ namespace Framework {
     }
 
     void WitchAlertedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs;
         timer_ += dt;
         // Play alert animation here if you have animation system
     }
@@ -504,6 +506,7 @@ namespace Framework {
     }
 
     void WitchEnragedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs;
         timer_ += dt;
         // Play enraged animation here
     }
@@ -528,6 +531,7 @@ namespace Framework {
     }
 
     void WitchTeleportSpinState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs;
         timer_ += dt;
     }
 
@@ -605,6 +609,7 @@ namespace Framework {
     }
 
     void WitchTeleportFallState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs;
         timer_ += dt;
     }
 
@@ -616,6 +621,7 @@ namespace Framework {
 
     // --- WITCH CHARGING ---
     void WitchChargingState::OnEnter(Entity entity, EntityStorage& ecs) {
+        (void)entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
 
@@ -626,6 +632,7 @@ namespace Framework {
     }
 
     void WitchChargingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        (void)entity; (void)ecs;
         timer_ += dt;
         // Show charging animation/effect
         // You can visualize the attack radius here in debug mode
