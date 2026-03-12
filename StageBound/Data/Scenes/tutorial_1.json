@@ -7702,6 +7702,534 @@
                 }
             },
             "tags": []
+        },
+        {
+            "name": "LightOrbs",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 3560879924130983310,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 1200.0,
+                        "y": -1150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                },
+                "ParticleEmitterComponent": {
+                    "is_emitting": true,
+                    "is_particle_animated": true,
+                    "is_screen_space": false,
+                    "particle_texture_key": "SB_LightOrb.png",
+                    "particle_lifetime": 80.0,
+                    "emit_rate": 0.20000000298023224,
+                    "emit_interval": 0.0,
+                    "particle_effect_type": 1,
+                    "effect_strength": 1.0,
+                    "emission_style": 4,
+                    "particle_speed": 75.0,
+                    "particle_size": {
+                        "x": 20.0,
+                        "y": 20.0
+                    },
+                    "is_affected_by_gravity": false,
+                    "particle_start_velocity": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "particle_acceleration": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "emission_radius": 0.5,
+                    "circle_radius": 0.5,
+                    "line_start": {
+                        "x": -1.0,
+                        "y": 0.0
+                    },
+                    "line_end": {
+                        "x": 1.0,
+                        "y": 0.0
+                    },
+                    "viewport_min": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "viewport_max": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "emission_direction": {
+                        "x": -1.0,
+                        "y": 0.0
+                    },
+                    "emission_offset": {
+                        "x": 500.0,
+                        "y": 0.0
+                    },
+                    "emission_mode": 0,
+                    "trigger_event_name": "",
+                    "burst_count": 1,
+                    "burst_interval": 0.5,
+                    "min_burst_count": 1,
+                    "max_burst_count": 5,
+                    "min_burst_interval": 1.0,
+                    "max_burst_interval": 3.0
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "VerticalFallingTrap_02_283_RopeL",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2552581157847535645,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 215.0,
+                        "y": -52.5
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            215.0,
+                            0.0,
+                            82.5,
+                            -52.5,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 82.5
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "VerticalFallingTrap_296_RopeL",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 12058774212414759591,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 300.0,
+                        "y": 307.5
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            300.0,
+                            0.0,
+                            192.5,
+                            307.5,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 192.5
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "VerticalFallingTrap_296_RopeR",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 9991633788035051689,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 460.0,
+                        "y": 307.5
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            460.0,
+                            0.0,
+                            192.5,
+                            307.5,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 192.5
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "VerticalFallingTrap_02_13_RopeL",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 11936107373090765929,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 215.0,
+                        "y": -52.5
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            215.0,
+                            0.0,
+                            82.5,
+                            -52.5,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 82.5
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "VerticalFallingTrap_26_RopeL",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 12311398564359822091,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 300.0,
+                        "y": 307.5
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            300.0,
+                            0.0,
+                            192.5,
+                            307.5,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 192.5
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "VerticalFallingTrap_26_RopeR",
+            "layer": 0,
+            "layer_collision_name": "",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 16656507659272180160,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 460.0,
+                        "y": 307.5
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            100.0,
+                            0.0,
+                            460.0,
+                            0.0,
+                            192.5,
+                            307.5,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_PlatformRope.png",
+                    "half_size": {
+                        "x": 100.0,
+                        "y": 192.5
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
         }
     ]
 }

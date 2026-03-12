@@ -334,22 +334,23 @@ namespace Framework {
 
 				switch (particle.effectType) {
 				case EffectType::RANDOM: {
-					float jitterStrength = 2.0f;
+					float speed = sqrtf(vel.Vel.x * vel.Vel.x + vel.Vel.y * vel.Vel.y);
+					float jitterStrength = 3.0f * particle.effectStrength * speed * Time::DeltaTime();
 					float randomX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * jitterStrength;
 					float randomY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * jitterStrength;
-
-					vel.Vel.x += randomX * Time::DeltaTime();
-					vel.Vel.y += randomY * Time::DeltaTime();
+					vel.Vel.x += randomX;
+					vel.Vel.y += randomY;
 					break;
 				}
 
 				case EffectType::DRIFT: {
-					float driftStrength = 0.5f;
-					float randomX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * driftStrength;
-					float randomY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * driftStrength;
-
-					vel.Vel.x += randomX * Time::DeltaTime();
-					vel.Vel.y += randomY * Time::DeltaTime();
+					float maxAngle = 1.5f * particle.effectStrength * Time::DeltaTime();
+					float angle = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f * maxAngle;
+					float cosA = cosf(angle), sinA = sinf(angle);
+					float newX = vel.Vel.x * cosA - vel.Vel.y * sinA;
+					float newY = vel.Vel.x * sinA + vel.Vel.y * cosA;
+					vel.Vel.x = newX;
+					vel.Vel.y = newY;
 					break;
 				}
 
@@ -369,6 +370,7 @@ namespace Framework {
 		particleComp.lifetime = emitter.particleLifetime;
 		particleComp.age = 0.0f;
 		particleComp.isScreenSpace = emitter.isScreenSpace;
+		particleComp.effectStrength = emitter.effectStrength;
 		entityMgr.AddComponent<ParticleComponent>(particleEntity, particleComp);
 
 		float rand01 = static_cast<float>(rand()) / RAND_MAX;
@@ -629,12 +631,9 @@ namespace Framework {
 			speed = 0.0f;
 		}
 
-		// For screen space, don't scale by DeltaTime since we handle it differently
-		float dtFactor = isScreenSpace ? 1.0f : Framework::Time::DeltaTime();
-
 		return Vector2D{
-			speed * cos(angle) * dtFactor,
-			speed * sin(angle) * dtFactor
+			speed * cos(angle),
+			speed * sin(angle)
 		};
 	}
 

@@ -465,6 +465,7 @@ namespace Framework{
 		float lifetime = 1.0f;      // Total lifetime of the particle
 		float age = 0.0f;           // Current age of the particle
 		bool isScreenSpace = false; // Is the particle rendered in screen space
+		float effectStrength = 1.0f; // Copied from emitter; scales drift/random intensity
 	};
 
 	struct ParticleEmitterComponent {
