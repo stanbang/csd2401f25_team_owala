@@ -1,0 +1,38 @@
+Custom Engine and Solution Setup
+
+----------------------------------
+PRE-REQUISITES
+----------------------------------
+-CMake 4.1.1
+	-(Website Link): https://cmake.org/download/
+	-(Direct Download Link): https://github.com/Kitware/CMake/releases/download/v4.1.1/cmake-4.1.1-windows-x86_64.msi
+
+
+----------------------------------
+FOLDER STRUCTURE
+----------------------------------
+The Root folder contains:
+1. owala Folder (The engine)
+2. Editor Folder (The editor)
+3. StageBound Folder (The game)
+4. cmake Folder
+5. lib Folder
+6. active_game.cmake
+7. clean.bat
+8. CMakeLists.txt
+9. readme.md
+10. run.bat
+
+----------------------------------
+GENERATING THE SOLUTION(.sln) FILE
+----------------------------------
+1. Run "clean.bat" (To clean any existing "build" folder)
+2. Run "run.bat" (To generate "build" folder and run cmake)
+3. The "build" folder should be generated under the "Engine" folder.
+4. The solution file is located in "build/owala.sln"
+
+--------------------------------------------------
+RUNNING THE PROJECT IN EDITOR / ENGINE MODE
+--------------------------------------------------
+1. Right click "owala_Engine" > Set as startup project > Compile // To run in engine/editor mode
+2. Right click "StageBound" > Set as startup project > Compile // To run in game mode
