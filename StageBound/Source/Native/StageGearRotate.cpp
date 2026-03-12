@@ -38,7 +38,7 @@ void StageGearRotate::OnUpdate() {
 
 	// Rotate the gear if the stage is currently rotating
 	float& rotationRad = entityMgr.GetComponent<Transform>(self).rotation.textureAngle;
-	float rotationDeg = rotationRad * (180.f / M_PI);
+	float rotationDeg = rotationRad * static_cast<float>((180.f / M_PI));
 	float rotationVelocity = 90.f;
 	if (!counterClockWise) {
 		rotationVelocity *= -1.f;
@@ -49,7 +49,7 @@ void StageGearRotate::OnUpdate() {
 	
 	// Cleanup
 	rotationDeg = std::fmod(rotationDeg + 360.f, 360.f);
-	rotationRad = rotationDeg * (M_PI / 180.f);
+	rotationRad = rotationDeg * static_cast<float>((M_PI / 180.f));
 }
 
 void StageGearRotate::OnDestroy() {

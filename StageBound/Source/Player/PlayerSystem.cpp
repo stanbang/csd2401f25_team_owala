@@ -204,7 +204,7 @@ namespace Framework {
                 state.previousVelocityY = currentVelY;
 
                 // Capture isWalking state before its updated
-                bool wasWalking = state.isWalking;
+                //bool wasWalking = state.isWalking;
 
                 // Horizontal Movement 
                 if (!state.isDead) {
