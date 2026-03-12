@@ -406,6 +406,7 @@ namespace Framework {
             }
             break;
 
+			// Button hover state takes priority over default, but only if a hover texture is specified. Otherwise, fallback to default texture (which may or may not be animated).
         case Button::ButtonVisualState::HOVER:
             if (!buttonComp.hoverTextureKey.empty()) {
                 newTextureKey = buttonComp.hoverTextureKey;
@@ -417,6 +418,7 @@ namespace Framework {
             }
             break;
 
+		// Default state
         case Button::ButtonVisualState::DEFAULT:
         default:
             newTextureKey = buttonComp.defaultTextureKey;
@@ -479,7 +481,7 @@ namespace Framework {
 
                     if (resourceManager_.has<AnimationInfo>(newTextureKey)) {
                         AnimationInfo& animInfo = resourceManager_.get<AnimationInfo>(newTextureKey);
-
+						// Set animation properties from loaded data
                         animComp.frameCount = animInfo.frameCount;
                         animComp.frameDuration = animInfo.frameDuration;
                         animComp.isLooping = animInfo.isLooping;
