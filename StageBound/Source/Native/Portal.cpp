@@ -138,7 +138,7 @@ void Portal::OnUpdate() {
 				if (TimerSystem::Get().IsRunning()) {
 					Framework::Logger::Get().Info(DebugType::PlayerSystem)
 						<< "[Portal] Level complete! Stopping timer and submitting..." << std::endl;
-					TimerSystem::Get().StopAndSubmit();
+					TimerSystem::Get().Stop();
 				}
 				// ====================
 
