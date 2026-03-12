@@ -2,9 +2,9 @@
  * \file   LoadingScreenController.h
  *
  * \primary_author
- *      Ng Jing Wen
+ *      Ng Jing Wen (80%)
  * \secondary_author
- *
+ *      Jordain Ng Ying Zhe (20%)
  *
  * \brief	Declares the LoadingScreenController script to manage loading 
  *          screen behavior.
