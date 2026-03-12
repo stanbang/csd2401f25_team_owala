@@ -50,7 +50,7 @@ void ParallaxBackground::OnCreate() {
     const int renderOrder = props.customRenderOrder;
 
 	// Calculate parallax factor based on render order within the defined background range
-    const float depthRange = static_cast<float>(BG_FRONTMOST_ORDER - BG_BACKMOST_ORDER);
+    float depthRange = static_cast<float>(BG_FRONTMOST_ORDER - BG_BACKMOST_ORDER);
 
 	// Only calculate if the render order is within the expected range to avoid unintended parallax effects on non-background entities
     if (depthRange > 0.f) {

@@ -22,6 +22,7 @@
 #include "FirebaseManager.h"
 #include "PlayerNameManager.h"
 #include "GameStateFlags.h"
+#include "TimerSystem.h"
 #pragma region LOCAL LEVEL FUNCTIONS
 namespace {
 
@@ -472,9 +473,9 @@ namespace {
 	void RefreshUI(Framework::EntityManager& entityMgr) {
 		if (levelData.empty()) return;
 
-		int n = static_cast<int>(levelData.size());
-		int prevIndex = (currentIndex - 1 + n) % n;
-		int nextIndex = (currentIndex + 1) % n;
+		//int n = static_cast<int>(levelData.size());
+		//int prevIndex = (currentIndex - 1 + n) % n;
+		//int nextIndex = (currentIndex + 1) % n;
 
 		// Left Ticket
 		SetTicketTexture(entityMgr, ui.ticketPrev, "SB_LevelSelection_EmptyTicket.png");
@@ -583,6 +584,17 @@ namespace LevelSelection {
 	using namespace Framework;
 
 	void Initialize() {
+		Framework::FirebaseManager::Get().SetDatabaseUrl(
+			"https://stagebound-1547b-default-rtdb.asia-southeast1.firebasedatabase.app/"
+		);
+		Framework::TimerSystem::Get().SetOnRunFinished(
+			[](const std::string& levelName, float timeSeconds) {
+				if (!GameStateFlags::shouldRecordTime) return;
+				std::string name = Framework::PlayerNameManager::Get().GetName();
+				if (name.empty()) return;
+				Framework::FirebaseManager::Get().SubmitRun(levelName, name, timeSeconds);
+			}
+		);
 		EntityManager entityMgr(GameManager::GetInstance().GetECS());
 		CacheUI(entityMgr);
 		save = GetSaveManager(entityMgr);
@@ -594,7 +606,7 @@ namespace LevelSelection {
 
 		levelData = {
 			{1, "prologue: tutorial i", firstLevel, "SB__ForestTicketGlow.png"},
-			{2, "prologue: tutorial ii", "Tutorial 2", "SB__ForestTicketGlow.png"},
+			{2, "prologue: tutorial ii", "Tutorial 2", "SB__WitchHutTicketGlow.png"},
 			{3, "act i: the forest", "Level 1", "SB__ForestTicketGlow.png"},
 			{4, "act ii: the hut", "Level 2", "SB__WitchHutTicketGlow.png"},
 			{5, "act iii: workshop", "Level 3", "SB__WorkshopTicketGlow.png"},
@@ -656,7 +668,7 @@ namespace LevelSelection {
 		if (!carousel.isAnimating) {
 			// Left Arrow Clicked
 			if (ConsumeClick(entityMgr, inputSystem, ui.arrowLeft)) {
-				int prevPrevIndex = (currentIndex - 2 + n) % n;
+				//int prevPrevIndex = (currentIndex - 2 + n) % n;
 
 				carousel.isAnimating = true;
 				carousel.direction = 1;

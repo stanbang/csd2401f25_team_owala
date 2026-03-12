@@ -455,6 +455,8 @@ namespace Framework{
 
 		// Visual effect: active attack circle radius (0 = none)
 		float attackCircleRadius = 0.0f;
+		// Texture key for attack circle sprite (empty = fallback to red line circle)
+		std::string attackCircleTextureKey;
 	};
 
 	// Particle Component

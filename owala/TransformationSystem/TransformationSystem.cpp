@@ -295,8 +295,8 @@ namespace Framework {
         }
         Transform::Rotation& rotComp = transform.rotation;
 
-        float textureRotationDegrees = rotComp.textureAngle * (180.0f / M_PI);
-        float colliderRotationDegrees = rotComp.colliderAngle * (180.0f / M_PI);
+        float textureRotationDegrees = rotComp.textureAngle * static_cast<float>((180.0f / M_PI));
+        float colliderRotationDegrees = rotComp.colliderAngle * static_cast<float>((180.0f / M_PI));
 
         Vector2D textureScale = Vector2D(1.0f, 1.0f);
         if (entityMgr.HasComponent(entity, TextureComponentType)) {
@@ -319,7 +319,7 @@ namespace Framework {
                 colliderRotationDegrees = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
             }
             else {
-                colliderRotationDegrees = rotComp.colliderAngle * (180.0f / M_PI);
+                colliderRotationDegrees = rotComp.colliderAngle * static_cast<float>((180.0f / M_PI));
             }
 
             Vector2D& newscale = entityMgr.GetComponent<Transform>(entity).scale;

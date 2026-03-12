@@ -87,6 +87,7 @@ namespace Framework {
 		};
 		std::unordered_map<SceneGUID, SceneCallBacks> sceneCallbacks_;
 		std::unordered_set<SceneGUID> initializedScenes_;
+		std::unordered_set<SceneGUID> autoConfiguredScenes_; // Tracks scenes that received auto camera/alpha setup
 		SceneGUID lastActiveScene_ = 0;
 
 		struct RegisteredSystems {

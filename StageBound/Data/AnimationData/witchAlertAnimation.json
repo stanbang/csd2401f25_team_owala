@@ -1,0 +1,37 @@
+{
+  "frame_count": 27,
+  "frame_duration": 0.1,
+  "is_looping": false,
+  "start_frame": 0,
+  "spritesheets": [
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_1.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_2.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_3.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_4.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_5.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_6.png",
+      "count": 4
+    },
+    {
+      "texture": "SB_Witch_Alert_Spritesheet_7.png",
+      "count": 3
+    }
+  ],
+  "frameEvents": {}
+}

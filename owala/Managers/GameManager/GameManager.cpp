@@ -9,6 +9,7 @@
 #include "pch.h"
 #include "GameManager.h"
 #include "EntitySerializer.h"
+#include "EntityManager.h"
 
 //Core Engine headers for IMGUI
 #include "Core.h"
@@ -312,7 +313,7 @@ namespace Framework {
 		if (FileIOSystem::LoadSceneAssets(scenesData)) {
 			for (const rapidjson::Value& val : scenesData.GetArray()) {
 				std::string sceneName = val[Serialization::SCENE_ASSET_NAME].GetString();
-				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
+				sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
 			}
 		}
 		else {
@@ -416,6 +417,16 @@ namespace Framework {
 			}
 		}
 
+		// Clear auto-config tracking for unloaded scenes
+		for (auto it = autoConfiguredScenes_.begin(); it != autoConfiguredScenes_.end();) {
+			if (loadedSet.find(*it) == loadedSet.end()) {
+				it = autoConfiguredScenes_.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
 		// Init Scenes that just became loaded
 		for (SceneGUID sceneID : loadedScenes) {
 			auto callback = sceneCallbacks_.find(sceneID);
@@ -426,6 +437,32 @@ namespace Framework {
 			if (callback->second.fpInitialize) {
 				callback->second.fpInitialize();
 			}
+		}
+
+		// Auto-detect Camera + Player entities and configure camera follow.
+		// Runs for every newly loaded scene regardless of registered callbacks,
+		// so any project gets camera follow for free when both entities exist.
+		for (SceneGUID sceneID : loadedScenes) {
+			if (!autoConfiguredScenes_.insert(sceneID).second) continue;
+
+			EntityManager entityMgrAuto(*systems_.ecs_);
+
+			std::vector<Entity> cameras = entityMgrAuto.GetAllEntitiesWithComponent(true, CameraType);
+			if (cameras.empty()) continue;
+
+			Entity mainCamera = cameras[0];
+			systems_.camera_->SetActiveCamera(mainCamera);
+			sceneMgr.SetEntityAsPersistent(mainCamera);
+			Camera& gameCam = systems_.camera_->GetCamera(mainCamera);
+			gameCam.isEditorControlled = false;
+
+			std::vector<Entity> players = entityMgrAuto.GetAllEntitiesWithComponent(true, PlayerTagType);
+			if (!players.empty()) {
+				systems_.camera_->SetFollowTarget(mainCamera, players[0], 8.0f);
+				systems_.camera_->CalculateAndSetBoundsFromPlatforms(mainCamera, 0.0f);
+			}
+
+			systems_.gfx_->setAlphaBlend(true);
 		}
 
 #ifdef BUILD_EDITOR

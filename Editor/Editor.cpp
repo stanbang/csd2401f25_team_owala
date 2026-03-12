@@ -8140,7 +8140,7 @@ namespace Editor {
 					}
 
 					ImGui::Text("Volume:");
-					if (ImGui::SliderFloat("##Volume", soundVol, 0.0f, 1.0f, "%.2f"));
+					ImGui::SliderFloat("##Volume", soundVol, 0.0f, 1.0f, "%.2f");
 					if (ImGui::IsItemActive()) activeNow = true;
 				}
 

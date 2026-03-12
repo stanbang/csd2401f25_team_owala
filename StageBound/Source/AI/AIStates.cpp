@@ -646,6 +646,16 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
+
+        Vector2D position = { 0.0f, 0.0f };
+        if (mgr.HasComponent(entity, TransformType)) {
+            position = mgr.GetComponent<Transform>(entity).position;
+        }
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Attack", AudioType::SFX, 0.3f, position });
+
+        if (mgr.HasComponent(entity, FSMComponentType)) {
+            mgr.GetComponent<FSMComponent>(entity).attackCircleTextureKey = "SB_Witch_Attack_Radius.png";
+        }
     }
 
     void WitchAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -716,6 +726,7 @@ namespace Framework {
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, FSMComponentType)) {
             mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = 0.0f;
+            mgr.GetComponent<FSMComponent>(entity).attackCircleTextureKey.clear();
         }
         currentRadius_ = 0.0f;
     }
@@ -750,6 +761,7 @@ namespace Framework {
         }
 
         MessageBus::Instance().Publish(VFXTriggerEvent{ "EnemyDeathEvent", true, deathPosition });
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Death", AudioType::SFX, 0.3f, deathPosition });
         Logger::Get().Info(DebugType::AISystem) << "Witch death VFX triggered at (" << deathPosition.x << ", " << deathPosition.y << ")" << std::endl;
     }
 

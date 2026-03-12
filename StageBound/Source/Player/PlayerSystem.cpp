@@ -121,6 +121,31 @@ namespace Framework {
         MessageBus::Instance().Subscribe<LevelStartEvent>([this](const LevelStartEvent&) {
             m_deathEventFired = false;
             m_lvlClearEventFired = false;
+
+            // Spawn player at SpawnPoint on first load of each scene
+            SceneManager& sceneMgr = SceneManager::GetInstance();
+            const SceneGUID currentGUID = sceneMgr.GetActiveScene().sceneIndex;
+            if (!m_spawnedScenes.insert(currentGUID).second) return; // already spawned
+
+            EntityManager entityMgr(GameManager::GetInstance().GetECS());
+            std::vector<Entity> spawnPts = entityMgr.GetAllEntitiesWithComponents(
+                true, SpawnPointTagType, LoadedTagType, TransformType);
+            if (spawnPts.empty()) return;
+
+            std::vector<Entity> players = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
+            if (players.empty()) return;
+
+            Entity playerEntity = players[0];
+            if (!entityMgr.HasComponent(playerEntity, TransformType)) return;
+
+            Transform& playerTransform = entityMgr.GetComponent<Transform>(playerEntity);
+            Transform spawnPtTransform = entityMgr.GetComponent<Transform>(spawnPts[0]);
+            playerTransform.position = spawnPtTransform.position;
+
+            Logger::Get().Info(DebugType::PlayerSystem)
+                << "[PlayerSystem] Spawned Player at ("
+                << playerTransform.position.x << ", "
+                << playerTransform.position.y << ")" << std::endl;
         });
     }
 
@@ -204,7 +229,7 @@ namespace Framework {
                 state.previousVelocityY = currentVelY;
 
                 // Capture isWalking state before its updated
-                bool wasWalking = state.isWalking;
+                //bool wasWalking = state.isWalking;
 
                 // Horizontal Movement 
                 if (!state.isDead) {
@@ -640,9 +665,17 @@ namespace Framework {
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
             if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) ||
-                !entityMgr.HasComponent(enemyEntity, TransformType) ||
-                !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
+                !entityMgr.HasComponent(enemyEntity, TransformType)) {
                 continue;
+            }
+
+            // Use AABBCollider half size if available, otherwise fall back to TextureComponent
+            Vector2D enemyHalfSizeFallback = { 30.0f, 40.0f }; // default
+            if (entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
+                enemyHalfSizeFallback = entityMgr.GetComponent<AABBCollider>(enemyEntity).HalfSize;
+            }
+            else if (entityMgr.HasComponent(enemyEntity, TextureComponentType)) {
+                enemyHalfSizeFallback = entityMgr.GetComponent<TextureComponent>(enemyEntity).HalfSize;
             }
 
             FSMComponent& fsmComp = entityMgr.GetComponent<FSMComponent>(enemyEntity);
@@ -656,7 +689,7 @@ namespace Framework {
                 if (!trapComp.isTriggered && !trapComp.hasFallen) continue;
 
                 const Vector2D& enemyPos = entityMgr.GetComponent<Transform>(enemyEntity).position;
-                const Vector2D& enemyHalfSize = entityMgr.GetComponent<AABBCollider>(enemyEntity).HalfSize;
+                const Vector2D& enemyHalfSize = enemyHalfSizeFallback;
                 const Vector2D& trapPos = entityMgr.GetComponent<Transform>(trapEntity).position;
                 const Vector2D& trapHalfSize = entityMgr.GetComponent<AABBCollider>(trapEntity).HalfSize;
 
