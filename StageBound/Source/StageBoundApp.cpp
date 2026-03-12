@@ -41,7 +41,7 @@ namespace Framework {
         TrapPlatformSystem* m_TrapPlatformSystem;
 
     public:
-        StageBoundApp(CoreEngine& engine) : m_Engine(engine) {}
+        StageBoundApp(CoreEngine& engine) : m_Engine(engine), m_PlayerSystem(nullptr), m_TrapPlatformSystem(nullptr) {}
 
         void Initialize() override {
             std::cout << "--- StageBound Application Initializing! ---\n";
