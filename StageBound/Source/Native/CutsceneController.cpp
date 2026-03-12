@@ -91,10 +91,10 @@ bool CutsceneController::IsSkipHeldDown() const {
 
 void CutsceneController::OnCreate() {
 	slides = {
-		{"SB_CutScene_01.jpg", 3.5f},
-		{"SB_CutScene_02.jpg", 3.5f},
-		{"SB_CutScene_03.jpg", 3.5f},
-		{"SB_CutScene_04.jpg", 3.5f},
+		{"SB_CutScene_01_Spritesheet01.png", 3.5f},
+		{"SB_CutScene_02_Spritesheet01.png", 3.5f},
+		{"Cut_Scene_3_Spritesheet_01.png", 3.5f},
+		{"Cut_Scene_4_Spritesheet_01.png", 3.5f},
 	};
 
 	currentSlide = 0;

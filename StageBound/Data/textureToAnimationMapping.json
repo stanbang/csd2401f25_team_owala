@@ -94,6 +94,60 @@
         },
         {
             "texture_keys": [
+                "SB_CutScene_01_Spritesheet01.png",
+                "SB_CutScene_01_Spritesheet02.png",
+                "SB_CutScene_01_Spritesheet03.png",
+                "SB_CutScene_01_Spritesheet04.png",
+                "SB_CutScene_01_Spritesheet05.png",
+                "SB_CutScene_01_Spritesheet06.png",
+                "SB_CutScene_01_Spritesheet07.png"
+            ],
+            "animation_path": "Data/AnimationData/cutscene1Anim.json"
+        },
+        {
+            "texture_keys": [
+                "SB_CutScene_02_Spritesheet01.png",
+                "SB_CutScene_02_Spritesheet02.png",
+                "SB_CutScene_02_Spritesheet03.png",
+                "SB_CutScene_02_Spritesheet04.png",
+                "SB_CutScene_02_Spritesheet05.png",
+                "SB_CutScene_02_Spritesheet06.png"
+            ],
+            "animation_path": "Data/AnimationData/cutscene2Anim.json"
+        },
+        {
+            "texture_keys": [
+                "Cut_Scene_3_Spritesheet_01.png",
+                "Cut_Scene_3_Spritesheet_02.png",
+                "Cut_Scene_3_Spritesheet_03.png",
+                "Cut_Scene_3_Spritesheet_04.png",
+                "Cut_Scene_3_Spritesheet_05.png",
+                "Cut_Scene_3_Spritesheet_06.png",
+                "Cut_Scene_3_Spritesheet_07.png",
+                "Cut_Scene_3_Spritesheet_08.png",
+                "Cut_Scene_3_Spritesheet_09.png",
+                "Cut_Scene_3_Spritesheet_10.png",
+                "Cut_Scene_3_Spritesheet_11.png",
+                "Cut_Scene_3_Spritesheet_12.png"
+            ],
+            "animation_path": "Data/AnimationData/cutscene3Anim.json"
+        },
+        {
+            "texture_keys": [
+                "Cut_Scene_4_Spritesheet_01.png",
+                "Cut_Scene_4_Spritesheet_02.png",
+                "Cut_Scene_4_Spritesheet_03.png",
+                "Cut_Scene_4_Spritesheet_04.png",
+                "Cut_Scene_4_Spritesheet_05.png",
+                "Cut_Scene_4_Spritesheet_06.png",
+                "Cut_Scene_4_Spritesheet_07.png",
+                "Cut_Scene_4_Spritesheet_08.png",
+                "Cut_Scene_4_Spritesheet_09.png"
+            ],
+            "animation_path": "Data/AnimationData/cutscene4Anim.json"
+        },
+        {
+            "texture_keys": [
                 "SB_Poof_VFX.png"
             ],
             "animation_path": "Data/AnimationData/enemyDeathEffect.json"

@@ -1,0 +1,45 @@
+{
+    "frame_count": 18,
+    "frame_duration": 0.05000000074505806,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "Cut_Scene_4_Spritesheet_01.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_02.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_03.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_04.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_05.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_06.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_07.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_08.png",
+            "count": 2
+        },
+        {
+            "texture": "Cut_Scene_4_Spritesheet_09.png",
+            "count": 2
+        }
+    ],
+    "frameEvents": {}
+}
