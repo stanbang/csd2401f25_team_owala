@@ -55,15 +55,7 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Adds a state to the state machine.
-     *
-     * Registers a new state with the given name. If a state with this name
-     * already exists, the operation is silently ignored.
-     *
-     * @param name Unique identifier for the state
-     * @param state Shared pointer to the State implementation
-     */
+    // Registers a new state. Silently ignored if a state with this name already exists.
     void FSM::AddState(const std::string& name, std::shared_ptr<State> state) {
         if (states_.find(name) != states_.end()) return;
         states_[name] = state;
@@ -71,19 +63,8 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Adds a transition between two states.
-     *
-     * Defines a condition that, when true, will trigger a switch from the
-     * 'from' state to the 'to' state. Transitions are checked each frame
-     * during Update() before the current state's OnUpdate is called.
-     *
-     * @param from Name of the source state
-     * @param to Name of the destination state
-     * @param cond Condition function that returns true when transition should occur
-     *
-     * @note If either state doesn't exist, the transition is silently ignored.
-     */
+    // Registers a conditional transition from one state to another.
+    // Both states must already exist or the transition is silently ignored.
     void FSM::AddTransition(const std::string& from, const std::string& to, std::function<bool(Entity, EntityStorage&)> cond) {
         if (states_.find(from) == states_.end() || states_.find(to) == states_.end()) {
             // Log error: invalid transition
@@ -94,13 +75,7 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Sets the initial state for the state machine.
-     *
-     * The state machine will start in this state when Initialize() is called.
-     *
-     * @param name Name of the initial state
-     */
+    // Sets which state the FSM will enter when Initialize() is called.
     void FSM::SetInitialState(const std::string& name) {
         if (states_.find(name) != states_.end()) {
             initialState_ = name;
@@ -109,15 +84,7 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Initializes the state machine, entering the initial state.
-     *
-     * Should be called once when the entity is first created or when the
-     * state machine is first attached. Calls OnEnter on the initial state.
-     *
-     * @param entity The entity this FSM is attached to
-     * @param ecs Reference to the entity storage for component access
-     */
+    // Enters the initial state, calling its OnEnter(). Called once when an entity is first set up.
     void FSM::Initialize(Entity entity, EntityStorage& ecs) {
         if (initialState_.empty()) return;
         currentState_ = initialState_;
@@ -129,18 +96,8 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Updates the state machine, checking transitions and updating current state.
-     *
-     * Called every frame to:
-     * 1. Check all transitions from the current state
-     * 2. If any transition condition is true, switch to the target state
-     * 3. If no transition occurs, update the current state
-     *
-     * @param entity The entity this FSM is attached to
-     * @param ecs Reference to the entity storage for component access
-     * @param dt Delta time since last frame
-     */
+    // Each frame: checks transitions from the current state, switches if a condition fires,
+    // then calls OnUpdate() on the active state if no transition occurred.
     void FSM::Update(Entity entity, EntityStorage& ecs, float dt) {
         if (currentState_.empty()) return;
 
@@ -163,19 +120,8 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Changes to a new state, handling exit and enter callbacks.
-     *
-     * Internal method that:
-     * 1. Calls OnExit on the current state
-     * 2. Stores the previous state
-     * 3. Switches to the new state
-     * 4. Calls OnEnter on the new state
-     *
-     * @param entity The entity this FSM is attached to
-     * @param ecs Reference to the entity storage
-     * @param newState Name of the state to switch to
-     */
+    // Immediately switches to a new state: calls OnExit on the current state,
+    // stores it as previousState_, then calls OnEnter on the new state.
     void FSM::ChangeState(Entity entity, EntityStorage& ecs, const std::string& newState) {
         if (newState == currentState_) return;
         if (states_.find(newState) == states_.end()) return;
@@ -192,12 +138,7 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    /**
-     * @brief Retrieves a pointer to a state by name.
-     *
-     * @param name Name of the state to retrieve
-     * @return State* Pointer to the state, or nullptr if not found
-     */
+    // Returns a raw pointer to a registered state by name, or nullptr if not found.
     State* FSM::GetState(const std::string& name) {
         auto it = states_.find(name);
         return (it != states_.end()) ? it->second.get() : nullptr;

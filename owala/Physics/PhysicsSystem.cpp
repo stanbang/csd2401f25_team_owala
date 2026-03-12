@@ -32,6 +32,7 @@ namespace Framework {
     static constexpr float VELOCITY_THRESHOLD = 5.0f;  // Min velocity to count as moving into
     static constexpr float EDGE_BIAS = 3.0f;           // Prefer vertical resolution on edges
 
+    // Allocates the collision matrix to the number of layers and sets every pair to collide by default.
     void PhysicsSystem::InitializeCollisionMatrix() {
         // Resize the matrix to fit all layers
         collisionMatrix_.resize(static_cast<size_t>(CollisionLayer::Count));
@@ -41,6 +42,7 @@ namespace Framework {
         }
     }
 
+    // Returns true if the two collision layers are set to interact with each other.
     bool PhysicsSystem::GetLayerCollision(CollisionLayer layer1, CollisionLayer layer2) const {
         size_t l1 = static_cast<size_t>(layer1);
         size_t l2 = static_cast<size_t>(layer2);
@@ -51,6 +53,7 @@ namespace Framework {
         return false;
     }
 
+    // Enables or disables collision between two layers. Applied symmetrically so both directions match.
     void PhysicsSystem::SetLayerCollision(CollisionLayer layer1, CollisionLayer layer2, bool canCollide) {
         size_t l1 = static_cast<size_t>(layer1);
         size_t l2 = static_cast<size_t>(layer2);
@@ -62,6 +65,8 @@ namespace Framework {
         }
     }
 
+    // Reads the layer configuration JSON and applies it to the collision matrix.
+    // Tries the root folder path first, then falls back to the standard data path.
     void PhysicsSystem::ReloadCollisionMatrixFromFile() {
         try {
             rapidjson::Document doc;
@@ -126,6 +131,7 @@ namespace Framework {
 
 
 
+    // Sets up the collision matrix (once) and allocates broad-phase grid storage.
     void PhysicsSystem::Initialize() {
 
         
@@ -296,6 +302,8 @@ namespace Framework {
         }
     }
 
+    // Returns the axis-aligned bounding box of a rotated collider.
+    // Rotation is snapped to the nearest 90 degrees; half-extents are swapped for 90/270 rotations.
     AABB_Bounds PhysicsSystem::GetRotatedAABB(const Vector2D& center, const Vector2D& halfSize, float rotationDegrees) {
         float snappedRotation = std::round(rotationDegrees / 90.0f) * 90.0f;
         snappedRotation = std::fmod(snappedRotation + 360.0f, 360.0f);
@@ -310,6 +318,8 @@ namespace Framework {
         };
     }
 
+    // Simple AABB overlap test for trigger/sensor queries that need no physics response.
+    // Both entities must have Transform and AABBCollider components.
     bool PhysicsSystem::CheckTriggerOverlap(Entity e1, Entity e2) {
 
         GameManager& gm = GameManager::GetInstance();
@@ -733,23 +743,24 @@ namespace Framework {
 
     // ------ GRID HELPER FUNCTIONS ------ //
 
+    // Converts a world X coordinate to the clamped broad-phase grid column index.
     int PhysicsSystem::GetCellCoordX(float worldPos) const {
         int coord = static_cast<int>(std::floor((worldPos - gridWorldMinX) * invCellSize));
         return std::clamp(coord, 0, GridCellsX - 1);
     }
 
-    
+    // Converts a world Y coordinate to the clamped broad-phase grid row index.
     int PhysicsSystem::GetCellCoordY(float worldPos) const {
         int coord = static_cast<int>(std::floor((worldPos - gridWorldMinY) * invCellSize));
         return std::clamp(coord, 0, GridCellsY - 1);
     }
 
-   
+    // Returns the flat array index for a grid cell at column x, row y.
     int PhysicsSystem::GetCellIndex(int x, int y) const {
         return x + y * GridCellsX;
     }
 
-    
+    // Marks all grid cells overlapping the given AABB bounds as occupied by colliderIndex.
     void PhysicsSystem::GridInsert(int colliderIndex, const AABB_Bounds& bounds) {
         int minX = GetCellCoordX(bounds.min.x);
         int minY = GetCellCoordY(bounds.min.y);
@@ -763,7 +774,7 @@ namespace Framework {
         }
     }
 
-    
+    // Collects all collider indices from cells overlapping the given AABB into a bitset.
     void PhysicsSystem::GridQuery(const AABB_Bounds& bounds, std::bitset<maxCollidableEntities>& potentialColliders) const {
         int minX = GetCellCoordX(bounds.min.x);
         int minY = GetCellCoordY(bounds.min.y);
@@ -783,6 +794,8 @@ namespace Framework {
 
 
     //--------- DEBUG DRAW FUNCTIONS ---------//
+
+    // Builds a list of visible grid cells with their world bounds and occupancy state for debug rendering.
     std::vector<PhysicsDebugCell> PhysicsSystem::GetDebugDrawData(Framework::CameraSystem* cameraSystem, Entity cameraID) {
         std::vector<PhysicsDebugCell> data;
         if (!drawDebugGrid || !cameraSystem || cameraID == 0) {

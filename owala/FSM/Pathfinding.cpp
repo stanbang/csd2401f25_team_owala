@@ -217,6 +217,8 @@ namespace Framework {
 
 // In Pathfinding.cpp
 
+// Scans all platform entities and marks grid cells they occupy as wall nodes.
+// Accounts for rotation and scale using an oriented bounding-box projection.
 void NavigationGrid::BuildGrid() {
     wallNodes_.clear();
     EntityManager entityMgr(GameManager::GetInstance().GetECS());
@@ -301,10 +303,12 @@ void NavigationGrid::BuildGrid() {
     }
 }
 
+    // Returns true if the cell at (x, y) is not occupied by a platform wall.
     bool NavigationGrid::IsWalkable(int x, int y) const {
         return wallNodes_.find({ x, y }) == wallNodes_.end(); 
     }
 
+    // Converts a world-space position to its corresponding grid cell (column, row).
     Vector2D NavigationGrid::WorldToGrid(const Vector2D& worldPos) const {
         return {
             static_cast<float>(std::floor(worldPos.x / cellSize)),
@@ -312,6 +316,7 @@ void NavigationGrid::BuildGrid() {
         };
     }
 
+    // Returns the world-space center position for a given grid cell.
     Vector2D NavigationGrid::GridToWorld(int x, int y) const {
         return {
             (static_cast<float>(x) + 0.5f) * cellSize,
@@ -319,6 +324,8 @@ void NavigationGrid::BuildGrid() {
         };
     }
 
+    // Returns all walkable orthogonal neighbors (up, down, left, right) of the given node.
+    // Diagonal movement is not allowed.
     std::vector<std::unique_ptr<PathNode>> NavigationGrid::GetNeighbors(PathNode* node)  {
         std::vector<std::unique_ptr<PathNode>> neighbors;
         for (int x = -1; x <= 1; ++x) {
@@ -341,11 +348,13 @@ void NavigationGrid::BuildGrid() {
 
     // --- AStarPather Implementation ---
 
+    // Manhattan distance heuristic — fast approximation of the remaining path cost.
     int AStarPather::Heuristic(const Vector2D& current, const Vector2D& goal) {
         // Manhattan distance 
         return static_cast<int>(std::abs(current.x - goal.x) + std::abs(current.y - goal.y));
     }
 
+    // Retraces the parent chain from the goal node back to start, producing an ordered path.
     std::vector<Vector2D> AStarPather::RetracePath(NavigationGrid& navGrid, PathNode* endNode) {
         std::vector<Vector2D> path;
         PathNode* currentNode = endNode;
@@ -357,6 +366,8 @@ void NavigationGrid::BuildGrid() {
         return path;
     }
 
+    // Runs A* pathfinding between two world-space positions.
+    // Returns an ordered list of world waypoints, or empty if no path exists.
     std::vector<Vector2D> AStarPather::FindPath(NavigationGrid& navGrid, Vector2D startWorld, Vector2D endWorld) {
         Vector2D startGrid = navGrid.WorldToGrid(startWorld);
         Vector2D endGrid = navGrid.WorldToGrid(endWorld);

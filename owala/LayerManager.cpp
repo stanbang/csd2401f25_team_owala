@@ -16,6 +16,7 @@
 
 namespace Framework {
 
+    // Registers all built-in render and collision layers on construction.
     LayerManager::LayerManager() {
         InitializeDefaultRenderLayers();
         InitializeDefaultCollisionLayers();
@@ -23,6 +24,7 @@ namespace Framework {
       
     }
 
+    // Registers the five built-in render layers: Background, Platform, Enemy, Player, UI.
     void LayerManager::InitializeDefaultRenderLayers() {
         // pre built layers for legacy layers
         renderLayers_.push_back(RenderLayerData("Background", -100, true));
@@ -32,6 +34,7 @@ namespace Framework {
         renderLayers_.push_back(RenderLayerData("UI", 200, true));
     }
 
+    // Registers the five built-in collision layers and builds the initial ID-to-index map.
     void LayerManager::InitializeDefaultCollisionLayers() {
         // built-in collision layers
         collisionLayers_.push_back(CollisionLayerData("Default", 0, true));
@@ -48,6 +51,8 @@ namespace Framework {
 
     // === Render Layer Management ===
 
+    // Adds a new render layer. Keeps the list sorted by renderOrder.
+    // Returns the new layer's index, or -1 if the name already exists.
     int LayerManager::AddRenderLayer(const std::string& name, int renderOrder) {
         if (RenderLayerNameExists(name)) {
             Logger::Get().Error(DebugType::Editor)
@@ -66,6 +71,8 @@ namespace Framework {
         return FindRenderLayerByName(name);
     }
 
+    // Removes a render layer by index. Built-in layers cannot be removed.
+    // Returns false if the index is out of range or the layer is built-in.
     bool LayerManager::RemoveRenderLayer(size_t index) {
         if (index >= renderLayers_.size()) return false;
 
@@ -80,6 +87,8 @@ namespace Framework {
         return true;
     }
 
+    // Renames a render layer and changes its draw order. Re-sorts the list afterward.
+    // Returns false if the index is invalid or the new name is already taken.
     bool LayerManager::UpdateRenderLayer(size_t index, const std::string& newName, int newOrder) {
         if (index >= renderLayers_.size()) return false;
 
@@ -102,6 +111,7 @@ namespace Framework {
         return true;
     }
 
+    // Linear search for a render layer by name. Returns its index, or -1 if not found.
     int LayerManager::FindRenderLayerByName(const std::string& name) const {
         for (size_t i = 0; i < renderLayers_.size(); ++i) {
             if (renderLayers_[i].name == name) {
@@ -111,6 +121,7 @@ namespace Framework {
         return -1;
     }
 
+    // Returns the draw order value for a named render layer, or 0 if it does not exist.
     int LayerManager::GetRenderOrderByName(const std::string& name) const {
         int idx = FindRenderLayerByName(name);
         if (idx >= 0) {
@@ -119,6 +130,7 @@ namespace Framework {
         return 0; // Default order
     }   
 
+    // Returns the name of the render layer with the given draw order, or empty string if not found.
     std::string LayerManager::GetRenderLayerNameByOrder(int renderOrder) const {
         for (const auto& layer : renderLayers_) {
             if (layer.renderOrder == renderOrder) {
@@ -128,12 +140,15 @@ namespace Framework {
         return ""; // Not found
     }
 
+    // Returns true if a render layer with the given name is already registered.
     bool LayerManager::RenderLayerNameExists(const std::string& name) const {
         return FindRenderLayerByName(name) >= 0;
     }
 
     // === Collision Layer Management ===
 
+    // Adds a new collision layer with the next available ID (0-31).
+    // Returns the assigned ID, or -1 if the name is taken or all 32 slots are used.
     int LayerManager::AddCollisionLayer(const std::string& name) {
         if (CollisionLayerNameExists(name)) {
             Logger::Get().Error(DebugType::Editor)
@@ -155,6 +170,8 @@ namespace Framework {
         return id;
     }
 
+    // Removes a collision layer by ID and rebuilds the index map.
+    // Built-in layers cannot be removed. Returns false if the ID is invalid.
     bool LayerManager::RemoveCollisionLayer(uint8_t id) {
         auto it = collisionIDToIndex_.find(id);
         if (it == collisionIDToIndex_.end()) return false;
@@ -180,6 +197,7 @@ namespace Framework {
         return true;
     }
 
+    // Renames a collision layer, rejecting the change if the new name is already taken.
     bool LayerManager::RenameCollisionLayer(uint8_t id, const std::string& newName) {
         auto it = collisionIDToIndex_.find(id);
         if (it == collisionIDToIndex_.end()) return false;
@@ -197,6 +215,7 @@ namespace Framework {
         return true;
     }
 
+    // Returns the ID of a collision layer by name, or -1 if not found.
     int LayerManager::FindCollisionLayerByName(const std::string& name) const {
         for (const auto& layer : collisionLayers_) {
             if (layer.name == name) {
@@ -206,6 +225,7 @@ namespace Framework {
         return -1;
     }
 
+    // Returns the name associated with a collision layer ID, or "Unknown" if not found.
     std::string LayerManager::GetCollisionLayerName(uint8_t id) const {
         auto it = collisionIDToIndex_.find(id);
         if (it != collisionIDToIndex_.end()) {
@@ -214,10 +234,12 @@ namespace Framework {
         return "Unknown";
     }
 
+    // Returns true if a collision layer with the given name is already registered.
     bool LayerManager::CollisionLayerNameExists(const std::string& name) const {
         return FindCollisionLayerByName(name) >= 0;
     }
 
+    // Finds the first unused collision ID in the range 0-31. Returns -1 if all slots are taken.
     int LayerManager::GetNextAvailableCollisionID() const {
         for (int i = 0; i < 32; ++i) {
             if (collisionIDToIndex_.find(static_cast<uint8_t>(i)) == collisionIDToIndex_.end()) {
@@ -227,6 +249,7 @@ namespace Framework {
         return -1;
     }
 
+    // Resizes and resets the internal collision matrix so all layer pairs collide by default.
     void LayerManager::RebuildCollisionMatrix() {
         size_t layerCount = collisionLayers_.size();
         collisionMatrix_.resize(layerCount);
@@ -236,6 +259,7 @@ namespace Framework {
         }
     }
 
+    // Sets the collision flag between two layers symmetrically (both directions match).
     void LayerManager::SetLayerCollision(uint8_t id1, uint8_t id2, bool canCollide) {
         auto it1 = collisionIDToIndex_.find(id1);
         auto it2 = collisionIDToIndex_.find(id2);
@@ -250,6 +274,7 @@ namespace Framework {
         }
     }
 
+    // Returns whether two collision layers are set to interact. Returns false if either ID is invalid.
     bool LayerManager::GetLayerCollision(uint8_t id1, uint8_t id2) const {
         auto it1 = collisionIDToIndex_.find(id1);
         auto it2 = collisionIDToIndex_.find(id2);
@@ -268,6 +293,8 @@ namespace Framework {
 
     // === Persistence ===
 
+    // Serializes all render layers, collision layers, and collision matrix to a JSON file.
+    // Returns false on IO error or exception.
     bool LayerManager::SaveToFile(const std::string& filepath, PhysicsSystem* physicsSystem) {
         try {
             rapidjson::Document doc;
@@ -308,6 +335,8 @@ namespace Framework {
         }
     }
 
+    // Loads render layers, collision layers, and collision matrix from a JSON file.
+    // If the file is missing, the defaults set in the constructor remain active.
     bool LayerManager::LoadFromFile(const std::string& filepath, PhysicsSystem* physicsSystem) {
         try {
             rapidjson::Document doc;
@@ -350,6 +379,7 @@ namespace Framework {
         }
     }
 
+    // Writes all render layer entries (name, order, flags) into a rapidjson array.
     void LayerManager::SerializeRenderLayers(rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc) const {
         for (const auto& layer : renderLayers_) {
             rapidjson::Value obj(rapidjson::kObjectType);
@@ -365,6 +395,7 @@ namespace Framework {
         }
     }
 
+    // Clears and rebuilds the render layer list from a rapidjson array.
     void LayerManager::DeserializeRenderLayers(const rapidjson::Value& inArray) {
         renderLayers_.clear();
 
@@ -389,6 +420,7 @@ namespace Framework {
         }
     }
 
+    // Writes all collision layer entries (name, id, flags) into a rapidjson array.
     void LayerManager::SerializeCollisionLayers(rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc) const {
         for (const auto& layer : collisionLayers_) {
             rapidjson::Value obj(rapidjson::kObjectType);
@@ -403,6 +435,7 @@ namespace Framework {
         }
     }
 
+    // Clears and rebuilds the collision layer list and ID map from a rapidjson array.
     void LayerManager::DeserializeCollisionLayers(const rapidjson::Value& inArray) {
         collisionLayers_.clear();
         collisionIDToIndex_.clear();
@@ -426,6 +459,8 @@ namespace Framework {
         }
     }
 
+    // Writes all unique layer-pair collision flags into a rapidjson array.
+    // Queries the PhysicsSystem for the current state of each pair.
     void LayerManager::SerializeCollisionMatrix(rapidjson::Value& outArray, rapidjson::Document::AllocatorType& alloc, 
         PhysicsSystem* physics) const {
         // For each pair of layers, save whether they collide
@@ -452,6 +487,7 @@ namespace Framework {
         }
     }
 
+    // Resets the matrix to all-collide, then applies each saved pair entry to the PhysicsSystem.
     void LayerManager::DeserializeCollisionMatrix(const rapidjson::Value& inArray, PhysicsSystem* physics) {
         // Rebuild matrix to default state first
         RebuildCollisionMatrix();

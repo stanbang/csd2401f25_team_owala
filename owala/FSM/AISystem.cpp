@@ -28,6 +28,7 @@
 
 namespace Framework {
 
+    // Builds the navigation grid and creates the FSM factory. Called once at system startup.
     void AISystem::Initialize() {
         navGrid_.BuildGrid();
         // Initialize the factory with the navigation grid
@@ -36,16 +37,21 @@ namespace Framework {
         Logger::Get().Info(DebugType::AISystem) << "AISystem initialized." << std::endl;
     }
 
+    // Shuts down the AI system. The FSM factory cleans up its own resources.
     void AISystem::Shutdown() {
         // Factory cleans itself up
     }
 
+    // Returns the first entity tagged as the player, or 0 if none is found.
     Entity AISystem::GetPlayer() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
         auto players = entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType);
         return players.empty() ? 0 : players[0];
     }
 
+    // Ticks every AI entity's FSM each frame.
+    // Handles periodic nav-grid rebuilds, freezes AI during world rotation,
+    // initializes newly spawned FSMs, and removes entities whose death animation has finished.
     void AISystem::Update() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
@@ -98,6 +104,8 @@ namespace Framework {
         }
     }
 
+    // Loads the FSM definition from JSON, initializes it, and applies any
+    // serialized state or initial-state override stored on the component.
     void AISystem::InitializeEntityFSM(Entity entity, FSMComponent& fsmComp, EntityStorage& ecs) {
         if (fsmComp.fsmDefinitionPath.empty()) {
             Logger::Get().Error(DebugType::AISystem) << "Entity [" << entity << "] has FSMComponent but no definition path!" << std::endl;
@@ -125,6 +133,7 @@ namespace Framework {
 
     // debug drawings
 #ifdef BUILD_EDITOR
+    // Editor-only: iterates all AI entities and draws their FSM state label if debug visualization is on.
     void AISystem::DrawDebug(CameraSystem* cameraSystem, ImDrawList* drawList, Editor::Editor* editor, Entity cameraToUse) {
         if (!debugVisualization) return;
 
@@ -146,6 +155,7 @@ namespace Framework {
         }
     }
 
+    // Editor-only: draws the current state name as a text label above a single AI entity.
     void AISystem::DrawFSMDebug(Entity entity, const FSMComponent& ai, const Vector2D& pos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) {
         
         (void)entity;
