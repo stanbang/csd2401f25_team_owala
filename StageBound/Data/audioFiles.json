@@ -79,6 +79,16 @@
     "Witch_Teleport": [
         "witch_teleport.wav"
     ],
+    "Witch_Attack": [
+        "Witch-Attack_1.wav",
+        "Witch-Attack_2.wav",
+        "Witch-Attack_3.wav"
+    ],
+    "Witch_Death": [
+        "Witch-Death_1.wav",
+        "Witch-Death_2.wav",
+        "Witch-Death_3.wav"
+    ],
     "Portal_Activate": [
         "portal_whoosh.wav"
     ]
