@@ -472,9 +472,9 @@ namespace {
 	void RefreshUI(Framework::EntityManager& entityMgr) {
 		if (levelData.empty()) return;
 
-		int n = static_cast<int>(levelData.size());
-		int prevIndex = (currentIndex - 1 + n) % n;
-		int nextIndex = (currentIndex + 1) % n;
+		//int n = static_cast<int>(levelData.size());
+		//int prevIndex = (currentIndex - 1 + n) % n;
+		//int nextIndex = (currentIndex + 1) % n;
 
 		// Left Ticket
 		SetTicketTexture(entityMgr, ui.ticketPrev, "SB_LevelSelection_EmptyTicket.png");
@@ -656,7 +656,7 @@ namespace LevelSelection {
 		if (!carousel.isAnimating) {
 			// Left Arrow Clicked
 			if (ConsumeClick(entityMgr, inputSystem, ui.arrowLeft)) {
-				int prevPrevIndex = (currentIndex - 2 + n) % n;
+				//int prevPrevIndex = (currentIndex - 2 + n) % n;
 
 				carousel.isAnimating = true;
 				carousel.direction = 1;

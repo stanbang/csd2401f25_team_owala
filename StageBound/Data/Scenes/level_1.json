@@ -4004,6 +4004,15 @@
                     "alpha": 1.0,
                     "override_uv": false
                 },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "RopeScript",
+                            "enabled": true,
+                            "execute_in_edit": true
+                        }
+                    ]
+                },
                 "SceneOwned": {
                     "scene_id": 9,
                     "sceneName": "Level 1"
@@ -5424,6 +5433,15 @@
                     "alpha": 1.0,
                     "override_uv": false
                 },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "RopeScript",
+                            "enabled": true,
+                            "execute_in_edit": true
+                        }
+                    ]
+                },
                 "SceneOwned": {
                     "scene_id": 9,
                     "sceneName": "Level 1"
@@ -5764,6 +5782,15 @@
                     "flip_x": false,
                     "alpha": 1.0,
                     "override_uv": false
+                },
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "RopeScript",
+                            "enabled": true,
+                            "execute_in_edit": true
+                        }
+                    ]
                 },
                 "SceneOwned": {
                     "scene_id": 9,

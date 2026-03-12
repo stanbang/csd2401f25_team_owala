@@ -88,5 +88,8 @@
         "Witch-Death_1.wav",
         "Witch-Death_2.wav",
         "Witch-Death_3.wav"
+    ],
+    "Portal_Activate": [
+        "portal_whoosh.wav"
     ]
 }
