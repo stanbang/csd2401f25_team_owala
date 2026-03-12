@@ -126,6 +126,7 @@ void Portal::OnUpdate() {
 				Vector2D position = entityMgr.GetComponent<Transform>(self).position;
 				// Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
 				MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
+				MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f });
 			}
 
 			if (interactTimer >= 1.5f) {
@@ -144,6 +145,7 @@ void Portal::OnUpdate() {
 				audioSystem.stopAll();
 				save->Unlock(levelIndexToUnlock);
 				MessageBus::Instance().Publish(LevelClearEvent{});
+
 			}
 		} else {
 			playExitVFX = true; // Reset the VFX flag if player releases the key before completion.

@@ -313,7 +313,7 @@ namespace Framework {
 		if (FileIOSystem::LoadSceneAssets(scenesData)) {
 			for (const rapidjson::Value& val : scenesData.GetArray()) {
 				std::string sceneName = val[Serialization::SCENE_ASSET_NAME].GetString();
-				SceneGUID sceneID = sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
+				sceneMgr.CreateSceneAsset(sceneName, val[Serialization::SCENE_ASSET_PATH].GetString());
 			}
 		}
 		else {
