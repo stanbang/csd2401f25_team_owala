@@ -1,5 +1,10 @@
 /*****************************************************************//**
  * \file   GameConfig.h
+ * 
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ * 
  * \brief  Lightweight header for GameManager::GameConfig so that
  *         low-level systems (e.g. FileIOSystem) can reference the
  *         struct without pulling in the full GameManager header and
