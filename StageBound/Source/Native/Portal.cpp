@@ -155,14 +155,20 @@ void Portal::OnCreate() {
     // Cache the levelIndex to unlock depending on the current level the portal is in.
     std::string sceneName = SceneManager::GetInstance().GetActiveScene().name;
 
-    if (sceneName == "Tutorial 2") {
+    if (sceneName == "Tutorial 1") {
+        levelIndexToUnlock = 2;
+    }
+    else if (sceneName == "Tutorial 2") {
         levelIndexToUnlock = 3;
     }
     else if (sceneName == "Level 1") {
         levelIndexToUnlock = 4;
     }
-    else {
-        levelIndexToUnlock = 2;
+    else if (sceneName == "Level 2") {
+        levelIndexToUnlock = 5;
+    }
+    else if (sceneName == "Level 3") {
+        levelIndexToUnlock = 6;
     }
 }
 

@@ -1,0 +1,33 @@
+{
+    "frame_count": 12,
+    "frame_duration": 0.13330000638961792,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_CutScene_02_Spritesheet01.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet02.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet03.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet04.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet05.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet06.png",
+            "count": 2
+        }
+    ],
+    "frameEvents": {}
+}

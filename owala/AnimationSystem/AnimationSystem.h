@@ -27,5 +27,8 @@ namespace Framework {
 		void Initialize() override {}
 		void Update() override;
 		void Shutdown() override;
+
+		// Resets the animation back to its first frame
+		static void ResetAnimation(AnimationComponent& animComp);
 	};
 } // namespace Framework
