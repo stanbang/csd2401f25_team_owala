@@ -18,6 +18,7 @@
 #include "EntityStorage.h"
 #include "InputSystem.h"
 #include "PhysicsSystem.h"
+#include "SceneManager.h"
 #include <Transformation.h>
 
 namespace Framework {
@@ -63,5 +64,6 @@ namespace Framework {
 		PlayerStats m_stats;
 		bool m_deathEventFired = false;
 		bool m_lvlClearEventFired = false;
+		std::unordered_set<SceneGUID> m_spawnedScenes; // Track scenes where player was already spawned
 	};
 } // namespace Framework

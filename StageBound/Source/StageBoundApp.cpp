@@ -13,9 +13,6 @@
 #include "CutsceneIntro.h"
 #include "HowToPlay.h"
 #include "TransitionController.h"
-#include "TestScene.h"
-#include "MessageBus.h"
-#include "GameMessages.h"
 
 namespace Framework {
 
@@ -70,14 +67,11 @@ namespace Framework {
             RegisterScene("SplashScreen", SplashScreen::Initialize, SplashScreen::Update, SplashScreen::Free);
             RegisterScene("CutsceneIntro", CutsceneIntro::Initialize, CutsceneIntro::Update, CutsceneIntro::Free);
             RegisterScene("HowToPlay", HowToPlay::Initialize, HowToPlay::Update, HowToPlay::Free);
-        
-            // Gameplay levels - TestScene handles camera setup, player spawn, etc.
-            RegisterScene("Tutorial 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
-            RegisterScene("Tutorial 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
-            RegisterScene("Level 1", TestScene::Initialize, TestScene::Update, TestScene::Free);
-            RegisterScene("Level 2", TestScene::Initialize, TestScene::Update, TestScene::Free);
-            RegisterScene("Level 3", TestScene::Initialize, TestScene::Update, TestScene::Free);
-            RegisterScene("Level 4", TestScene::Initialize, TestScene::Update, TestScene::Free);
+
+            // Gameplay levels (Tutorial 1-2, Level 1-4) no longer need explicit
+            // registration — the engine auto-detects Camera + Player entities and
+            // configures camera follow. Player spawn is handled by PlayerSystem
+            // via LevelStartEvent.
 
             // Now that config and callbacks are set, load the startup scene.
             // In editor mode the editor manages scene loading — skip this.
