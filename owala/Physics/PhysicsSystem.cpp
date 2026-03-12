@@ -28,7 +28,7 @@ namespace Framework {
     // ----- Layer Collision Functions ------- //
 
      // Constants for edge handling for level editor
-    static constexpr float EDGE_TOLERANCE = 1.0f;      // width tolerance
+    static constexpr float EDGE_TOLERANCE = 0.1f;      // push-out tolerance (keep below gravity pull per frame ~0.27px)
     static constexpr float VELOCITY_THRESHOLD = 5.0f;  // Min velocity to count as moving into
     static constexpr float EDGE_BIAS = 3.0f;           // Prefer vertical resolution on edges
 
@@ -699,7 +699,18 @@ namespace Framework {
             // Calculate biased overlaps (favor vertical for platformers)
             float biasedMinOverlapY = minOverlapY - EDGE_BIAS;
 
-            if (biasedMinOverlapY < minOverlapX) {
+            // Edge landing: when a falling player clips the side edge of a platform,
+            // horizontal resolution can win one frame then vertical the next, causing
+            // a fall/land jitter loop. Override to vertical when the player is near
+            // the top surface and the overlaps are close enough to be ambiguous.
+            bool isEdgeLanding = false;
+            if (biasedMinOverlapY >= minOverlapX && entityMgr.HasComponent(dynE, PlayerStateType)) {
+                isEdgeLanding = (overlapBottom < overlapTop) &&
+                                (overlapBottom <= minOverlapX + EDGE_BIAS * 3) &&
+                                (dynVel.y <= 0);
+            }
+
+            if (biasedMinOverlapY < minOverlapX || isEdgeLanding) {
                 // VERTICAL COLLISION
                 if (overlapTop < overlapBottom) {
                     // Hit ceiling
