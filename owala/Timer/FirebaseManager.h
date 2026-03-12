@@ -10,9 +10,18 @@ namespace Framework {
         std::string name;
         float       time = 0.0f;
         long long   timestamp = 0;
-        std::string level;  // Add this field
+        std::string level;
     };
 
+    // -------------------------------------------------------------------------
+    // FirebaseManager  (Engine layer)
+    //
+    // Handles raw HTTP communication with Firebase Realtime Database.
+    // It knows nothing about player names, game state flags, or scene names.
+    // All that context is passed in explicitly by the caller (game code).
+    //
+    // Configure the database URL via SetDatabaseUrl() at startup before use.
+    // -------------------------------------------------------------------------
     class FirebaseManager {
     public:
         static FirebaseManager& Get() {
@@ -20,28 +29,29 @@ namespace Framework {
             return instance;
         }
 
-        // Submit a run time to Firebase (non-blocking, runs on background thread)
-        void SubmitRun(const std::string& levelName, float timeSeconds);
+        // Call once at startup with your project's Realtime Database URL.
+        void SetDatabaseUrl(const std::string& url) { m_databaseUrl = url; }
 
-        // Fetch leaderboard for a level (non-blocking, results via callback)
+        // Submit a named run. playerName and levelName are provided explicitly
+        // by game code - FirebaseManager does not look them up itself.
+        void SubmitRun(const std::string& levelName,
+            const std::string& playerName,
+            float              timeSeconds);
+
+        // Fetch leaderboard for a level (non-blocking, results via callback).
         void FetchLeaderboard(const std::string& levelName,
             std::function<void(std::vector<LeaderboardEntry>)> onComplete);
 
-        // Call this every frame from your game loop to dispatch callbacks to main thread
+        // Call every frame from your game loop to dispatch callbacks to main thread.
         void Update();
 
     private:
         FirebaseManager() = default;
 
-        // Your Firebase Realtime Database URL
-        static constexpr const char* FIREBASE_URL =
-            "https://stagebound-1547b-default-rtdb.asia-southeast1.firebasedatabase.app/";
+        std::string m_databaseUrl;   // Set via SetDatabaseUrl()
 
-        static std::string GetMachineName();
-
-        // Pending callbacks to fire on main thread
         std::mutex m_mutex;
         std::vector<std::function<void()>> m_pendingCallbacks;
     };
 
-}
+} // namespace Framework

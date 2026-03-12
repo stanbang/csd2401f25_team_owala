@@ -455,6 +455,8 @@ namespace Framework{
 
 		// Visual effect: active attack circle radius (0 = none)
 		float attackCircleRadius = 0.0f;
+		// Texture key for attack circle sprite (empty = fallback to red line circle)
+		std::string attackCircleTextureKey;
 	};
 
 	// Particle Component
@@ -547,19 +549,4 @@ namespace Framework{
 		int lifeNum{};
 	};
 
-	struct RopeComponent {
-		Entity      attachedPlatform = 0;
-		std::string textureKey = "SB_PlatformRope.png";
-		float       originalLength = 0.0f;
-		float       currentLength = 0.0f;
-		Vector2D    ceilingAttachmentPoint = { 0.0f, 0.0f }; 
-		Vector2D    platformAttachmentPoint = { 0.0f, 0.0f }; 
-		bool        isActive = true;
-		float       ropeWidth = 0.0f;
-		float       segmentHeight = 20.0f;
-		int         ropeIndex = 0; 
-		bool        hasFoundCeiling = false;
-
-		RopeComponent() = default;
-	};
 }

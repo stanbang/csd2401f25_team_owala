@@ -4,9 +4,8 @@
 #include <thread>
 #include <chrono>
 #include <sstream>
-#include "PlayerNameManager.h"
-#include "GameStateFlags.h"
-#include "Logger.h"          // Add this include
+#include "Logger.h"
+
 // RapidJSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -33,7 +32,6 @@ namespace Framework {
         const std::string& body = "")
     {
         std::string result;
-
 #ifdef _WIN32
         URL_COMPONENTS uc = {};
         uc.dwStructSize = sizeof(uc);
@@ -42,26 +40,24 @@ namespace Framework {
         wchar_t host[256] = {};
         wchar_t urlPath[1024] = {};
 
-        uc.lpszScheme = scheme;   uc.dwSchemeLength = _countof(scheme);
-        uc.lpszHostName = host;     uc.dwHostNameLength = _countof(host);
-        uc.lpszUrlPath = urlPath;  uc.dwUrlPathLength = _countof(urlPath);
+        uc.lpszScheme = scheme;  uc.dwSchemeLength = _countof(scheme);
+        uc.lpszHostName = host;    uc.dwHostNameLength = _countof(host);
+        uc.lpszUrlPath = urlPath; uc.dwUrlPathLength = _countof(urlPath);
 
         std::wstring wurl(url.begin(), url.end());
         if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc)) return result;
 
         bool isHttps = (uc.nScheme == INTERNET_SCHEME_HTTPS);
 
-        HINTERNET hSession = WinHttpOpen(
-            L"owala/1.0",
+        HINTERNET hSession = WinHttpOpen(L"owala/1.0",
             WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            WINHTTP_NO_PROXY_NAME,
-            WINHTTP_NO_PROXY_BYPASS, 0);
+            WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
         if (!hSession) return result;
 
         HINTERNET hConnect = WinHttpConnect(hSession, host, uc.nPort, 0);
         if (!hConnect) { WinHttpCloseHandle(hSession); return result; }
 
-        DWORD flags = isHttps ? WINHTTP_FLAG_SECURE : 0;
+        DWORD     flags = isHttps ? WINHTTP_FLAG_SECURE : 0;
         HINTERNET hRequest = WinHttpOpenRequest(
             hConnect, method.c_str(), urlPath,
             nullptr, WINHTTP_NO_REFERER,
@@ -75,20 +71,16 @@ namespace Framework {
         if (!body.empty()) {
             WinHttpAddRequestHeaders(hRequest,
                 L"Content-Type: application/json",
-                (ULONG)-1L,
-                WINHTTP_ADDREQ_FLAG_ADD);
+                (ULONG)-1L, WINHTTP_ADDREQ_FLAG_ADD);
         }
 
-        BOOL sent = WinHttpSendRequest(
-            hRequest,
+        BOOL sent = WinHttpSendRequest(hRequest,
             WINHTTP_NO_ADDITIONAL_HEADERS, 0,
             body.empty() ? nullptr : (LPVOID)body.c_str(),
-            (DWORD)body.size(),
-            (DWORD)body.size(), 0);
+            (DWORD)body.size(), (DWORD)body.size(), 0);
 
         if (sent) {
             WinHttpReceiveResponse(hRequest, nullptr);
-
             DWORD bytesAvail = 0;
             while (WinHttpQueryDataAvailable(hRequest, &bytesAvail) && bytesAvail > 0) {
                 std::string chunk(bytesAvail, '\0');
@@ -108,57 +100,26 @@ namespace Framework {
 
     // -----------------------------------------------------------------------
 
-    std::string FirebaseManager::GetMachineName() {
-#ifdef _WIN32
-        char buf[256] = {};
-        DWORD len = sizeof(buf);
-        GetComputerNameA(buf, &len);
-        return std::string(buf);
-#else
-        return "unknown";
-#endif
-    }
-
-    // Updated section only — replace SubmitRun() in your FirebaseManager.cpp
-
-    // Add this include at the top of FirebaseManager.cpp:
-    //   #include "PlayerNameManager.h"
-
-    void FirebaseManager::SubmitRun(const std::string& levelName, float timeSeconds) {
+    void FirebaseManager::SubmitRun(const std::string& levelName,
+        const std::string& playerName,
+        float              timeSeconds)
+    {
         Logger::Get().Info(DebugType::FireBaseManager)
-            << "[Firebase] ===== SUBMIT RUN CALLED =====" << std::endl;
-        Logger::Get().Info(DebugType::FireBaseManager)
-            << "[Firebase] Level: " << levelName << ", Time: " << timeSeconds << "s" << std::endl;
+            << "[Firebase] SubmitRun - level: " << levelName
+            << "  player: " << playerName
+            << "  time: " << timeSeconds << "s" << std::endl;
 
-        // CRITICAL: Check if the player wanted to record this time
-        Logger::Get().Info(DebugType::FireBaseManager)
-            << "[Firebase] GameStateFlags::shouldRecordTime = "
-            << (GameStateFlags::shouldRecordTime ? "true" : "false") << std::endl;
-
-        if (!GameStateFlags::shouldRecordTime) {
+        if (m_databaseUrl.empty()) {
             Logger::Get().Info(DebugType::FireBaseManager)
-                << "[Firebase] Skipping submission - player chose not to record" << std::endl;
+                << "[Firebase] ERROR - database URL not set. Call SetDatabaseUrl() at startup." << std::endl;
             return;
         }
 
-        // Use player's chosen name; fall back to machine name if none set
-        std::string playerName = Framework::PlayerNameManager::Get().HasName()
-            ? Framework::PlayerNameManager::Get().GetName()
-            : GetMachineName();
-
-        Logger::Get().Info(DebugType::FireBaseManager)
-            << "[Firebase] Player name: '" << playerName << "'" << std::endl;
-
-        // Don't submit if name is empty
         if (playerName.empty()) {
             Logger::Get().Info(DebugType::FireBaseManager)
-                << "[Firebase] Skipping submission - player name is empty" << std::endl;
+                << "[Firebase] Skipping - player name is empty." << std::endl;
             return;
         }
-
-        Logger::Get().Info(DebugType::FireBaseManager)
-            << "[Firebase] Submitting run for level: " << levelName
-            << ", player: " << playerName << ", time: " << timeSeconds << "s" << std::endl;
 
         auto now = std::chrono::system_clock::now().time_since_epoch();
         long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(now).count();
@@ -175,37 +136,32 @@ namespace Framework {
         std::string payload = sb.GetString();
 
         // URL: /leaderboard/{levelName}/{playerName}/{timestamp}.json
-        std::string url = std::string(FIREBASE_URL)
+        std::string url = m_databaseUrl
             + "/leaderboard/" + levelName
             + "/" + playerName
             + "/" + std::to_string(timestamp) + ".json";
 
         Logger::Get().Info(DebugType::FireBaseManager)
-            << "[Firebase] Sending to URL: " << url << std::endl;
+            << "[Firebase] PUT -> " << url << std::endl;
 
         std::thread([url, payload]() {
-            std::string response = WinHttpRequest(url, L"PUT", payload);
-            // We can't use Logger here because it might not be thread-safe
-            // But we could print to console directly for debugging
-            // OutputDebugStringA(("[Firebase] Response: " + response + "\n").c_str());
+            WinHttpRequest(url, L"PUT", payload);
             }).detach();
     }
+
     void FirebaseManager::FetchLeaderboard(const std::string& levelName,
         std::function<void(std::vector<LeaderboardEntry>)> onComplete)
     {
-        // URL: /leaderboard/{levelName}.json — fetch only this level's entries
-        std::string url = std::string(FIREBASE_URL)
-            + "/leaderboard/" + levelName + ".json";
+        std::string url = m_databaseUrl + "/leaderboard/" + levelName + ".json";
 
-        std::thread([this, url, levelName, onComplete]() {
+        std::thread([this, url, onComplete]() {
             std::string response = WinHttpRequest(url, L"GET");
             if (response.empty()) return;
 
-            // Structure: { "MACHINENAME": { "timestamp": { name, level, time, timestamp } } }
             std::vector<LeaderboardEntry> entries;
-
             rapidjson::Document doc;
             doc.Parse(response.c_str());
+
             if (doc.IsObject()) {
                 for (auto& machine : doc.GetObject()) {
                     if (!machine.value.IsObject()) continue;
@@ -225,7 +181,6 @@ namespace Framework {
                 }
             }
 
-            // Sort by time ascending (fastest first)
             std::sort(entries.begin(), entries.end(),
                 [](const LeaderboardEntry& a, const LeaderboardEntry& b) {
                     return a.time < b.time;
@@ -247,4 +202,4 @@ namespace Framework {
         for (auto& cb : toFire) cb();
     }
 
-}
+} // namespace Framework

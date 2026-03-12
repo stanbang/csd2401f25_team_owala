@@ -45,7 +45,7 @@ void NameEntryScript::OnCreate() {
     // Load any previously saved name from disk.
     Framework::PlayerNameManager::Get().Load();
 
-    // Overlay starts hidden — Open() is called by the Select button script.
+    // Overlay starts hidden ? Open() is called by the Select button script.
     m_active = false;
 
     EntityStorage& ecs = GameManager::GetInstance().GetECS();

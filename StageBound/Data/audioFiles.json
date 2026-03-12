@@ -48,7 +48,11 @@
         "Eli-Death_6.wav"
     ],
     "Platform_Land": [
-        "platform_land.wav"
+        "Stone Drop_1.wav",
+        "Stone Drop_2.wav",
+        "Stone Drop_3.wav",
+        "Stone Drop_4.wav",
+        "Stone Drop_5.wav"
     ],
     "Stage_Rotate": [
         "Room-Rotation SFX_1.wav",
@@ -67,7 +71,18 @@
         "bird_wake.wav"
     ],
     "Bird_Fly": [
-        "bird_flying.wav"
+        "Wing-Flap_1.wav",
+        "Wing-Flap_2.wav",
+        "Wing-Flap_3.wav",
+        "Wing-Flap_4.wav",
+        "Wing-Flap_5.wav",
+        "Wing-Flap_6.wav",
+        "Wing-Flap_7.wav",
+        "Wing-Flap_8.wav",
+        "Wing-Flap_9.wav",
+        "Wing-Flap_10.wav",
+        "Wing-Flap_11.wav",
+        "Wing-Flap_12.wav"
     ],
     "Bird_Attack": [
         "bird_attack.wav",
@@ -78,6 +93,16 @@
     ],
     "Witch_Teleport": [
         "witch_teleport.wav"
+    ],
+    "Witch_Attack": [
+        "Witch-Attack_1.wav",
+        "Witch-Attack_2.wav",
+        "Witch-Attack_3.wav"
+    ],
+    "Witch_Death": [
+        "Witch-Death_1.wav",
+        "Witch-Death_2.wav",
+        "Witch-Death_3.wav"
     ],
     "Portal_Activate": [
         "portal_whoosh.wav"

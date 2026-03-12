@@ -251,19 +251,4 @@ namespace Framework::Serialization {
 	static constexpr const char* PERSISTENT_TAG = "PersistentTag";
 	static constexpr const char* ACTIVE_TAG = "ActiveTag";
 	static constexpr const char* SPAWN_PT_TAG = "SpawnPointTag";
-
-	// Component type strings
-	static constexpr const char* ROPE_COMPONENT = "RopeComponent";
-
-	// Rope component fields
-	static constexpr const char* ROPE_ATTACHED_PLATFORM = "attached_platform";
-	static constexpr const char* ROPE_TEXTURE_KEY = "texture_key";
-	static constexpr const char* ROPE_ORIGINAL_LENGTH = "original_length";
-	static constexpr const char* ROPE_CURRENT_LENGTH = "current_length";
-	static constexpr const char* ROPE_CEILING_ATTACHMENT = "ceiling_attachment_point";
-	static constexpr const char* ROPE_PLATFORM_ATTACHMENT = "platform_attachment_point";
-	static constexpr const char* ROPE_IS_ACTIVE = "is_active";
-	static constexpr const char* ROPE_WIDTH = "rope_width";
-	static constexpr const char* ROPE_SEGMENT_HEIGHT = "segment_height";
-	static constexpr const char* ROPE_INDEX = "rope_index";          // 0=left/single, 1=right
 }
