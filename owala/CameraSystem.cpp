@@ -64,7 +64,7 @@ namespace Framework {
                 continue;
             }
 
-            // Keep square coordinates � no aspect ratio scaling
+            // Keep square coordinates - no aspect ratio scaling
             camera.size.x = 2.0f * camera.zoom * camera.aspectRatio;
             camera.size.y = 2.0f * camera.zoom;
 

@@ -339,6 +339,7 @@ namespace Editor {
 		void DrawAnimationInspector(Entity entity);
 		void DrawAudioInspector(Entity entity);
 		void DrawButtonInspector(Entity entity);
+		void DrawCameraInspector(Entity entity);
 
 		// Popup Related
 		std::string popupMsg;

@@ -2926,6 +2926,11 @@ namespace Editor {
 			break;
 		}
 
+		case ComponentType::CameraType: {
+			DrawCameraInspector(selectedEntity);
+			break;
+		}
+
 		case ComponentType::NativeScriptsComponentType: {
 			NativeScriptsComponent& comp = entityMgr.GetComponent<NativeScriptsComponent>(selectedEntity);
 
@@ -8222,6 +8227,157 @@ namespace Editor {
 		if (!activeNow && editSession.wasItemActive) {
 			std::stringstream ss;
 			ss << "Modified Button Data in " << entityMgr.GetProperties(entity).name << std::endl;
+			editSession.End(entity, compType, ss.str(), historyManager_);
+		}
+
+		editSession.wasItemActive = activeNow;
+	}
+
+	void Editor::DrawCameraInspector(Entity entity) {
+		using namespace Framework;
+		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
+		EntityManager entityMgr(*ecs);
+		Camera& cam = entityMgr.GetComponent<Camera>(entity);
+		ComponentType compType = ComponentType::CameraType;
+
+		bool activeNow = false;
+
+		// --- Is Active ---
+		bool isActiveCopy = cam.isActive;
+		if (ImGui::Checkbox("Is Active", &isActiveCopy)) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			cam.isActive = isActiveCopy;
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON)
+				historyManager_.RecordModifyComponent(entity, "Modified Camera IsActive", beforeJSON, afterJSON, compType);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("When enabled, this is the camera used for rendering during gameplay.");
+
+		// --- Is Editor Controlled ---
+		bool editorCtrlCopy = cam.isEditorControlled;
+		if (ImGui::Checkbox("Editor Controlled", &editorCtrlCopy)) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			cam.isEditorControlled = editorCtrlCopy;
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON)
+				historyManager_.RecordModifyComponent(entity, "Modified Camera EditorControlled", beforeJSON, afterJSON, compType);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("When enabled, the game cannot move this camera (reserved for the level editor camera).");
+
+		ImGui::Separator();
+
+		// --- Position (read-only, driven by system) ---
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		ImGui::InputFloat2("Position", &cam.position.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::PopStyleColor(2);
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("World-space position the camera is looking at. Updated at runtime by the follow system.");
+
+		// --- Size (read-only, driven by zoom) ---
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		ImGui::InputFloat2("Size (W, H)", &cam.size.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::PopStyleColor(2);
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Visible world-space area (width x height). Controlled by Zoom.");
+
+		// --- Zoom ---
+		float zoomCopy = cam.zoom;
+		if (ImGui::DragFloat("Zoom", &zoomCopy, 1.0f, 1.0f, 10000.0f, "%.1f")) {
+			if (cameraSystem_) cameraSystem_->SetZoom(entity, zoomCopy);
+			activeNow = true;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Higher values zoom out (more world visible). Lower values zoom in.");
+
+		// --- Aspect Ratio (read-only, driven by viewport) ---
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+		ImGui::InputFloat("Aspect Ratio", &cam.aspectRatio, 0.f, 0.f, "%.4f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::PopStyleColor(2);
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Width / Height ratio, set automatically from the viewport.");
+
+		ImGui::Separator();
+		ImGui::SeparatorText("Follow Target");
+
+		// --- Target Entity ---
+		int targetInt = static_cast<int>(cam.targetEntity);
+		if (ImGui::InputInt("Target Entity ID", &targetInt)) {
+			if (targetInt < 0) targetInt = 0;
+			activeNow = true;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Entity ID to follow. Set to 0 to disable camera following.");
+
+		// --- Follow Speed ---
+		float followSpeedCopy = cam.followSpeed;
+		if (ImGui::DragFloat("Follow Speed", &followSpeedCopy, 0.1f, 0.0f, 100.0f, "%.2f")) {
+			activeNow = true;
+		}
+		if (ImGui::IsItemActive()) activeNow = true;
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Interpolation speed toward the target entity. 0 = instant snap.");
+
+		// Apply follow target changes together
+		if (!activeNow && editSession.wasItemActive) {
+			cam.targetEntity = static_cast<uint32_t>(targetInt);
+			cam.followSpeed = followSpeedCopy;
+		}
+		else if (activeNow) {
+			cam.targetEntity = static_cast<uint32_t>(targetInt);
+			cam.followSpeed = followSpeedCopy;
+		}
+
+		ImGui::Separator();
+		ImGui::SeparatorText("Map Bounds");
+
+		// --- Use Map Bounds ---
+		bool useBoundsCopy = cam.useMapBounds;
+		if (ImGui::Checkbox("Use Map Bounds", &useBoundsCopy)) {
+			std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			cam.useMapBounds = useBoundsCopy;
+			std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+			if (beforeJSON != afterJSON)
+				historyManager_.RecordModifyComponent(entity, "Modified Camera UseMapBounds", beforeJSON, afterJSON, compType);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Clamps the camera position so it never shows beyond the map boundaries.");
+
+		if (cam.useMapBounds) {
+			if (ImGui::DragFloat("Min X", &cam.mapMinX, 1.0f, -10000.0f, cam.mapMaxX, "%.1f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::DragFloat("Max X", &cam.mapMaxX, 1.0f, cam.mapMinX, 10000.0f, "%.1f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::DragFloat("Min Y", &cam.mapMinY, 1.0f, -10000.0f, cam.mapMaxY, "%.1f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+			if (ImGui::DragFloat("Max Y", &cam.mapMaxY, 1.0f, cam.mapMinY, 10000.0f, "%.1f")) activeNow = true;
+			if (ImGui::IsItemActive()) activeNow = true;
+
+			ImGui::Spacing();
+			if (ImGui::Button("Auto-Fit Bounds from Platforms")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (cameraSystem_) cameraSystem_->CalculateAndSetBoundsFromPlatforms(entity);
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON)
+					historyManager_.RecordModifyComponent(entity, "Auto-Fit Camera Bounds", beforeJSON, afterJSON, compType);
+			}
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Automatically calculates map bounds from all platform entities in the scene.");
+		}
+
+		// History tracking
+		if (activeNow && !editSession.wasItemActive)
+			editSession.Begin(entity, compType);
+
+		if (!activeNow && editSession.wasItemActive) {
+			std::stringstream ss;
+			ss << "Modified Camera in " << entityMgr.GetProperties(entity).name << std::endl;
 			editSession.End(entity, compType, ss.str(), historyManager_);
 		}
 
