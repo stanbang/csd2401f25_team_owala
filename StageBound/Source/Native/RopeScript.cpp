@@ -19,8 +19,63 @@
 #include "TransformationSystem.h"
 #include "Logger.h"
 #include "SceneManager.h"
+#include "FileUtility.h"
 
 REGISTER_SCRIPT(RopeScript, "RopeScript")
+namespace {
+    struct RopePrefabData {
+        std::string textureKey = "SB_PlatformRope.png";
+        float halfWidth = 100.0f;
+        int collisionLayer = static_cast<int>(CollisionLayer::Default);
+        int renderLayer = static_cast<int>(RenderLayer::Platform);
+    };
+
+    const RopePrefabData& GetRopePrefabData() {
+        static RopePrefabData data;
+        static bool loaded = false;
+        if (loaded) return data;
+        loaded = true;
+
+        rapidjson::Document doc;
+        const char* paths[] = {
+            "StageBound/Data/Prefabs/TrapPlatforms/PlatformRope.json",
+            "Data/Prefabs/TrapPlatforms/PlatformRope.json"
+        };
+
+        for (const char* path : paths) {
+            if (!FileIOSystem::ReadFile(path, doc) || !doc.IsObject()) {
+                continue;
+            }
+
+            if (doc.HasMember("components") && doc["components"].IsObject()) {
+                const auto& comps = doc["components"];
+
+                if (comps.HasMember("TextureComponent") && comps["TextureComponent"].IsObject()) {
+                    const auto& tex = comps["TextureComponent"];
+                    if (tex.HasMember("texture_key") && tex["texture_key"].IsString()) {
+                        data.textureKey = tex["texture_key"].GetString();
+                    }
+                    if (tex.HasMember("half_size") && tex["half_size"].IsObject()) {
+                        const auto& hs = tex["half_size"];
+                        if (hs.HasMember("x") && hs["x"].IsNumber()) {
+                            data.halfWidth = hs["x"].GetFloat();
+                        }
+                    }
+                }
+            }
+
+            if (doc.HasMember("layer") && doc["layer"].IsInt()) {
+                data.collisionLayer = doc["layer"].GetInt();
+            }
+            if (doc.HasMember("render_layer") && doc["render_layer"].IsInt()) {
+                data.renderLayer = doc["render_layer"].GetInt();
+            }
+            break;
+        }
+
+        return data;
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Lifecycle Methods
@@ -96,6 +151,7 @@ void RopeScript::OnUpdate() {
     for (auto it = ropeEntities_.begin(); it != ropeEntities_.end();) {
         Entity rope = *it;
         if (!entityMgr->ValidateEntity(rope)) {
+            ropeRuntimeData_.erase(rope);
             it = ropeEntities_.erase(it);
         }
         else {
@@ -178,9 +234,18 @@ void RopeScript::RemoveAllRopes() {
     EntityManager* entityMgr = GetEntityManager();
     if (!entityMgr) return;
 
-    for (const Entity& rope : entityMgr->GetAllEntitiesWithComponent(false, RopeComponentType)) {
-        RopeComponent& rc = entityMgr->GetComponent<RopeComponent>(rope);
-        if (rc.attachedPlatform == platformEntity_) {
+    const std::string ropeNamePrefix = "_" + std::to_string(platformEntity_) + "_Rope";
+    std::vector<Entity> ropesToDestroy;
+    for (const Entity& e : entityMgr->GetAllEntities()) {
+        if (!entityMgr->ValidateEntity(e)) continue;
+        const EntityProperties& props = entityMgr->GetProperties(e);
+        if (props.name.find(ropeNamePrefix) != std::string::npos) {
+            ropesToDestroy.push_back(e);
+        }
+    }
+
+    for (Entity rope : ropesToDestroy) {
+        if (entityMgr->ValidateEntity(rope)) {
             entityMgr->DestroyEntity(rope);
         }
     }
@@ -190,9 +255,10 @@ void RopeScript::RemoveAllRopes() {
             entityMgr->DestroyEntity(rope);
         }
     }
-    ropeEntities_.clear();
-}
 
+    ropeEntities_.clear();
+    ropeRuntimeData_.clear();
+}
 void RopeScript::CreateSingleRope(int ropeIndex) {
     EntityManager* entityMgr = GetEntityManager();
     if (!entityMgr) return;
@@ -248,7 +314,7 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     else {
         float attachX = dynamicAnchor.x;
         float attachY = dynamicAnchor.y;
-        float fallbackWallX = attachX - ROPE_OVERHEAD;
+        float fallbackWallX = attachX - HORIZONTAL_FALLBACK_LENGTH;
         float wallX = FindWallAnchorX(*entityMgr, attachY, attachX, fallbackWallX);
         fixedAnchor = Vector2D(wallX, attachY);
     }
@@ -264,11 +330,13 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     Entity rope = entityMgr->CreateEntity();
     Logger::Get().Info(DebugType::Unknown) << "Created rope entity ID: " << rope << std::endl;
 
-    // Set properties
+    // Set properties from PlatformRope prefab data
+    const RopePrefabData& ropePrefab = GetRopePrefabData();
+
     EntityProperties& props = entityMgr->GetProperties(rope);
-    props.name = platformType_ + (ropeIndex == 0 ? "_RopeL" : "_RopeR");
-    props.renderLayer = RenderLayer::Platform;
-    props.layer = CollisionLayer::Default;
+    props.name = platformType_ + "_" + std::to_string(platformEntity_) + (ropeIndex == 0 ? "_RopeL" : "_RopeR");
+    props.renderLayer = static_cast<RenderLayer>(ropePrefab.renderLayer);
+    props.layer = static_cast<CollisionLayer>(ropePrefab.collisionLayer);
     props.isActive = true;
 
     entityMgr->AddComponent(rope, LoadedTag{});
@@ -277,21 +345,22 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
         entityMgr->AddComponent(rope, entityMgr->GetComponent<SceneOwned>(platformEntity_));
     }
 
-    // RopeComponent
-    RopeComponent rc;
+    // Runtime rope data stored in RopeScript
+    RopeRuntimeData rc;
     rc.attachedPlatform = platformEntity_;
-    rc.textureKey = "SB_PlatformRope.png";
+    rc.textureKey = ropePrefab.textureKey;
     rc.isActive = true;
     rc.segmentHeight = 20.0f;
-    rc.ropeWidth = 200.0f;
+    rc.ropeWidth = ropePrefab.halfWidth * 2.0f;
     rc.ropeIndex = ropeIndex;
     rc.ceilingAttachmentPoint = fixedAnchor;
     rc.platformAttachmentPoint = dynamicAnchor;
     rc.originalLength = length;
     rc.currentLength = length;
     rc.hasFoundCeiling = true;
+    rc.lastWorldRotationDeg = worldRotDeg;
 
-    entityMgr->AddComponent(rope, rc);
+    ropeRuntimeData_[rope] = rc;
 
     // Transform
     Transform ropeTf;
@@ -328,13 +397,16 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
     EntityManager* entityMgr = GetEntityManager();
     if (!entityMgr) return;
 
-    if (!entityMgr->HasComponent(rope, RopeComponentType) ||
-        !entityMgr->HasComponent(rope, TransformType) ||
+    if (!entityMgr->HasComponent(rope, TransformType) ||
         !entityMgr->HasComponent(rope, TextureComponentType)) {
         return;
     }
 
-    RopeComponent& rc = entityMgr->GetComponent<RopeComponent>(rope);
+    auto itRc = ropeRuntimeData_.find(rope);
+    if (itRc == ropeRuntimeData_.end()) {
+        return;
+    }
+    RopeRuntimeData& rc = itRc->second;
     Transform& ropeTf = entityMgr->GetComponent<Transform>(rope);
     TextureComponent& texComp = entityMgr->GetComponent<TextureComponent>(rope);
     const Transform& platformTf = entityMgr->GetComponent<Transform>(platformEntity_);
@@ -350,6 +422,19 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
     const float worldRotRad = worldRotDeg * (3.14159265f / 180.0f);
     const float cosR = std::cos(worldRotRad);
     const float sinR = std::sin(worldRotRad);
+
+    float rotDeltaDeg = worldRotDeg - rc.lastWorldRotationDeg;
+    while (rotDeltaDeg > 180.0f) rotDeltaDeg -= 360.0f;
+    while (rotDeltaDeg < -180.0f) rotDeltaDeg += 360.0f;
+    if (std::abs(rotDeltaDeg) > 0.001f) {
+        const float rotDeltaRad = rotDeltaDeg * (3.14159265f / 180.0f);
+        const float c = std::cos(rotDeltaRad);
+        const float s = std::sin(rotDeltaRad);
+        const Vector2D oldAnchor = rc.ceilingAttachmentPoint;
+        rc.ceilingAttachmentPoint.x = oldAnchor.x * c - oldAnchor.y * s;
+        rc.ceilingAttachmentPoint.y = oldAnchor.x * s + oldAnchor.y * c;
+    }
+    rc.lastWorldRotationDeg = worldRotDeg;
 
     // Handle collider rotation swapping
     {
@@ -372,7 +457,7 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
         else {
             float attachY = platformTf.position.y;
             float platformLeftX = platformTf.position.x - halfWidth;
-            float fallbackWallX = platformLeftX - ROPE_OVERHEAD;
+            float fallbackWallX = platformLeftX - HORIZONTAL_FALLBACK_LENGTH;
             rc.ceilingAttachmentPoint.x = FindWallAnchorX(*entityMgr, attachY, platformLeftX, fallbackWallX);
             rc.ceilingAttachmentPoint.y = attachY;
         }
@@ -485,7 +570,6 @@ float RopeScript::FindCeilingAnchorY(EntityManager& entityMgr, float attachX, fl
             if (entityMgr.HasComponent(e, PlayerTagType)) continue;
             if (entityMgr.HasComponent(e, EnemyTagType)) continue;
             if (entityMgr.HasComponent(e, GUITagType)) continue;
-            if (entityMgr.HasComponent(e, RopeComponentType)) continue;
             if (entityMgr.HasComponent(e, SpawnPointTagType)) continue;
             if (entityMgr.HasComponent(e, ButtonType)) continue;
 
@@ -552,7 +636,6 @@ float RopeScript::FindWallAnchorX(EntityManager& entityMgr, float attachY, float
         if (entityMgr.HasComponent(e, PlayerTagType))             return true;
         if (entityMgr.HasComponent(e, EnemyTagType))              return true;
         if (entityMgr.HasComponent(e, GUITagType))                return true;
-        if (entityMgr.HasComponent(e, RopeComponentType))         return true;
         if (entityMgr.HasComponent(e, SpawnPointTagType))         return true;
         if (entityMgr.HasComponent(e, ButtonType))                return true;
         return false;

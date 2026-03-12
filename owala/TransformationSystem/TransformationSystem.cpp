@@ -200,12 +200,6 @@ namespace Framework {
 
                 Vector2D originalPos = entityMgr.GetComponent<Transform>(entity).position;
                 entityMgr.GetComponent<Transform>(entity).position = rotationMat * originalPos;
-
-                if (entityMgr.HasComponent(entity, RopeComponentType)) {
-                    RopeComponent& rc = entityMgr.GetComponent<RopeComponent>(entity);
-                    rc.ceilingAttachmentPoint = rotationMat * rc.ceilingAttachmentPoint;
-                }
-
                 // Update entity's local rotation angle (except for players/enemies)
                 if (!entityMgr.HasComponent(entity, PlayerTagType) && !entityMgr.HasComponent(entity, EnemyTagType)) {
                     RotationFlag& rotationFlag = entityMgr.GetComponent<RotationFlag>(entity);
