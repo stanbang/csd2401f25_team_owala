@@ -11,17 +11,6 @@
             "half_size": {"x": 100.0, "y": 100.0},
             "flip_x": false
         },
-        "RopeComponent": {
-            "attached_platform": 0,
-            "texture_key": "SB_PlatformRope.png",
-            "original_length": 0.0,
-            "current_length": 0.0,
-            "ceiling_attachment_point": {"x": 0.0, "y": 0.0},
-            "platform_attachment_point": {"x": 0.0, "y": 0.0},
-            "is_active": true,
-            "rope_width": 100.0,
-            "segment_height": 20.0
-        },
         "RotationFlag":{
             "is_rotating":false,
             "current_rotation":0.0,

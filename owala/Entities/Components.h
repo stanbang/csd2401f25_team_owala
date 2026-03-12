@@ -465,6 +465,7 @@ namespace Framework{
 		float lifetime = 1.0f;      // Total lifetime of the particle
 		float age = 0.0f;           // Current age of the particle
 		bool isScreenSpace = false; // Is the particle rendered in screen space
+		float effectStrength = 1.0f; // Copied from emitter; scales drift/random intensity
 	};
 
 	struct ParticleEmitterComponent {
@@ -549,19 +550,4 @@ namespace Framework{
 		int lifeNum{};
 	};
 
-	struct RopeComponent {
-		Entity      attachedPlatform = 0;
-		std::string textureKey = "SB_PlatformRope.png";
-		float       originalLength = 0.0f;
-		float       currentLength = 0.0f;
-		Vector2D    ceilingAttachmentPoint = { 0.0f, 0.0f }; 
-		Vector2D    platformAttachmentPoint = { 0.0f, 0.0f }; 
-		bool        isActive = true;
-		float       ropeWidth = 0.0f;
-		float       segmentHeight = 20.0f;
-		int         ropeIndex = 0; 
-		bool        hasFoundCeiling = false;
-
-		RopeComponent() = default;
-	};
 }

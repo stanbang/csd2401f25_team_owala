@@ -606,7 +606,7 @@ namespace LevelSelection {
 
 		levelData = {
 			{1, "prologue: tutorial i", firstLevel, "SB__ForestTicketGlow.png"},
-			{2, "prologue: tutorial ii", "Tutorial 2", "SB__ForestTicketGlow.png"},
+			{2, "prologue: tutorial ii", "Tutorial 2", "SB__WitchHutTicketGlow.png"},
 			{3, "act i: the forest", "Level 1", "SB__ForestTicketGlow.png"},
 			{4, "act ii: the hut", "Level 2", "SB__WitchHutTicketGlow.png"},
 			{5, "act iii: workshop", "Level 3", "SB__WorkshopTicketGlow.png"},

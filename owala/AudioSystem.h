@@ -92,7 +92,7 @@ namespace Framework {
         std::string getRandomSound(std::string eventKey);
 
         void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
-        void PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist);
+        FMOD::Channel* PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist);
 
         // Fade helper
         void FadeOutChannel(FMOD::Channel* channel, float duration);
@@ -108,6 +108,7 @@ namespace Framework {
 
     private:
         void UpdateListenerFromPlayer_();
+        void Update3DChannelPositions_();
 
         // Tracks channels fading out: <Channel Pointer, Fade Speed (vol/sec)>
         std::unordered_map<FMOD::Channel*, float> fadingChannels_;
@@ -126,7 +127,8 @@ namespace Framework {
         std::unordered_map<std::string, FMOD::Sound*>   sounds_;
         std::unordered_map<std::string, FMOD::Channel*> channels_;
         std::unordered_map<std::string, std::vector<std::string>> soundPaths_;
-        std::map<Entity, FMOD::Channel*> entityChannels_;
+        std::map<Entity, FMOD::Channel*> entityChannels_;    // AudioComponent-driven 2D channels
+        std::map<Entity, FMOD::Channel*> entity3DChannels_;  // PlaySound3DEvent-driven 3D channels (position-tracked)
 
         // Spatial audio tunables
         float distanceFactor_ = 1.0f;

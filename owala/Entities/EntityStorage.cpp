@@ -50,7 +50,6 @@ namespace Framework {
 		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
 		playerHealth = other.playerHealth;
-		ropeComponents = other.ropeComponents;
 
 
 		// Copy NativeScriptsComponent with care to avoid sharing script instances
@@ -100,7 +99,6 @@ namespace Framework {
 		sliders = other.sliders;
 		sceneOwned = other.sceneOwned;
 		playerHealth = other.playerHealth;
-		ropeComponents = other.ropeComponents;
 
 		nativeScripts.clear();
 
@@ -155,7 +153,6 @@ namespace Framework {
 		std::swap(sliders, other.sliders);
 		std::swap(sceneOwned, other.sceneOwned);
 		std::swap(playerHealth, other.playerHealth);
-		std::swap(ropeComponents, other.ropeComponents);
 
 
 		std::swap(nativeScripts, other.nativeScripts);

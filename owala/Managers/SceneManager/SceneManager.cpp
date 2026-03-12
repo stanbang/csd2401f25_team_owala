@@ -13,6 +13,7 @@
 #include "GameManager.h"
 #include "Logger.h"
 #include "EntitySerializer.h"
+#include "TransformationSystem.h"
 #include "TimerSystem.h"  // ADD THIS INCLUDE
 #include "FirebaseManager.h"  // ADD THIS INCLUDE
 
@@ -176,6 +177,12 @@ namespace Framework {
 		}
 
 		RebuildLoadedTags();
+
+		if (GameManager::Exists()) {
+			if (TransformationSystem* ts = GameManager::GetInstance().GetSystems().transformation_) {
+				ts->ResetGlobalRotation();
+			}
+		}
 	}
 
 	void SceneManager::OnExitPlay() {
@@ -220,6 +227,12 @@ namespace Framework {
 		}
 
 		RebuildLoadedTags();
+
+		if (GameManager::Exists()) {
+			if (TransformationSystem* ts = GameManager::GetInstance().GetSystems().transformation_) {
+				ts->ResetGlobalRotation();
+			}
+		}
 	}
 #endif
 
