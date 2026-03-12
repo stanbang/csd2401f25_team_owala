@@ -1288,13 +1288,33 @@ namespace Editor {
 			ImGui::Separator();
 
 			// Display data from all systems using progress bar (can be changed to graph)
+			double gameSysMs = 0.0;
+			float gameSysPct = 0.0f;
+
 			for (const SystemTime& timing : profilerDisplayData_) {
+				if (timing.name == "Game System") {
+					gameSysMs += timing.milliseconds;
+					gameSysPct += timing.percentage;
+					continue;
+				}
+				ImGui::Spacing();
+				ImGui::Text("%s (%.2f ms)", timing.name.c_str(), timing.milliseconds);
 				char label[128];
 				sprintf(label, "%.1f%%", timing.percentage);
 				ImGui::ProgressBar(timing.percentage / 100.0f, ImVec2(-1.0f, 0.0f), label);
+				ImGui::Spacing();
 				ImGui::Separator();
-				ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-				ImGui::Text("%s (%.2f ms)", timing.name.c_str(), timing.milliseconds);
+			}
+
+			// Render grouped "Game Systems" bar
+			if (gameSysPct > 0.0f) {
+				ImGui::Spacing();
+				ImGui::Text("Game Systems (%.2f ms)", gameSysMs);
+				char label[128];
+				sprintf(label, "%.1f%%", gameSysPct);
+				ImGui::ProgressBar(gameSysPct / 100.0f, ImVec2(-1.0f, 0.0f), label);
+				ImGui::Spacing();
+				ImGui::Separator();
 			}
 		}
 		ImGui::End();
@@ -1351,21 +1371,21 @@ namespace Editor {
 			if (ImGui::Button("Reset Editor Camera")) {
 				ResetEditorCamera();
 			}
+		}
 
-			ImGui::SeparatorText("Prefab/Tile Editors");
-			// Button to activate the tile editor mode
-			if (ImGui::Button("Open Tilemap Editor")) {
-				isTileEditorActive_ = true;
-				isTilePaletteOpen_ = true;
-			}
+		ImGui::SeparatorText("Prefab/Tile Editors");
+		// Button to activate the tile editor mode
+		if (ImGui::Button("Open Tilemap Editor")) {
+			isTileEditorActive_ = true;
+			isTilePaletteOpen_ = true;
+		}
 
-			if (ImGui::Button("Open Prefab Editor")) {
-				isPrefabEditorOpen_ = true;
-			}
+		if (ImGui::Button("Open Prefab Editor")) {
+			isPrefabEditorOpen_ = true;
+		}
 
-			if (ImGui::Button("Open Animation Editor")) {
-				settings.showAnimationEditor = true;
-			}
+		if (ImGui::Button("Open Animation Editor")) {
+			settings.showAnimationEditor = true;
 		}
 
 		// --- Global Controls ---

@@ -65,7 +65,7 @@ namespace Framework {
         if (info == typeid(Editor::Editor))             return "Editor";
     #endif
         // Add other systems here
-        return "Unknown System"; // if no systems found
+        return "Game System"; // Game-specific systems not registered in engine core
     }
 
     // ------------------------------------------------------------------------
