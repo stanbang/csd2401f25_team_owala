@@ -38,14 +38,21 @@ void ContinueButtonScript::OnUpdate() {
 			SceneManager& sceneMgr = SceneManager::GetInstance();
 			const SceneAsset& prevScene = sceneMgr.GetSceneAt(gameMgr.GetPrevScene());
 			
-			std::string nextLevelName{};
+			std::string nextLevelName = "MainMenu";
 			if (prevScene.name == "Tutorial 1") {
 				nextLevelName = "Tutorial 2";
 			}
 			else if (prevScene.name == "Tutorial 2") {
 				nextLevelName = "Level 1";
-			} else if (prevScene.name == "Level 1") {
+			}
+			else if (prevScene.name == "Level 1") {
 				nextLevelName = "Level 2";
+			}
+			else if (prevScene.name == "Level 2") {
+				nextLevelName = "Level 3";
+			}
+			else if (prevScene.name == "Level 3") {
+				nextLevelName = "Level 4";
 			}
 
 			gameMgr.InitiateLevelLoad(nextLevelName);
