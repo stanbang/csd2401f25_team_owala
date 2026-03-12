@@ -35,6 +35,7 @@
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
+#include "ResourceManager.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -590,11 +591,33 @@ namespace Framework {
             Vector2D worldPos = transform.position;
             float worldRadius = fsm.attackCircleRadius;
 
-            // Draw circle using line segments
+            // Use textured sprite if a texture key is set
+            if (!fsm.attackCircleTextureKey.empty()) {
+                try {
+                    Texture& tex = gm.GetSystems().resourceManager_->get<Texture>(fsm.attackCircleTextureKey);
+
+                    // Convert center and edge point to NDC to get screen-space radius
+                    Vector2D screenCenter = worldPos;
+                    Vector2D screenEdge = { worldPos.x + worldRadius, worldPos.y };
+                    if (activeCamera != 0 && cameraSystem_) {
+                        screenCenter = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+                        screenEdge = cameraSystem_->WorldToScreen(screenEdge, activeCamera);
+                    }
+                    float screenRadius = std::abs(screenEdge.x - screenCenter.x);
+                    Vector2D halfSize = { screenRadius, screenRadius };
+
+                    gfx_.drawSprite(tex, screenCenter, halfSize);
+                }
+                catch (...) {
+                    // Fallback: texture not found, skip rendering
+                }
+                continue;
+            }
+
+            // Fallback: draw red circle using line segments
             const int segments = 48;
             const float twoPi = 2.0f * static_cast<float>(M_PI);
 
-            // Red circle, brighter at larger radius
             float intensity = worldRadius / 200.0f;
             if (intensity > 1.0f) intensity = 1.0f;
             Color circleColor = { 1.0f, 0.15f, 0.1f, 0.5f + 0.4f * intensity };
@@ -608,7 +631,6 @@ namespace Framework {
                 Vector2D p2 = { worldPos.x + std::cos(angle2) * worldRadius,
                                 worldPos.y + std::sin(angle2) * worldRadius };
 
-                // Convert to screen space
                 if (activeCamera != 0 && cameraSystem_) {
                     p1 = cameraSystem_->WorldToScreen(p1, activeCamera);
                     p2 = cameraSystem_->WorldToScreen(p2, activeCamera);

@@ -204,7 +204,7 @@ namespace Framework {
                 state.previousVelocityY = currentVelY;
 
                 // Capture isWalking state before its updated
-                bool wasWalking = state.isWalking;
+                //bool wasWalking = state.isWalking;
 
                 // Horizontal Movement 
                 if (!state.isDead) {
@@ -640,9 +640,17 @@ namespace Framework {
 
         for (const Entity& enemyEntity : entityMgr.GetAllEntitiesWithComponent(true, FSMComponentType)) {
             if (!entityMgr.HasComponent(enemyEntity, EnemyTagType) ||
-                !entityMgr.HasComponent(enemyEntity, TransformType) ||
-                !entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
+                !entityMgr.HasComponent(enemyEntity, TransformType)) {
                 continue;
+            }
+
+            // Use AABBCollider half size if available, otherwise fall back to TextureComponent
+            Vector2D enemyHalfSizeFallback = { 30.0f, 40.0f }; // default
+            if (entityMgr.HasComponent(enemyEntity, AABBColliderType)) {
+                enemyHalfSizeFallback = entityMgr.GetComponent<AABBCollider>(enemyEntity).HalfSize;
+            }
+            else if (entityMgr.HasComponent(enemyEntity, TextureComponentType)) {
+                enemyHalfSizeFallback = entityMgr.GetComponent<TextureComponent>(enemyEntity).HalfSize;
             }
 
             FSMComponent& fsmComp = entityMgr.GetComponent<FSMComponent>(enemyEntity);
@@ -656,7 +664,7 @@ namespace Framework {
                 if (!trapComp.isTriggered && !trapComp.hasFallen) continue;
 
                 const Vector2D& enemyPos = entityMgr.GetComponent<Transform>(enemyEntity).position;
-                const Vector2D& enemyHalfSize = entityMgr.GetComponent<AABBCollider>(enemyEntity).HalfSize;
+                const Vector2D& enemyHalfSize = enemyHalfSizeFallback;
                 const Vector2D& trapPos = entityMgr.GetComponent<Transform>(trapEntity).position;
                 const Vector2D& trapHalfSize = entityMgr.GetComponent<AABBCollider>(trapEntity).HalfSize;
 

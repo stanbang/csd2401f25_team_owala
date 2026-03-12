@@ -350,6 +350,12 @@
                 "SB_Witch_Teleport_Spin_Spritesheet_8.png"
             ],
             "animation_path": "Data/AnimationData/witchTeleportSpinAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_HitImpact_VFX.png"
+            ],
+            "animation_path": "Data/AnimationData/playerHitImpactEffect.json"
         }
     ]
 }

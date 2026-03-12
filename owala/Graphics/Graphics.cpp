@@ -465,14 +465,14 @@ namespace Framework {
         g_batchVerts.reserve(sprites.size() * 6 * 8);
 
         float aspectCorrection = (float)screenHeight / (float)screenWidth;
-        float halfW = (float)screenWidth * 0.5f;
+        //float halfW = (float)screenWidth * 0.5f;
         float halfH = (float)screenHeight * 0.5f;
         // Add a microscopic half-pixel expansion to hide floating-point tearing
         // Since 'hx' and 'hy' are in vertical NDC space before aspect correction,
         // 0.5f / halfH represents exactly half a pixel on the screen.
         // Dilation is proportional: a 2x tall sprite gets 2x the dilation, keeping
         // the sub-pixel gap closed consistently regardless of tile count.
-        const float referenceTileH = sprites.empty() ? 1.0f : sprites[0].size.y;
+        // const float referenceTileH = sprites.empty() ? 1.0f : sprites[0].size.y;
         const float baseDilation = 1.5f / halfH; // 1.5 pixels worth in NDC
 
         for (const auto& s : sprites) {

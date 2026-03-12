@@ -369,13 +369,13 @@ namespace Framework {
         check(r, "System::playSound(3D)");
         if (r != FMOD_OK || !ch) return nullptr;
 
+        // Force 3D mode BEFORE setting attributes (set3DAttributes is a no-op on 2D channels)
+        ch->setMode(FMOD_3D | FMOD_3D_LINEARROLLOFF);
+        ch->set3DMinMaxDistance(minDistance, maxDistance);
+
         FMOD_VECTOR pos{ worldPos.x, 0.0f, worldPos.y };
         FMOD_VECTOR vel{ 0.0f, 0.0f, 0.0f };
         ch->set3DAttributes(&pos, &vel);
-
-        // Force 3D + rolloff (sound should also be created as FMOD_3D for best results)
-        ch->setMode(FMOD_3D | FMOD_3D_LINEARROLLOFF);
-        ch->set3DMinMaxDistance(minDistance, maxDistance);
 
         ch->setVolume(volume);
 
