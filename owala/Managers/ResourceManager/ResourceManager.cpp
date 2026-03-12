@@ -116,6 +116,7 @@ void ResourceManager::ScanAssetDirectory(const fs::path& directoryPath) {
 		return;
 	}
 
+	// Recursively iterate through the directory and map filenames to paths
 	for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
 		if (entry.is_regular_file()) {
 			std::string filename = entry.path().filename().string();
@@ -207,6 +208,7 @@ bool ResourceManager::loadSound(const std::string& id,
     mode |= loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
     mode |= stream ? FMOD_CREATESTREAM : 0;
 
+	// Additional check for streaming support if needed
 	Audio* snd = nullptr;
     FMOD_RESULT r = system_->createSound(path, mode, nullptr, &snd);
     audiosystem_.check(r, "System::createSound");
@@ -402,12 +404,14 @@ void ResourceManager::Shutdown() {
 
 	// Clear upload queue and free any pending raw data
 	{
+		// Lock the queue while we clear it to ensure thread safety, even though the worker thread is stopped, we want to be safe in case of any lingering accesses.
 		std::lock_guard<std::mutex> lock(m_queueMutex);
-
+		// If there are still items waiting to be uploaded, we need to free their CPU memory to avoid leaks
 		while (!m_dataReadyToUpload.empty()) {
-			AsyncTextureData item = m_dataReadyToUpload.front();
-			m_dataReadyToUpload.pop();
+			AsyncTextureData item = m_dataReadyToUpload.front(); // Get the item
+			m_dataReadyToUpload.pop(); // Remove from queue
 
+			// Free the raw data if we have a valid Graphics pointer
 			if (gfx) {
 				// Free the memory
 				gfx->FreeImageRawData(item.rawData);
@@ -426,6 +430,7 @@ void ResourceManager::Shutdown() {
 	clearAll();
 }
 
+// Loads texture-animation mappings from a JSON file and populates the animation map accordingly
 bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFilePath) {
 	try {
 		rapidjson::Document doc;
@@ -512,7 +517,7 @@ void ResourceManager::WorkerThreadLoop() {
 		return;
 	}
 	Graphics& gfx_ = *gfxPtr;
-
+	// Loop until signaled to stop
 	while (m_isLoading) {
 		std::string filePath;
 		bool hasWork = false;
@@ -527,6 +532,7 @@ void ResourceManager::WorkerThreadLoop() {
 			}
 		}
 
+		// If we got a file to load, do the heavy lifting (Disk I/O + Decode)
 		if (hasWork) {
 			// Heavy lifting (Disk I/O + Decode)
 			std::stringstream ss;
@@ -550,15 +556,18 @@ void ResourceManager::WorkerThreadLoop() {
 	}
 }
 
+// Returns a value between 0.0 and 1.0 representing the percentage of items loaded
 float ResourceManager::GetLoadingProgress() const {
 	if (m_totalItemsToLoad == 0) return 1.0f;
 	return (float)m_itemsProcessed / (float)m_totalItemsToLoad;
 }
 
+// Returns true if all queued items have been processed and uploaded
 bool ResourceManager::IsLoadingComplete() const {
 	return m_itemsProcessed >= m_totalItemsToLoad;
 }
 
+// Retrieves the full file path for a given asset key, or an empty string if not found
 std::string ResourceManager::GetAssetPath(const std::string& key) const {
 	auto it = assetPathMap_.find(key);
 	if (it != assetPathMap_.end()) {
@@ -572,6 +581,7 @@ std::string ResourceManager::GetAssetPath(const std::string& key) const {
 #undef GetObject
 #endif
 
+// Loads animation profiles from a JSON file and populates the animationProfiles_ map
 bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 	rapidjson::Document doc;
 	if (!FileIOSystem::ReadFile(filepath, doc)) {
@@ -606,7 +616,7 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 	return true;
 }
 
-
+// Retrieves the texture key associated with a given profile and state, or an empty string if not found
 Audio& ResourceManager::getLoopAudio(std::string key) {
 	std::unordered_map<std::string, std::unique_ptr<Audio, FMODDeleter>>& map = getSoundMap();
 	auto it = map.find(key);

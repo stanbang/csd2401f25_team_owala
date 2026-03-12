@@ -1,3 +1,33 @@
+/*********************************************************************//**
+ * \file   NameEntryScript.cpp
+ *
+ * \primary_author
+ *      Jordain Ng Ying Zhe (100%)
+ *
+ * \brief  Implementation of the NameEntryScript for capturing player name
+ *         before level start.
+ *
+ * \details
+ *      This file contains the implementation of the name entry overlay system.
+ *      It handles keyboard input capture, display updates via TextComponent,
+ *      and integration with PlayerNameManager for persistence. The script
+ *      creates a modal overlay that intercepts keyboard input when active.
+ *
+ *      Key features implemented:
+ *        - Real-time keyboard input capture with Shift key support
+ *        - Key debouncing to prevent repeated characters
+ *        - Backspace support for deletion
+ *        - Enter to confirm (saves name, loads target scene)
+ *        - Escape to cancel (returns to level selection)
+ *        - Max length enforcement (20 characters)
+ *        - Visual feedback with blinking cursor (_)
+ *
+ * \copyright
+ *      Copyright (C) 2025 DigiPen Institute of Technology.
+ *      Reproduction or disclosure of this file or its contents without
+ *      the prior written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "pch.h"
 #include "NameEntryScript.h"
 #include "ScriptRegistry.h"
@@ -9,9 +39,22 @@
 REGISTER_SCRIPT(NameEntryScript, "NameEntryScript")
 
 // ---------------------------------------------------------------------------
-// Helper: map a Win32 virtual-key to a printable ASCII char, respecting Shift.
+// Keyboard Input Helpers
 // ---------------------------------------------------------------------------
-static bool IsPrintable(int vk, char& outChar) {
+
+/**
+ * @brief Converts a Windows virtual-key code to a printable ASCII character.
+ *
+ * Takes into account the current keyboard state (Shift key, etc.) to produce
+ * the correct character. Only returns true for printable characters (ASCII 32-126).
+ *
+ * @param vk Virtual-key code (e.g., VK_A, VK_SPACE)
+ * @param outChar Reference to store the resulting character
+ * @return true if the key produces a printable character, false otherwise
+ *
+ * @note This function is Windows-specific and uses Win32 APIs.
+ */
+    static bool IsPrintable(int vk, char& outChar) {
 #ifdef _WIN32
     UINT scanCode = MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
     BYTE keyState[256] = {};
@@ -26,9 +69,16 @@ static bool IsPrintable(int vk, char& outChar) {
     return false;
 }
 
-// ---------------------------------------------------------------------------
-// Debounce helper: returns true only on the FIRST frame a key goes down.
-// ---------------------------------------------------------------------------
+/**
+ * @brief Detects if a key was just pressed this frame (edge detection).
+ *
+ * Maintains a static map of previous key states to detect the exact frame
+ * when a key transitions from up to down. Prevents repeated characters from
+ * holding down a key.
+ *
+ * @param vk Virtual-key code to check
+ * @return true if the key was just pressed this frame, false otherwise
+ */
 static bool IsKeyJustPressed(int vk) {
     static std::unordered_map<int, bool> s_wasDown;
     bool isDown = (GetAsyncKeyState(vk) & 0x8000) != 0;
@@ -38,14 +88,20 @@ static bool IsKeyJustPressed(int vk) {
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle
+// Lifecycle Implementation
 // ---------------------------------------------------------------------------
 
+/**
+ * @brief Initializes the name entry script when the entity is created.
+ *
+ * Loads any previously saved name from disk and ensures the overlay
+ * starts hidden (inactive) until explicitly opened.
+ */
 void NameEntryScript::OnCreate() {
     // Load any previously saved name from disk.
     Framework::PlayerNameManager::Get().Load();
 
-    // Overlay starts hidden ? Open() is called by the Select button script.
+    // Overlay starts hidden - Open() is called by the Select button script.
     m_active = false;
 
     EntityStorage& ecs = GameManager::GetInstance().GetECS();
@@ -53,6 +109,15 @@ void NameEntryScript::OnCreate() {
     mgr.SetActive(GetEntity(), false);
 }
 
+/**
+ * @brief Opens the name entry overlay for a specific target scene.
+ *
+ * Called by the level selection button script when the player selects a level
+ * but needs to enter their name. Pre-fills the input with any existing name
+ * from PlayerNameManager so the player can just press Enter to keep it.
+ *
+ * @param pendingSceneName The scene to load after name confirmation
+ */
 void NameEntryScript::Open(const std::string& pendingSceneName) {
     m_pendingScene = pendingSceneName;
 
@@ -73,6 +138,16 @@ void NameEntryScript::Open(const std::string& pendingSceneName) {
         << "\". Current name: \"" << m_input << "\"" << std::endl;
 }
 
+/**
+ * @brief Updates the script each frame, processing keyboard input when active.
+ *
+ * When active, this method:
+ * 1. Skips the first frame after opening (prevents immediate Enter consumption)
+ * 2. Checks for Enter (confirm) or Escape (cancel)
+ * 3. Processes backspace for deletion
+ * 4. Scans all printable keys and appends valid characters
+ * 5. Updates the display text when changes occur
+ */
 void NameEntryScript::OnUpdate() {
     if (!m_active) return;
 
@@ -102,6 +177,7 @@ void NameEntryScript::OnUpdate() {
         }
     }
     else {
+        // Scan all possible virtual key codes for printable characters
         for (int vk = 0x20; vk <= 0xFE; ++vk) {
             if (IsKeyJustPressed(vk)) {
                 char c = 0;
@@ -120,6 +196,12 @@ void NameEntryScript::OnUpdate() {
     }
 }
 
+/**
+ * @brief Confirms the entered name and loads the target scene.
+ *
+ * Validates that the name is not empty, saves it via PlayerNameManager,
+ * hides the overlay, and initiates level load with fade sequence.
+ */
 void NameEntryScript::Confirm() {
     // Require at least one character
     if (m_input.empty()) {
@@ -144,6 +226,11 @@ void NameEntryScript::Confirm() {
     GameManager::GetInstance().InitiateLevelLoad(m_pendingScene);
 }
 
+/**
+ * @brief Cancels name entry and returns to level selection.
+ *
+ * Hides the overlay, clears the pending scene, and does not load anything.
+ */
 void NameEntryScript::Cancel() {
     Framework::Logger::Get().Info(DebugType::PlayerSystem)
         << "[NameEntry] Cancelled. Returning to level selection." << std::endl;
@@ -156,6 +243,15 @@ void NameEntryScript::Cancel() {
     mgr.SetActive(GetEntity(), false);
 }
 
+/**
+ * @brief Updates the TextComponent to display current input with cursor.
+ *
+ * Formats the display text as:
+ * "enter your name:\n[input]_"
+ * where [input] is the current m_input string and _ is a blinking cursor.
+ *
+ * @note Does nothing if the entity lacks a TextComponent.
+ */
 void NameEntryScript::RefreshDisplayText() {
     EntityStorage& ecs = GameManager::GetInstance().GetECS();
     EntityManager mgr(ecs);
@@ -169,4 +265,9 @@ void NameEntryScript::RefreshDisplayText() {
     tc.isDirty = true;
 }
 
+/**
+ * @brief Cleans up when the entity is destroyed.
+ *
+ * Empty implementation as no special cleanup is required.
+ */
 void NameEntryScript::OnDestroy() {}

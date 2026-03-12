@@ -579,31 +579,43 @@ namespace Framework {
 		}
 
 		case EmissionStyle::FROM_TOP_VIEWPORT: {
-			angle = atan2(emitter.emissionDirection.y, emitter.emissionDirection.x);
+			// Screen space: y=1 is top, particles fall downward (-y)
+			angle = isScreenSpace
+				? -3.14159265f / 2.0f + (rand01 - 0.5f) * 0.5f
+				: atan2(emitter.emissionDirection.y, emitter.emissionDirection.x);
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_LEFT_VIEWPORT: {
-			angle = emitter.emissionDirection.x > 0 ?
-				atan2(emitter.emissionDirection.y, emitter.emissionDirection.x) :
-				(rand01 - 0.5f) * 0.5f;
+			// Screen space: x=0 is left edge, particles move rightward (+x)
+			angle = isScreenSpace
+				? (rand01 - 0.5f) * 0.5f
+				: (emitter.emissionDirection.x > 0
+					? atan2(emitter.emissionDirection.y, emitter.emissionDirection.x)
+					: (rand01 - 0.5f) * 0.5f);
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_RIGHT_VIEWPORT: {
-			angle = emitter.emissionDirection.x < 0 ?
-				atan2(emitter.emissionDirection.y, emitter.emissionDirection.x) :
-				(rand01 - 0.5f) * 0.5f;
+			// Screen space: x=1 is right edge, particles move leftward (-x)
+			angle = isScreenSpace
+				? 3.14159265f + (rand01 - 0.5f) * 0.5f
+				: (emitter.emissionDirection.x < 0
+					? atan2(emitter.emissionDirection.y, emitter.emissionDirection.x)
+					: (rand01 - 0.5f) * 0.5f);
 			speed = emitter.particleSpeed;
 			break;
 		}
 
 		case EmissionStyle::FROM_BOTTOM_VIEWPORT: {
-			angle = emitter.emissionDirection.y > 0 ?
-				atan2(emitter.emissionDirection.y, emitter.emissionDirection.x) :
-				3.14159265f / 2.0f;
+			// Screen space: y=0 is bottom, particles rise upward (+y)
+			angle = isScreenSpace
+				? 3.14159265f / 2.0f + (rand01 - 0.5f) * 0.5f
+				: (emitter.emissionDirection.y > 0
+					? atan2(emitter.emissionDirection.y, emitter.emissionDirection.x)
+					: 3.14159265f / 2.0f);
 			speed = emitter.particleSpeed;
 			break;
 		}

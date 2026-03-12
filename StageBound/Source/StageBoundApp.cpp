@@ -1,3 +1,21 @@
+/******************************************************************
+ * \file   StageBoundApp.cpp
+ *
+ * \primary_author
+ *      Ng Jing Wen
+ * \secondary_author
+ *
+ *
+ * \brief   This file implements the StageBoundApp class, which is the main 
+ *          application entry point for the StageBound game. It initializes 
+ *          game-specific systems, registers scene lifecycle callbacks, and 
+ *          manages high-level game logic. The engine calls CreateApplication() 
+ *          to instantiate this class and run the game.
+ *
+ * \copyright Copyright (C) 2025 DigiPen Institute of Technology.
+ * Reproduction or disclosure of this file or its contents without the prior
+ * written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
 #include "Core/Application.h"
 #include "Core/Core.h" 
 #include "Managers/GameManager/GameManager.h"
@@ -23,7 +41,7 @@ namespace Framework {
         TrapPlatformSystem* m_TrapPlatformSystem;
 
     public:
-        StageBoundApp(CoreEngine& engine) : m_Engine(engine) {}
+        StageBoundApp(CoreEngine& engine) : m_Engine(engine), m_PlayerSystem(nullptr), m_TrapPlatformSystem(nullptr) {}
 
         void Initialize() override {
             std::cout << "--- StageBound Application Initializing! ---\n";

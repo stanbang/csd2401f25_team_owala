@@ -263,7 +263,7 @@ namespace Framework {
         // This ensures curtains remain visible when overlay menus (PauseScene, OptionsMenu)
         // are additively loaded on top of a level.
         const std::vector<SceneGUID>& loadedScenes = SceneManager::GetInstance().GetLoadedScenes();
-        const SceneGUID ddolId = SceneManager::GetDDOLSceneID();
+        constexpr SceneGUID ddolId = SceneManager::GetDDOLSceneID();
         bool isLevel = false;
         for (SceneGUID guid : loadedScenes) {
             if (guid == ddolId) continue;
