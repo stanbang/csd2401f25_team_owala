@@ -1,14 +1,33 @@
-/*****************************************************************//**
+/*********************************************************************//**
  * \file   InputSystem.cpp
  *
  * \primary_author
- *      Ng Jordain Ying Zhe
+ *      Ng Jordain Ying Zhe (100%)
  *
  * \brief
- *   Engine input subsystem that wraps GLFW keyboard/mouse state into a
- *   frame-based API (Down/Pressed/Released), with integer and enum
- *   query overloads, cursor locking, and mouse delta tracking.
+ *   Implementation of the engine input subsystem that wraps GLFW keyboard/mouse
+ *   state into a frame-based API with Down/Pressed/Released queries.
+ *
+ * \details
+ *   This file contains the implementation of InputSystem, which provides a
+ *   robust input handling layer for the engine. Key features include:
+ *     - Frame-based key state tracking (Down/Pressed/Released)
+ *     - Multiple query overloads (int key codes, enum Key, char)
+ *     - Mouse position and delta tracking
+ *     - Cursor locking for FPS-style controls
+ *     - Keyboard input locking for UI/text entry modes
+ *     - Global debug shortcuts for physics, audio, rendering, and camera
+ *
+ *   The system maintains two arrays of key states (current and previous frame)
+ *   to detect edge transitions. It polls GLFW every frame and updates state
+ *   before providing access via the public API.
+ *
+ * \copyright
+ *   Copyright (C) 2025 DigiPen Institute of Technology.
+ *   Reproduction or disclosure of this file or its contents without
+ *   the prior written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+
 #include "pch.h"
 #include "InputSystem.h"
 #include "WindowsSystem.h"
@@ -23,6 +42,14 @@
 
 namespace Framework {
 
+    // -----------------------------------------------------------------------
+
+    /**
+     * @brief Initializes the input system with the window handle.
+     *
+     * Retrieves the GLFW window from WindowsSystem and stores it.
+     * Initializes mouse position tracking to prevent large delta on first frame.
+     */
     void InputSystem::Initialize() {
         window_ = winSys_->window();
         if (!window_) return;
@@ -32,24 +59,49 @@ namespace Framework {
         prevMouseY_ = mouseY_;
     }
 
+    // -----------------------------------------------------------------------
+
+    /**
+     * @brief Updates input state for the current frame.
+     *
+     * Performs the following operations in order:
+     * 1. Calls glfwPollEvents() to process window events
+     * 2. Shifts current state to previous state arrays
+     * 3. Queries GLFW for current keyboard and mouse button states
+     * 4. Updates mouse position and calculates delta
+     * 5. Processes global debug shortcuts (if not in editor mode)
+     *
+     * Debug shortcuts include:
+     * - P/O/I: Physics pause/step controls
+     * - 1-4: Audio reverb test presets
+     * - U/I: 3D audio positional test
+     * - C: Toggle collider rendering
+     * - Z/X/R: Camera zoom controls
+     * - N: Scene switching
+     * - F11: Toggle fullscreen (non-editor builds)
+     */
     void InputSystem::Update() {
         if (!window_) return;
 
         glfwPollEvents();
 
+        // Shift current state to previous state
         std::memcpy(keyPrev_, keyNow_, sizeof(keyNow_));
         std::memcpy(btnPrev_, btnNow_, sizeof(btnNow_));
 
+        // Query current keyboard state
         for (int i = 0; i < kMaxKeys; ++i) {
             int s = glfwGetKey(window_, i);
             keyNow_[i] = (s == GLFW_PRESS) || (s == GLFW_REPEAT);
         }
 
+        // Query current mouse button state
         for (int b = 0; b < kMaxButtons; ++b) {
             int s = glfwGetMouseButton(window_, b);
             btnNow_[b] = (s == GLFW_PRESS);
         }
 
+        // Update mouse position and delta
         prevMouseX_ = mouseX_;
         prevMouseY_ = mouseY_;
         glfwGetCursorPos(window_, &mouseX_, &mouseY_);
@@ -189,6 +241,14 @@ namespace Framework {
 #endif
     }
 
+    // -----------------------------------------------------------------------
+
+    /**
+     * @brief Resets all input state to default values.
+     *
+     * Clears all key and mouse button arrays and unlocks cursor.
+     * Useful when reloading scenes or resetting game state.
+     */
     void InputSystem::ResetInputState() {
         std::memset(keyNow_, 0, sizeof(keyNow_));
         std::memset(keyPrev_, 0, sizeof(keyPrev_));
@@ -197,31 +257,47 @@ namespace Framework {
         SetCursorLocked(false);
     }
 
+    // -----------------------------------------------------------------------
+    // Keyboard Query Methods
+    // -----------------------------------------------------------------------
+
     bool InputSystem::KeyDown(int key) const {
         if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
         return keyNow_[key];
     }
+
     bool InputSystem::KeyPressed(int key) const {
         if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
         return keyNow_[key] && !keyPrev_[key];
     }
+
     bool InputSystem::KeyReleased(int key) const {
         if (key < 0 || key >= kMaxKeys || keyboardLocked_) return false;
         return !keyNow_[key] && keyPrev_[key];
     }
 
+    // -----------------------------------------------------------------------
+    // Mouse Button Query Methods
+    // -----------------------------------------------------------------------
+
     bool InputSystem::MouseDown(int b) const {
         if (b < 0 || b >= kMaxButtons) return false;
         return btnNow_[b];
     }
+
     bool InputSystem::MousePressed(int b) const {
         if (b < 0 || b >= kMaxButtons) return false;
         return btnNow_[b] && !btnPrev_[b];
     }
+
     bool InputSystem::MouseReleased(int b) const {
         if (b < 0 || b >= kMaxButtons) return false;
         return !btnNow_[b] && btnPrev_[b];
     }
+
+    // -----------------------------------------------------------------------
+    // Enum-based Overloads
+    // -----------------------------------------------------------------------
 
     bool InputSystem::KeyDown(Key k) const { return KeyDown(ToGlfwKey(k)); }
     bool InputSystem::KeyPressed(Key k) const { return KeyPressed(ToGlfwKey(k)); }
@@ -231,18 +307,32 @@ namespace Framework {
     bool InputSystem::MousePressed(MouseButton b) const { return MousePressed(ToGlfwMouse(b)); }
     bool InputSystem::MouseReleased(MouseButton b) const { return MouseReleased(ToGlfwMouse(b)); }
 
+    // -----------------------------------------------------------------------
+    // Character-based Overloads
+    // -----------------------------------------------------------------------
+
     bool InputSystem::KeyDown(char c) const { return KeyDown(ToGlfwKeyFromChar(c)); }
     bool InputSystem::KeyPressed(char c) const { return KeyPressed(ToGlfwKeyFromChar(c)); }
     bool InputSystem::KeyReleased(char c) const { return KeyReleased(ToGlfwKeyFromChar(c)); }
+
+    // -----------------------------------------------------------------------
+    // Mouse Position Methods
+    // -----------------------------------------------------------------------
 
     void InputSystem::GetMousePos(double* x, double* y) const {
         if (x) *x = mouseX_;
         if (y) *y = mouseY_;
     }
+
     void InputSystem::GetMouseDelta(double* dx, double* dy) const {
         if (dx) *dx = mouseX_ - prevMouseX_;
         if (dy) *dy = mouseY_ - prevMouseY_;
     }
+
+    // -----------------------------------------------------------------------
+    // Input Locking Methods
+    // -----------------------------------------------------------------------
+
     void InputSystem::SetCursorLocked(bool locked) {
         cursorLocked_ = locked;
         if (!window_) return;
@@ -252,6 +342,10 @@ namespace Framework {
     void InputSystem::SetKeyboardLocked(bool locked) {
         keyboardLocked_ = locked;
     }
+
+    // -----------------------------------------------------------------------
+    // GLFW Key Conversion Helpers
+    // -----------------------------------------------------------------------
 
     static int alphaToGlfw(int upper) { return GLFW_KEY_A + (upper - 'A'); }
     static int digitToGlfw(int digit) { return GLFW_KEY_0 + digit; }

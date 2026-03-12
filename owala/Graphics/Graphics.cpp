@@ -5,7 +5,7 @@
  *      Ng Jordain Ying Zhe (100%)
  *
  * \brief
- *      Declaration of the Graphics subsystem that wraps OpenGL calls
+ *      Implementation of the Graphics subsystem that wraps OpenGL calls
  *      to provide basic 2D rendering features such as colored shapes,
  *      textured sprites, text drawing, and framebuffer management.
  *
@@ -34,6 +34,7 @@
  *      Reproduction or disclosure of this file or its contents without
  *      the prior written consent of DigiPen Institute of Technology is prohibited.
  *********************************************************************/
+
 #include "pch.h"
 #include "Graphics.h"
 #include "GameManager.h"
@@ -99,8 +100,8 @@ namespace Framework {
         FragColor = vec4(uColor.rgb, uColor.a * alpha);
     }
     )";
-     
-     
+
+
     // Shader File Loading Helpers
     // =========================
 
@@ -116,6 +117,13 @@ namespace Framework {
     //    return content;
     //}
 
+    /**
+     * @brief Compiles a single OpenGL shader from source.
+     *
+     * @param type Shader type (GL_VERTEX_SHADER or GL_FRAGMENT_SHADER)
+     * @param src Shader source code string
+     * @return GLuint Handle to the compiled shader, or 0 on failure
+     */
     static GLuint compile(GLenum type, const char* src) {
         GLuint s = glCreateShader(type);
         glShaderSource(s, 1, &src, nullptr);
@@ -128,6 +136,13 @@ namespace Framework {
         return s;
     }
 
+    /**
+     * @brief Links vertex and fragment shaders into a complete program.
+     *
+     * @param vsSrc Vertex shader source
+     * @param fsSrc Fragment shader source
+     * @return GLuint Handle to the linked program, or 0 on failure
+     */
     static GLuint linkProgram(const char* vsSrc, const char* fsSrc) {
         GLuint v = compile(GL_VERTEX_SHADER, vsSrc);
         GLuint f = compile(GL_FRAGMENT_SHADER, fsSrc);
@@ -178,6 +193,17 @@ namespace Framework {
     // ISystem
     // =========================
 
+    /**
+     * @brief Initializes the graphics system and OpenGL state.
+     *
+     * Performs the following setup:
+     * 1. Initializes GLEW for OpenGL extension loading
+     * 2. Sets up rendering state (culling, vsync)
+     * 3. Configures viewport based on window size
+     * 4. Creates and links all shader programs
+     * 5. Sets up vertex arrays and buffers for each pipeline
+     * 6. Creates default game framebuffer
+     */
     void Graphics::Initialize() {
         // 1. Initialize GLEW
         glewExperimental = GL_TRUE;
@@ -191,7 +217,7 @@ namespace Framework {
         glCullFace(GL_BACK);
 
         // Disable V-Sync to unlock FPS
-		glfwSwapInterval(0); //0 disables vsync, 1 enables vsync, 2 caps FPS to half your refresh rate 
+        glfwSwapInterval(0); //0 disables vsync, 1 enables vsync, 2 caps FPS to half your refresh rate 
 
         // 3. Viewport & Resolution
         int fbw, fbh;
@@ -251,6 +277,16 @@ namespace Framework {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CreateGameFramebuffer(800, 600);
     }
+
+    /**
+     * @brief Updates the graphics system each frame.
+     *
+     * Handles frame rate capping and buffer swapping:
+     * 1. Calculates target frame time based on FPS cap setting
+     * 2. Busy-waits to maintain consistent frame rate if cap is enabled
+     * 3. Updates internal time accumulator
+     * 4. Swaps front/back buffers to present the rendered frame
+     */
     void Graphics::Update() {
         // 1. Calculate target duration (e.g., 0.01 for 100 FPS)
         float local_maxFPS = isFPSCapped ? m_MaxFPS : 999.0f;
@@ -273,6 +309,13 @@ namespace Framework {
         // 4. Present frame
         glfwSwapBuffers(GameManager::GetInstance().GetSystems().win_->window());
     }
+
+    /**
+     * @brief Shuts down the graphics system and frees all resources.
+     *
+     * Deletes all vertex arrays, buffers, and shader programs to prevent
+     * memory leaks. Sets handles to 0 after deletion.
+     */
     void Graphics::Shutdown() {
         if (vboCol_) { glDeleteBuffers(1, &vboCol_);  vboCol_ = 0; }
         if (vaoCol_) { glDeleteVertexArrays(1, &vaoCol_); vaoCol_ = 0; }
@@ -291,11 +334,24 @@ namespace Framework {
     // Colored triangle path
     // =========================
 
+    /**
+     * @brief Begins a new frame by clearing the back buffer.
+     *
+     * @param clear Color to clear the screen with
+     */
     void Graphics::beginFrame(const Color& clear) {
         glClearColor(clear.r, clear.g, clear.b, clear.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
+    /**
+     * @brief Draws a colored triangle.
+     *
+     * @param a First vertex in screen-space NDC
+     * @param b Second vertex in screen-space NDC
+     * @param c Third vertex in screen-space NDC
+     * @param color RGBA color of the triangle
+     */
     void Graphics::drawTriangle(const Vector2D& a, const Vector2D& b, const Vector2D& c,
         const Color& color) {
         const float verts[6] = { a.x, a.y, b.x, b.y, c.x, c.y };
@@ -313,6 +369,13 @@ namespace Framework {
         glBindVertexArray(0);
     }
 
+    /**
+     * @brief Draws a colored rectangle as two triangles.
+     *
+     * @param min Bottom-left corner in screen-space NDC
+     * @param max Top-right corner in screen-space NDC
+     * @param color RGBA color of the rectangle
+     */
     void Graphics::drawRectangle(const Vector2D& min, const Vector2D& max, const Color& color) {
         Vector2D p1 = { min.x, min.y };
         Vector2D p2 = { max.x, min.y };
@@ -327,6 +390,14 @@ namespace Framework {
     // Texture path (.tex from your tutorial)
     // =========================
 
+    /**
+     * @brief Loads a texture from a custom .tex format file.
+     *
+     * .tex files are raw RGBA8 data (256x256, no headers).
+     *
+     * @param path File path to the .tex file
+     * @return Texture OpenGL texture handle, or 0 on failure
+     */
     Texture Graphics::loadTextureFromTex(const char* path) {
         const int width = 256, height = 256, bpp = 4;
         const size_t total = size_t(width) * height * bpp;
@@ -357,6 +428,13 @@ namespace Framework {
         return tex;
     }
 
+    /**
+     * @brief Sets texture wrap modes.
+     *
+     * @param tex Texture handle
+     * @param wrapS Wrap mode for S coordinate (e.g., GL_REPEAT, GL_CLAMP_TO_EDGE)
+     * @param wrapT Wrap mode for T coordinate
+     */
     void Graphics::setWrap(Texture tex, int wrapS, int wrapT) {
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
@@ -364,6 +442,13 @@ namespace Framework {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
+    /**
+     * @brief Enables or disables alpha blending.
+     *
+     * When enabled, uses standard src_alpha, one_minus_src_alpha blending.
+     *
+     * @param on true to enable blending, false to disable
+     */
     void Graphics::setAlphaBlend(bool on) {
         if (on) { glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); }
         else { glDisable(GL_BLEND); }
@@ -373,6 +458,16 @@ namespace Framework {
     // Single sprite (existing API)
     // =========================
 
+    /**
+     * @brief Draws a single sprite with center rotation.
+     *
+     * @param tex Texture to use
+     * @param center Center position in screen-space NDC
+     * @param halfSize Half-width and half-height in screen-space NDC
+     * @param rotation Rotation angle in radians
+     * @param minUV Minimum UV coordinates (default {0,0})
+     * @param maxUV Maximum UV coordinates (default {1,1})
+     */
     void Graphics::drawSprite(Texture& tex, const Vector2D& center,
         const Vector2D& halfSize, float rotation,
         const Vector2D& minUV, const Vector2D& maxUV) {
@@ -425,6 +520,16 @@ namespace Framework {
         glBindVertexArray(0);
     }
 
+    /**
+     * @brief Draws a sprite using top-left positioning (convenience wrapper).
+     *
+     * @param tex Texture to use
+     * @param topLeft Top-left position in screen-space NDC
+     * @param size Width and height in screen-space NDC
+     * @param rotation Rotation angle in radians
+     * @param minUV Minimum UV coordinates (default {0,0})
+     * @param maxUV Maximum UV coordinates (default {1,1})
+     */
     void Graphics::drawSpriteEasy(Texture& tex, const Vector2D& topLeft,
         const Vector2D& size, float rotation,
         const Vector2D& minUV, const Vector2D& maxUV) {
@@ -437,6 +542,15 @@ namespace Framework {
     // Batched sprites (NEW)
     // =========================
 
+    /**
+     * @brief Draws multiple sprites with the same texture in a single draw call.
+     *
+     * Automatically splits large batches into smaller chunks to avoid
+     * exceeding buffer limits.
+     *
+     * @param tex Texture to use for all sprites
+     * @param sprites Vector of BatchedSprite structures
+     */
     void Graphics::drawSpriteBatch(Texture tex, const std::vector<BatchedSprite>& sprites) {
 
         if (sprites.empty()) {
@@ -459,6 +573,15 @@ namespace Framework {
 
     }
 
+    /**
+     * @brief Internal method to draw a batch of sprites that fits within limits.
+     *
+     * Builds interleaved vertex data for all sprites and passes to
+     * drawSpriteBatchRaw for final rendering.
+     *
+     * @param tex Texture to use
+     * @param sprites Vector of sprites to draw
+     */
     void Graphics::drawSpriteBatchChunk(Texture tex, const std::vector<BatchedSprite>& sprites) {
 
         g_batchVerts.clear();
@@ -516,6 +639,13 @@ namespace Framework {
 
     }
 
+    /**
+     * @brief Low-level batched sprite rendering with raw vertex data.
+     *
+     * @param tex Texture to use
+     * @param interleavedXYUV Pointer to interleaved vertex data (x,y,u,v,r,g,b,a per vertex)
+     * @param spriteCount Number of sprites in the batch
+     */
     void Graphics::drawSpriteBatchRaw(Texture tex, const float* interleavedXYUV, size_t spriteCount) {
 
         if (!spriteCount || !interleavedXYUV) {
@@ -578,6 +708,14 @@ namespace Framework {
     // Texture loading
     // =========================
 
+    /**
+     * @brief Loads a PNG texture from file.
+     *
+     * @param path File path to the PNG
+     * @param flipY Whether to flip the image vertically (for OpenGL coordinate system)
+     * @param srgb Whether to use sRGB color space
+     * @return Texture OpenGL texture handle, or 0 on failure
+     */
     Texture Graphics::loadTextureFromPNG(const char* path, bool flipY, bool srgb) {
         if (flipY) stbi_set_flip_vertically_on_load(1); else stbi_set_flip_vertically_on_load(0);
 
@@ -606,6 +744,15 @@ namespace Framework {
         return tex;
     }
 
+    /**
+     * @brief Loads a texture from file, auto-detecting format based on extension.
+     *
+     * Supports .png and .tex formats.
+     *
+     * @param path File path to the texture
+     * @param unused Placeholder parameter (kept for compatibility)
+     * @return Texture OpenGL texture handle, or 0 on failure
+     */
     Texture Graphics::loadTextureFromFile(const char* path, bool /*unused*/) {
         std::string p = path ? path : "";
         auto dot = p.find_last_of('.');
@@ -623,6 +770,13 @@ namespace Framework {
     // Lines & Text
     // =========================
 
+    /**
+     * @brief Draws a line between two points.
+     *
+     * @param start Start point in screen-space NDC
+     * @param end End point in screen-space NDC
+     * @param color RGBA color of the line
+     */
     void Graphics::drawLine(const Vector2D& start, const Vector2D& end, const Color& color) {
 
         // Save the current blend state
@@ -661,6 +815,18 @@ namespace Framework {
         }
     }
 
+    /**
+     * @brief Draws text using a bitmap font.
+     *
+     * Supports rotation around the text's visual center.
+     *
+     * @param font Font object containing character data and atlas
+     * @param textToDraw String to render
+     * @param pos Position in screen-space NDC
+     * @param scale Text size multiplier
+     * @param color RGBA color of the text
+     * @param rotationRad Rotation angle in radians
+     */
     void Graphics::drawText(Font& font, const std::string& textToDraw, const Vector2D& pos, float scale, const Color& color, float rotationRad) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -766,6 +932,12 @@ namespace Framework {
     // =========================
     // Framerate Configuration
     // =========================
+
+    /**
+     * @brief Sets the maximum FPS cap.
+     *
+     * @param value Target FPS (clamped to minimum 15 FPS)
+     */
     void Graphics::SetFPSCap(float value) {
         if (value < 15.f) {
             value = 15.f;
@@ -777,8 +949,15 @@ namespace Framework {
     // =========================
     // Framebuffers
     // =========================
-    #pragma region FRAMEBUFFERS
+#pragma region FRAMEBUFFERS
 
+/**
+ * @brief Constructs a framebuffer with the specified specifications.
+ *
+ * Creates color attachment texture and depth-stencil renderbuffer.
+ *
+ * @param specifications Width and height of the framebuffer
+ */
     Graphics::Framebuffer::Framebuffer(const FramebufferSpecs& specifications) : specs(specifications) {
         glGenFramebuffers(1, &rendererID);
         glBindFramebuffer(GL_FRAMEBUFFER, rendererID);
@@ -799,38 +978,52 @@ namespace Framework {
 
         // Sanity check
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			Logger::Error(DebugType::GraphicsSystem) << "Framebuffer is incomplete!" << std::endl;
+            Logger::Error(DebugType::GraphicsSystem) << "Framebuffer is incomplete!" << std::endl;
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+    }
 
-
-
-
-
-
-    // Delegate Constructor
+    /**
+     * @brief Constructs a framebuffer with width and height.
+     *
+     * @param width Framebuffer width in pixels
+     * @param height Framebuffer height in pixels
+     */
     Graphics::Framebuffer::Framebuffer(unsigned width, unsigned height) : Graphics::Framebuffer(FramebufferSpecs{ width, height }) {}
 
+    /**
+     * @brief Destroys the framebuffer and frees all attachments.
+     */
     Graphics::Framebuffer::~Framebuffer() {
         if (depthAttachment) glDeleteRenderbuffers(1, &depthAttachment);
         if (colorAttachment) glDeleteTextures(1, &colorAttachment);
         if (rendererID) glDeleteFramebuffers(1, &rendererID);
     }
 
+    /**
+     * @brief Binds this framebuffer for rendering.
+     */
     void Graphics::Framebuffer::Bind() const {
         glBindFramebuffer(GL_FRAMEBUFFER, rendererID);
         glViewport(0, 0, specs.width, specs.height);
-	}
+    }
 
+    /**
+     * @brief Unbinds this framebuffer (restores default framebuffer).
+     */
     void Graphics::Framebuffer::Unbind() const {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    /**
+     * @brief Resizes the framebuffer to new specifications.
+     *
+     * @param specifications New width and height
+     */
     void Graphics::Framebuffer::Resize(FramebufferSpecs specifications) {
         specs = specifications;
 
-		// Delete old attachments
+        // Delete old attachments
         if (depthAttachment) glDeleteRenderbuffers(1, &depthAttachment);
         if (colorAttachment) glDeleteTextures(1, &colorAttachment);
 
@@ -854,16 +1047,34 @@ namespace Framework {
             Logger::Error(DebugType::GraphicsSystem) << "Framebuffer is incomplete!" << std::endl;
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+    }
 
+    /**
+     * @brief Resizes the framebuffer to new width and height.
+     *
+     * @param width New width in pixels
+     * @param height New height in pixels
+     */
     void Graphics::Framebuffer::Resize(unsigned width, unsigned height) {
         Resize(FramebufferSpecs{ width, height });
     }
 
+    /**
+     * @brief Creates the game viewport framebuffer.
+     *
+     * @param width Framebuffer width
+     * @param height Framebuffer height
+     */
     void Graphics::CreateGameFramebuffer(unsigned width, unsigned height) {
         gameFramebuffer_ = std::make_unique<Framebuffer>(FramebufferSpecs{ width, height });
     }
 
+    /**
+     * @brief Resizes the game viewport framebuffer.
+     *
+     * @param width New width
+     * @param height New height
+     */
     void Graphics::ResizeGameFramebuffer(unsigned width, unsigned height) {
         if (gameFramebuffer_) {
             gameFramebuffer_->Resize(width, height);
@@ -873,19 +1084,31 @@ namespace Framework {
         }
     }
 
+    /**
+     * @brief Binds the game framebuffer for rendering.
+     */
     void Graphics::BindGameFramebuffer() const {
         if (gameFramebuffer_) {
             gameFramebuffer_->Bind();
         }
     }
 
+    /**
+     * @brief Unbinds the game framebuffer.
+     */
     void Graphics::UnbindGameFramebuffer() const {
         if (gameFramebuffer_) {
             gameFramebuffer_->Unbind();
         }
     }
 
-	// CPU Image Loading for background thread
+    /**
+     * @brief Loads image data to CPU memory (for background threads).
+     *
+     * @param path File path to the image
+     * @param flipY Whether to flip vertically
+     * @return ImageRawData Structure containing pixel data and dimensions
+     */
     Graphics::ImageRawData Graphics::LoadImageToCPU(const char* path, bool flipY) {
         if (flipY) stbi_set_flip_vertically_on_load(1);
         else stbi_set_flip_vertically_on_load(0);
@@ -900,7 +1123,13 @@ namespace Framework {
         return data;
     }
 
-	// Upload CPU image data to GPU as texture on main thread
+    /**
+     * @brief Creates an OpenGL texture from CPU image data.
+     *
+     * @param data ImageRawData from LoadImageToCPU
+     * @param srgb Whether to use sRGB color space
+     * @return Texture OpenGL texture handle
+     */
     Texture Graphics::CreateTextureFromRawData(const ImageRawData& data, bool srgb) {
         if (!data.pixels) return 0;
 
@@ -923,7 +1152,11 @@ namespace Framework {
         return tex;
     }
 
-	// Free CPU image data
+    /**
+     * @brief Frees CPU image data loaded by LoadImageToCPU.
+     *
+     * @param data ImageRawData structure to free
+     */
     void Graphics::FreeImageRawData(ImageRawData& data) {
         if (data.pixels) {
             stbi_image_free(data.pixels);
@@ -931,7 +1164,7 @@ namespace Framework {
         }
     }
 
-    #pragma endregion
+#pragma endregion
 
 
 } // namespace Framework
