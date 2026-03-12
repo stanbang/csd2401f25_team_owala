@@ -147,6 +147,12 @@ namespace Framework {
                 << playerTransform.position.x << ", "
                 << playerTransform.position.y << ")" << std::endl;
         });
+
+        // Route damage requests from enemies (e.g. witch attack circle) through
+        // DamagePlayer() so knockback, invulnerability, VFX, and audio all fire.
+        MessageBus::Instance().Subscribe<PlayerDamageRequestEvent>([this](const PlayerDamageRequestEvent& e) {
+            DamagePlayer(e.playerEntity, e.damageSource, e.sourcePos);
+        });
     }
 
     void PlayerSystem::Update() {

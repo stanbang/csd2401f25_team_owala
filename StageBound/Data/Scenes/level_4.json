@@ -16073,7 +16073,7 @@
                     "target_rotation": 0.0
                 },
                 "TextureComponent": {
-                    "texture_key": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+                    "texture_key": "SB_Witch_Idle_Spritesheet_1.png",
                     "half_size": {
                         "x": 30.0,
                         "y": 40.0

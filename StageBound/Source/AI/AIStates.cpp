@@ -24,6 +24,7 @@
 #include "Vector2D.h"
 #include "GameManager.h" 
 #include "PhysicsSystem.h"
+#include "GameMessages.h"
 
 namespace Framework {
     
@@ -695,30 +696,14 @@ namespace Framework {
                 if (distance <= currentRadius_) {
                     damageDealt_ = true;
 
-                    // Hurt the player if they have PlayerState
-                    if (mgr.HasComponent(player, PlayerStateType)) {
-                        PlayerState& ps = mgr.GetComponent<PlayerState>(player);
-                        if (!ps.isHurt && !ps.isDead) {
-                            ps.isHurt = true;
-                            ps.invulnerabilityTimer = 1.5f;
-                            ps.currentLives--;
-
-                            // Kill the player when lives reach 0
-                            if (ps.currentLives <= 0) {
-                                ps.isDead = true;
-                                ps.currentLives = 0;
-                                if (mgr.HasComponent(player, VelocityType)) {
-                                    mgr.GetComponent<Velocity>(player).Vel = { 0.f, 0.f };
-                                }
-                                if (mgr.HasComponent(player, AnimationComponentType)) {
-                                    auto& anim = mgr.GetComponent<AnimationComponent>(player);
-                                    anim.currentState = "DEATH";
-                                    anim.isPlaying = true;
-                                }
-                                MessageBus::Instance().Publish(PlayerDeathEvent{ player, false });
-                            }
-                        }
-                    }
+                    // Route through PlayerSystem::DamagePlayer() via event so that
+                    // knockback, invulnerability, VFX, and hurt/death sounds all fire
+                    // consistently — the same path the bird uses.
+                    MessageBus::Instance().Publish(PlayerDamageRequestEvent{
+                        player,
+                        myPos,
+                        "witch attack"
+                    });
                 }
             }
         }
