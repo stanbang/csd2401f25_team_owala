@@ -7532,7 +7532,7 @@
             "tags": []
         },
         {
-            "name": "LeftPlatformPadding1",
+            "name": "RightPlatformPadding1",
             "layer": 2,
             "layer_collision_name": "Platform",
             "render_layer": 50,
@@ -8032,7 +8032,7 @@
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
-            "uuid": 11936107373090765929,
+            "uuid": 10390223917063663963,
             "components": {
                 "Transform": {
                     "Position": {
@@ -8101,7 +8101,7 @@
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
-            "uuid": 12311398564359822091,
+            "uuid": 7287667921187456075,
             "components": {
                 "Transform": {
                     "Position": {
@@ -8170,7 +8170,7 @@
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
-            "uuid": 16656507659272180160,
+            "uuid": 15310163292378563745,
             "components": {
                 "Transform": {
                     "Position": {
