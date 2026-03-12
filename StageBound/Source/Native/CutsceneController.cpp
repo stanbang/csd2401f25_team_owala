@@ -20,6 +20,7 @@
 #include "GameManager.h"
 #include "EntityManager.h"
 #include "SaveManager.h"
+#include "AnimationSystem.h"
 #include "InputSystem.h"
 #include "Components.h"
 #include "OwalaTime.h"
@@ -36,6 +37,8 @@ void CutsceneController::ApplySlide() {
 
 	TextureComponent& texture = entityMgr.GetComponent<TextureComponent>(self);
 	texture.textureKey = slides[currentSlide].textureKey;
+	AnimationComponent& animComp = entityMgr.GetComponent<AnimationComponent>(self);
+	AnimationSystem::ResetAnimation(animComp);
 
 	timer = 0.f;
 }
@@ -91,10 +94,10 @@ bool CutsceneController::IsSkipHeldDown() const {
 
 void CutsceneController::OnCreate() {
 	slides = {
-		{"SB_CutScene_01_Spritesheet01.png", 3.5f},
-		{"SB_CutScene_02_Spritesheet01.png", 3.5f},
-		{"Cut_Scene_3_Spritesheet_01.png", 3.5f},
-		{"Cut_Scene_4_Spritesheet_01.png", 3.5f},
+		{"SB_CutScene_01_Spritesheet01.png", 2.f},
+		{"SB_CutScene_02_Spritesheet01.png", 1.6f},
+		{"Cut_Scene_3_Spritesheet_01.png", 2.f},
+		{"Cut_Scene_4_Spritesheet_01.png", 2.5f},
 	};
 
 	currentSlide = 0;

@@ -332,4 +332,11 @@ namespace Framework {
 
 	}
 
+	void AnimationSystem::ResetAnimation(AnimationComponent& animComp) {
+		animComp.currentFrame = animComp.startFrame;
+		animComp.elapsedTime = 0.0f;
+		animComp.isPlaying = true;
+		animComp.delayRemaining = -1.0f;
+	}
+
 } // namespace Framework
