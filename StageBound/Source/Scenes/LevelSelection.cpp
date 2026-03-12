@@ -558,6 +558,14 @@ namespace {
 			save->SetUnlock(4);
 			RefreshUI(entityMgr);
 		}
+		if (input.KeyPressed(InputSystem::Key::Num5)) {
+			save->SetUnlock(5);
+			RefreshUI(entityMgr);
+		}
+		if (input.KeyPressed(InputSystem::Key::Num6)) {
+			save->SetUnlock(6);
+			RefreshUI(entityMgr);
+		}
 	}
 
 	static void RestoreMainMenuEntities(Framework::EntityManager& entityMgr) {
@@ -585,10 +593,12 @@ namespace LevelSelection {
 		std::string firstLevel = shouldSkipIntro ? "Tutorial 1" : "Cutscene Intro";
 
 		levelData = {
-			{1, "act i: the forest", firstLevel, "SB__ForestTicketGlow.png"},
-			{2, "act ii: the hut", "Tutorial 2", "SB__WitchHutTicketGlow.png"},
-			{3, "act iii: workshop", "Level 3", "SB__WorkshopTicketGlow.png"},
-			{4, "act iv: backstage", "Level 4", "SB__BackstageTicketGlow.png"}
+			{1, "prologue: tutorial i", firstLevel, "SB__ForestTicketGlow.png"},
+			{2, "prologue: tutorial ii", "Tutorial 2", "SB__ForestTicketGlow.png"},
+			{3, "act i: the forest", "Level 1", "SB__ForestTicketGlow.png"},
+			{4, "act ii: the hut", "Level 2", "SB__WitchHutTicketGlow.png"},
+			{5, "act iii: workshop", "Level 3", "SB__WorkshopTicketGlow.png"},
+			{6, "act iv: backstage", "Level 4", "SB__BackstageTicketGlow.png"}
 		};
 
 		HideMenuEntities(entityMgr);
