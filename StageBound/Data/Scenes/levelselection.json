@@ -2,6 +2,140 @@
     "scene_name": "LevelSelection",
     "entities": [
         {
+            "name": "FrameBackground",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 10,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 7377644058003026964,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_LevelSelection_TicketFrame_Background.png",
+                    "half_size": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 13,
+                    "sceneName": "LevelSelection"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "SelectButtonText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 61,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 3480378483701731801,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": -0.7900000214576721
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextComponent": {
+                    "text": "select",
+                    "font_key": "SB_Font.otf",
+                    "font_color": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "font_size": 1.2999999523162842,
+                    "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 13,
+                    "sceneName": "LevelSelection"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
             "name": "NameEntryOverlayBG",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -55,6 +189,7 @@
                         "y": 0.25
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -120,6 +255,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -204,6 +340,7 @@
                         "y": 0.5
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -269,6 +406,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -353,6 +491,7 @@
                         "y": 0.15000000596046448
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -437,6 +576,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -502,71 +642,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 13,
-                    "sceneName": "LevelSelection"
-                }
-            },
-            "tags": [
-                "GUITag"
-            ]
-        },
-        {
-            "name": "FrameBackground",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 0,
-            "custom_render_order": 10,
-            "layer_render_name": "Custom",
-            "active": true,
-            "uuid": 7377644058003026964,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_LevelSelection_TicketFrame_Background.png",
-                    "half_size": {
-                        "x": 1.0,
-                        "y": 1.0
-                    },
-                    "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -700,6 +776,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -765,6 +842,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -830,75 +908,8 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 13,
-                    "sceneName": "LevelSelection"
-                }
-            },
-            "tags": [
-                "GUITag"
-            ]
-        },
-        {
-            "name": "SelectButtonText",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 0,
-            "custom_render_order": 61,
-            "layer_render_name": "Custom",
-            "active": true,
-            "uuid": 3480378483701731801,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 0.0,
-                        "y": -0.7900000214576721
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "TextComponent": {
-                    "text": "select",
-                    "font_key": "SB_Font.otf",
-                    "font_color": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0
-                    ],
-                    "font_size": 1.2999999523162842,
-                    "max_width": 10.0
                 },
                 "SceneOwned": {
                     "scene_id": 13,
@@ -957,7 +968,7 @@
                     }
                 },
                 "TextComponent": {
-                    "text": "act i: the forest",
+                    "text": "prologue: tutorial i",
                     "font_key": "SB_Font.otf",
                     "font_color": [
                         0.5899999737739563,
@@ -966,7 +977,7 @@
                         1.0
                     ],
                     "font_size": 1.2999999523162842,
-                    "max_width": 10.0
+                    "max_width": 15.0
                 },
                 "SceneOwned": {
                     "scene_id": 13,
@@ -1031,6 +1042,7 @@
                         "y": 0.4000000059604645
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -1096,6 +1108,7 @@
                         "y": 0.20000000298023224
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -1180,6 +1193,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -1245,6 +1259,7 @@
                         "y": 0.4000000059604645
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -1310,6 +1325,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -1375,6 +1391,7 @@
                         "y": 1.0
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
@@ -1440,6 +1457,7 @@
                         "y": 0.14000000059604645
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "ButtonComponent": {
@@ -1592,6 +1610,7 @@
                         "y": 0.699999988079071
                     },
                     "flip_x": false,
+                    "alpha": 1.0,
                     "override_uv": false
                 },
                 "SceneOwned": {
