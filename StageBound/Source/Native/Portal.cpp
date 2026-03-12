@@ -1,7 +1,35 @@
+/*********************************************************************//**
+ * \file   Portal.cpp
+ *
+ * \primary_author
+ *      Jason Lou (100%)
+ *
+ * \brief  Implementation of the Portal script for level exit functionality.
+ *         Handles player interaction, level unlocking, and timer submission.
+ *
+ * \details
+ *      This file contains the implementation of the portal system that
+ *      serves as level exits. When the player stands in the portal trigger
+ *      and holds the F key for 1.5 seconds, the level is marked as complete.
+ *      The script manages:
+ *        - Player detection and proximity tracking
+ *        - Hold-to-interact timer (1.5 second requirement)
+ *        - Visual feedback via fading portal text
+ *        - VFX and SFX triggering during interaction
+ *        - Level unlocking via SaveManager
+ *        - Timer stop and Firebase submission
+ *        - Publishing LevelClearEvent for other systems
+ *
+ * \copyright
+ *      Copyright (C) 2025 DigiPen Institute of Technology.
+ *      Reproduction or disclosure of this file or its contents without
+ *      the prior written consent of DigiPen Institute of Technology is prohibited.
+ *********************************************************************/
+
 #include "Portal.h"
 #include "ScriptRegistry.h"
 
-// Dependencies
+ // Dependencies
 #include "Core.h"
 #include "GameManager.h"
 #include "EntityManager.h"
@@ -9,154 +37,222 @@
 #include "InputSystem.h"
 #include "OwalaTime.h"
 #include "Vector2D.h"
-#include "TimerSystem.h"  // ADD THIS INCLUDE
+#include "TimerSystem.h"
 #include "MessageBus.h"
 #include <string>
 
 REGISTER_SCRIPT(Portal, "Portal")
 
-void Portal::SearchForPlayer() {
-	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+// -----------------------------------------------------------------------
+// Entity Search Methods
+// -----------------------------------------------------------------------
 
-	std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
-	for (Entity entity : sceneEntities) {
-		if (entityMgr.HasComponent(entity, PlayerTagType)) {
-			player = entity;
-			return;
-		}
-	}
+/**
+ * @brief Searches the current scene for the player entity.
+ *
+ * Finds the first entity with a PlayerTag component in the active scene
+ * and caches it for future use. Called when the cached player becomes invalid.
+ */
+    void Portal::SearchForPlayer() {
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+    std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
+    for (Entity entity : sceneEntities) {
+        if (entityMgr.HasComponent(entity, PlayerTagType)) {
+            player = entity;
+            return;
+        }
+    }
 }
 
+/**
+ * @brief Searches for the portal's child text entity.
+ *
+ * Finds an entity named "PortalText" in the current scene that has a
+ * TextComponent. This entity provides visual feedback (e.g., "Press F to exit")
+ * and fades based on player distance.
+ */
 void Portal::SearchForPortalChildren() {
-	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-	// Search for other entities tied to the portal
-	std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
-	for (Entity entity : sceneEntities) {
-		if (!entityMgr.HasComponent(entity, TextComponentType)) continue;
-		if (entityMgr.IsActive(entity) && (entityMgr.GetProperties(entity).name == "PortalText")) {
-			portalText = entity;
-			return;
-		}
-	}
+    // Search for other entities tied to the portal
+    std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene().name);
+    for (Entity entity : sceneEntities) {
+        if (!entityMgr.HasComponent(entity, TextComponentType)) continue;
+        if (entityMgr.IsActive(entity) && (entityMgr.GetProperties(entity).name == "PortalText")) {
+            portalText = entity;
+            return;
+        }
+    }
 }
 
+/**
+ * @brief Searches for the SaveManager in the persistent DDOL scene.
+ *
+ * Finds the SaveManager script instance in the Don't Destroy On Load scene
+ * and caches it for level unlocking functionality.
+ */
 void Portal::SearchForSaveManager() {
-	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+    EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
-	// Search for SaveManager
-	const std::vector<Entity> persistents = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
-	for (Entity entity : persistents) {
-		if (!entityMgr.ValidateEntity(entity)) continue;
-		if ((save = entityMgr.GetScript<SaveManager>(entity))) {
-			return;
-		}
-	}
+    // Search for SaveManager
+    const std::vector<Entity> persistents = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());
+    for (Entity entity : persistents) {
+        if (!entityMgr.ValidateEntity(entity)) continue;
+        if ((save = entityMgr.GetScript<SaveManager>(entity))) {
+            return;
+        }
+    }
 }
 
+// -----------------------------------------------------------------------
+// Visual Feedback Methods
+// -----------------------------------------------------------------------
+
+/**
+ * @brief Updates the portal text alpha based on player proximity.
+ *
+ * Fades in the portal text as the player gets closer:
+ * - At distance >= 200 units: alpha = 0.0 (invisible)
+ * - At distance 0: alpha = 1.0 (fully visible)
+ * - Linear interpolation in between
+ *
+ * @param entityMgr Reference to the EntityManager for component access
+ */
 void Portal::UpdateChildren(EntityManager& entityMgr) {
-	if (!entityMgr.HasComponent(player, TransformType) || !entityMgr.HasComponent(portalText, TransformType)
-		|| !entityMgr.HasComponent(portalText, TextComponentType)) return;
+    if (!entityMgr.HasComponent(player, TransformType) || !entityMgr.HasComponent(portalText, TransformType)
+        || !entityMgr.HasComponent(portalText, TextComponentType)) return;
 
-	Vector2D& playerPos = entityMgr.GetComponent<Transform>(player).position;
-	Vector2D& portalPos = entityMgr.GetComponent<Transform>(GetEntity()).position;
+    Vector2D& playerPos = entityMgr.GetComponent<Transform>(player).position;
+    Vector2D& portalPos = entityMgr.GetComponent<Transform>(GetEntity()).position;
 
-	float distance = playerPos.Distance(portalPos);
-	float maxDistance = 200.f;
-	float alpha = 0.f;
+    float distance = playerPos.Distance(portalPos);
+    float maxDistance = 200.f;
+    float alpha = 0.f;
 
-	// If player is within 200 units and rotation is upright, activate the portal text.
-	if (distance < maxDistance) {
-		alpha = 1.f - (distance / maxDistance);
-	}
+    // If player is within 200 units, fade in based on distance
+    if (distance < maxDistance) {
+        alpha = 1.f - (distance / maxDistance);
+    }
 
-	TextComponent& text = entityMgr.GetComponent<TextComponent>(portalText);
-	text.color.a = alpha;
+    TextComponent& text = entityMgr.GetComponent<TextComponent>(portalText);
+    text.color.a = alpha;
 }
 
+// -----------------------------------------------------------------------
+// Lifecycle Implementation
+// -----------------------------------------------------------------------
+
+/**
+ * @brief Initializes the portal when the entity is created.
+ *
+ * Determines which level index to unlock based on the current scene name:
+ * - "Tutorial 2" -> unlocks index 3
+ * - "Level 1"    -> unlocks index 4
+ * - Any other    -> unlocks index 2 (default)
+ */
 void Portal::OnCreate() {
-	// Cache the levelIndex to unlock depending on the current level the portal is in.
-	std::string sceneName = SceneManager::GetInstance().GetActiveScene().name;
+    // Cache the levelIndex to unlock depending on the current level the portal is in.
+    std::string sceneName = SceneManager::GetInstance().GetActiveScene().name;
 
-	if (sceneName == "Tutorial 2") {
-		levelIndexToUnlock = 3;
-	}
-	else if (sceneName == "Level 1") {
-		levelIndexToUnlock = 4;
-	}
-	else {
-		levelIndexToUnlock = 2;
-	}
+    if (sceneName == "Tutorial 2") {
+        levelIndexToUnlock = 3;
+    }
+    else if (sceneName == "Level 1") {
+        levelIndexToUnlock = 4;
+    }
+    else {
+        levelIndexToUnlock = 2;
+    }
 }
 
+/**
+ * @brief Updates the portal each frame, handling player interaction.
+ *
+ * Core functionality:
+ * 1. Finds/caches required entities (player, portal text, save manager)
+ * 2. Updates portal text alpha based on distance
+ * 3. Checks if player is overlapping the portal trigger
+ * 4. If overlapping and holding F:
+ *    - Accumulates interact timer
+ *    - Triggers VFX/SFX on first frame of interaction
+ *    - When timer reaches 1.5s: stops timer, unlocks level, publishes events
+ * 5. Resets timer and VFX flags if player releases F or leaves trigger
+ */
 void Portal::OnUpdate() {
-	static bool playExitVFX = true;
-	GameManager& gm = GameManager::GetInstance();
-	PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
-	AudioSystem& audioSystem = *gm.GetSystems().audio_;
-	EntityManager entityMgr(*gm.GetSystems().ecs_);
+    static bool playExitVFX = true;
+    GameManager& gm = GameManager::GetInstance();
+    PhysicsSystem& physicsSystem = *gm.GetSystems().physics_;
+    AudioSystem& audioSystem = *gm.GetSystems().audio_;
+    EntityManager entityMgr(*gm.GetSystems().ecs_);
 
-	Entity self = GetEntity();
+    Entity self = GetEntity();
 
-	if (player == 0 || !entityMgr.ValidateEntity(player)) SearchForPlayer();
-	if (portalText == 0 || !entityMgr.ValidateEntity(portalText)) SearchForPortalChildren();
-	if (!save || !entityMgr.ValidateEntity(save->GetEntity())) {
-		SearchForSaveManager();
-		return;
-	}
+    if (player == 0 || !entityMgr.ValidateEntity(player)) SearchForPlayer();
+    if (portalText == 0 || !entityMgr.ValidateEntity(portalText)) SearchForPortalChildren();
+    if (!save || !entityMgr.ValidateEntity(save->GetEntity())) {
+        SearchForSaveManager();
+        return;
+    }
 
-	// Handle Portal Exit Text
-	if (player != 0 && portalText != 0) {
-		UpdateChildren(entityMgr);
-	}
+    // Handle Portal Exit Text
+    if (player != 0 && portalText != 0) {
+        UpdateChildren(entityMgr);
+    }
 
-	if (player == 0) return; // No valid player found; can't check overlap
+    if (player == 0) return; // No valid player found; can't check overlap
 
-	if (physicsSystem.CheckTriggerOverlap(player, self)) {
-		InputSystem& input = *gm.GetSystems().input_;
+    if (physicsSystem.CheckTriggerOverlap(player, self)) {
+        InputSystem& input = *gm.GetSystems().input_;
 
-		// Player must hold down for 1.5 seconds to trigger completion flag.
-		if (input.KeyDown(InputSystem::Key::F)) {
-			interactTimer += Time::DeltaTime();
+        // Player must hold down for 1.5 seconds to trigger completion flag.
+        if (input.KeyDown(InputSystem::Key::F)) {
+            interactTimer += Time::DeltaTime();
 
-			// If playExitVFX is true, it means we haven't played the exit VFX for this portal interaction yet, so we play it and set the flag to false to prevent replaying.
-			if (playExitVFX) {
-				playExitVFX = false; // Set to false to prevent replaying the VFX in subsequent frames of this interaction.
-				// Get the portal's position for VFX spawning
-				Vector2D position = entityMgr.GetComponent<Transform>(self).position;
-				// Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
-				MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
-				MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f });
-			}
+            // If playExitVFX is true, it means we haven't played the exit VFX for this portal interaction yet, so we play it and set the flag to false to prevent replaying.
+            if (playExitVFX) {
+                playExitVFX = false; // Set to false to prevent replaying the VFX in subsequent frames of this interaction.
 
-			if (interactTimer >= 1.5f) {
-				interactTimer = 0.f;
-				playExitVFX = true; // Reset for the next time the player interacts with the portal.
+                // Get the portal's position for VFX spawning
+                Vector2D position = entityMgr.GetComponent<Transform>(self).position;
 
-				// ===== ADD THIS =====
-				// Stop the timer and submit to Firebase BEFORE resetting
-				if (TimerSystem::Get().IsRunning()) {
-					Framework::Logger::Get().Info(DebugType::PlayerSystem)
-						<< "[Portal] Level complete! Stopping timer and submitting..." << std::endl;
-					TimerSystem::Get().Stop();
-				}
-				// ====================
+                // Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
+                MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
+                MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f });
+            }
 
-				audioSystem.stopAll();
-				save->Unlock(levelIndexToUnlock);
-				MessageBus::Instance().Publish(LevelClearEvent{});
+            if (interactTimer >= 1.5f) {
+                interactTimer = 0.f;
+                playExitVFX = true; // Reset for the next time the player interacts with the portal.
 
-			}
-		} else {
-			playExitVFX = true; // Reset the VFX flag if player releases the key before completion.
-			interactTimer = 0.f;
-		}
-	} else {
-		playExitVFX = true; // Reset the VFX flag if player steps out of the portal trigger.
-		interactTimer = 0.f;
-	}
+                // Stop the timer and submit to Firebase BEFORE resetting
+                if (TimerSystem::Get().IsRunning()) {
+                    Framework::Logger::Get().Info(DebugType::PlayerSystem)
+                        << "[Portal] Level complete! Stopping timer and submitting..." << std::endl;
+                    TimerSystem::Get().Stop();
+                }
+
+                audioSystem.stopAll();
+                save->Unlock(levelIndexToUnlock);
+                MessageBus::Instance().Publish(LevelClearEvent{});
+            }
+        }
+        else {
+            playExitVFX = true; // Reset the VFX flag if player releases the key before completion.
+            interactTimer = 0.f;
+        }
+    }
+    else {
+        playExitVFX = true; // Reset the VFX flag if player steps out of the portal trigger.
+        interactTimer = 0.f;
+    }
 }
 
+/**
+ * @brief Cleans up when the portal entity is destroyed.
+ *
+ * Empty implementation as no cleanup is required.
+ */
 void Portal::OnDestroy() {
-	// Logic to be called before Entity is deleted
+    // Logic to be called before Entity is deleted
 }
