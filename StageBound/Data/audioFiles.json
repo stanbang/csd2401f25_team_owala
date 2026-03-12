@@ -78,5 +78,8 @@
     ],
     "Witch_Teleport": [
         "witch_teleport.wav"
+    ],
+    "Portal_Activate": [
+        "portal_whoosh.wav"
     ]
 }
