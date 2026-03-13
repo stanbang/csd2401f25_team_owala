@@ -26,10 +26,11 @@ The Root folder contains:
 ----------------------------------
 GENERATING THE SOLUTION(.sln) FILE
 ----------------------------------
-1. Run "clean.bat" (To clean any existing "build" folder)
-2. Run "run.bat" (To generate "build" folder and run cmake)
-3. The "build" folder should be generated under the "Engine" folder.
-4. The solution file is located in "build/owala.sln"
+1. Ensure that active_game.cmake's ACTIVE_GAME_NAME is set to the name of your desired project folder's name. (E.g. set(ACTIVE_GAME_NAME "StageBound"))
+2. Run "clean.bat" (To clean any existing "build" folder)
+3. Run "run.bat" (To generate "build" folder and run cmake)
+4. The "build" folder should be generated under the "Engine" folder.
+5. The solution file is located in "build/owala.sln"
 
 --------------------------------------------------
 RUNNING THE PROJECT IN EDITOR / ENGINE MODE
