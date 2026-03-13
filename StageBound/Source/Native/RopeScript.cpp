@@ -172,7 +172,6 @@ void RopeScript::OnUpdate() {
 }
 
 void RopeScript::OnDestroy() {
-    Logger::Get().Info(DebugType::Unknown) << "RopeScript::OnDestroy for platform" << std::endl;
     RemoveAllRopes();
 }
 
