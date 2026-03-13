@@ -2185,11 +2185,13 @@ namespace Editor {
 					std::string searchQuery = searchBuffer;
 					if (!searchQuery.empty()) {
 						// Convert query to lowercase for case-insensitive search
-						std::transform(searchQuery.begin(), searchQuery.end(), searchQuery.begin(), ::tolower);
+						std::transform(searchQuery.begin(), searchQuery.end(), searchQuery.begin(),
+							[](unsigned char c) { return static_cast<char>(::tolower(c)); });
 
 						list.erase(std::remove_if(list.begin(), list.end(), [&](Entity e) {
 							std::string entityName = entityMgr.GetProperties(e).name;
-							std::transform(entityName.begin(), entityName.end(), entityName.begin(), ::tolower);
+							std::transform(entityName.begin(), entityName.end(), entityName.begin(),
+								[](unsigned char c) { return static_cast<char>(::tolower(c)); });
 							return entityName.find(searchQuery) == std::string::npos;
 							}), list.end());
 					}
