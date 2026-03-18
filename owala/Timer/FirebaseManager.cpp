@@ -80,62 +80,65 @@ namespace Framework {
      * 6. Cleans up all handles before returning
      */
     static std::string WinHttpRequest(
-        const std::string& url,
-        const std::wstring& method,
-        const std::string& body = "")
+        const std::string& url,         // Full target URL
+		const std::wstring& method,     // HTTP method (L"GET", L"PUT", etc.)
+		const std::string& body = "")   // Optional body for PUT/POST requests
     {
-        std::string result;
+		std::string result; // Response body to return, empty on failure
 #ifdef _WIN32
-        URL_COMPONENTS uc = {};
-        uc.dwStructSize = sizeof(uc);
+		URL_COMPONENTS uc = {}; // Zero-initialize before setting dwStructSize
+		uc.dwStructSize = sizeof(uc); // Must set this for WinHttpCrackUrl to work, this is how it knows which version of the structure we're using
 
-        wchar_t scheme[32] = {};
-        wchar_t host[256] = {};
-        wchar_t urlPath[1024] = {};
+		wchar_t scheme[32] = {};    // Buffers for URL components - must be large enough to hold expected values
+		wchar_t host[256] = {};     // Note: WinHTTP limits host name to 255 chars, so 256 is safe for null-terminator
+		wchar_t urlPath[1024] = {}; // URL path can be long, but 1024 should be sufficient for our use case
 
-        uc.lpszScheme = scheme;  uc.dwSchemeLength = _countof(scheme);
-        uc.lpszHostName = host;    uc.dwHostNameLength = _countof(host);
-        uc.lpszUrlPath = urlPath; uc.dwUrlPathLength = _countof(urlPath);
+		uc.lpszScheme = scheme;  uc.dwSchemeLength = _countof(scheme);  // Set pointers and lengths for the components we want to extract
+		uc.lpszHostName = host;    uc.dwHostNameLength = _countof(host);    // Port is extracted as a number, no buffer needed
+		uc.lpszUrlPath = urlPath; uc.dwUrlPathLength = _countof(urlPath);   // We only care about scheme, host, port, and path for our requests. User info and extra info are not needed.
 
-        std::wstring wurl(url.begin(), url.end());
-        if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc)) return result;
+		std::wstring wurl(url.begin(), url.end());  // Convert URL to wide string for WinHTTP functions
+		if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc)) return result;   // Parse the URL into components using WinHttpCrackUrl. Returns false on failure.
 
-        bool isHttps = (uc.nScheme == INTERNET_SCHEME_HTTPS);
+		bool isHttps = (uc.nScheme == INTERNET_SCHEME_HTTPS);   // Determine if the URL is HTTPS for setting secure flags later
 
-        HINTERNET hSession = WinHttpOpen(L"owala/1.0",
-            WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-        if (!hSession) return result;
+		// Create WinHTTP session, this is the first step in using WinHTTP. The user agent string can be anything, we just use "owala/1.0" for identification. We use the default proxy settings from the system. Returns NULL on failure.
+		HINTERNET hSession = WinHttpOpen(L"owala/1.0",          // User agent string
+			WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,                  // Use default proxy settings from the system
+			WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0); // Open a WinHTTP session. Returns NULL on failure.
+		if (!hSession) return result;   // If session creation failed, return empty result
 
-        HINTERNET hConnect = WinHttpConnect(hSession, host, uc.nPort, 0);
+		HINTERNET hConnect = WinHttpConnect(hSession, host, uc.nPort, 0);   // Establish a connection to the server using the host and port from the URL. Returns NULL on failure.
         if (!hConnect) {
-            WinHttpCloseHandle(hSession);
+			WinHttpCloseHandle(hSession);   // If connection failed, clean up session handle before returning
             return result;
         }
 
-        DWORD     flags = isHttps ? WINHTTP_FLAG_SECURE : 0;
-        HINTERNET hRequest = WinHttpOpenRequest(
+		DWORD     flags = isHttps ? WINHTTP_FLAG_SECURE : 0;    // Set secure flag for HTTPS requests
+		HINTERNET hRequest = WinHttpOpenRequest(    // Open an HTTP request handle for the specified method and URL path. The full URL is not used here, only the path, because the connection handle already knows the host. Returns NULL on failure.
             hConnect, method.c_str(), urlPath,
             nullptr, WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
         if (!hRequest) {
-            WinHttpCloseHandle(hConnect);
+			WinHttpCloseHandle(hConnect);   // If request handle creation failed, clean up connection and session handles before returning
             WinHttpCloseHandle(hSession);
             return result;
         }
 
+		// If we have a body to send (for PUT/POST), add the Content-Type header for JSON. We use WINHTTP_ADDREQ_FLAG_ADD to add this header without replacing any existing headers (though there shouldn't be any at this point). The length of the header string is -1L to indicate it's null-terminated.
         if (!body.empty()) {
             WinHttpAddRequestHeaders(hRequest,
                 L"Content-Type: application/json",
                 (ULONG)-1L, WINHTTP_ADDREQ_FLAG_ADD);
         }
 
+		// Send the request with the body if provided. The total length is the same as the optional length since we're sending it all at once. Returns false on failure.
         BOOL sent = WinHttpSendRequest(hRequest,
             WINHTTP_NO_ADDITIONAL_HEADERS, 0,
             body.empty() ? nullptr : (LPVOID)body.c_str(),
             (DWORD)body.size(), (DWORD)body.size(), 0);
 
-        if (sent) {
+		if (sent) { // If the request was sent successfully, we can now receive the response. This will block until the response is received, but since this function is called on a background thread, it won't affect the main game loop.
             WinHttpReceiveResponse(hRequest, nullptr);
             DWORD bytesAvail = 0;
             while (WinHttpQueryDataAvailable(hRequest, &bytesAvail) && bytesAvail > 0) {
