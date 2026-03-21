@@ -62,6 +62,8 @@ private:
     bool HasTwoRopes(EntityManager& entityMgr) const;
     bool IsValidRopePlatform() const;
     bool FallsVertically() const;
+    bool UsesCeilingTopRope(EntityManager& entityMgr) const;
+    Vector2D CalculateTopColliderAttachment(EntityManager& entityMgr, int ropeIndex) const;
 
     void InitializeRopesForPlatform();
     void RemoveAllRopes();

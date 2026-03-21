@@ -119,13 +119,6 @@ void RopeScript::OnCreate() {
         trapComp.originalPosition = originalPosition_;
     }
 
-    // Handle collider rotation swapping
-    float colAngle = transform.rotation.colliderAngle;
-    float absRot = std::fmod(std::abs(colAngle), 3.14159265f);
-    if (absRot > 3.14159265f * 0.25f && absRot < 3.14159265f * 0.75f) {
-        std::swap(originalHalfWidth_, originalHalfHeight_);
-    }
-
     // Initialize ropes for this platform
     InitializeRopesForPlatform();
     hasInitialized_ = true;
@@ -181,12 +174,8 @@ void RopeScript::OnDestroy() {
 EntityManager* RopeScript::GetEntityManager() const {
     if (!GameManager::Exists()) return nullptr;
 
-    // Obtain reference to current EntityStorage from GameManager
     EntityStorage& ecs = GameManager::GetInstance().GetECS();
 
-    // Cache an EntityManager that wraps the current ECS reference. If the underlying
-    // ECS instance changes (e.g. editor play/stop swapping storages), recreate the
-    // cached EntityManager to point to the new storage.
     static EntityStorage* cachedEcs = nullptr;
     static std::unique_ptr<EntityManager> cachedManager;
 
@@ -213,6 +202,62 @@ bool RopeScript::IsValidRopePlatform() const {
 
 bool RopeScript::FallsVertically() const {
     return platformType_.find("Vertical") != std::string::npos;
+}
+
+bool RopeScript::UsesCeilingTopRope(EntityManager& entityMgr) const {
+    if (FallsVertically()) {
+        return true;
+    }
+
+    if (!entityMgr.HasComponent(platformEntity_, TextureComponentType)) {
+        return false;
+    }
+
+    const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(platformEntity_);
+    return tex.textureKey == "SB_MovableBox_02.png";
+}
+
+Vector2D RopeScript::CalculateTopColliderAttachment(EntityManager& entityMgr, int ropeIndex) const {
+    const Transform& platformTf = entityMgr.GetComponent<Transform>(platformEntity_);
+
+    float halfWidth = originalHalfWidth_;
+    float halfHeight = originalHalfHeight_;
+
+    const float colAngle = platformTf.rotation.colliderAngle;
+    const float absRot = std::fmod(std::abs(colAngle), 3.14159265f);
+    if (absRot > 3.14159265f * 0.25f && absRot < 3.14159265f * 0.75f) {
+        std::swap(halfWidth, halfHeight);
+    }
+
+    Vector2D localEdge = Vector2D::Zero();
+    const bool twoRopes = HasTwoRopes(entityMgr);
+    if (FallsVertically()) {
+        localEdge.x = twoRopes ? ((ropeIndex == 0) ? -halfWidth : halfWidth) : 0.0f;
+        localEdge.y = halfHeight;
+    }
+    else {
+        localEdge.x = -halfWidth;
+        localEdge.y = 0.0f;
+    }
+
+    if (entityMgr.HasComponent(platformEntity_, AABBColliderType)) {
+        const AABBCollider& col = entityMgr.GetComponent<AABBCollider>(platformEntity_);
+        const float cosA = std::cos(colAngle);
+        const float sinA = std::sin(colAngle);
+        localEdge.x += col.Offset.x * cosA - col.Offset.y * sinA;
+        localEdge.y += col.Offset.x * sinA + col.Offset.y * cosA;
+    }
+
+    float worldRotDeg = 0.0f;
+    if (entityMgr.HasComponent(platformEntity_, RotationFlagType)) {
+        worldRotDeg = entityMgr.GetComponent<RotationFlag>(platformEntity_).currentRotation;
+    }
+
+    const float worldRotRad = worldRotDeg * (3.14159265f / 180.0f);
+    const float cosR = std::cos(worldRotRad);
+    const float sinR = std::sin(worldRotRad);
+    const Vector2D worldEdge(localEdge.x * cosR - localEdge.y * sinR, localEdge.x * sinR + localEdge.y * cosR);
+    return platformTf.position + worldEdge;
 }
 
 void RopeScript::InitializeRopesForPlatform() {
@@ -275,35 +320,22 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     const float worldRotRad = worldRotDeg * (3.14159265f / 180.0f);
     const float cosR = std::cos(worldRotRad);
     const float sinR = std::sin(worldRotRad);
+    const bool useSpecialPlatformAttachment = UsesCeilingTopRope(*entityMgr);
+    const bool useCeilingAnchor = FallsVertically();
 
-    Vector2D localEdge;
-    if (FallsVertically()) {
-        bool twoRopes = HasTwoRopes(*entityMgr);
-        localEdge.x = twoRopes ? ((ropeIndex == 0) ? -halfWidth : halfWidth) : 0.0f;
-        localEdge.y = halfHeight;
-
-        if (entityMgr->HasComponent(platformEntity_, AABBColliderType)) {
-            const AABBCollider& col = entityMgr->GetComponent<AABBCollider>(platformEntity_);
-            float colAngle = entityMgr->GetComponent<Transform>(platformEntity_).rotation.colliderAngle;
-            float cosA = std::cos(colAngle);
-            float sinA = std::sin(colAngle);
-            localEdge.x += col.Offset.x * cosA - col.Offset.y * sinA;
-            localEdge.y += col.Offset.x * sinA + col.Offset.y * cosA;
-        }
-    }
-    else {
+    Vector2D localEdge = Vector2D::Zero();
+    if (!useSpecialPlatformAttachment) {
         localEdge.x = -halfWidth;
         localEdge.y = 0.0f;
     }
 
     // Transform to world space
-    const Vector2D worldEdge(localEdge.x * cosR - localEdge.y * sinR,
-        localEdge.x * sinR + localEdge.y * cosR);
-    Vector2D dynamicAnchor = platformTf.position + worldEdge;
+    const Vector2D worldEdge(localEdge.x * cosR - localEdge.y * sinR, localEdge.x * sinR + localEdge.y * cosR);
+    Vector2D dynamicAnchor = useSpecialPlatformAttachment ? CalculateTopColliderAttachment(*entityMgr, ropeIndex): platformTf.position + worldEdge;
 
     // Calculate fixed anchor
     Vector2D fixedAnchor;
-    if (FallsVertically()) {
+    if (useCeilingAnchor) {
         float attachX = dynamicAnchor.x;
         float attachTopY = dynamicAnchor.y;
         float fallbackCeilY = attachTopY + ROPE_OVERHEAD;
@@ -421,6 +453,8 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
     const float worldRotRad = worldRotDeg * (3.14159265f / 180.0f);
     const float cosR = std::cos(worldRotRad);
     const float sinR = std::sin(worldRotRad);
+    const bool useSpecialPlatformAttachment = UsesCeilingTopRope(*entityMgr);
+    const bool useCeilingAnchor = FallsVertically();
 
     float rotDeltaDeg = worldRotDeg - rc.lastWorldRotationDeg;
     while (rotDeltaDeg > 180.0f) rotDeltaDeg -= 360.0f;
@@ -446,18 +480,22 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
 
     // Recalculate ceiling if needed
     if (!rc.hasFoundCeiling) {
-        if (FallsVertically()) {
-            float attachX = platformTf.position.x + ((rc.ropeIndex == 0) ? -halfWidth : halfWidth);
-            float platformTopY = platformTf.position.y + halfHeight;
+        if (useCeilingAnchor) {
+            Vector2D attachPoint = useSpecialPlatformAttachment  ? CalculateTopColliderAttachment(*entityMgr, rc.ropeIndex)
+                : Vector2D(platformTf.position.x + ((rc.ropeIndex == 0) ? -halfWidth : halfWidth), platformTf.position.y + halfHeight);
+            float attachX = attachPoint.x;
+            float platformTopY = attachPoint.y;
             float fallbackCeilY = platformTopY + ROPE_OVERHEAD;
             rc.ceilingAttachmentPoint.x = attachX;
             rc.ceilingAttachmentPoint.y = FindCeilingAnchorY(*entityMgr, attachX, platformTopY, fallbackCeilY);
         }
         else {
-            float attachY = platformTf.position.y;
-            float platformLeftX = platformTf.position.x - halfWidth;
-            float fallbackWallX = platformLeftX - HORIZONTAL_FALLBACK_LENGTH;
-            rc.ceilingAttachmentPoint.x = FindWallAnchorX(*entityMgr, attachY, platformLeftX, fallbackWallX);
+            Vector2D attachPoint = useSpecialPlatformAttachment ? CalculateTopColliderAttachment(*entityMgr, rc.ropeIndex)
+                : Vector2D(platformTf.position.x - halfWidth, platformTf.position.y);
+            float attachX = attachPoint.x;
+            float attachY = attachPoint.y;
+            float fallbackWallX = attachX - HORIZONTAL_FALLBACK_LENGTH;
+            rc.ceilingAttachmentPoint.x = FindWallAnchorX(*entityMgr, attachY, attachX, fallbackWallX);
             rc.ceilingAttachmentPoint.y = attachY;
         }
 
@@ -465,29 +503,16 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
     }
 
     // Calculate attachment point in local space
-    Vector2D localEdge;
-    if (FallsVertically()) {
-        bool twoRopes = HasTwoRopes(*entityMgr);
-        localEdge.x = twoRopes ? ((rc.ropeIndex == 0) ? -halfWidth : halfWidth) : 0.0f;
-        localEdge.y = halfHeight;
-
-        if (entityMgr->HasComponent(platformEntity_, AABBColliderType)) {
-            const AABBCollider& col = entityMgr->GetComponent<AABBCollider>(platformEntity_);
-            float colAngle = entityMgr->GetComponent<Transform>(platformEntity_).rotation.colliderAngle;
-            float cosA = std::cos(colAngle);
-            float sinA = std::sin(colAngle);
-            localEdge.x += col.Offset.x * cosA - col.Offset.y * sinA;
-            localEdge.y += col.Offset.x * sinA + col.Offset.y * cosA;
-        }
-    }
-    else {
+    Vector2D localEdge = Vector2D::Zero();
+    if (!useSpecialPlatformAttachment) {
         localEdge.x = -halfWidth;
         localEdge.y = 0.0f;
     }
 
     // Transform to world space
     const Vector2D worldEdge(localEdge.x * cosR - localEdge.y * sinR, localEdge.x * sinR + localEdge.y * cosR);
-    rc.platformAttachmentPoint = platformTf.position + worldEdge;
+    rc.platformAttachmentPoint = useSpecialPlatformAttachment ? CalculateTopColliderAttachment(*entityMgr, rc.ropeIndex)
+        : platformTf.position + worldEdge;
 
     // Update rope length
     const Vector2D& worldCeiling = rc.ceilingAttachmentPoint;
