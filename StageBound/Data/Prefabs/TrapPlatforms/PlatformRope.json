@@ -18,9 +18,9 @@
         }
     },
     "tags": [],
-    "layer": 0,
-    "render_layer": 50,
-    "custom_render_order": 0,
-    "layer_collision_name": "Default",
-    "layer_render_name": "Platform"
+    "layer": 7,
+    "render_layer": 0,
+    "custom_render_order": 35,
+    "layer_collision_name": "Rope",
+    "layer_render_name": "Rope"
 }

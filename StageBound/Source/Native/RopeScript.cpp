@@ -26,8 +26,10 @@ namespace {
     struct RopePrefabData {
         std::string textureKey = "SB_PlatformRope.png";
         float halfWidth = 100.0f;
-        int collisionLayer = static_cast<int>(CollisionLayer::Default);
-        int renderLayer = static_cast<int>(RenderLayer::Platform);
+        std::string collisionLayerName = "Rope";
+        std::string renderLayerName = "Rope";
+        int collisionLayer = 7;
+        int renderOrder = 35;
     };
 
     const RopePrefabData& GetRopePrefabData() {
@@ -67,8 +69,53 @@ namespace {
             if (doc.HasMember("layer") && doc["layer"].IsInt()) {
                 data.collisionLayer = doc["layer"].GetInt();
             }
-            if (doc.HasMember("render_layer") && doc["render_layer"].IsInt()) {
-                data.renderLayer = doc["render_layer"].GetInt();
+            if (doc.HasMember("layer_collision_name") && doc["layer_collision_name"].IsString()) {
+                data.collisionLayerName = doc["layer_collision_name"].GetString();
+            }
+            if (doc.HasMember("custom_render_order") && doc["custom_render_order"].IsInt()) {
+                data.renderOrder = doc["custom_render_order"].GetInt();
+            }
+            if (doc.HasMember("layer_render_name") && doc["layer_render_name"].IsString()) {
+                data.renderLayerName = doc["layer_render_name"].GetString();
+            }
+
+            rapidjson::Document layerDoc;
+            const char* layerPaths[] = {
+                "StageBound/Data/LayerConfig.json",
+                "Data/LayerConfig.json"
+            };
+
+            for (const char* layerPath : layerPaths) {
+                if (!FileIOSystem::ReadFile(layerPath, layerDoc) || !layerDoc.IsObject()) {
+                    continue;
+                }
+
+                if (layerDoc.HasMember("CollisionLayers") && layerDoc["CollisionLayers"].IsArray()) {
+                    for (const auto& layer : layerDoc["CollisionLayers"].GetArray()) {
+                        if (!layer.IsObject()) continue;
+                        if (!layer.HasMember("name") || !layer["name"].IsString()) continue;
+                        if (!layer.HasMember("id") || !layer["id"].IsInt()) continue;
+
+                        if (data.collisionLayerName == layer["name"].GetString()) {
+                            data.collisionLayer = layer["id"].GetInt();
+                            break;
+                        }
+                    }
+                }
+
+                if (layerDoc.HasMember("RenderLayers") && layerDoc["RenderLayers"].IsArray()) {
+                    for (const auto& layer : layerDoc["RenderLayers"].GetArray()) {
+                        if (!layer.IsObject()) continue;
+                        if (!layer.HasMember("name") || !layer["name"].IsString()) continue;
+                        if (!layer.HasMember("renderOrder") || !layer["renderOrder"].IsInt()) continue;
+
+                        if (data.renderLayerName == layer["name"].GetString()) {
+                            data.renderOrder = layer["renderOrder"].GetInt();
+                            break;
+                        }
+                    }
+                }
+                break;
             }
             break;
         }
@@ -366,8 +413,11 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
 
     EntityProperties& props = entityMgr->GetProperties(rope);
     props.name = platformType_ + "_" + std::to_string(platformEntity_) + (ropeIndex == 0 ? "_RopeL" : "_RopeR");
-    props.renderLayer = static_cast<RenderLayer>(ropePrefab.renderLayer);
+    props.renderLayer = RenderLayer::Custom;
+    props.customRenderOrder = ropePrefab.renderOrder;
+    props.renderLayerName = ropePrefab.renderLayerName;
     props.layer = static_cast<CollisionLayer>(ropePrefab.collisionLayer);
+    props.collisionLayerName = ropePrefab.collisionLayerName;
     props.isActive = true;
 
     entityMgr->AddComponent(rope, LoadedTag{});
