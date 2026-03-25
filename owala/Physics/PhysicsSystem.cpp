@@ -472,12 +472,14 @@ namespace Framework {
             int i = entityToColliderIndex_[dynE];
 
             const Vector2D& pos1 = entityMgr.GetComponent<Transform>(dynE).position;
-            const Vector2D& halfSize1 = entityMgr.GetComponent<Framework::AABBCollider>(dynE).HalfSize;
+            const AABBCollider& collider1 = entityMgr.GetComponent<Framework::AABBCollider>(dynE);
+            const Vector2D& halfSize1 = collider1.HalfSize;
+            Vector2D colliderPos1 = pos1 + collider1.Offset;
             float rotation1 = 0.0f;
             if (entityMgr.HasComponent(dynE, RotationFlagType)) {
                 rotation1 = entityMgr.GetComponent<RotationFlag>(dynE).currentRotation;
             }
-            AABB_Bounds bounds1 = GetRotatedAABB(pos1, halfSize1, rotation1);
+            AABB_Bounds bounds1 = GetRotatedAABB(colliderPos1, halfSize1, rotation1);
 
             GridQuery(bounds1, potentialPartners);
 

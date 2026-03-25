@@ -2,6 +2,30 @@
     "scene_name": "Level 1",
     "entities": [
         {
+            "name": "Level1_BGM",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 14533156128744672186,
+            "components": {
+                "AudioComponent": {
+                    "sound_key": "Nightshift BGM_Loop_70bpm.wav",
+                    "should_loop": true,
+                    "is_streaming": false,
+                    "volume": 0.5,
+                    "audio_type": 1
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
             "name": "InvisibleCollider_Level1_04",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -2582,7 +2606,7 @@
                 },
                 "AABBCollider": {
                     "half_width": 65.0,
-                    "half_height": 15.0,
+                    "half_height": 18.0,
                     "offset_x": 0.0,
                     "offset_y": -15.0
                 },
@@ -6293,30 +6317,6 @@
             "tags": [
                 "PlatformTag"
             ]
-        },
-        {
-            "name": "Level1_BGM",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 14533156128744672186,
-            "components": {
-                "AudioComponent": {
-                    "sound_key": "Nightshift BGM_Loop_70bpm.wav",
-                    "should_loop": true,
-                    "is_streaming": false,
-                    "volume": 0.5,
-                    "audio_type": 1
-                },
-                "SceneOwned": {
-                    "scene_id": 9,
-                    "sceneName": "Level 1"
-                }
-            },
-            "tags": []
         },
         {
             "name": "FallingAmberVFX",

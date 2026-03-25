@@ -25,6 +25,8 @@
 #include "GameManager.h" 
 #include "PhysicsSystem.h"
 #include "GameMessages.h"
+#include "CameraSystem.h"
+#include <algorithm>
 
 namespace Framework {
     
@@ -550,23 +552,51 @@ namespace Framework {
             !mgr.HasComponent(player, TransformType)) return;
 
         Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
-        Vector2D witchScale = mgr.GetComponent<Transform>(entity).scale;
-        Vector2D witchHS = witchScale * 0.5f;
+        
+        // Use actual AABB collider size for witch, not transform scale
+        Vector2D witchHS{ 50.0f, 50.0f }; // Default fallback
+        if (mgr.HasComponent(entity, AABBColliderType)) {
+            const AABBCollider& witchCollider = mgr.GetComponent<AABBCollider>(entity);
+            witchHS = witchCollider.HalfSize;
+        }
 
-        // Gather all platform AABBs for collision checking
-        auto platforms = mgr.GetAllEntitiesWithComponent(true, PlatformTagType);
+        // Get camera viewport bounds to ensure witch stays visible
+        CameraSystem* camSys = GameManager::GetInstance().GetSystems().camera_;
+        float viewLeft = -1000.0f, viewRight = 1000.0f, viewBottom = -1000.0f, viewTop = 1000.0f;
+        if (camSys) {
+            Entity activeCamera = camSys->GetActiveCamera();
+            if (activeCamera != 0) {
+                camSys->GetViewBounds(activeCamera, viewLeft, viewRight, viewBottom, viewTop);
+            }
+        }
+        // Add padding so witch doesn't appear at the very edge
+        const float viewPadding = 50.0f;
+        viewLeft += viewPadding + witchHS.x;
+        viewRight -= viewPadding + witchHS.x;
+        viewBottom += viewPadding + witchHS.y;
+        viewTop -= viewPadding + witchHS.y;
+
+        // Gather all entities with AABB colliders for collision checking
+        auto collidables = mgr.GetAllEntitiesWithComponent(true, AABBColliderType);
 
         static std::mt19937 rng{ std::random_device{}() };
         std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * 3.14159265f);
         std::uniform_real_distribution<float> distDist(minTeleportRange_, maxTeleportRange_);
 
-        const int maxAttempts = 15;
+        const int maxAttempts = 30;
         Vector2D teleportPos = mgr.GetComponent<Transform>(entity).position;
+        bool foundValidPos = false;
 
         for (int attempt = 0; attempt < maxAttempts; ++attempt) {
             float angle = angleDist(rng);
             float dist = distDist(rng);
             Vector2D candidatePos = playerPos + Vector2D{ std::cos(angle) * dist, std::sin(angle) * dist };
+
+            // Check if candidate is within viewport bounds
+            if (candidatePos.x < viewLeft || candidatePos.x > viewRight ||
+                candidatePos.y < viewBottom || candidatePos.y > viewTop) {
+                continue; // Outside viewport, try again
+            }
 
             // Build AABB for witch at candidate position
             AABB_Bounds witchBounds = {
@@ -575,18 +605,25 @@ namespace Framework {
             };
 
             bool overlaps = false;
-            for (Entity platEntity : platforms) {
-                if (!mgr.HasComponent(platEntity, TransformType)) continue;
-                Transform& pt = mgr.GetComponent<Transform>(platEntity);
-                Vector2D platHS = pt.scale * 0.5f;
+            for (Entity collidable : collidables) {
+                if (collidable == entity) continue; // Skip self
+                if (!mgr.HasComponent(collidable, TransformType)) continue;
+                if (!mgr.HasComponent(collidable, AABBColliderType)) continue;
 
-                float platRotation = 0.0f;
-                if (mgr.HasComponent(platEntity, RotationFlagType)) {
-                    platRotation = mgr.GetComponent<RotationFlag>(platEntity).currentRotation;
+                const Transform& ct = mgr.GetComponent<Transform>(collidable);
+                const AABBCollider& collider = mgr.GetComponent<AABBCollider>(collidable);
+                
+                // Calculate collider position with offset
+                Vector2D colliderPos = ct.position + collider.Offset;
+
+                float colliderRotation = 0.0f;
+                if (mgr.HasComponent(collidable, RotationFlagType)) {
+                    colliderRotation = mgr.GetComponent<RotationFlag>(collidable).currentRotation;
                 }
-                AABB_Bounds platBounds = PhysicsSystem::GetRotatedAABB(pt.position, platHS, platRotation);
+                
+                AABB_Bounds collidableBounds = PhysicsSystem::GetRotatedAABB(colliderPos, collider.HalfSize, colliderRotation);
 
-                if (CollisionIntersection_RectRect_Static(witchBounds, platBounds)) {
+                if (CollisionIntersection_RectRect_Static(witchBounds, collidableBounds)) {
                     overlaps = true;
                     break;
                 }
@@ -594,11 +631,18 @@ namespace Framework {
 
             if (!overlaps) {
                 teleportPos = candidatePos;
+                foundValidPos = true;
                 break;
             }
         }
 
-        // Teleport to valid position (falls back to current position if all attempts overlap)
+        // If no valid position found, clamp current position to viewport at minimum
+        if (!foundValidPos) {
+            teleportPos.x = std::clamp(teleportPos.x, viewLeft, viewRight);
+            teleportPos.y = std::clamp(teleportPos.y, viewBottom, viewTop);
+        }
+
+        // Teleport to valid position
         mgr.GetComponent<Transform>(entity).position = teleportPos;
 
         // Play teleport sound at new position
