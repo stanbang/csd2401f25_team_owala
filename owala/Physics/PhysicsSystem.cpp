@@ -580,9 +580,13 @@ namespace Framework {
             }
         }
 
-        // Detect trap entities
+        // Detect trap entities and their falling state
         bool e1IsTrap = entityMgr.HasComponent(e1, TrapPlatformComponentType);
         bool e2IsTrap = entityMgr.HasComponent(e2, TrapPlatformComponentType);
+        
+        // Check if traps are currently falling
+        bool e1TrapFalling = e1IsTrap && entityMgr.GetComponent<TrapPlatformComponent>(e1).hasFallen;
+        bool e2TrapFalling = e2IsTrap && entityMgr.GetComponent<TrapPlatformComponent>(e2).hasFallen;
 
         // trap v player, make trap static to avoid player pushing
         if ((e1IsTrap && isE2Player) || (e2IsTrap && isE1Player)) {
@@ -590,10 +594,23 @@ namespace Framework {
             if (e2IsTrap) e2IsDynamic = false;
         }
 
-        // trap v enemy, make trap static to avoid enemy pushing
+        // trap v enemy: Different behavior based on trap state
         if ((e1IsTrap && isE2Enemy) || (e2IsTrap && isE1Enemy)) {
-            if (e1IsTrap) e1IsDynamic = false;
-            if (e2IsTrap) e2IsDynamic = false;
+            Entity trapEntity = e1IsTrap ? e1 : e2;
+            bool trapIsFalling = (trapEntity == e1) ? e1TrapFalling : e2TrapFalling;
+            
+            if (trapIsFalling) {
+                // Falling trap: Skip collision resolution entirely
+                // This allows the trap to overlap with the enemy for damage detection
+                // (handled by PlayerSystem or damage system, not physics)
+                return;
+            } else {
+                // Static trap: Bird should collide with it as a solid platform
+                // Make trap static so the bird bounces off instead of pushing it
+                if (e1IsTrap) e1IsDynamic = false;
+                if (e2IsTrap) e2IsDynamic = false;
+                // Keep enemy dynamic so it gets pushed out of the trap
+            }
         }
 
 
