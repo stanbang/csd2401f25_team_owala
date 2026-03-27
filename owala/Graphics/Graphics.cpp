@@ -601,9 +601,8 @@ namespace Framework {
         for (const auto& s : sprites) {
             const float cx = s.topLeft.x + s.size.x * 0.5f;
             const float cy = s.topLeft.y + s.size.y * 0.5f;
-            // Scale dilation proportionally to this sprite's size vs the reference tile
-            const float hx = (s.size.x * 0.5f) + baseDilation;
-            const float hy = (s.size.y * 0.5f) + baseDilation;
+            const float hx = s.size.x * 0.5f;
+            const float hy = s.size.y * 0.5f;
 
             const float c = std::cos(s.rotation);
             const float q = std::sin(s.rotation);
@@ -1082,6 +1081,8 @@ namespace Framework {
         else {
             CreateGameFramebuffer(width, height);
         }
+        screenWidth = width;
+        screenHeight = height;
     }
 
     /**
