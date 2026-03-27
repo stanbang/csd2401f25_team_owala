@@ -136,6 +136,30 @@
                 }
             },
             "tags": []
+        },
+        {
+            "name": "Audio Source",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 6081478796572300356,
+            "components": {
+                "AudioComponent": {
+                    "sound_key": "Owala-Cut-Scene-Music_Linear.wav",
+                    "should_loop": false,
+                    "is_streaming": false,
+                    "volume": 0.5,
+                    "audio_type": 1
+                },
+                "SceneOwned": {
+                    "scene_id": 12,
+                    "sceneName": "Cutscene Intro"
+                }
+            },
+            "tags": []
         }
     ]
 }

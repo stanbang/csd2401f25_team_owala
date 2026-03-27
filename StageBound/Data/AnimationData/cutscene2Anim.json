@@ -1,6 +1,6 @@
 {
-    "frame_count": 12,
-    "frame_duration": 0.13330000638961792,
+    "frame_count": 19,
+    "frame_duration": 0.06499999761581421,
     "is_looping": false,
     "start_frame": 0,
     "spritesheets": [
@@ -27,6 +27,22 @@
         {
             "texture": "SB_CutScene_02_Spritesheet06.png",
             "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet07.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet08.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet09.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_02_Spritesheet10.png",
+            "count": 1
         }
     ],
     "frameEvents": {}
