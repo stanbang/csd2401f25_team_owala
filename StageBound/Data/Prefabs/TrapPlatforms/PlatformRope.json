@@ -11,6 +11,12 @@
             "half_size": {"x": 100.0, "y": 100.0},
             "flip_x": false
         },
+        "AABBCollider": {
+            "half_width": 7.0,
+            "half_height": 100.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0
+        },
         "RotationFlag":{
             "is_rotating":false,
             "current_rotation":0.0,

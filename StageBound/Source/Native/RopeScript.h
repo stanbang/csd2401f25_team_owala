@@ -44,6 +44,7 @@ protected:
 private:
     struct RopeRuntimeData {
         Entity attachedPlatform = 0;
+        Entity renderEntity = 0;
         std::string textureKey = "SB_PlatformRope.png";
         float originalLength = 0.0f;
         float currentLength = 0.0f;
@@ -51,6 +52,7 @@ private:
         Vector2D platformAttachmentPoint = { 0.0f, 0.0f };
         bool isActive = true;
         float ropeWidth = 200.0f;
+        float selectionHalfWidth = 7.0f;
         float segmentHeight = 20.0f;
         int ropeIndex = 0;
         bool hasFoundCeiling = true;
@@ -59,6 +61,10 @@ private:
 
     // Helper methods
     EntityManager* GetEntityManager() const;
+    RopeRuntimeData* FindRopeRuntime(Entity rope) const;
+    void DestroyTrackedRope(EntityManager& entityMgr, Entity rope, Entity renderRope) const;
+    void SyncRenderRope(EntityManager& entityMgr, const RopeRuntimeData& runtimeData,
+        const Transform& proxyTransform, float angleDeg) const;
     bool HasTwoRopes(EntityManager& entityMgr) const;
     bool IsValidRopePlatform() const;
     bool FallsVertically() const;
