@@ -1,6 +1,6 @@
 {
-    "frame_count": 14,
-    "frame_duration": 0.0714000016450882,
+    "frame_count": 19,
+    "frame_duration": 0.06499999761581421,
     "is_looping": true,
     "start_frame": 0,
     "spritesheets": [
@@ -31,6 +31,18 @@
         {
             "texture": "SB_CutScene_01_Spritesheet07.png",
             "count": 2
+        },
+        {
+            "texture": "SB_CutScene_01_Spritesheet08.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_01_Spritesheet09.png",
+            "count": 2
+        },
+        {
+            "texture": "SB_CutScene_01_Spritesheet10.png",
+            "count": 1
         }
     ],
     "frameEvents": {}

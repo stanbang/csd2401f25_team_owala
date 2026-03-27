@@ -485,7 +485,7 @@
                 "Transform": {
                     "Position": {
                         "x": -200.0,
-                        "y": -370.0
+                        "y": -380.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -497,7 +497,7 @@
                             -200.0,
                             0.0,
                             50.0,
-                            -370.0,
+                            -380.0,
                             0.0,
                             0.0,
                             1.0
@@ -508,7 +508,7 @@
                             -200.0,
                             0.0,
                             1.0,
-                            -370.0,
+                            -380.0,
                             0.0,
                             0.0,
                             1.0
@@ -1658,8 +1658,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": 0.0,
-                        "y": -0.800000011920929
+                        "x": -349.99993896484375,
+                        "y": 199.99996948242188
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -2537,14 +2537,14 @@
                     },
                     "Rotation": {
                         "angle": 0.0,
-                        "texture_angle": 1.5707963705062866,
-                        "collider_angle": 1.5707963705062866,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
                         "texture_matrix": [
-                            -0.0000030597971090173814,
-                            -30.0,
+                            36.0,
+                            0.0,
                             -150.0,
-                            70.0,
-                            -0.0000013113416343912832,
+                            0.0,
+                            90.0,
                             400.0,
                             0.0,
                             0.0,
@@ -2581,10 +2581,10 @@
                     }
                 },
                 "AABBCollider": {
-                    "half_width": 65.0,
-                    "half_height": 15.0,
+                    "half_width": 18.0,
+                    "half_height": 78.0,
                     "offset_x": 0.0,
-                    "offset_y": -15.0
+                    "offset_y": 0.0
                 },
                 "RotationFlag": {
                     "is_rotating": false,
@@ -2603,10 +2603,10 @@
                     }
                 },
                 "TextureComponent": {
-                    "texture_key": "SB_MovableBox_02.png",
+                    "texture_key": "SB_MovableBox_03.png",
                     "half_size": {
-                        "x": 70.0,
-                        "y": 30.0
+                        "x": 36.0,
+                        "y": 90.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
