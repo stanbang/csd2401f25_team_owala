@@ -51,6 +51,11 @@ namespace {
 		// Name entry (optional - game works fine without it)
 		Entity nameEntryOverlay = 0;
 		Entity nameEntryBG = 0;
+
+		// Record prompt buttons (optional)
+		Entity recordYesButton = 0;
+		Entity recordNoButton = 0;
+
 		// Lighting
 		Entity shadowOverlay = 0;
 		std::vector<Entity> spotlights; // Optional Entity, does not need to be validated
@@ -111,8 +116,9 @@ namespace {
 		tc.isDirty = true;
 	}
 
-	// Forward declaration
+	// Forward declarations
 	void OpenNameEntry(Framework::EntityManager& entityMgr, const std::string& scene);
+	bool ConsumeClick(Framework::EntityManager& entityMgr, Framework::InputSystem& inputSystem, Entity entity);
 
 	// Show the "record your time?" prompt using the same overlay entity
 	void OpenRecordPrompt(Framework::EntityManager& entityMgr, const std::string& scene) {
@@ -120,58 +126,57 @@ namespace {
 		recordPromptJustOpened = true;
 		namePendingScene = scene;
 
-		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(true);
+		// No keyboard lock needed - interaction is now via buttons
 
 		if (entityMgr.ValidateEntity(ui.nameEntryBG))
 			entityMgr.GetProperties(ui.nameEntryBG).isActive = true;
 		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
 			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = true;
 
-		SetNameOverlayText(entityMgr, "record your time?\n(y) yes   (n) no");
+		// Show Yes/No buttons
+		if (entityMgr.ValidateEntity(ui.recordYesButton))
+			entityMgr.GetProperties(ui.recordYesButton).isActive = true;
+		if (entityMgr.ValidateEntity(ui.recordNoButton))
+			entityMgr.GetProperties(ui.recordNoButton).isActive = true;
+
+		SetNameOverlayText(entityMgr, "record your time?");
 	}
 
 	void CloseRecordPrompt(Framework::EntityManager& entityMgr) {
 		recordPromptActive = false;
-		GameManager::GetInstance().GetSystems().input_->SetKeyboardLocked(false);
 
 		if (entityMgr.ValidateEntity(ui.nameEntryBG))
 			entityMgr.GetProperties(ui.nameEntryBG).isActive = false;
 		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
 			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = false;
+
+		// Hide Yes/No buttons
+		if (entityMgr.ValidateEntity(ui.recordYesButton))
+			entityMgr.GetProperties(ui.recordYesButton).isActive = false;
+		if (entityMgr.ValidateEntity(ui.recordNoButton))
+			entityMgr.GetProperties(ui.recordNoButton).isActive = false;
 	}
 
 	void UpdateRecordPrompt(Framework::EntityManager& entityMgr) {
-		GLFWwindow* win = GameManager::GetInstance().GetSystems().win_->window();
-		if (!win) return;
-
-		struct KeyState { bool prev = false; };
-		static KeyState yKey, nKey;
+		InputSystem& inputSystem = *GameManager::GetInstance().GetSystems().input_;
 
 		if (recordPromptJustOpened) {
-			yKey = nKey = {};
 			recordPromptJustOpened = false;
 		}
 
-		auto Just = [](KeyState& ks, int glfwKey, GLFWwindow* w) -> bool {
-			bool cur = (glfwGetKey(w, glfwKey) == GLFW_PRESS);
-			bool just = cur && !ks.prev;
-			ks.prev = cur;
-			return just;
-			};
-
-		if (Just(yKey, GLFW_KEY_Y, win)) {
-			// Player wants to record
+		// Yes button clicked - player wants to record
+		if (ConsumeClick(entityMgr, inputSystem, ui.recordYesButton)) {
 			GameStateFlags::shouldRecordTime = true;
 			Logger::Get().Info(DebugType::GameManager)
-				<< "[LevelSelection] *** PLAYER PRESSED Y - shouldRecordTime set to TRUE ***" << std::endl;
+				<< "[LevelSelection] *** PLAYER CLICKED YES - shouldRecordTime set to TRUE ***" << std::endl;
 			CloseRecordPrompt(entityMgr);
 			OpenNameEntry(entityMgr, namePendingScene);
 			return;
 		}
 
-		if (Just(nKey, GLFW_KEY_N, win)) {
-			// Player doesn't want to record
-			GameStateFlags::shouldRecordTime = false;  // Clear the shared flag
+		// No button clicked - player doesn't want to record
+		if (ConsumeClick(entityMgr, inputSystem, ui.recordNoButton)) {
+			GameStateFlags::shouldRecordTime = false;
 			CloseRecordPrompt(entityMgr);
 
 			// Stop Menu BGM before loading level
@@ -183,7 +188,6 @@ namespace {
 	}
 
 	// Show overlay panel + text, store which scene to load
-// Show overlay panel + text, store which scene to load
 	void OpenNameEntry(Framework::EntityManager& entityMgr, const std::string& scene) {
 		Logger::Get().Info(DebugType::GameManager)
 			<< "[LevelSelection] Opening name entry for scene: " << scene << std::endl;
@@ -322,7 +326,7 @@ namespace {
 		if (changed)
 			SetNameOverlayText(entityMgr, "enter your name:\n" + nameInput + "_");
 	}
-	
+
 	// Animation Tracking
 	CarouselAnim carousel;
 
@@ -357,6 +361,8 @@ namespace {
 			else if (name == "LeaderboardPanel")   ui.leaderboardPanel = entity;
 			else if (name == "NameEntryOverlay")   ui.nameEntryOverlay = entity;
 			else if (name == "NameEntryOverlayBG") ui.nameEntryBG = entity;
+			else if (name == "RecordYesButton")    ui.recordYesButton = entity;
+			else if (name == "RecordNoButton")     ui.recordNoButton = entity;
 			else if (name == "ShadowOverlay") ui.shadowOverlay = entity;
 			else if (name == "Spotlight") ui.spotlights.push_back(entity);
 			else if (name == "SpotlightShadow") ui.spotlights.push_back(entity);
@@ -472,10 +478,6 @@ namespace {
 
 	void RefreshUI(Framework::EntityManager& entityMgr) {
 		if (levelData.empty()) return;
-
-		//int n = static_cast<int>(levelData.size());
-		//int prevIndex = (currentIndex - 1 + n) % n;
-		//int nextIndex = (currentIndex + 1) % n;
 
 		// Left Ticket
 		SetTicketTexture(entityMgr, ui.ticketPrev, "SB_LevelSelection_EmptyTicket.png");
@@ -627,7 +629,7 @@ namespace LevelSelection {
 		SetLeaderboardVisible(entityMgr, false);
 		RefreshUI(entityMgr);
 
-		// Reveal the scene � it was loaded while black due to the prior FadeOut in InitiateLevelLoad.
+		// Reveal the scene - it was loaded while black due to the prior FadeOut in InitiateLevelLoad.
 		GameManager::GetInstance().FadeIn(0.5f);
 	}
 
@@ -644,13 +646,13 @@ namespace LevelSelection {
 		if (!cached) CacheUI(entityMgr);
 		if (levelData.empty()) return;
 
-		// While record prompt is open, only process Y/N
+		// While record prompt is open, only process button clicks
 		if (recordPromptActive) {
 			UpdateRecordPrompt(entityMgr);
 			return;
 		}
 
-		// While name entry is open, only process typing � don't block on fading
+		// While name entry is open, only process typing - don't block on fading
 		if (nameEntryActive) {
 			UpdateNameEntry(entityMgr);
 			return;
@@ -668,8 +670,6 @@ namespace LevelSelection {
 		if (!carousel.isAnimating) {
 			// Left Arrow Clicked
 			if (ConsumeClick(entityMgr, inputSystem, ui.arrowLeft)) {
-				//int prevPrevIndex = (currentIndex - 2 + n) % n;
-
 				carousel.isAnimating = true;
 				carousel.direction = 1;
 				carousel.timer = 0.f;
@@ -712,7 +712,6 @@ namespace LevelSelection {
 			Vector2D& centerScale = entityMgr.GetComponent<TextureComponent>(ui.ticketCurrent).HalfSize;
 			Vector2D& rightScale = entityMgr.GetComponent<TextureComponent>(ui.ticketNext).HalfSize;
 
-			// Linear Interp lambda for animation, might move this to a utility class
 			float offsetX = carousel.rightPos.x - carousel.centerPos.x;
 
 			// Offscreen positions for the illusion of wrapping
@@ -723,28 +722,22 @@ namespace LevelSelection {
 			leftScale = centerScale = rightScale = carousel.sideScale;
 
 			if (carousel.direction == -1) {
-				// Center Ticket moves down-left to the left position and shrinks
 				centerTransform.position.x = std::lerp(carousel.centerPos.x, carousel.leftPos.x, easeT);
 				centerTransform.position.y = std::lerp(carousel.centerPos.y, carousel.leftPos.y, easeT);
 
-				// Right Ticket moves up-left to the center position and grows
 				rightTransform.position.x = std::lerp(carousel.rightPos.x, carousel.centerPos.x, easeT);
 				rightTransform.position.y = std::lerp(carousel.rightPos.y, carousel.centerPos.y, easeT);
 
-				// Left Ticket wraps around and moves in from offscreen to the right position
 				leftTransform.position.x = std::lerp(farRightPos.x, carousel.rightPos.x, easeT);
 				leftTransform.position.y = std::lerp(farRightPos.y, carousel.rightPos.y, easeT);
 			}
 			else {
-				// Center Ticket moves down-right to the left position and shrinks
 				centerTransform.position.x = std::lerp(carousel.centerPos.x, carousel.rightPos.x, easeT);
 				centerTransform.position.y = std::lerp(carousel.centerPos.y, carousel.rightPos.y, easeT);
 
-				// Left Ticket moves up-right to the center position and grows
 				leftTransform.position.x = std::lerp(carousel.leftPos.x, carousel.centerPos.x, easeT);
-				leftTransform.position.y = std::lerp(carousel.leftPos.y, carousel.centerPos.y, easeT);;
+				leftTransform.position.y = std::lerp(carousel.leftPos.y, carousel.centerPos.y, easeT);
 
-				// Right Ticket wraps around and moves in from offscreen to the left position
 				rightTransform.position.x = std::lerp(farLeftPos.x, carousel.leftPos.x, easeT);
 				rightTransform.position.y = std::lerp(farLeftPos.y, carousel.leftPos.y, easeT);
 			}
@@ -752,7 +745,6 @@ namespace LevelSelection {
 			if (t >= 1.f) {
 				carousel.isAnimating = false;
 
-				// Snap back to original transforms
 				leftTransform.position = carousel.leftPos;
 				centerTransform.position = carousel.centerPos;
 				rightTransform.position = carousel.rightPos;
@@ -763,7 +755,6 @@ namespace LevelSelection {
 
 				ToggleLighting(entityMgr, true);
 
-				// Update Index
 				if (carousel.direction == -1) {
 					currentIndex = (currentIndex + 1) % n;
 				}
@@ -843,8 +834,5 @@ namespace LevelSelection {
 		ui = {};
 		save = nullptr;
 		leaderboardTextEntity = 0;
-
-		// Reset game state flags
-		// 
 	}
 }
