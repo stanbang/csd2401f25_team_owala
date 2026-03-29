@@ -490,7 +490,7 @@ bool ResourceManager::LoadTextureAnimationMappings(const std::string& mappingFil
 		}
 
 		Logger::Get().Info(DebugType::ResourceManager)
-			<< "Mapped " << loadedCount << " textures to animations from " << mappingFilePath;
+			<< "Mapped " << loadedCount << " textures to animations from " << mappingFilePath << std::endl;
 
 		return loadedCount > 0;
 	}
@@ -612,7 +612,7 @@ bool ResourceManager::LoadAnimationProfiles(const std::string& filepath) {
 		profilesLoaded++;
 	}
 
-	Logger::Get().Info(DebugType::ResourceManager) << "Loaded " << profilesLoaded << " animation profiles.";
+	Logger::Get().Info(DebugType::ResourceManager) << "Loaded " << profilesLoaded << " animation profiles." << std::endl;
 	return true;
 }
 

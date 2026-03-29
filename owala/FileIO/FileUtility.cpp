@@ -22,6 +22,7 @@
 
 namespace Framework {
 	std::string FileIOSystem::sourceDataDir_;
+	std::string FileIOSystem::sourceAssetsDir_;
 
 	std::string FileIOSystem::SanitizeFileName(const std::string& name) {
 		std::string sanitized_name = name;
