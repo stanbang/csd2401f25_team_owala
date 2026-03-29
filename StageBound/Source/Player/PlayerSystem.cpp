@@ -163,12 +163,14 @@ namespace Framework {
         TimerSystem::Get().Update(Framework::Time::DeltaTime());
         FirebaseManager::Get().Update();
 
-
-        // In PlayerSystem::Update(), at the beginning of the player loop:
-
         InputSystem& input_ = *gm.GetSystems().input_;
 
         EntityManager entityMgr(gm.GetECS()); // To access entity creation/destruction if needed
+
+        // Check for F8 Keypress - Cheat Code to toggle God Mode
+        if (input_.KeyPressed(InputSystem::Key::F8)) {
+            m_cheatGodMode = !m_cheatGodMode;
+        }
 
         UpdateInvulnerability();
 
@@ -576,6 +578,8 @@ namespace Framework {
     }
 
     void PlayerSystem::DamagePlayer(Entity playerEntity, const std::string& damageSource, const Vector2D& sourcePos) {
+        if (m_cheatGodMode) return;
+
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(playerEntity, PlayerStateType)) return;
@@ -643,6 +647,8 @@ namespace Framework {
     }
 
     void PlayerSystem::KillPlayer(Entity playerEntity, const std::string& killerType) {
+        if (m_cheatGodMode) return;
+
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
         if (!entityMgr.HasComponent(playerEntity, PlayerStateType)) {

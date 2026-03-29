@@ -24,6 +24,7 @@
 // Game-specific systems in Game/Sources folder)
 #include "PlayerSystem.h"
 #include "TrapPlatformSystem.h"
+#include "SB_InputSystem.h"
 
 // Scene script headers (only scenes that have Initialize/Update/Free)
 #include "LevelSelection.h"
@@ -39,9 +40,10 @@ namespace Framework {
         CoreEngine& m_Engine;
         PlayerSystem* m_PlayerSystem;
         TrapPlatformSystem* m_TrapPlatformSystem;
+        SB_InputSystem* m_SBInputSystem;
 
     public:
-        StageBoundApp(CoreEngine& engine) : m_Engine(engine), m_PlayerSystem(nullptr), m_TrapPlatformSystem(nullptr) {}
+        StageBoundApp(CoreEngine& engine) : m_Engine(engine), m_PlayerSystem(nullptr), m_TrapPlatformSystem(nullptr), m_SBInputSystem(nullptr) {}
 
         void Initialize() override {
             std::cout << "--- StageBound Application Initializing! ---\n";
@@ -49,14 +51,17 @@ namespace Framework {
             // Instantiate Game-Specific Systems
             m_PlayerSystem = new PlayerSystem();
             m_TrapPlatformSystem = new TrapPlatformSystem();
+            m_SBInputSystem = new SB_InputSystem();
 
             // Inject Game Systems into the Engine
             m_Engine.AddSystem(m_PlayerSystem);
             m_Engine.AddSystem(m_TrapPlatformSystem);
+            m_Engine.AddSystem(m_SBInputSystem);
 
 			// Initialize Game Systems
             m_PlayerSystem->Initialize();
             m_TrapPlatformSystem->Initialize();
+            m_SBInputSystem->Initialize();
 
             // Restore transition state that was previously in GameManager::Initialize()
             TransitionController::Reset();
