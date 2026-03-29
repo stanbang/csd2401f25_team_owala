@@ -62,10 +62,10 @@ void AssetBrowser::Initialize(const fs::path& rootPath)
     {
         syncToRepo_ = false;
         Logger::Get().Info(DebugType::Editor) << "Repo sync disabled. Missing one or more required directories." << std::endl;
-        if (!localAssetsExists) Logger::Get().Error(DebugType::Editor) << "Could not find local 'Assets' folder at: " << localAssetsPath_.string();
-        if (!localDataExists) Logger::Get().Error(DebugType::Editor) << "Could not find local 'Data' folder at: " << localDataPath_.string();
-        if (!repoAssetsExists) Logger::Get().Error(DebugType::Editor) << "Could not find repo 'Assets' folder at: " << repoAssetsPath_.string();
-        if (!repoDataExists) Logger::Get().Error(DebugType::Editor) << "Could not find repo 'Data' folder at: " << repoDataPath_.string();
+        if (!localAssetsExists) Logger::Get().Error(DebugType::Editor) << "Could not find local 'Assets' folder at: " << localAssetsPath_.string() << std::endl;
+        if (!localDataExists) Logger::Get().Error(DebugType::Editor) << "Could not find local 'Data' folder at: " << localDataPath_.string() << std::endl;
+        if (!repoAssetsExists) Logger::Get().Error(DebugType::Editor) << "Could not find repo 'Assets' folder at: " << repoAssetsPath_.string() << std::endl;
+        if (!repoDataExists) Logger::Get().Error(DebugType::Editor) << "Could not find repo 'Data' folder at: " << repoDataPath_.string() << std::endl;
     }
 
     Logger::Get().Info(DebugType::Editor) << "AssetBrowser initializing with root: '" << rootPath_.string() << "'" << std::endl;

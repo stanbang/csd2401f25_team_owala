@@ -37,6 +37,7 @@
 #include "History.h"
 #include "Gizmo.h"
 #include "ProjectScaffold.h"
+#include "BuildSizeAnalyzer.h"
 
 // Imgui Dependencies
 #include "imgui.h"
@@ -145,6 +146,7 @@ namespace Editor {
 		// --- Codependent Systems ---
 		HistoryManager historyManager_; // HistoryManager for Undo/Redo System.
 		GizmoSystem* gizmoSystem_ = nullptr;
+		BuildSizeAnalyzer buildSizeAnalyzer_;
 
 		// --- Internal Properties ---
 		Entity editorCamera_ = 0;

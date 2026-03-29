@@ -320,7 +320,10 @@ namespace Editor {
 						if (fs::exists(dir)) {
 							FileIOSystem::SetSourceDataDir((dir / "Data").string());
 							Logger::Get().Info(DebugType::Editor)
-								<< "[Editor] Restored source data dir: " << dir.string() << "/Data" << std::endl;
+								<< "Restored source data dir: " << dir.string() << "/Data" << std::endl;
+							FileIOSystem::SetSourceAssetsDir((dir / "Assets").string());
+							Logger::Get().Info(DebugType::Editor)
+								<< "Restored source assets dir: " << dir.string() << "/Assets" << std::endl;
 						}
 						break;
 					}
@@ -621,6 +624,7 @@ namespace Editor {
 		// --- Detached Panels ---
 		if (settings.showPreferencesWindow) ShowPreferencesWindow();
 		if (settings.showProjectSettingsWindow) ShowProjectSettingsWindow();
+		buildSizeAnalyzer_.ShowUI();
 
 		// --- Docked Panels ---
 		if (settings.showToolbar) ShowToolbar();
@@ -2771,7 +2775,8 @@ namespace Editor {
 		case ComponentType::AnimationComponentType: {
 			DrawAnimationInspector(selectedEntity);
 			break;
-		}		case ComponentType::TextComponentType: {
+		}		
+		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
@@ -2810,7 +2815,7 @@ namespace Editor {
 			}
 
 			// Text Inputfield
-			ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer));
+			ImGui::InputText("Displayed Text", textBuffer, IM_ARRAYSIZE(textBuffer));
 			if (ImGui::IsItemActivated()) text_editingText = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newText = textBuffer;
@@ -5310,6 +5315,12 @@ namespace Editor {
 				ImGui::MenuItem("FSM Enemy Editor", NULL, &isFSMEditorOpen_);
 				ImGui::MenuItem("Prefab Editor", NULL, &isPrefabEditorOpen_);
 				ImGui::MenuItem("Animation Editor", NULL, &settings.showAnimationEditor);
+				
+				bool isAnalyzerOpen = buildSizeAnalyzer_.IsOpen();
+				if (ImGui::MenuItem("Build Size Analyzer", NULL, &isAnalyzerOpen)) {
+					buildSizeAnalyzer_.SetOpen(isAnalyzerOpen);
+				}
+
 				if (ImGui::BeginMenu("Debug")) {
 					ImGui::MenuItem("Show Grid", NULL, &showGrid_);
 					Framework::SpriteRenderSystem* spriteRenderer = GameManager::GetInstance().GetSystems().spriteRenderer_;
