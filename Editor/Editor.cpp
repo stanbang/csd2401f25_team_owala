@@ -2411,66 +2411,68 @@ namespace Editor {
 			// -- End Layer Dropdown ---
 
 			// --- Component Section ---
-			if (ImGui::CollapsingHeader("Components")) {
+			if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::Text("Attached Components:");
-				int compCount = 0;
 
-				for (size_t i = 0; i < componentTypes.size(); ++i) {
-					ComponentType type = componentTypes[i];
-					if (entityMgr.HasComponent(selectedEntity, type)) {
-						if (compCount % 3 != 0) ImGui::SameLine();
-						if (selectedComponentIndex > 0 && selectedComponentIndex - 1 == static_cast<int>(i)) {
-							ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
-						}
-						ImGui::Text("[%s]", componentNames[i + 1].c_str());
-						if (selectedComponentIndex > 0 && selectedComponentIndex - 1 == static_cast<int>(i)) {
-							ImGui::PopStyleColor();
-						}
-						++compCount;
+				int attachedCompCount = 0;
+				for (const ComponentType type : componentTypes) {
+					if (!entityMgr.HasComponent(selectedEntity, type)) {
+						continue;
+					}
+
+					++attachedCompCount;
+
+					// Preserve active edit tracking when drawing non-edited components.
+					// This avoids a later component clearing editSession state for the one currently being edited.
+					const bool preserveEditTracking = editSession.active && editSession.compInEdit != type;
+					const bool previousWasItemActive = editSession.wasItemActive;
+					if (preserveEditTracking) {
+						editSession.wasItemActive = false;
+					}
+
+					ShowComponentSections(selectedEntity, type);
+
+					if (preserveEditTracking) {
+						editSession.wasItemActive = previousWasItemActive;
 					}
 				}
 
-				// --- Component Dropdown ---
+				if (attachedCompCount == 0) {
+					ImGui::TextDisabled("No components attached.");
+				}
+
+				ImGui::SeparatorText("Manage Components");
 				ImGui::Combo("Component", &selectedComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
 
 				if (selectedComponentIndex > 0) {
-					size_t compIndex = static_cast<size_t>(selectedComponentIndex - 1); // Offset for "None"
-
+					const size_t compIndex = static_cast<size_t>(selectedComponentIndex - 1); // Offset for empty item
 					if (compIndex < componentTypes.size()) {
-						ComponentType selectedComponent = componentTypes[compIndex];
-						if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
-							ShowComponentSections(selectedEntity, selectedComponent);
-						}
-						else {
-							ImGui::Text("Component Not Added!");
-						}
+						const ComponentType selectedComponent = componentTypes[compIndex];
 
 						if (ImGui::Button("Add Component")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
 								std::string beforeJSON;
 
-								// auto calculate aabb halfsize using tex halfsize
+								// Auto-calculate collider halfsize based on texture halfsize.
 								if (selectedComponent == ComponentType::AABBColliderType) {
 									AABBCollider newCollider;
 
-									// If we have a texture, use its size automatically
 									if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
 										const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 										newCollider.HalfSize = tex.HalfSize;
 									}
 									else {
-										newCollider.HalfSize = { 50.0f, 50.0f }; // Default fallback
+										newCollider.HalfSize = { 50.0f, 50.0f };
 									}
 
 									entityMgr.AddComponent(selectedEntity, newCollider);
 								}
 								else {
-									// Standard addition for other components
 									entityMgr.AddComponent(selectedEntity, selectedComponent);
 								}
 
-								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
-								std::string description = "Add " + ComponentToString(selectedComponent);
+								const std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+								const std::string description = "Add " + ComponentToString(selectedComponent);
 								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
@@ -2478,13 +2480,13 @@ namespace Editor {
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Component")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
-								std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
-
+								const std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
 								entityMgr.RemoveComponent(selectedEntity, selectedComponent);
 
 								std::string afterJSON;
-								std::string description = "Remove " + ComponentToString(selectedComponent);
+								const std::string description = "Remove " + ComponentToString(selectedComponent);
 								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
+								selectedComponentIndex = 0;
 							}
 						}
 					}
@@ -2569,7 +2571,18 @@ namespace Editor {
 		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		EntityManager entityMgr(*ecs);
 
-		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
+		const std::string componentLabel = ComponentToString(selectedComponent);
+
+		ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.10f, 0.35f, 0.75f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.45f, 0.90f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.08f, 0.30f, 0.65f, 1.0f));
+		const bool isComponentOpen = ImGui::CollapsingHeader(componentLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+		ImGui::PopStyleColor(3);
+
+		if (!isComponentOpen) {
+			return;
+		}
+
 		switch (selectedComponent) {
 		case ComponentType::TransformType: {
 			DrawTransformInspector(selectedEntity);
