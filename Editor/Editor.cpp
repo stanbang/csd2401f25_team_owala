@@ -2771,7 +2771,8 @@ namespace Editor {
 		case ComponentType::AnimationComponentType: {
 			DrawAnimationInspector(selectedEntity);
 			break;
-		}		case ComponentType::TextComponentType: {
+		}		
+		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
@@ -2810,7 +2811,7 @@ namespace Editor {
 			}
 
 			// Text Inputfield
-			ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer));
+			ImGui::InputText("Displayed Text", textBuffer, IM_ARRAYSIZE(textBuffer));
 			if (ImGui::IsItemActivated()) text_editingText = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newText = textBuffer;
