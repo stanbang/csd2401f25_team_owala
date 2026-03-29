@@ -1081,8 +1081,6 @@ namespace Framework {
         else {
             CreateGameFramebuffer(width, height);
         }
-        screenWidth = width;
-        screenHeight = height;
     }
 
     /**
