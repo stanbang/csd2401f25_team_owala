@@ -1,5 +1,5 @@
 {
-    "frame_count": 14,
+    "frame_count": 15,
     "frame_duration": 0.10000000149011612,
     "is_looping": true,
     "start_frame": 0,
@@ -10,7 +10,8 @@
         },
         {
             "texture": "SB_Eli_Idle_Spritesheet_2.png",
-            "count": 6
+            "count": 7
         }
-    ]
+    ],
+    "frameEvents": {}
 }
