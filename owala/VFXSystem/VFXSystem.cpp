@@ -183,13 +183,14 @@ namespace Framework {
 		config.emissionOffset = event.offset;
 
 		Vector2D origin = event.position;
-		if (config.isScreenSpace) {
+		// Convert only if not UI VFX 
+		if (config.isScreenSpace && !event.isUIVFX) {
 			origin = WorldToScreenSpace(event.position);
 		}
 
 		// Loop 'count' times to spawn the burst
 		for (int i = 0; i < event.count; ++i) {
-			SpawnSingleParticle(entityMgr, config, origin);
+			SpawnSingleParticle(entityMgr, config, origin, event.customRenderOrder);
 		}
 	}
 
@@ -362,7 +363,8 @@ namespace Framework {
 		}
 	}
 
-	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin) {
+	void VFXSystem::SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin, int customRenderOrder) {
+
 		Entity particleEntity = entityMgr.CreateEntity();
 
 		ParticleComponent particleComp;
@@ -400,6 +402,11 @@ namespace Framework {
 			entityMgr.AddComponent<AnimationComponent>(particleEntity, animComp);
 		}
 
+		// Set render layer
+		entityMgr.GetProperties(particleEntity).renderLayer = RenderLayer::Custom;
+		entityMgr.GetProperties(particleEntity).customRenderOrder = customRenderOrder;
+
+		// Add loaded Tag to add it to scene
 		entityMgr.AddComponent<LoadedTag>(particleEntity, LoadedTag{});
 	}
 

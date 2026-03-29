@@ -58,9 +58,37 @@ void PlayerHealthHUD::OnUpdate() {
 
 		// Check if this life is just lost
 		if (!lifeLost_ && playerLivesLeft < lifeNum_) {
-			if (entityMgr.HasComponent(self_, TextureComponentType)) {
+			if (entityMgr.HasComponent(self_, TextureComponentType) && entityMgr.HasComponent(self_, TransformType)) {
+				
+				// Emit Poof VFX
+				Vector2D position = entityMgr.GetComponent<Transform>(self_).position;
 				TextureComponent& textureComp = entityMgr.GetComponent<TextureComponent>(self_);
+				ParticleBurstEvent poofParticleEvent;
+
+				// Convert position to (0 - 1) screen space for VFXSystem
+				poofParticleEvent.position = {
+					position.x * 0.5f + 0.5f,
+					position.y * 0.5f + 0.5f
+				};
+				poofParticleEvent.isAnimated = true;
+				poofParticleEvent.isScreenSpace = true;
+				poofParticleEvent.textureKey = "SB_Poof_VFX.png";
+				poofParticleEvent.size = (textureComp.HalfSize * 2);
+				poofParticleEvent.speed = 0.0;
+				poofParticleEvent.lifetime = 0.9;
+
+				// Skip WorldToScreenSpace convertion on VFXSystem side
+				poofParticleEvent.isUIVFX = true;
+				poofParticleEvent.customRenderOrder = 199; // just below curtains
+
+				// Render order:
+				// Curtains - 200, PoofVFX - 199, Hearts - 198, HUDBoard - 197
+
+				MessageBus::Instance().Publish(poofParticleEvent);
+
+				// Swap texture to empty heart
 				textureComp.textureKey = "SB_HUD_EmptyHeart.png";
+
 				lifeLost_ = true;
 			}
 		}

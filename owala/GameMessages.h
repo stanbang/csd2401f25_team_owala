@@ -108,6 +108,9 @@ namespace Framework {
 		Vector2D size = { 0.1f, 0.1f };
 		bool isScreenSpace = false;
 
+		bool isUIVFX = false;
+		int customRenderOrder = 0;
+
 		EmissionStyle style = EmissionStyle::FROM_POINT;
 		float radius = 0.5f; // Used if style is FROM_RADIUS or CIRCLE_EDGE
 		Vector2D offset = { 0.0f, 0.0f };
