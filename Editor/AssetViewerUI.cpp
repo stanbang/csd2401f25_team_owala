@@ -276,6 +276,9 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
 
         if (uploadInProgress_) ImGui::BeginDisabled();
 
+        bool requestNavigateUp = false;
+        fs::path requestedNavigatePath;
+
         for (size_t i = 0; i < currentAssets_.size(); ++i)
         {
             const auto& asset = currentAssets_[i];
@@ -343,9 +346,15 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
             {
                 if (asset.isDirectory)
                 {
-					// Directory navigation logic: clicking ".." goes up, otherwise we navigate into the clicked folder.
-                    if (asset.name == "..") NavigateUp();
-                    else NavigateTo(asset.path);
+					// Defer navigation until next frame to prevent crash (because it modifies the asset list while it is still being updated this frame)
+                    if (asset.name == "..")
+                    {
+                        requestNavigateUp = true;
+                    }
+                    else
+                    {
+                        requestedNavigatePath = asset.path;
+                    }
                 }
                 else
                 {
@@ -377,6 +386,15 @@ void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
             ImGui::EndGroup();
             ImGui::PopID();
             ImGui::NextColumn();
+        }
+
+        if (requestNavigateUp)
+        {
+            NavigateUp();
+        }
+        else if (!requestedNavigatePath.empty())
+        {
+            NavigateTo(requestedNavigatePath);
         }
 
         if (uploadInProgress_) ImGui::EndDisabled();
