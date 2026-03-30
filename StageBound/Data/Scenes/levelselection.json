@@ -244,15 +244,15 @@
                         ]
                     },
                     "Scale": {
-                        "x": 0.4814568758010864,
-                        "y": 0.588741660118103
+                        "x": 0.30000001192092896,
+                        "y": 0.5899999737739563
                     }
                 },
                 "TextureComponent": {
                     "texture_key": "SB_Button_RightArrow.png",
                     "half_size": {
-                        "x": 0.10000000149011612,
-                        "y": 0.20000000298023224
+                        "x": 0.18000000715255737,
+                        "y": 0.25
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -269,11 +269,11 @@
                     "hover_sound_volume": 0.5,
                     "click_sound_key": "mechanical_click.wav",
                     "click_sound_volume": 0.5,
-                    "default_texture_key": "",
-                    "hover_texture_key": "",
+                    "default_texture_key": "SB_Button_RightArrow.png",
+                    "hover_texture_key": "SB_Button_RightArrow_Spritesheet.png",
                     "pressed_texture_key": "",
                     "default_is_animated": false,
-                    "hover_is_animated": false,
+                    "hover_is_animated": true,
                     "pressed_is_animated": false,
                     "scene_to_unload_on_click": ""
                 },
@@ -1097,15 +1097,15 @@
                         ]
                     },
                     "Scale": {
-                        "x": 0.4814568758010864,
+                        "x": 0.30000001192092896,
                         "y": 0.588741660118103
                     }
                 },
                 "TextureComponent": {
                     "texture_key": "SB_Button_LeftArrow.png",
                     "half_size": {
-                        "x": 0.10000000149011612,
-                        "y": 0.20000000298023224
+                        "x": 0.18000000715255737,
+                        "y": 0.25
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -1122,11 +1122,11 @@
                     "hover_sound_volume": 0.5,
                     "click_sound_key": "mechanical_click.wav",
                     "click_sound_volume": 0.5,
-                    "default_texture_key": "",
-                    "hover_texture_key": "",
+                    "default_texture_key": "SB_Button_LeftArrow.png",
+                    "hover_texture_key": "SB_Button_LeftArrow_Spritesheet.png",
                     "pressed_texture_key": "",
                     "default_is_animated": false,
-                    "hover_is_animated": false,
+                    "hover_is_animated": true,
                     "pressed_is_animated": false,
                     "scene_to_unload_on_click": ""
                 },

@@ -34,6 +34,18 @@
         },
         {
             "texture_keys": [
+                "SB_Button_LeftArrow_Spritesheet.png"
+            ],
+            "animation_path": "Data/AnimationData/leftArrowButtonHoverAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_Button_RightArrow_Spritesheet.png"
+            ],
+            "animation_path": "Data/AnimationData/rightArrowButtonHoverAnimation.json"
+        },
+        {
+            "texture_keys": [
                 "SB_HoverButton_SpriteSheet.png"
             ],
             "animation_path": "Data/AnimationData/buttonHoverAnimation.json"
@@ -173,6 +185,12 @@
                 "SB_FallingDust_Spritesheet.png"
             ],
             "animation_path": "Data/AnimationData/fallingDustAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_HeartPoof_Spritesheet.png"
+            ],
+            "animation_path": "Data/AnimationData/heartPoofAnimation.json"
         },
         {
             "texture_keys": [

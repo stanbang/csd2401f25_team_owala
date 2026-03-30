@@ -72,10 +72,12 @@ void PlayerHealthHUD::OnUpdate() {
 				};
 				poofParticleEvent.isAnimated = true;
 				poofParticleEvent.isScreenSpace = true;
-				poofParticleEvent.textureKey = "SB_Poof_VFX.png";
-				poofParticleEvent.size = (textureComp.HalfSize * 2);
+				poofParticleEvent.textureKey = "SB_HeartPoof_Spritesheet.png";
+				poofParticleEvent.size = {
+					textureComp.HalfSize.x * 0.7f,
+					textureComp.HalfSize.y * 0.8f,
+				};
 				poofParticleEvent.speed = 0.0;
-				poofParticleEvent.lifetime = 0.9;
 
 				// Skip WorldToScreenSpace convertion on VFXSystem side
 				poofParticleEvent.isUIVFX = true;

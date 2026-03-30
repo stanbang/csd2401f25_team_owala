@@ -7707,57 +7707,75 @@ namespace Editor {
 		// --- Scaling ---
 		if (transformationSystem_) {
 			static std::unordered_map<Entity, Vector2D> defaultSizes;
-			if (defaultSizes.find(entity) == defaultSizes.end()) {
-				if (entityMgr.HasComponent(entity, AABBColliderType)) {
-					defaultSizes[entity] = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
-				}
+
+			// Cache the default collider size if the entity has one
+			bool hasCollider = entityMgr.HasComponent(entity, AABBColliderType);
+			if (hasCollider && defaultSizes.find(entity) == defaultSizes.end()) {
+				defaultSizes[entity] = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 			}
 
-			if (entityMgr.HasComponent(entity, AABBColliderType)) {
-				AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
-				Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
+			// Always expose scale controls for the transform
+			Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
 
-				if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
-					transform.scale.x = ScaleFactor.x;
-					transform.scale.y = ScaleFactor.y;
+			// --- Non-Uniform Scaling ---
+			if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
+				transform.scale.x = ScaleFactor.x;
+				transform.scale.y = ScaleFactor.y;
 
-					if (defaultSizes.count(entity)) {
-						collider.HalfSize.x = defaultSizes[entity].x * ScaleFactor.x;
-						collider.HalfSize.y = defaultSizes[entity].y * ScaleFactor.y;
+				// Only scale the collider if it exists
+				if (hasCollider && defaultSizes.count(entity)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+					collider.HalfSize.x = defaultSizes[entity].x * ScaleFactor.x;
+					collider.HalfSize.y = defaultSizes[entity].y * ScaleFactor.y;
+				}
+
+				transformationSystem_->UpdateEntityTransform(entity);
+				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+			}
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			// --- Uniform Scaling ---
+			static bool uniformTransformScale = false;
+			ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
+
+			if (uniformTransformScale) {
+				float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
+				if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
+					transform.scale.x = uniformValue;
+					transform.scale.y = uniformValue;
+
+					if (hasCollider && defaultSizes.count(entity)) {
+						AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+						collider.HalfSize.x = defaultSizes[entity].x * uniformValue;
+						collider.HalfSize.y = defaultSizes[entity].y * uniformValue;
 					}
+
 					transformationSystem_->UpdateEntityTransform(entity);
 					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 				}
 				if (ImGui::IsItemActive()) nowActive = true;
-
-				static bool uniformTransformScale = false;
-				ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
-
-				if (uniformTransformScale) {
-					float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-					if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
-						transform.scale.x = uniformValue;
-						transform.scale.y = uniformValue;
-						if (defaultSizes.count(entity)) {
-							collider.HalfSize.x = defaultSizes[entity].x * uniformValue;
-							collider.HalfSize.y = defaultSizes[entity].y * uniformValue;
-						}
-						transformationSystem_->UpdateEntityTransform(entity);
-						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
-					}
-					if (ImGui::IsItemActive()) nowActive = true;
-				}
-				if (ImGui::Button("Reset Scale")) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
-					transform.scale = { 1.0f, 1.0f };
-					if (defaultSizes.count(entity)) collider.HalfSize = defaultSizes[entity];
-					transformationSystem_->UpdateEntityTransform(entity);
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
-					if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Scale", beforeJSON, afterJSON, compType);
-				}
 			}
-			else {
-				ImGui::TextDisabled("No AABBCollider attached");
+
+			// --- Reset Scale ---
+			if (ImGui::Button("Reset Scale")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+				transform.scale = { 1.0f, 1.0f };
+
+				if (hasCollider && defaultSizes.count(entity)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+					collider.HalfSize = defaultSizes[entity];
+				}
+
+				transformationSystem_->UpdateEntityTransform(entity);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Scale", beforeJSON, afterJSON, compType);
+			}
+
+			// Show a helpful indicator if they are scaling just a texture
+			if (!hasCollider) {
+				ImGui::TextDisabled("No AABBCollider attached (Scaling Texture only)");
 			}
 		}
 		else {
