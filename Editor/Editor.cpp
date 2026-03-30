@@ -321,9 +321,6 @@ namespace Editor {
 							FileIOSystem::SetSourceDataDir((dir / "Data").string());
 							Logger::Get().Info(DebugType::Editor)
 								<< "Restored source data dir: " << dir.string() << "/Data" << std::endl;
-							FileIOSystem::SetSourceAssetsDir((dir / "Assets").string());
-							Logger::Get().Info(DebugType::Editor)
-								<< "Restored source assets dir: " << dir.string() << "/Assets" << std::endl;
 						}
 						break;
 					}
