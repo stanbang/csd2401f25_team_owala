@@ -38,12 +38,51 @@ void AssetBrowser::Initialize(const fs::path& rootPath)
     localAssetsPath_ = rootPath_ / "Assets";
     localDataPath_ = rootPath_ / "Data";
 
-    // Get the path to the project root (two levels up from Debug)
-    fs::path projectRoot = fs::absolute(rootPath_ / "../../../");
-    repoAssetsPath_ = projectRoot / "Game" / "Assets";
-    repoDataPath_ = projectRoot / "Game" / "Data";
+    // Find repository root by walking up until active_game.cmake is found.
+    fs::path projectRoot;
+    for (fs::path probe = rootPath_; !probe.empty(); probe = probe.parent_path())
+    {
+        if (fs::exists(probe / "active_game.cmake"))
+        {
+            projectRoot = probe;
+            break;
+        }
+        if (probe == probe.parent_path()) break;
+    }
 
-    // Check if all 4 directories exist to enable sync
+    // Fallback for expected runtime layout (<repo>\build\Debug).
+    if (projectRoot.empty())
+    {
+        projectRoot = fs::absolute(rootPath_ / "../../");
+    }
+    projectRootPath_ = projectRoot;
+
+    // Resolve active game from config so repo sync follows the selected game folder.
+    std::string activeGameName;
+    fs::path activeGameConfigPath = projectRoot / "active_game.cmake";
+    if (fs::exists(activeGameConfigPath))
+    {
+        std::ifstream cmakeFile(activeGameConfigPath);
+        std::string line;
+        const std::string prefix = "set(ACTIVE_GAME_NAME \"";
+        while (std::getline(cmakeFile, line))
+        {
+            auto pos = line.find(prefix);
+            if (pos == std::string::npos) continue;
+
+            activeGameName = line.substr(pos + prefix.size());
+            if (!activeGameName.empty() && activeGameName.back() == ')') activeGameName.pop_back();
+            if (!activeGameName.empty() && activeGameName.back() == '"') activeGameName.pop_back();
+            break;
+        }
+    }
+
+    // Mirror edits to the selected game project (e.g. <repo>\StageBound).
+    fs::path repoGameRoot = !activeGameName.empty() ? (projectRoot / activeGameName) : rootPath_;
+    repoAssetsPath_ = repoGameRoot / "Assets";
+    repoDataPath_ = repoGameRoot / "Data";
+
+    // Sync is only enabled when all local+repo asset/data paths are valid.
     bool localAssetsExists = fs::exists(localAssetsPath_) && fs::is_directory(localAssetsPath_);
     bool localDataExists = fs::exists(localDataPath_) && fs::is_directory(localDataPath_);
     bool repoAssetsExists = fs::exists(repoAssetsPath_) && fs::is_directory(repoAssetsPath_);
@@ -107,7 +146,7 @@ void AssetBrowser::ScanDirectory(const fs::path& directoryPath)
     currentPath_ = directoryPath;
     Logger::Get().Info(DebugType::Editor) << "Assigned currentPath_: '" << currentPath_.string() << "'" << std::endl;
 
-    // Parent folder entry, if not at root, generates a ".." button to go up one level in the Asset Viewer
+    // Add synthetic parent entry so users can navigate up from the grid.
     if (currentPath_ != rootPath_)
     {
         fs::path parentPath = fs::absolute(currentPath_.parent_path());
@@ -121,7 +160,7 @@ void AssetBrowser::ScanDirectory(const fs::path& directoryPath)
             });
     }
 
-	// After generation of parent entry(or not if at root already), scan the directory for files and folders and create AssetEntry for each
+	// Build one AssetEntry per real file/folder in this directory.
     try
     {
         int fileCount = 0;
@@ -157,7 +196,7 @@ void AssetBrowser::ScanDirectory(const fs::path& directoryPath)
             currentPath_ = currentPath_.parent_path();
     }
 
-    // Sort directories first, then files alphabetically
+    // Keep folders grouped at the top for predictable browsing.
     std::sort(currentAssets_.begin(), currentAssets_.end(), [](const AssetEntry& a, const AssetEntry& b) {
         if (a.isDirectory != b.isDirectory)
             return a.isDirectory > b.isDirectory;
@@ -185,7 +224,7 @@ void AssetBrowser::NavigateTo(const fs::path& target)
         return;
     }
 
-	// If target is a directory, scan it to prepare the Asset Viewer for display
+	// Enter directory targets; file targets are only selected/logged.
     if (fs::is_directory(target)) {
         // Make a copy to avoid reference issues
         fs::path targetCopy = target;
@@ -215,7 +254,7 @@ void AssetBrowser::NavigateUp()
     std::string parentStr = parent.string();
     std::string rootStr = rootPath_.string();
 
-	// If parent is outside root, navigate to root instead
+	// Clamp to rootPath_ so we do not browse outside the active project tree.
     if (parentStr.find(rootStr) != 0) {
         Logger::Get().Info(DebugType::Editor) << "Parent outside root, navigating to root instead" << std::endl;
         parent = rootPath_;
@@ -248,7 +287,7 @@ void AssetBrowser::ShowFolderTree(const fs::path& path)
             {
                 Logger::Get().Info(DebugType::Editor) << "File clicked: " << entry.path().string() << std::endl;
             }
-			// Handle double-clicks on directories to navigate into them
+			// Double click on a folder in the tree jumps the grid to that folder.
             else if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(0) && isDir)
             {
                 Logger::Get().Info(DebugType::Editor) << "Folder double-clicked: " << entry.path().string() << std::endl;
@@ -273,154 +312,6 @@ void AssetBrowser::ShowFolderTree(const fs::path& path)
     }
 }
 
-// Render the Asset Browser UI
-void AssetBrowser::RenderUI(std::vector<fs::path>& droppedFiles)
-{
-    // Folder Tree Panel
-    if (ImGui::Begin("Project Explorer"))
-    {
-        if (ImGui::Button("Go to Root"))
-            NavigateTo(rootPath_);
-
-        ImGui::Separator();
-        ShowFolderTree(rootPath_);
-    }
-    ImGui::End();
-
-    // Asset Viewer Panel
-    if (ImGui::Begin("Asset Viewer"))
-    {
-		ImGui::TextWrapped("Directory: %s", currentPath_.string().c_str()); // List the current directory path for easy reference
-        ImGui::Text("Assets: %zu", currentAssets_.size());
-        ImGui::Separator();
-
-		ImGui::BeginChild("AssetList", ImVec2(0, 0), true); // The actual area that lists the assets in a grid
-        
-		// Handle file drops onto the Asset Viewer area from the OS's file explorer
-        if (!droppedFiles.empty() && !isReplaceModeActive_ &&
-            (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow) ||
-                ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow)))
-        {
-            HandleDroppedFiles(droppedFiles);
-            droppedFiles.clear();
-        }
-
-		// Calculate number of columns based on available width
-        float availableWidth = ImGui::GetContentRegionAvail().x;
-        float itemWidth = 120.0f;
-        int columns = std::max(1, (int)(availableWidth / itemWidth));
-        ImGui::Columns(columns, "assetColumns", false);
-
-		// Loop through assets and render them
-        for (size_t i = 0; i < currentAssets_.size(); ++i)
-        {
-            const auto& asset = currentAssets_[i];
-            ImGui::PushID(static_cast<int>(i));
-
-            ImVec2 itemSize(100, 100);
-
-			// Render directory entries as buttons
-            if (asset.isDirectory)
-            {
-                std::string displayName = "[DIR] " + asset.name;
-                if (ImGui::Button(displayName.c_str(), itemSize))
-                {
-					if (asset.name == "..") // Go up one level button
-                        NavigateUp();
-                    else
-						NavigateTo(asset.path); // Navigate into the clicked directory
-                }
-            }
-			// Render file entries
-            else
-            {
-				// Determine file extension
-                std::string ext = asset.path.extension().string();
-				// Convert extension to lowercase for comparison
-                std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
-
-                bool clicked = false;
-
-                // Supported image extensions 
-                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
-                {
-                    std::string texName = asset.path.filename().string();
-
-                    // Check if the resource exists for display
-                    if (!resourceManager_->has<Texture>(texName))
-                    {
-                        // If not, try to load it
-                        resourceManager_->loadTexture(texName, asset.path.string());
-                    }
-
-					// Get and display the texture after loading from resource manager
-                    try
-                    {
-                        Texture& tex = resourceManager_->get<Texture>(texName);
-                        clicked = ImGui::ImageButton(("asset_" + asset.name).c_str(), tex, itemSize, ImVec2(0, 1), ImVec2(1, 0));
-                    }
-					// Catch any exceptions during texture retrieval
-                    catch (const std::exception& e)
-                    {
-                        Logger::Get().Info(DebugType::Editor) << "Failed to load file " << asset.name << ": " << e.what() << std::endl;
-                    }
-
-					// Handle drag-and-drop for image files
-                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
-                    {
-                        const char* payload_type = "ASSET_PATH";
-                        currentDraggedPath_ = asset.path.string();
-                        ImGui::SetDragDropPayload(payload_type, currentDraggedPath_.c_str(),
-                            (currentDraggedPath_.size() + 1) * sizeof(char));
-                        ImGui::Text("Dragging: %s", asset.name.c_str());
-                        ImGui::EndDragDropSource();
-                    }
-                }
-
-				// If file image button was clicked, select the asset
-                if (clicked)
-                {
-                    selectedAsset_ = asset.path;
-                    Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
-                }
-
-				// Non-image files are rendered as regular buttons
-                else if (!(ext == ".png" || ext == ".jpg" || ext == ".jpeg"))
-                {
-                    if (ImGui::Button(asset.display.c_str(), itemSize))
-                    {
-                        selectedAsset_ = asset.path;
-                        Logger::Get().Info(DebugType::Editor) << "File selected: " << asset.path.string() << std::endl;
-                    }
-
-					// Handle drag-and-drop for non-image files
-                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
-                    {
-                        const char* payload_type = "ASSET_PATH";
-                        currentDraggedPath_ = asset.path.string();
-                        ImGui::SetDragDropPayload(payload_type, currentDraggedPath_.c_str(),
-                            (currentDraggedPath_.size() + 1) * sizeof(char));
-                        ImGui::Text("Dragging: %s", asset.name.c_str());
-                        ImGui::EndDragDropSource();
-                    }
-                }
-
-
-            }
-
-            ImGui::PopID();
-            ImGui::NextColumn();
-        }
-
-        ImGui::Columns(1);
-        ImGui::EndChild();
-    }
-    ImGui::End();
-
-	// Render Asset Editor Panel after updating backend
-    RenderAssetEditor(droppedFiles);
-}
-
 // Render the Asset Editor panel
 void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 {
@@ -439,7 +330,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
 
                 try
                 {
-                    // Unload old texture if needed
+                    // Force refresh so the preview/resource cache reflects on-disk changes.
                     resourceManager_->unload<Texture>(selectedAsset_.filename().string());
 
                     // Reload texture
@@ -458,7 +349,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 }
             }
 
-            // Replace Button (Toggles replace mode that allows drag and drop into a drop zone)
+            // Replace mode opens a dedicated drop target with extension checks.
             ImGui::SameLine();
             if (ImGui::Button("Replace Asset", ImVec2(150, 30)))
             {
@@ -471,7 +362,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 }
             }
 
-			// Delete Button
+			// Delete keeps a separate confirmation path to avoid accidental removal.
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 1.0f)); // Red button for delete
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
@@ -489,12 +380,12 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                 ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Replace Mode Active");
                 ImGui::Text("Drag and drop a replacement file below:");
 
-                // Create a drop zone
+                // Replacement drop zone
                 ImVec2 dropZoneSize(400, 100);
 
                 ImGui::BeginChild("ReplaceDropZone", dropZoneSize, true, ImGuiWindowFlags_NoScrollbar);
 
-                // Handle drops on the drop zone
+                // Handle replacement file drop only when hovering this zone.
                 if (!droppedFiles.empty() && ImGui::IsWindowHovered())
                 {
                     HandleReplaceFile(droppedFiles);
@@ -706,7 +597,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
                             }
                         }
 
-                        // Repo Sync: Delete from repository if syncing is enabled
+                        // When sync is active, delete the mirrored source file too.
                         if (syncToRepo_)
                         {
                             fs::path repoDestinationPath;
@@ -791,113 +682,7 @@ void AssetBrowser::RenderAssetEditor(std::vector<fs::path>& droppedFiles)
     ImGui::End();
 }
 
-// Handle files dropped into the asset browser
-void AssetBrowser::HandleDroppedFiles(const std::vector<fs::path>& droppedFiles)
-{
-	// If no files were dropped, return early
-    if (droppedFiles.empty()) return;
-
-    Logger::Get().Info(DebugType::Editor) << "Processing " << droppedFiles.size() << " dropped files." << std::endl;
-
-    bool filesCopied = false;
-    for (const auto& sourcePath : droppedFiles)
-    {
-        try
-        {
-            if (!fs::is_regular_file(sourcePath)) {
-                Logger::Get().Info(DebugType::Editor) << "Skipping non-file drop: " << sourcePath.string() << std::endl;
-                continue; // Skip to the next file
-            }
-
-            fs::path filename = sourcePath.filename();
-
-            // Copy to local path
-            fs::path localDestinationPath = currentPath_ / filename;
-            if (fs::exists(localDestinationPath)) {
-                Logger::Get().Info(DebugType::Editor) << "File already exists, overwriting: " << localDestinationPath.string() << std::endl;
-            }
-            fs::copy(sourcePath, localDestinationPath, fs::copy_options::overwrite_existing);
-            Logger::Get().Info(DebugType::Editor) << "Copied (Local) '" << filename.string() << "' to '" << localDestinationPath.string() << "'" << std::endl;
-            filesCopied = true;
-
-            std::string ext = sourcePath.extension().string();
-            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(::tolower(c)); }); 
-
-            if (ext == ".ttf")
-            {
-                // We assume resourceManager_ is valid, as it's used elsewhere
-                if (resourceManager_)
-                {
-                    std::string fontKey = filename.string();
-                    std::string fontPath = localDestinationPath.string();
-
-                    // Load Font
-                    if (resourceManager_->loadFont(fontKey, fontPath))
-                    {
-                        Logger::Get().Info(DebugType::Editor) << "Successfully loaded new font: " << fontKey << std::endl;
-                    }
-                    else
-                    {
-                        Logger::Get().Error(DebugType::Editor) << "Failed to load new font: " << fontKey << std::endl;
-                    }
-                }
-            }
-
-            if (syncToRepo_)
-            {
-                fs::path repoDestinationPath;
-                std::string currentPathStr = fs::absolute(currentPath_).string();
-                std::string localAssetsStr = localAssetsPath_.string();
-                std::string localDataStr = localDataPath_.string();
-
-                // Check if the drop location is within the local 'Assets' folder tree
-                if (currentPathStr.find(localAssetsStr) == 0)
-                {
-                    fs::path relativePath = fs::relative(currentPath_, localAssetsPath_);
-                    repoDestinationPath = repoAssetsPath_ / relativePath / filename;
-                }
-                // Check if the drop location is within the local 'Data' folder tree
-                else if (currentPathStr.find(localDataStr) == 0)
-                {
-                    fs::path relativePath = fs::relative(currentPath_, localDataPath_);
-                    repoDestinationPath = repoDataPath_ / relativePath / filename;
-                }
-                else
-                {
-                    Logger::Get().Info(DebugType::Editor)
-                        << "Drop location is outside local 'Assets' or 'Data'. Skipping repo sync for " << filename.string() << std::endl;
-                }
-
-                // If we have a valid repo destination, create dirs and copy the file
-                if (!repoDestinationPath.empty())
-                {
-                    try
-                    {
-                        fs::create_directories(repoDestinationPath.parent_path());
-                        fs::copy(sourcePath, repoDestinationPath, fs::copy_options::overwrite_existing);
-                        Logger::Get().Info(DebugType::Editor)
-                            << "Copied (Repo) '" << filename.string() << "' to '" << repoDestinationPath.string() << "'" << std::endl;
-                    }
-                    catch (const fs::filesystem_error& e)
-                    {
-                        Logger::Get().Error(DebugType::Editor)
-                            << "Failed to sync file to repo: " << e.what() << std::endl;
-                    }
-                }
-            }
-        }
-
-        catch (const fs::filesystem_error& e)
-        {
-            Logger::Get().Error(DebugType::Editor) << "Failed to copy file locally: " << e.what() << std::endl;
-        }
-    }
-
-    if (filesCopied)
-    {
-        ScanDirectory(currentPath_); // Refresh editor view
-    }
-}
+// RenderUI and HandleDroppedFiles live in AssetViewerUI.cpp to keep UI code isolated.
 
 // Handle file replacement
 void AssetBrowser::HandleReplaceFile(const std::vector<fs::path>& droppedFiles)

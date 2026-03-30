@@ -37,31 +37,32 @@ struct AssetEntry
 
 class AssetBrowser {
 public:
-    // Initializes the browser at the current working directory (executable's location)
+    // Starts the browser from the current working directory.
+    // Useful as a safe default before a project is explicitly loaded.
     AssetBrowser(ResourceManager& rcm) : resourceManager_(&rcm), rootPath_(fs::current_path()), currentPath_(fs::current_path()) {
         if (fs::exists(currentPath_))
             ScanDirectory(currentPath_);
     }
 
-	// Initializes the browser at a specified root path
+	// Sets the project root and prepares local/repo sync paths.
     void Initialize(const fs::path& rootPath);
 
-    // Core navigation functions
+    // Rebuilds the current asset list from a directory on disk.
     void ScanDirectory(const fs::path& directoryPath);
-	// Navigate to a specific path
+	// Enters a folder or selects a file.
     void NavigateTo(const fs::path& target);
-	// Navigate up one level
+	// Moves up one folder (clamped to rootPath_).
     void NavigateUp();
-	// Display folder tree recursively
+	// Draws the left-hand folder tree recursively.
     void ShowFolderTree(const fs::path& path);
-    // UI rendering function (takes ImGui's current state/context)
+    // Draws Project Explorer + Asset Viewer windows.
     void RenderUI(std::vector<fs::path>& droppedFiles);
-	// Renders the asset editor panel
+	// Draws the right-hand Asset Editor panel.
     void RenderAssetEditor(std::vector<fs::path>& droppedFiles);
 
-	// Handle files dropped into the asset browser
+	// Queues files dropped from OS/file explorer into the viewer.
     void HandleDroppedFiles(const std::vector<fs::path>& droppedFiles);
-	// Handle file replacement
+	// Handles replacement mode drops (same extension guard).
     void HandleReplaceFile(const std::vector<fs::path>& droppedFiles);
 
 	// Getters
@@ -70,23 +71,55 @@ public:
     const fs::path& GetCurrentPath() const { return currentPath_; }
 
 private:
+    // Loads and caches viewer icon textures once per session.
+    void EnsureIconTexturesLoaded();
+    // Initializes a batch upload state for dropped files.
+    void StartUploadQueue(const std::vector<fs::path>& droppedFiles);
+    // Processes one queued upload item per frame.
+    void ProcessUploadQueue();
+    // Copies one dropped file to local output and optional repo mirror.
+    bool CopyDroppedFile(const fs::path& sourcePath);
+    // Shortens a label to fit the tile width, using "..." when needed.
+    std::string TruncateLabelToFit(const std::string& text, float maxWidth, bool& wasTruncated) const;
+
+    // Browser navigation state
     fs::path rootPath_;
     fs::path currentPath_;
+    fs::path projectRootPath_;
 	fs::path selectedAsset_;
     std::vector<AssetEntry> currentAssets_;
-	ResourceManager* resourceManager_ = nullptr; // Pointer to ResourceManager for loading icons
+	ResourceManager* resourceManager_ = nullptr;
 
-	// Replacement mode variables
+	// Replace/delete UI state
     bool isReplaceModeActive_ = false;
     fs::path replacementFilePath_;
     bool showReplaceConfirmation_ = false;
     bool showDeleteConfirmation_ = false;
 
+    // Local output paths (build/Debug) and source project mirror paths
     fs::path localAssetsPath_;
     fs::path localDataPath_;
     fs::path repoAssetsPath_;
     fs::path repoDataPath_;
     bool syncToRepo_ = false;
 
+    // Cached icon textures used by non-image asset tiles
+    bool iconsLoaded_ = false;
+    Texture folderIconTexture_ = 0;
+    Texture fileIconTexture_ = 0;
+    Texture fontIconTexture_ = 0;
+    Texture audioIconTexture_ = 0;
+
+    // Upload overlay / popup state
+    std::vector<fs::path> uploadQueue_;
+    bool uploadInProgress_ = false;
+    bool showUploadPopup_ = false;
+    bool uploadHadErrors_ = false;
+    size_t uploadTotalFiles_ = 0;
+    size_t uploadProcessedFiles_ = 0;
+    double uploadPopupDismissAt_ = 0.0;
+    std::string uploadCurrentFile_;
+
+    // Drag payload path used by ImGui drag-drop source.
     std::string currentDraggedPath_;
 };
