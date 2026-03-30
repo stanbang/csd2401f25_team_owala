@@ -62,8 +62,7 @@ namespace Editor {
 		}
 		buildAssets_.clear();
 
-		std::string assetsDir = Framework::FileIOSystem::GetSourceAssetsDir();
-		if (assetsDir.empty()) assetsDir = "Assets";
+		std::string assetsDir = "Assets";
 
 		if (fs::exists(assetsDir)) {
 			for (const fs::directory_entry& entry : fs::recursive_directory_iterator(assetsDir)) {
@@ -145,8 +144,7 @@ namespace Editor {
 			return;
 		}
 
-		std::string sourceDir = Framework::FileIOSystem::GetSourceAssetsDir();
-		if (sourceDir.empty()) sourceDir = "Assets";
+		std::string sourceDir = "Assets";
 
 		try {
 			// Iterate through cached list and copy files

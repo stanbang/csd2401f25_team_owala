@@ -89,18 +89,14 @@ namespace Framework {
 		// Save scene categorization config to Data/GameConfig.json.
 		static bool SaveGameConfig(const GameConfig& config);
 
-		// Set the source project data and assets directory for write-back (e.g. "F:/MyGame/Data").
+		// Set the source project data directory for write-back (e.g. "F:/MyGame/Data").
 		// When set, WriteFileJson/DeleteFileJson mirror saves back to this folder so
 		// edits are preserved in the source project, not just the build output.
 		static void SetSourceDataDir(const std::string& dir) { sourceDataDir_ = dir; }
 		static const std::string& GetSourceDataDir() { return sourceDataDir_; }
 
-		static void SetSourceAssetsDir(const std::string& dir) { sourceAssetsDir_ = dir; }
-		static const std::string& GetSourceAssetsDir() { return sourceAssetsDir_; }
-
 	private:
 		static std::string sourceDataDir_; // absolute path to active game's source Data/ folder
-		static std::string sourceAssetsDir_; // absolute path to active game's source Assets/ folder
 	};
 
 	namespace FileIOKeys {
