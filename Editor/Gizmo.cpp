@@ -560,7 +560,15 @@ void GizmoSystem::ApplyTransformation(const ImVec2 mouseDelta, const Entity acti
             currentMousePos = editor_->GetNormalizedMousePos();
         }
 
-        Vector2D snappedPos = editor_->SnapToGrid(currentMousePos, isGUI);
+        // Precision move: hold Alt while dragging to use 1-unit snapping instead of grid snap.
+        const bool precisionMove = ImGui::GetIO().KeyAlt;
+        Vector2D snappedPos;
+        if (precisionMove) {
+            snappedPos = { std::round(currentMousePos.x), std::round(currentMousePos.y) };
+        }
+        else {
+            snappedPos = editor_->SnapToGrid(currentMousePos, isGUI);
+        }
 
         // If dragging only on one axis (X or Y), we need to preserve the other axis's current position.
         // We use the *snapped* position for the dragged axis, and the *current* position for the fixed axis.
