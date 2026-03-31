@@ -192,6 +192,10 @@ namespace Framework {
     private:
         int screenWidth = 1920;
         int screenHeight = 1080;
+        
+        // Separate dimensions for text rendering to maintain consistent font sizes
+        int textRenderWidth = 1920;
+        int textRenderHeight = 1080;
 
         // Colored triangle pipeline
         unsigned progCol_ = 0;

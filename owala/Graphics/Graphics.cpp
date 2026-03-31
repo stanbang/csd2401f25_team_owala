@@ -225,6 +225,9 @@ namespace Framework {
         glViewport(0, 0, fbw, fbh);
         screenWidth = fbw;
         screenHeight = fbh;
+        // Store the original window dimensions for text rendering
+        textRenderWidth = fbw;
+        textRenderHeight = fbh;
 
         // 4. Colored Pipeline (Primitives)
         progCol_ = linkProgram(VS_COLOR, FS_COLOR);
@@ -847,8 +850,8 @@ namespace Framework {
         float cos_r = std::cos(rotationRad);
         float sin_r = std::sin(rotationRad);
 
-        float start_x = (pos.x + 1.0f) * 0.5f * screenWidth;
-        float start_y = (pos.y + 1.0f) * 0.5f * screenHeight;
+        float start_x = (pos.x + 1.0f) * 0.5f * textRenderWidth;
+        float start_y = (pos.y + 1.0f) * 0.5f * textRenderHeight;
 
         // 1. Calculate the exact pixel width of the text block
         float textWidthPx = 0.0f;
@@ -874,8 +877,8 @@ namespace Framework {
             float rot_x = pivot_x + (dx * cos_r - dy * sin_r);
             float rot_y = pivot_y + (dx * sin_r + dy * cos_r);
 
-            ndc_x = (rot_x / screenWidth) * 2.0f - 1.0f;
-            ndc_y = (rot_y / screenHeight) * 2.0f - 1.0f;
+            ndc_x = (rot_x / textRenderWidth) * 2.0f - 1.0f;
+            ndc_y = (rot_y / textRenderHeight) * 2.0f - 1.0f;
             };
 
         for (char c_signed : textToDraw) {
@@ -1081,6 +1084,8 @@ namespace Framework {
         else {
             CreateGameFramebuffer(width, height);
         }
+        screenWidth = width;
+        screenHeight = height;
     }
 
     /**

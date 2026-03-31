@@ -39,9 +39,18 @@ namespace Framework {
 		if (physics_.IsAnimationPaused()) { return; }
 
 		#ifdef BUILD_EDITOR
-		// In editor mode, only update animations when the game is actively playing
+		// In editor mode, handle stopped state separately from playing state
+		bool isEditorStopped = false;
 		if (auto* editor = GameManager::GetInstance().GetEditor()) {
-			if (!editor->IsGamePlaying()) { return; }
+			if (!editor->IsGamePlaying()) {
+				isEditorStopped = true;
+			}
+		}
+		
+		// When editor is stopped, reset animations to first frame and calculate UVs
+		if (isEditorStopped) {
+			ResetAnimationsToFirstFrame();
+			return;
 		}
 		#endif
 
@@ -338,6 +347,131 @@ namespace Framework {
 		animComp.elapsedTime = 0.0f;
 		animComp.isPlaying = true;
 		animComp.delayRemaining = -1.0f;
+	}
+
+	void AnimationSystem::ResetAnimationsToFirstFrame() {
+		EntityManager entityMgr(GameManager::GetInstance().GetECS());
+		ResourceManager& resourceManager_ = *GameManager::GetInstance().GetSystems().resourceManager_;
+		
+		const auto& animationProfiles = resourceManager_.GetAnimationProfiles();
+		constexpr float UV_PADDING = 0.003f;
+
+		// Loop through each entity with AnimationComponent
+		for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, AnimationComponentType)) {
+			if (!entityMgr.HasComponent(entity, LoadedTagType)) continue;
+			if (!entityMgr.HasComponent(entity, TextureComponentType)) continue;
+
+			AnimationComponent& animationComponent = entityMgr.GetComponent<AnimationComponent>(entity);
+			TextureComponent& textureComponent = entityMgr.GetComponent<TextureComponent>(entity);
+
+			if (textureComponent.textureKey.empty()) continue;
+
+			// Reset animation to first frame
+			ResetAnimation(animationComponent);
+			
+			// Determine facing direction
+			bool isFacingRight = true;
+			if (entityMgr.HasComponent(entity, PlayerStateType)) {
+				isFacingRight = entityMgr.GetComponent<PlayerState>(entity).isFacingRight;
+			}
+			else if (entityMgr.HasComponent(entity, VelocityType)) {
+				const Vector2D& vel = entityMgr.GetComponent<Velocity>(entity).Vel;
+				if (vel.x < -0.1f) isFacingRight = false;
+			}
+
+			// Get the texture key (either from profile or directly)
+			std::string baseTextureKey = textureComponent.textureKey;
+			
+			// Check if this entity uses a profile
+			if (!animationComponent.profileName.empty() && animationProfiles.count(animationComponent.profileName)) {
+				const auto& stateMap = animationProfiles.at(animationComponent.profileName);
+				std::string targetStateString = "";
+				
+				// If entity has FSM, get state from FSM
+				if (entityMgr.HasComponent(entity, FSMComponentType)) {
+					FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(entity);
+					targetStateString = fsm.fsm.GetCurrentState();
+					std::transform(targetStateString.begin(), targetStateString.end(), targetStateString.begin(),
+						[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+				}
+				else {
+					targetStateString = animationComponent.currentState;
+				}
+				
+				// Look up the texture key
+				if (stateMap.count(targetStateString)) {
+					baseTextureKey = stateMap.at(targetStateString);
+				}
+			}
+
+			// Load animation info if not loaded
+			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
+				try {
+					resourceManager_.loadAnimationInfo(baseTextureKey);
+				}
+				catch (...) {
+					// If loading fails, reset to full image
+					animationComponent.minUV = { 0.0f, 0.0f };
+					animationComponent.maxUV = { 1.0f, 1.0f };
+					continue;
+				}
+			}
+
+			// If no animation info, treat as static image
+			if (!resourceManager_.has<AnimationInfo>(baseTextureKey)) {
+				animationComponent.minUV = { 0.0f, 0.0f };
+				animationComponent.maxUV = { 1.0f, 1.0f };
+				continue;
+			}
+
+			// Get animation info
+			AnimationInfo& animationInfo = resourceManager_.get<AnimationInfo>(baseTextureKey);
+
+			// Calculate UVs for first frame (frame 0)
+			animationComponent.currentFrame = 0;
+			
+			// Handle multi-sheet animations
+			if (!animationInfo.sheets.empty() && !animationInfo.sheets[0].textureKey.empty()) {
+				const auto& firstSheet = animationInfo.sheets[0];
+				textureComponent.textureKey = firstSheet.textureKey;
+				
+				if (firstSheet.frameCount > 0) {
+					float frameUVWidth = 1.0f / (float)firstSheet.frameCount;
+					float u_min = UV_PADDING;
+					float u_max = frameUVWidth - UV_PADDING;
+
+					if (isFacingRight) {
+						animationComponent.minUV.x = u_min;
+						animationComponent.maxUV.x = u_max;
+					}
+					else {
+						animationComponent.minUV.x = u_max;
+						animationComponent.maxUV.x = u_min;
+					}
+				}
+			}
+			// Handle single-texture animations
+			else if (animationInfo.frameCount > 0) {
+				textureComponent.textureKey = baseTextureKey;
+				
+				float frameUVWidth = 1.0f / (float)animationInfo.frameCount;
+				float u_min = UV_PADDING;
+				float u_max = frameUVWidth - UV_PADDING;
+
+				if (isFacingRight) {
+					animationComponent.minUV.x = u_min;
+					animationComponent.maxUV.x = u_max;
+				}
+				else {
+					animationComponent.minUV.x = u_max;
+					animationComponent.maxUV.x = u_min;
+				}
+			}
+
+			// Set V coordinates (standard for horizontal strips)
+			animationComponent.minUV.y = 0.0f;
+			animationComponent.maxUV.y = 1.0f;
+		}
 	}
 
 } // namespace Framework
