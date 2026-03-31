@@ -33,7 +33,7 @@ namespace Framework {
 		// Emission methods
 		void EmitParticles(EntityManager& entityMgr);
 		void UpdateParticles(EntityManager& entityMgr);
-		void SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin);
+		void SpawnSingleParticle(EntityManager& entityMgr, const ParticleEmitterComponent& emitter, const Vector2D& origin, int customRenderOrder = 0);
 
 		// Event handlers for particle burst events
 		void OnParticleBurst(const ParticleBurstEvent& event);

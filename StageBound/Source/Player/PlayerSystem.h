@@ -65,5 +65,6 @@ namespace Framework {
 		bool m_deathEventFired = false;
 		bool m_lvlClearEventFired = false;
 		std::unordered_set<SceneGUID> m_spawnedScenes; // Track scenes where player was already spawned
+		bool m_cheatGodMode = false;
 	};
 } // namespace Framework

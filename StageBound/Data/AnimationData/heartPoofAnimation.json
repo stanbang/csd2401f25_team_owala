@@ -1,0 +1,13 @@
+{
+    "frame_count": 19,
+    "frame_duration": 0.06000000983476639,
+    "is_looping": false,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_HeartPoof_Spritesheet.png",
+            "count": 19
+        }
+    ],
+    "frameEvents": {}
+}

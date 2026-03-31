@@ -187,9 +187,8 @@ namespace Framework {
                 // --- Mode-based filtering ---
                 if (mode_ == EngineMode::Editor) {
                     // Skip gameplay systems in Editor mode
-                    if (sysName == "Player System" ||
+                    if (sysName == "Game System" ||
                         sysName == "Physics System" ||
-                        sysName == "Rotation System" ||
                         sysName == "Audio System" || 
                         sysName == "Platform Behavior") {
                         shouldUpdate = false;

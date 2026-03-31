@@ -1,5 +1,5 @@
 {
-    "frame_count": 24,
+    "frame_count": 25,
     "frame_duration": 0.08332999795675278,
     "is_looping": false,
     "start_frame": 0,
@@ -51,6 +51,10 @@
         {
             "texture": "Cut_Scene_3_Spritesheet_12.png",
             "count": 2
+        },
+        {
+            "texture": "Cut_Scene_3_Spritesheet_13.png",
+            "count": 1
         }
     ],
     "frameEvents": {}

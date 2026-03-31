@@ -208,9 +208,35 @@ void Portal::OnUpdate() {
 
     if (player == 0) return; // No valid player found; can't check overlap
 
-    if (physicsSystem.CheckTriggerOverlap(player, self)) {
-        InputSystem& input = *gm.GetSystems().input_;
+    InputSystem& input = *gm.GetSystems().input_;
 
+    // Check for F6 Keypress - Cheat Code to skip to next level
+    if (input.KeyPressed(InputSystem::Key::F6)) {
+        Framework::Logger::Get().Info(DebugType::Game)
+            << "[Portal] Cheat Code F6 pressed: Skipping to next level..." << std::endl;
+
+        // Reset timer system
+        if (TimerSystem::Get().IsRunning()) {
+            TimerSystem::Get().Reset();
+        }
+
+        audioSystem.stopAll();
+        save->Unlock(levelIndexToUnlock);
+        MessageBus::Instance().Publish(LevelClearEvent{});
+    }
+    // Check for F7 Keypress - Cheat Code to skip to Portal
+    else if (input.KeyPressed(InputSystem::Key::F7)) {
+        Framework::Logger::Get().Info(DebugType::Game)
+            << "[Portal] Cheat Code F7 pressed: Skipping to Portal..." << std::endl;
+        
+        Vector2D& playerPos = entityMgr.GetComponent<Transform>(player).position;
+        Vector2D portalPos = entityMgr.GetComponent<Transform>(self).position;
+
+        playerPos = portalPos;
+    }
+
+    // Check if player overlapping with portal
+    if (physicsSystem.CheckTriggerOverlap(player, self)) {
         // Player must hold down for 1.5 seconds to trigger completion flag.
         if (input.KeyDown(InputSystem::Key::F)) {
             interactTimer += Time::DeltaTime();
@@ -233,7 +259,7 @@ void Portal::OnUpdate() {
 
                 // Stop the timer and submit to Firebase BEFORE resetting
                 if (TimerSystem::Get().IsRunning()) {
-                    Framework::Logger::Get().Info(DebugType::PlayerSystem)
+                    Framework::Logger::Get().Info(DebugType::Game)
                         << "[Portal] Level complete! Stopping timer and submitting..." << std::endl;
                     TimerSystem::Get().Stop();
                 }

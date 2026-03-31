@@ -320,7 +320,7 @@ namespace Editor {
 						if (fs::exists(dir)) {
 							FileIOSystem::SetSourceDataDir((dir / "Data").string());
 							Logger::Get().Info(DebugType::Editor)
-								<< "[Editor] Restored source data dir: " << dir.string() << "/Data" << std::endl;
+								<< "Restored source data dir: " << dir.string() << "/Data" << std::endl;
 						}
 						break;
 					}
@@ -621,6 +621,7 @@ namespace Editor {
 		// --- Detached Panels ---
 		if (settings.showPreferencesWindow) ShowPreferencesWindow();
 		if (settings.showProjectSettingsWindow) ShowProjectSettingsWindow();
+		buildSizeAnalyzer_.ShowUI();
 
 		// --- Docked Panels ---
 		if (settings.showToolbar) ShowToolbar();
@@ -2411,66 +2412,68 @@ namespace Editor {
 			// -- End Layer Dropdown ---
 
 			// --- Component Section ---
-			if (ImGui::CollapsingHeader("Components")) {
+			if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::Text("Attached Components:");
-				int compCount = 0;
 
-				for (size_t i = 0; i < componentTypes.size(); ++i) {
-					ComponentType type = componentTypes[i];
-					if (entityMgr.HasComponent(selectedEntity, type)) {
-						if (compCount % 3 != 0) ImGui::SameLine();
-						if (selectedComponentIndex > 0 && selectedComponentIndex - 1 == static_cast<int>(i)) {
-							ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
-						}
-						ImGui::Text("[%s]", componentNames[i + 1].c_str());
-						if (selectedComponentIndex > 0 && selectedComponentIndex - 1 == static_cast<int>(i)) {
-							ImGui::PopStyleColor();
-						}
-						++compCount;
+				int attachedCompCount = 0;
+				for (const ComponentType type : componentTypes) {
+					if (!entityMgr.HasComponent(selectedEntity, type)) {
+						continue;
+					}
+
+					++attachedCompCount;
+
+					// Preserve active edit tracking when drawing non-edited components.
+					// This avoids a later component clearing editSession state for the one currently being edited.
+					const bool preserveEditTracking = editSession.active && editSession.compInEdit != type;
+					const bool previousWasItemActive = editSession.wasItemActive;
+					if (preserveEditTracking) {
+						editSession.wasItemActive = false;
+					}
+
+					ShowComponentSections(selectedEntity, type);
+
+					if (preserveEditTracking) {
+						editSession.wasItemActive = previousWasItemActive;
 					}
 				}
 
-				// --- Component Dropdown ---
+				if (attachedCompCount == 0) {
+					ImGui::TextDisabled("No components attached.");
+				}
+
+				ImGui::SeparatorText("Manage Components");
 				ImGui::Combo("Component", &selectedComponentIndex, componentItems.data(), static_cast<int>(componentItems.size()));
 
 				if (selectedComponentIndex > 0) {
-					size_t compIndex = static_cast<size_t>(selectedComponentIndex - 1); // Offset for "None"
-
+					const size_t compIndex = static_cast<size_t>(selectedComponentIndex - 1); // Offset for empty item
 					if (compIndex < componentTypes.size()) {
-						ComponentType selectedComponent = componentTypes[compIndex];
-						if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
-							ShowComponentSections(selectedEntity, selectedComponent);
-						}
-						else {
-							ImGui::Text("Component Not Added!");
-						}
+						const ComponentType selectedComponent = componentTypes[compIndex];
 
 						if (ImGui::Button("Add Component")) {
 							if (!entityMgr.HasComponent(selectedEntity, selectedComponent)) {
 								std::string beforeJSON;
 
-								// auto calculate aabb halfsize using tex halfsize
+								// Auto-calculate collider halfsize based on texture halfsize.
 								if (selectedComponent == ComponentType::AABBColliderType) {
 									AABBCollider newCollider;
 
-									// If we have a texture, use its size automatically
 									if (entityMgr.HasComponent(selectedEntity, ComponentType::TextureComponentType)) {
 										const TextureComponent& tex = entityMgr.GetComponent<TextureComponent>(selectedEntity);
 										newCollider.HalfSize = tex.HalfSize;
 									}
 									else {
-										newCollider.HalfSize = { 50.0f, 50.0f }; // Default fallback
+										newCollider.HalfSize = { 50.0f, 50.0f };
 									}
 
 									entityMgr.AddComponent(selectedEntity, newCollider);
 								}
 								else {
-									// Standard addition for other components
 									entityMgr.AddComponent(selectedEntity, selectedComponent);
 								}
 
-								std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
-								std::string description = "Add " + ComponentToString(selectedComponent);
+								const std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
+								const std::string description = "Add " + ComponentToString(selectedComponent);
 								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
 							}
 						}
@@ -2478,13 +2481,13 @@ namespace Editor {
 						ImGui::SameLine();
 						if (ImGui::Button("Remove Component")) {
 							if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
-								std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
-
+								const std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, ecs);
 								entityMgr.RemoveComponent(selectedEntity, selectedComponent);
 
 								std::string afterJSON;
-								std::string description = "Remove " + ComponentToString(selectedComponent);
+								const std::string description = "Remove " + ComponentToString(selectedComponent);
 								historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
+								selectedComponentIndex = 0;
 							}
 						}
 					}
@@ -2569,7 +2572,18 @@ namespace Editor {
 		EntityStorage* ecs = gameManager_->GetSystems().ecs_;
 		EntityManager entityMgr(*ecs);
 
-		ImGui::SeparatorText(ComponentToString(selectedComponent).c_str());
+		const std::string componentLabel = ComponentToString(selectedComponent);
+
+		ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.10f, 0.35f, 0.75f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.45f, 0.90f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.08f, 0.30f, 0.65f, 1.0f));
+		const bool isComponentOpen = ImGui::CollapsingHeader(componentLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+		ImGui::PopStyleColor(3);
+
+		if (!isComponentOpen) {
+			return;
+		}
+
 		switch (selectedComponent) {
 		case ComponentType::TransformType: {
 			DrawTransformInspector(selectedEntity);
@@ -2758,7 +2772,8 @@ namespace Editor {
 		case ComponentType::AnimationComponentType: {
 			DrawAnimationInspector(selectedEntity);
 			break;
-		}		case ComponentType::TextComponentType: {
+		}		
+		case ComponentType::TextComponentType: {
 			TextComponent& textComp = entityMgr.GetComponent<TextComponent>(selectedEntity);
 
 			// Text you want to draw
@@ -2797,7 +2812,7 @@ namespace Editor {
 			}
 
 			// Text Inputfield
-			ImGui::InputText("Text", textBuffer, IM_ARRAYSIZE(textBuffer));
+			ImGui::InputText("Displayed Text", textBuffer, IM_ARRAYSIZE(textBuffer));
 			if (ImGui::IsItemActivated()) text_editingText = true;
 			if (ImGui::IsItemDeactivatedAfterEdit()) {
 				std::string newText = textBuffer;
@@ -5297,6 +5312,12 @@ namespace Editor {
 				ImGui::MenuItem("FSM Enemy Editor", NULL, &isFSMEditorOpen_);
 				ImGui::MenuItem("Prefab Editor", NULL, &isPrefabEditorOpen_);
 				ImGui::MenuItem("Animation Editor", NULL, &settings.showAnimationEditor);
+				
+				bool isAnalyzerOpen = buildSizeAnalyzer_.IsOpen();
+				if (ImGui::MenuItem("Build Size Analyzer", NULL, &isAnalyzerOpen)) {
+					buildSizeAnalyzer_.SetOpen(isAnalyzerOpen);
+				}
+
 				if (ImGui::BeginMenu("Debug")) {
 					ImGui::MenuItem("Show Grid", NULL, &showGrid_);
 					Framework::SpriteRenderSystem* spriteRenderer = GameManager::GetInstance().GetSystems().spriteRenderer_;
@@ -7686,57 +7707,75 @@ namespace Editor {
 		// --- Scaling ---
 		if (transformationSystem_) {
 			static std::unordered_map<Entity, Vector2D> defaultSizes;
-			if (defaultSizes.find(entity) == defaultSizes.end()) {
-				if (entityMgr.HasComponent(entity, AABBColliderType)) {
-					defaultSizes[entity] = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
-				}
+
+			// Cache the default collider size if the entity has one
+			bool hasCollider = entityMgr.HasComponent(entity, AABBColliderType);
+			if (hasCollider && defaultSizes.find(entity) == defaultSizes.end()) {
+				defaultSizes[entity] = entityMgr.GetComponent<AABBCollider>(entity).HalfSize;
 			}
 
-			if (entityMgr.HasComponent(entity, AABBColliderType)) {
-				AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
-				Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
+			// Always expose scale controls for the transform
+			Vector2D ScaleFactor = { transform.scale.x, transform.scale.y };
 
-				if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
-					transform.scale.x = ScaleFactor.x;
-					transform.scale.y = ScaleFactor.y;
+			// --- Non-Uniform Scaling ---
+			if (ImGui::DragFloat2("Scale (X, Y)", &ScaleFactor.x, 0.1f, 0.1f, 5.0f, "%.2f")) {
+				transform.scale.x = ScaleFactor.x;
+				transform.scale.y = ScaleFactor.y;
 
-					if (defaultSizes.count(entity)) {
-						collider.HalfSize.x = defaultSizes[entity].x * ScaleFactor.x;
-						collider.HalfSize.y = defaultSizes[entity].y * ScaleFactor.y;
+				// Only scale the collider if it exists
+				if (hasCollider && defaultSizes.count(entity)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+					collider.HalfSize.x = defaultSizes[entity].x * ScaleFactor.x;
+					collider.HalfSize.y = defaultSizes[entity].y * ScaleFactor.y;
+				}
+
+				transformationSystem_->UpdateEntityTransform(entity);
+				if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
+			}
+			if (ImGui::IsItemActive()) nowActive = true;
+
+			// --- Uniform Scaling ---
+			static bool uniformTransformScale = false;
+			ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
+
+			if (uniformTransformScale) {
+				float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
+				if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
+					transform.scale.x = uniformValue;
+					transform.scale.y = uniformValue;
+
+					if (hasCollider && defaultSizes.count(entity)) {
+						AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+						collider.HalfSize.x = defaultSizes[entity].x * uniformValue;
+						collider.HalfSize.y = defaultSizes[entity].y * uniformValue;
 					}
+
 					transformationSystem_->UpdateEntityTransform(entity);
 					if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
 				}
 				if (ImGui::IsItemActive()) nowActive = true;
-
-				static bool uniformTransformScale = false;
-				ImGui::Checkbox("Uniform Scaling", &uniformTransformScale);
-
-				if (uniformTransformScale) {
-					float uniformValue = (ScaleFactor.x + ScaleFactor.y) * 0.5f;
-					if (ImGui::DragFloat("Uniform Scale", &uniformValue, 0.1f, 0.1f, 5.0f, "%.2f")) {
-						transform.scale.x = uniformValue;
-						transform.scale.y = uniformValue;
-						if (defaultSizes.count(entity)) {
-							collider.HalfSize.x = defaultSizes[entity].x * uniformValue;
-							collider.HalfSize.y = defaultSizes[entity].y * uniformValue;
-						}
-						transformationSystem_->UpdateEntityTransform(entity);
-						if (gameManager_->GetSystems().aiSystem_) gameManager_->GetSystems().aiSystem_->ForceGridRebuild();
-					}
-					if (ImGui::IsItemActive()) nowActive = true;
-				}
-				if (ImGui::Button("Reset Scale")) {
-					std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
-					transform.scale = { 1.0f, 1.0f };
-					if (defaultSizes.count(entity)) collider.HalfSize = defaultSizes[entity];
-					transformationSystem_->UpdateEntityTransform(entity);
-					std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
-					if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Scale", beforeJSON, afterJSON, compType);
-				}
 			}
-			else {
-				ImGui::TextDisabled("No AABBCollider attached");
+
+			// --- Reset Scale ---
+			if (ImGui::Button("Reset Scale")) {
+				std::string beforeJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+
+				transform.scale = { 1.0f, 1.0f };
+
+				if (hasCollider && defaultSizes.count(entity)) {
+					AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+					collider.HalfSize = defaultSizes[entity];
+				}
+
+				transformationSystem_->UpdateEntityTransform(entity);
+
+				std::string afterJSON = EntitySerializer::SerializeComponentToString(entity, compType, *ecs);
+				if (beforeJSON != afterJSON) historyManager_.RecordModifyComponent(entity, "Reset Scale", beforeJSON, afterJSON, compType);
+			}
+
+			// Show a helpful indicator if they are scaling just a texture
+			if (!hasCollider) {
+				ImGui::TextDisabled("No AABBCollider attached (Scaling Texture only)");
 			}
 		}
 		else {

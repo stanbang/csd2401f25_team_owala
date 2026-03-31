@@ -1,0 +1,12 @@
+{
+    "frame_count": 8,
+    "frame_duration": 0.09999999403953552,
+    "is_looping": true,
+    "start_frame": 0,
+    "spritesheets": [
+        {
+            "texture": "SB_Button_RightArrow_Spritesheet.png",
+            "count": 8
+        }
+    ]
+}

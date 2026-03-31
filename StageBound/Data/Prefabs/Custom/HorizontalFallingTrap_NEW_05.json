@@ -12,7 +12,7 @@
             },
             "Rotation": {
                 "angle": 0.0,
-                "texture_angle": 0.0,
+                "texture_angle": 1.5707963705062866,
                 "collider_angle": 0.0,
                 "texture_matrix": [
                     100.0,
@@ -59,7 +59,7 @@
             "half_width": 150.0,
             "half_height": 40.0,
             "offset_x": 0.0,
-            "offset_y": 0.0
+            "offset_y": -4.0
         },
         "RotationFlag": {
             "is_rotating": false,
@@ -78,10 +78,10 @@
             }
         },
         "TextureComponent": {
-            "texture_key": "SB_TrapPlatform_MultiAxis.png",
+            "texture_key": "SB_MovableBox_03.png",
             "half_size": {
-                "x": 96.0,
-                "y": 60.0
+                "x": 44.0,
+                "y": 90.0
             },
             "flip_x": false
         },
