@@ -1395,8 +1395,12 @@ namespace Editor {
 	void Editor::CopyEntitiesToClipboard(const std::vector<Entity>& entities) {
 		entitiesClipboard_.clear();
 		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
+		EntityManager entityMgr(*ecs);
 
 		for (const Entity entity : entities) {
+			if (!entityMgr.ValidateEntity(entity)) {
+				continue;
+			}
 			rapidjson::Document doc;
 			doc.SetObject();
 			rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
@@ -2426,6 +2430,19 @@ namespace Editor {
 
 				// Selectable Context Menu
 				if (ImGui::BeginPopupContextItem("##EntityContext")) {
+					// Sanitize selection in case entities were deleted via undo/redo.
+					selectedEntities_.erase(
+						std::remove_if(selectedEntities_.begin(), selectedEntities_.end(),
+							[&](Entity e) { return !entityMgr.ValidateEntity(e); }),
+						selectedEntities_.end());
+					isEntitySelected_ = !selectedEntities_.empty();
+					if (isEntitySelected_) {
+						selectedEntityIndex = selectedEntities_[0] + 1;
+					}
+					else {
+						selectedEntityIndex = 0;
+					}
+
 					// Copy
 					if (selectedEntities_.size() > 1) {
 						if (ImGui::MenuItem(("Copy (" + std::to_string(selectedEntities_.size()) + " entities)").c_str())) {
@@ -2454,7 +2471,16 @@ namespace Editor {
 					if (selectedEntities_.size() > 1) {
 						// Duplicate multiple entities
 						if (ImGui::MenuItem(("Duplicate (" + std::to_string(selectedEntities_.size()) + " entities)").c_str())) {
+							std::vector<Entity> validSelection;
 							for (Entity ent : selectedEntities_) {
+								if (entityMgr.ValidateEntity(ent)) validSelection.push_back(ent);
+							}
+							if (validSelection.empty()) {
+								ImGui::EndPopup();
+								ImGui::PopID();
+								return;
+							}
+							for (Entity ent : validSelection) {
 								SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
 								if (entityMgr.HasComponent(ent, SceneOwnedType)) {
 									ownerSceneID = entityMgr.GetComponent<SceneOwned>(ent).sceneIndex;
@@ -2464,12 +2490,13 @@ namespace Editor {
 								Entity clonedEntity = entityMgr.CloneEntity(ent);
 								sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
 							}
-							historyManager_.Record(OpType::Create, selectedEntities_[0], "Duplicated " + std::to_string(selectedEntities_.size()) + " Entities");
+							historyManager_.Record(OpType::Create, validSelection[0], "Duplicated " + std::to_string(validSelection.size()) + " Entities");
 						}
 						
 						// Delete multiple entities
 						if (ImGui::MenuItem(("Delete (" + std::to_string(selectedEntities_.size()) + " entities)").c_str())) {
 							for (Entity ent : selectedEntities_) {
+								if (!entityMgr.ValidateEntity(ent)) continue;
 								historyManager_.Record(OpType::Delete, ent, "Deleted Entity");
 								entityMgr.DestroyEntity(ent);
 							}
