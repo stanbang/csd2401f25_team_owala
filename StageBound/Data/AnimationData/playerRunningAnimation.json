@@ -5,8 +5,12 @@
     "start_frame": 0,
     "spritesheets": [
         {
-            "texture": "Eli_Walk_Spritesheet.png",
-            "count": 8
+            "texture": "SB_Eli_Walk_Spritesheet_1.png",
+            "count": 6
+        },
+        {
+            "texture": "SB_Eli_Walk_Spritesheet_2.png",
+            "count": 2
         }
     ],
     "frameEvents": {

@@ -2,6 +2,240 @@
     "scene_name": "Tutorial 2",
     "entities": [
         {
+            "name": "StagePlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 18033017847709050836,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -950.0,
+                        "y": -1050.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -950.0,
+                            0.0,
+                            50.0,
+                            -1050.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -950.0,
+                            0.0,
+                            1.0,
+                            -1050.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "InvisibleCollider_L2_12",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2498683849153762810,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -1000.0,
+                        "y": -1000.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            -1000.0,
+                            0.0,
+                            1.0,
+                            -1000.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -1000.0,
+                            0.0,
+                            1.0,
+                            -1000.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "AABBCollider": {
+                    "half_width": 170.0,
+                    "half_height": 150.0,
+                    "offset_x": 0.0,
+                    "offset_y": 37.0
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 5464304330460018838,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 300.0,
+                        "y": -0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            300.0,
+                            0.0,
+                            50.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            300.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StaticPlatform_09",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -64,6 +298,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StaticPlatform_09.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_06",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 412200346718973462,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -450.0,
+                        "y": 150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -450.0,
+                            0.0,
+                            50.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -450.0,
+                            0.0,
+                            1.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_06.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -229,6 +543,86 @@
             "tags": []
         },
         {
+            "name": "StagePlatform_03",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 8577555190108001166,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 550.0,
+                        "y": 150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            550.0,
+                            0.0,
+                            50.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            550.0,
+                            0.0,
+                            1.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_03.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "BG_6",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -373,6 +767,86 @@
             ]
         },
         {
+            "name": "StaticPlatform_10",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 0,
+            "custom_render_order": -1,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 75857186196620341,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 1100.0,
+                        "y": -50.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            1100.0,
+                            0.0,
+                            50.0,
+                            -50.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            1100.0,
+                            0.0,
+                            1.0,
+                            -50.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_10.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StagePlatform_09",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -489,6 +963,86 @@
                             0.0,
                             1.0,
                             -950.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 16968533352398981661,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -600.0,
+                        "y": 0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -600.0,
+                            0.0,
+                            50.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -600.0,
+                            0.0,
+                            1.0,
+                            0.0,
                             0.0,
                             0.0,
                             1.0
@@ -693,6 +1247,77 @@
             ]
         },
         {
+            "name": "StagePlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 3274473017733762729,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 1150.0,
+                        "y": -1150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            1150.0,
+                            0.0,
+                            50.0,
+                            -1150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -350.0,
+                            0.0,
+                            1.0,
+                            -750.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "TopPlatformPadding1",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -795,6 +1420,86 @@
                             1.0,
                             0.0,
                             -200.0,
+                            0.0,
+                            1.0,
+                            -100.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 14216739404059698232,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -900.0,
+                        "y": -100.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -900.0,
+                            0.0,
+                            50.0,
+                            -100.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -900.0,
                             0.0,
                             1.0,
                             -100.0,
@@ -1002,6 +1707,80 @@
             ]
         },
         {
+            "name": "InvisibleCollider_L2_03",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2645620314401989013,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -550.0,
+                        "y": 1030.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            -550.0,
+                            0.0,
+                            1.0,
+                            1030.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -550.0,
+                            0.0,
+                            1.0,
+                            1030.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "AABBCollider": {
+                    "half_width": 20.0,
+                    "half_height": 200.0,
+                    "offset_x": 0.0,
+                    "offset_y": 0.0
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": []
+        },
+        {
             "name": "LeftPlatform2",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -1140,6 +1919,86 @@
             },
             "tags": [
                 "GUITag"
+            ]
+        },
+        {
+            "name": "StaticPlatform_09",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 12583022405049263629,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 900.0,
+                        "y": -50.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            900.0,
+                            0.0,
+                            50.0,
+                            -50.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            900.0,
+                            0.0,
+                            1.0,
+                            -50.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_09.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
             ]
         },
         {
@@ -1285,6 +2144,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StaticPlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 530270878542214364,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -300.0,
+                        "y": 200.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -300.0,
+                            0.0,
+                            50.0,
+                            200.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -300.0,
+                            0.0,
+                            1.0,
+                            200.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_02.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -1451,6 +2390,86 @@
             "tags": []
         },
         {
+            "name": "StaticPlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 0,
+            "custom_render_order": -1,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 1352460723566992508,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -300.0,
+                        "y": -250.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -300.0,
+                            0.0,
+                            50.0,
+                            -250.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -300.0,
+                            0.0,
+                            1.0,
+                            -250.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StaticPlatform_10",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -1593,6 +2612,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StaticPlatform_04",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 0,
+            "custom_render_order": -1,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 13320847861432971843,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -400.0,
+                        "y": -250.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -400.0,
+                            0.0,
+                            50.0,
+                            -250.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -400.0,
+                            0.0,
+                            1.0,
+                            -250.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_04.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -1771,6 +2870,86 @@
             ]
         },
         {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 3420357221006818432,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -200.0,
+                        "y": -0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -200.0,
+                            0.0,
+                            50.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -200.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -1920,6 +3099,75 @@
             "tags": [
                 "PlatformTag"
             ]
+        },
+        {
+            "name": "BottomPlatformPadding1",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 13794540456058763376,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 500.0,
+                        "y": -1800.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            600.0,
+                            0.0,
+                            500.0,
+                            0.0,
+                            600.0,
+                            -1800.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            -600.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "12x12_MidTiles.png",
+                    "half_size": {
+                        "x": 600.0,
+                        "y": 600.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": []
         },
         {
             "name": "FallingAmberVFX",
@@ -2075,6 +3323,86 @@
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
+            "uuid": 1273584930599223046,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 550.0,
+                        "y": -950.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            550.0,
+                            0.0,
+                            50.0,
+                            -950.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            550.0,
+                            0.0,
+                            1.0,
+                            -950.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
             "uuid": 12146219899992052501,
             "components": {
                 "Transform": {
@@ -2210,6 +3538,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_01.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 638897113897570268,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -450.0,
+                        "y": -1150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -450.0,
+                            0.0,
+                            50.0,
+                            -1150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -450.0,
+                            0.0,
+                            1.0,
+                            -750.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_05.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -2395,6 +3803,86 @@
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
+            "uuid": 1248616520894451915,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -600.0,
+                        "y": -200.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -600.0,
+                            0.0,
+                            50.0,
+                            -200.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -600.0,
+                            0.0,
+                            1.0,
+                            -200.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_08.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_08",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
             "uuid": 16030671367389865357,
             "components": {
                 "Transform": {
@@ -2501,6 +3989,86 @@
                             1.0,
                             0.0,
                             500.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 14677986672177958874,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 100.0,
+                        "y": -0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            100.0,
+                            0.0,
+                            50.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            100.0,
                             0.0,
                             1.0,
                             0.0,
@@ -2705,6 +4273,86 @@
             "tags": []
         },
         {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 10562741493730869766,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -500.0,
+                        "y": 0.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -500.0,
+                            0.0,
+                            50.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -500.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "HorizontalFallingTrap_02_BIG_350x100_01",
             "layer": 5,
             "layer_collision_name": "TrapPlatforms",
@@ -2859,6 +4507,86 @@
                     "Scale": {
                         "x": 1.0,
                         "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 7858370083204186478,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 250.0,
+                        "y": -1050.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            250.0,
+                            0.0,
+                            50.0,
+                            -1050.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            250.0,
+                            0.0,
+                            1.0,
+                            -1050.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
                     }
                 },
                 "RotationFlag": {
@@ -3067,6 +4795,86 @@
             ]
         },
         {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 12676241124889331086,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -1150.0,
+                        "y": -850.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -1150.0,
+                            0.0,
+                            50.0,
+                            -850.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -800.0,
+                            0.0,
+                            1.0,
+                            -650.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StaticPlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -3209,6 +5017,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_03.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 17519480093536836145,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -950.0,
+                        "y": -850.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -950.0,
+                            0.0,
+                            50.0,
+                            -850.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -950.0,
+                            0.0,
+                            1.0,
+                            -850.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_02.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -3380,6 +5268,86 @@
             "tags": []
         },
         {
+            "name": "StaticPlatform_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 10001615924909324985,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": -800.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            50.0,
+                            -800.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            -800.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -3544,6 +5512,32 @@
             ]
         },
         {
+            "name": "Pause Controller",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 7113924861562317503,
+            "components": {
+                "NativeScripts": {
+                    "scripts": [
+                        {
+                            "type": "PauseMenuController",
+                            "enabled": true,
+                            "execute_in_edit": false
+                        }
+                    ]
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": []
+        },
+        {
             "name": "StaticPlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -3686,6 +5680,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StaticPlatform_07",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2446562761272298245,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -150.0,
+                        "y": 450.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -150.0,
+                            0.0,
+                            50.0,
+                            450.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -150.0,
+                            0.0,
+                            1.0,
+                            450.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_07.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -3853,80 +5927,6 @@
             ]
         },
         {
-            "name": "InvisibleCollider_L2_12",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 2498683849153762810,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -1000.0,
-                        "y": -1000.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            -1000.0,
-                            0.0,
-                            1.0,
-                            -1000.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -1000.0,
-                            0.0,
-                            1.0,
-                            -1000.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "AABBCollider": {
-                    "half_width": 170.0,
-                    "half_height": 150.0,
-                    "offset_x": 0.0,
-                    "offset_y": 37.0
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": []
-        },
-        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -4005,6 +6005,80 @@
             "tags": [
                 "PlatformTag"
             ]
+        },
+        {
+            "name": "InvisibleCollider_L2_02",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2379518115115138846,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -750.0,
+                        "y": 150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1.0,
+                            0.0,
+                            -750.0,
+                            0.0,
+                            1.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -750.0,
+                            0.0,
+                            1.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "AABBCollider": {
+                    "half_width": 120.0,
+                    "half_height": 20.0,
+                    "offset_x": 0.0,
+                    "offset_y": 0.0
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": []
         },
         {
             "name": "StaticPlatform_04",
@@ -4131,6 +6205,86 @@
                     "Scale": {
                         "x": 1.0,
                         "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StagePlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 6120853555941999752,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -700.0,
+                        "y": -100.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -700.0,
+                            0.0,
+                            50.0,
+                            -100.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -700.0,
+                            0.0,
+                            1.0,
+                            -100.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
                     }
                 },
                 "RotationFlag": {
@@ -4309,6 +6463,86 @@
             ]
         },
         {
+            "name": "StaticPlatform_05",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 3789202928574285802,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -550.0,
+                        "y": 1050.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -550.0,
+                            0.0,
+                            50.0,
+                            1050.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -550.0,
+                            0.0,
+                            1.0,
+                            1100.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "StagePlatform_03",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -4469,6 +6703,86 @@
             ]
         },
         {
+            "name": "StagePlatform_08",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 9039803175811408772,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 400.0,
+                        "y": -200.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            400.0,
+                            0.0,
+                            50.0,
+                            -200.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            400.0,
+                            0.0,
+                            1.0,
+                            -200.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StagePlatform_08.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
             "name": "Tutorial2_BGM",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -4559,6 +6873,86 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_Spikes.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 8,
+                    "sceneName": "Tutorial 2"
+                }
+            },
+            "tags": [
+                "PlatformTag"
+            ]
+        },
+        {
+            "name": "StaticPlatform_07",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 10212698943453513600,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -750.0,
+                        "y": 150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -750.0,
+                            0.0,
+                            50.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            -750.0,
+                            0.0,
+                            1.0,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RigidBody": {
+                    "mass": 0.0,
+                    "inv_mass": 0.0,
+                    "is_affected_by_gravity": true,
+                    "force": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_StaticPlatform_07.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -6518,86 +8912,6 @@
             ]
         },
         {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 10562741493730869766,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -500.0,
-                        "y": 0.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -500.0,
-                            0.0,
-                            50.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -500.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "BottomPlatform1",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -6671,86 +8985,6 @@
                 }
             },
             "tags": []
-        },
-        {
-            "name": "StagePlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 638897113897570268,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -450.0,
-                        "y": -1150.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -450.0,
-                            0.0,
-                            50.0,
-                            -1150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -450.0,
-                            0.0,
-                            1.0,
-                            -750.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
         },
         {
             "name": "HUD_Heart2",
@@ -6982,86 +9216,6 @@
             ]
         },
         {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 14677986672177958874,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 100.0,
-                        "y": -0.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            100.0,
-                            0.0,
-                            50.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            100.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "RightPlatformPadding1",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -7150,22 +9304,22 @@
                         "texture_angle": -1.5707963705062866,
                         "collider_angle": 0.0,
                         "texture_matrix": [
-                            -0.000009616505849407986,
-                            120.0,
+                            -0.000008742277714191005,
+                            100.0,
                             550.0,
-                            -220.0,
-                            -0.000005245366537565133,
+                            -200.0,
+                            -0.000004371138857095502,
                             -700.0,
                             0.0,
                             0.0,
                             1.0
                         ],
                         "collider_matrix": [
-                            2.200000047683716,
+                            1.0,
                             0.0,
                             550.0,
                             0.0,
-                            3.0,
+                            1.0,
                             -700.0,
                             0.0,
                             0.0,
@@ -7173,8 +9327,8 @@
                         ]
                     },
                     "Scale": {
-                        "x": 2.200000047683716,
-                        "y": 3.0
+                        "x": 1.0,
+                        "y": 1.0
                     }
                 },
                 "Velocity": {
@@ -7191,8 +9345,8 @@
                     }
                 },
                 "AABBCollider": {
-                    "half_width": 60.0,
-                    "half_height": 190.0,
+                    "half_width": 48.0,
+                    "half_height": 170.0,
                     "offset_x": -5.0,
                     "offset_y": 0.0
                 },
@@ -7215,8 +9369,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_TrapPlatform_Horizontal.png",
                     "half_size": {
-                        "x": 100.0,
-                        "y": 40.0
+                        "x": 200.0,
+                        "y": 100.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -8806,86 +10960,6 @@
             ]
         },
         {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 5464304330460018838,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 300.0,
-                        "y": -0.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            300.0,
-                            0.0,
-                            50.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            300.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "Tutorial UI_01",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -9200,22 +11274,22 @@
                         "texture_angle": -1.5707963705062866,
                         "collider_angle": 0.0,
                         "texture_matrix": [
-                            -0.000009616505849407986,
-                            120.0,
+                            -0.000008742277714191005,
+                            100.0,
                             -1050.0,
-                            -220.0,
-                            -0.000005245366537565133,
+                            -200.0,
+                            -0.000004371138857095502,
                             600.0,
                             0.0,
                             0.0,
                             1.0
                         ],
                         "collider_matrix": [
-                            2.200000047683716,
+                            1.0,
                             0.0,
                             -1050.0,
                             0.0,
-                            3.0,
+                            1.0,
                             600.0,
                             0.0,
                             0.0,
@@ -9223,8 +11297,8 @@
                         ]
                     },
                     "Scale": {
-                        "x": 2.200000047683716,
-                        "y": 3.0
+                        "x": 1.0,
+                        "y": 1.0
                     }
                 },
                 "Velocity": {
@@ -9241,8 +11315,8 @@
                     }
                 },
                 "AABBCollider": {
-                    "half_width": 60.0,
-                    "half_height": 190.0,
+                    "half_width": 48.0,
+                    "half_height": 170.0,
                     "offset_x": -5.0,
                     "offset_y": 0.0
                 },
@@ -9265,8 +11339,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_TrapPlatform_Horizontal.png",
                     "half_size": {
-                        "x": 100.0,
-                        "y": 40.0
+                        "x": 200.0,
+                        "y": 100.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -9605,86 +11679,6 @@
             ]
         },
         {
-            "name": "StagePlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 14216739404059698232,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -900.0,
-                        "y": -100.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -900.0,
-                            0.0,
-                            50.0,
-                            -100.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -900.0,
-                            0.0,
-                            1.0,
-                            -100.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StaticPlatform_03",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -9747,86 +11741,6 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StaticPlatform_03.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StaticPlatform_10",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 0,
-            "custom_render_order": -1,
-            "layer_render_name": "Custom",
-            "active": true,
-            "uuid": 75857186196620341,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 1100.0,
-                        "y": -50.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            1100.0,
-                            0.0,
-                            50.0,
-                            -50.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            1100.0,
-                            0.0,
-                            1.0,
-                            -50.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_10.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -10106,77 +12020,6 @@
             ]
         },
         {
-            "name": "StagePlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 3274473017733762729,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 1150.0,
-                        "y": -1150.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            1150.0,
-                            0.0,
-                            50.0,
-                            -1150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -350.0,
-                            0.0,
-                            1.0,
-                            -750.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StaticPlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -10213,86 +12056,6 @@
                             0.0,
                             1.0,
                             350.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StaticPlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 0,
-            "custom_render_order": -1,
-            "layer_render_name": "Custom",
-            "active": true,
-            "uuid": 1352460723566992508,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -300.0,
-                        "y": -250.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -300.0,
-                            0.0,
-                            50.0,
-                            -250.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -300.0,
-                            0.0,
-                            1.0,
-                            -250.0,
                             0.0,
                             0.0,
                             1.0
@@ -10417,80 +12180,6 @@
             ]
         },
         {
-            "name": "InvisibleCollider_L2_03",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 2645620314401989013,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -550.0,
-                        "y": 1030.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            -550.0,
-                            0.0,
-                            1.0,
-                            1030.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -550.0,
-                            0.0,
-                            1.0,
-                            1030.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "AABBCollider": {
-                    "half_width": 20.0,
-                    "half_height": 200.0,
-                    "offset_x": 0.0,
-                    "offset_y": 0.0
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": []
-        },
-        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -10544,86 +12233,6 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 16968533352398981661,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -600.0,
-                        "y": 0.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -600.0,
-                            0.0,
-                            50.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -600.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -10711,86 +12320,6 @@
             "tags": []
         },
         {
-            "name": "StaticPlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 530270878542214364,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -300.0,
-                        "y": 200.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -300.0,
-                            0.0,
-                            50.0,
-                            200.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -300.0,
-                            0.0,
-                            1.0,
-                            200.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StagePlatform_08",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -10853,86 +12382,6 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_08.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 1273584930599223046,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 550.0,
-                        "y": -950.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            550.0,
-                            0.0,
-                            50.0,
-                            -950.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            550.0,
-                            0.0,
-                            1.0,
-                            -950.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -11031,86 +12480,6 @@
             ]
         },
         {
-            "name": "StaticPlatform_04",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 0,
-            "custom_render_order": -1,
-            "layer_render_name": "Custom",
-            "active": true,
-            "uuid": 13320847861432971843,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -400.0,
-                        "y": -250.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -400.0,
-                            0.0,
-                            50.0,
-                            -250.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -400.0,
-                            0.0,
-                            1.0,
-                            -250.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_04.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "CornerTileTopRight",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -11178,86 +12547,6 @@
                 }
             },
             "tags": []
-        },
-        {
-            "name": "StaticPlatform_09",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 12583022405049263629,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 900.0,
-                        "y": -50.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            900.0,
-                            0.0,
-                            50.0,
-                            -50.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            900.0,
-                            0.0,
-                            1.0,
-                            -50.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_09.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
         },
         {
             "name": "Props_Skulls_03",
@@ -11344,75 +12633,6 @@
             ]
         },
         {
-            "name": "BottomPlatformPadding1",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 13794540456058763376,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 500.0,
-                        "y": -1800.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            600.0,
-                            0.0,
-                            500.0,
-                            0.0,
-                            600.0,
-                            -1800.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            -600.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "12x12_MidTiles.png",
-                    "half_size": {
-                        "x": 600.0,
-                        "y": 600.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": []
-        },
-        {
             "name": "Portal",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -11487,7 +12707,7 @@
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 27,
-                    "elapsed_time": 0.04302152246236801,
+                    "elapsed_time": 0.0,
                     "is_playing": true,
                     "is_looping": true,
                     "start_delay": 0.0,
@@ -11890,86 +13110,6 @@
             ]
         },
         {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 3420357221006818432,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -200.0,
-                        "y": -0.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -200.0,
-                            0.0,
-                            50.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -200.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -12231,86 +13371,6 @@
             ]
         },
         {
-            "name": "StaticPlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 10001615924909324985,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 0.0,
-                        "y": -800.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            50.0,
-                            -800.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            -800.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "birdEnemy",
             "layer": 3,
             "layer_collision_name": "Enemy",
@@ -12394,11 +13454,11 @@
                 "AnimationComponent": {
                     "profile_name": "BirdEnemy",
                     "current_state": "IDLE",
-                    "current_frame": 3,
+                    "current_frame": 0,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 6,
-                    "elapsed_time": 0.09028832614421844,
+                    "elapsed_time": 0.0,
                     "is_playing": true,
                     "is_looping": true,
                     "start_delay": 0.0,
@@ -12416,86 +13476,6 @@
             },
             "tags": [
                 "EnemyTag"
-            ]
-        },
-        {
-            "name": "StagePlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 7858370083204186478,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 250.0,
-                        "y": -1050.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            250.0,
-                            0.0,
-                            50.0,
-                            -1050.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            250.0,
-                            0.0,
-                            1.0,
-                            -1050.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
             ]
         },
         {
@@ -12561,86 +13541,6 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StagePlatform_08",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 1248616520894451915,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -600.0,
-                        "y": -200.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -600.0,
-                            0.0,
-                            50.0,
-                            -200.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -600.0,
-                            0.0,
-                            1.0,
-                            -200.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_08.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -12739,86 +13639,6 @@
             ]
         },
         {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 17519480093536836145,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -950.0,
-                        "y": -850.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -950.0,
-                            0.0,
-                            50.0,
-                            -850.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -950.0,
-                            0.0,
-                            1.0,
-                            -850.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "RightPlatformPadding1",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -12879,80 +13699,6 @@
                     "flip_x": false,
                     "alpha": 1.0,
                     "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": []
-        },
-        {
-            "name": "InvisibleCollider_L2_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 2379518115115138846,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -750.0,
-                        "y": 150.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            1.0,
-                            0.0,
-                            -750.0,
-                            0.0,
-                            1.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -750.0,
-                            0.0,
-                            1.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "AABBCollider": {
-                    "half_width": 120.0,
-                    "half_height": 20.0,
-                    "offset_x": 0.0,
-                    "offset_y": 0.0
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
                 },
                 "SceneOwned": {
                     "scene_id": 8,
@@ -13042,32 +13788,6 @@
             ]
         },
         {
-            "name": "Pause Controller",
-            "layer": 0,
-            "layer_collision_name": "Default",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 7113924861562317503,
-            "components": {
-                "NativeScripts": {
-                    "scripts": [
-                        {
-                            "type": "PauseMenuController",
-                            "enabled": true,
-                            "execute_in_edit": false
-                        }
-                    ]
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": []
-        },
-        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -13148,86 +13868,6 @@
             ]
         },
         {
-            "name": "StagePlatform_02",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 12676241124889331086,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -1150.0,
-                        "y": -850.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -1150.0,
-                            0.0,
-                            50.0,
-                            -850.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -800.0,
-                            0.0,
-                            1.0,
-                            -650.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_02.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StagePlatform_05",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -13272,86 +13912,6 @@
                     "Scale": {
                         "x": 1.0,
                         "y": 1.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StagePlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 18033017847709050836,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -950.0,
-                        "y": -1050.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -950.0,
-                            0.0,
-                            50.0,
-                            -1050.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -950.0,
-                            0.0,
-                            1.0,
-                            -1050.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
                     }
                 },
                 "RotationFlag": {
@@ -13459,86 +14019,6 @@
             ]
         },
         {
-            "name": "StaticPlatform_07",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 10212698943453513600,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -750.0,
-                        "y": 150.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -750.0,
-                            0.0,
-                            50.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -750.0,
-                            0.0,
-                            1.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_07.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "SpawnPoint",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -13602,86 +14082,6 @@
             "custom_render_order": 0,
             "layer_render_name": "",
             "active": true,
-            "uuid": 6120853555941999752,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -700.0,
-                        "y": -100.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -700.0,
-                            0.0,
-                            50.0,
-                            -100.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -700.0,
-                            0.0,
-                            1.0,
-                            -100.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StagePlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
             "uuid": 872872091900224925,
             "components": {
                 "Transform": {
@@ -13728,86 +14128,6 @@
                 },
                 "TextureComponent": {
                     "texture_key": "SB_StagePlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
-            "name": "StaticPlatform_07",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 2446562761272298245,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -150.0,
-                        "y": 450.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -150.0,
-                            0.0,
-                            50.0,
-                            450.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -150.0,
-                            0.0,
-                            1.0,
-                            450.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_07.png",
                     "half_size": {
                         "x": 50.0,
                         "y": 50.0
@@ -13906,86 +14226,6 @@
             ]
         },
         {
-            "name": "StagePlatform_08",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 9039803175811408772,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 400.0,
-                        "y": -200.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            400.0,
-                            0.0,
-                            50.0,
-                            -200.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            400.0,
-                            0.0,
-                            1.0,
-                            -200.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_08.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "Camera",
             "layer": 0,
             "layer_collision_name": "Default",
@@ -14015,86 +14255,6 @@
                 }
             },
             "tags": []
-        },
-        {
-            "name": "StagePlatform_03",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 8577555190108001166,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 550.0,
-                        "y": 150.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            550.0,
-                            0.0,
-                            50.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            550.0,
-                            0.0,
-                            1.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_03.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
         },
         {
             "name": "StagePlatform_06",
@@ -14337,86 +14497,6 @@
             ]
         },
         {
-            "name": "StaticPlatform_05",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 3789202928574285802,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -550.0,
-                        "y": 1050.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -550.0,
-                            0.0,
-                            50.0,
-                            1050.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -550.0,
-                            0.0,
-                            1.0,
-                            1100.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StaticPlatform_05.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "TopPlatformPadding1",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -14484,86 +14564,6 @@
                 }
             },
             "tags": []
-        },
-        {
-            "name": "StagePlatform_06",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 412200346718973462,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": -450.0,
-                        "y": 150.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            -450.0,
-                            0.0,
-                            50.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            -450.0,
-                            0.0,
-                            1.0,
-                            150.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_StagePlatform_06.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 8,
-                    "sceneName": "Tutorial 2"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
         },
         {
             "name": "StaticPlatform_03",
@@ -15069,7 +15069,7 @@
                             0.0,
                             -1000.0,
                             0.0,
-                            66.0,
+                            60.0,
                             100.0,
                             0.0,
                             0.0,
@@ -15107,9 +15107,9 @@
                 },
                 "AABBCollider": {
                     "half_width": 21.0,
-                    "half_height": 60.0,
+                    "half_height": 48.0,
                     "offset_x": 0.0,
-                    "offset_y": -6.0
+                    "offset_y": -12.0
                 },
                 "PlayerState": {
                     "is_facing_right": false,
@@ -15121,10 +15121,10 @@
                     "target_rotation": 0.0
                 },
                 "TextureComponent": {
-                    "texture_key": "SB_Eli_Idle_Spritesheet_2.png",
+                    "texture_key": "SB_Eli_Idle_Spritesheet_1.png",
                     "half_size": {
                         "x": 60.0,
-                        "y": 66.0
+                        "y": 60.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -15133,11 +15133,11 @@
                 "AnimationComponent": {
                     "profile_name": "Player",
                     "current_state": "IDLE",
-                    "current_frame": 11,
+                    "current_frame": 0,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 14,
-                    "elapsed_time": 0.0710095688700676,
+                    "elapsed_time": 0.0,
                     "is_playing": true,
                     "is_looping": true,
                     "start_delay": 0.0,
@@ -18741,11 +18741,11 @@
                 "AnimationComponent": {
                     "profile_name": "BirdEnemy",
                     "current_state": "IDLE",
-                    "current_frame": 3,
+                    "current_frame": 0,
                     "frame_duration": 0.10000000149011612,
                     "start_frame": 0,
                     "frame_count": 6,
-                    "elapsed_time": 0.09028832614421844,
+                    "elapsed_time": 0.0,
                     "is_playing": true,
                     "is_looping": true,
                     "start_delay": 0.0,

@@ -6835,7 +6835,7 @@
                             0.0,
                             450.0,
                             0.0,
-                            66.0,
+                            60.0,
                             400.0,
                             0.0,
                             0.0,
@@ -6873,9 +6873,9 @@
                 },
                 "AABBCollider": {
                     "half_width": 21.0,
-                    "half_height": 60.0,
+                    "half_height": 48.0,
                     "offset_x": 0.0,
-                    "offset_y": -6.0
+                    "offset_y": -12.0
                 },
                 "PlayerState": {
                     "is_facing_right": false,
@@ -6890,7 +6890,7 @@
                     "texture_key": "SB_Eli_Idle_Spritesheet_1.png",
                     "half_size": {
                         "x": 60.0,
-                        "y": 66.0
+                        "y": 60.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
