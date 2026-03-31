@@ -236,6 +236,10 @@ namespace Editor {
 		// --- Entity Selection & Deletion ---
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
 		std::vector<std::string> entitiesClipboard_;  // Support multiple entities in clipboard
+		bool isMarqueeMode_ = false; // I key toggles marquee selection mode
+		bool isMarqueeSelecting_ = false;
+		ImVec2 marqueeStartScreenPos_ = { 0.0f, 0.0f };
+		ImVec2 marqueeEndScreenPos_ = { 0.0f, 0.0f };
 
 		// Drag and Drop Support (Windows to Editor)
 		std::vector<std::filesystem::path> droppedFilePaths_;

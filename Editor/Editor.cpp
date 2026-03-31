@@ -604,6 +604,24 @@ namespace Editor {
 			);
 		}
 
+		// Draw marquee selection rectangle in viewport (I mode only).
+		if (isMarqueeMode_ && isMarqueeSelecting_) {
+			ImDrawList* drawList = ImGui::GetForegroundDrawList();
+			const ImVec2 rectMin(
+				std::min(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x),
+				std::min(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y));
+			const ImVec2 rectMax(
+				std::max(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x),
+				std::max(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y));
+
+			const ImVec2 clipMin = gameViewportPos_;
+			const ImVec2 clipMax(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
+			drawList->PushClipRect(clipMin, clipMax, true);
+			drawList->AddRectFilled(rectMin, rectMax, IM_COL32(80, 140, 255, 40));
+			drawList->AddRect(rectMin, rectMax, IM_COL32(80, 140, 255, 220), 0.0f, 0, 1.5f);
+			drawList->PopClipRect();
+		}
+
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
 			HandleTileErasing();
 		}
@@ -1143,54 +1161,184 @@ namespace Editor {
 		// Only check for selection if a prefab is NOT being spawned
 		if (selectedPrefabType_ != PrefabType::None) return;
 
-		// Check if click is over game viewport
-		if (!input->MousePressed(Framework::InputSystem::MouseButton::Left) ||
-			!isMouseOverGameViewport_) {
+		if (!isMouseOverGameViewport_) {
 			return;
 		}
 
-		// If mouse over game viewport & not dragging prefab & not hovering on gizmos
-		// check for mouse click on invisible entity placeholders / visible entities
-		// and update the editor's selection state
-		if (!isDraggingPrefab_ && gizmoSystem_ && !gizmoSystem_->IsGizmosHover()
-			&& ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			// Flush any pending edits BEFORE changing selection
-			editSession.Flush();
-			
-			// check if clicked on invisible entity
-			Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
-
-			// an invisible entity was clicked
-			if (invisEntityClicked > 0) {
-				selectedEntityIndex = invisEntityClicked + 1;
-				selectedEntities_.clear();
-				selectedEntities_.push_back(invisEntityClicked);
-				lastClickedEntity_ = invisEntityClicked;
-				isEntitySelected_ = true;
-				selectedComponentIndex = 0;
-				selectedTagIndex = 0;
+		if (!isMarqueeMode_) {
+			// In non-marquee mode, keep legacy click selection only.
+			if (!input->MousePressed(Framework::InputSystem::MouseButton::Left)) {
+				return;
 			}
-			// else check entity clicked
-			else {
-				Entity bestCandidate = GetObjAtMousePos();
-				if (bestCandidate > 0) {
-					selectedEntityIndex = bestCandidate + 1;
+			// Allow normal click selection when gizmo mode is None.
+			const bool gizmoBlockingClick = gizmoSystem_ && gizmoSystem_->IsGizmosToggled() && gizmoSystem_->IsGizmosHover();
+			if (!isDraggingPrefab_ && gizmoSystem_ && !gizmoBlockingClick
+				&& ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				editSession.Flush();
+				Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
+				if (invisEntityClicked > 0) {
+					selectedEntityIndex = invisEntityClicked + 1;
 					selectedEntities_.clear();
-					selectedEntities_.push_back(bestCandidate);
-					lastClickedEntity_ = bestCandidate;
+					selectedEntities_.push_back(invisEntityClicked);
+					lastClickedEntity_ = invisEntityClicked;
 					isEntitySelected_ = true;
 					selectedComponentIndex = 0;
 					selectedTagIndex = 0;
 				}
 				else {
-					selectedEntityIndex = 0;
+					Entity bestCandidate = GetObjAtMousePos();
+					if (bestCandidate > 0) {
+						selectedEntityIndex = bestCandidate + 1;
+						selectedEntities_.clear();
+						selectedEntities_.push_back(bestCandidate);
+						lastClickedEntity_ = bestCandidate;
+						isEntitySelected_ = true;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+					else {
+						selectedEntityIndex = 0;
+						selectedEntities_.clear();
+						lastClickedEntity_ = 0;
+						isEntitySelected_ = false;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+				}
+			}
+			return;
+		}
+
+		// Marquee mode only (I): start marquee on mouse press.
+		if (input->MousePressed(Framework::InputSystem::MouseButton::Left) && !isDraggingPrefab_) {
+			isMarqueeSelecting_ = true;
+			marqueeStartScreenPos_ = ImGui::GetMousePos();
+			marqueeEndScreenPos_ = marqueeStartScreenPos_;
+		}
+
+		// Update marquee while dragging.
+		if (isMarqueeSelecting_ && input->MouseDown(Framework::InputSystem::MouseButton::Left)) {
+			marqueeEndScreenPos_ = ImGui::GetMousePos();
+		}
+
+		// Finalize on release: click-select (small drag) or box-select (large drag).
+		if (isMarqueeSelecting_ && input->MouseReleased(Framework::InputSystem::MouseButton::Left)) {
+			isMarqueeSelecting_ = false;
+			marqueeEndScreenPos_ = ImGui::GetMousePos();
+
+			const float dx = marqueeEndScreenPos_.x - marqueeStartScreenPos_.x;
+			const float dy = marqueeEndScreenPos_.y - marqueeStartScreenPos_.y;
+			const float dragDistSq = dx * dx + dy * dy;
+			constexpr float clickThresholdSq = 9.0f; // 3px threshold
+
+			// Flush any pending edits BEFORE changing selection
+			editSession.Flush();
+
+			// Click selection path (existing behavior).
+			if (dragDistSq <= clickThresholdSq) {
+				// check if clicked on invisible entity
+				Entity invisEntityClicked = gizmoSystem_ ? gizmoSystem_->IsInvisEntityClicked() : 0;
+
+				// an invisible entity was clicked
+				if (invisEntityClicked > 0) {
+					selectedEntityIndex = invisEntityClicked + 1;
 					selectedEntities_.clear();
-					lastClickedEntity_ = 0;
-					isEntitySelected_ = false;
+					selectedEntities_.push_back(invisEntityClicked);
+					lastClickedEntity_ = invisEntityClicked;
+					isEntitySelected_ = true;
 					selectedComponentIndex = 0;
 					selectedTagIndex = 0;
 				}
+				else {
+					Entity bestCandidate = GetObjAtMousePos();
+					if (bestCandidate > 0) {
+						selectedEntityIndex = bestCandidate + 1;
+						selectedEntities_.clear();
+						selectedEntities_.push_back(bestCandidate);
+						lastClickedEntity_ = bestCandidate;
+						isEntitySelected_ = true;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+					else {
+						selectedEntityIndex = 0;
+						selectedEntities_.clear();
+						lastClickedEntity_ = 0;
+						isEntitySelected_ = false;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+				}
+				return;
 			}
+
+			// Marquee selection path.
+			const float minX = std::min(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x);
+			const float maxX = std::max(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x);
+			const float minY = std::min(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y);
+			const float maxY = std::max(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y);
+
+			Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+			const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+			selectedEntities_.clear();
+
+			for (const Entity entity : activeEntities) {
+				if (!entityMgr.ValidateEntity(entity) || !entityMgr.HasComponent(entity, Framework::ComponentType::TransformType)) {
+					continue;
+				}
+				if (entityMgr.HasComponent(entity, GUITagType)) {
+					continue; // marquee in game viewport targets world entities
+				}
+
+				Vector2D halfSize{};
+				if (entityMgr.HasComponent(entity, Framework::ComponentType::TextComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextComponent>(entity).halfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::TextureComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextureComponent>(entity).HalfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType)) {
+					halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
+				}
+				else {
+					continue;
+				}
+
+				const Transform transformComp = entityMgr.GetComponent<Framework::Transform>(entity);
+				const Vector2D scaledHalfSize = { halfSize.x * transformComp.scale.x, halfSize.y * transformComp.scale.y };
+
+				// Entity AABB in screen space.
+				const ImVec2 center = WorldToImGuiScreen(transformComp.position);
+				const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+				const float pxPerWorldX = (cam.size.x != 0.0f) ? (gameViewportSize_.x / cam.size.x) : 0.0f;
+				const float pxPerWorldY = (cam.size.y != 0.0f) ? (gameViewportSize_.y / cam.size.y) : 0.0f;
+
+				const float entityMinX = center.x - scaledHalfSize.x * pxPerWorldX;
+				const float entityMaxX = center.x + scaledHalfSize.x * pxPerWorldX;
+				const float entityMinY = center.y - scaledHalfSize.y * pxPerWorldY;
+				const float entityMaxY = center.y + scaledHalfSize.y * pxPerWorldY;
+
+				// Intersects marquee rectangle.
+				const bool intersects = !(entityMaxX < minX || entityMinX > maxX || entityMaxY < minY || entityMinY > maxY);
+				if (intersects) {
+					selectedEntities_.push_back(entity);
+				}
+			}
+
+			if (!selectedEntities_.empty()) {
+				selectedEntityIndex = selectedEntities_[0] + 1;
+				lastClickedEntity_ = selectedEntities_[0];
+				isEntitySelected_ = true;
+			}
+			else {
+				selectedEntityIndex = 0;
+				lastClickedEntity_ = 0;
+				isEntitySelected_ = false;
+			}
+			selectedComponentIndex = 0;
+			selectedTagIndex = 0;
 		}
 	}
 
@@ -2819,13 +2967,42 @@ namespace Editor {
 
 		const std::string componentLabel = ComponentToString(selectedComponent);
 
+		ImGui::PushID(static_cast<int>(selectedComponent));
 		ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.10f, 0.35f, 0.75f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.45f, 0.90f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.08f, 0.30f, 0.65f, 1.0f));
 		const bool isComponentOpen = ImGui::CollapsingHeader(componentLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 		ImGui::PopStyleColor(3);
 
+		bool removeComponentFromHeader = false;
+		if (ImGui::BeginPopupContextItem("##ComponentHeaderContext")) {
+			if (ImGui::MenuItem("Delete Component")) {
+				removeComponentFromHeader = true;
+			}
+			ImGui::EndPopup();
+		}
+
+		if (removeComponentFromHeader) {
+			if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+				if (editSession.active && editSession.compInEdit == selectedComponent) {
+					editSession.Flush();
+				}
+
+				const std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				entityMgr.RemoveComponent(selectedEntity, selectedComponent);
+
+				std::string afterJSON;
+				const std::string description = "Remove " + ComponentToString(selectedComponent);
+				historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
+				selectedComponentIndex = 0;
+			}
+			ImGui::PopID();
+			ImGui::Separator();
+			return;
+		}
+
 		if (!isComponentOpen) {
+			ImGui::PopID();
 			return;
 		}
 
@@ -4109,6 +4286,7 @@ namespace Editor {
 			break;
 		}
 		ImGui::Separator();
+		ImGui::PopID();
 	}
 
 #pragma endregion
@@ -4151,22 +4329,36 @@ namespace Editor {
 
 	void Editor::HandleGameViewportInput() {
 
-		// Handle inputs for gizmos (QTYU)
+		// Handle inputs for gizmos/modes (QTYUI)
 		if (gizmoSystem_) {
-			// Q: Select/View Mode (No Gizmo)
-			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+			// I: Marquee mode
+			if (ImGui::IsKeyPressed(ImGuiKey_I)) {
+				isMarqueeMode_ = true;
+				isMarqueeSelecting_ = false;
+				gizmoSystem_->SetGizmoMode(GizmoMode::None);
+			}
+			// Q: Select/View Mode (No Gizmo, no marquee)
+			else if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::None);
 			}
 			// T: Translate
 			else if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::Translate);
 			}
 			// Y: Rotate
 			else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::Rotate);
 			}
 			// U: Scale
 			else if (ImGui::IsKeyPressed(ImGuiKey_U)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::Scale);
 			}
 		}
@@ -5649,13 +5841,15 @@ namespace Editor {
 				ImVec4 selectedModeClr = ImVec4(0.0f, 1.0f, 1.0f, 1.0f); // cyan
 				ImVec4 greyClr = ImVec4(0.9f, 0.9f, 0.9f, 1.0f); // grey
 
-				ImGui::TextColored(gizmoSystem_->IsGizmosToggled() ? greyClr : selectedModeClr, "Q - Select Mode");
+				ImGui::TextColored((!isMarqueeMode_ && !gizmoSystem_->IsGizmosToggled()) ? selectedModeClr : greyClr, "Q - Select Mode");
 				ImGui::SameLine(0, spacing);
 				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Translate) ? selectedModeClr : greyClr, "T - Tranlate/Move Mode");
 				ImGui::SameLine(0, spacing);
 				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Rotate) ? selectedModeClr : greyClr, "Y - Rotate Mode");
 				ImGui::SameLine(0, spacing);
 				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Scale) ? selectedModeClr : greyClr, "U - Scale Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored(isMarqueeMode_ ? selectedModeClr : greyClr, "I - Marquee Mode");
 			}
 
 			ImGui::SameLine();

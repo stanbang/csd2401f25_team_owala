@@ -406,6 +406,9 @@ void GizmoSystem::DrawRotateGizmo(ImDrawList* drawList, ImVec2 origin, Entity en
 void GizmoSystem::Update(int selectedEntityIndex, Entity activeCamera) {
     if (selectedEntityIndex <= 1 || !IsGizmosToggled()) {
         isDragging_ = false;
+        activeAxis_ = GizmoAxis::None;
+        hoveredAxis_ = GizmoAxis::None;
+        draggedEntity_ = 0;
         return;
     }
 
