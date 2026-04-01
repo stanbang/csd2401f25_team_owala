@@ -19,6 +19,7 @@
 #include "FSM.h"
 #include "Pathfinding.h"
 #include "OwalaTime.h"
+#include "Vector2D.h"
 #include <vector>
 
 namespace Framework {
@@ -41,6 +42,9 @@ namespace Framework {
 
     private:
         float wakeUpRadius_ = 300.0f;
+        Vector2D originalPosition_;       // Store bird's original position
+        float lastWorldRotation_ = 0.0f;  // Track world rotation to counteract it
+        bool positionInitialized_ = false;
     };
 
     // --- WAKING STATE ---

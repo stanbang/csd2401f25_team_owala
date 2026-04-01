@@ -26,6 +26,7 @@
 #include "PhysicsSystem.h"
 #include "GameMessages.h"
 #include "CameraSystem.h"
+#include "TransformationSystem.h"
 #include <algorithm>
 
 namespace Framework {
@@ -68,8 +69,8 @@ namespace Framework {
         (void)ecs;
         (void)dt;
         // Just waiting for transition 
-        
-    }
+
+                    }
     void BirdIdleState::SetParameter(const std::string& key, float value) {
         if (key == "wakeUpRadius") wakeUpRadius_ = value;
         
@@ -543,6 +544,52 @@ namespace Framework {
     }
 
     // --- WITCH TELEPORT FALL ---
+    // Helper: Get the effective "up" direction based on world rotation
+    static Vector2D GetEffectiveUpDirection(float worldRotationDeg) {
+        // Normalize to 0-360
+        float rot = std::fmod(worldRotationDeg + 360.0f, 360.0f);
+        
+        // Round to nearest 90 degree increment
+        if (rot >= 315.0f || rot < 45.0f) {
+            return { 0.0f, 1.0f };  // Normal up
+        } else if (rot >= 45.0f && rot < 135.0f) {
+            return { -1.0f, 0.0f }; // Up is to the left (rotated 90° CCW)
+        } else if (rot >= 135.0f && rot < 225.0f) {
+            return { 0.0f, -1.0f }; // Up is down (rotated 180°)
+        } else {
+            return { 1.0f, 0.0f };  // Up is to the right (rotated 270°)
+        }
+    }
+
+    // Helper: Calculate platform top position based on rotation
+    static Vector2D GetPlatformTopPosition(const Vector2D& platformPos, const Vector2D& halfSize, 
+                                           float platformRotation, float witchHalfHeight, 
+                                           float worldRotation) {
+        Vector2D upDir = GetEffectiveUpDirection(worldRotation);
+        
+        // Calculate the platform's rotated bounds
+        AABB_Bounds bounds = PhysicsSystem::GetRotatedAABB(platformPos, halfSize, platformRotation);
+        
+        // The "top" depends on world rotation
+        Vector2D result;
+        if (std::abs(upDir.y) > 0.5f) {
+            // Normal or inverted
+            if (upDir.y > 0) {
+                result = { platformPos.x, bounds.max.y + witchHalfHeight + 1.0f };
+            } else {
+                result = { platformPos.x, bounds.min.y - witchHalfHeight - 1.0f };
+            }
+        } else {
+            // World rotated 90 or 270
+            if (upDir.x > 0) {
+                result = { bounds.max.x + witchHalfHeight + 1.0f, platformPos.y };
+            } else {
+                result = { bounds.min.x - witchHalfHeight - 1.0f, platformPos.y };
+            }
+        }
+        return result;
+    }
+
     void WitchTeleportFallState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
         EntityManager mgr(ecs);
@@ -558,6 +605,13 @@ namespace Framework {
         if (mgr.HasComponent(entity, AABBColliderType)) {
             const AABBCollider& witchCollider = mgr.GetComponent<AABBCollider>(entity);
             witchHS = witchCollider.HalfSize;
+        }
+
+        // Get world rotation from TransformationSystem
+        float worldRotation = 0.0f;
+        TransformationSystem* transformSys = GameManager::GetInstance().GetSystems().transformation_;
+        if (transformSys) {
+            worldRotation = transformSys->GetGlobalRotation();
         }
 
         // Get camera viewport bounds to ensure witch stays visible
@@ -576,63 +630,214 @@ namespace Framework {
         viewBottom += viewPadding + witchHS.y;
         viewTop -= viewPadding + witchHS.y;
 
-        // Gather all entities with AABB colliders for collision checking
+        // Gather all platform entities (entities with PlatformTag or Platform layer)
+        std::vector<Entity> platforms;
+        for (Entity e : mgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
+            if (e == entity || e == player) continue;
+            if (!mgr.HasComponent(e, TransformType)) continue;
+            if (!mgr.HasComponent(e, LoadedTagType)) continue;
+            
+            // Check if this is a platform (has PlatformTag or Platform collision layer)
+            bool isPlatform = mgr.HasComponent(e, PlatformTagType);
+            if (!isPlatform) {
+                const EntityProperties& props = mgr.GetProperties(e);
+                isPlatform = (props.layer == CollisionLayer::Platform);
+            }
+            
+            if (isPlatform) {
+                platforms.push_back(e);
+            }
+        }
+
+        // Find valid teleport positions on platforms near the player
+        struct PlatformCandidate {
+            Entity platformEntity;
+            Vector2D topPosition;
+            float distToPlayer;
+        };
+        std::vector<PlatformCandidate> candidates;
+
+        for (Entity plat : platforms) {
+            const Transform& platTf = mgr.GetComponent<Transform>(plat);
+            const AABBCollider& platCollider = mgr.GetComponent<AABBCollider>(plat);
+            
+            float platformRotation = 0.0f;
+            if (mgr.HasComponent(plat, RotationFlagType)) {
+                platformRotation = mgr.GetComponent<RotationFlag>(plat).currentRotation;
+            }
+
+            Vector2D platformPos = platTf.position + platCollider.Offset;
+            
+            // Get the top position of this platform
+            Vector2D topPos = GetPlatformTopPosition(platformPos, platCollider.HalfSize, 
+                                                     platformRotation, witchHS.y, worldRotation);
+            
+            // Check if within range
+            float dist = topPos.Distance(playerPos);
+            if (dist < minTeleportRange_ || dist > maxTeleportRange_) continue;
+            
+            // Check if within viewport
+            if (topPos.x < viewLeft || topPos.x > viewRight ||
+                topPos.y < viewBottom || topPos.y > viewTop) continue;
+            
+            candidates.push_back({ plat, topPos, dist });
+        }
+
+        // Sort by distance to player
+        std::sort(candidates.begin(), candidates.end(), 
+            [](const PlatformCandidate& a, const PlatformCandidate& b) {
+                return a.distToPlayer < b.distToPlayer;
+            });
+
+        // Gather all collidables for overlap testing
         auto collidables = mgr.GetAllEntitiesWithComponent(true, AABBColliderType);
-
-        static std::mt19937 rng{ std::random_device{}() };
-        std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * 3.14159265f);
-        std::uniform_real_distribution<float> distDist(minTeleportRange_, maxTeleportRange_);
-
-        const int maxAttempts = 30;
+        
         Vector2D teleportPos = mgr.GetComponent<Transform>(entity).position;
         bool foundValidPos = false;
 
-        for (int attempt = 0; attempt < maxAttempts; ++attempt) {
-            float angle = angleDist(rng);
-            float dist = distDist(rng);
-            Vector2D candidatePos = playerPos + Vector2D{ std::cos(angle) * dist, std::sin(angle) * dist };
-
-            // Check if candidate is within viewport bounds
-            if (candidatePos.x < viewLeft || candidatePos.x > viewRight ||
-                candidatePos.y < viewBottom || candidatePos.y > viewTop) {
-                continue; // Outside viewport, try again
+        // Try each candidate platform position
+        for (const auto& candidate : candidates) {
+            // Try multiple X positions along the platform top
+            const Transform& platTf = mgr.GetComponent<Transform>(candidate.platformEntity);
+            const AABBCollider& platCollider = mgr.GetComponent<AABBCollider>(candidate.platformEntity);
+            
+            float platformRotation = 0.0f;
+            if (mgr.HasComponent(candidate.platformEntity, RotationFlagType)) {
+                platformRotation = mgr.GetComponent<RotationFlag>(candidate.platformEntity).currentRotation;
             }
-
-            // Build AABB for witch at candidate position
-            AABB_Bounds witchBounds = {
-                { candidatePos.x - witchHS.x, candidatePos.y - witchHS.y },
-                { candidatePos.x + witchHS.x, candidatePos.y + witchHS.y }
-            };
-
-            bool overlaps = false;
-            for (Entity collidable : collidables) {
-                if (collidable == entity) continue; // Skip self
-                if (!mgr.HasComponent(collidable, TransformType)) continue;
-                if (!mgr.HasComponent(collidable, AABBColliderType)) continue;
-
-                const Transform& ct = mgr.GetComponent<Transform>(collidable);
-                const AABBCollider& collider = mgr.GetComponent<AABBCollider>(collidable);
+            
+            AABB_Bounds platBounds = PhysicsSystem::GetRotatedAABB(
+                platTf.position + platCollider.Offset, platCollider.HalfSize, platformRotation);
+            
+            Vector2D upDir = GetEffectiveUpDirection(worldRotation);
+            
+            // Generate positions along the platform surface
+            std::vector<Vector2D> positionsToTry;
+            
+            if (std::abs(upDir.y) > 0.5f) {
+                // Normal or inverted - move along X axis
+                float yPos = (upDir.y > 0) ? (platBounds.max.y + witchHS.y + 1.0f) 
+                                           : (platBounds.min.y - witchHS.y - 1.0f);
+                float xMin = platBounds.min.x + witchHS.x;
+                float xMax = platBounds.max.x - witchHS.x;
                 
-                // Calculate collider position with offset
-                Vector2D colliderPos = ct.position + collider.Offset;
+                // Prefer position closest to player
+                float playerX = std::clamp(playerPos.x, xMin, xMax);
+                positionsToTry.push_back({ playerX, yPos });
+                positionsToTry.push_back({ (xMin + xMax) * 0.5f, yPos }); // Center
+                positionsToTry.push_back({ xMin, yPos });
+                positionsToTry.push_back({ xMax, yPos });
+            } else {
+                // World rotated 90 or 270 - move along Y axis
+                float xPos = (upDir.x > 0) ? (platBounds.max.x + witchHS.y + 1.0f) 
+                                           : (platBounds.min.x - witchHS.y - 1.0f);
+                float yMin = platBounds.min.y + witchHS.x;
+                float yMax = platBounds.max.y - witchHS.x;
+                
+                float playerY = std::clamp(playerPos.y, yMin, yMax);
+                positionsToTry.push_back({ xPos, playerY });
+                positionsToTry.push_back({ xPos, (yMin + yMax) * 0.5f });
+                positionsToTry.push_back({ xPos, yMin });
+                positionsToTry.push_back({ xPos, yMax });
+            }
+            
+            for (const Vector2D& candidatePos : positionsToTry) {
+                // Check viewport bounds
+                if (candidatePos.x < viewLeft || candidatePos.x > viewRight ||
+                    candidatePos.y < viewBottom || candidatePos.y > viewTop) continue;
+                
+                // Check distance from player
+                float dist = candidatePos.Distance(playerPos);
+                if (dist < minTeleportRange_ || dist > maxTeleportRange_) continue;
+                
+                // Build AABB for witch at candidate position
+                AABB_Bounds witchBounds = {
+                    { candidatePos.x - witchHS.x, candidatePos.y - witchHS.y },
+                    { candidatePos.x + witchHS.x, candidatePos.y + witchHS.y }
+                };
 
-                float colliderRotation = 0.0f;
-                if (mgr.HasComponent(collidable, RotationFlagType)) {
-                    colliderRotation = mgr.GetComponent<RotationFlag>(collidable).currentRotation;
+                bool overlaps = false;
+                for (Entity collidable : collidables) {
+                    if (collidable == entity) continue;
+                    if (collidable == candidate.platformEntity) continue; // Allow touching the platform we're standing on
+                    if (!mgr.HasComponent(collidable, TransformType)) continue;
+                    if (!mgr.HasComponent(collidable, AABBColliderType)) continue;
+
+                    const Transform& ct = mgr.GetComponent<Transform>(collidable);
+                    const AABBCollider& collider = mgr.GetComponent<AABBCollider>(collidable);
+                    Vector2D colliderPos = ct.position + collider.Offset;
+
+                    float colliderRotation = 0.0f;
+                    if (mgr.HasComponent(collidable, RotationFlagType)) {
+                        colliderRotation = mgr.GetComponent<RotationFlag>(collidable).currentRotation;
+                    }
+                    
+                    AABB_Bounds collidableBounds = PhysicsSystem::GetRotatedAABB(colliderPos, collider.HalfSize, colliderRotation);
+
+                    if (CollisionIntersection_RectRect_Static(witchBounds, collidableBounds)) {
+                        overlaps = true;
+                        break;
+                    }
                 }
-                
-                AABB_Bounds collidableBounds = PhysicsSystem::GetRotatedAABB(colliderPos, collider.HalfSize, colliderRotation);
 
-                if (CollisionIntersection_RectRect_Static(witchBounds, collidableBounds)) {
-                    overlaps = true;
+                if (!overlaps) {
+                    teleportPos = candidatePos;
+                    foundValidPos = true;
                     break;
                 }
             }
+            
+            if (foundValidPos) break;
+        }
 
-            if (!overlaps) {
-                teleportPos = candidatePos;
-                foundValidPos = true;
-                break;
+        // Fallback: if no platform position found, try original random approach but avoid overlap
+        if (!foundValidPos) {
+            static std::mt19937 rng{ std::random_device{}() };
+            std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * 3.14159265f);
+            std::uniform_real_distribution<float> distDist(minTeleportRange_, maxTeleportRange_);
+
+            const int maxAttempts = 30;
+            for (int attempt = 0; attempt < maxAttempts; ++attempt) {
+                float angle = angleDist(rng);
+                float dist = distDist(rng);
+                Vector2D candidatePos = playerPos + Vector2D{ std::cos(angle) * dist, std::sin(angle) * dist };
+
+                if (candidatePos.x < viewLeft || candidatePos.x > viewRight ||
+                    candidatePos.y < viewBottom || candidatePos.y > viewTop) continue;
+
+                AABB_Bounds witchBounds = {
+                    { candidatePos.x - witchHS.x, candidatePos.y - witchHS.y },
+                    { candidatePos.x + witchHS.x, candidatePos.y + witchHS.y }
+                };
+
+                bool overlaps = false;
+                for (Entity collidable : collidables) {
+                    if (collidable == entity) continue;
+                    if (!mgr.HasComponent(collidable, TransformType)) continue;
+                    if (!mgr.HasComponent(collidable, AABBColliderType)) continue;
+
+                    const Transform& ct = mgr.GetComponent<Transform>(collidable);
+                    const AABBCollider& collider = mgr.GetComponent<AABBCollider>(collidable);
+                    Vector2D colliderPos = ct.position + collider.Offset;
+
+                    float colliderRotation = 0.0f;
+                    if (mgr.HasComponent(collidable, RotationFlagType)) {
+                        colliderRotation = mgr.GetComponent<RotationFlag>(collidable).currentRotation;
+                    }
+                    
+                    AABB_Bounds collidableBounds = PhysicsSystem::GetRotatedAABB(colliderPos, collider.HalfSize, colliderRotation);
+
+                    if (CollisionIntersection_RectRect_Static(witchBounds, collidableBounds)) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+
+                if (!overlaps) {
+                    teleportPos = candidatePos;
+                    foundValidPos = true;
+                    break;
+                }
             }
         }
 
@@ -645,6 +850,8 @@ namespace Framework {
         // Teleport to valid position
         mgr.GetComponent<Transform>(entity).position = teleportPos;
 
+       
+
         // Play teleport sound at new position
         MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, teleportPos });
 
@@ -654,8 +861,13 @@ namespace Framework {
     }
 
     void WitchTeleportFallState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
-        (void)entity; (void)ecs;
+        (void)entity; //(void)ecs;
         timer_ += dt;
+        EntityManager mgr(ecs);
+        RigidBody rb;
+        rb.isAffectedByGravity = false;
+
+        mgr.GetComponent<RigidBody>(entity) = rb; // Reset velocity and gravity
     }
 
     void WitchTeleportFallState::SetParameter(const std::string& key, float value) {
@@ -706,7 +918,43 @@ namespace Framework {
         MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Attack", AudioType::SFX, 0.3f, position });
 
         if (mgr.HasComponent(entity, FSMComponentType)) {
-            mgr.GetComponent<FSMComponent>(entity).attackCircleTextureKey = "SB_Witch_Attack_Radius.png";
+            FSMComponent& fsm = mgr.GetComponent<FSMComponent>(entity);
+            // Setup animated attack circle VFX
+            fsm.attackCircleAnimated = true;
+            fsm.attackCircleAnimTimer = 0.0f;
+            fsm.attackCircleAnimFrame = 0;
+            fsm.attackCircleAnimFrameDuration = 0.04f;
+            fsm.attackCircleAnimTextures = {
+                "SB_Witch_Circle_VFX_Spritesheet1.png",
+                "SB_Witch_Circle_VFX_Spritesheet2.png",
+                "SB_Witch_Circle_VFX_Spritesheet3.png",
+                "SB_Witch_Circle_VFX_Spritesheet4.png",
+                "SB_Witch_Circle_VFX_Spritesheet5.png",
+                "SB_Witch_Circle_VFX_Spritesheet6.png",
+                "SB_Witch_Circle_VFX_Spritesheet7.png",
+                "SB_Witch_Circle_VFX_Spritesheet8.png",
+                "SB_Witch_Circle_VFX_Spritesheet9.png",
+                "SB_Witch_Circle_VFX_Spritesheet10.png",
+                "SB_Witch_Circle_VFX_Spritesheet11.png",
+                "SB_Witch_Circle_VFX_Spritesheet12.png",
+                "SB_Witch_Circle_VFX_Spritesheet14.png",
+                "SB_Witch_Circle_VFX_Spritesheet15.png",
+                "SB_Witch_Circle_VFX_Spritesheet16.png",
+                "SB_Witch_Circle_VFX_Spritesheet17.png",
+                "SB_Witch_Circle_VFX_Spritesheet18.png",
+                "SB_Witch_Circle_VFX_Spritesheet19.png",
+                "SB_Witch_Circle_VFX_Spritesheet20.png",
+                "SB_Witch_Circle_VFX_Spritesheet21.png",
+                "SB_Witch_Circle_VFX_Spritesheet23.png",
+                "SB_Witch_Circle_VFX_Spritesheet24.png",
+                "SB_Witch_Circle_VFX_Spritesheet25.png",
+                "SB_Witch_Circle_VFX_Spritesheet26.png",
+                "SB_Witch_Circle_VFX_Spritesheet27.png"
+            };
+            // Start with first texture
+            if (!fsm.attackCircleAnimTextures.empty()) {
+                fsm.attackCircleTextureKey = fsm.attackCircleAnimTextures[0];
+            }
         }
     }
 
@@ -754,15 +1002,48 @@ namespace Framework {
 
         // Write current radius to FSMComponent for visual rendering
         if (mgr.HasComponent(entity, FSMComponentType)) {
-            mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = currentRadius_;
+            FSMComponent& fsm = mgr.GetComponent<FSMComponent>(entity);
+            fsm.attackCircleRadius = currentRadius_;
+            
+            // Update animated VFX frame
+            if (fsm.attackCircleAnimated && !fsm.attackCircleAnimTextures.empty()) {
+                fsm.attackCircleAnimTimer += dt;
+                
+                // Calculate total frames (4 frames per spritesheet)
+                const int framesPerSheet = 4;
+                int totalFrames = static_cast<int>(fsm.attackCircleAnimTextures.size()) * framesPerSheet;
+                
+                // Advance frame based on timer
+                if (fsm.attackCircleAnimTimer >= fsm.attackCircleAnimFrameDuration) {
+                    fsm.attackCircleAnimTimer -= fsm.attackCircleAnimFrameDuration;
+                    fsm.attackCircleAnimFrame++;
+                    
+                    // Clamp to last frame (don't loop)
+                    if (fsm.attackCircleAnimFrame >= totalFrames) {
+                        fsm.attackCircleAnimFrame = totalFrames - 1;
+                    }
+                }
+                
+                // Determine which spritesheet and which sub-frame
+                int sheetIndex = fsm.attackCircleAnimFrame / framesPerSheet;
+                if (sheetIndex >= static_cast<int>(fsm.attackCircleAnimTextures.size())) {
+                    sheetIndex = static_cast<int>(fsm.attackCircleAnimTextures.size()) - 1;
+                }
+                fsm.attackCircleTextureKey = fsm.attackCircleAnimTextures[sheetIndex];
+            }
         }
     }
 
     void WitchAttackState::OnExit(Entity entity, EntityStorage& ecs) {
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, FSMComponentType)) {
-            mgr.GetComponent<FSMComponent>(entity).attackCircleRadius = 0.0f;
-            mgr.GetComponent<FSMComponent>(entity).attackCircleTextureKey.clear();
+            FSMComponent& fsm = mgr.GetComponent<FSMComponent>(entity);
+            fsm.attackCircleRadius = 0.0f;
+            fsm.attackCircleTextureKey.clear();
+            fsm.attackCircleAnimated = false;
+            fsm.attackCircleAnimTimer = 0.0f;
+            fsm.attackCircleAnimFrame = 0;
+            fsm.attackCircleAnimTextures.clear();
         }
         currentRadius_ = 0.0f;
     }
