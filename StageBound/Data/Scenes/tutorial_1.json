@@ -903,7 +903,7 @@
                 "Transform": {
                     "Position": {
                         "x": -50.0,
-                        "y": -0.0
+                        "y": -50.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -915,7 +915,7 @@
                             -50.0,
                             0.0,
                             50.0,
-                            0.0,
+                            -50.0,
                             0.0,
                             0.0,
                             1.0
@@ -1224,10 +1224,10 @@
                         "collider_angle": 1.5707963705062866,
                         "texture_matrix": [
                             -0.000026226833142573014,
-                            -600.0,
+                            -50.0,
                             1200.0,
                             600.0,
-                            -0.000026226833142573014,
+                            -0.000002185569428547751,
                             0.5,
                             0.0,
                             0.0,
@@ -1259,7 +1259,7 @@
                     "texture_key": "12x12_MidTiles.png",
                     "half_size": {
                         "x": 600.0,
-                        "y": 600.0
+                        "y": 50.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -3219,8 +3219,8 @@
             "components": {
                 "Transform": {
                     "Position": {
-                        "x": -50.0,
-                        "y": 250.0
+                        "x": -300.0,
+                        "y": -430.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -3229,10 +3229,10 @@
                         "texture_matrix": [
                             50.0,
                             0.0,
-                            -50.0,
+                            -300.0,
                             0.0,
                             50.0,
-                            250.0,
+                            -430.0,
                             0.0,
                             0.0,
                             1.0
@@ -3278,7 +3278,7 @@
                         "x": 50.0,
                         "y": 50.0
                     },
-                    "flip_x": false,
+                    "flip_x": true,
                     "alpha": 1.0,
                     "override_uv": false
                 },
@@ -4154,90 +4154,6 @@
             ]
         },
         {
-            "name": "Props_Chain",
-            "layer": 2,
-            "layer_collision_name": "Platform",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
-            "active": true,
-            "uuid": 625181622860162090,
-            "components": {
-                "Transform": {
-                    "Position": {
-                        "x": 350.0,
-                        "y": 400.0
-                    },
-                    "Rotation": {
-                        "angle": 0.0,
-                        "texture_angle": 0.0,
-                        "collider_angle": 0.0,
-                        "texture_matrix": [
-                            50.0,
-                            0.0,
-                            350.0,
-                            0.0,
-                            50.0,
-                            400.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "collider_matrix": [
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ]
-                    },
-                    "Scale": {
-                        "x": 1.0,
-                        "y": 1.0
-                    }
-                },
-                "Velocity": {
-                    "x": 0.0,
-                    "y": 0.0
-                },
-                "RigidBody": {
-                    "mass": 0.0,
-                    "inv_mass": 0.0,
-                    "is_affected_by_gravity": true,
-                    "force": {
-                        "x": 0.0,
-                        "y": 0.0
-                    }
-                },
-                "RotationFlag": {
-                    "is_rotating": false,
-                    "current_rotation": 0.0,
-                    "target_rotation": 0.0
-                },
-                "TextureComponent": {
-                    "texture_key": "SB_Props_Chain.png",
-                    "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
-                    },
-                    "flip_x": false,
-                    "alpha": 1.0,
-                    "override_uv": false
-                },
-                "SceneOwned": {
-                    "scene_id": 7,
-                    "sceneName": "Tutorial 1"
-                }
-            },
-            "tags": [
-                "PlatformTag"
-            ]
-        },
-        {
             "name": "StaticPlatform_04",
             "layer": 2,
             "layer_collision_name": "Platform",
@@ -4320,7 +4236,7 @@
         {
             "name": "Props_Chain",
             "layer": 2,
-            "layer_collision_name": "",
+            "layer_collision_name": "Platform",
             "render_layer": 50,
             "custom_render_order": 0,
             "layer_render_name": "",
@@ -4330,7 +4246,7 @@
                 "Transform": {
                     "Position": {
                         "x": 350.0,
-                        "y": 450.0
+                        "y": 500.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -4342,7 +4258,7 @@
                             350.0,
                             0.0,
                             50.0,
-                            450.0,
+                            500.0,
                             0.0,
                             0.0,
                             1.0
@@ -4648,7 +4564,7 @@
         {
             "name": "Props_Chain",
             "layer": 2,
-            "layer_collision_name": "",
+            "layer_collision_name": "Platform",
             "render_layer": 50,
             "custom_render_order": 0,
             "layer_render_name": "",
@@ -5206,7 +5122,7 @@
         {
             "name": "Props_Chain",
             "layer": 2,
-            "layer_collision_name": "",
+            "layer_collision_name": "Platform",
             "render_layer": 50,
             "custom_render_order": 0,
             "layer_render_name": "",
@@ -5216,7 +5132,7 @@
                 "Transform": {
                     "Position": {
                         "x": 350.0,
-                        "y": 350.0
+                        "y": 400.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -5228,7 +5144,7 @@
                             350.0,
                             0.0,
                             50.0,
-                            350.0,
+                            400.0,
                             0.0,
                             0.0,
                             1.0
@@ -8492,20 +8408,20 @@
             "components": {
                 "Transform": {
                     "Position": {
-                        "x": 450.0,
-                        "y": -200.0
+                        "x": 470.0,
+                        "y": -230.0
                     },
                     "Rotation": {
                         "angle": 0.0,
                         "texture_angle": 0.0,
                         "collider_angle": 0.0,
                         "texture_matrix": [
-                            100.0,
+                            50.0,
                             0.0,
-                            450.0,
+                            470.0,
                             0.0,
-                            100.0,
-                            -200.0,
+                            50.0,
+                            -230.0,
                             0.0,
                             0.0,
                             1.0
@@ -8544,8 +8460,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_Props_Lamp_spritesheet.png",
                     "half_size": {
-                        "x": 100.0,
-                        "y": 100.0
+                        "x": 50.0,
+                        "y": 50.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -9130,7 +9046,7 @@
                 "Transform": {
                     "Position": {
                         "x": -450.0,
-                        "y": -500.0
+                        "y": -550.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -9142,7 +9058,7 @@
                             -450.0,
                             0.0,
                             50.0,
-                            -500.0,
+                            -550.0,
                             0.0,
                             0.0,
                             1.0
@@ -9199,15 +9115,15 @@
             "name": "Props_SwingingSkulls",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 48,
-            "custom_render_order": 0,
-            "layer_render_name": "",
+            "render_layer": 0,
+            "custom_render_order": -3,
+            "layer_render_name": "Custom",
             "active": true,
             "uuid": 9936928457536895114,
             "components": {
                 "Transform": {
                     "Position": {
-                        "x": -50.0,
+                        "x": 50.0,
                         "y": -350.0
                     },
                     "Rotation": {
@@ -9217,7 +9133,7 @@
                         "texture_matrix": [
                             50.0,
                             0.0,
-                            -50.0,
+                            50.0,
                             0.0,
                             100.0,
                             -350.0,
@@ -9278,6 +9194,75 @@
                     "is_looping": true,
                     "start_delay": 0.0,
                     "start_delay_range": 0.0
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "Prop_Stake_NonPrefab",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2823414071503805666,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 70.0,
+                        "y": 150.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": -1.5707963705062866,
+                        "collider_angle": -1.5707963705062866,
+                        "texture_matrix": [
+                            -0.000002185569428547751,
+                            50.0,
+                            70.0,
+                            -50.0,
+                            -0.000002185569428547751,
+                            150.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Props_Stakes.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 7,
