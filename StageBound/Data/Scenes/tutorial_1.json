@@ -162,8 +162,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": -350.0,
-                        "y": -250.0
+                        "x": -449.99993896484375,
+                        "y": 299.99993896484375
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -1764,7 +1764,7 @@
             "components": {
                 "Transform": {
                     "Position": {
-                        "x": 470.0,
+                        "x": 400.0,
                         "y": -380.0
                     },
                     "Rotation": {
@@ -1774,7 +1774,7 @@
                         "texture_matrix": [
                             1.0,
                             0.0,
-                            470.0,
+                            400.0,
                             0.0,
                             1.0,
                             -380.0,
@@ -8416,11 +8416,11 @@
                         "texture_angle": 0.0,
                         "collider_angle": 0.0,
                         "texture_matrix": [
-                            50.0,
+                            100.0,
                             0.0,
                             470.0,
                             0.0,
-                            50.0,
+                            100.0,
                             -230.0,
                             0.0,
                             0.0,
@@ -8460,8 +8460,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_Props_Lamp_spritesheet.png",
                     "half_size": {
-                        "x": 50.0,
-                        "y": 50.0
+                        "x": 100.0,
+                        "y": 100.0
                     },
                     "flip_x": false,
                     "alpha": 1.0,
