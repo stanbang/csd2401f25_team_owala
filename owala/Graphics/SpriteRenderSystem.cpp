@@ -606,7 +606,26 @@ namespace Framework {
                     float screenRadius = std::abs(screenEdge.x - screenCenter.x);
                     Vector2D halfSize = { screenRadius, screenRadius };
 
-                    gfx_.drawSprite(tex, screenCenter, halfSize);
+                    // Handle animated attack circle VFX
+                    if (fsm.attackCircleAnimated && !fsm.attackCircleAnimTextures.empty()) {
+                        const int framesPerSheet = 4;
+                        int subFrame = fsm.attackCircleAnimFrame % framesPerSheet;
+                        
+                        // Calculate UV coordinates for the current sub-frame
+                        // Assuming 2x2 layout in spritesheet (4 frames)
+                        float uvWidth = 0.5f;
+                        float uvHeight = 0.5f;
+                        int col = subFrame % 2;
+                        int row = subFrame / 2;
+                        
+                        Vector2D minUV = { col * uvWidth, row * uvHeight };
+                        Vector2D maxUV = { minUV.x + uvWidth, minUV.y + uvHeight };
+                        
+                        gfx_.drawSprite(tex, screenCenter, halfSize, 0.0f, minUV, maxUV);
+                    }
+                    else {
+                        gfx_.drawSprite(tex, screenCenter, halfSize);
+                    }
                 }
                 catch (...) {
                     // Fallback: texture not found, skip rendering

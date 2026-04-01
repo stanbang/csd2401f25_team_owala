@@ -457,6 +457,13 @@ namespace Framework{
 		float attackCircleRadius = 0.0f;
 		// Texture key for attack circle sprite (empty = fallback to red line circle)
 		std::string attackCircleTextureKey;
+		
+		// Animated attack circle VFX
+		bool attackCircleAnimated = false;
+		float attackCircleAnimTimer = 0.0f;
+		int attackCircleAnimFrame = 0;
+		std::vector<std::string> attackCircleAnimTextures; // List of texture keys for animation frames
+		float attackCircleAnimFrameDuration = 0.04f;
 	};
 
 	// Particle Component
