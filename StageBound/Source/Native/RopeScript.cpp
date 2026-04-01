@@ -407,7 +407,7 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     // Get current platform transform
     const Transform& platformTf = entityMgr->GetComponent<Transform>(platformEntity_);
     float halfWidth = originalHalfWidth_;
-    float halfHeight = originalHalfHeight_;
+   // float halfHeight = originalHalfHeight_;
 
     // Handle rotation if platform has rotated
     float worldRotDeg = 0.0f;
