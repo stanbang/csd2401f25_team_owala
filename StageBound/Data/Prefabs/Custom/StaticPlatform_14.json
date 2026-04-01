@@ -1,0 +1,77 @@
+{
+    "name": "StaticPlatform_14",
+    "layer": 2,
+    "layer_collision_name": "Platform",
+    "render_layer": 50,
+    "custom_render_order": 0,
+    "components": {
+        "Transform": {
+            "Position": {
+                "x": 150.0,
+                "y": -150.0
+            },
+            "Rotation": {
+                "angle": 0.0,
+                "texture_angle": 0.0,
+                "collider_angle": 0.0,
+                "texture_matrix": [
+                    50.0,
+                    0.0,
+                    150.0,
+                    0.0,
+                    50.0,
+                    -150.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "collider_matrix": [
+                    1.0,
+                    0.0,
+                    150.0,
+                    0.0,
+                    1.0,
+                    -150.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Scale": {
+                "x": 1.0,
+                "y": 1.0
+            }
+        },
+        "RigidBody": {
+            "mass": 0.0,
+            "inv_mass": 0.0,
+            "is_affected_by_gravity": true,
+            "force": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        "RotationFlag": {
+            "is_rotating": false,
+            "current_rotation": 0.0,
+            "target_rotation": 0.0
+        },
+        "TextureComponent": {
+            "texture_key": "SB_StaticPlatform_14.png",
+            "half_size": {
+                "x": 50.0,
+                "y": 50.0
+            },
+            "flip_x": false,
+            "alpha": 1.0,
+            "override_uv": false
+        },
+        "SceneOwned": {
+            "scene_id": 9,
+            "sceneName": "Level 1"
+        }
+    },
+    "tags": [
+        "PlatformTag"
+    ]
+}
