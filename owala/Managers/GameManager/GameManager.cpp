@@ -462,7 +462,7 @@ namespace Framework {
 				systems_.camera_->CalculateAndSetBoundsFromPlatforms(mainCamera, 0.0f);
 				const SceneAsset& sceneAsset = sceneMgr.GetSceneAt(sceneID);
 				if (sceneAsset.name == "Level 4") {
-					systems_.camera_->SetMapBounds(mainCamera, -1200.0f, 1300.0f, -1300.0f, 1350.0f);
+					systems_.camera_->SetMapBounds(mainCamera, -1278.0f, 1350.0f, -1373.0f, 1300.0f);
 				}
 			}
 
