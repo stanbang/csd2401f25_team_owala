@@ -1,7 +1,7 @@
 {
     "initialState": "WitchIdle",
-    "previewTexture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
-    "texture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "previewTexture": "SB_Witch_Idle_Spritesheet_1.png",
+    "texture": "SB_Witch_Idle_Spritesheet_1.png",
     "animationProfile": "witchEnemy",
     "hasCollision": false,
     "halfSize": {
@@ -44,6 +44,14 @@
                 "fallDuration": 1.0,
                 "minTeleportRange": 80,
                 "maxTeleportRange": 200
+            }
+        },
+        {
+            "name": "WitchFalling",
+            "type": "WitchFalling",
+            "parameters": {
+                "maxFallTime": 3.0,
+                "fallSpeed": 400
             }
         },
         {
@@ -103,10 +111,18 @@
         },
         {
             "from": "WitchTeleportFall",
-            "to": "WitchCharging",
+            "to": "WitchFalling",
             "condition": {
                 "type": "TimerExpired",
                 "state": "WitchTeleportFall"
+            }
+        },
+        {
+            "from": "WitchFalling",
+            "to": "WitchCharging",
+            "condition": {
+                "type": "TimerExpired",
+                "state": "WitchFalling"
             }
         },
         {

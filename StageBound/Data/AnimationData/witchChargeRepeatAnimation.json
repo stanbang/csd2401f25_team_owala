@@ -1,25 +1,43 @@
 {
-    "frame_count": 15,
+    "frame_count": 30,
     "frame_duration": 0.10000000149011612,
     "is_looping": true,
     "start_frame": 0,
     "spritesheets": [
         {
-            "texture": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+            "texture": "SB_Witch_Charge_Spritesheet1.png",
             "count": 4
         },
         {
-            "texture": "SB_Witch_Charge_Repeat_Spritesheet_2.png",
+            "texture": "SB_Witch_Charge_Spritesheet2.png",
             "count": 4
         },
         {
-            "texture": "SB_Witch_Charge_Repeat_Spritesheet_3.png",
+            "texture": "SB_Witch_Charge_Spritesheet3.png",
             "count": 4
         },
-        {
-            "texture": "SB_Witch_Charge_Repeat_Spritesheet_4.png",
-            "count": 3
-        }
+      {
+        "texture": "SB_Witch_Charge_Spritesheet4.png",
+        "count": 4
+      },
+      {
+        "texture": "SB_Witch_Charge_Spritesheet5.png",
+        "count": 4
+      },
+      {
+        "texture": "SB_Witch_Charge_Spritesheet6.png",
+        "count": 4
+      },
+      {
+        "texture": "SB_Witch_Charge_Spritesheet7.png",
+        "count": 4
+      },
+      {
+        "texture": "SB_Witch_Charge_Spritesheet8.png",
+        "count": 2
+      }
+      
+      
     ],
     "frameEvents": {}
 }

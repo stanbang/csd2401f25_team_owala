@@ -5,15 +5,15 @@
   "start_frame": 0,
   "spritesheets": [
     {
-      "texture": "SB_Witch_ Charge_Wand_Raise_Spritesheet_1.png",
+      "texture": "SB_Witch_Wand_Raise_Spritesheet1.png",
       "count": 4
     },
     {
-      "texture": "SB_Witch_ Charge_Wand_Raise_Spritesheet_2.png",
+      "texture": "SB_Witch_WandRaise_Spritesheet2.png",
       "count": 4
     },
     {
-      "texture": "SB_Witch_ Charge_Wand_Raise_Spritesheet_3.png",
+      "texture": "SB_Witch_Wand_Raise_Spritesheet3.png",
       "count": 4
     }
   ],

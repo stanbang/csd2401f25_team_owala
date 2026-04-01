@@ -20,11 +20,12 @@
   "witchEnemy": {
     "WITCHIDLE": "SB_Witch_Idle_Spritesheet_1.png",
     "WITCHALERTED": "SB_Witch_Alert_Spritesheet_1.png",
-    "WITCHENRAGED": "SB_Witch_Charge_Repeat_Spritesheet_1.png",
+    "WITCHENRAGED": "SB_Witch_Charge_Spritesheet1.png",
     "WITCHTELEPORTSPIN": "SB_Witch_Teleport_Spin_Spritesheet_1.png",
     "WITCHTELEPORTFALL": "SB_Witch_Teleport_Fall_Spritesheet_1.png",
-    "WITCHCHARGING": "SB_Witch_ Charge_Wand_Raise_Spritesheet_1.png",
-    "WITCHATTACK": "SB_Witch_Attack_Spritesheet_1.png",
-    "DEATH": "SB_Witch_Attack_Spritesheet_1.png"
+    "WITCHFALLING": "SB_Witch_Teleport_Fall_Spritesheet_1.png",
+    "WITCHCHARGING": "SB_Witch_Wand_Raise_Spritesheet1.png",
+    "WITCHATTACK": "SB_Whitch_Attack_Spritesheet1.png",
+    "DEATH": "SB_Whitch_Attack_Spritesheet1.png"
   }
 }

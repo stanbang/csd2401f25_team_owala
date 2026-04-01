@@ -57,20 +57,36 @@ namespace Framework {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
 
-        if (mgr.HasComponent(entity, TransformType)) {
-            mgr.GetComponent<Transform>(entity).rotation.textureAngle = 0.0f;
+        TransformationSystem* transformSys = GameManager::GetInstance().GetSystems().transformation_;
+        
+        // Add RotationFlag so bird's position rotates with the world like platforms during idle
+        if (!mgr.HasComponent(entity, RotationFlagType)) {
+            RotationFlag rotFlag;
+            if (transformSys) {
+                rotFlag.currentRotation = transformSys->GetGlobalRotation();
+            }
+            mgr.AddComponent<RotationFlag>(entity, rotFlag);
+        } else {
+            // Update existing RotationFlag to match current world rotation
+            if (transformSys) {
+                mgr.GetComponent<RotationFlag>(entity).currentRotation = transformSys->GetGlobalRotation();
+            }
         }
 
         s_lastChaseVel.erase(entity);
 
     }
     void BirdIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
-        (void)entity;
-        (void)ecs;
         (void)dt;
-        // Just waiting for transition 
-
-                    }
+        EntityManager mgr(ecs);
+        
+        // Continuously sync RotationFlag with world rotation during idle
+        // (since enemies are skipped by TransformationSystem's automatic rotation update)
+        TransformationSystem* transformSys = GameManager::GetInstance().GetSystems().transformation_;
+        if (transformSys && mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = transformSys->GetGlobalRotation();
+        }
+    }
     void BirdIdleState::SetParameter(const std::string& key, float value) {
         if (key == "wakeUpRadius") wakeUpRadius_ = value;
         
@@ -78,11 +94,25 @@ namespace Framework {
 
     // --- WAKING ---
     void BirdWakingState::OnEnter(Entity entity, EntityStorage& ecs) {
-        (void)entity;
-        (void)ecs;
         timer_ = 0.0f;
 
         EntityManager mgr(ecs);
+        TransformationSystem* transformSys = GameManager::GetInstance().GetSystems().transformation_;
+        
+        // Ensure bird still has RotationFlag during waking (rotates with world)
+        if (!mgr.HasComponent(entity, RotationFlagType)) {
+            RotationFlag rotFlag;
+            if (transformSys) {
+                rotFlag.currentRotation = transformSys->GetGlobalRotation();
+            }
+            mgr.AddComponent<RotationFlag>(entity, rotFlag);
+        } else {
+            // Update existing RotationFlag to match current world rotation
+            if (transformSys) {
+                mgr.GetComponent<RotationFlag>(entity).currentRotation = transformSys->GetGlobalRotation();
+            }
+        }
+        
         if (mgr.HasComponent(entity, TransformType)) {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
             MessageBus::Instance().Publish(BirdWakeEvent(entity, position));
@@ -90,9 +120,15 @@ namespace Framework {
         }
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
-        (void)entity;
-        (void)ecs;
         timer_ += dt;
+        EntityManager mgr(ecs);
+        
+        // Continuously sync RotationFlag with world rotation during waking
+        // (since enemies are skipped by TransformationSystem's automatic rotation update)
+        TransformationSystem* transformSys = GameManager::GetInstance().GetSystems().transformation_;
+        if (transformSys && mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = transformSys->GetGlobalRotation();
+        }
     }
     void BirdWakingState::SetParameter(const std::string& key, float value) {
         if (key == "wakeUpTime") wakeUpTime_ = value;
@@ -102,6 +138,11 @@ namespace Framework {
     void BirdSimpleChaseState::OnEnter(Entity entity, EntityStorage& ecs) {
         EntityManager mgr(ecs);
         ownerID_ = entity;
+
+        // Remove RotationFlag so bird no longer rotates with world - it's now flying freely
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.RemoveComponent(entity, RotationFlagType);
+        }
 
         if (mgr.HasComponent(entity, VelocityType)) {
             s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
@@ -876,6 +917,146 @@ namespace Framework {
         if (key == "maxTeleportRange") maxTeleportRange_ = value;
     }
 
+    // --- WITCH FALLING (gravity-based landing after teleport) ---
+    void WitchFallingState::OnEnter(Entity entity, EntityStorage& ecs) {
+        timer_ = 0.0f;
+        isGrounded_ = false;
+        EntityManager mgr(ecs);
+        
+        // Enable gravity for falling
+        if (mgr.HasComponent(entity, RigidBodyType)) {
+            RigidBody& rb = mgr.GetComponent<RigidBody>(entity);
+            rb.isAffectedByGravity = true;
+        }
+        
+        // Reset velocity
+        if (mgr.HasComponent(entity, VelocityType)) {
+            Velocity& vel = mgr.GetComponent<Velocity>(entity);
+            vel.Vel = { 0.0f, 0.0f };
+        }
+    }
+
+    void WitchFallingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        timer_ += dt;
+        EntityManager mgr(ecs);
+        
+        // Get world rotation to determine "down" direction
+        float worldRotation = 0.0f;
+        TransformationSystem* transformSys = GameManager::GetInstance().GetSystems().transformation_;
+        if (transformSys) {
+            worldRotation = transformSys->GetGlobalRotation();
+        }
+        
+        Vector2D downDir = { 0.0f, -1.0f };  // Default down
+        float rot = std::fmod(worldRotation + 360.0f, 360.0f);
+        if (rot >= 315.0f || rot < 45.0f) {
+            downDir = { 0.0f, -1.0f };  // Normal down
+        } else if (rot >= 45.0f && rot < 135.0f) {
+            downDir = { 1.0f, 0.0f };   // Right (gravity pulls right)
+        } else if (rot >= 135.0f && rot < 225.0f) {
+            downDir = { 0.0f, 1.0f };   // Up (gravity pulls up)
+        } else {
+            downDir = { -1.0f, 0.0f };  // Left (gravity pulls left)
+        }
+        
+        // Apply gravity in the "down" direction based on world rotation
+        if (mgr.HasComponent(entity, VelocityType)) {
+            Velocity& vel = mgr.GetComponent<Velocity>(entity);
+            vel.Vel += downDir * fallSpeed_ * dt;
+            
+            // Clamp fall speed
+            float speed = vel.Vel.Magnitude();
+            if (speed > fallSpeed_) {
+                vel.Vel = vel.Vel * (fallSpeed_ / speed);
+            }
+        }
+        
+        // Get witch position and use TextureComponent half_size for collision detection
+        // (witch doesn't have an AABBCollider)
+        if (mgr.HasComponent(entity, TransformType) && mgr.HasComponent(entity, TextureComponentType)) {
+            Vector2D witchPos = mgr.GetComponent<Transform>(entity).position;
+            const TextureComponent& witchTex = mgr.GetComponent<TextureComponent>(entity);
+            Vector2D witchHS = witchTex.HalfSize;
+            
+            // Create a small probe box slightly below the witch to check for ground
+            Vector2D probeOffset = downDir * 5.0f;  // Small distance in down direction
+            AABB_Bounds witchBounds = {
+                { witchPos.x - witchHS.x * 0.5f, witchPos.y - witchHS.y },
+                { witchPos.x + witchHS.x * 0.5f, witchPos.y + witchHS.y * 0.2f }
+            };
+            
+            // Offset by probe in down direction for ground check
+            AABB_Bounds probeBounds = {
+                { witchBounds.min.x + probeOffset.x, witchBounds.min.y + probeOffset.y },
+                { witchBounds.max.x + probeOffset.x, witchBounds.max.y + probeOffset.y }
+            };
+            
+            // Check collision with platforms
+            for (Entity e : mgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
+                if (e == entity) continue;
+                if (!mgr.HasComponent(e, TransformType)) continue;
+                if (!mgr.HasComponent(e, LoadedTagType)) continue;
+                
+                // Check if this is a platform (not trap platform)
+                bool isPlatform = mgr.HasComponent(e, PlatformTagType);
+                if (!isPlatform) {
+                    const EntityProperties& props = mgr.GetProperties(e);
+                    isPlatform = (props.layer == CollisionLayer::Platform);
+                }
+                
+                // Exclude trap platforms
+                const EntityProperties& eProps = mgr.GetProperties(e);
+                if (eProps.layer == CollisionLayer::TrapPlatform) continue;
+                
+                if (!isPlatform) continue;
+                
+                const Transform& platTf = mgr.GetComponent<Transform>(e);
+                const AABBCollider& platCollider = mgr.GetComponent<AABBCollider>(e);
+                Vector2D platPos = platTf.position + platCollider.Offset;
+                
+                float platformRotation = 0.0f;
+                if (mgr.HasComponent(e, RotationFlagType)) {
+                    platformRotation = mgr.GetComponent<RotationFlag>(e).currentRotation;
+                }
+                
+                AABB_Bounds platBounds = PhysicsSystem::GetRotatedAABB(platPos, platCollider.HalfSize, platformRotation);
+                
+                if (CollisionIntersection_RectRect_Static(probeBounds, platBounds)) {
+                    isGrounded_ = true;
+                    
+                    // Stop falling
+                    if (mgr.HasComponent(entity, VelocityType)) {
+                        mgr.GetComponent<Velocity>(entity).Vel = { 0.0f, 0.0f };
+                    }
+                    
+                    // Disable gravity
+                    if (mgr.HasComponent(entity, RigidBodyType)) {
+                        RigidBody& rb = mgr.GetComponent<RigidBody>(entity);
+                        rb.isAffectedByGravity = false;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Timeout: if we've been falling too long, just proceed anyway
+        if (timer_ >= maxFallTime_) {
+            isGrounded_ = true;
+            if (mgr.HasComponent(entity, VelocityType)) {
+                mgr.GetComponent<Velocity>(entity).Vel = { 0.0f, 0.0f };
+            }
+            if (mgr.HasComponent(entity, RigidBodyType)) {
+                RigidBody& rb = mgr.GetComponent<RigidBody>(entity);
+                rb.isAffectedByGravity = false;
+            }
+        }
+    }
+
+    void WitchFallingState::SetParameter(const std::string& key, float value) {
+        if (key == "maxFallTime") maxFallTime_ = value;
+        if (key == "fallSpeed") fallSpeed_ = value;
+    }
+
     // --- WITCH CHARGING ---
     void WitchChargingState::OnEnter(Entity entity, EntityStorage& ecs) {
         (void)entity;
@@ -1112,6 +1293,7 @@ namespace Framework {
     REGISTER_STATE("WitchEnraged", WitchEnragedState);
     REGISTER_STATE("WitchTeleportSpin", WitchTeleportSpinState);
     REGISTER_STATE("WitchTeleportFall", WitchTeleportFallState);
+    REGISTER_STATE("WitchFalling", WitchFallingState);
     REGISTER_STATE("WitchCharging", WitchChargingState);
     REGISTER_STATE("WitchAttack", WitchAttackState);
     REGISTER_STATE("WitchDeath", WitchDeathState);
@@ -1156,6 +1338,8 @@ namespace Framework {
                 return wt->GetTimer() >= wt->GetSpinDuration();
             if (auto* wtf = dynamic_cast<WitchTeleportFallState*>(s))
                 return wtf->GetTimer() >= wtf->GetFallDuration();
+            if (auto* wfall = dynamic_cast<WitchFallingState*>(s))
+                return wfall->IsGrounded() || wfall->GetTimer() >= wfall->GetMaxFallTime();
             if (auto* wc = dynamic_cast<WitchChargingState*>(s))
                 return wc->GetTimer() >= wc->GetChargeDuration();
             if (auto* watt = dynamic_cast<WitchAttackState*>(s))
