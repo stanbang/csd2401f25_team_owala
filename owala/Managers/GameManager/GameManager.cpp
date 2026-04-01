@@ -460,6 +460,10 @@ namespace Framework {
 			if (!players.empty()) {
 				systems_.camera_->SetFollowTarget(mainCamera, players[0], 8.0f);
 				systems_.camera_->CalculateAndSetBoundsFromPlatforms(mainCamera, 0.0f);
+				const SceneAsset& sceneAsset = sceneMgr.GetSceneAt(sceneID);
+				if (sceneAsset.name == "Level 4") {
+					systems_.camera_->SetMapBounds(mainCamera, -1200.0f, 1300.0f, -1300.0f, 1350.0f);
+				}
 			}
 
 			systems_.gfx_->setAlphaBlend(true);
