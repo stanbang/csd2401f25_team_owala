@@ -141,7 +141,8 @@ namespace Framework {
 
         // Remove RotationFlag so bird no longer rotates with world - it's now flying freely
         if (mgr.HasComponent(entity, RotationFlagType)) {
-            mgr.RemoveComponent(entity, RotationFlagType);
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+           // mgr.RemoveComponent(entity, RotationFlagType);
         }
 
         if (mgr.HasComponent(entity, VelocityType)) {
@@ -159,6 +160,11 @@ namespace Framework {
         if (player == 0 || !mgr.HasComponent(entity, TransformType) || !mgr.HasComponent(player, TransformType)) {
             // Safety stop if player dies mid-chase
             return;
+        }
+
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+            // mgr.RemoveComponent(entity, RotationFlagType);
         }
 
         Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
@@ -278,6 +284,12 @@ namespace Framework {
         timer_ = 0.0f;
         EntityManager mgr(ecs);
 
+        // Remove RotationFlag so bird is not affected by world rotation during bounce
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+           // mgr.RemoveComponent(entity, RotationFlagType);
+        }
+
         if (!mgr.HasComponent(entity, VelocityType)) return;
 
         // Get current velocity to determine bounce direction
@@ -315,9 +327,15 @@ namespace Framework {
 
     void BirdBounceState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
+        EntityManager mgr(ecs);
+
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+            // mgr.RemoveComponent(entity, RotationFlagType);
+        }
 
         // Gradually reduce bounce velocity
-        EntityManager mgr(ecs);
+        
         if (mgr.HasComponent(entity, VelocityType)) {
             s_lastChaseVel[entity] = mgr.GetComponent<Velocity>(entity).Vel;
         }
@@ -330,6 +348,12 @@ namespace Framework {
     }
 
     // --- HOVER ---
+    void BirdHoverState::OnEnter(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
+        
+      
+    }
+
     void BirdHoverState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         attackTimer_ -= dt;
         EntityManager mgr(ecs);
@@ -338,6 +362,12 @@ namespace Framework {
 
         Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
         Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
+
+        // Remove RotationFlag so bird is not affected by world rotation during hover
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+            // mgr.RemoveComponent(entity, RotationFlagType);
+        }
 
         // Simple orbiting/hover logic
         Vector2D dir = myPos - playerPos; // Vector away from player
@@ -363,6 +393,10 @@ namespace Framework {
         ownerID_ = entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
+
+        // Remove RotationFlag so bird is not affected by world rotation during attack
+       
+
         Entity player = GetPlayer(ecs);
         if (player == 0) return;
 
@@ -400,7 +434,7 @@ namespace Framework {
         if (!mgr.HasComponent(entity, VelocityType)) return;
 
         Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
-
+        mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
         // ---------------------------------------------------------------
         // Accelerate along the dive direction, capped at attackMaxSpeed_
         // This gives the "lunge" feel instead of instant full speed.
@@ -428,6 +462,12 @@ namespace Framework {
         ownerID_ = entity;
         timer_ = 0.0f;
         EntityManager mgr(ecs);
+
+        // Remove RotationFlag so bird is not affected by world rotation during recovery
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.RemoveComponent(entity, RotationFlagType);
+        }
+
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }

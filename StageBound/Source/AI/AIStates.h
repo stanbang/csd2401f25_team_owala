@@ -122,6 +122,7 @@ namespace Framework {
     class BirdHoverState : public State {
     public:
         const char* GetName() const override { return "Hover"; }
+        void OnEnter(Entity entity, EntityStorage& ecs) override;
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
         void SetParameter(const std::string& key, float value) override;
 
