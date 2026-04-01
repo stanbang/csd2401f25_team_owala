@@ -4414,6 +4414,17 @@ namespace Editor {
 				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
 			}
 
+			float scrollDelta = ImGui::GetIO().MouseWheel;
+			if (scrollDelta != 0.0f && isMouseOverGameViewport_) {
+				if (scrollDelta > 0.0f) {
+					cam.zoom *= 0.8f;
+				}
+				else if (scrollDelta < 0.0f) {
+					cam.zoom *= 1.2f;
+				}
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+
 			// Optional: reset zoom with R
 			if (ImGui::IsKeyPressed(ImGuiKey_R)) {
 				ResetEditorCamera();
