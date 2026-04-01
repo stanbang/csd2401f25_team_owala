@@ -407,7 +407,7 @@
                 "Transform": {
                     "Position": {
                         "x": 1176.0,
-                        "y": -1199.0
+                        "y": 0.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -419,7 +419,7 @@
                             1176.0,
                             600.0,
                             -0.000026226833142573014,
-                            -1199.0,
+                            0.0,
                             0.0,
                             0.0,
                             1.0
@@ -475,8 +475,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": -449.99993896484375,
-                        "y": 299.99993896484375
+                        "x": -450.0,
+                        "y": -349.99993896484375
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -1679,8 +1679,8 @@
             "components": {
                 "Transform": {
                     "Position": {
-                        "x": 1200.0,
-                        "y": 0.5
+                        "x": 650.0,
+                        "y": -0.0
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -1689,10 +1689,10 @@
                         "texture_matrix": [
                             -0.000026226833142573014,
                             -50.0,
-                            1200.0,
+                            650.0,
                             600.0,
                             -0.000002185569428547751,
-                            0.5,
+                            0.0,
                             0.0,
                             0.0,
                             1.0
@@ -9345,6 +9345,75 @@
                     "is_looping": true,
                     "start_delay": 0.0,
                     "start_delay_range": 0.0
+                },
+                "SceneOwned": {
+                    "scene_id": 7,
+                    "sceneName": "Tutorial 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "RightPlatformPadding1",
+            "layer": 2,
+            "layer_collision_name": "Platform",
+            "render_layer": 0,
+            "custom_render_order": 51,
+            "layer_render_name": "Custom",
+            "active": true,
+            "uuid": 5286601827210839383,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 1176.0,
+                        "y": -1199.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 1.5707963705062866,
+                        "collider_angle": 1.5707963705062866,
+                        "texture_matrix": [
+                            -0.000026226833142573014,
+                            -600.0,
+                            1176.0,
+                            600.0,
+                            -0.000026226833142573014,
+                            -1199.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            -600.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "12x12_MidTiles.png",
+                    "half_size": {
+                        "x": 600.0,
+                        "y": 600.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
                 },
                 "SceneOwned": {
                     "scene_id": 7,
