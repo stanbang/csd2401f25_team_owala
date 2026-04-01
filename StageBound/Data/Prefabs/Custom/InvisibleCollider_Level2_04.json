@@ -52,8 +52,8 @@
             }
         },
         "AABBCollider": {
-            "half_width": 174.0,
-            "half_height": 45.0,
+            "half_width": 175.0,
+            "half_height": 75.0,
             "offset_x": 0.0,
             "offset_y": 0.0
         },
