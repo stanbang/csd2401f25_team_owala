@@ -1204,8 +1204,8 @@
             "components": {
                 "Camera": {
                     "position": {
-                        "x": -349.99993896484375,
-                        "y": 199.99996948242188
+                        "x": -200.0,
+                        "y": -380.0
                     },
                     "size": {
                         "width": 1244.4444580078125,
@@ -7466,6 +7466,420 @@
                         "y": 550.0
                     },
                     "flip_x": true,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "GameObject (106)",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 6925729853527368398,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 450.0,
+                        "y": -450.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            72.0534439086914,
+                            0.0,
+                            450.0,
+                            0.0,
+                            66.79071044921875,
+                            -450.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.4410688877105713,
+                        "y": 1.3358142375946045
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Props_Stakes.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "GameObject (107)",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 12810262624137027953,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 300.0,
+                        "y": 370.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            300.0,
+                            0.0,
+                            50.0,
+                            370.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Props_Tombstone.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "GameObject (108)",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 6419710401030172833,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 50.0,
+                        "y": 270.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            48.02412033081055,
+                            0.0,
+                            50.0,
+                            0.0,
+                            48.02412033081055,
+                            270.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 0.9604824185371399,
+                        "y": 0.9604824185371399
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Props_Skulls_03.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "GameObject (109)",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 15048892931176573727,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -250.0,
+                        "y": -75.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            50.0,
+                            0.0,
+                            -250.0,
+                            0.0,
+                            50.0,
+                            -75.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Props_Skulls_01.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "GameObject (116)",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 14630623850636117572,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 450.0,
+                        "y": 175.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            108.65757751464844,
+                            0.0,
+                            450.0,
+                            0.0,
+                            108.65757751464844,
+                            175.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 2.1731514930725098,
+                        "y": 2.1731514930725098
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Env_Level1_Background_05.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "SceneOwned": {
+                    "scene_id": 9,
+                    "sceneName": "Level 1"
+                }
+            },
+            "tags": []
+        },
+        {
+            "name": "GameObject (123)",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 7329275637756185611,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": -450.0,
+                        "y": 75.0
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            73.44915008544922,
+                            0.0,
+                            -450.0,
+                            0.0,
+                            73.44915008544922,
+                            75.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "collider_matrix": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.4689830541610718,
+                        "y": 1.4689830541610718
+                    }
+                },
+                "RotationFlag": {
+                    "is_rotating": false,
+                    "current_rotation": 0.0,
+                    "target_rotation": 0.0
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_Env_Level1_Background_02.png",
+                    "half_size": {
+                        "x": 50.0,
+                        "y": 50.0
+                    },
+                    "flip_x": false,
                     "alpha": 1.0,
                     "override_uv": false
                 },
