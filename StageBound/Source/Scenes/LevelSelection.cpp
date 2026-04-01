@@ -55,6 +55,8 @@ namespace {
 		// Record prompt buttons (optional)
 		Entity recordYesButton = 0;
 		Entity recordNoButton = 0;
+		Entity recordYesButtonText = 0;
+		Entity recordNoButtonText = 0;
 
 		// Lighting
 		Entity shadowOverlay = 0;
@@ -133,11 +135,15 @@ namespace {
 		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
 			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = true;
 
-		// Show Yes/No buttons
+		// Show Yes/No buttons and their labels
 		if (entityMgr.ValidateEntity(ui.recordYesButton))
 			entityMgr.GetProperties(ui.recordYesButton).isActive = true;
 		if (entityMgr.ValidateEntity(ui.recordNoButton))
 			entityMgr.GetProperties(ui.recordNoButton).isActive = true;
+		if (entityMgr.ValidateEntity(ui.recordYesButtonText))
+			entityMgr.GetProperties(ui.recordYesButtonText).isActive = true;
+		if (entityMgr.ValidateEntity(ui.recordNoButtonText))
+			entityMgr.GetProperties(ui.recordNoButtonText).isActive = true;
 
 		SetNameOverlayText(entityMgr, "record your time?");
 	}
@@ -150,11 +156,15 @@ namespace {
 		if (entityMgr.ValidateEntity(ui.nameEntryOverlay))
 			entityMgr.GetProperties(ui.nameEntryOverlay).isActive = false;
 
-		// Hide Yes/No buttons
+		// Hide Yes/No buttons and their labels
 		if (entityMgr.ValidateEntity(ui.recordYesButton))
 			entityMgr.GetProperties(ui.recordYesButton).isActive = false;
 		if (entityMgr.ValidateEntity(ui.recordNoButton))
 			entityMgr.GetProperties(ui.recordNoButton).isActive = false;
+		if (entityMgr.ValidateEntity(ui.recordYesButtonText))
+			entityMgr.GetProperties(ui.recordYesButtonText).isActive = false;
+		if (entityMgr.ValidateEntity(ui.recordNoButtonText))
+			entityMgr.GetProperties(ui.recordNoButtonText).isActive = false;
 	}
 
 	void UpdateRecordPrompt(Framework::EntityManager& entityMgr) {
@@ -361,8 +371,10 @@ namespace {
 			else if (name == "LeaderboardPanel")   ui.leaderboardPanel = entity;
 			else if (name == "NameEntryOverlay")   ui.nameEntryOverlay = entity;
 			else if (name == "NameEntryOverlayBG") ui.nameEntryBG = entity;
-			else if (name == "RecordYesButton")    ui.recordYesButton = entity;
-			else if (name == "RecordNoButton")     ui.recordNoButton = entity;
+			else if (name == "RecordYesButton")     ui.recordYesButton = entity;
+			else if (name == "RecordNoButton")      ui.recordNoButton = entity;
+			else if (name == "RecordYesButtonText") ui.recordYesButtonText = entity;
+			else if (name == "RecordNoButtonText")  ui.recordNoButtonText = entity;
 			else if (name == "ShadowOverlay") ui.shadowOverlay = entity;
 			else if (name == "Spotlight") ui.spotlights.push_back(entity);
 			else if (name == "SpotlightShadow") ui.spotlights.push_back(entity);

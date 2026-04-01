@@ -143,7 +143,7 @@
             "custom_render_order": 90,
             "layer_render_name": "Custom",
             "active": false,
-            "uuid": 4444444444444444444,
+            "uuid": 1234444444444444401,
             "components": {
                 "Transform": {
                     "Position": {
@@ -185,8 +185,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_Frame_BG.png",
                     "half_size": {
-                        "x": 0.35,
-                        "y": 0.18
+                        "x": 0.5,
+                        "y": 0.28
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -1695,7 +1695,7 @@
             "layer": 0,
             "layer_collision_name": "Default",
             "render_layer": 200,
-            "custom_render_order": 91,
+            "custom_render_order": 95,
             "layer_render_name": "UI",
             "active": false,
             "uuid": 5555555555555555555,
@@ -1746,7 +1746,7 @@
                         1.0,
                         1.0
                     ],
-                    "font_size": 0.6,
+                    "font_size": 1.0,
                     "max_width": 100.0
                 },
                 "SceneOwned": {
@@ -1762,11 +1762,11 @@
             "name": "RecordYesButton",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
+            "render_layer": 100,
+            "custom_render_order": 92,
+            "layer_render_name": "Custom",
             "active": false,
-            "uuid": 6666666666666666666,
+            "uuid": 1234444444444444402,
             "components": {
                 "Transform": {
                     "Position": {
@@ -1808,8 +1808,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_DefaultButton.png",
                     "half_size": {
-                        "x": 0.1899999976158142,
-                        "y": 0.14000000059604645
+                        "x": 0.12,
+                        "y": 0.07
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -1847,16 +1847,16 @@
             "name": "RecordYesButtonText",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 200,
-            "custom_render_order": 200,
-            "layer_render_name": "UI",
+            "render_layer": 0,
+            "custom_render_order": 95,
+            "layer_render_name": "Custom",
             "active": false,
-            "uuid": 7777777777777777777,
+            "uuid": 1234444444444444403,
             "components": {
                 "Transform": {
                     "Position": {
                         "x": -0.13,
-                        "y": -0.04
+                        "y": -0.03
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -1899,7 +1899,7 @@
                         1.0,
                         1.0
                     ],
-                    "font_size": 0.8,
+                    "font_size": 1.100000023841858,
                     "max_width": 10.0
                 },
                 "SceneOwned": {
@@ -1915,11 +1915,11 @@
             "name": "RecordNoButton",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 50,
-            "custom_render_order": 0,
-            "layer_render_name": "",
+            "render_layer": 100,
+            "custom_render_order": 92,
+            "layer_render_name": "Custom",
             "active": false,
-            "uuid": 8888888888888888888,
+            "uuid": 1234444444444444404,
             "components": {
                 "Transform": {
                     "Position": {
@@ -1961,8 +1961,8 @@
                 "TextureComponent": {
                     "texture_key": "SB_DefaultButton.png",
                     "half_size": {
-                        "x": 0.1899999976158142,
-                        "y": 0.14000000059604645
+                        "x": 0.12,
+                        "y": 0.07
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -2000,16 +2000,16 @@
             "name": "RecordNoButtonText",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 200,
-            "custom_render_order": 200,
-            "layer_render_name": "UI",
+            "render_layer": 0,
+            "custom_render_order": 95,
+            "layer_render_name": "Custom",
             "active": false,
-            "uuid": 9999999999999999999,
+            "uuid": 1234444444444444405,
             "components": {
                 "Transform": {
                     "Position": {
                         "x": 0.13,
-                        "y": -0.04
+                        "y": -0.03
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -2052,7 +2052,7 @@
                         1.0,
                         1.0
                     ],
-                    "font_size": 0.8,
+                    "font_size": 1.100000023841858,
                     "max_width": 10.0
                 },
                 "SceneOwned": {
