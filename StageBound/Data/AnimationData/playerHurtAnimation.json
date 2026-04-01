@@ -6,11 +6,11 @@
     "spritesheets": [
         {
             "texture": "SB_Eli_Hurt_Spritesheet_1.png",
-            "count": 8
+            "count": 6
         },
         {
             "texture": "SB_Eli_Hurt_Spritesheet_2.png",
-            "count": 3
+            "count": 5
         }
     ]
 }

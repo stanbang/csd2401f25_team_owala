@@ -30,5 +30,9 @@ namespace Framework {
 
 		// Resets the animation back to its first frame
 		static void ResetAnimation(AnimationComponent& animComp);
+		
+	private:
+		// Helper method to reset all animated entities to first frame and calculate UVs
+		void ResetAnimationsToFirstFrame();
 	};
 } // namespace Framework

@@ -604,6 +604,24 @@ namespace Editor {
 			);
 		}
 
+		// Draw marquee selection rectangle in viewport (I mode only).
+		if (isMarqueeMode_ && isMarqueeSelecting_) {
+			ImDrawList* drawList = ImGui::GetForegroundDrawList();
+			const ImVec2 rectMin(
+				std::min(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x),
+				std::min(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y));
+			const ImVec2 rectMax(
+				std::max(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x),
+				std::max(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y));
+
+			const ImVec2 clipMin = gameViewportPos_;
+			const ImVec2 clipMax(gameViewportPos_.x + gameViewportSize_.x, gameViewportPos_.y + gameViewportSize_.y);
+			drawList->PushClipRect(clipMin, clipMax, true);
+			drawList->AddRectFilled(rectMin, rectMax, IM_COL32(80, 140, 255, 40));
+			drawList->AddRect(rectMin, rectMax, IM_COL32(80, 140, 255, 220), 0.0f, 0, 1.5f);
+			drawList->PopClipRect();
+		}
+
 		if (isTileEditorActive_ && dragDropPayload_.type == PrefabType::Eraser) {
 			HandleTileErasing();
 		}
@@ -1143,59 +1161,214 @@ namespace Editor {
 		// Only check for selection if a prefab is NOT being spawned
 		if (selectedPrefabType_ != PrefabType::None) return;
 
-		// Check if click is over game viewport
-		if (!input->MousePressed(Framework::InputSystem::MouseButton::Left) ||
-			!isMouseOverGameViewport_) {
+		if (!isMouseOverGameViewport_) {
 			return;
 		}
 
-		// If mouse over game viewport & not dragging prefab & not hovering on gizmos
-		// check for mouse click on invisible entity placeholders / visible entities
-		// and update the editor's selection state
-		if (!isDraggingPrefab_ && gizmoSystem_ && !gizmoSystem_->IsGizmosHover()
-			&& ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			// check if clicked on invisible entity
-			Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
-
-			// an invisible entity was clicked
-			if (invisEntityClicked > 0) {
-				selectedEntityIndex = invisEntityClicked + 1;
-				isEntitySelected_ = true;
-				selectedComponentIndex = 0;
-				selectedTagIndex = 0;
+		if (!isMarqueeMode_) {
+			// In non-marquee mode, keep legacy click selection only.
+			if (!input->MousePressed(Framework::InputSystem::MouseButton::Left)) {
+				return;
 			}
-			// else check entity clicked
-			else {
-				Entity bestCandidate = GetObjAtMousePos();
-				if (bestCandidate > 0) {
-					selectedEntityIndex = bestCandidate + 1;
+			// Allow normal click selection when gizmo mode is None.
+			const bool gizmoBlockingClick = gizmoSystem_ && gizmoSystem_->IsGizmosToggled() && gizmoSystem_->IsGizmosHover();
+			if (!isDraggingPrefab_ && gizmoSystem_ && !gizmoBlockingClick
+				&& ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				editSession.Flush();
+				Entity invisEntityClicked = gizmoSystem_->IsInvisEntityClicked();
+				if (invisEntityClicked > 0) {
+					selectedEntityIndex = invisEntityClicked + 1;
+					selectedEntities_.clear();
+					selectedEntities_.push_back(invisEntityClicked);
+					lastClickedEntity_ = invisEntityClicked;
 					isEntitySelected_ = true;
 					selectedComponentIndex = 0;
 					selectedTagIndex = 0;
 				}
 				else {
-					selectedEntityIndex = 0;
-					isEntitySelected_ = false;
+					Entity bestCandidate = GetObjAtMousePos();
+					if (bestCandidate > 0) {
+						selectedEntityIndex = bestCandidate + 1;
+						selectedEntities_.clear();
+						selectedEntities_.push_back(bestCandidate);
+						lastClickedEntity_ = bestCandidate;
+						isEntitySelected_ = true;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+					else {
+						selectedEntityIndex = 0;
+						selectedEntities_.clear();
+						lastClickedEntity_ = 0;
+						isEntitySelected_ = false;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+				}
+			}
+			return;
+		}
+
+		// Marquee mode only (I): start marquee on mouse press.
+		if (input->MousePressed(Framework::InputSystem::MouseButton::Left) && !isDraggingPrefab_) {
+			isMarqueeSelecting_ = true;
+			marqueeStartScreenPos_ = ImGui::GetMousePos();
+			marqueeEndScreenPos_ = marqueeStartScreenPos_;
+		}
+
+		// Update marquee while dragging.
+		if (isMarqueeSelecting_ && input->MouseDown(Framework::InputSystem::MouseButton::Left)) {
+			marqueeEndScreenPos_ = ImGui::GetMousePos();
+		}
+
+		// Finalize on release: click-select (small drag) or box-select (large drag).
+		if (isMarqueeSelecting_ && input->MouseReleased(Framework::InputSystem::MouseButton::Left)) {
+			isMarqueeSelecting_ = false;
+			marqueeEndScreenPos_ = ImGui::GetMousePos();
+
+			const float dx = marqueeEndScreenPos_.x - marqueeStartScreenPos_.x;
+			const float dy = marqueeEndScreenPos_.y - marqueeStartScreenPos_.y;
+			const float dragDistSq = dx * dx + dy * dy;
+			constexpr float clickThresholdSq = 9.0f; // 3px threshold
+
+			// Flush any pending edits BEFORE changing selection
+			editSession.Flush();
+
+			// Click selection path (existing behavior).
+			if (dragDistSq <= clickThresholdSq) {
+				// check if clicked on invisible entity
+				Entity invisEntityClicked = gizmoSystem_ ? gizmoSystem_->IsInvisEntityClicked() : 0;
+
+				// an invisible entity was clicked
+				if (invisEntityClicked > 0) {
+					selectedEntityIndex = invisEntityClicked + 1;
+					selectedEntities_.clear();
+					selectedEntities_.push_back(invisEntityClicked);
+					lastClickedEntity_ = invisEntityClicked;
+					isEntitySelected_ = true;
 					selectedComponentIndex = 0;
 					selectedTagIndex = 0;
 				}
+				else {
+					Entity bestCandidate = GetObjAtMousePos();
+					if (bestCandidate > 0) {
+						selectedEntityIndex = bestCandidate + 1;
+						selectedEntities_.clear();
+						selectedEntities_.push_back(bestCandidate);
+						lastClickedEntity_ = bestCandidate;
+						isEntitySelected_ = true;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+					else {
+						selectedEntityIndex = 0;
+						selectedEntities_.clear();
+						lastClickedEntity_ = 0;
+						isEntitySelected_ = false;
+						selectedComponentIndex = 0;
+						selectedTagIndex = 0;
+					}
+				}
+				return;
 			}
-			editSession.Flush();
+
+			// Marquee selection path.
+			const float minX = std::min(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x);
+			const float maxX = std::max(marqueeStartScreenPos_.x, marqueeEndScreenPos_.x);
+			const float minY = std::min(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y);
+			const float maxY = std::max(marqueeStartScreenPos_.y, marqueeEndScreenPos_.y);
+
+			Framework::EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
+			Framework::SceneManager& sceneMgr = Framework::SceneManager::GetInstance();
+			const std::vector<Entity>& activeEntities = sceneMgr.GetEntitiesInScene(sceneMgr.GetActiveScene().name);
+
+			selectedEntities_.clear();
+
+			for (const Entity entity : activeEntities) {
+				if (!entityMgr.ValidateEntity(entity) || !entityMgr.HasComponent(entity, Framework::ComponentType::TransformType)) {
+					continue;
+				}
+				if (entityMgr.HasComponent(entity, GUITagType)) {
+					continue; // marquee in game viewport targets world entities
+				}
+
+				Vector2D halfSize{};
+				if (entityMgr.HasComponent(entity, Framework::ComponentType::TextComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextComponent>(entity).halfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::TextureComponentType)) {
+					halfSize = entityMgr.GetComponent<Framework::TextureComponent>(entity).HalfSize;
+				}
+				else if (entityMgr.HasComponent(entity, Framework::ComponentType::AABBColliderType)) {
+					halfSize = entityMgr.GetComponent<Framework::AABBCollider>(entity).HalfSize;
+				}
+				else {
+					continue;
+				}
+
+				const Transform transformComp = entityMgr.GetComponent<Framework::Transform>(entity);
+				const Vector2D scaledHalfSize = { halfSize.x * transformComp.scale.x, halfSize.y * transformComp.scale.y };
+
+				// Entity AABB in screen space.
+				const ImVec2 center = WorldToImGuiScreen(transformComp.position);
+				const Camera& cam = cameraSystem_->GetCamera(editorCamera_);
+				const float pxPerWorldX = (cam.size.x != 0.0f) ? (gameViewportSize_.x / cam.size.x) : 0.0f;
+				const float pxPerWorldY = (cam.size.y != 0.0f) ? (gameViewportSize_.y / cam.size.y) : 0.0f;
+
+				const float entityMinX = center.x - scaledHalfSize.x * pxPerWorldX;
+				const float entityMaxX = center.x + scaledHalfSize.x * pxPerWorldX;
+				const float entityMinY = center.y - scaledHalfSize.y * pxPerWorldY;
+				const float entityMaxY = center.y + scaledHalfSize.y * pxPerWorldY;
+
+				// Intersects marquee rectangle.
+				const bool intersects = !(entityMaxX < minX || entityMinX > maxX || entityMaxY < minY || entityMinY > maxY);
+				if (intersects) {
+					selectedEntities_.push_back(entity);
+				}
+			}
+
+			if (!selectedEntities_.empty()) {
+				selectedEntityIndex = selectedEntities_[0] + 1;
+				lastClickedEntity_ = selectedEntities_[0];
+				isEntitySelected_ = true;
+			}
+			else {
+				selectedEntityIndex = 0;
+				lastClickedEntity_ = 0;
+				isEntitySelected_ = false;
+			}
+			selectedComponentIndex = 0;
+			selectedTagIndex = 0;
 		}
 	}
 
 	void Editor::HandleDeletion() {
-		// Check if an entity is selected and if the Backspace key was just pressed
+		// Check if an entity is selected and if the Delete key was just pressed
 		if (isEntitySelected_ && gameManager_->GetSystems().input_->KeyPressed(Framework::InputSystem::Key::Delete)) {
-			const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
 			EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
 
-			// Tell the SceneManager to remove the entity
-			if ((selectedEntityIndex >= 1) && (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1))) {
-				entityMgr.DestroyEntity(selectedEntityIndex - 1);
-
+			// Delete all selected entities
+			if (!selectedEntities_.empty()) {
+				for (Entity entity : selectedEntities_) {
+					if (entityMgr.ValidateEntity(entity)) {
+						historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+						entityMgr.DestroyEntity(entity);
+					}
+				}
+				selectedEntities_.clear();
 				selectedEntityIndex = 0;
 				isEntitySelected_ = false;
+			}
+			// Legacy support for old single selection
+			else if (selectedEntityIndex >= 1) {
+				const SceneAsset currentScene = SceneManager::GetInstance().GetActiveScene();
+				if (selectedEntityIndex < static_cast<int>(SceneManager::GetInstance().GetEntitiesInScene(currentScene.name).size() + 1)) {
+					Entity entity = selectedEntityIndex - 1;
+					historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+					entityMgr.DestroyEntity(entity);
+					selectedEntityIndex = 0;
+					isEntitySelected_ = false;
+				}
 			}
 		}
 	}
@@ -1215,12 +1388,37 @@ namespace Editor {
 		rapidjson::StringBuffer buffer;
 		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 		doc.Accept(writer);
-		entityClipboard = buffer.GetString();
+		entitiesClipboard_.clear();
+		entitiesClipboard_.push_back(buffer.GetString());
+	}
+
+	void Editor::CopyEntitiesToClipboard(const std::vector<Entity>& entities) {
+		entitiesClipboard_.clear();
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
+		EntityManager entityMgr(*ecs);
+
+		for (const Entity entity : entities) {
+			if (!entityMgr.ValidateEntity(entity)) {
+				continue;
+			}
+			rapidjson::Document doc;
+			doc.SetObject();
+			rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
+
+			rapidjson::Value entityData(rapidjson::kObjectType);
+			EntitySerializer::SerializeEntity(entity, *ecs, entityData, alloc);
+			doc.CopyFrom(entityData, alloc);
+
+			rapidjson::StringBuffer buffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+			doc.Accept(writer);
+			entitiesClipboard_.push_back(buffer.GetString());
+		}
 	}
 
 	void Editor::PasteEntityFromClipboard() {
 		// Check if there is an entity in the clipboard
-		if (!entityClipboard.has_value()) {
+		if (entitiesClipboard_.empty()) {
 			Framework::Logger::Get().Error(DebugType::Editor) << "No entity in clipboard to paste!" << std::endl;
 			return;
 		}
@@ -1228,7 +1426,7 @@ namespace Editor {
 		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
 		rapidjson::Document doc;
 
-		doc.Parse(entityClipboard->c_str());
+		doc.Parse(entitiesClipboard_[0].c_str());
 		if (doc.HasParseError()) {
 			Framework::Logger::Get().Error(DebugType::Editor) << "Failed to parse entity data from clipboard!" << std::endl;
 			return;
@@ -1240,6 +1438,40 @@ namespace Editor {
 
 		Framework::SceneManager::GetInstance().AddEntityToScene(Framework::SceneManager::GetInstance().GetActiveScene(), pastedEntity);
 		historyManager_.Record(OpType::Create, pastedEntity, "Pasted Entity");
+	}
+
+	void Editor::PasteEntitiesFromClipboard() {
+		if (entitiesClipboard_.empty()) {
+			Framework::Logger::Get().Error(DebugType::Editor) << "No entities in clipboard to paste!" << std::endl;
+			return;
+		}
+
+		Framework::EntityStorage* ecs = &GameManager::GetInstance().GetECS();
+		const SceneAsset& activeScene = Framework::SceneManager::GetInstance().GetActiveScene();
+		
+		std::vector<Entity> pastedEntities;
+
+		for (const std::string& entityJson : entitiesClipboard_) {
+			rapidjson::Document doc;
+			doc.Parse(entityJson.c_str());
+			
+			if (doc.HasParseError()) {
+				Framework::Logger::Get().Error(DebugType::Editor) << "Failed to parse entity data from clipboard!" << std::endl;
+				continue;
+			}
+
+			Entity pastedEntity = EntitySerializer::DeserializeEntity(*ecs, doc);
+			EntityManager entityMgr(*ecs);
+			entityMgr.GetProperties(pastedEntity).uuid = EntityManager::GenerateUUID();
+
+			Framework::SceneManager::GetInstance().AddEntityToScene(activeScene, pastedEntity);
+			pastedEntities.push_back(pastedEntity);
+		}
+
+		if (!pastedEntities.empty()) {
+			historyManager_.Record(OpType::Create, pastedEntities[0],
+				"Pasted " + std::to_string(pastedEntities.size()) + " Entities");
+		}
 	}
 
 	std::string Editor::SerializeEntityToString(const Entity entity) {
@@ -2075,16 +2307,97 @@ namespace Editor {
 
 				ImGui::PushID(static_cast<int>(entity));
 
-				bool selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+				// Check if this entity is in the selection
+				bool selected = std::find(selectedEntities_.begin(), selectedEntities_.end(), entity) != selectedEntities_.end();
+				
+				// Keep backward compatibility with old single selection
+				if (selectedEntityIndex > 0 && selectedEntities_.empty()) {
+					selected = (static_cast<unsigned int>(selectedEntityIndex - 1) == entity);
+				}
 
 				if (!entityMgr.IsActive(entity)) {
 					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(160, 160, 160, 255));
 				}
 
 				if (ImGui::Selectable(name.c_str(), &selected)) {
+					// Flush any pending edits before changing selection
+					editSession.Flush();
 					selectedTagIndex = selectedComponentIndex = 0;
-					selectedEntityIndex = entity + 1;
-					isEntitySelected_ = true;
+					
+					ImGuiIO& io = ImGui::GetIO();
+					
+					if (io.KeyCtrl) {
+						// Ctrl+Click: Toggle individual selection
+						auto it = std::find(selectedEntities_.begin(), selectedEntities_.end(), entity);
+						if (it != selectedEntities_.end()) {
+							// Deselect if already selected
+							selectedEntities_.erase(it);
+						} else {
+							// Add to selection
+							selectedEntities_.push_back(entity);
+						}
+						lastClickedEntity_ = entity;
+					}
+					else if (io.KeyShift && lastClickedEntity_ != 0) {
+						// Shift+Click: Range selection
+						// Get all entities in the current scene
+						SceneManagement::SceneGUID currentSceneID = activeScene.sceneIndex;
+						if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+							currentSceneID = entityMgr.GetComponent<SceneOwned>(entity).sceneIndex;
+						}
+						
+						const std::vector<Entity> allSceneEntities = sceneMgr.GetEntitiesInScene(currentSceneID);
+						std::vector<Entity> sceneEntities;
+						sceneEntities.reserve(allSceneEntities.size());
+						for (const Entity e : allSceneEntities) {
+							if (entityMgr.ValidateEntity(e)) {
+								// Apply search filter
+								const std::string& eName = entityMgr.GetProperties(e).name;
+								std::string lowerName = eName;
+								std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+								std::string lowerSearch = searchBuffer;
+								std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), ::tolower);
+								
+								if (lowerSearch.empty() || lowerName.find(lowerSearch) != std::string::npos) {
+									sceneEntities.push_back(e);
+								}
+							}
+						}
+						
+						// Sort entities alphabetically
+						std::sort(sceneEntities.begin(), sceneEntities.end(),
+							[&](Entity a, Entity b) {
+								return entityMgr.GetProperties(a).name < entityMgr.GetProperties(b).name;
+							});
+						
+						// Find indices of last clicked and current entity
+						auto lastIt = std::find(sceneEntities.begin(), sceneEntities.end(), lastClickedEntity_);
+						auto currentIt = std::find(sceneEntities.begin(), sceneEntities.end(), entity);
+						
+						if (lastIt != sceneEntities.end() && currentIt != sceneEntities.end()) {
+							// Clear current selection
+							selectedEntities_.clear();
+							
+							// Select range
+							const size_t startIdx = static_cast<size_t>(std::min(std::distance(sceneEntities.begin(), lastIt),
+								std::distance(sceneEntities.begin(), currentIt)));
+							const size_t endIdx = static_cast<size_t>(std::max(std::distance(sceneEntities.begin(), lastIt),
+								std::distance(sceneEntities.begin(), currentIt)));
+							
+							for (size_t i = startIdx; i <= endIdx; ++i) {
+								selectedEntities_.push_back(sceneEntities[i]);
+							}
+						}
+					}
+					else {
+						// Normal click: Single selection
+						selectedEntities_.clear();
+						selectedEntities_.push_back(entity);
+						lastClickedEntity_ = entity;
+						selectedEntityIndex = entity + 1;  // Keep for backward compatibility
+					}
+					
+					isEntitySelected_ = !selectedEntities_.empty();
 				}
 
 				// Drag and Drop Source
@@ -2101,21 +2414,52 @@ namespace Editor {
 
 				// Allows right-click selection
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-					selectedTagIndex = selectedComponentIndex = 0;
-					selectedEntityIndex = entity + 1;
-					isEntitySelected_ = true;
+					// Only change selection if entity is not already in the selection
+					bool alreadySelected = std::find(selectedEntities_.begin(), selectedEntities_.end(), entity) != selectedEntities_.end();
+					if (!alreadySelected) {
+						// Flush any pending edits before changing selection
+						editSession.Flush();
+						selectedTagIndex = selectedComponentIndex = 0;
+						selectedEntities_.clear();
+						selectedEntities_.push_back(entity);
+						selectedEntityIndex = entity + 1;
+						lastClickedEntity_ = entity;
+						isEntitySelected_ = true;
+					}
 				}
 
 				// Selectable Context Menu
 				if (ImGui::BeginPopupContextItem("##EntityContext")) {
-					// Copy
-					if (ImGui::MenuItem("Copy")) {
-						CopyEntityToClipboard(entity);
+					// Sanitize selection in case entities were deleted via undo/redo.
+					selectedEntities_.erase(
+						std::remove_if(selectedEntities_.begin(), selectedEntities_.end(),
+							[&](Entity e) { return !entityMgr.ValidateEntity(e); }),
+						selectedEntities_.end());
+					isEntitySelected_ = !selectedEntities_.empty();
+					if (isEntitySelected_) {
+						selectedEntityIndex = selectedEntities_[0] + 1;
 					}
+					else {
+						selectedEntityIndex = 0;
+					}
+
+					// Copy
+					if (selectedEntities_.size() > 1) {
+						if (ImGui::MenuItem(("Copy (" + std::to_string(selectedEntities_.size()) + " entities)").c_str())) {
+							CopyEntitiesToClipboard(selectedEntities_);
+						}
+					} else {
+						if (ImGui::MenuItem("Copy")) {
+							CopyEntityToClipboard(entity);
+						}
+					}
+					
 					// Paste
-					if (entityClipboard) {
-						if (ImGui::MenuItem("Paste")) {
-							PasteEntityFromClipboard();
+					if (!entitiesClipboard_.empty()) {
+						std::string pasteLabel = entitiesClipboard_.size() > 1 ? 
+							"Paste (" + std::to_string(entitiesClipboard_.size()) + " entities)" : "Paste";
+						if (ImGui::MenuItem(pasteLabel.c_str())) {
+							PasteEntitiesFromClipboard();
 						}
 					}
 					else {
@@ -2124,23 +2468,63 @@ namespace Editor {
 
 					ImGui::Separator();
 
-					if (ImGui::MenuItem("Duplicate")) {
-						SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
-						if (entityMgr.HasComponent(entity, SceneOwnedType)) {
-							ownerSceneID = entityMgr.GetComponent<SceneOwned>(entity).sceneIndex;
-						}
+					if (selectedEntities_.size() > 1) {
+						// Duplicate multiple entities
+						if (ImGui::MenuItem(("Duplicate (" + std::to_string(selectedEntities_.size()) + " entities)").c_str())) {
+							std::vector<Entity> validSelection;
+							for (Entity ent : selectedEntities_) {
+								if (entityMgr.ValidateEntity(ent)) validSelection.push_back(ent);
+							}
+							if (validSelection.empty()) {
+								ImGui::EndPopup();
+								ImGui::PopID();
+								return;
+							}
+							for (Entity ent : validSelection) {
+								SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
+								if (entityMgr.HasComponent(ent, SceneOwnedType)) {
+									ownerSceneID = entityMgr.GetComponent<SceneOwned>(ent).sceneIndex;
+								}
 
-						const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
-						Entity clonedEntity = entityMgr.CloneEntity(entity);
-						sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
-						historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
-					}
-					if (ImGui::MenuItem("Delete")) {
-						historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
-						entityMgr.DestroyEntity(entity);
-						if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+								const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
+								Entity clonedEntity = entityMgr.CloneEntity(ent);
+								sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
+							}
+							historyManager_.Record(OpType::Create, validSelection[0], "Duplicated " + std::to_string(validSelection.size()) + " Entities");
+						}
+						
+						// Delete multiple entities
+						if (ImGui::MenuItem(("Delete (" + std::to_string(selectedEntities_.size()) + " entities)").c_str())) {
+							for (Entity ent : selectedEntities_) {
+								if (!entityMgr.ValidateEntity(ent)) continue;
+								historyManager_.Record(OpType::Delete, ent, "Deleted Entity");
+								entityMgr.DestroyEntity(ent);
+							}
+							selectedEntities_.clear();
 							selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 							isEntitySelected_ = false;
+						}
+					} else {
+						// Single entity operations
+						if (ImGui::MenuItem("Duplicate")) {
+							SceneManagement::SceneGUID ownerSceneID = activeScene.sceneIndex;
+							if (entityMgr.HasComponent(entity, SceneOwnedType)) {
+								ownerSceneID = entityMgr.GetComponent<SceneOwned>(entity).sceneIndex;
+							}
+
+							const SceneAsset& ownerScene = sceneMgr.GetSceneAt(ownerSceneID);
+							Entity clonedEntity = entityMgr.CloneEntity(entity);
+							sceneMgr.AddEntityToScene(ownerScene, clonedEntity);
+							historyManager_.Record(OpType::Create, clonedEntity, "Duplicated Entity");
+						}
+						if (ImGui::MenuItem("Delete")) {
+							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+							entityMgr.DestroyEntity(entity);
+							if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+								selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+								isEntitySelected_ = false;
+								selectedEntities_.clear();
+							}
 						}
 					}
 					ImGui::EndPopup();
@@ -2158,9 +2542,11 @@ namespace Editor {
 
 				if (ImGui::BeginPopupContextItem("##SceneHeaderContext")) {
 					// Paste
-					if (entityClipboard.has_value()) {
-						if (ImGui::MenuItem("Paste")) {
-							PasteEntityFromClipboard();
+					if (!entitiesClipboard_.empty()) {
+						std::string pasteLabel = entitiesClipboard_.size() > 1 ? 
+							"Paste (" + std::to_string(entitiesClipboard_.size()) + " entities)" : "Paste";
+						if (ImGui::MenuItem(pasteLabel.c_str())) {
+							PasteEntitiesFromClipboard();
 						}
 					}
 					else {
@@ -2245,9 +2631,11 @@ namespace Editor {
 
 			if (ImGui::BeginPopupContextItem("##HierarchyEmptyContext")) {
 				// Paste
-				if (entityClipboard) {
-					if (ImGui::MenuItem("Paste")) {
-						PasteEntityFromClipboard();
+				if (!entitiesClipboard_.empty()) {
+					std::string pasteLabel = entitiesClipboard_.size() > 1 ? 
+						"Paste (" + std::to_string(entitiesClipboard_.size()) + " entities)" : "Paste";
+					if (ImGui::MenuItem(pasteLabel.c_str())) {
+						PasteEntitiesFromClipboard();
 					}
 				}
 				else {
@@ -2282,12 +2670,44 @@ namespace Editor {
 		if (isEntitySelected_) {
 			EntityStorage& ecs = *(gameManager_->GetSystems().ecs_);
 			EntityManager entityMgr(ecs);
-			Entity selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+			
+			// Handle multiple entity selection
+			if (selectedEntities_.size() > 1) {
+				ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%zu entities selected", selectedEntities_.size());
+				ImGui::Separator();
+				
+				// Show list of selected entities
+				if (ImGui::CollapsingHeader("Selected Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
+					for (size_t i = 0; i < selectedEntities_.size(); ++i) {
+						Entity ent = selectedEntities_[i];
+						if (entityMgr.ValidateEntity(ent)) {
+							const std::string& name = entityMgr.GetProperties(ent).name;
+							ImGui::BulletText("%s (ID: %u)", name.c_str(), ent);
+						}
+					}
+				}
+				
+				ImGui::Spacing();
+				ImGui::TextWrapped("Component editing is disabled when multiple entities are selected.");
+				ImGui::TextWrapped("Select a single entity to edit its components.");
+				
+				ImGui::End();
+				return;
+			}
+			
+			// Single entity selection - use first entity or legacy selectedEntityIndex
+			Entity selectedEntity;
+			if (!selectedEntities_.empty()) {
+				selectedEntity = selectedEntities_[0];
+			} else {
+				selectedEntity = static_cast<Entity>(selectedEntityIndex - 1);
+			}
 
 			// Check if Entity is alive before accessing properties.
 			if (!entityMgr.ValidateEntity(selectedEntity)) {
 				isEntitySelected_ = false;
 				selectedEntityIndex = selectedComponentIndex = selectedTagIndex = selectedScriptIndex = 0;
+				selectedEntities_.clear();
 				ImGui::End();
 				return;
 			}
@@ -2574,13 +2994,42 @@ namespace Editor {
 
 		const std::string componentLabel = ComponentToString(selectedComponent);
 
+		ImGui::PushID(static_cast<int>(selectedComponent));
 		ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.10f, 0.35f, 0.75f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.45f, 0.90f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.08f, 0.30f, 0.65f, 1.0f));
 		const bool isComponentOpen = ImGui::CollapsingHeader(componentLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 		ImGui::PopStyleColor(3);
 
+		bool removeComponentFromHeader = false;
+		if (ImGui::BeginPopupContextItem("##ComponentHeaderContext")) {
+			if (ImGui::MenuItem("Delete Component")) {
+				removeComponentFromHeader = true;
+			}
+			ImGui::EndPopup();
+		}
+
+		if (removeComponentFromHeader) {
+			if (entityMgr.HasComponent(selectedEntity, selectedComponent)) {
+				if (editSession.active && editSession.compInEdit == selectedComponent) {
+					editSession.Flush();
+				}
+
+				const std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+				entityMgr.RemoveComponent(selectedEntity, selectedComponent);
+
+				std::string afterJSON;
+				const std::string description = "Remove " + ComponentToString(selectedComponent);
+				historyManager_.RecordModifyComponent(selectedEntity, description, beforeJSON, afterJSON, selectedComponent);
+				selectedComponentIndex = 0;
+			}
+			ImGui::PopID();
+			ImGui::Separator();
+			return;
+		}
+
 		if (!isComponentOpen) {
+			ImGui::PopID();
 			return;
 		}
 
@@ -3864,6 +4313,7 @@ namespace Editor {
 			break;
 		}
 		ImGui::Separator();
+		ImGui::PopID();
 	}
 
 #pragma endregion
@@ -3906,22 +4356,36 @@ namespace Editor {
 
 	void Editor::HandleGameViewportInput() {
 
-		// Handle inputs for gizmos (QTYU)
+		// Handle inputs for gizmos/modes (QTYUI)
 		if (gizmoSystem_) {
-			// Q: Select/View Mode (No Gizmo)
-			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+			// I: Marquee mode
+			if (ImGui::IsKeyPressed(ImGuiKey_I)) {
+				isMarqueeMode_ = true;
+				isMarqueeSelecting_ = false;
+				gizmoSystem_->SetGizmoMode(GizmoMode::None);
+			}
+			// Q: Select/View Mode (No Gizmo, no marquee)
+			else if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::None);
 			}
 			// T: Translate
 			else if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::Translate);
 			}
 			// Y: Rotate
 			else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::Rotate);
 			}
 			// U: Scale
 			else if (ImGui::IsKeyPressed(ImGuiKey_U)) {
+				isMarqueeMode_ = false;
+				isMarqueeSelecting_ = false;
 				gizmoSystem_->SetGizmoMode(GizmoMode::Scale);
 			}
 		}
@@ -3950,22 +4414,49 @@ namespace Editor {
 				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
 			}
 
+			float scrollDelta = ImGui::GetIO().MouseWheel;
+			if (scrollDelta != 0.0f && isMouseOverGameViewport_) {
+				if (scrollDelta > 0.0f) {
+					cam.zoom *= 0.8f;
+				}
+				else if (scrollDelta < 0.0f) {
+					cam.zoom *= 1.2f;
+				}
+				cameraSystem_->SetZoom(editorCamera_, cam.zoom);
+			}
+
 			// Optional: reset zoom with R
 			if (ImGui::IsKeyPressed(ImGuiKey_R)) {
 				ResetEditorCamera();
 			}
 		}
 
-		// Delete selected entity with Delete key
-		if (isEntitySelected_ && selectedEntityIndex > 1) {
+		// Delete selected entity/entities with Delete key
+		if (isEntitySelected_) {
 			if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-				Entity entity = selectedEntityIndex - 1;
 				EntityManager entityMgr(*(gameManager_->GetSystems().ecs_));
-				historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
-				entityMgr.DestroyEntity(entity);
-				if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+				
+				// Delete all selected entities
+				if (!selectedEntities_.empty()) {
+					for (Entity entity : selectedEntities_) {
+						if (entityMgr.ValidateEntity(entity)) {
+							historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+							entityMgr.DestroyEntity(entity);
+						}
+					}
+					selectedEntities_.clear();
 					selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
 					isEntitySelected_ = false;
+				}
+				// Legacy single entity deletion
+				else if (selectedEntityIndex > 1) {
+					Entity entity = selectedEntityIndex - 1;
+					historyManager_.Record(OpType::Delete, entity, "Deleted Entity");
+					entityMgr.DestroyEntity(entity);
+					if (static_cast<unsigned int>((selectedEntityIndex - 1)) == entity) {
+						selectedEntityIndex = selectedTagIndex = selectedComponentIndex = 0;
+						isEntitySelected_ = false;
+					}
 				}
 			}
 		}
@@ -5151,6 +5642,8 @@ namespace Editor {
 				}
 
 				if (ImGui::Selectable(props.name.c_str(), isSelected, ImGuiSelectableFlags_SpanAllColumns)) {
+					// Flush any pending edits before changing selection
+					editSession.Flush();
 					selectedEntityIndex = entity + 1;
 					isEntitySelected_ = true;
 					selectedComponentIndex = 0;
@@ -5253,12 +5746,20 @@ namespace Editor {
 				// Edit Subsection
 				ImGui::SeparatorText("EDIT");
 				if (ImGui::MenuItem("Copy", "Ctrl+C", false, isEntitySelected_)) {
-					if (isEntitySelected_ && selectedEntityIndex > 0) {
+					if (!selectedEntities_.empty()) {
+						if (selectedEntities_.size() > 1) {
+							CopyEntitiesToClipboard(selectedEntities_);
+						}
+						else {
+							CopyEntityToClipboard(selectedEntities_[0]);
+						}
+					}
+					else if (selectedEntityIndex > 0) {
 						CopyEntityToClipboard(selectedEntityIndex - 1);
 					}
 				}
-				if (ImGui::MenuItem("Paste", "Ctrl+V", false, entityClipboard.has_value())) {
-					PasteEntityFromClipboard();
+				if (ImGui::MenuItem("Paste", "Ctrl+V", false, !entitiesClipboard_.empty())) {
+					PasteEntitiesFromClipboard();
 				}
 				if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, isEntitySelected_)) {
 					Entity selectedEntity = selectedEntityIndex - 1;
@@ -5378,13 +5879,15 @@ namespace Editor {
 				ImVec4 selectedModeClr = ImVec4(0.0f, 1.0f, 1.0f, 1.0f); // cyan
 				ImVec4 greyClr = ImVec4(0.9f, 0.9f, 0.9f, 1.0f); // grey
 
-				ImGui::TextColored(gizmoSystem_->IsGizmosToggled() ? greyClr : selectedModeClr, "Q - Select Mode");
+				ImGui::TextColored((!isMarqueeMode_ && !gizmoSystem_->IsGizmosToggled()) ? selectedModeClr : greyClr, "Q - Select Mode");
 				ImGui::SameLine(0, spacing);
 				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Translate) ? selectedModeClr : greyClr, "T - Tranlate/Move Mode");
 				ImGui::SameLine(0, spacing);
 				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Rotate) ? selectedModeClr : greyClr, "Y - Rotate Mode");
 				ImGui::SameLine(0, spacing);
 				ImGui::TextColored((gizmoSystem_->currentMode_ == GizmoMode::Scale) ? selectedModeClr : greyClr, "U - Scale Mode");
+				ImGui::SameLine(0, spacing);
+				ImGui::TextColored(isMarqueeMode_ ? selectedModeClr : greyClr, "I - Marquee Mode");
 			}
 
 			ImGui::SameLine();
@@ -7783,15 +8286,18 @@ namespace Editor {
 		}
 
 		// History Tracking logic
-		if (nowActive && !editSession.wasItemActive) {
-			editSession.Begin(entity, compType);
+		// Only track edits if this is the entity currently being edited (or no edit is active)
+		if (!editSession.active || editSession.entityInEdit == entity) {
+			if (nowActive && !editSession.wasItemActive) {
+				editSession.Begin(entity, compType);
+			}
+			if (!nowActive && editSession.wasItemActive) {
+				std::stringstream ss;
+				ss << "Set Transform in " << entityMgr.GetProperties(entity).name << std::endl;
+				editSession.End(entity, compType, ss.str(), historyManager_);
+			}
+			editSession.wasItemActive = nowActive;
 		}
-		if (!nowActive && editSession.wasItemActive) {
-			std::stringstream ss;
-			ss << "Set Transform in " << entityMgr.GetProperties(entity).name << std::endl;
-			editSession.End(entity, compType, ss.str(), historyManager_);
-		}
-		editSession.wasItemActive = nowActive;
 	}
 
 	void Editor::DrawRigidBodyInspector(Entity entity) {

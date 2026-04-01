@@ -38,8 +38,8 @@
                 ]
             },
             "Scale": {
-                "x": 2.200000047683716,
-                "y": 3.0
+                "x": 1.0,
+                "y": 1.0
             }
         },
         "Velocity": {
@@ -56,8 +56,8 @@
             }
         },
         "AABBCollider": {
-            "half_width": 60.0,
-            "half_height": 190.0,
+            "half_width": 48.0,
+            "half_height": 170.0,
             "offset_x": -5.0,
             "offset_y": 0.0
         },
@@ -80,8 +80,8 @@
         "TextureComponent": {
             "texture_key": "SB_TrapPlatform_Horizontal.png",
             "half_size": {
-                "x": 100.0,
-                "y": 40.0
+                "x": 200.0,
+                "y": 100.0
             },
             "flip_x": false
         },

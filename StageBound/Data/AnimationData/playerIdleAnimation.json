@@ -6,11 +6,15 @@
     "spritesheets": [
         {
             "texture": "SB_Eli_Idle_Spritesheet_1.png",
-            "count": 8
+            "count": 6
         },
         {
             "texture": "SB_Eli_Idle_Spritesheet_2.png",
-            "count": 7
+            "count": 6
+        },
+        {
+            "texture": "SB_Eli_Idle_Spritesheet_3.png",
+            "count": 3
         }
     ],
     "frameEvents": {}

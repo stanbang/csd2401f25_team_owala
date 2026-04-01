@@ -167,7 +167,9 @@ namespace Editor {
 
 		// Entity Inspector
 		EditSession editSession;
-		int selectedEntityIndex = 0;
+		int selectedEntityIndex = 0;  // DEPRECATED: Keep for backward compatibility during transition
+		std::vector<Entity> selectedEntities_;  // New: Support multiple entity selection
+		Entity lastClickedEntity_ = 0;  // Track last clicked entity for range selection
 		std::vector<std::string> componentNames;
 		std::vector<const char*> componentItems;
 		std::vector<Framework::ComponentType> componentTypes;
@@ -233,7 +235,11 @@ namespace Editor {
 
 		// --- Entity Selection & Deletion ---
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
-		std::optional<std::string> entityClipboard;
+		std::vector<std::string> entitiesClipboard_;  // Support multiple entities in clipboard
+		bool isMarqueeMode_ = false; // I key toggles marquee selection mode
+		bool isMarqueeSelecting_ = false;
+		ImVec2 marqueeStartScreenPos_ = { 0.0f, 0.0f };
+		ImVec2 marqueeEndScreenPos_ = { 0.0f, 0.0f };
 
 		// Drag and Drop Support (Windows to Editor)
 		std::vector<std::filesystem::path> droppedFilePaths_;
@@ -312,7 +318,9 @@ namespace Editor {
 
 		/* Entity Copy & Pasting APIs */
 		void CopyEntityToClipboard(const Entity entity);
+		void CopyEntitiesToClipboard(const std::vector<Entity>& entities);  // New: Multiple entities
 		void PasteEntityFromClipboard();
+		void PasteEntitiesFromClipboard();  // New: Multiple entities
 		std::string SerializeEntityToString(const Entity entity);
 
 		// --- GUI Panel Functions ---
