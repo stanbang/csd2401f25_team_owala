@@ -1671,35 +1671,35 @@ namespace Editor {
 			}
 			scenePreloadLoaded_.insert(currentScene.sceneIndex);
 		}
+		if (ImGui::CollapsingHeader("Scene Asset Preload")) {
+			ImGui::TextDisabled("Texture keys here are preloaded asynchronously when this scene is requested.");
 
-		ImGui::SeparatorText("Scene Asset Preload");
-		ImGui::TextDisabled("Texture keys here are preloaded asynchronously when this scene is requested.");
-
-		ImGui::SetNextItemWidth(260.0f);
-		ImGui::InputText("##PreloadTextureKey", preloadTextureInput_, IM_ARRAYSIZE(preloadTextureInput_));
-		ImGui::SameLine();
-		if (ImGui::Button("Add Preload Texture")) {
-			std::string key = preloadTextureInput_;
-			if (!key.empty() && std::find(preloadList.begin(), preloadList.end(), key) == preloadList.end()) {
-				preloadList.push_back(key);
-			}
-			preloadTextureInput_[0] = '\0';
-		}
-
-		if (preloadList.empty()) {
-			ImGui::TextDisabled("No extra preload textures configured.");
-		}
-		else {
-			for (size_t i = 0; i < preloadList.size(); ++i) {
-				ImGui::PushID(static_cast<int>(i));
-				ImGui::TextUnformatted(preloadList[i].c_str());
-				ImGui::SameLine();
-				if (ImGui::SmallButton("Remove")) {
-					preloadList.erase(preloadList.begin() + static_cast<std::ptrdiff_t>(i));
-					ImGui::PopID();
-					break;
+			ImGui::SetNextItemWidth(260.0f);
+			ImGui::InputText("##PreloadTextureKey", preloadTextureInput_, IM_ARRAYSIZE(preloadTextureInput_));
+			ImGui::SameLine();
+			if (ImGui::Button("Add Preload Texture")) {
+				std::string key = preloadTextureInput_;
+				if (!key.empty() && std::find(preloadList.begin(), preloadList.end(), key) == preloadList.end()) {
+					preloadList.push_back(key);
 				}
-				ImGui::PopID();
+				preloadTextureInput_[0] = '\0';
+			}
+
+			if (preloadList.empty()) {
+				ImGui::TextDisabled("No extra preload textures configured.");
+			}
+			else {
+				for (size_t i = 0; i < preloadList.size(); ++i) {
+					ImGui::PushID(static_cast<int>(i));
+					ImGui::TextUnformatted(preloadList[i].c_str());
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Remove")) {
+						preloadList.erase(preloadList.begin() + static_cast<std::ptrdiff_t>(i));
+						ImGui::PopID();
+						break;
+					}
+					ImGui::PopID();
+				}
 			}
 		}
 	}
