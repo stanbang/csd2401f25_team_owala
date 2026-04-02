@@ -45,7 +45,7 @@ namespace Framework {
         // Serialize tags for a given entity into a JSON object.
         static void SerializeTags(EntityManager& entityMgr, Entity entity, rapidjson::Value& outData, rapidjson::Document::AllocatorType& alloc);
         // Serializes scene data to a JSON file.
-        static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName);
+        static void SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName, const std::vector<std::string>& preloadTextures = {});
         // Serializes the current state of an entity to a JSON Object and return as a string.
         static std::string SerializeEntityToString(Entity entity, EntityStorage& ecs);
         // Serializes the current state of the entity properties into a JSON Object and return as a string. 
@@ -67,7 +67,7 @@ namespace Framework {
 		// Deserialize tags for a given entity from JSON data.
         static void DeserializeTags(EntityManager& entityMgr, Entity& loadedEntity, const rapidjson::Value& entityData);
         // Deserialize scene data from JSON file (modifies sceneName and entitiesList)
-        static bool DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList);
+        static bool DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList, std::vector<std::string>* preloadTextures = nullptr);
 
         /* Specialized Serialization APIs */
         /* Components */

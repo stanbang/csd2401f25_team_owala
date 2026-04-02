@@ -462,7 +462,8 @@ namespace Framework{
 		bool attackCircleAnimated = false;
 		float attackCircleAnimTimer = 0.0f;
 		int attackCircleAnimFrame = 0;
-		std::vector<std::string> attackCircleAnimTextures; // List of texture keys for animation frames
+		std::vector<std::string> attackCircleAnimTextures;
+		std::vector<int> attackCircleAnimFrameCounts;
 		float attackCircleAnimFrameDuration = 0.04f;
 	};
 

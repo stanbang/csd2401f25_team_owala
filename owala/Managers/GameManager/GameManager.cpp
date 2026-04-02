@@ -10,6 +10,8 @@
 #include "GameManager.h"
 #include "EntitySerializer.h"
 #include "EntityManager.h"
+#include "SerializationKeys.h"
+#include <set>
 
 //Core Engine headers for IMGUI
 #include "Core.h"
@@ -600,6 +602,21 @@ namespace Framework {
 
 		if (!doc.IsObject() || !doc.HasMember("entities")) return;
 
+		// Track textures to preload
+		std::set<std::string> texturesToPreload;
+
+		// Optional scene-level preload list (editor-authored)
+		if (doc.HasMember(Serialization::PRELOAD_TEXTURES) && doc[Serialization::PRELOAD_TEXTURES].IsArray()) {
+			for (const auto& value : doc[Serialization::PRELOAD_TEXTURES].GetArray()) {
+				if (value.IsString()) {
+					std::string key = value.GetString();
+					if (!key.empty()) {
+						texturesToPreload.insert(key);
+					}
+				}
+			}
+		}
+
 		// Loop through entities and find textures
 		const rapidjson::Value& entities = doc["entities"];
 		for (const auto& entity : entities.GetArray()) {
@@ -610,11 +627,16 @@ namespace Framework {
 			if (components.HasMember("TextureComponent")) {
 				const auto& texComp = components["TextureComponent"];
 				if (texComp.HasMember("texture_key")) {
-					std::string key = texComp["texture_key"].GetString();
-					std::string path = rcm.GetAssetPath(key);
-
-					if (!path.empty() && !rcm.has<Texture>(key)) {
-						rcm.LoadTextureAsync(path);
+					const auto& textureKeyValue = texComp["texture_key"];
+					if (textureKeyValue.IsString()) {
+						std::string key = textureKeyValue.GetString();
+						if (!key.empty()) {
+							texturesToPreload.insert(key);
+						}
+					}
+					else {
+						Logger::Get().Error(DebugType::GameManager)
+							<< "Skipping preload texture: TextureComponent.texture_key is not a string in scene " << sceneName << std::endl;
 					}
 				}
 			}
@@ -623,15 +645,34 @@ namespace Framework {
 			if (components.HasMember("ParticleEmitterComponent")) {
 				const auto& partComp = components["ParticleEmitterComponent"];
 				if (partComp.HasMember("particle_texture_key")) {
-					std::string key = partComp["particle_texture_key"].GetString();
-					std::string path = rcm.GetAssetPath(key);
-
-					if (!path.empty() && !rcm.has<Texture>(key)) {
-						rcm.LoadTextureAsync(path);
+					const auto& particleTextureKeyValue = partComp["particle_texture_key"];
+					if (particleTextureKeyValue.IsString()) {
+						std::string key = particleTextureKeyValue.GetString();
+						if (!key.empty()) {
+							texturesToPreload.insert(key);
+						}
+					}
+					else {
+						Logger::Get().Error(DebugType::GameManager)
+							<< "Skipping preload texture: ParticleEmitterComponent.particle_texture_key is not a string in scene " << sceneName << std::endl;
 					}
 				}
 			}
+
 		}
+
+		// Queue all collected textures for async loading
+		int queuedCount = 0;
+		for (const std::string& key : texturesToPreload) {
+			std::string path = rcm.GetAssetPath(key);
+			if (!path.empty() && !rcm.has<Texture>(key)) {
+				rcm.LoadTextureAsync(path);
+				queuedCount++;
+			}
+		}
+
+		Logger::Get().Info(DebugType::GameManager) 
+			<< "Queued " << queuedCount << " textures for async loading" << std::endl;
 	}
 
 	void GameManager::Configure(const GameConfig& config) {

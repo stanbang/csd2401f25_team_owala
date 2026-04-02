@@ -331,7 +331,7 @@ namespace Framework {
 		outData.AddMember(rapidjson::StringRef(Serialization::TAGS), tagsList, alloc);
 	}
 
-	void EntitySerializer::SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName) {
+	void EntitySerializer::SerializeSceneData(const std::vector<Entity>& entities, EntityStorage& ecs, const std::string& filePath, const std::string& sceneName, const std::vector<std::string>& preloadTextures) {
 		try {
 			Logger::Get().Info(DebugType::EntitySeralizer) << "Serializing scene <" << sceneName << "> to: " << filePath << std::endl;
 			rapidjson::Document doc;
@@ -339,6 +339,15 @@ namespace Framework {
 			rapidjson::Document::AllocatorType& alloc = doc.GetAllocator();
 			rapidjson::Value sceneNameValue(sceneName.c_str(), alloc);
 			doc.AddMember(rapidjson::StringRef(Serialization::SCENE_NAME), sceneNameValue, alloc);
+
+			if (!preloadTextures.empty()) {
+				rapidjson::Value preloadArray(rapidjson::kArrayType);
+				for (const std::string& key : preloadTextures) {
+					if (key.empty()) continue;
+					preloadArray.PushBack(rapidjson::Value(key.c_str(), alloc).Move(), alloc);
+				}
+				doc.AddMember(rapidjson::StringRef(Serialization::PRELOAD_TEXTURES), preloadArray, alloc);
+			}
 
 			rapidjson::Value entitiesData(rapidjson::kArrayType);
 			SerializeEntities(entities, ecs, entitiesData, alloc);
@@ -831,7 +840,7 @@ namespace Framework {
 		}
 	}
 
-	bool EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList) {
+	bool EntitySerializer::DeserializeSceneData(EntityStorage& ecs, const std::string& filePath, std::string& sceneName, std::vector<Entity>& entitiesList, std::vector<std::string>* preloadTextures) {
 		try {
 			Logger::Get().Info(DebugType::EntitySeralizer) << "Deserializing scene data from: " << filePath << std::endl;
 			rapidjson::Document sceneData;
@@ -850,6 +859,18 @@ namespace Framework {
 
 			// Deserialize scene name and entities
 			sceneName = sceneData[Serialization::SCENE_NAME].GetString();
+
+			if (preloadTextures) {
+				preloadTextures->clear();
+				if (sceneData.HasMember(Serialization::PRELOAD_TEXTURES) && sceneData[Serialization::PRELOAD_TEXTURES].IsArray()) {
+					for (const rapidjson::Value& tex : sceneData[Serialization::PRELOAD_TEXTURES].GetArray()) {
+						if (tex.IsString()) {
+							preloadTextures->push_back(tex.GetString());
+						}
+					}
+				}
+			}
+
 			const rapidjson::Value& entitiesData = sceneData[Serialization::ENTITIES];
 
 			EntityManager entityMgr(ecs);

@@ -48,6 +48,8 @@
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <optional>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace Framework {
 	class GameManager; // Forward Declaration
@@ -236,6 +238,9 @@ namespace Editor {
 		// --- Entity Selection & Deletion ---
 		bool isEntitySelected_ = false;  // Flag to track if an entity is selected
 		std::vector<std::string> entitiesClipboard_;  // Support multiple entities in clipboard
+		std::unordered_map<Framework::SceneGUID, std::vector<std::string>> scenePreloadTextures_;
+		std::unordered_set<Framework::SceneGUID> scenePreloadLoaded_;
+		char preloadTextureInput_[256] = "";
 		bool isMarqueeMode_ = false; // I key toggles marquee selection mode
 		bool isMarqueeSelecting_ = false;
 		ImVec2 marqueeStartScreenPos_ = { 0.0f, 0.0f };
@@ -377,6 +382,7 @@ namespace Editor {
 
 		// Scene Management Helper functions
 		void SaveScene();
+		void DrawScenePreloadTexturesUI(const Framework::SceneAsset& currentScene);
 
 		// Returns entity at current mouse position in the game world, 0 if not found.
 		Entity GetObjAtMousePos();

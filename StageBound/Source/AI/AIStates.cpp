@@ -1189,7 +1189,7 @@ namespace Framework {
             fsm.attackCircleAnimated = true;
             fsm.attackCircleAnimTimer = 0.0f;
             fsm.attackCircleAnimFrame = 0;
-            // 21 spritesheets × 2 frames = 42 frames over 2.0s attack duration ≈ 0.048s per frame
+			// 7 sheets with 5 frames, 1 sheet with 1 frame = 36 frames total, at 0.048s/frame gives ~1.7s total animation time which matches attack duration nicely
             fsm.attackCircleAnimFrameDuration = 0.048f;
             fsm.attackCircleAnimTextures = {
                 "SB_Witch_Circle_VFX_Spritesheet1.png",
@@ -1199,21 +1199,9 @@ namespace Framework {
                 "SB_Witch_Circle_VFX_Spritesheet5.png",
                 "SB_Witch_Circle_VFX_Spritesheet6.png",
                 "SB_Witch_Circle_VFX_Spritesheet7.png",
-                "SB_Witch_Circle_VFX_Spritesheet8.png",
-                "SB_Witch_Circle_VFX_Spritesheet9.png",
-                "SB_Witch_Circle_VFX_Spritesheet10.png",
-                "SB_Witch_Circle_VFX_Spritesheet11.png",
-                "SB_Witch_Circle_VFX_Spritesheet12.png",
-                "SB_Witch_Circle_VFX_Spritesheet13.png",
-                "SB_Witch_Circle_VFX_Spritesheet14.png",
-                "SB_Witch_Circle_VFX_Spritesheet15.png",
-                "SB_Witch_Circle_VFX_Spritesheet16.png",
-                "SB_Witch_Circle_VFX_Spritesheet17.png",
-                "SB_Witch_Circle_VFX_Spritesheet18.png",
-                "SB_Witch_Circle_VFX_Spritesheet19.png",
-                "SB_Witch_Circle_VFX_Spritesheet20.png",
-                "SB_Witch_Circle_VFX_Spritesheet21.png",
+                "SB_Witch_Circle_VFX_Spritesheet8.png"
             };
+            fsm.attackCircleAnimFrameCounts = { 5, 5, 5, 5, 5, 5, 5, 1 };
             // Start with first texture
             if (!fsm.attackCircleAnimTextures.empty()) {
                 fsm.attackCircleTextureKey = fsm.attackCircleAnimTextures[0];
@@ -1273,10 +1261,25 @@ namespace Framework {
             // Update animated VFX frame
             if (fsm.attackCircleAnimated && !fsm.attackCircleAnimTextures.empty()) {
                 fsm.attackCircleAnimTimer += dt;
+
+                if (fsm.attackCircleAnimFrameCounts.empty() ||
+                    fsm.attackCircleAnimFrameCounts.size() != fsm.attackCircleAnimTextures.size()) {
+                    Logger::Get().Error(DebugType::AISystem)
+                        << "Invalid witch attack VFX data: frame-count metadata mismatch, stopping animation update." << std::endl;
+                    return;
+                }
                 
-                // Witch attack circle sheets are 2-frame horizontal strips.
-                const int framesPerSheet = 2;
-                int totalFrames = static_cast<int>(fsm.attackCircleAnimTextures.size()) * framesPerSheet;
+                // Calculate total frames from frame count array
+                int totalFrames = 0;
+                for (int count : fsm.attackCircleAnimFrameCounts) {
+                    totalFrames += count;
+                }
+
+                if (totalFrames <= 0) {
+                    Logger::Get().Error(DebugType::AISystem)
+                        << "Invalid witch attack VFX data: total frame count <= 0, stopping animation update." << std::endl;
+                    return;
+                }
                 
                 // Advance frame based on timer
                 if (fsm.attackCircleAnimTimer >= fsm.attackCircleAnimFrameDuration) {
@@ -1289,8 +1292,17 @@ namespace Framework {
                     }
                 }
                 
-                // Determine which spritesheet and which sub-frame
-                int sheetIndex = fsm.attackCircleAnimFrame / framesPerSheet;
+                // Determine which spritesheet based on accumulated frame counts
+                int sheetIndex = 0;
+                int frameAccumulator = 0;
+                for (size_t i = 0; i < fsm.attackCircleAnimFrameCounts.size(); ++i) {
+                    if (fsm.attackCircleAnimFrame < frameAccumulator + fsm.attackCircleAnimFrameCounts[i]) {
+                        sheetIndex = static_cast<int>(i);
+                        break;
+                    }
+                    frameAccumulator += fsm.attackCircleAnimFrameCounts[i];
+                }
+                
                 if (sheetIndex >= static_cast<int>(fsm.attackCircleAnimTextures.size())) {
                     sheetIndex = static_cast<int>(fsm.attackCircleAnimTextures.size()) - 1;
                 }
