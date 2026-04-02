@@ -602,7 +602,7 @@ namespace Framework {
                     }
                     float screenRadius = std::abs(screenEdge.x - screenCenter.x);
                     // compensate for smaller VFX frame asset (old 2048 -> new 818)
-                    constexpr float kWitchCircleVisualScale = 2048.0f / 818.0f; // ~2.5037
+                    constexpr float kWitchCircleVisualScale = 2048.0f / 1024.0f; // ~2.5037
                     Vector2D halfSize = { screenRadius * kWitchCircleVisualScale,
                                           screenRadius * kWitchCircleVisualScale };
 
