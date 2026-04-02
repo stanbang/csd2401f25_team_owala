@@ -1,10 +1,14 @@
 {
-  "frame_count": 2,
-  "frame_duration": 0.1,
+  "frame_count": 10,
+  "frame_duration": 0.05,
   "is_looping": false,
   "start_frame": 0,
   "spritesheets": [
-    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet4.png", "count": 2 }
+    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet1.png", "count": 2 },
+    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet2.png", "count": 2 },
+    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet3.png", "count": 2 },
+    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet4.png", "count": 2 },
+    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet5.png", "count": 2 }
   ],
   "frameEvents": {}
 }

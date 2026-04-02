@@ -412,7 +412,11 @@
         },
         {
             "texture_keys": [
-                "SB_Witch_Circle_VFX_Hit_Spritesheet4.png"
+                "SB_Witch_Circle_VFX_Hit_Spritesheet1.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet2.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet3.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet4.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet5.png"
             ],
             "animation_path": "Data/AnimationData/witchCircleVFXHitAnimation.json"
         }

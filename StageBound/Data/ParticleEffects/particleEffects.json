@@ -60,14 +60,14 @@
     "isGlobal": true
   },
   "WitchAttackHitEffect": {
-    "textureKey": "SB_Witch_Circle_VFX_Hit_Spritesheet4.png",
+    "textureKey": "SB_Witch_Circle_VFX_Hit_Spritesheet1.png",
     "isAnimated": true,
     "style": "FROM_POINT",
     "isScreenSpace": false,
-    "lifetime": 0.25,
+    "lifetime": 0.5,
     "count": 1,
     "speed": 0.0,
-    "size": { "x": 80, "y": 80 },
+    "size": { "x": 100, "y": 100 },
     "offset": { "x": 0.0, "y": 0.0 },
     "effect": "NONE",
     "effectStrength": 1.0,

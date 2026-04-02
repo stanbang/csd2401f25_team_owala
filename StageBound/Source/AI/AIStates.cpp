@@ -1171,8 +1171,8 @@ namespace Framework {
             fsm.attackCircleAnimated = true;
             fsm.attackCircleAnimTimer = 0.0f;
             fsm.attackCircleAnimFrame = 0;
-            // 20 spritesheets × 2 frames = 40 frames over 2.0s attack duration = 0.05s per frame
-            fsm.attackCircleAnimFrameDuration = 0.05f;
+            // 21 spritesheets × 2 frames = 42 frames over 2.0s attack duration ≈ 0.048s per frame
+            fsm.attackCircleAnimFrameDuration = 0.048f;
             fsm.attackCircleAnimTextures = {
                 "SB_Witch_Circle_VFX_Spritesheet1.png",
                 "SB_Witch_Circle_VFX_Spritesheet2.png",
@@ -1186,6 +1186,7 @@ namespace Framework {
                 "SB_Witch_Circle_VFX_Spritesheet10.png",
                 "SB_Witch_Circle_VFX_Spritesheet11.png",
                 "SB_Witch_Circle_VFX_Spritesheet12.png",
+                "SB_Witch_Circle_VFX_Spritesheet13.png",
                 "SB_Witch_Circle_VFX_Spritesheet14.png",
                 "SB_Witch_Circle_VFX_Spritesheet15.png",
                 "SB_Witch_Circle_VFX_Spritesheet16.png",
