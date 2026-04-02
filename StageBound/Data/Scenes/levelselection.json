@@ -1561,7 +1561,7 @@
             "layer": 0,
             "layer_collision_name": "Default",
             "render_layer": 0,
-            "custom_render_order": 70,
+            "custom_render_order": 90,
             "layer_render_name": "Custom",
             "active": false,
             "uuid": 2222222222222222222,
@@ -1569,7 +1569,7 @@
                 "Transform": {
                     "Position": {
                         "x": 0.0,
-                        "y": 0.0
+                        "y": 0.05
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -1604,10 +1604,10 @@
                     }
                 },
                 "TextureComponent": {
-                    "texture_key": "SB_LevelSelection_ShadowOverlay.png",
+                    "texture_key": "SB_Frame_BG.png",
                     "half_size": {
-                        "x": 0.6000000238418579,
-                        "y": 0.699999988079071
+                        "x": 0.42,
+                        "y": 0.55
                     },
                     "flip_x": false,
                     "alpha": 1.0,
@@ -1627,15 +1627,15 @@
             "layer": 0,
             "layer_collision_name": "Default",
             "render_layer": 0,
-            "custom_render_order": 71,
+            "custom_render_order": 95,
             "layer_render_name": "Custom",
             "active": false,
             "uuid": 3333333333333333333,
             "components": {
                 "Transform": {
                     "Position": {
-                        "x": -0.0,
-                        "y": -0.10000000149011612
+                        "x": -0.18,
+                        "y": 0.08
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -1678,7 +1678,7 @@
                         1.0,
                         1.0
                     ],
-                    "font_size": 0.800000011920929,
+                    "font_size": 0.65,
                     "max_width": 10.0
                 },
                 "SceneOwned": {
@@ -1689,6 +1689,44 @@
             "tags": [
                 "GUITag"
             ]
+        },
+        {
+            "name": "LeaderboardTimesText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 95,
+            "layer_render_name": "Custom",
+            "active": false,
+            "uuid": 3333333333333333334,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.28,
+                        "y": 0.08
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0],
+                        "collider_matrix": [1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0]
+                    },
+                    "Scale": { "x": 1.0, "y": 1.0 }
+                },
+                "TextComponent": {
+                    "text": "",
+                    "font_key": "Amethysta-Regular.ttf",
+                    "font_color": [1.0, 1.0, 1.0, 1.0],
+                    "font_size": 0.65,
+                    "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 13,
+                    "sceneName": "LevelSelection"
+                }
+            },
+            "tags": ["GUITag"]
         },
         {
             "name": "NameEntryOverlay",
@@ -1762,7 +1800,7 @@
             "name": "RecordYesButton",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 100,
+            "render_layer": 0,
             "custom_render_order": 92,
             "layer_render_name": "Custom",
             "active": false,
@@ -1856,7 +1894,7 @@
                 "Transform": {
                     "Position": {
                         "x": -0.13,
-                        "y": -0.03
+                        "y": -0.04
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -1915,7 +1953,7 @@
             "name": "RecordNoButton",
             "layer": 0,
             "layer_collision_name": "Default",
-            "render_layer": 100,
+            "render_layer": 0,
             "custom_render_order": 92,
             "layer_render_name": "Custom",
             "active": false,
@@ -2009,7 +2047,7 @@
                 "Transform": {
                     "Position": {
                         "x": 0.13,
-                        "y": -0.03
+                        "y": -0.04
                     },
                     "Rotation": {
                         "angle": 0.0,
@@ -2053,6 +2091,159 @@
                         1.0
                     ],
                     "font_size": 1.100000023841858,
+                    "max_width": 10.0
+                },
+                "SceneOwned": {
+                    "scene_id": 13,
+                    "sceneName": "LevelSelection"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "LeaderboardCloseButton",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 92,
+            "layer_render_name": "Custom",
+            "active": false,
+            "uuid": 1234444444444444406,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": -0.46
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            1
+                        ],
+                        "collider_matrix": [
+                            1,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            1
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextureComponent": {
+                    "texture_key": "SB_DefaultButton.png",
+                    "half_size": {
+                        "x": 0.14,
+                        "y": 0.07
+                    },
+                    "flip_x": false,
+                    "alpha": 1.0,
+                    "override_uv": false
+                },
+                "ButtonComponent": {
+                    "is_hovered": false,
+                    "is_pressed": false,
+                    "is_released": false,
+                    "action": 0,
+                    "target_string": "",
+                    "target_value": 0.0,
+                    "hover_sound_key": "button_hover.wav",
+                    "hover_sound_volume": 0.30000001192092896,
+                    "click_sound_key": "mechanical_click.wav",
+                    "click_sound_volume": 0.30000001192092896,
+                    "default_texture_key": "SB_DefaultButton.png",
+                    "hover_texture_key": "SB_HoverButton_SpriteSheet.png",
+                    "pressed_texture_key": "SB_SelectButton.png",
+                    "default_is_animated": false,
+                    "hover_is_animated": true,
+                    "pressed_is_animated": false,
+                    "scene_to_unload_on_click": ""
+                },
+                "SceneOwned": {
+                    "scene_id": 13,
+                    "sceneName": "LevelSelection"
+                }
+            },
+            "tags": [
+                "GUITag"
+            ]
+        },
+        {
+            "name": "LeaderboardCloseButtonText",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 0,
+            "custom_render_order": 95,
+            "layer_render_name": "Custom",
+            "active": false,
+            "uuid": 1234444444444444407,
+            "components": {
+                "Transform": {
+                    "Position": {
+                        "x": 0.0,
+                        "y": -0.46
+                    },
+                    "Rotation": {
+                        "angle": 0.0,
+                        "texture_angle": 0.0,
+                        "collider_angle": 0.0,
+                        "texture_matrix": [
+                            1,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            1
+                        ],
+                        "collider_matrix": [
+                            1,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            1
+                        ]
+                    },
+                    "Scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    }
+                },
+                "TextComponent": {
+                    "text": "close",
+                    "font_key": "SB_Font.otf",
+                    "font_color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "font_size": 0.8,
                     "max_width": 10.0
                 },
                 "SceneOwned": {

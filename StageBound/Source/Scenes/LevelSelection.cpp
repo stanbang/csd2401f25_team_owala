@@ -34,6 +34,7 @@ namespace {
 	};
 
 	Entity leaderboardTextEntity = 0;
+	Entity leaderboardTimesTextEntity = 0;
 
 	struct UIRefs {
 		// Buttons
@@ -41,6 +42,8 @@ namespace {
 		Entity backButton = 0, selectButton = 0;
 		Entity leaderboardButton = 0;
 		Entity leaderboardPanel = 0;
+		Entity leaderboardCloseButton = 0;
+		Entity leaderboardCloseButtonText = 0;
 
 		// Tickets
 		Entity ticketPrev = 0, ticketCurrent = 0, ticketNext = 0;
@@ -367,8 +370,11 @@ namespace {
 			else if (name == "Ticket_Next")        ui.ticketNext = entity;
 			else if (name == "LevelText")          ui.levelText = entity;
 			else if (name == "LeaderboardText")    leaderboardTextEntity = entity;
+			else if (name == "LeaderboardTimesText") leaderboardTimesTextEntity = entity;
 			else if (name == "LeaderboardButton")  ui.leaderboardButton = entity;
 			else if (name == "LeaderboardPanel")   ui.leaderboardPanel = entity;
+			else if (name == "LeaderboardCloseButton")     ui.leaderboardCloseButton = entity;
+			else if (name == "LeaderboardCloseButtonText") ui.leaderboardCloseButtonText = entity;
 			else if (name == "NameEntryOverlay")   ui.nameEntryOverlay = entity;
 			else if (name == "NameEntryOverlayBG") ui.nameEntryBG = entity;
 			else if (name == "RecordYesButton")     ui.recordYesButton = entity;
@@ -403,42 +409,64 @@ namespace {
 			entityMgr.GetProperties(leaderboardTextEntity).isActive = visible;
 		if (entityMgr.ValidateEntity(ui.leaderboardPanel))
 			entityMgr.GetProperties(ui.leaderboardPanel).isActive = visible;
+		if (entityMgr.ValidateEntity(ui.leaderboardCloseButton))
+			entityMgr.GetProperties(ui.leaderboardCloseButton).isActive = visible;
+		if (entityMgr.ValidateEntity(ui.leaderboardCloseButtonText))
+			entityMgr.GetProperties(ui.leaderboardCloseButtonText).isActive = visible;
+		if (entityMgr.ValidateEntity(leaderboardTimesTextEntity))
+			entityMgr.GetProperties(leaderboardTimesTextEntity).isActive = visible;
 	}
 
-	void RefreshLeaderboard() {
-		if (levelData.empty()) return;
-		std::string levelName = levelData[currentIndex].sceneName;
+void RefreshLeaderboard() {
+    if (levelData.empty()) return;
+    std::string levelName = levelData[currentIndex].sceneName;
+    FirebaseManager::Get().FetchLeaderboard(levelName,
+        [](std::vector<Framework::LeaderboardEntry> entries) {
+            EntityManager mgr(GameManager::GetInstance().GetECS());
+            if (!mgr.ValidateEntity(leaderboardTextEntity)) return;
+            if (!mgr.HasComponent(leaderboardTextEntity, Framework::TextComponentType)) return;
+            Framework::TextComponent& text = mgr.GetComponent<Framework::TextComponent>(leaderboardTextEntity);
 
-		FirebaseManager::Get().FetchLeaderboard(levelName,
-			[](std::vector<Framework::LeaderboardEntry> entries) {
-				EntityManager mgr(GameManager::GetInstance().GetECS());
-				if (!mgr.ValidateEntity(leaderboardTextEntity)) return;
-				if (!mgr.HasComponent(leaderboardTextEntity, Framework::TextComponentType)) return;
+            if (entries.empty()) {
+                text.textToDraw = "\n\n~ best times ~\n\n  no records yet...";
+                text.isDirty = true;
 
-				Framework::TextComponent& text = mgr.GetComponent<Framework::TextComponent>(leaderboardTextEntity);
+                if (mgr.ValidateEntity(leaderboardTimesTextEntity)) {
+                    auto& timesText = mgr.GetComponent<Framework::TextComponent>(leaderboardTimesTextEntity);
+                    timesText.textToDraw = "";
+                    timesText.isDirty = true;
+                }
+                return;
+            }
 
-				if (entries.empty()) {
-					text.textToDraw = "BEST TIMES\n===========\nno records yet";
-					text.isDirty = true;
-					return;
-				}
+            // Left column: title + rank + name
+            std::string names = "\n\n~ best times ~\n____________________\n\n";
+            // Right column: blank lines to match header offset, then times
+            std::string times = "\n\n\n\n\n";
 
-				std::string display = "BEST TIMES\n===========\n# - NAME - TIME\n-----------\n";
+            int rank = 1;
+            for (auto& e : entries) {
+                std::string name = e.name.size() > 10 ? e.name.substr(0, 10) : e.name;
+                char timeBuf[32];
+                std::snprintf(timeBuf, sizeof(timeBuf), "%.2fs", e.time);
 
-				int rank = 1;
-				for (auto& e : entries) {
-					char buf[128];
-					std::string name = e.name.size() > 10 ? e.name.substr(0, 10) : e.name;
-					std::snprintf(buf, sizeof(buf), "%d - %s - %.2fs\n", rank++, name.c_str(), e.time);
-					display += buf;
-					if (rank > 10) break;
-				}
+                names += "  " + std::to_string(rank) + ".  " + name + "\n";
+                times += std::string(timeBuf) + "\n";
 
-				display += "===========";
-				text.textToDraw = display;
-				text.isDirty = true;
-			});
-	}
+                if (++rank > 10) break;
+            }
+
+            text.textToDraw = names;
+            text.isDirty = true;
+
+            if (mgr.ValidateEntity(leaderboardTimesTextEntity) &&
+                mgr.HasComponent(leaderboardTimesTextEntity, Framework::TextComponentType)) {
+                auto& timesText = mgr.GetComponent<Framework::TextComponent>(leaderboardTimesTextEntity);
+                timesText.textToDraw = times;
+                timesText.isDirty = true;
+            }
+        });
+}
 
 	SaveManager* GetSaveManager(Framework::EntityManager& entityMgr) {
 		using namespace Framework;
@@ -808,6 +836,12 @@ namespace LevelSelection {
 				t.isDirty = true;
 				RefreshLeaderboard();
 			}
+		}
+
+		// Leaderboard Close Button
+		if (leaderboardOpen && ConsumeClick(entityMgr, inputSystem, ui.leaderboardCloseButton)) {
+			leaderboardOpen = false;
+			SetLeaderboardVisible(entityMgr, false);
 		}
 
 		// Select Button
