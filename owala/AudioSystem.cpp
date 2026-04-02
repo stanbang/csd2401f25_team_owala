@@ -481,6 +481,38 @@ namespace Framework {
         return vol;
     }
 
+    void AudioSystem::StopAudio(Entity entity, float fadeDuration) {
+        // Check and stop 2D channels
+        auto it2D = entityChannels_.find(entity);
+        if (it2D != entityChannels_.end()) {
+            if (fadeDuration > 0.001f) {
+                FadeOutChannel(it2D->second, fadeDuration);
+            }
+            else {
+                it2D->second->stop();
+            }
+            entityChannels_.erase(it2D);
+        }
+
+        // Check and stop 3D channels
+        auto it3D = entity3DChannels_.find(entity);
+        if (it3D != entity3DChannels_.end()) {
+            if (fadeDuration > 0.001f) {
+                FadeOutChannel(it3D->second, fadeDuration);
+            }
+            else {
+                it3D->second->stop();
+            }
+            entityChannels_.erase(it3D);
+        }
+
+        // Clear Audio Data from AudioComponent
+        EntityManager entityMgr(GameManager::GetInstance().GetECS());
+        if (entityMgr.HasComponent(entity, AudioComponentType)) {
+            entityMgr.GetComponent<AudioComponent>(entity).soundKey = "";
+        }
+    }
+
     void AudioSystem::stopAll(bool fadeOut) {
         if (fadeOut) {
             // Stop last-played channel per id
