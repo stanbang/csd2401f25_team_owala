@@ -10,5 +10,23 @@
         "audioType": "SFX",
         "volume": 0.3,
         "is3D": true
+    },
+    "Movie_Eli_Grunt": {
+        "soundKey": "Movie_Eli_Grunt",
+        "audioType": "SFX",
+        "volume": 0.3,
+        "is3D": false
+    },
+    "Movie_Eli_Huh": {
+        "soundKey": "Movie_Eli_Huh",
+        "audioType": "SFX",
+        "volume": 0.3,
+        "is3D": false
+    },
+    "Movie_Eli_Wow": {
+        "soundKey": "Movie_Eli_Wow",
+        "audioType": "SFX",
+        "volume": 0.3,
+        "is3D": false
     }
 }
