@@ -438,6 +438,9 @@ namespace Editor {
 
 		LoadEditorConfig();
 
+		// Load FSM definitions for the component inspector dropdown
+		LoadFSMDefinitionsFromFolder("Data/FSM/");
+
 		initialized = true;
 		engine_->SetMode(EngineMode::Editor);
 	}
@@ -3672,6 +3675,56 @@ namespace Editor {
 		{
 			FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
 			bool activeNow = false;
+
+			// Enemy Type Dropdown - show available FSM definitions
+			if (!availableFSMDefinitions_.empty()) {
+				ImGui::Text("Enemy Type:");
+				
+				// Find current selection index
+				int currentIndex = -1;
+				std::vector<const char*> items;
+				items.push_back("-- Select Enemy Type --");
+				items.push_back("Custom (manual path)");
+				
+				for (size_t i = 0; i < availableFSMDefinitions_.size(); ++i) {
+					items.push_back(availableFSMDefinitions_[i].c_str());
+					// Check if current path matches this definition
+					if (!fsm.fsmDefinitionPath.empty()) {
+						fs::path currentPath(fsm.fsmDefinitionPath);
+						fs::path defPath(availableFSMDefinitions_[i]);
+						if (fs::equivalent(currentPath, defPath) || 
+							currentPath.filename() == defPath.filename()) {
+							currentIndex = static_cast<int>(i + 2); // +2 for the two header items
+						}
+					}
+				}
+				
+				// If path is set but doesn't match any definition, it's custom
+				if (currentIndex == -1 && !fsm.fsmDefinitionPath.empty()) {
+					currentIndex = 1; // "Custom (manual path)"
+				}
+				
+				int selectedIndex = currentIndex;
+				if (ImGui::Combo("##EnemyTypeCombo", &selectedIndex, items.data(), static_cast<int>(items.size()))) {
+					if (selectedIndex >= 2 && selectedIndex < static_cast<int>(items.size())) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						
+						// Set the definition path to the selected FSM
+						fs::path selectedPath(availableFSMDefinitions_[selectedIndex - 2]);
+						fsm.fsmDefinitionPath = selectedPath.generic_string();
+						fsm.initialized = false; // Force rebuild
+						
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Changed Enemy Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+					}
+				}
+				ImGui::Separator();
+			}
 
 			// 1. Definition Path Input
 			char buffer[256];
@@ -8009,31 +8062,31 @@ namespace Editor {
 			return;
 		}
 
-		//// Get the AI system from game manager
-		//AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+		// Get the AI system from game manager
+		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 
-		//if (!aiSystem) {
-		//	ImGui::TextDisabled("AI System not available");
-		//	ImGui::End();
-		//	return;
-		//}
+		if (!aiSystem) {
+			ImGui::TextDisabled("AI System not available");
+		}
+		else {
+			// Master toggle
+			ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+			ImGui::Separator();
 
-		// Master toggle
-		//ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
-		//ImGui::Separator();
+			// Individual toggles
+			ImGui::BeginDisabled(!aiSystem->debugVisualization);
 
-		//// Individual toggles
-		//ImGui::BeginDisabled(!aiSystem->debugVisualization);
+			ImGui::Text("Visualization Options:");
+			ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+			ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+			ImGui::Checkbox("Show Witch Debug Info", &aiSystem->showWitchDebug);
+			/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+			ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
-		//ImGui::Text("Visualization Options:");
-		//ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
-		//ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
-		///*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
-		//ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
+			ImGui::EndDisabled();
 
-		//ImGui::EndDisabled();
-
-		//ImGui::Separator();
+			ImGui::Separator();
+		}
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add some spacing
 		ImGui::Text("Physics Visualization");
