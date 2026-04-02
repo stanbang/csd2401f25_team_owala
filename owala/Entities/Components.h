@@ -230,6 +230,8 @@ namespace Framework{
 
 		Vector2D minUV = { 0.0f, 0.0f }; // Top-Left UV of the current frame
 		Vector2D maxUV = { 1.0f, 1.0f }; // Bottom-Right UV of the current frame
+		
+		float frameAspectRatio = 0.0f; // Current frame's width/height ratio (0 = use entity HalfSize)
 	};
 
 	struct TextComponent {

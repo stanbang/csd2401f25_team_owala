@@ -714,7 +714,7 @@ namespace Framework {
         Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
         
         // Use actual AABB collider size for witch, not transform scale
-        Vector2D witchHS{ 50.0f, 50.0f }; // Default fallback
+        Vector2D witchHS{ 70.0f, 105.0f }; // Default fallback
         if (mgr.HasComponent(entity, AABBColliderType)) {
             const AABBCollider& witchCollider = mgr.GetComponent<AABBCollider>(entity);
             witchHS = witchCollider.HalfSize;
@@ -1060,18 +1060,45 @@ namespace Framework {
             const TextureComponent& witchTex = mgr.GetComponent<TextureComponent>(entity);
             Vector2D witchHS = witchTex.HalfSize;
             
-            // Create a small probe box slightly below the witch to check for ground
-            Vector2D probeOffset = downDir * 5.0f;  // Small distance in down direction
+            // Get world rotation to determine orientation
+            float rot = std::fmod(worldRotation + 360.0f, 360.0f);
+            
+            // Build the witch's current AABB centered on witchPos
             AABB_Bounds witchBounds = {
-                { witchPos.x - witchHS.x * 0.5f, witchPos.y - witchHS.y },
-                { witchPos.x + witchHS.x * 0.5f, witchPos.y + witchHS.y * 0.2f }
+                { witchPos.x - witchHS.x, witchPos.y - witchHS.y },
+                { witchPos.x + witchHS.x, witchPos.y + witchHS.y }
             };
             
-            // Offset by probe in down direction for ground check
-            AABB_Bounds probeBounds = {
-                { witchBounds.min.x + probeOffset.x, witchBounds.min.y + probeOffset.y },
-                { witchBounds.max.x + probeOffset.x, witchBounds.max.y + probeOffset.y }
-            };
+            // Create a probe extending slightly in the down direction from the witch's feet
+            // The probe should be a thin strip at the bottom of the witch
+            AABB_Bounds probeBounds;
+            const float probeThickness = 10.0f;  // How far below the witch we check
+            
+            if (rot >= 315.0f || rot < 45.0f) {
+                // Normal: down is -Y, feet are at witchPos.y - witchHS.y
+                probeBounds = {
+                    { witchPos.x - witchHS.x * 0.8f, witchPos.y - witchHS.y - probeThickness },
+                    { witchPos.x + witchHS.x * 0.8f, witchPos.y - witchHS.y + 2.0f }
+                };
+            } else if (rot >= 45.0f && rot < 135.0f) {
+                // 90 degrees: down is +X (gravity pulls right), feet are at witchPos.x + witchHS.y
+                probeBounds = {
+                    { witchPos.x + witchHS.y - 2.0f, witchPos.y - witchHS.x * 0.8f },
+                    { witchPos.x + witchHS.y + probeThickness, witchPos.y + witchHS.x * 0.8f }
+                };
+            } else if (rot >= 135.0f && rot < 225.0f) {
+                // 180 degrees: down is +Y (inverted), feet are at witchPos.y + witchHS.y
+                probeBounds = {
+                    { witchPos.x - witchHS.x * 0.8f, witchPos.y + witchHS.y - 2.0f },
+                    { witchPos.x + witchHS.x * 0.8f, witchPos.y + witchHS.y + probeThickness }
+                };
+            } else {
+                // 270 degrees: down is -X (gravity pulls left), feet are at witchPos.x - witchHS.y
+                probeBounds = {
+                    { witchPos.x - witchHS.y - probeThickness, witchPos.y - witchHS.x * 0.8f },
+                    { witchPos.x - witchHS.y + 2.0f, witchPos.y + witchHS.x * 0.8f }
+                };
+            }
             
             // Check collision with platforms
             for (Entity e : mgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
@@ -1103,6 +1130,7 @@ namespace Framework {
                 
                 AABB_Bounds platBounds = PhysicsSystem::GetRotatedAABB(platPos, platCollider.HalfSize, platformRotation);
                 
+                // Check if probe intersects platform
                 if (CollisionIntersection_RectRect_Static(probeBounds, platBounds)) {
                     isGrounded_ = true;
                     
@@ -1116,6 +1144,53 @@ namespace Framework {
                         RigidBody& rb = mgr.GetComponent<RigidBody>(entity);
                         rb.isAffectedByGravity = false;
                     }
+                    
+                    // Snap witch to stand on top of the platform (not intersecting)
+                    Transform& witchTf = mgr.GetComponent<Transform>(entity);
+                    if (rot >= 315.0f || rot < 45.0f) {
+                        // Normal: snap witch Y to platform top + witchHS.y
+                        witchTf.position.y = platBounds.max.y + witchHS.y + 1.0f;
+                    } else if (rot >= 45.0f && rot < 135.0f) {
+                        // 90 degrees: snap witch X to platform "top" (left side) - witchHS.y
+                        witchTf.position.x = platBounds.min.x - witchHS.y - 1.0f;
+                    } else if (rot >= 135.0f && rot < 225.0f) {
+                        // 180 degrees: snap witch Y to platform "top" (bottom) - witchHS.y
+                        witchTf.position.y = platBounds.min.y - witchHS.y - 1.0f;
+                    } else {
+                        // 270 degrees: snap witch X to platform "top" (right side) + witchHS.y
+                        witchTf.position.x = platBounds.max.x + witchHS.y + 1.0f;
+                    }
+                    
+                    break;
+                }
+                
+                // Also check if witch body intersects platform (fell too fast and went through)
+                if (CollisionIntersection_RectRect_Static(witchBounds, platBounds)) {
+                    isGrounded_ = true;
+                    
+                    // Stop falling
+                    if (mgr.HasComponent(entity, VelocityType)) {
+                        mgr.GetComponent<Velocity>(entity).Vel = { 0.0f, 0.0f };
+                    }
+                    
+                    // Disable gravity
+                    if (mgr.HasComponent(entity, RigidBodyType)) {
+                        RigidBody& rb = mgr.GetComponent<RigidBody>(entity);
+                        rb.isAffectedByGravity = false;
+                    }
+                    
+                    // Snap witch out of the platform
+                    Transform& witchTf = mgr.GetComponent<Transform>(entity);
+                    if (rot >= 315.0f || rot < 45.0f) {
+                        witchTf.position.y = platBounds.max.y + witchHS.y + 1.0f;
+                    } else if (rot >= 45.0f && rot < 135.0f) {
+                        witchTf.position.x = platBounds.min.x - witchHS.y - 1.0f;
+                    } else if (rot >= 135.0f && rot < 225.0f) {
+                        witchTf.position.y = platBounds.min.y - witchHS.y - 1.0f;
+                    } else {
+                        witchTf.position.x = platBounds.max.x + witchHS.y + 1.0f;
+                    }
+                    
                     break;
                 }
             }

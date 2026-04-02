@@ -81,8 +81,10 @@ namespace Framework {
 
         // Callback to be called by GLFW
         static void WindowFocusCallback(GLFWwindow* window, int focused);
+        static void WindowIconifyCallback(GLFWwindow* window, int iconified);
 
         bool IsFocused() const { return isFocused_; }
+        bool IsIconified() const { return isIconified_; }
 
 #ifndef BUILD_EDITOR
         /**
@@ -117,6 +119,7 @@ namespace Framework {
         int windowedW_ = 1920, windowedH_ = 1080;
 
         bool isFocused_ = true; // Windows Focus Loss Event
+        bool isIconified_ = false; // Window Minimized Event
 #ifndef BUILD_EDITOR
         int fullW_ = 1920, fullH_ = 1080;
         int x_{}, y_{};                    //!< Window top left x and y positions (0,0 will be top left of monitor)
