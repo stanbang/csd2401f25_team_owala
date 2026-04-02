@@ -833,25 +833,29 @@ namespace Framework {
                                            : (platBounds.min.y - witchHS.y - 1.0f);
                 float xMin = platBounds.min.x + witchHS.x;
                 float xMax = platBounds.max.x - witchHS.x;
+                const float clampedMinX = std::min(xMin, xMax);
+                const float clampedMaxX = std::max(xMin, xMax);
                 
                 // Prefer position closest to player
-                float playerX = std::clamp(playerPos.x, xMin, xMax);
+                float playerX = std::clamp(playerPos.x, clampedMinX, clampedMaxX);
                 positionsToTry.push_back({ playerX, yPos });
-                positionsToTry.push_back({ (xMin + xMax) * 0.5f, yPos }); // Center
-                positionsToTry.push_back({ xMin, yPos });
-                positionsToTry.push_back({ xMax, yPos });
+                positionsToTry.push_back({ (clampedMinX + clampedMaxX) * 0.5f, yPos }); // Center
+                positionsToTry.push_back({ clampedMinX, yPos });
+                positionsToTry.push_back({ clampedMaxX, yPos });
             } else {
                 // World rotated 90 or 270 - move along Y axis
                 float xPos = (upDir.x > 0) ? (platBounds.max.x + witchHS.y + 1.0f) 
                                            : (platBounds.min.x - witchHS.y - 1.0f);
                 float yMin = platBounds.min.y + witchHS.x;
                 float yMax = platBounds.max.y - witchHS.x;
+                const float clampedMinY = std::min(yMin, yMax);
+                const float clampedMaxY = std::max(yMin, yMax);
                 
-                float playerY = std::clamp(playerPos.y, yMin, yMax);
+                float playerY = std::clamp(playerPos.y, clampedMinY, clampedMaxY);
                 positionsToTry.push_back({ xPos, playerY });
-                positionsToTry.push_back({ xPos, (yMin + yMax) * 0.5f });
-                positionsToTry.push_back({ xPos, yMin });
-                positionsToTry.push_back({ xPos, yMax });
+                positionsToTry.push_back({ xPos, (clampedMinY + clampedMaxY) * 0.5f });
+                positionsToTry.push_back({ xPos, clampedMinY });
+                positionsToTry.push_back({ xPos, clampedMaxY });
             }
             
             for (const Vector2D& candidatePos : positionsToTry) {
@@ -956,8 +960,12 @@ namespace Framework {
 
         // If no valid position found, clamp current position to viewport at minimum
         if (!foundValidPos) {
-            teleportPos.x = std::clamp(teleportPos.x, viewLeft, viewRight);
-            teleportPos.y = std::clamp(teleportPos.y, viewBottom, viewTop);
+            const float clampedViewLeft = std::min(viewLeft, viewRight);
+            const float clampedViewRight = std::max(viewLeft, viewRight);
+            const float clampedViewBottom = std::min(viewBottom, viewTop);
+            const float clampedViewTop = std::max(viewBottom, viewTop);
+            teleportPos.x = std::clamp(teleportPos.x, clampedViewLeft, clampedViewRight);
+            teleportPos.y = std::clamp(teleportPos.y, clampedViewBottom, clampedViewTop);
         }
 
         // Teleport to valid position

@@ -174,13 +174,16 @@ namespace Framework {
 
         UpdateInvulnerability();
 
-        // Skip death checks if level already cleared / already died
+        // Skip expensive collision death checks if level already cleared / already died
         if (!m_lvlClearEventFired && !m_deathEventFired) {
             CheckPlayerDeathFromTraps();
             CheckPlayerDeathFromEnemies();
-            HandlePlayerDeath();
             CheckEnemyDeathFromTraps();
         }
+        // Always process death animation completion and stale latch reset.
+        // In editor play mode, scene reload events are not guaranteed between runs,
+        // so m_deathEventFired may remain true from a previous run unless we clear it here.
+        HandlePlayerDeath();
 
         // calculate jump vel based on height and gravity -  v = sqrt(2 * g * h).
         const float gravity = std::abs(physics_.gravity_.y);
