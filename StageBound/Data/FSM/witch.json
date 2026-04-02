@@ -3,7 +3,7 @@
     "previewTexture": "SB_Witch_Idle_Spritesheet_1.png",
     "texture": "SB_Witch_Idle_Spritesheet_1.png",
     "animationProfile": "witchEnemy",
-    "hasCollision": false,
+    "hasCollision": true,
     "halfSize": {
         "x": 70,
         "y": 105
