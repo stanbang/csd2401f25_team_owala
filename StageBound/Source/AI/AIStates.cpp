@@ -365,7 +365,9 @@ namespace Framework {
     void BirdHoverState::OnEnter(Entity entity, EntityStorage& ecs) {
         EntityManager mgr(ecs);
         
-      
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+        }
     }
 
     void BirdHoverState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -409,7 +411,9 @@ namespace Framework {
         EntityManager mgr(ecs);
 
         // Remove RotationFlag so bird is not affected by world rotation during attack
-       
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+        }
 
         Entity player = GetPlayer(ecs);
         if (player == 0) return;
@@ -448,7 +452,9 @@ namespace Framework {
         if (!mgr.HasComponent(entity, VelocityType)) return;
 
         Vector2D& vel = mgr.GetComponent<Velocity>(entity).Vel;
-        mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+        }
         // ---------------------------------------------------------------
         // Accelerate along the dive direction, capped at attackMaxSpeed_
         // This gives the "lunge" feel instead of instant full speed.
@@ -479,7 +485,7 @@ namespace Framework {
 
         // Remove RotationFlag so bird is not affected by world rotation during recovery
         if (mgr.HasComponent(entity, RotationFlagType)) {
-            mgr.RemoveComponent(entity, RotationFlagType);
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
         }
 
         if (mgr.HasComponent(entity, VelocityType)) {
@@ -496,8 +502,12 @@ namespace Framework {
     }
     void BirdRecoveryState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         (void)entity;
-        (void)ecs;
+        EntityManager mgr(ecs);
         timer_ += dt;
+
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            mgr.GetComponent<RotationFlag>(entity).currentRotation = 0.0f;
+        }
     }
     void BirdRecoveryState::SetParameter(const std::string& key, float value) {
         if (key == "duration") duration_ = value;
