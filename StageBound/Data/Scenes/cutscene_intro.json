@@ -160,6 +160,30 @@
                 }
             },
             "tags": []
+        },
+        {
+            "name": "Ambience Audio",
+            "layer": 0,
+            "layer_collision_name": "Default",
+            "render_layer": 50,
+            "custom_render_order": 0,
+            "layer_render_name": "",
+            "active": true,
+            "uuid": 2727896312536651157,
+            "components": {
+                "AudioComponent": {
+                    "sound_key": "01.Daytime_Forest_Field_Sun_Loop 2.wav",
+                    "should_loop": false,
+                    "is_streaming": false,
+                    "volume": 0.5,
+                    "audio_type": 1
+                },
+                "SceneOwned": {
+                    "scene_id": 12,
+                    "sceneName": "Cutscene Intro"
+                }
+            },
+            "tags": []
         }
     ]
 }

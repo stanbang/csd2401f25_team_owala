@@ -106,5 +106,14 @@
     ],
     "Portal_Activate": [
         "portal_whoosh.wav"
+    ],
+    "Movie_Eli_Grunt": [
+        "Eli-Reaction_1.wav"
+    ],
+    "Movie_Eli_Huh": [
+        "Eli-Reaction_2.wav"
+    ],
+    "Movie_Eli_Wow": [
+        "Eli-Reaction_3.wav"
     ]
 }
