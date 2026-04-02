@@ -605,15 +605,15 @@ namespace Framework {
 
                     // Handle animated attack circle VFX
                     if (fsm.attackCircleAnimated && !fsm.attackCircleAnimTextures.empty()) {
-                        const int framesPerSheet = 4;
+                        const int framesPerSheet = 2;
                         int subFrame = fsm.attackCircleAnimFrame % framesPerSheet;
                         
-                        // Calculate UV coordinates for the current sub-frame
-                        // Assuming 2x2 layout in spritesheet (4 frames)
+                        // Calculate UV coordinates for the current sub-frame.
+                        // Witch attack circle VFX sheets are 2-frame horizontal strips.
                         float uvWidth = 0.5f;
-                        float uvHeight = 0.5f;
-                        int col = subFrame % 2;
-                        int row = subFrame / 2;
+                        float uvHeight = 1.0f;
+                        int col = subFrame;
+                        int row = 0;
                         
                         Vector2D minUV = { col * uvWidth, row * uvHeight };
                         Vector2D maxUV = { minUV.x + uvWidth, minUV.y + uvHeight };

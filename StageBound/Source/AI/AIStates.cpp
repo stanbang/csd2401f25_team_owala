@@ -38,6 +38,20 @@ namespace Framework {
         return players.empty() ? 0 : players[0];
     }
 
+    static void FaceEntityTowardsPlayer(Entity entity, EntityStorage& ecs) {
+        EntityManager mgr(ecs);
+        Entity player = GetPlayer(ecs);
+        if (player == 0) return;
+        if (!mgr.HasComponent(entity, TransformType) || !mgr.HasComponent(player, TransformType)) return;
+        if (!mgr.HasComponent(entity, TextureComponentType)) return;
+
+        const Vector2D myPos = mgr.GetComponent<Transform>(entity).position;
+        const Vector2D playerPos = mgr.GetComponent<Transform>(player).position;
+
+        // Witch sprites default to facing left; flip when player is on the right.
+        mgr.GetComponent<TextureComponent>(entity).flipHorizontal = (playerPos.x > myPos.x);
+    }
+
     // Per-entity storage for the pre-collision velocity that SimpleChase
     // captured last frame.  Bounce reads it on enter.
     // (static map is fine; one entry per living bird enemy)
@@ -545,10 +559,12 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
+        FaceEntityTowardsPlayer(entity, ecs);
     }
 
     void WitchIdleState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         // Just waiting for player detection (handled by FSM transitions)
+        FaceEntityTowardsPlayer(entity, ecs);
         (void)entity; (void)ecs; (void)dt; 
     }
 
@@ -568,9 +584,11 @@ namespace Framework {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
             MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Alert", AudioType::SFX, 0.3f, position });
         }
+        FaceEntityTowardsPlayer(entity, ecs);
     }
 
     void WitchAlertedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         (void)entity; (void)ecs;
         timer_ += dt;
         // Play alert animation here if you have animation system
@@ -588,9 +606,11 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
+        FaceEntityTowardsPlayer(entity, ecs);
     }
 
     void WitchEnragedState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         (void)entity; (void)ecs;
         timer_ += dt;
         // Play enraged animation here
@@ -613,9 +633,11 @@ namespace Framework {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
             MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, position });
         }
+        FaceEntityTowardsPlayer(entity, ecs);
     }
 
     void WitchTeleportSpinState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         (void)entity; (void)ecs;
         timer_ += dt;
     }
@@ -942,6 +964,7 @@ namespace Framework {
     }
 
     void WitchTeleportFallState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         (void)entity; //(void)ecs;
         timer_ += dt;
         EntityManager mgr(ecs);
@@ -977,6 +1000,7 @@ namespace Framework {
     }
 
     void WitchFallingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         timer_ += dt;
         EntityManager mgr(ecs);
         
@@ -1107,9 +1131,11 @@ namespace Framework {
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
         }
+        FaceEntityTowardsPlayer(entity, ecs);
     }
 
     void WitchChargingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         (void)entity; (void)ecs;
         timer_ += dt;
         // Show charging animation/effect
@@ -1126,6 +1152,7 @@ namespace Framework {
         timer_ = 0.0f;
         currentRadius_ = 0.0f;
         damageDealt_ = false;
+        FaceEntityTowardsPlayer(entity, ecs);
 
         EntityManager mgr(ecs);
         if (mgr.HasComponent(entity, VelocityType)) {
@@ -1144,7 +1171,8 @@ namespace Framework {
             fsm.attackCircleAnimated = true;
             fsm.attackCircleAnimTimer = 0.0f;
             fsm.attackCircleAnimFrame = 0;
-            fsm.attackCircleAnimFrameDuration = 0.04f;
+            // 20 spritesheets × 2 frames = 40 frames over 2.0s attack duration = 0.05s per frame
+            fsm.attackCircleAnimFrameDuration = 0.05f;
             fsm.attackCircleAnimTextures = {
                 "SB_Witch_Circle_VFX_Spritesheet1.png",
                 "SB_Witch_Circle_VFX_Spritesheet2.png",
@@ -1166,11 +1194,6 @@ namespace Framework {
                 "SB_Witch_Circle_VFX_Spritesheet19.png",
                 "SB_Witch_Circle_VFX_Spritesheet20.png",
                 "SB_Witch_Circle_VFX_Spritesheet21.png",
-                "SB_Witch_Circle_VFX_Spritesheet23.png",
-                "SB_Witch_Circle_VFX_Spritesheet24.png",
-                "SB_Witch_Circle_VFX_Spritesheet25.png",
-                "SB_Witch_Circle_VFX_Spritesheet26.png",
-                "SB_Witch_Circle_VFX_Spritesheet27.png"
             };
             // Start with first texture
             if (!fsm.attackCircleAnimTextures.empty()) {
@@ -1180,6 +1203,7 @@ namespace Framework {
     }
 
     void WitchAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
+        FaceEntityTowardsPlayer(entity, ecs);
         timer_ += dt;
         EntityManager mgr(ecs);
 
@@ -1208,6 +1232,7 @@ namespace Framework {
 
                 if (distance <= currentRadius_) {
                     damageDealt_ = true;
+                    MessageBus::Instance().Publish(VFXTriggerEvent{ "WitchAttackHitEvent", true, playerPos });
 
                     // Route through PlayerSystem::DamagePlayer() via event so that
                     // knockback, invulnerability, VFX, and hurt/death sounds all fire
@@ -1230,8 +1255,8 @@ namespace Framework {
             if (fsm.attackCircleAnimated && !fsm.attackCircleAnimTextures.empty()) {
                 fsm.attackCircleAnimTimer += dt;
                 
-                // Calculate total frames (4 frames per spritesheet)
-                const int framesPerSheet = 4;
+                // Witch attack circle sheets are 2-frame horizontal strips.
+                const int framesPerSheet = 2;
                 int totalFrames = static_cast<int>(fsm.attackCircleAnimTextures.size()) * framesPerSheet;
                 
                 // Advance frame based on timer

@@ -406,33 +406,15 @@
         },
         {
             "texture_keys": [
-                "SB_Witch_Circle_VFX_Spritesheet1.png",
-                "SB_Witch_Circle_VFX_Spritesheet2.png",
-                "SB_Witch_Circle_VFX_Spritesheet3.png",
-                "SB_Witch_Circle_VFX_Spritesheet4.png",
-                "SB_Witch_Circle_VFX_Spritesheet5.png",
-                "SB_Witch_Circle_VFX_Spritesheet6.png",
-                "SB_Witch_Circle_VFX_Spritesheet7.png",
-                "SB_Witch_Circle_VFX_Spritesheet8.png",
-                "SB_Witch_Circle_VFX_Spritesheet9.png",
-                "SB_Witch_Circle_VFX_Spritesheet10.png",
-                "SB_Witch_Circle_VFX_Spritesheet11.png",
-                "SB_Witch_Circle_VFX_Spritesheet12.png",
-                "SB_Witch_Circle_VFX_Spritesheet14.png",
-                "SB_Witch_Circle_VFX_Spritesheet15.png",
-                "SB_Witch_Circle_VFX_Spritesheet16.png",
-                "SB_Witch_Circle_VFX_Spritesheet17.png",
-                "SB_Witch_Circle_VFX_Spritesheet18.png",
-                "SB_Witch_Circle_VFX_Spritesheet19.png",
-                "SB_Witch_Circle_VFX_Spritesheet20.png",
-                "SB_Witch_Circle_VFX_Spritesheet21.png",
-                "SB_Witch_Circle_VFX_Spritesheet23.png",
-                "SB_Witch_Circle_VFX_Spritesheet24.png",
-                "SB_Witch_Circle_VFX_Spritesheet25.png",
-                "SB_Witch_Circle_VFX_Spritesheet26.png",
-                "SB_Witch_Circle_VFX_Spritesheet27.png"
+                "SB_Witch_Circle_VFX_Spritesheet3.png"
             ],
             "animation_path": "Data/AnimationData/witchCircleVFXAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_Witch_Circle_VFX_Hit_Spritesheet4.png"
+            ],
+            "animation_path": "Data/AnimationData/witchCircleVFXHitAnimation.json"
         }
     ]
 }

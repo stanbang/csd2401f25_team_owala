@@ -1,34 +1,10 @@
 {
-  "frame_count": 54,
+  "frame_count": 2,
   "frame_duration": 0.1,
   "is_looping": false,
   "start_frame": 0,
   "spritesheets": [
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet1.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet2.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet3.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet4.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet5.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet6.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet7.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet8.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet9.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet10.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet11.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet12.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet14.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet15.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet16.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet17.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet18.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet19.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet20.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet21.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet23.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet24.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet25.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet26.png", "count": 2 },
-    { "texture": "SB_Witch_Circle_VFX_Spritesheet27.png", "count": 2 }
+    { "texture": "SB_Witch_Circle_VFX_Spritesheet3.png", "count": 2 }
   ],
   "frameEvents": {}
 }

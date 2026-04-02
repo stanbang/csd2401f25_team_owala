@@ -1,0 +1,10 @@
+{
+  "frame_count": 2,
+  "frame_duration": 0.1,
+  "is_looping": false,
+  "start_frame": 0,
+  "spritesheets": [
+    { "texture": "SB_Witch_Circle_VFX_Hit_Spritesheet4.png", "count": 2 }
+  ],
+  "frameEvents": {}
+}
