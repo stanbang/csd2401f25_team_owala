@@ -66,6 +66,7 @@ namespace Framework{
 		AudioType   audioType = AudioType::SFX;
 		float       volume    = 1.0f;
 		bool        is3D      = false;
+		bool		useReverb = false;
 	};
 
 	// Different slider sound types

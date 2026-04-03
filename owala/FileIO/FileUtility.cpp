@@ -341,6 +341,10 @@ namespace Framework {
 			if (obj.HasMember("is3D") && obj["is3D"].IsBool())
 				cfg.is3D = obj["is3D"].GetBool();
 
+			if (obj.HasMember("useReverb") && obj["useReverb"].IsBool()) {
+				cfg.useReverb = obj["useReverb"].GetBool();
+			}
+
 			// Only add to map if a valid soundKey is provided, otherwise skip this event since it has no audio
 			if (!cfg.soundKey.empty())
 				outMap[itr->name.GetString()] = cfg;

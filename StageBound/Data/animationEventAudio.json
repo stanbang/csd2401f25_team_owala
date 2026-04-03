@@ -3,30 +3,35 @@
         "soundKey": "Player_Footstep",
         "audioType": "SFX",
         "volume": 0.5,
-        "is3D": false
+        "is3D": false,
+        "useReverb": true
     },
     "Bird_Fly": {
         "soundKey": "Bird_Fly",
         "audioType": "SFX",
         "volume": 0.3,
-        "is3D": true
+        "is3D": true,
+        "useReverb": true
     },
     "Movie_Eli_Grunt": {
         "soundKey": "Movie_Eli_Grunt",
         "audioType": "SFX",
-        "volume": 0.3,
-        "is3D": false
+        "volume": 0.2,
+        "is3D": false,
+        "useReverb": false
     },
     "Movie_Eli_Huh": {
         "soundKey": "Movie_Eli_Huh",
         "audioType": "SFX",
-        "volume": 0.3,
-        "is3D": false
+        "volume": 0.27,
+        "is3D": false,
+        "useReverb": false
     },
     "Movie_Eli_Wow": {
         "soundKey": "Movie_Eli_Wow",
         "audioType": "SFX",
         "volume": 0.3,
-        "is3D": false
+        "is3D": false,
+        "useReverb": false
     }
 }

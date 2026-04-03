@@ -56,10 +56,13 @@ namespace Framework {
         check(r, "Create Music Group");
         r = system_->createChannelGroup("SFX", &sfxGroup_);
         check(r, "Create SFX Group");
+        r = system_->createChannelGroup("DrySFX", &drySfxGroup_);
+        check(r, "Create Dry SFX Group");
 
         // This ensures Master Volume affects Music and SFX
         if (masterGroup_ && musicGroup_) masterGroup_->addGroup(musicGroup_);
         if (masterGroup_ && sfxGroup_)   masterGroup_->addGroup(sfxGroup_);
+        if (masterGroup_ && drySfxGroup_) masterGroup_->addGroup(drySfxGroup_);
 
         // ---------------- Spatial audio baseline ----------------
         // 2D game mapped to XZ plane.
@@ -139,6 +142,8 @@ namespace Framework {
             if (it == animationEventAudioMap_.end()) return;
 
             const AnimationEventAudioConfig& cfg = it->second;
+            FMOD::Channel* ch = nullptr;
+
             if (cfg.is3D) {
                 EntityManager entityMgr(GameManager::GetInstance().GetECS());
                 if (!entityMgr.HasComponent(e.entity, TransformType)) return;
@@ -149,7 +154,12 @@ namespace Framework {
                 }
             }
             else {
-                this->PlayRandomSound(cfg.soundKey, cfg.audioType, cfg.volume);
+                ch = this->PlayRandomSound(cfg.soundKey, cfg.audioType, cfg.volume);
+            }
+
+            // Reverb Control
+            if (ch && !cfg.useReverb && drySfxGroup_) {
+                ch->setChannelGroup(drySfxGroup_);
             }
             });
 
@@ -461,6 +471,7 @@ namespace Framework {
 
     void AudioSystem::setSFXVolume(float volume) {
         if (sfxGroup_) sfxGroup_->setVolume(volume);
+        if (drySfxGroup_) drySfxGroup_->setVolume(volume);
     }
 
     float AudioSystem::getMasterVolume() {
@@ -636,21 +647,23 @@ namespace Framework {
         fadingChannels_[channel] = speed;
     }
 
-    void AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
+    FMOD::Channel* AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
         std::string soundPath = getRandomSound(eventKey);
 
         if (!soundPath.empty()) {
             // Load and Play
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
-                this->play(sound, audiotype, volume, false);
+                FMOD::Channel* ch = this->play(sound, audiotype, volume, false);
 				// Log the audio that is being played for debugging purposes
 				Logger::Get().Info(DebugType::AudioSystem) << "Playing sound: " << soundPath << std::endl;
+                return ch;
             }
             catch (...) {
                 Logger::Get().Error(DebugType::AudioSystem) << "Missing sound: " << soundPath << std::endl;
             }
         }
+        return nullptr;
     }
 
     FMOD::Channel* AudioSystem::PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist) {

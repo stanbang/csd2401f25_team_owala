@@ -92,7 +92,7 @@ namespace Framework {
         // Random SFX helpers
         std::string getRandomSound(std::string eventKey);
 
-        void PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
+        FMOD::Channel* PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
         FMOD::Channel* PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist);
 
         // Fade helper
@@ -119,6 +119,7 @@ namespace Framework {
         FMOD::ChannelGroup* masterGroup_ = nullptr;
         FMOD::ChannelGroup* musicGroup_ = nullptr;
         FMOD::ChannelGroup* sfxGroup_ = nullptr;
+        FMOD::ChannelGroup* drySfxGroup_ = nullptr;
 
         // Per-group reverb DSPs
         FMOD::DSP* musicReverbDSP_ = nullptr;
