@@ -23,6 +23,8 @@
 
 REGISTER_SCRIPT(RopeScript, "RopeScript")
 namespace {
+    constexpr float kRopeCeilingVisualOverlap = 15.0f;
+
     struct RopePrefabData {
         std::string textureKey{};
         float halfWidth = 0.0f;
@@ -150,6 +152,15 @@ namespace {
         }
 
         return data;
+    }
+
+    Vector2D GetCeilingRenderOffset(const Vector2D& delta, float extraLength) {
+        const float ropeLength = delta.Magnitude();
+        if (ropeLength <= 0.001f || extraLength <= 0.0f) {
+            return Vector2D::Zero();
+        }
+
+        return (-delta / ropeLength) * (extraLength * 0.5f);
     }
 }
 
@@ -407,9 +418,9 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     // Get current platform transform
     const Transform& platformTf = entityMgr->GetComponent<Transform>(platformEntity_);
     float halfWidth = originalHalfWidth_;
-   // float halfHeight = originalHalfHeight_;
+    // float halfHeight = originalHalfHeight_;
 
-    // Handle rotation if platform has rotated
+     // Handle rotation if platform has rotated
     float worldRotDeg = 0.0f;
     if (entityMgr->HasComponent(platformEntity_, RotationFlagType)) {
         worldRotDeg = entityMgr->GetComponent<RotationFlag>(platformEntity_).currentRotation;
@@ -537,14 +548,19 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     ApplyRopeProperties(renderRope, ropeName + "_Render");
     entityMgr->AddComponent(renderRope, LoadedTag{});
 
+    const float renderOverlap = useCeilingAnchor ? kRopeCeilingVisualOverlap : 0.0f;
+    const float renderLength = length + renderOverlap;
+    const Vector2D renderOffset = GetCeilingRenderOffset(delta, renderOverlap);
+
     Transform renderTf = ropeTf;
+    renderTf.position += renderOffset;
     renderTf.rotation.angle = angleDeg;
     renderTf.rotation.textureAngle = 0.0f;
     entityMgr->AddComponent(renderRope, renderTf);
 
     TextureComponent renderTexComp;
     renderTexComp.textureKey = rc.textureKey;
-    renderTexComp.HalfSize = Vector2D(rc.ropeWidth * 0.5f, length * 0.5f);
+    renderTexComp.HalfSize = Vector2D(rc.ropeWidth * 0.5f, renderLength * 0.5f);
     renderTexComp.flipHorizontal = false;
     renderTexComp.alpha = 1.0f;
     entityMgr->AddComponent(renderRope, renderTexComp);
@@ -692,14 +708,18 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
         Transform& renderTf = entityMgr->GetComponent<Transform>(rc.renderEntity);
         TextureComponent& renderTexComp = entityMgr->GetComponent<TextureComponent>(rc.renderEntity);
 
-        renderTf.position = ropeTf.position;
+        const float renderOverlap = useCeilingAnchor ? kRopeCeilingVisualOverlap : 0.0f;
+        const float renderLength = rc.currentLength + renderOverlap;
+        const Vector2D renderOffset = GetCeilingRenderOffset(delta, renderOverlap);
+
+        renderTf.position = ropeTf.position + renderOffset;
         renderTf.rotation = ropeTf.rotation;
         renderTf.rotation.textureAngle = 0.0f;
         renderTf.scale = ropeTf.scale;
 
         renderTexComp.textureKey = rc.textureKey;
         renderTexComp.HalfSize.x = rc.ropeWidth * 0.5f;
-        renderTexComp.HalfSize.y = rc.currentLength * 0.5f;
+        renderTexComp.HalfSize.y = renderLength * 0.5f;
         renderTexComp.flipHorizontal = false;
         renderTexComp.alpha = 1.0f;
 

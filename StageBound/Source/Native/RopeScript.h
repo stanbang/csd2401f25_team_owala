@@ -49,7 +49,9 @@ private:
         float originalLength = 0.0f;
         float currentLength = 0.0f;
         Vector2D ceilingAttachmentPoint = { 0.0f, 0.0f };
+        Vector2D renderCeilingAttachmentPoint = { 0.0f, 0.0f };
         Vector2D platformAttachmentPoint = { 0.0f, 0.0f };
+        Entity ceilingAnchorEntity = 0;
         bool isActive = true;
         float ropeWidth = 200.0f;
         float selectionHalfWidth = 7.0f;
