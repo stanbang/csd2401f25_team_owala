@@ -33,6 +33,31 @@
 #include "TransitionController.h"
 
 namespace Framework {
+    namespace {
+        /*********** Builds a world-space AABB from an entity's collider, offset, and rotation. ***********/
+        AABB_Bounds GetEntityColliderBounds(EntityManager& entityMgr, Entity entity) {
+            const Transform& transform = entityMgr.GetComponent<Transform>(entity);
+            const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+
+            float colliderRotation = 0.0f;
+            if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                colliderRotation = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+            }
+            colliderRotation += transform.rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
+
+            Vector2D rotatedOffset = collider.Offset;
+            if (std::abs(colliderRotation) > 0.01f) {
+                const float rotRad = colliderRotation * (static_cast<float>(M_PI) / 180.0f);
+                Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+                rotatedOffset = rotMat * collider.Offset;
+            }
+
+            const Vector2D colliderPos = transform.position + rotatedOffset;
+            return PhysicsSystem::GetRotatedAABB(colliderPos, collider.HalfSize, colliderRotation);
+        }
+    }
+
+    /*********** Loads player tuning, registers gameplay events, and prepares runtime state. ***********/
     void PlayerSystem::Initialize() {
         m_deathEventFired = false;
 
@@ -155,6 +180,7 @@ namespace Framework {
         });
     }
 
+    /*********** Processes player input, movement state, collisions, and combat checks each frame. ***********/
     void PlayerSystem::Update() {
         GameManager& gm = GameManager::GetInstance();
         PhysicsSystem& physics_ = *gm.GetSystems().physics_;
@@ -338,7 +364,8 @@ namespace Framework {
         }
     }
 
-        void PlayerSystem::UpdateInvulnerability() {
+    /*********** Advances invulnerability timers and restores normal collision once hurt state ends. ***********/
+    void PlayerSystem::UpdateInvulnerability() {
             EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
             for (const Entity& entity : entityMgr.GetAllEntitiesWithComponent(true, PlayerTagType)) {
@@ -363,8 +390,9 @@ namespace Framework {
                     }
                 }
             }
-        }
+    }
 
+    /*********** Gradually pushes the invulnerable player out of overlapping moving hazards. ***********/
     void PlayerSystem::SeparatePlayerFromDynamicObjects(Entity playerEntity) {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
@@ -451,6 +479,7 @@ namespace Framework {
 
     // ========== PLAYER DEATH LOGIC ==========
 
+    /*********** Detects falling trap collisions that should damage or crush the player. ***********/
     void PlayerSystem::CheckPlayerDeathFromTraps() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
@@ -475,21 +504,9 @@ namespace Framework {
             // Only check traps that are currently falling
             if (!trapComp.isTriggered && !trapComp.hasFallen) continue;
 
-            const Vector2D& playerPos = entityMgr.GetComponent<Transform>(playerEntity).position;
-            const Vector2D& playerHalfSize = entityMgr.GetComponent<AABBCollider>(playerEntity).HalfSize;
             const Vector2D& trapPos = entityMgr.GetComponent<Transform>(trapEntity).position;
-            const Vector2D& trapHalfSize = entityMgr.GetComponent<AABBCollider>(trapEntity).HalfSize;
-
-            AABB_Bounds playerBounds = {
-                {playerPos.x - playerHalfSize.x, playerPos.y - playerHalfSize.y},
-                {playerPos.x + playerHalfSize.x, playerPos.y + playerHalfSize.y}
-            };
-
-            float trapRotation = 0.0f;
-            if (entityMgr.HasComponent(trapEntity, RotationFlagType)) {
-                trapRotation = entityMgr.GetComponent<RotationFlag>(trapEntity).currentRotation;
-            }
-            AABB_Bounds trapBounds = PhysicsSystem::GetRotatedAABB(trapPos, trapHalfSize, trapRotation);
+            AABB_Bounds playerBounds = GetEntityColliderBounds(entityMgr, playerEntity);
+            AABB_Bounds trapBounds = GetEntityColliderBounds(entityMgr, trapEntity);
 
             // Check Collision
             if (CollisionIntersection_RectRect_Static(playerBounds, trapBounds)) {
@@ -514,14 +531,18 @@ namespace Framework {
                 float overlapWidth = std::max(0.0f, overlapMaxX - overlapMinX);
                 float overlapHeight = std::max(0.0f, overlapMaxY - overlapMinY);
 
-                // A crushing hit is mostly horizontal surface contact (Vertical Penetration < Horizontal Width)
-                bool isVerticalHit = overlapHeight < overlapWidth;
+                const float playerWidth = playerBounds.max.x - playerBounds.min.x;
+                const float trapWidth = trapBounds.max.x - trapBounds.min.x;
+                const float playerTop = playerBounds.max.y;
+                const float trapBottom = trapBounds.min.y;
 
-                // Ensure the trap is physically above the player
-                bool isTrapAbove = trapPos.y > playerPos.y;
+                // Require substantial horizontal overlap and contact near the player's head.
+                const float requiredHorizontalOverlap = std::min(playerWidth, trapWidth) * 0.35f;
+                const bool hasHeadOverlap = overlapWidth >= requiredHorizontalOverlap;
+                const bool trapContactingHeadZone = trapBottom >= (playerTop - 12.0f);
+                const bool trapMostlyAbovePlayer = trapBounds.max.y > playerTop;
 
-                // Only damage if the trap is falling, it's a vertical hit, and the trap is above
-                if (isTrapFalling && isVerticalHit && isTrapAbove) {
+                if (isTrapFalling && hasHeadOverlap && trapContactingHeadZone && trapMostlyAbovePlayer) {
                     DamagePlayer(playerEntity, "falling trap platform", trapPos);
                     break;
                 }
@@ -529,6 +550,7 @@ namespace Framework {
         }
     }
 
+    /*********** Detects enemy contact that should damage the player. ***********/
     void PlayerSystem::CheckPlayerDeathFromEnemies() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
@@ -580,6 +602,7 @@ namespace Framework {
         }
     }
 
+    /*********** Applies damage, knockback, invulnerability, and feedback to the player. ***********/
     void PlayerSystem::DamagePlayer(Entity playerEntity, const std::string& damageSource, const Vector2D& sourcePos) {
         if (m_cheatGodMode) return;
 
@@ -634,6 +657,7 @@ namespace Framework {
     }
 
 
+    /*********** Returns whether the player lies within an enemy attack radius. ***********/
     bool PlayerSystem::IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius) {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
@@ -649,6 +673,7 @@ namespace Framework {
         return distance <= attackRadius;
     }
 
+    /*********** Puts the player into the death state and triggers death events. ***********/
     void PlayerSystem::KillPlayer(Entity playerEntity, const std::string& killerType) {
         if (m_cheatGodMode) return;
 
@@ -685,6 +710,7 @@ namespace Framework {
         Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player killed by " << killerType << "!" << std::endl;
     }
 
+    /*********** Detects trap collisions that should kill enemies. ***********/
     void PlayerSystem::CheckEnemyDeathFromTraps() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
         //float dt = Time::DeltaTime();
@@ -783,6 +809,7 @@ namespace Framework {
         }
     }
 
+    /*********** Switches an enemy FSM into its death state and logs the kill source. ***********/
     void PlayerSystem::TriggerEnemyDeath(Entity enemyEntity, const std::string& killerType) {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
@@ -798,10 +825,12 @@ namespace Framework {
         Framework::Logger::Get().Info(DebugType::PlayerSystem)  << "Enemy killed by " << killerType << "!" << std::endl;
     }
 
+    /*********** Shuts down the player system. ***********/
     void PlayerSystem::Shutdown() {
     }
 
 	// Publish particle burst event when player lands
+    /*********** Publishes landing audio and VFX when the player touches down after a fall. ***********/
     void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
 		(void)player; // Unused parameter
         MessageBus::Instance().Publish(PlayerLandEvent());
@@ -810,6 +839,7 @@ namespace Framework {
         MessageBus::Instance().Publish(VFXTriggerEvent{ "PlayerLandedEvent", true, position });
     }
 
+    /*********** Monitors the death animation and fires the completion event once. ***********/
     void PlayerSystem::HandlePlayerDeath() {
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
 
