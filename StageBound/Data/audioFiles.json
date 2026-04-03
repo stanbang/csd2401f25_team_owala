@@ -104,6 +104,9 @@
         "Witch-Death_2.wav",
         "Witch-Death_3.wav"
     ],
+    "Portal_Idle": [
+        "Portal_Loop.wav"
+    ],
     "Portal_Activate": [
         "portal_whoosh.wav"
     ],

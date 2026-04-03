@@ -45,7 +45,7 @@ void CutsceneController::ApplySlide() {
 	timer = 0.f;
 
 	if (currentSlide == 3) {
-		MessageBus::Instance().Publish(PlaySoundEvent{ "Movie_Portal", AudioType::SFX, 0.6f, false, GetEntity()});
+		MessageBus::Instance().Publish(PlaySoundEvent{ "Movie_Portal", AudioType::SFX, 0.6f, false, false, GetEntity()});
 	}
 }
 

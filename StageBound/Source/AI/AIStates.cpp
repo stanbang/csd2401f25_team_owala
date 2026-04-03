@@ -137,7 +137,7 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
             MessageBus::Instance().Publish(BirdWakeEvent(entity, position));
-            MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Wake", AudioType::SFX, 0.3f, position, 50.0f, 700.0f, entity });
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Wake", AudioType::SFX, 0.3f, true, false, position, 50.0f, 700.0f, entity });
         }
     }
     void BirdWakingState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
@@ -451,7 +451,7 @@ namespace Framework {
         }
 
         MessageBus::Instance().Publish(BirdAttackEvent(entity, myPos));
-        MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Attack", AudioType::SFX, 0.3f, myPos, 50.0f, 700.0f, entity });
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Bird_Attack", AudioType::SFX, 0.3f, true, false, myPos, 50.0f, 700.0f, entity });
     }
     void BirdAttackState::OnUpdate(Entity entity, EntityStorage& ecs, float dt) {
         timer_ += dt;
@@ -601,7 +601,7 @@ namespace Framework {
         }
         if (mgr.HasComponent(entity, TransformType)) {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
-            MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Alert", AudioType::SFX, 0.3f, position });
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Alert", AudioType::SFX, 0.3f, true, false, position });
         }
         FaceEntityTowardsPlayer(entity, ecs);
     }
@@ -652,7 +652,7 @@ namespace Framework {
         }
         if (mgr.HasComponent(entity, TransformType)) {
             Vector2D position = mgr.GetComponent<Transform>(entity).position;
-            MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, position });
+            MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, true, false, position });
         }
         FaceEntityTowardsPlayer(entity, ecs);
     }
@@ -947,7 +947,7 @@ namespace Framework {
         }
 
         const Vector2D finalPos = mgr.GetComponent<Transform>(entity).position;
-        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, finalPos });
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Teleport", AudioType::SFX, 0.3f, true, false, finalPos });
 
         if (mgr.HasComponent(entity, VelocityType)) {
             mgr.GetComponent<Velocity>(entity).Vel = { 0.f, 0.f };
@@ -1121,7 +1121,7 @@ namespace Framework {
         if (mgr.HasComponent(entity, TransformType)) {
             position = mgr.GetComponent<Transform>(entity).position;
         }
-        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Attack", AudioType::SFX, 0.3f, position });
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Attack", AudioType::SFX, 0.3f, true, false, position });
 
         if (mgr.HasComponent(entity, FSMComponentType)) {
             FSMComponent& fsm = mgr.GetComponent<FSMComponent>(entity);
@@ -1291,7 +1291,7 @@ namespace Framework {
         }
 
         MessageBus::Instance().Publish(VFXTriggerEvent{ "EnemyDeathEvent", true, deathPosition });
-        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Death", AudioType::SFX, 0.3f, deathPosition });
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Witch_Death", AudioType::SFX, 0.3f, true, false, deathPosition });
         Logger::Get().Info(DebugType::AISystem) << "Witch death VFX triggered at (" << deathPosition.x << ", " << deathPosition.y << ")" << std::endl;
     }
 
