@@ -739,33 +739,33 @@ namespace Framework {
     }
 
     // Helper: Calculate platform top position based on rotation
-    static Vector2D GetPlatformTopPosition(const Vector2D& platformPos, const Vector2D& halfSize, 
-                                           float platformRotation, float witchHalfHeight, 
-                                           float worldRotation) {
-        Vector2D upDir = GetEffectiveUpDirection(worldRotation);
-        
-        // Calculate the platform's rotated bounds
-        AABB_Bounds bounds = PhysicsSystem::GetRotatedAABB(platformPos, halfSize, platformRotation);
-        
-        // The "top" depends on world rotation
-        Vector2D result;
-        if (std::abs(upDir.y) > 0.5f) {
-            // Normal or inverted
-            if (upDir.y > 0) {
-                result = { platformPos.x, bounds.max.y + witchHalfHeight + 1.0f };
-            } else {
-                result = { platformPos.x, bounds.min.y - witchHalfHeight - 1.0f };
-            }
-        } else {
-            // World rotated 90 or 270
-            if (upDir.x > 0) {
-                result = { bounds.max.x + witchHalfHeight + 1.0f, platformPos.y };
-            } else {
-                result = { bounds.min.x - witchHalfHeight - 1.0f, platformPos.y };
-            }
-        }
-        return result;
-    }
+    //static Vector2D GetPlatformTopPosition(const Vector2D& platformPos, const Vector2D& halfSize, 
+    //                                       float platformRotation, float witchHalfHeight, 
+    //                                       float worldRotation) {
+    //    Vector2D upDir = GetEffectiveUpDirection(worldRotation);
+    //    
+    //    // Calculate the platform's rotated bounds
+    //    AABB_Bounds bounds = PhysicsSystem::GetRotatedAABB(platformPos, halfSize, platformRotation);
+    //    
+    //    // The "top" depends on world rotation
+    //    Vector2D result;
+    //    if (std::abs(upDir.y) > 0.5f) {
+    //        // Normal or inverted
+    //        if (upDir.y > 0) {
+    //            result = { platformPos.x, bounds.max.y + witchHalfHeight + 1.0f };
+    //        } else {
+    //            result = { platformPos.x, bounds.min.y - witchHalfHeight - 1.0f };
+    //        }
+    //    } else {
+    //        // World rotated 90 or 270
+    //        if (upDir.x > 0) {
+    //            result = { bounds.max.x + witchHalfHeight + 1.0f, platformPos.y };
+    //        } else {
+    //            result = { bounds.min.x - witchHalfHeight - 1.0f, platformPos.y };
+    //        }
+    //    }
+    //    return result;
+    //}
 
     void WitchTeleportFallState::OnEnter(Entity entity, EntityStorage& ecs) {
         timer_ = 0.0f;
