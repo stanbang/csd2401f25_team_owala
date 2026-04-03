@@ -31,6 +31,8 @@ namespace Framework {
 		std::string soundKey;
 		AudioType   audioType = AudioType::SFX;
 		float       volume    = 1.0f;
+		bool		useReverb = false;
+		Entity		entity = 0;
 	};
 
 	struct PlaySound3DEvent {

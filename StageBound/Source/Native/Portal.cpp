@@ -250,7 +250,7 @@ void Portal::OnUpdate() {
 
                 // Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
                 MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
-                MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f });
+                MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f, true });
             }
 
             if (interactTimer >= 1.5f) {

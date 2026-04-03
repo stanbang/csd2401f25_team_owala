@@ -114,7 +114,15 @@ namespace Framework {
 
         // Subscribe to generic audio trigger events - all game/engine sound decisions happen at the publisher
         MessageBus::Instance().Subscribe<PlaySoundEvent>([this](const PlaySoundEvent& e) {
-            this->PlayRandomSound(e.soundKey, e.audioType, e.volume);
+            FMOD::Channel* ch = this->PlayRandomSound(e.soundKey, e.audioType, e.volume);
+
+            if (ch && !e.useReverb && drySfxGroup_) {
+                ch->setChannelGroup(drySfxGroup_);
+            }
+
+            if (ch && e.entity != 0) {
+                entityChannels_[e.entity] = ch;
+            }
         });
         MessageBus::Instance().Subscribe<PlaySound3DEvent>([this](const PlaySound3DEvent& e) {
             FMOD::Channel* ch = this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist);
