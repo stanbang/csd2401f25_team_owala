@@ -32,6 +32,7 @@ namespace Framework {
 		AudioType   audioType = AudioType::SFX;
 		float       volume    = 1.0f;
 		bool		useReverb = false;
+		bool		loop	  = false;
 		Entity		entity = 0;
 	};
 
@@ -39,6 +40,8 @@ namespace Framework {
 		std::string soundKey;
 		AudioType   audioType = AudioType::SFX;
 		float       volume    = 1.0f;
+		bool		useReverb = false;
+		bool		loop = false;
 		Vector2D    position;
 		float       minDist   = 50.0f;
 		float       maxDist   = 700.0f;
