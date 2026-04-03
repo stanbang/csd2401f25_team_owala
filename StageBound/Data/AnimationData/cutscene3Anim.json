@@ -57,5 +57,7 @@
             "count": 1
         }
     ],
-    "frameEvents": {}
+    "frameEvents": {
+        "1": "Movie_Eli_Wow"
+    }
 }

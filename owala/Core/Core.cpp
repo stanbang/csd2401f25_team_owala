@@ -124,10 +124,15 @@ namespace Framework {
             }
 
             bool isFocused = true;
-            if (winSys) isFocused = winSys->IsFocused();
+            bool isIconified = false;
+            if (winSys) {
+                isFocused = winSys->IsFocused();
+                isIconified = winSys->IsIconified();
+            }
 
             //HANDLE INTERRUPTION LOGIC
-            if (!isFocused) {
+            // Consider app interrupted if unfocused OR minimized
+            if (!isFocused || isIconified) {
                 // --- WE ARE INTERRUPTED (MINIMIZED / ALT-TABBED) ---
 
                 if (!wasPaused_) {

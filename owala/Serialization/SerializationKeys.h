@@ -58,6 +58,7 @@ namespace Framework::Serialization {
      * ====================================================================== */
     static constexpr const char* SCENE_NAME = "scene_name";           //!< Name of the scene
     static constexpr const char* ENTITIES = "entities";               //!< Array of entities in scene
+    static constexpr const char* PRELOAD_TEXTURES = "preload_textures"; //!< Optional per-scene texture preload keys
     static constexpr const char* SCENE_ASSET_NAME = "name";           //!< Name of scene asset
     static constexpr const char* SCENE_ASSET_PATH = "path";           //!< File path to scene asset
 

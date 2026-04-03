@@ -242,7 +242,7 @@
                 "SB_Eli_Death_Spritesheet_2.png",
                 "SB_Eli_Death_Spritesheet_3.png",
                 "SB_Eli_Death_Spritesheet_4.png",
-				"SB_Eli_Death_Spritesheet_5.png"
+                "SB_Eli_Death_Spritesheet_5.png"
             ],
             "animation_path": "Data/AnimationData/playerDeathAnimation.json"
         },
@@ -344,25 +344,25 @@
             "animation_path": "Data/AnimationData/witchAlertAnimation.json"
         },
         {
-          "texture_keys": [
-            "SB_Whitch_Attack_Spritesheet1.png",
-            "SB_Whitch_Attack_Spritesheet2.png",
-            "SB_Whitch_Attack_Spritesheet3.png",
-            "SB_Whitch_Attack_Spritesheet4.png"
-          ],
+            "texture_keys": [
+                "SB_Whitch_Attack_Spritesheet1.png",
+                "SB_Whitch_Attack_Spritesheet2.png",
+                "SB_Whitch_Attack_Spritesheet3.png",
+                "SB_Whitch_Attack_Spritesheet4.png"
+            ],
             "animation_path": "Data/AnimationData/witchAttackAnimation.json"
         },
         {
-          "texture_keys": [
-            "SB_Witch_Charge_Spritesheet1.png",
-            "SB_Witch_Charge_Spritesheet2.png",
-            "SB_Witch_Charge_Spritesheet3.png",
-            "SB_Witch_Charge_Spritesheet4.png",
-            "SB_Witch_Charge_Spritesheet5.png",
-            "SB_Witch_Charge_Spritesheet6.png",
-            "SB_Witch_Charge_Spritesheet7.png",
-            "SB_Witch_Charge_Spritesheet8.png"
-          ],
+            "texture_keys": [
+                "SB_Witch_Charge_Spritesheet1.png",
+                "SB_Witch_Charge_Spritesheet2.png",
+                "SB_Witch_Charge_Spritesheet3.png",
+                "SB_Witch_Charge_Spritesheet4.png",
+                "SB_Witch_Charge_Spritesheet5.png",
+                "SB_Witch_Charge_Spritesheet6.png",
+                "SB_Witch_Charge_Spritesheet7.png",
+                "SB_Witch_Charge_Spritesheet8.png"
+            ],
             "animation_path": "Data/AnimationData/witchChargeRepeatAnimation.json"
         },
         {
@@ -372,6 +372,29 @@
                 "SB_Witch_Wand_Raise_Spritesheet3.png"
             ],
             "animation_path": "Data/AnimationData/witchChargeWandRaiseAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_Witch_Circle_VFX_Spritesheet1.png",
+                "SB_Witch_Circle_VFX_Spritesheet2.png",
+                "SB_Witch_Circle_VFX_Spritesheet3.png",
+                "SB_Witch_Circle_VFX_Spritesheet4.png",
+                "SB_Witch_Circle_VFX_Spritesheet5.png",
+                "SB_Witch_Circle_VFX_Spritesheet6.png",
+                "SB_Witch_Circle_VFX_Spritesheet7.png",
+                "SB_Witch_Circle_VFX_Spritesheet8.png"
+            ],
+            "animation_path": "Data/AnimationData/witchCircleVFXAnimation.json"
+        },
+        {
+            "texture_keys": [
+                "SB_Witch_Circle_VFX_Hit_Spritesheet1.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet2.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet3.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet4.png",
+                "SB_Witch_Circle_VFX_Hit_Spritesheet5.png"
+            ],
+            "animation_path": "Data/AnimationData/witchCircleVFXHitAnimation.json"
         },
         {
             "texture_keys": [
@@ -403,22 +426,6 @@
                 "SB_Witch_Teleport_Spin_Spritesheet_8.png"
             ],
             "animation_path": "Data/AnimationData/witchTeleportSpinAnimation.json"
-        },
-        {
-            "texture_keys": [
-                "SB_Witch_Circle_VFX_Spritesheet3.png"
-            ],
-            "animation_path": "Data/AnimationData/witchCircleVFXAnimation.json"
-        },
-        {
-            "texture_keys": [
-                "SB_Witch_Circle_VFX_Hit_Spritesheet1.png",
-                "SB_Witch_Circle_VFX_Hit_Spritesheet2.png",
-                "SB_Witch_Circle_VFX_Hit_Spritesheet3.png",
-                "SB_Witch_Circle_VFX_Hit_Spritesheet4.png",
-                "SB_Witch_Circle_VFX_Hit_Spritesheet5.png"
-            ],
-            "animation_path": "Data/AnimationData/witchCircleVFXHitAnimation.json"
         }
     ]
 }

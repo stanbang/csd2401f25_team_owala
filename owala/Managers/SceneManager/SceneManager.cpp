@@ -13,6 +13,7 @@
 #include "GameManager.h"
 #include "Logger.h"
 #include "EntitySerializer.h"
+#include "ResourceManager.h"
 #include "TransformationSystem.h"
 #include "TimerSystem.h"  // ADD THIS INCLUDE
 #include "FirebaseManager.h"  // ADD THIS INCLUDE
@@ -96,7 +97,18 @@ namespace Framework {
 		if (scene->path.empty()) return; // Check if scene is deserializable from file.
 
 		std::vector<Entity> entitiesList;
-		EntitySerializer::DeserializeSceneData(GameManager::GetInstance().GetECS(), scene->path, scene->name, entitiesList);
+		std::vector<std::string> preloadTextures;
+		EntitySerializer::DeserializeSceneData(GameManager::GetInstance().GetECS(), scene->path, scene->name, entitiesList, &preloadTextures);
+
+		ResourceManager* resourceManager = GameManager::GetInstance().GetSystems().resourceManager_;
+		if (resourceManager) {
+			for (const std::string& textureKey : preloadTextures) {
+				const std::string texturePath = resourceManager->GetAssetPath(textureKey);
+				if (!texturePath.empty() && !resourceManager->has<Texture>(textureKey)) {
+					resourceManager->LoadTextureAsync(texturePath);
+				}
+			}
+		}
 
 		for (Entity entity : entitiesList) {
 			AddEntityToScene(*scene, entity);

@@ -43,6 +43,7 @@ namespace Framework {
         bool debugVisualization = false;
         bool showNavigationGrid = false;
         bool showBirdDebug = false;
+        bool showWitchDebug = false;
 #endif
 
     private:
@@ -63,6 +64,7 @@ namespace Framework {
         //void DrawNavigationGrid(float viewLeft, float viewRight, float viewBottom, float viewTop, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
         // Updated to use FSMComponent
         void DrawFSMDebug(Entity entity, const FSMComponent& fsmComp, const Vector2D& pos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
+        void DrawWitchDebug(Entity entity, const FSMComponent& fsmComp, const Vector2D& pos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID);
 #endif
     };
 }

@@ -45,5 +45,7 @@
             "count": 1
         }
     ],
-    "frameEvents": {}
+    "frameEvents": {
+        "7": "Movie_Eli_Grunt"
+    }
 }

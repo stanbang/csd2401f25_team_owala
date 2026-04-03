@@ -59,6 +59,16 @@ void CutsceneController::FinishCutscene() {
 	isEnding = true;
 
 	EntityManager entityMgr(GameManager::GetInstance().GetECS());
+
+	// Search for Ambience Source Entity
+	const std::vector<Entity> sceneEntities = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetInstance().GetActiveScene());
+	for (Entity entity : sceneEntities) {
+		if (!entityMgr.ValidateEntity(entity)) continue;
+		if (entityMgr.GetProperties(entity).name == "Ambience Audio") {
+			GameManager::GetInstance().GetSystems().audio_->StopAudio(entity);
+			break;
+		}
+	}
 	
 	// Search for SaveManager
 	const std::vector<Entity> persistents = SceneManager::GetInstance().GetEntitiesInScene(SceneManager::GetDDOLSceneID());

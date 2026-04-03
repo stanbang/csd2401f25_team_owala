@@ -601,16 +601,50 @@ namespace Framework {
                         screenEdge = cameraSystem_->WorldToScreen(screenEdge, activeCamera);
                     }
                     float screenRadius = std::abs(screenEdge.x - screenCenter.x);
-                    Vector2D halfSize = { screenRadius, screenRadius };
+                    // compensate for smaller VFX frame asset (old 2048 -> new 818)
+                    constexpr float kWitchCircleVisualScale = 2048.0f / 1024.0f; // ~2.5037
+                    Vector2D halfSize = { screenRadius * kWitchCircleVisualScale,
+                                          screenRadius * kWitchCircleVisualScale };
 
                     // Handle animated attack circle VFX
                     if (fsm.attackCircleAnimated && !fsm.attackCircleAnimTextures.empty()) {
-                        const int framesPerSheet = 2;
-                        int subFrame = fsm.attackCircleAnimFrame % framesPerSheet;
+                        if (fsm.attackCircleAnimFrameCounts.empty() ||
+                            fsm.attackCircleAnimFrameCounts.size() != fsm.attackCircleAnimTextures.size()) {
+                            Logger::Get().Error(DebugType::SpriteRenderSystem)
+                                << "Invalid witch attack VFX data: frame-count metadata mismatch, falling back to static draw." << std::endl;
+                            gfx_.drawSprite(tex, screenCenter, halfSize);
+                            continue;
+                        }
+
+                        // Calculate which spritesheet and which sub-frame within that sheet
+                        int sheetIndex = 0;
+                        int frameAccumulator = 0;
+                        int subFrame = 0;
                         
-                        // Calculate UV coordinates for the current sub-frame.
-                        // Witch attack circle VFX sheets are 2-frame horizontal strips.
-                        float uvWidth = 0.5f;
+                        for (size_t i = 0; i < fsm.attackCircleAnimFrameCounts.size(); ++i) {
+                            if (fsm.attackCircleAnimFrame < frameAccumulator + fsm.attackCircleAnimFrameCounts[i]) {
+                                sheetIndex = static_cast<int>(i);
+                                subFrame = fsm.attackCircleAnimFrame - frameAccumulator;
+                                break;
+                            }
+                            frameAccumulator += fsm.attackCircleAnimFrameCounts[i];
+                        }
+                        
+                        // Get the frame count for the current spritesheet
+                        int framesInCurrentSheet = (sheetIndex < static_cast<int>(fsm.attackCircleAnimFrameCounts.size())) 
+                            ? fsm.attackCircleAnimFrameCounts[sheetIndex] 
+                            : 1;
+                        
+                        // Calculate UV coordinates for the current sub-frame
+                        // Frames are laid out horizontally in each spritesheet
+                        if (framesInCurrentSheet <= 0) {
+                            Logger::Get().Error(DebugType::SpriteRenderSystem)
+                                << "Invalid witch attack VFX data: frame count <= 0, falling back to static draw." << std::endl;
+                            gfx_.drawSprite(tex, screenCenter, halfSize);
+                            continue;
+                        }
+
+                        float uvWidth = 1.0f / framesInCurrentSheet;
                         float uvHeight = 1.0f;
                         int col = subFrame;
                         int row = 0;

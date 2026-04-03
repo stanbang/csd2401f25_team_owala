@@ -152,6 +152,9 @@ namespace Framework {
             if (showBirdDebug) {
                 DrawFSMDebug(entity, ai, pos, drawList, editor, cameraToUse);
             }
+            if (showWitchDebug) {
+                DrawWitchDebug(entity, ai, pos, drawList, editor, cameraToUse);
+            }
         }
     }
 
@@ -167,6 +170,59 @@ namespace Framework {
         drawList->AddText(ImVec2(screenPos.x, screenPos.y - 40), IM_COL32(255, 255, 255, 255), stateName.c_str());
 
         // In progress
+    }
+
+    // Editor-only: draws debug visualization for witch enemies including detection radius and attack hit radius.
+    void AISystem::DrawWitchDebug(Entity entity, const FSMComponent& ai, const Vector2D& pos, ImDrawList* drawList, Editor::Editor* editor, Entity cameraID) {
+        // Only draw for witch-type enemies (check FSM definition path)
+        if (ai.fsmDefinitionPath.find("witch") == std::string::npos &&
+            ai.fsmDefinitionPath.find("Witch") == std::string::npos) {
+            return;
+        }
+
+        std::string stateName = ai.fsm.GetCurrentState();
+        ImVec2 screenPos = editor->WorldToImGuiScreen(pos, cameraID);
+
+        // Draw state name above entity
+        drawList->AddText(ImVec2(screenPos.x - 40, screenPos.y - 60), IM_COL32(200, 100, 255, 255), stateName.c_str());
+
+        // Draw detection radius (400 units from witch.json) - green circle
+        const float detectionRadius = 400.0f;
+        ImVec2 edgePos = editor->WorldToImGuiScreen({ pos.x + detectionRadius, pos.y }, cameraID);
+        float screenDetectionRadius = std::abs(edgePos.x - screenPos.x);
+        drawList->AddCircle(screenPos, screenDetectionRadius, IM_COL32(0, 255, 100, 100), 48, 2.0f);
+        
+        // Label for detection radius
+        ImVec2 labelPos = { screenPos.x + screenDetectionRadius + 5, screenPos.y - 10 };
+        drawList->AddText(labelPos, IM_COL32(0, 255, 100, 200), "Detection (400)");
+
+        // Draw attack hit radius if there's an active attack circle
+        if (ai.attackCircleRadius > 0.0f) {
+            // Actual hit radius (what damages the player)
+            ImVec2 hitEdgePos = editor->WorldToImGuiScreen({ pos.x + ai.attackCircleRadius, pos.y }, cameraID);
+            float screenHitRadius = std::abs(hitEdgePos.x - screenPos.x);
+            
+            // Draw the actual hit radius in red (solid circle outline)
+            drawList->AddCircle(screenPos, screenHitRadius, IM_COL32(255, 0, 0, 255), 48, 3.0f);
+            
+            // Label for actual hit radius
+            ImVec2 hitLabelPos = { screenPos.x, screenPos.y + screenHitRadius + 5 };
+            char hitLabel[64];
+            snprintf(hitLabel, sizeof(hitLabel), "Hit Radius: %.1f", ai.attackCircleRadius);
+            drawList->AddText(hitLabelPos, IM_COL32(255, 0, 0, 255), hitLabel);
+        }
+
+        // Draw max attack radius (200 from witch.json) when not attacking - blue circle  
+        if (ai.attackCircleRadius <= 0.0f) {
+            const float maxAttackRadius = 200.0f;
+            ImVec2 attackEdgePos = editor->WorldToImGuiScreen({ pos.x + maxAttackRadius, pos.y }, cameraID);
+            float screenAttackRadius = std::abs(attackEdgePos.x - screenPos.x);
+            drawList->AddCircle(screenPos, screenAttackRadius, IM_COL32(100, 150, 255, 80), 48, 1.5f);
+            
+            // Label for max attack radius
+            ImVec2 attackLabelPos = { screenPos.x - screenAttackRadius - 80, screenPos.y };
+            drawList->AddText(attackLabelPos, IM_COL32(100, 150, 255, 200), "Max Attack (200)");
+        }
     }
 #endif
 }

@@ -318,6 +318,9 @@ namespace Framework {
         void OnUpdate(Entity entity, EntityStorage& ecs, float dt) override;
         void SetParameter(const std::string& key, float value) override;
 
+        // Allow AISystem to destroy the full entity once death timing completes.
+        bool IsFinished() const override { return timer_ >= duration_; }
+
         float GetTimer() const { return timer_; }
         float GetDuration() const { return duration_; }
 

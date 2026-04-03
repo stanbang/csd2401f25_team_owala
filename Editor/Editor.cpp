@@ -438,6 +438,9 @@ namespace Editor {
 
 		LoadEditorConfig();
 
+		// Load FSM definitions for the component inspector dropdown
+		LoadFSMDefinitionsFromFolder("Data/FSM/");
+
 		initialized = true;
 		engine_->SetMode(EngineMode::Editor);
 	}
@@ -1576,6 +1579,7 @@ namespace Editor {
 		else {
 			ImGui::Text("Scene: %s", currentScene.name.c_str());
 			ImGui::Text("Entities: %zu", entitiesLoaded.size());
+			DrawScenePreloadTexturesUI(currentScene);
 
 			SaveAndLoadSection();
 
@@ -1650,6 +1654,58 @@ namespace Editor {
 
 		ImGui::End(); // End "Level Editor" window
 	}
+
+	void Editor::DrawScenePreloadTexturesUI(const SceneAsset& currentScene) {
+		if (!currentScene.IsValid()) return;
+
+		std::vector<std::string>& preloadList = scenePreloadTextures_[currentScene.sceneIndex];
+		if (!scenePreloadLoaded_.count(currentScene.sceneIndex) && !currentScene.path.empty()) {
+			preloadList.clear();
+			rapidjson::Document sceneData;
+			if (FileIOSystem::ReadFile(currentScene.path, sceneData) &&
+				sceneData.IsObject() &&
+				sceneData.HasMember(Serialization::PRELOAD_TEXTURES) &&
+				sceneData[Serialization::PRELOAD_TEXTURES].IsArray()) {
+				for (const rapidjson::Value& tex : sceneData[Serialization::PRELOAD_TEXTURES].GetArray()) {
+					if (tex.IsString()) {
+						preloadList.push_back(tex.GetString());
+					}
+				}
+			}
+			scenePreloadLoaded_.insert(currentScene.sceneIndex);
+		}
+		if (ImGui::CollapsingHeader("Scene Asset Preload")) {
+			ImGui::TextDisabled("Texture keys here are preloaded asynchronously when this scene is requested.");
+
+			ImGui::SetNextItemWidth(260.0f);
+			ImGui::InputText("##PreloadTextureKey", preloadTextureInput_, IM_ARRAYSIZE(preloadTextureInput_));
+			ImGui::SameLine();
+			if (ImGui::Button("Add Preload Texture")) {
+				std::string key = preloadTextureInput_;
+				if (!key.empty() && std::find(preloadList.begin(), preloadList.end(), key) == preloadList.end()) {
+					preloadList.push_back(key);
+				}
+				preloadTextureInput_[0] = '\0';
+			}
+
+			if (preloadList.empty()) {
+				ImGui::TextDisabled("No extra preload textures configured.");
+			}
+			else {
+				for (size_t i = 0; i < preloadList.size(); ++i) {
+					ImGui::PushID(static_cast<int>(i));
+					ImGui::TextUnformatted(preloadList[i].c_str());
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Remove")) {
+						preloadList.erase(preloadList.begin() + static_cast<std::ptrdiff_t>(i));
+						ImGui::PopID();
+						break;
+					}
+					ImGui::PopID();
+				}
+			}
+		}
+	}
 	
 	void Editor::SaveScene() {
 		SceneManager& sceneMgr = SceneManager::GetInstance();
@@ -1670,7 +1726,8 @@ namespace Editor {
 		}
 
 		// Serialize Scene name and entities to its own json file in Data folder
-		EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name);
+		const std::vector<std::string>& preloadTextures = scenePreloadTextures_[currentScene.sceneIndex];
+		EntitySerializer::SerializeSceneData(entitiesLoaded, *(gameManager_->GetSystems().ecs_), filePath, currentScene.name, preloadTextures);
 
 		// Save scene asset to json file that stores all scene assets
 		FileIOSystem::SaveSceneAsset(currentScene);
@@ -3618,6 +3675,56 @@ namespace Editor {
 		{
 			FSMComponent& fsm = entityMgr.GetComponent<FSMComponent>(selectedEntity);
 			bool activeNow = false;
+
+			// Enemy Type Dropdown - show available FSM definitions
+			if (!availableFSMDefinitions_.empty()) {
+				ImGui::Text("Enemy Type:");
+				
+				// Find current selection index
+				int currentIndex = -1;
+				std::vector<const char*> items;
+				items.push_back("-- Select Enemy Type --");
+				items.push_back("Custom (manual path)");
+				
+				for (size_t i = 0; i < availableFSMDefinitions_.size(); ++i) {
+					items.push_back(availableFSMDefinitions_[i].c_str());
+					// Check if current path matches this definition
+					if (!fsm.fsmDefinitionPath.empty()) {
+						fs::path currentPath(fsm.fsmDefinitionPath);
+						fs::path defPath(availableFSMDefinitions_[i]);
+						if (fs::equivalent(currentPath, defPath) || 
+							currentPath.filename() == defPath.filename()) {
+							currentIndex = static_cast<int>(i + 2); // +2 for the two header items
+						}
+					}
+				}
+				
+				// If path is set but doesn't match any definition, it's custom
+				if (currentIndex == -1 && !fsm.fsmDefinitionPath.empty()) {
+					currentIndex = 1; // "Custom (manual path)"
+				}
+				
+				int selectedIndex = currentIndex;
+				if (ImGui::Combo("##EnemyTypeCombo", &selectedIndex, items.data(), static_cast<int>(items.size()))) {
+					if (selectedIndex >= 2 && selectedIndex < static_cast<int>(items.size())) {
+						std::string beforeJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						
+						// Set the definition path to the selected FSM
+						fs::path selectedPath(availableFSMDefinitions_[selectedIndex - 2]);
+						fsm.fsmDefinitionPath = selectedPath.generic_string();
+						fsm.initialized = false; // Force rebuild
+						
+						std::string afterJSON = EntitySerializer::SerializeComponentToString(selectedEntity, selectedComponent, *ecs);
+						
+						if (beforeJSON != afterJSON) {
+							std::stringstream ss;
+							ss << "Changed Enemy Type in " << entityMgr.GetProperties(selectedEntity).name << std::endl;
+							historyManager_.RecordModifyComponent(selectedEntity, ss.str(), beforeJSON, afterJSON, selectedComponent);
+						}
+					}
+				}
+				ImGui::Separator();
+			}
 
 			// 1. Definition Path Input
 			char buffer[256];
@@ -7955,31 +8062,31 @@ namespace Editor {
 			return;
 		}
 
-		//// Get the AI system from game manager
-		//AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
+		// Get the AI system from game manager
+		AISystem* aiSystem = gameManager_->GetSystems().aiSystem_;
 
-		//if (!aiSystem) {
-		//	ImGui::TextDisabled("AI System not available");
-		//	ImGui::End();
-		//	return;
-		//}
+		if (!aiSystem) {
+			ImGui::TextDisabled("AI System not available");
+		}
+		else {
+			// Master toggle
+			ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
+			ImGui::Separator();
 
-		// Master toggle
-		//ImGui::Checkbox("Enable AI Debug Visualization", &aiSystem->debugVisualization);
-		//ImGui::Separator();
+			// Individual toggles
+			ImGui::BeginDisabled(!aiSystem->debugVisualization);
 
-		//// Individual toggles
-		//ImGui::BeginDisabled(!aiSystem->debugVisualization);
+			ImGui::Text("Visualization Options:");
+			ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
+			ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
+			ImGui::Checkbox("Show Witch Debug Info", &aiSystem->showWitchDebug);
+			/*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
+			ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
 
-		//ImGui::Text("Visualization Options:");
-		//ImGui::Checkbox("Show Navigation Grid", &aiSystem->showNavigationGrid);
-		//ImGui::Checkbox("Show Bird Debug Info", &aiSystem->showBirdDebug);
-		///*ImGui::Checkbox("Show Paths", &aiSystem->showPaths);
-		//ImGui::Checkbox("Show Colliders", &aiSystem->showColliders);*/
+			ImGui::EndDisabled();
 
-		//ImGui::EndDisabled();
-
-		//ImGui::Separator();
+			ImGui::Separator();
+		}
 
 		ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Add some spacing
 		ImGui::Text("Physics Visualization");

@@ -113,6 +113,7 @@ namespace Framework {
 
 		glfwSetWindowUserPointer(win_, this); // this pointer so static callbacks can access it
 		glfwSetWindowFocusCallback(win_, WindowFocusCallback);
+		glfwSetWindowIconifyCallback(win_, WindowIconifyCallback);
 
 		glfwMakeContextCurrent(win_);
 		glfwSwapInterval(1); // Enable V-Sync
@@ -206,8 +207,29 @@ namespace Framework {
 		if (sys) {
 			sys->isFocused_ = (focused == GLFW_TRUE);
 
+#ifndef BUILD_EDITOR
+			// In fullscreen mode, minimize the window when focus is lost (ALT+TAB, Ctrl+Alt+Del, etc.)
+			if (!focused && sys->fullScreen_) {
+				glfwIconifyWindow(window);
+				Logger::Get().Info(DebugType::WindowsSystem) << "Fullscreen window minimized due to focus loss\n";
+			}
+#endif
+
 			// OPTIONAL: Log for debug
 			// Logger::Get().Info(DebugType::WindowsSystem) << "Window Focus: " << sys->isFocused_ << "\n";
+		}
+	}
+
+	void WindowsSystem::WindowIconifyCallback(GLFWwindow* window, int iconified) {
+		WindowsSystem* sys = static_cast<WindowsSystem*>(glfwGetWindowUserPointer(window));
+		if (sys) {
+			sys->isIconified_ = (iconified == GLFW_TRUE);
+
+			if (iconified) {
+				Logger::Get().Info(DebugType::WindowsSystem) << "Window minimized\n";
+			} else {
+				Logger::Get().Info(DebugType::WindowsSystem) << "Window restored\n";
+			}
 		}
 	}
 

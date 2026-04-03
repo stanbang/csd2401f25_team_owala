@@ -77,6 +77,7 @@ namespace Framework {
         float getMusicVolume();
         float getSFXVolume();
 
+        void StopAudio(Entity entity, float fadeDuration = 0.f);
         void stopAll(bool fadeOut = true);
         void unloadSound(const std::string& id);
 
