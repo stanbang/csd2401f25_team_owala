@@ -234,6 +234,12 @@ void RopeScript::OnUpdate() {
 
     EntityManager* entityMgr = GetEntityManager();
     if (!entityMgr) return;
+    if (GameManager::Exists()) {
+        auto* physics = GameManager::GetInstance().GetSystems().physics_;
+        if (physics && physics->IsPaused()) {
+            return;
+        }
+    }
 
     // Skip if platform no longer exists or is invalid
     if (!entityMgr->ValidateEntity(platformEntity_)) {
@@ -566,6 +572,9 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     Entity renderRope = entityMgr->CreateEntity();
     ApplyRopeProperties(renderRope, ropeName + "_Render");
     entityMgr->AddComponent(renderRope, LoadedTag{});
+    if (entityMgr->HasComponent(platformEntity_, SceneOwnedType)) {
+        entityMgr->AddComponent(renderRope, entityMgr->GetComponent<SceneOwned>(platformEntity_));
+    }
 
     const float renderOverlap = useCeilingAnchor ? kRopeCeilingVisualOverlap : 0.0f;
     const float renderTrim = useCeilingAnchor ? 0.0f : kRopeWallVisualTrim;
@@ -734,6 +743,17 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
         entityMgr->HasComponent(rc.renderEntity, TextureComponentType)) {
         Transform& renderTf = entityMgr->GetComponent<Transform>(rc.renderEntity);
         TextureComponent& renderTexComp = entityMgr->GetComponent<TextureComponent>(rc.renderEntity);
+        if (!entityMgr->HasComponent(rc.renderEntity, LoadedTagType)) {
+            entityMgr->AddComponent(rc.renderEntity, LoadedTag{});
+        }
+        if (entityMgr->HasComponent(platformEntity_, SceneOwnedType)) {
+            if (!entityMgr->HasComponent(rc.renderEntity, SceneOwnedType)) {
+                entityMgr->AddComponent(rc.renderEntity, entityMgr->GetComponent<SceneOwned>(platformEntity_));
+            }
+            else {
+                entityMgr->GetComponent<SceneOwned>(rc.renderEntity) = entityMgr->GetComponent<SceneOwned>(platformEntity_);
+            }
+        }
 
         const float renderOverlap = useCeilingAnchor ? kRopeCeilingVisualOverlap : 0.0f;
         const float renderTrim = useCeilingAnchor ? 0.0f : kRopeWallVisualTrim;
