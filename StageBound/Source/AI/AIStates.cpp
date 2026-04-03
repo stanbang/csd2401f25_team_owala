@@ -71,6 +71,59 @@ namespace Framework {
         return value;
     }
 
+    static bool TryGetEntityAABBBounds(Entity entity, EntityManager& mgr, AABB_Bounds& outBounds) {
+        if (!mgr.HasComponent(entity, TransformType) || !mgr.HasComponent(entity, AABBColliderType)) {
+            return false;
+        }
+
+        const Transform& transform = mgr.GetComponent<Transform>(entity);
+        const AABBCollider& collider = mgr.GetComponent<AABBCollider>(entity);
+
+        float colliderRotation = 0.0f;
+        if (mgr.HasComponent(entity, RotationFlagType)) {
+            colliderRotation = mgr.GetComponent<RotationFlag>(entity).currentRotation;
+        }
+        colliderRotation += transform.rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
+
+        Vector2D rotatedOffset = collider.Offset;
+        if (std::abs(colliderRotation) > 0.01f) {
+            float rotRad = colliderRotation * (static_cast<float>(M_PI) / 180.0f);
+            Matrix3x3 rotMat = Matrix3x3::CreateRotation(rotRad);
+            rotatedOffset = rotMat * collider.Offset;
+        }
+
+        const Vector2D colliderPos = transform.position + rotatedOffset;
+        outBounds = PhysicsSystem::GetRotatedAABB(colliderPos, collider.HalfSize, colliderRotation);
+        return true;
+    }
+
+    static bool ComputeOverlapNormal(const AABB_Bounds& a, const AABB_Bounds& b, Vector2D& outNormal, float& outPenetration) {
+        const bool overlapX = (a.max.x >= b.min.x) && (b.max.x >= a.min.x);
+        const bool overlapY = (a.max.y >= b.min.y) && (b.max.y >= a.min.y);
+        if (!overlapX || !overlapY) {
+            return false;
+        }
+
+        const float overlapLeft = a.max.x - b.min.x;
+        const float overlapRight = b.max.x - a.min.x;
+        const float overlapTop = a.max.y - b.min.y;
+        const float overlapBottom = b.max.y - a.min.y;
+
+        const float minOverlapX = std::min(overlapLeft, overlapRight);
+        const float minOverlapY = std::min(overlapTop, overlapBottom);
+
+        if (minOverlapX < minOverlapY) {
+            outNormal = (overlapLeft < overlapRight) ? Vector2D::Left() : Vector2D::Right();
+            outPenetration = minOverlapX;
+        }
+        else {
+            outNormal = (overlapTop < overlapBottom) ? Vector2D::Down() : Vector2D::Up();
+            outPenetration = minOverlapY;
+        }
+
+        return true;
+    }
+
     // --- IDLE ---
     void BirdIdleState::OnEnter(Entity entity, EntityStorage& ecs) {
         EntityManager mgr(ecs);
@@ -1382,7 +1435,7 @@ namespace Framework {
     });
 
 
-        // AIStates.cpp, improved collision detection
+        // Trigger bounce only when the bird hits a wall side, not floor/ceiling contacts.
     REGISTER_CONDITION(HitWall, [](const rapidjson::Value& data) {
         (void)data;
         return [](Entity e, EntityStorage& ecs) {
@@ -1395,17 +1448,53 @@ namespace Framework {
                 return false;
             }
 
-            // Get physics system to check if we hit something
-            auto* physics = GameManager::GetInstance().GetSystems().physics_;
-            if (!physics) return false;
+            const Vector2D birdVel = mgr.GetComponent<Velocity>(e).Vel;
+            if (std::abs(birdVel.x) < 1.0f) {
+                return false;
+            }
 
-            // Get all platform entities
+            AABB_Bounds birdBounds;
+            if (!TryGetEntityAABBBounds(e, mgr, birdBounds)) {
+                return false;
+            }
+
+            const bool hasBirdScene = mgr.HasComponent(e, SceneOwnedType);
+            const std::string birdSceneName = hasBirdScene ? mgr.GetComponent<SceneOwned>(e).sceneName : "";
+
             auto platforms = mgr.GetAllEntitiesWithComponent(true, PlatformTagType);
 
-            // Check if  overlapping with any platform
             for (Entity platform : platforms) {
-                if (physics->CheckTriggerOverlap(e, platform)) {
-                    // We hit a wall/platform!
+                if (platform == e) continue;
+                if (!mgr.HasComponent(platform, TransformType) || !mgr.HasComponent(platform, AABBColliderType)) {
+                    continue;
+                }
+
+                if (hasBirdScene && mgr.HasComponent(platform, SceneOwnedType)) {
+                    if (mgr.GetComponent<SceneOwned>(platform).sceneName != birdSceneName) {
+                        continue;
+                    }
+                }
+
+                AABB_Bounds platformBounds;
+                if (!TryGetEntityAABBBounds(platform, mgr, platformBounds)) {
+                    continue;
+                }
+
+                Vector2D contactNormal = Vector2D::Zero();
+                float penetration = 0.0f;
+                if (!ComputeOverlapNormal(birdBounds, platformBounds, contactNormal, penetration)) {
+                    continue;
+                }
+
+                const bool isHorizontalContact = std::abs(contactNormal.x) > 0.5f;
+                if (!isHorizontalContact) {
+                    continue;
+                }
+
+                if (birdVel.x > 0.0f && contactNormal.x < 0.0f) {
+                    return true;
+                }
+                if (birdVel.x < 0.0f && contactNormal.x > 0.0f) {
                     return true;
                 }
             }
