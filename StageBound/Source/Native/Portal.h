@@ -102,6 +102,7 @@ private:
 
     // -------- State Tracking --------
     float interactTimer = 0.f;   //!< Accumulator for hold-to-interact timer (1.5s target)
+    bool hasStartedAmbientSound = false;
 
     // -------- Entity Search Methods --------
     /**

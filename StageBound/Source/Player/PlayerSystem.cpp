@@ -283,7 +283,7 @@ namespace Framework {
 
                             //messageBus
                             MessageBus::Instance().Publish(PlayerJumpedEvent{ entity });
-                            MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Jump", AudioType::SFX, 0.3f });
+                            MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Jump", AudioType::SFX, 0.3f, true });
                         }
 
                         // Sets the direction the player is facing based on movement
@@ -652,7 +652,7 @@ namespace Framework {
             }
 
             MessageBus::Instance().Publish(PlayerDamagedEvent{ playerEntity, playerState.currentLives });
-            MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Hurt", AudioType::SFX, 0.3f });
+            MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Hurt", AudioType::SFX, 0.3f, true });
         }
     }
 
@@ -705,7 +705,7 @@ namespace Framework {
             entityMgr.GetComponent<AnimationComponent>(playerEntity).currentState = "DEATH";
         }
         MessageBus::Instance().Publish(PlayerDeathEvent{ playerEntity, false });
-        MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Death", AudioType::SFX, 0.3f });
+        MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Death", AudioType::SFX, 0.3f, true });
 
         Framework::Logger::Get().Info(DebugType::PlayerSystem) << "Player killed by " << killerType << "!" << std::endl;
     }
@@ -834,7 +834,7 @@ namespace Framework {
     void PlayerSystem::OnPlayerLanded(Entity player, const Vector2D& position) {
 		(void)player; // Unused parameter
         MessageBus::Instance().Publish(PlayerLandEvent());
-        MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Land", AudioType::SFX, 0.3f });
+        MessageBus::Instance().Publish(PlaySoundEvent{ "Player_Land", AudioType::SFX, 0.3f, true });
         // Publish VFX Trigger Event for Player Landed, with position override true, and the player's position to tell the event where to spawn the VFX
         MessageBus::Instance().Publish(VFXTriggerEvent{ "PlayerLandedEvent", true, position });
     }

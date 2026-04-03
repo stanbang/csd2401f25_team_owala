@@ -76,7 +76,9 @@ namespace Framework {
         float getMasterVolume();
         float getMusicVolume();
         float getSFXVolume();
-
+        
+        void Stop2DAudio(Entity entity, float fadeDuration = 0.f);
+        void Stop3DAudio(Entity entity, float fadeDuration = 0.f);
         void StopAudio(Entity entity, float fadeDuration = 0.f);
         void stopAll(bool fadeOut = true);
         void unloadSound(const std::string& id);
@@ -92,8 +94,8 @@ namespace Framework {
         // Random SFX helpers
         std::string getRandomSound(std::string eventKey);
 
-        FMOD::Channel* PlayRandomSound(std::string eventKey, AudioType audiotype, float volume);
-        FMOD::Channel* PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist);
+        FMOD::Channel* PlayRandomSound(std::string eventKey, AudioType audiotype, float volume, bool startPaused = false);
+        FMOD::Channel* PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist, bool startPaused = false);
 
         // Fade helper
         void FadeOutChannel(FMOD::Channel* channel, float duration);
