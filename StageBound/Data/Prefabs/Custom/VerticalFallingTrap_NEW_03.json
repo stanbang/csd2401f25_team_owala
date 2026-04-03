@@ -71,7 +71,7 @@
             "has_fallen": false,
             "trigger_delay": 0.0,
             "current_delay": 0.0,
-            "fall_speed": 502.0,
+            "fall_speed": 300.0,
             "original_position": {
                 "x": 50.0,
                 "y": 200.0
