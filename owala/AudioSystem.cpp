@@ -114,10 +114,41 @@ namespace Framework {
 
         // Subscribe to generic audio trigger events - all game/engine sound decisions happen at the publisher
         MessageBus::Instance().Subscribe<PlaySoundEvent>([this](const PlaySoundEvent& e) {
-            this->PlayRandomSound(e.soundKey, e.audioType, e.volume);
+            FMOD::Channel* ch = this->PlayRandomSound(e.soundKey, e.audioType, e.volume, e.loop);
+
+            if (ch) {
+                // Apply looping if requested
+                if (e.loop) {
+                    FMOD_MODE currentMode;
+                    ch->getMode(&currentMode);
+                    ch->setMode(currentMode | FMOD_LOOP_NORMAL);
+                    ch->setLoopCount(-1);
+
+                    ch->setPaused(false);
+                }
+
+                if (!e.useReverb && drySfxGroup_) {
+                    ch->setChannelGroup(drySfxGroup_);
+                }
+                if (e.entity != 0) {
+                    entityChannels_[e.entity] = ch;
+                }
+            }
         });
         MessageBus::Instance().Subscribe<PlaySound3DEvent>([this](const PlaySound3DEvent& e) {
-            FMOD::Channel* ch = this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist);
+            FMOD::Channel* ch = this->PlayRandomSound3D(e.soundKey, e.audioType, e.volume, e.position, e.minDist, e.maxDist, e.loop);
+
+            // Apply looping if requested.
+            if (ch && e.loop) {
+                FMOD_MODE currentMode;
+                ch->getMode(&currentMode);
+
+                ch->setMode((currentMode & ~FMOD_LOOP_OFF) | FMOD_LOOP_NORMAL);
+                ch->setLoopCount(-1);
+
+                ch->setPaused(false);
+            }
+
             // Store in the dedicated 3D map so AudioComponent channels cannot overwrite it.
             if (ch && e.entity != 0) {
                 entity3DChannels_[e.entity] = ch;
@@ -492,7 +523,7 @@ namespace Framework {
         return vol;
     }
 
-    void AudioSystem::StopAudio(Entity entity, float fadeDuration) {
+    void AudioSystem::Stop2DAudio(Entity entity, float fadeDuration) {
         // Check and stop 2D channels
         auto it2D = entityChannels_.find(entity);
         if (it2D != entityChannels_.end()) {
@@ -504,7 +535,9 @@ namespace Framework {
             }
             entityChannels_.erase(it2D);
         }
+    }
 
+    void AudioSystem::Stop3DAudio(Entity entity, float fadeDuration) {
         // Check and stop 3D channels
         auto it3D = entity3DChannels_.find(entity);
         if (it3D != entity3DChannels_.end()) {
@@ -514,8 +547,13 @@ namespace Framework {
             else {
                 it3D->second->stop();
             }
-            entityChannels_.erase(it3D);
+            entity3DChannels_.erase(it3D);
         }
+    }
+
+    void AudioSystem::StopAudio(Entity entity, float fadeDuration) {
+        Stop2DAudio(entity, fadeDuration);
+        Stop3DAudio(entity, fadeDuration);
 
         // Clear Audio Data from AudioComponent
         EntityManager entityMgr(GameManager::GetInstance().GetECS());
@@ -532,6 +570,20 @@ namespace Framework {
                         FadeOutChannel(it->second, 1.0f);
                 }
             }
+
+            // Fade out 2D entity channels
+            for (auto& pair : entityChannels_) {
+                if (pair.second) {
+                    FadeOutChannel(pair.second, 1.0f);
+                }
+            }
+
+            // Fade out 3D entity channels
+            for (auto& pair : entity3DChannels_) {
+                if (pair.second) {
+                    FadeOutChannel(pair.second, 1.0f);
+                }
+            }
         }
         else if (masterGroup_) {
             masterGroup_->stop();
@@ -539,6 +591,8 @@ namespace Framework {
         }
 
         channels_.clear();
+        entityChannels_.clear();
+        entity3DChannels_.clear();
     }
 
     void AudioSystem::unloadSound(const std::string& id) {
@@ -647,14 +701,14 @@ namespace Framework {
         fadingChannels_[channel] = speed;
     }
 
-    FMOD::Channel* AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume) {
+    FMOD::Channel* AudioSystem::PlayRandomSound(std::string eventKey, AudioType audiotype, float volume, bool startPaused) {
         std::string soundPath = getRandomSound(eventKey);
 
         if (!soundPath.empty()) {
             // Load and Play
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
-                FMOD::Channel* ch = this->play(sound, audiotype, volume, false);
+                FMOD::Channel* ch = this->play(sound, audiotype, volume, startPaused);
 				// Log the audio that is being played for debugging purposes
 				Logger::Get().Info(DebugType::AudioSystem) << "Playing sound: " << soundPath << std::endl;
                 return ch;
@@ -666,13 +720,13 @@ namespace Framework {
         return nullptr;
     }
 
-    FMOD::Channel* AudioSystem::PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist) {
+    FMOD::Channel* AudioSystem::PlayRandomSound3D(std::string eventKey, AudioType audiotype, float volume, Vector2D position, float minDist, float maxDist, bool startPaused) {
         std::string soundPath = getRandomSound(eventKey);
 
         if (!soundPath.empty()) {
             try {
                 FMOD::Sound& sound = GameManager::GetInstance().GetSystems().resourceManager_->get<FMOD::Sound>(soundPath);
-                FMOD::Channel* ch = this->play3D(sound, audiotype, volume, position, minDist, maxDist, false);
+                FMOD::Channel* ch = this->play3D(sound, audiotype, volume, position, minDist, maxDist, startPaused);
                 Logger::Get().Info(DebugType::AudioSystem) << "Playing sound: " << soundPath << std::endl;
                 return ch;
             }

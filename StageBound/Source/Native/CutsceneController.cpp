@@ -25,6 +25,8 @@
 #include "Components.h"
 #include "OwalaTime.h"
 #include "Entity.h"
+#include "GameMessages.h"
+#include "MessageBus.h"
 #include "WindowsSystem.h"
 
 REGISTER_SCRIPT(CutsceneController, "CutsceneController")
@@ -41,6 +43,10 @@ void CutsceneController::ApplySlide() {
 	AnimationSystem::ResetAnimation(animComp);
 
 	timer = 0.f;
+
+	if (currentSlide == 3) {
+		MessageBus::Instance().Publish(PlaySoundEvent{ "Movie_Portal", AudioType::SFX, 0.6f, false, false, GetEntity()});
+	}
 }
 
 bool CutsceneController::NextSlide() {
@@ -159,5 +165,5 @@ void CutsceneController::OnUpdate() {
 }
 
 void CutsceneController::OnDestroy() {
-	// Logic to be called before Entity is deleted
+	GameManager::GetInstance().GetSystems().audio_->StopAudio(GetEntity());
 }

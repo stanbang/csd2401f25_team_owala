@@ -38,27 +38,41 @@ namespace Framework {
 	public:
 	
 		PlayerSystem() = default;
+		/*********** Loads player tuning, registers gameplay events, and prepares runtime state. ***********/
 		void Initialize() override;
+		/*********** Processes player input, movement state, collisions, and combat checks each frame. ***********/
 		void Update() override;
+		/*********** Shuts down the player system. ***********/
 		void Shutdown() override;
 
 	private:
 		// Player landed event handler
+		/*********** Publishes landing audio and VFX when the player touches down after a fall. ***********/
 		void OnPlayerLanded(Entity player, const Vector2D& position);
 
 		// Private variables
 		//player death
+		/*********** Detects falling trap collisions that should damage or crush the player. ***********/
 		void CheckPlayerDeathFromTraps();
+		/*********** Detects enemy contact that should damage the player. ***********/
 		void CheckPlayerDeathFromEnemies();
+		/*********** Applies damage, knockback, invulnerability, and feedback to the player. ***********/
 		void DamagePlayer(Entity playerEntity, const std::string& damageSource, const Vector2D& sourcePos);
+		/*********** Puts the player into the death state and triggers death events. ***********/
 		void KillPlayer(Entity playerEntity, const std::string& killerType = "Unknown");
+		/*********** Returns whether the player lies within an enemy attack radius. ***********/
 		bool IsPlayerInAttackRange(Entity playerEntity, Entity enemyEntity, float attackRadius);
+		/*********** Monitors the death animation and fires the completion event once. ***********/
 		void HandlePlayerDeath();
+		/*********** Gradually pushes the invulnerable player out of overlapping moving hazards. ***********/
 		void SeparatePlayerFromDynamicObjects(Entity playerEntity);
 		
 		//enemy death
+		/*********** Detects trap collisions that should kill enemies. ***********/
 		void CheckEnemyDeathFromTraps();
+		/*********** Switches an enemy FSM into its death state and logs the kill source. ***********/
 		void TriggerEnemyDeath(Entity enemyEntity, const std::string& killerType = "Unknown");
+		/*********** Advances invulnerability timers and restores normal collision once hurt state ends. ***********/
 		void UpdateInvulnerability();
 
 		PlayerStats m_stats;

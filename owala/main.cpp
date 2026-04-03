@@ -234,6 +234,12 @@ int main() {
         // Run the engine
         engine.Initialize();
         engine.GameLoop();
+
+        Framework::EntityManager entityMgr(*ecs);
+        for (Framework::Entity entity : entityMgr.GetAllEntities()) {
+            entityMgr.DestroyEntity(entity);
+        }
+
         engine.DestroySystems();
 
         // Cleanup

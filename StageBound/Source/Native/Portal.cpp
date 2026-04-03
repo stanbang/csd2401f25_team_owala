@@ -194,6 +194,14 @@ void Portal::OnUpdate() {
 
     Entity self = GetEntity();
 
+    if (!hasStartedAmbientSound && entityMgr.HasComponent(self, TransformType)) {
+        Vector2D position = entityMgr.GetComponent<Transform>(self).position;
+
+        MessageBus::Instance().Publish(PlaySound3DEvent{ "Portal_Idle", AudioType::SFX, 0.4f, true, true, position, 50.f, 400.f, self });
+        std::cout << "Ambient Portal Playing" << std::endl;
+        hasStartedAmbientSound = true;
+    }
+
     if (player == 0 || !entityMgr.ValidateEntity(player)) SearchForPlayer();
     if (portalText == 0 || !entityMgr.ValidateEntity(portalText)) SearchForPortalChildren();
     if (!save || !entityMgr.ValidateEntity(save->GetEntity())) {
@@ -250,7 +258,7 @@ void Portal::OnUpdate() {
 
                 // Publish PortalExitVFX event for the portal exit VFX system to subscribe to and spawn VFX.
                 MessageBus::Instance().Publish(VFXTriggerEvent{ "PortalExitVFX", true, position });
-                MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f });
+                MessageBus::Instance().Publish(PlaySoundEvent{ "Portal_Activate", AudioType::SFX, 0.4f, true, false, self });
             }
 
             if (interactTimer >= 1.5f) {
@@ -286,5 +294,6 @@ void Portal::OnUpdate() {
  * Empty implementation as no cleanup is required.
  */
 void Portal::OnDestroy() {
-    // Logic to be called before Entity is deleted
+    Entity self = GetEntity();
+    GameManager::GetInstance().GetSystems().audio_->StopAudio(self);
 }

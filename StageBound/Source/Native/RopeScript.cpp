@@ -23,6 +23,10 @@
 
 REGISTER_SCRIPT(RopeScript, "RopeScript")
 namespace {
+    constexpr float kRopeCeilingVisualOverlap = 15.0f;
+    constexpr float kRopeWallVisualTrim = 4.0f;
+    constexpr float kHiddenRopeLengthThreshold = 2.0f;
+
     struct RopePrefabData {
         std::string textureKey{};
         float halfWidth = 0.0f;
@@ -151,6 +155,31 @@ namespace {
 
         return data;
     }
+
+    Vector2D GetCeilingRenderOffset(const Vector2D& delta, float extraLength) {
+        const float ropeLength = delta.Magnitude();
+        if (ropeLength <= 0.001f || extraLength <= 0.0f) {
+            return Vector2D::Zero();
+        }
+
+        return (-delta / ropeLength) * (extraLength * 0.5f);
+    }
+
+    float GetPlatformColliderLeftEdge(EntityManager& entityMgr, Entity platformEntity, const Transform& platformTf, float fallbackLeftEdge) {
+        if (!entityMgr.HasComponent(platformEntity, AABBColliderType)) {
+            return fallbackLeftEdge;
+        }
+
+        const AABBCollider& col = entityMgr.GetComponent<AABBCollider>(platformEntity);
+        const float colAngle = platformTf.rotation.colliderAngle;
+        const float cosA = std::abs(std::cos(colAngle));
+        const float sinA = std::abs(std::sin(colAngle));
+
+        const float worldHalfX = col.HalfSize.x * cosA + col.HalfSize.y * sinA;
+        const float offX = col.Offset.x * std::cos(colAngle) - col.Offset.y * std::sin(colAngle);
+        const float centreX = platformTf.position.x + offX;
+        return centreX - worldHalfX;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -205,6 +234,12 @@ void RopeScript::OnUpdate() {
 
     EntityManager* entityMgr = GetEntityManager();
     if (!entityMgr) return;
+    if (GameManager::Exists()) {
+        auto* physics = GameManager::GetInstance().GetSystems().physics_;
+        if (physics && physics->IsPaused()) {
+            return;
+        }
+    }
 
     // Skip if platform no longer exists or is invalid
     if (!entityMgr->ValidateEntity(platformEntity_)) {
@@ -407,9 +442,9 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     // Get current platform transform
     const Transform& platformTf = entityMgr->GetComponent<Transform>(platformEntity_);
     float halfWidth = originalHalfWidth_;
-   // float halfHeight = originalHalfHeight_;
+    // float halfHeight = originalHalfHeight_;
 
-    // Handle rotation if platform has rotated
+     // Handle rotation if platform has rotated
     float worldRotDeg = 0.0f;
     if (entityMgr->HasComponent(platformEntity_, RotationFlagType)) {
         worldRotDeg = entityMgr->GetComponent<RotationFlag>(platformEntity_).currentRotation;
@@ -448,7 +483,8 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     }
 
     Vector2D delta = dynamicAnchor - fixedAnchor;
-    float length = delta.Magnitude();
+    const float rawLength = delta.Magnitude();
+    float length = rawLength;
 
     if (length < MIN_ROPE_LENGTH) {
         length = MIN_ROPE_LENGTH;
@@ -536,17 +572,32 @@ void RopeScript::CreateSingleRope(int ropeIndex) {
     Entity renderRope = entityMgr->CreateEntity();
     ApplyRopeProperties(renderRope, ropeName + "_Render");
     entityMgr->AddComponent(renderRope, LoadedTag{});
+    if (entityMgr->HasComponent(platformEntity_, SceneOwnedType)) {
+        entityMgr->AddComponent(renderRope, entityMgr->GetComponent<SceneOwned>(platformEntity_));
+    }
+
+    const float renderOverlap = useCeilingAnchor ? kRopeCeilingVisualOverlap : 0.0f;
+    const float renderTrim = useCeilingAnchor ? 0.0f : kRopeWallVisualTrim;
+    const float renderLength = std::max(0.0f, length + renderOverlap - renderTrim);
+    const Vector2D renderOffset = GetCeilingRenderOffset(delta, renderOverlap - renderTrim);
+    const float rawColliderGap = useCeilingAnchor
+        ? rawLength
+        : std::max(0.0f, GetPlatformColliderLeftEdge(*entityMgr, platformEntity_, platformTf, dynamicAnchor.x) - fixedAnchor.x);
+    const bool hideRenderRope = useCeilingAnchor
+        ? rawColliderGap <= kHiddenRopeLengthThreshold
+        : (rawColliderGap <= kHiddenRopeLengthThreshold && rawLength <= kHiddenRopeLengthThreshold);
 
     Transform renderTf = ropeTf;
+    renderTf.position += renderOffset;
     renderTf.rotation.angle = angleDeg;
     renderTf.rotation.textureAngle = 0.0f;
     entityMgr->AddComponent(renderRope, renderTf);
 
     TextureComponent renderTexComp;
-    renderTexComp.textureKey = rc.textureKey;
-    renderTexComp.HalfSize = Vector2D(rc.ropeWidth * 0.5f, length * 0.5f);
+    renderTexComp.textureKey = hideRenderRope ? "" : rc.textureKey;
+    renderTexComp.HalfSize = Vector2D(rc.ropeWidth * 0.5f, renderLength * 0.5f);
     renderTexComp.flipHorizontal = false;
-    renderTexComp.alpha = 1.0f;
+    renderTexComp.alpha = hideRenderRope ? 0.0f : 1.0f;
     entityMgr->AddComponent(renderRope, renderTexComp);
 
     RotationFlag renderRopeRotFlag = ropeRotFlag;
@@ -657,7 +708,8 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
     // Update rope length
     const Vector2D& worldCeiling = rc.ceilingAttachmentPoint;
     const Vector2D delta = rc.platformAttachmentPoint - worldCeiling;
-    rc.currentLength = delta.Magnitude();
+    const float rawCurrentLength = delta.Magnitude();
+    rc.currentLength = rawCurrentLength;
 
     if (rc.currentLength < MIN_ROPE_LENGTH) {
         rc.currentLength = MIN_ROPE_LENGTH;
@@ -691,17 +743,39 @@ void RopeScript::UpdateRopeTransform(Entity rope) const {
         entityMgr->HasComponent(rc.renderEntity, TextureComponentType)) {
         Transform& renderTf = entityMgr->GetComponent<Transform>(rc.renderEntity);
         TextureComponent& renderTexComp = entityMgr->GetComponent<TextureComponent>(rc.renderEntity);
+        if (!entityMgr->HasComponent(rc.renderEntity, LoadedTagType)) {
+            entityMgr->AddComponent(rc.renderEntity, LoadedTag{});
+        }
+        if (entityMgr->HasComponent(platformEntity_, SceneOwnedType)) {
+            if (!entityMgr->HasComponent(rc.renderEntity, SceneOwnedType)) {
+                entityMgr->AddComponent(rc.renderEntity, entityMgr->GetComponent<SceneOwned>(platformEntity_));
+            }
+            else {
+                entityMgr->GetComponent<SceneOwned>(rc.renderEntity) = entityMgr->GetComponent<SceneOwned>(platformEntity_);
+            }
+        }
 
-        renderTf.position = ropeTf.position;
+        const float renderOverlap = useCeilingAnchor ? kRopeCeilingVisualOverlap : 0.0f;
+        const float renderTrim = useCeilingAnchor ? 0.0f : kRopeWallVisualTrim;
+        const float renderLength = std::max(0.0f, rc.currentLength + renderOverlap - renderTrim);
+        const Vector2D renderOffset = GetCeilingRenderOffset(delta, renderOverlap - renderTrim);
+        const float rawColliderGap = useCeilingAnchor
+            ? rawCurrentLength
+            : std::max(0.0f, GetPlatformColliderLeftEdge(*entityMgr, platformEntity_, platformTf, rc.platformAttachmentPoint.x) - rc.ceilingAttachmentPoint.x);
+        const bool hideRenderRope = useCeilingAnchor
+            ? rawColliderGap <= kHiddenRopeLengthThreshold
+            : (rawColliderGap <= kHiddenRopeLengthThreshold && rawCurrentLength <= kHiddenRopeLengthThreshold);
+
+        renderTf.position = ropeTf.position + renderOffset;
         renderTf.rotation = ropeTf.rotation;
         renderTf.rotation.textureAngle = 0.0f;
         renderTf.scale = ropeTf.scale;
 
-        renderTexComp.textureKey = rc.textureKey;
+        renderTexComp.textureKey = hideRenderRope ? "" : rc.textureKey;
         renderTexComp.HalfSize.x = rc.ropeWidth * 0.5f;
-        renderTexComp.HalfSize.y = rc.currentLength * 0.5f;
+        renderTexComp.HalfSize.y = renderLength * 0.5f;
         renderTexComp.flipHorizontal = false;
-        renderTexComp.alpha = 1.0f;
+        renderTexComp.alpha = hideRenderRope ? 0.0f : 1.0f;
 
         if (entityMgr->HasComponent(rc.renderEntity, RotationFlagType)) {
             entityMgr->GetComponent<RotationFlag>(rc.renderEntity).currentRotation = angleDeg;
