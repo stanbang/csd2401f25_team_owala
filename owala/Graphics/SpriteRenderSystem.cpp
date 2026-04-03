@@ -476,25 +476,23 @@ namespace Framework {
             activeCamera = cameraSystem_->GetActiveCamera();
         }
 
-        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
-            if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
-            const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
-            if (sceneOwned.sceneName != SceneManager::GetInstance().GetActiveScene().name) continue;
+        const std::string activeSceneName = SceneManager::GetInstance().GetActiveScene().name;
+        const std::vector<Entity> platformEntities = entityMgr.GetAllEntitiesWithComponent(true, PlatformTagType);
 
-            const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(e);
-            if (!entityMgr.HasComponent(e, TransformType)) continue;
-
-            const Transform& transform = entityMgr.GetComponent<Transform>(e);
-            const Vector2D& worldPos = transform.position;
-            const Vector2D& halfSize = collider.HalfSize;
-            
-            // Get rotation if entity has it
-            float deg = 0.0f;
-            if (entityMgr.HasComponent(e, RotationFlagType)) {
-               deg = entityMgr.GetComponent<RotationFlag>(e).currentRotation;
+        auto tryGetWorldAABB = [&](Entity entity, AABB_Bounds& outBounds, Vector2D& outColliderCenter, Vector2D& outHalfSize) -> bool {
+            if (!entityMgr.HasComponent(entity, TransformType) || !entityMgr.HasComponent(entity, AABBColliderType)) {
+                return false;
             }
 
-            deg += transform.rotation.colliderAngle * (180.0f / 3.14159265359f);
+            const Transform& transform = entityMgr.GetComponent<Transform>(entity);
+            const AABBCollider& collider = entityMgr.GetComponent<AABBCollider>(entity);
+            outHalfSize = collider.HalfSize;
+
+            float deg = 0.0f;
+            if (entityMgr.HasComponent(entity, RotationFlagType)) {
+                deg = entityMgr.GetComponent<RotationFlag>(entity).currentRotation;
+            }
+            deg += transform.rotation.colliderAngle * (180.0f / static_cast<float>(M_PI));
 
             Vector2D rotatedOffset = collider.Offset;
             if (std::abs(deg) > 0.01f) {
@@ -503,42 +501,84 @@ namespace Framework {
                 rotatedOffset = rotMat * collider.Offset;
             }
 
-            Vector2D colliderWorldPos = worldPos + rotatedOffset;
+            outColliderCenter = transform.position + rotatedOffset;
+            outBounds = PhysicsSystem::GetRotatedAABB(outColliderCenter, outHalfSize, deg);
+            return true;
+        };
 
-            Vector2D screenPos = worldPos;
-            Vector2D screenHalfSize = halfSize;
+        for (const Entity& e : entityMgr.GetAllEntitiesWithComponent(true, AABBColliderType)) {
+            if (!entityMgr.HasComponent(e, SceneOwnedType)) continue;
+            const SceneOwned& sceneOwned = entityMgr.GetComponent<SceneOwned>(e);
+            if (sceneOwned.sceneName != activeSceneName) continue;
 
-            if (activeCamera != 0 && cameraSystem_) {
-                try {
-                    screenPos = cameraSystem_->WorldToScreen(worldPos, activeCamera);
+            AABB_Bounds rotatedBounds{};
+            Vector2D colliderWorldPos = Vector2D::Zero();
+            Vector2D halfSize = Vector2D::Zero();
+            if (!tryGetWorldAABB(e, rotatedBounds, colliderWorldPos, halfSize)) continue;
 
-                    // Get camera for zoom and aspect ratio
-                    const Camera& cam = cameraSystem_->GetCamera(activeCamera);
+            bool isBirdEnemy = false;
+            if (entityMgr.HasComponent(e, EnemyTagType)) {
+                const std::string& entityName = entityMgr.GetProperties(e).name;
+                isBirdEnemy = (entityName.find("bird") != std::string::npos || entityName.find("Bird") != std::string::npos);
 
-                    // Convert world-space size to screen-space size
-                    float halfWidth = cam.zoom * cam.aspectRatio;
-                    float halfHeight = cam.zoom;
-
-                    screenHalfSize.x = halfSize.x / halfWidth;
-                    screenHalfSize.y = halfSize.y / halfHeight;
-                }
-                catch (const std::exception& e) {
-                    Logger::Get().Error(DebugType::SpriteRenderSystem)
-                        << "RenderColliderOutlines: failed to get camera " << activeCamera
-                        << ": " << e.what() << std::endl;
-                    continue;
+                if (!isBirdEnemy && entityMgr.HasComponent(e, FSMComponentType)) {
+                    const std::string& fsmPath = entityMgr.GetComponent<FSMComponent>(e).fsmDefinitionPath;
+                    isBirdEnemy = (fsmPath.find("bird") != std::string::npos || fsmPath.find("Bird") != std::string::npos);
                 }
             }
 
-            Vector2D scaledHalfSize = halfSize;
+            bool touchingPlatform = false;
+            Vector2D contactNormal = Vector2D::Zero();
+            float bestPenetration = 0.0f;
 
-            // Apply Scale component if present
-            const Vector2D& scale = transform.scale;
-            scaledHalfSize.x *= scale.x;
-            scaledHalfSize.y *= scale.y;
-           
-            // Use the rotated AABB calculation
-            AABB_Bounds rotatedBounds = PhysicsSystem::GetRotatedAABB(colliderWorldPos, halfSize, deg);
+            if (isBirdEnemy) {
+                for (const Entity platform : platformEntities) {
+                    if (platform == e) continue;
+                    if (!entityMgr.HasComponent(platform, SceneOwnedType)) continue;
+                    if (entityMgr.GetComponent<SceneOwned>(platform).sceneName != activeSceneName) continue;
+
+                    AABB_Bounds platformBounds{};
+                    Vector2D platformCenter = Vector2D::Zero();
+                    Vector2D platformHalfSize = Vector2D::Zero();
+                    if (!tryGetWorldAABB(platform, platformBounds, platformCenter, platformHalfSize)) {
+                        continue;
+                    }
+
+                    const bool overlapX = (rotatedBounds.max.x >= platformBounds.min.x) && (platformBounds.max.x >= rotatedBounds.min.x);
+                    const bool overlapY = (rotatedBounds.max.y >= platformBounds.min.y) && (platformBounds.max.y >= rotatedBounds.min.y);
+                    if (!overlapX || !overlapY) continue;
+
+                    const float overlapLeft = rotatedBounds.max.x - platformBounds.min.x;
+                    const float overlapRight = platformBounds.max.x - rotatedBounds.min.x;
+                    const float overlapTop = rotatedBounds.max.y - platformBounds.min.y;
+                    const float overlapBottom = platformBounds.max.y - rotatedBounds.min.y;
+
+                    const float minOverlapX = std::min(overlapLeft, overlapRight);
+                    const float minOverlapY = std::min(overlapTop, overlapBottom);
+
+                    Vector2D candidateNormal = Vector2D::Zero();
+                    float penetration = 0.0f;
+                    if (minOverlapX < minOverlapY) {
+                        candidateNormal = (overlapLeft < overlapRight) ? Vector2D::Left() : Vector2D::Right();
+                        penetration = minOverlapX;
+                    }
+                    else {
+                        candidateNormal = (overlapTop < overlapBottom) ? Vector2D::Down() : Vector2D::Up();
+                        penetration = minOverlapY;
+                    }
+
+                    if (!touchingPlatform || penetration < bestPenetration) {
+                        touchingPlatform = true;
+                        bestPenetration = penetration;
+                        contactNormal = candidateNormal;
+                    }
+                }
+            }
+
+            Color outlineColor = { 0.0f, 1.0f, 0.0f, 1.0f };
+            if (touchingPlatform) {
+                outlineColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+            }
 
             // Convert world bounds to screen space
             Vector2D screenMin = rotatedBounds.min;
@@ -559,7 +599,34 @@ namespace Framework {
 
             for (int i = 0; i < 4; ++i) {
                 int next = (i + 1) % 4;
-                gfx_.drawLine(corners[i], corners[next], { 0.0f, 1.0f, 0.0f, 1.0f });
+                gfx_.drawLine(corners[i], corners[next], outlineColor);
+            }
+
+            if (touchingPlatform) {
+                const float arrowLenWorld = std::max(25.0f, std::max(halfSize.x, halfSize.y));
+                Vector2D arrowStart = colliderWorldPos;
+                Vector2D arrowEnd = colliderWorldPos + contactNormal * arrowLenWorld;
+
+                if (activeCamera != 0 && cameraSystem_) {
+                    arrowStart = cameraSystem_->WorldToScreen(arrowStart, activeCamera);
+                    arrowEnd = cameraSystem_->WorldToScreen(arrowEnd, activeCamera);
+                }
+
+                const Color arrowColor = { 1.0f, 0.9f, 0.2f, 1.0f };
+                gfx_.drawLine(arrowStart, arrowEnd, arrowColor);
+
+                Vector2D dir = arrowEnd - arrowStart;
+                const float mag = dir.Magnitude();
+                if (mag > 0.0001f) {
+                    dir /= mag;
+                    Vector2D perp = { -dir.y, dir.x };
+                    const float headSize = (activeCamera != 0 && cameraSystem_) ? 0.02f : std::max(4.0f, arrowLenWorld * 0.25f);
+                    const Vector2D headBase = arrowEnd - dir * (headSize * 1.5f);
+                    const Vector2D headLeft = headBase + perp * headSize;
+                    const Vector2D headRight = headBase - perp * headSize;
+                    gfx_.drawLine(arrowEnd, headLeft, arrowColor);
+                    gfx_.drawLine(arrowEnd, headRight, arrowColor);
+                }
             }
         }
     }
