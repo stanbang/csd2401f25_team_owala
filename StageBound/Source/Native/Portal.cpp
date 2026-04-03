@@ -294,5 +294,6 @@ void Portal::OnUpdate() {
  * Empty implementation as no cleanup is required.
  */
 void Portal::OnDestroy() {
-    // Logic to be called before Entity is deleted
+    Entity self = GetEntity();
+    GameManager::GetInstance().GetSystems().audio_->StopAudio(self);
 }
